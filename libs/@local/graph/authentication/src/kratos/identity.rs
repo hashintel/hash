@@ -51,12 +51,12 @@ impl<R> KratosEmailActorResolver<R> {
 /// Restates an admin API failure as a failure to authenticate.
 fn authentication_error(report: Report<KratosAdminError>) -> Report<AuthenticationError> {
     let context = match report.current_context() {
-        KratosAdminError::Rejected => AuthenticationError::ProviderRejection,
-        KratosAdminError::InvalidResponse => AuthenticationError::InvalidProviderResponse,
+        KratosAdminError::Rejected => AuthenticationError::provider_rejection(),
+        KratosAdminError::InvalidResponse => AuthenticationError::invalid_provider_response(),
         // An empty claim names no address to resolve, which is the token's fault rather than the
         // provider's.
-        KratosAdminError::EmptyIdentifier => AuthenticationError::InvalidAccessToken,
-        KratosAdminError::Unreachable => AuthenticationError::ProviderUnreachable,
+        KratosAdminError::EmptyIdentifier => AuthenticationError::invalid_access_token(),
+        KratosAdminError::Unreachable => AuthenticationError::provider_unreachable(),
     };
     report.change_context(context)
 }
@@ -81,22 +81,22 @@ async fn verified_identity(
             .any(|address| address.verified && address.value.eq_ignore_ascii_case(email))
     });
     let Some(identity) = matching.next() else {
-        return Err(Report::new(AuthenticationError::IdentityWithoutActor));
+        return Err(Report::new(AuthenticationError::identity_without_actor()));
     };
     // The address is the identity's credentials identifier, which the provider keeps unique —
     // several identities holding it as verified violate that invariant, and picking one would
     // authenticate an arbitrary account.
     if matching.next().is_some() {
-        return Err(Report::new(AuthenticationError::InvalidProviderResponse));
+        return Err(Report::new(AuthenticationError::invalid_provider_response()));
     }
 
     let Some(actor_uuid) = identity
         .metadata_public
         .and_then(|metadata| metadata.graph_actor_id)
     else {
-        return Err(Report::new(AuthenticationError::NotProvisioned {
-            identity_id: identity.id,
-        }));
+        return Err(Report::new(AuthenticationError::not_provisioned(
+            identity.id,
+        )));
     };
 
     Ok(ActorEntityUuid::new(actor_uuid))
@@ -122,11 +122,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use core::time::Duration;
+    use core::{assert_matches, time::Duration};
     use std::collections::HashMap;
 
     use axum::{Json, Router, extract::Query, response::IntoResponse as _, routing::get};
-    use hash_middleware::authentication::request::AuthenticationError;
+    use hash_middleware::authentication::request::{AuthenticationError, AuthenticationErrorKind};
     use http::StatusCode;
     use reqwest::Url;
     use rstest::rstest;
@@ -270,13 +270,10 @@ mod tests {
             .resolve_email_actor(EMAIL)
             .await
             .expect_err("an ambiguous verified address should fail rather than pick an account");
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidProviderResponse
-            ),
-            "the ambiguity should fail as an invalid provider state, got {:?}",
-            report.current_context()
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidProviderResponse,
+            "the ambiguity should fail as an invalid provider state"
         );
     }
 
@@ -328,12 +325,12 @@ mod tests {
     #[case::unverified_address(
         json!([identity_json(Some(case_actor()), json!([unverified_address(EMAIL)]))]),
         known_user(case_actor()),
-        |error: &AuthenticationError| matches!(error, AuthenticationError::IdentityWithoutActor)
+        |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::IdentityWithoutActor)
     )]
     #[case::no_identity_for_email(
         json!([]),
         HashMap::new(),
-        |error: &AuthenticationError| matches!(error, AuthenticationError::IdentityWithoutActor)
+        |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::IdentityWithoutActor)
     )]
     #[case::identity_without_the_looked_up_address(
         json!([identity_json(
@@ -341,22 +338,22 @@ mod tests {
             json!([verified_address("other@example.com")]),
         )]),
         known_user(case_actor()),
-        |error: &AuthenticationError| matches!(error, AuthenticationError::IdentityWithoutActor)
+        |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::IdentityWithoutActor)
     )]
     #[case::unprovisioned_identity(
         json!([identity_json(None, json!([verified_address(EMAIL)]))]),
         HashMap::new(),
-        |error: &AuthenticationError| matches!(error, AuthenticationError::NotProvisioned { .. })
+        |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::NotProvisioned { .. })
     )]
     #[case::unknown_actor(
         json!([identity_json(Some(case_actor()), json!([verified_address(EMAIL)]))]),
         HashMap::new(),
-        |error: &AuthenticationError| matches!(error, AuthenticationError::ActorNotFound { .. })
+        |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::ActorNotFound { .. })
     )]
     #[case::machine_actor(
         json!([identity_json(Some(case_actor()), json!([verified_address(EMAIL)]))]),
         HashMap::from([(case_actor(), ActorId::Machine(MachineId::new(case_actor())))]),
-        |error: &AuthenticationError| matches!(error, AuthenticationError::NotAUser { .. })
+        |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::NotAUser { .. })
     )]
     #[tokio::test]
     async fn unresolvable_email_fails_resolution(
@@ -394,13 +391,10 @@ mod tests {
             .resolve_email_actor("")
             .await
             .expect_err("an empty email should be rejected");
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidAccessToken
-            ),
-            "an empty email should fail as an invalid token, got {:?}",
-            report.current_context()
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidAccessToken,
+            "an empty email should fail as an invalid token"
         );
     }
 
@@ -416,11 +410,9 @@ mod tests {
             .resolve_email_actor(EMAIL)
             .await
             .expect_err("an undeserializable identity response should fail resolution");
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidProviderResponse
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidProviderResponse,
             "an undeserializable identity response should fail as an invalid provider response"
         );
         assert!(

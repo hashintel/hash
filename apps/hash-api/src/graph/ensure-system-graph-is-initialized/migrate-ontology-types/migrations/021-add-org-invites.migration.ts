@@ -48,6 +48,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Invitation",
+        titlePlural: "Invitations",
         description: "A request or offer to join or attend something.",
         properties: [
           {
@@ -106,6 +107,9 @@ const migrate: MigrationFunction = async ({
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Issued Invitation",
         description: "An invitation that something has issued.",
+        inverse: {
+          title: "Issued By",
+        },
       },
       migrationState,
       webShortname: "h",

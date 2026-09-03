@@ -15,15 +15,30 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
+  CommandRegistryProvider,
+  useCommand,
+} from "@hashintel/petrinaut/react";
+import {
   DefaultChatTransport,
   Petrinaut,
   type PetrinautAiMessage,
+  type PetrinautAiVoiceMode,
+  type PetrinautAiVoiceModeContext,
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
+import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
+import { CommandPalette } from "../command-palette";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
+import {
+  loadOpenAIVoiceConfig,
+  type OpenAIVoiceConfig,
+  VoiceInterviewControl,
+} from "../voice-interview/voice-interview-control";
+import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
 import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
 import { createBrunchPanelTransport } from "./brunch-panel-transport";
+import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
@@ -81,6 +96,25 @@ const DEMO_CAPABILITIES = {
   disabledExtensions: [],
 } satisfies PetrinautHandleCapabilities;
 
+const brunchPreviewConfig = resolveBrunchPreviewConfig(
+  import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
+);
+
+// Only Brunch keeps a conversation to hydrate from; the generic fallback route
+// has no history door.
+const brunchHistoryEndpoint = brunchPreviewConfig.isBrunchConfigured
+  ? brunchPreviewConfig.chatEndpoint
+  : null;
+
+export const getBrunchVoiceMode = (
+  config: OpenAIVoiceConfig | null | undefined,
+): PetrinautAiVoiceMode | undefined =>
+  config
+    ? (context: PetrinautAiVoiceModeContext) => (
+        <VoiceInterviewControl {...context} config={config} />
+      )
+    : undefined;
+
 const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   createJsonDocHandle({
     id: net.id,
@@ -91,9 +125,10 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
 const brunchPrincipal = getOrCreateBrunchPrincipal();
 
 const stockChatTransport = new DefaultChatTransport({
-  api: "/api/chat",
+  api: brunchPreviewConfig.chatEndpoint,
   headers: () => ({
     [BRUNCH_PRINCIPAL_HEADER]: brunchPrincipal,
+    [VOICE_REQUEST_ID_HEADER]: crypto.randomUUID(),
   }),
 });
 
@@ -121,6 +156,26 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
 });
 
 /**
+ * The demo's own palette command, registered beside Petrinaut's: picking it
+ * in the palette starts a fresh net.
+ */
+const DemoCommands = ({
+  createNewNet,
+}: {
+  createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
+}) => {
+  useCommand({
+    id: "demo.net.new",
+    label: "Create a new empty net",
+    category: "Demo",
+    keywords: ["file"],
+    run: () =>
+      createNewNet({ petriNetDefinition: emptySDCPN, title: "New Process" }),
+  });
+  return null;
+};
+
+/**
  * Local-storage demo shell for Petrinaut.
  *
  * Local storage is the persistence layer for saved nets, while the active
@@ -130,10 +185,37 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
  */
 export const LocalStorageDemoApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
+  const [openAIVoiceConfig, setOpenAIVoiceConfig] =
+    useState<OpenAIVoiceConfig | null>();
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
   const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(storedSDCPNs);
+
+  useEffect(() => {
+    if (!brunchPreviewConfig.isBrunchConfigured) {
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Resolve the loading sentinel when voice is not configured.
+      setOpenAIVoiceConfig(null);
+      return;
+    }
+
+    const abortController = new AbortController();
+    void loadOpenAIVoiceConfig(
+      globalThis.fetch.bind(globalThis),
+      abortController.signal,
+    ).then((config) => {
+      if (!abortController.signal.aborted) {
+        setOpenAIVoiceConfig(config);
+      }
+    });
+
+    return () => abortController.abort();
+  }, []);
+
+  const brunchVoiceMode = useMemo(
+    () => getBrunchVoiceMode(openAIVoiceConfig),
+    [openAIVoiceConfig],
+  );
 
   // Pick the most recently modified net
   const mostRecentlyModifiedNet =
@@ -278,7 +360,11 @@ export const LocalStorageDemoApp = () => {
   const conversationId = currentNetId
     ? getOrCreateBrunchConversationId(currentNetId)
     : null;
-  const flueHistory = useFlueChatHistory(conversationId ?? "", brunchPrincipal);
+  const flueHistory = useFlueChatHistory(
+    brunchHistoryEndpoint,
+    conversationId ?? "",
+    brunchPrincipal,
+  );
   const petrinautAiChatTransport = useMemo(
     () =>
       conversationId === null
@@ -289,6 +375,8 @@ export const LocalStorageDemoApp = () => {
 
   const aiAssistant = useMemo(
     () => ({
+      ...(conversationId === null ? {} : { conversationId }),
+      interactiveTools: [brunchAskInteractiveTool],
       transport: petrinautAiChatTransport,
       messages: flueHistory.ready
         ? flueHistory.messages
@@ -316,9 +404,16 @@ export const LocalStorageDemoApp = () => {
           return next;
         });
       },
+      ...(brunchVoiceMode
+        ? {
+            renderVoiceMode: brunchVoiceMode,
+          }
+        : {}),
     }),
     [
       aiMessagesByNetId,
+      brunchVoiceMode,
+      conversationId,
       currentNetId,
       flueHistory.messages,
       flueHistory.ready,
@@ -337,19 +432,23 @@ export const LocalStorageDemoApp = () => {
 
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
-      <WalkthroughProvider steps={walkthroughSteps}>
-        <Petrinaut
-          aiAssistant={aiAssistant}
-          handle={activeHandle.handle}
-          existingNets={existingNets}
-          createNewNet={createNewNet}
-          loadPetriNet={loadPetriNet}
-          readonly={false}
-          setTitle={setTitle}
-          title={currentNet.title}
-          viewportActions={[sentryFeedbackAction]}
-        />
-      </WalkthroughProvider>
+      <CommandRegistryProvider>
+        <WalkthroughProvider steps={walkthroughSteps}>
+          <Petrinaut
+            aiAssistant={aiAssistant}
+            handle={activeHandle.handle}
+            existingNets={existingNets}
+            createNewNet={createNewNet}
+            loadPetriNet={loadPetriNet}
+            readonly={false}
+            setTitle={setTitle}
+            title={currentNet.title}
+            viewportActions={[sentryFeedbackAction]}
+          />
+        </WalkthroughProvider>
+        <DemoCommands createNewNet={createNewNet} />
+        <CommandPalette />
+      </CommandRegistryProvider>
     </div>
   );
 };

@@ -44,6 +44,8 @@ export type {
 } from "./ui/types/ai-interactive-tool";
 
 export {
+  combineCommandRegistries,
+  createCommandRegistry,
   createJsonDocHandle,
   createPetrinaut,
   createPetrinautActions,
@@ -52,6 +54,9 @@ export {
   isSDCPNEqual,
   type BackpressureConfig,
   type Color,
+  type Command,
+  type CommandRegistry,
+  type CommandRegistryView,
   type CreateJsonDocHandleOptions,
   type CreatePetrinautConfig,
   type CreateSimulationConfig,

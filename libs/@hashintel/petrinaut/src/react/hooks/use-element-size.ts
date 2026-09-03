@@ -13,12 +13,22 @@ interface UseElementSizeOptions {
    * Defaults to 0 (no debounce — updates on every ResizeObserver callback).
    */
   debounce?: number;
+  /**
+   * Which box to measure. "content" (the default) excludes padding and
+   * border; "border" is the element's full rendered size — what layout
+   * math against other elements (e.g. popover placement) needs.
+   */
+  box?: "content" | "border";
 }
 
 /**
- * Returns the content-box size of a DOM element, kept in sync via ResizeObserver.
+ * Returns the size of a DOM element, kept in sync via ResizeObserver.
  *
- * Returns `null` until the element is mounted and the first observation fires.
+ * Returns `null` until the element is mounted and the first observation fires,
+ * and again while the element is unmounted — the element may mount later than
+ * the hook (e.g. a chart root that only renders once data exists) or be
+ * swapped, and the observer follows it.
+ *
  * Supports an optional `debounce` interval to throttle updates.
  *
  * @example
@@ -36,10 +46,28 @@ export function useElementSize(
   "use no memo"; // imperative observer + timer management
   const [size, setSize] = useState<ElementSize | null>(null);
   const debounceMs = options?.debounce ?? 0;
+  const box = options?.box ?? "content";
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const observedRef = useRef<HTMLElement | null>(null);
+  const observerRef = useRef<ResizeObserver | null>(null);
 
+  // Deliberately no dependency array: a RefObject gives no signal when its
+  // `.current` changes, and the observed element can mount after the first
+  // commit or be swapped for another — so re-check its identity after every
+  // render, and only re-subscribe when the element actually changed.
   useEffect(() => {
     const el = ref.current;
+    if (el === observedRef.current) {
+      return;
+    }
+
+    observerRef.current?.disconnect();
+    observerRef.current = null;
+    observedRef.current = el;
+
+    // While no element is mounted the last size is kept, not reset: callers
+    // gate rendering on the element's presence anyway, and the next
+    // observation corrects any drift.
     if (!el) {
       return;
     }
@@ -58,7 +86,11 @@ export function useElementSize(
       if (!entry) {
         return;
       }
-      const { width, height } = entry.contentRect;
+      const borderBox = entry.borderBoxSize[0];
+      const { width, height } =
+        box === "border" && borderBox
+          ? { width: borderBox.inlineSize, height: borderBox.blockSize }
+          : entry.contentRect;
       if (debounceMs > 0) {
         if (timerRef.current != null) {
           clearTimeout(timerRef.current);
@@ -73,15 +105,22 @@ export function useElementSize(
     });
 
     ro.observe(el);
+    observerRef.current = ro;
+  });
 
-    return () => {
-      ro.disconnect();
+  useEffect(
+    () => () => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+      // A replayed setup (Strict Mode) must observe the element again.
+      observedRef.current = null;
       if (timerRef.current != null) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
-    };
-  }, [ref, debounceMs]);
+    },
+    [],
+  );
 
   return size;
 }

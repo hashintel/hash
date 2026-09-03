@@ -1,0 +1,13 @@
+{
+  "package": "@rust/hash-status",
+  "dependencies": [
+    "@local/status"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": []
+  }
+}

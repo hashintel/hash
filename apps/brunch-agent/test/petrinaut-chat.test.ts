@@ -99,19 +99,38 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     expect(result.transcript).toContain("tool ping");
     expect(result.transcript).toContain("tool readPetrinautDoc");
     expect(result.transcript).toContain("tool activate_skill");
+    expect(result.transcript).toContain("tool read_skill_resource");
     expect(result.transcript).toContain(
       "The assistant can read its own documentation pages.",
     );
     expect(result.activateSkillCall).toMatchObject({
       type: "tool-input-available",
       toolName: "activate_skill",
-      input: { name: "confirm-path" },
+      input: { name: "sdcpn-modelling" },
     });
+    expect(result.readSkillResourceCall).toMatchObject({
+      type: "tool-input-available",
+      toolName: "read_skill_resource",
+    });
+    expect(JSON.stringify(result.readSkillResourceCall?.input ?? {})).toContain(
+      "elicitation.md",
+    );
     expect(result.interviewerToolNames).toContain("activate_skill");
+    expect(result.interviewerToolNames).toContain("read_skill_resource");
     expect(result.interviewerToolNames).toContain("ping");
     expect(result.interviewerToolNames).toContain("readPetrinautDoc");
     expect(result.interviewerToolNames).not.toContain("sweep");
     expect(result.interviewerToolNames).not.toContain("brunch_sweep");
+    expect(result.interviewerToolNames).not.toEqual(
+      expect.arrayContaining([
+        "getLatestNetDefinition",
+        "addType",
+        "addParameter",
+        "addPlace",
+        "addTransition",
+        "addArc",
+      ]),
+    );
     expect(result.captureIds.length).toBe(1);
     expect(result.captureExcerpts).toEqual([
       "Run the FE-1435 transport probe.",
@@ -181,6 +200,7 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     expect(resumeResult.transcript).toContain("tool ping");
     expect(resumeResult.transcript).toContain("tool readPetrinautDoc");
     expect(resumeResult.transcript).toContain("tool activate_skill");
+    expect(resumeResult.transcript).toContain("tool read_skill_resource");
   } finally {
     await rm(dbDirectory, { recursive: true, force: true });
   }

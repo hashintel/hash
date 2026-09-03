@@ -1,0 +1,15 @@
+{
+  "package": "@rust/hash-temporal-client",
+  "dependencies": [
+    "@blockprotocol/type-system-rs",
+    "@rust/error-stack"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:integration": []
+  }
+}

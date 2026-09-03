@@ -1,0 +1,30 @@
+{
+  "package": "@hashintel/petrinaut-cli",
+  "dependencies": [
+    "@hashintel/petrinaut-core"
+  ],
+  "tasks": {
+    "build": [
+      "@hashintel/petrinaut-core#build"
+    ],
+    "codegen": [
+      "@hashintel/petrinaut-core#build"
+    ],
+    "fix:eslint": [
+      "@hashintel/petrinaut-cli#codegen",
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@hashintel/petrinaut-cli#codegen",
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@hashintel/petrinaut-cli#codegen"
+    ],
+    "test:unit": [
+      "@hashintel/petrinaut-cli#build",
+      "@hashintel/petrinaut-cli#codegen",
+      "@hashintel/petrinaut-core#build"
+    ]
+  }
+}

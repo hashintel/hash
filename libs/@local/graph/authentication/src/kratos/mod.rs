@@ -25,6 +25,7 @@ pub use self::{
     identity::{KratosAdminConfig, KratosEmailActorResolver},
     session::{
         KratosSessionConfig, KratosSessionProvider, SESSION_COOKIE_NAME, SESSION_TOKEN_HEADER,
+        SessionCacheConfig,
     },
 };
 
@@ -122,13 +123,13 @@ async fn read_provider_body(response: Response) -> Result<String, Report<Provide
 /// - [`ProviderRejection`] if Kratos reported a client error
 /// - [`ProviderUnreachable`] for any other unsuccessful status, or if the body cannot be read
 ///
-/// [`ProviderRejection`]: AuthenticationError::ProviderRejection
-/// [`ProviderUnreachable`]: AuthenticationError::ProviderUnreachable
+/// [`ProviderRejection`]: hash_middleware::authentication::request::AuthenticationErrorKind::ProviderRejection
+/// [`ProviderUnreachable`]: hash_middleware::authentication::request::AuthenticationErrorKind::ProviderUnreachable
 async fn read_response_body(response: Response) -> Result<String, Report<AuthenticationError>> {
     read_provider_body(response).await.map_err(|report| {
         let context = match report.current_context() {
-            ProviderFailure::Rejected => AuthenticationError::ProviderRejection,
-            ProviderFailure::Unavailable => AuthenticationError::ProviderUnreachable,
+            ProviderFailure::Rejected => AuthenticationError::provider_rejection(),
+            ProviderFailure::Unavailable => AuthenticationError::provider_unreachable(),
         };
         report.change_context(context)
     })
@@ -136,13 +137,14 @@ async fn read_response_body(response: Response) -> Result<String, Report<Authent
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use core::net::SocketAddr;
+    use core::{assert_matches, net::SocketAddr};
 
     use axum::Router;
+    use hash_middleware::authentication::request::AuthenticationErrorKind;
     use reqwest::{Response, Url};
     use rstest::rstest;
 
-    use super::{AuthenticationError, read_response_body};
+    use super::read_response_body;
 
     /// Binds a fake Kratos on an ephemeral port and returns its base URL.
     pub(crate) async fn spawn_fake_kratos(router: Router) -> Url {
@@ -184,13 +186,10 @@ pub(crate) mod tests {
         let report = read_response_body(response_with(status, "{}"))
             .await
             .expect_err("a client error should fail");
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ProviderRejection
-            ),
-            "a client error should report a provider rejection, got {:?}",
-            report.current_context()
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::ProviderRejection,
+            "a client error should report a provider rejection"
         );
     }
 
@@ -206,13 +205,10 @@ pub(crate) mod tests {
         let report = read_response_body(response_with(status, "{}"))
             .await
             .expect_err("an unsuccessful status should fail");
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ProviderUnreachable
-            ),
-            "an unsuccessful status should report provider unavailability, got {:?}",
-            report.current_context()
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::ProviderUnreachable,
+            "an unsuccessful status should report provider unavailability"
         );
     }
 

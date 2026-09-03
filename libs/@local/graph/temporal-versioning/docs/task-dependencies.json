@@ -1,0 +1,14 @@
+{
+  "package": "@rust/hash-graph-temporal-versioning",
+  "dependencies": [
+    "@rust/hash-codec"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:unit": []
+  }
+}

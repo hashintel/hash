@@ -1,0 +1,30 @@
+{
+  "package": "@hashintel/type-editor",
+  "dependencies": [
+    "@blockprotocol/graph",
+    "@blockprotocol/type-system",
+    "@hashintel/design-system",
+    "@local/eslint",
+    "@local/hash-isomorphic-utils"
+  ],
+  "tasks": {
+    "fix:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/eslint#build",
+      "@local/hash-isomorphic-utils#build"
+    ],
+    "lint:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/eslint#build",
+      "@local/hash-isomorphic-utils#build"
+    ],
+    "lint:tsc": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/eslint#build",
+      "@local/hash-isomorphic-utils#build"
+    ]
+  }
+}

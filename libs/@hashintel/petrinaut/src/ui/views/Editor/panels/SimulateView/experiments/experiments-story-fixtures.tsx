@@ -1,13 +1,16 @@
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
   type CreateExperimentInput,
+  ExperimentsActionsContext,
+  type ExperimentsActionsValue,
   ExperimentsContext,
   type ExperimentRecord,
   type ExperimentsContextValue,
+  isTerminalExperimentStatus,
 } from "../../../../../../react/experiments/context";
 import {
   EditorContext,
@@ -72,11 +75,24 @@ export function makeExperiment(
   overrides: Partial<ExperimentRecord> = {},
 ): ExperimentRecord {
   const status = overrides.status ?? "running";
+  const createdAt = Date.now() - index * 60_000;
+  // Stepping begins shortly after creation, once user code has compiled. An
+  // initializing experiment has not reached that point.
+  const startedAt = status === "initializing" ? null : createdAt + 800;
 
   return {
     id: `experiment-${index}`,
+    computeBackend: "cpu",
+    computeBackendFallbackReason: null,
     name: `SIR Monte Carlo ${index}`,
-    createdAt: Date.now() - index * 60_000,
+    createdAt,
+    startedAt,
+    // A running experiment's elapsed time is measured against the live clock, so
+    // it advances while the story is open — as it does in the app.
+    finishedAt:
+      startedAt !== null && isTerminalExperimentStatus(status)
+        ? startedAt + 47_300
+        : null,
     scenarioId: "scenario__seasonal_flu",
     scenarioName: "Seasonal Flu",
     runCount: 1_000,
@@ -97,8 +113,169 @@ export function makeExperiment(
             frameNumber: status === "complete" ? 180 : 45,
           }),
     latestMetricFramesById: {},
+    sweepBatches: [],
+    parameterAxes: [],
+    sweep: null,
     metricFrames: [],
     ...overrides,
+  };
+}
+
+/**
+ * A sweep over two SIR scenario parameters, mid-refinement on its selected
+ * combination. The frames are a small synthetic infected-count distribution so
+ * the navigator has a chart to sit above.
+ */
+export function makeParameterSweepExperiment(): ExperimentRecord {
+  const frames = Array.from({ length: 46 }, (_, frameNumber) => {
+    const peak = 60 + 30 * Math.sin(frameNumber / 7);
+    return {
+      metricId: "infected",
+      label: "Infected",
+      outputType: "distribution" as const,
+      frameNumber,
+      time: frameNumber,
+      bins: [
+        [Math.round(peak - 8), 5],
+        [Math.round(peak), 14],
+        [Math.round(peak + 9), 6],
+      ] as (readonly [number, number])[],
+      value: null,
+      frameValue: null,
+      timeValue: null,
+      runSampleCount: 25,
+      timeSampleCount: 25,
+    };
+  });
+
+  return makeExperiment(4, {
+    name: "SIR transmission sweep",
+    status: "running",
+    runCount: 100,
+    metricSpecs: [
+      {
+        kind: "placeTokenCountMean",
+        id: "infected",
+        label: "Infected",
+        placeId: "place__infected",
+        runOutput: { type: "distribution", binning: "exact" },
+      },
+    ],
+    sweepBatches: [],
+    parameterAxes: [
+      {
+        identifier: "transmission_rate",
+        min: 0.1,
+        max: 0.5,
+        stepCount: 50,
+        integer: false,
+      },
+      {
+        identifier: "recovery_days",
+        min: 2,
+        max: 20,
+        stepCount: 18,
+        integer: true,
+      },
+    ],
+    sweep: {
+      selection: {
+        transmission_rate: { from: 25, to: 25 },
+        recovery_days: { from: 6, to: 6 },
+      },
+      runsCompleted: 25,
+      runsSampled: 61,
+      runTarget: 100,
+      computing: true,
+    },
+    metricFrames: frames,
+    latestMetricFramesById: { infected: frames.at(-1)! },
+  });
+}
+
+type StoryMetricFrame = ExperimentRecord["metricFrames"][number];
+
+/**
+ * A deterministic SIR-ish infected count at `time` for the given parameter
+ * values: one epidemic wave whose height grows with the transmission rate
+ * and whose timing and length grow with the recovery time. Subcritical
+ * parameters (transmission_rate × recovery_days ≤ 1) stay nearly flat, so
+ * moving the navigator visibly reshapes the curve.
+ */
+export function sirInfectedMean(
+  time: number,
+  transmissionRate: number,
+  recoveryDays: number,
+): number {
+  const r0 = transmissionRate * recoveryDays;
+  const attack = Math.max(0, 1 - 1 / Math.max(r0, 1.01));
+  const peak = 350 * attack;
+  const peakTime = 8 + recoveryDays * (1.4 - transmissionRate);
+  const width = 4 + recoveryDays * 0.9;
+  const pulse = Math.exp(-(((time - peakTime) / width) ** 2));
+  return peak * pulse + 10 * attack;
+}
+
+/** A deterministic pseudo-random fraction in [0, 1) that varies by inputs. */
+function storyNoise(a: number, b: number): number {
+  const raw = Math.sin((a + 1) * 374.761 + (b + 1) * 668.265) * 43_758.545;
+  return raw - Math.floor(raw);
+}
+
+/**
+ * One synthetic distribution frame of the "Infected" metric: integer bins
+ * spread around `sirInfectedMean`. More `runs` fill more bins with smoother
+ * frequencies (sampling jitter shrinks as 1/√runs), so a story replaying the
+ * refinement ladder shows distributions sharpening the way a real batch
+ * merge does; a wider `spread` widens the histogram, the way a range
+ * selection's per-run parameter draws do.
+ */
+export function sirInfectedFrame(options: {
+  frameNumber: number;
+  transmissionRate: number;
+  recoveryDays: number;
+  /** Half-width of the run distribution around the mean, in tokens. */
+  spread: number;
+  /** Runs contributing to the frame. */
+  runs: number;
+}): StoryMetricFrame {
+  const { frameNumber, transmissionRate, recoveryDays, spread, runs } = options;
+  const mean = sirInfectedMean(frameNumber, transmissionRate, recoveryDays);
+  const center = Math.round(mean);
+  const sigma = Math.max(1, spread);
+  // Few runs resolve only a few coarse bins; more runs fill the whole ±2σ.
+  const halfWidth = Math.min(
+    Math.round(sigma * 2),
+    Math.max(1, Math.floor(Math.sqrt(runs) * sigma * 0.45)),
+  );
+  const step = Math.max(1, Math.round((2 * halfWidth + 1) / 12));
+  const jitter = 1.6 / Math.sqrt(runs);
+
+  const bins: (readonly [number, number])[] = [];
+  for (let offset = -halfWidth; offset <= halfWidth; offset += step) {
+    const weight = Math.exp(-((offset / sigma) ** 2) * 1.5) * runs;
+    const noise = 1 + jitter * (storyNoise(frameNumber, offset) - 0.5) * 2;
+    const frequency = Math.round(weight * noise);
+    if (frequency > 0 && center + offset >= 0) {
+      bins.push([center + offset, frequency]);
+    }
+  }
+  if (bins.length === 0) {
+    bins.push([Math.max(0, center), runs]);
+  }
+
+  return {
+    metricId: "infected",
+    label: "Infected",
+    outputType: "distribution" as const,
+    frameNumber,
+    time: frameNumber,
+    bins,
+    value: null,
+    frameValue: null,
+    timeValue: null,
+    runSampleCount: runs,
+    timeSampleCount: runs,
   };
 }
 
@@ -151,6 +328,8 @@ const createFakeExperiment = (
   input: CreateExperimentInput,
 ): ExperimentRecord => ({
   id: `experiment-${Date.now()}`,
+  computeBackend: input.computeBackend ?? "cpu",
+  computeBackendFallbackReason: null,
   name: input.name,
   createdAt: Date.now(),
   scenarioId: input.scenarioId,
@@ -162,17 +341,87 @@ const createFakeExperiment = (
   status: "initializing",
   error: null,
   metricSpecs: input.metricSpecs,
+  startedAt: null,
+  finishedAt: null,
   progress: null,
   latestMetricFramesById: {},
   metricFrames: [],
+  sweepBatches: [],
+  parameterAxes: [],
+  sweep: null,
 });
+
+/**
+ * The synthetic objective every fake sampler returns: a smooth bump over the
+ * sweep fixture's parameter values, so a story's contour fills in the way a
+ * real sweep's would. `transmissionRate` and `recoveryDays` are values, not
+ * positions.
+ */
+export function syntheticSweepObjective(
+  transmissionRate: number,
+  recoveryDays: number,
+): number {
+  return (
+    100 *
+      Math.exp(
+        -((transmissionRate - 0.35) ** 2) * 20 -
+          ((recoveryDays - 10) / 14) ** 2,
+      ) +
+    6 * Math.sin(transmissionRate * 9) +
+    recoveryDays / 4
+  );
+}
+
+/**
+ * A fake `sampleSurfaceCells`: one walk delay per chunk, then every cell's
+ * synthetic objective under the "infected" metric. Positions are quantized
+ * indices on the sweep fixture's axes.
+ */
+export function makeFakeSurfaceSampler(
+  delayMs: number,
+): ExperimentsContextValue["sampleSurfaceCells"] {
+  return (_experimentId, positions) =>
+    new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(
+          positions.map((position) => ({
+            infected: Math.round(
+              syntheticSweepObjective(
+                0.1 + ((position.transmission_rate ?? 0) / 50) * 0.4,
+                2 + (position.recovery_days ?? 0),
+              ),
+            ),
+          })),
+        );
+      }, delayMs);
+    });
+}
 
 export function FakeExperimentsProvider({
   children,
   initialExperiments,
+  overrides,
+  restreamOnSelectionChange = false,
 }: {
   children: ReactNode;
   initialExperiments: readonly ExperimentRecord[];
+  /**
+   * Per-story replacements for the fake compute callbacks — e.g. a slower
+   * sampler to watch a surface fill in, or one that resolves null to show
+   * the empty state.
+   */
+  overrides?: Partial<
+    Pick<
+      ExperimentsContextValue,
+      "sampleSurfaceCells" | "sampleDetachedObjective"
+    >
+  >;
+  /**
+   * Simulates what the real sweep session does on a selection change:
+   * frames clear immediately, then the new selection's distribution streams
+   * back in after a compute gap.
+   */
+  restreamOnSelectionChange?: boolean;
 }) {
   const [experiments, setExperiments] = useState<readonly ExperimentRecord[]>(
     () => initialExperiments,
@@ -184,36 +433,197 @@ export function FakeExperimentsProvider({
     experiments.find((experiment) => experiment.id === selectedExperimentId) ??
     null;
 
-  const value = useMemo<ExperimentsContextValue>(
-    () => ({
-      experiments,
-      selectedExperimentId,
-      selectedExperiment,
-      setSelectedExperimentId,
-      createExperiment: (input) => {
-        const experiment = createFakeExperiment(input);
-        setExperiments((current) => [experiment, ...current]);
-        return Promise.resolve(experiment.id);
-      },
-      cancelExperiment: (experimentId) => {
-        setExperiments((current) =>
-          current.map((experiment) =>
-            experiment.id === experimentId
-              ? { ...experiment, status: "cancelled" }
-              : experiment,
-          ),
-        );
-      },
-      removeExperiment: (experimentId) => {
-        setExperiments((current) =>
-          current.filter((experiment) => experiment.id !== experimentId),
-        );
-      },
-    }),
-    [experiments, selectedExperiment, selectedExperimentId],
+  /** Cancels the previous fake restream when the selection moves again. */
+  const restreamRef = useRef<{
+    generation: number;
+    timer: ReturnType<typeof setTimeout> | null;
+  }>({ generation: 0, timer: null });
+  useEffect(
+    () => () => {
+      if (restreamRef.current.timer !== null) {
+        clearTimeout(restreamRef.current.timer);
+      }
+    },
+    [],
   );
 
-  return <ExperimentsContext value={value}>{children}</ExperimentsContext>;
+  const restream = (
+    experimentId: string,
+    selection: Readonly<Record<string, { from: number; to: number }>>,
+  ) => {
+    const generation = ++restreamRef.current.generation;
+    if (restreamRef.current.timer !== null) {
+      clearTimeout(restreamRef.current.timer);
+    }
+    // Selection midpoints in value space, against the sweep fixture's axes.
+    const midpoint = (axis: {
+      identifier: string;
+      min: number;
+      max: number;
+      stepCount: number;
+    }) => {
+      const range = selection[axis.identifier] ?? {
+        from: 0,
+        to: axis.stepCount,
+      };
+      const position = (range.from + range.to) / 2;
+      return axis.min + (position / axis.stepCount) * (axis.max - axis.min);
+    };
+
+    let upTo = 0;
+    const step = () => {
+      if (generation !== restreamRef.current.generation) {
+        return;
+      }
+      upTo = Math.min(46, upTo + 4);
+      setExperiments((current) =>
+        current.map((experiment) => {
+          if (experiment.id !== experimentId || !experiment.sweep) {
+            return experiment;
+          }
+          const transmissionRate = midpoint(
+            experiment.parameterAxes.find(
+              (axis) => axis.identifier === "transmission_rate",
+            ) ?? { identifier: "", min: 0.3, max: 0.3, stepCount: 1 },
+          );
+          const recoveryDays = midpoint(
+            experiment.parameterAxes.find(
+              (axis) => axis.identifier === "recovery_days",
+            ) ?? { identifier: "", min: 8, max: 8, stepCount: 1 },
+          );
+          const runs = upTo < 46 ? 25 : 100;
+          const frames = Array.from({ length: upTo }, (_, frameNumber) =>
+            sirInfectedFrame({
+              frameNumber,
+              transmissionRate,
+              recoveryDays,
+              spread: 9,
+              runs,
+            }),
+          );
+          return {
+            ...experiment,
+            metricFrames: frames,
+            latestMetricFramesById:
+              frames.length > 0 ? { infected: frames.at(-1)! } : {},
+            sweep: {
+              ...experiment.sweep,
+              runsCompleted: runs,
+              runsSampled: runs,
+              runTarget: upTo < 46 ? 100 : null,
+              computing: upTo < 46,
+            },
+          };
+        }),
+      );
+      if (upTo < 46) {
+        restreamRef.current.timer = setTimeout(step, 160);
+      }
+    };
+    // The compute gap the charts bridge with the previous picture.
+    restreamRef.current.timer = setTimeout(step, 900);
+  };
+
+  // Built once: every callback closes over stable setters and refs, so the
+  // actions context holds still across publishes the way the real one does.
+  const [actions] = useState<ExperimentsActionsValue>(() => ({
+    setSelectedExperimentId,
+    createExperiment: (input) => {
+      const experiment = createFakeExperiment(input);
+      setExperiments((current) => [experiment, ...current]);
+      return Promise.resolve(experiment.id);
+    },
+    cancelExperiment: (experimentId) => {
+      setExperiments((current) =>
+        current.map((experiment) =>
+          experiment.id === experimentId
+            ? { ...experiment, status: "cancelled" }
+            : experiment,
+        ),
+      );
+    },
+    removeExperiment: (experimentId) => {
+      setExperiments((current) =>
+        current.filter((experiment) => experiment.id !== experimentId),
+      );
+    },
+    setSweepSelection: (experimentId, selection) => {
+      setExperiments((current) =>
+        current.map((experiment) =>
+          experiment.id === experimentId && experiment.sweep
+            ? restreamOnSelectionChange
+              ? {
+                  ...experiment,
+                  metricFrames: [],
+                  latestMetricFramesById: {},
+                  sweep: {
+                    ...experiment.sweep,
+                    selection,
+                    runsCompleted: 0,
+                    runsSampled: 0,
+                    runTarget: 8,
+                    computing: true,
+                  },
+                }
+              : { ...experiment, sweep: { ...experiment.sweep, selection } }
+            : experiment,
+        ),
+      );
+      if (restreamOnSelectionChange) {
+        restream(experimentId, selection);
+      }
+    },
+    sampleSurfaceCells: makeFakeSurfaceSampler(120),
+    sampleDetachedObjective: (request) => {
+      // The synthetic bump over the study's real parameter values, so the
+      // optimization surface story fills live.
+      const values = Object.values(request.scenarioParameterValues).filter(
+        (entry): entry is number => typeof entry === "number",
+      );
+      const objective = syntheticSweepObjective(values[0] ?? 0, values[1] ?? 0);
+      const frame = {
+        metricId: request.metric.id,
+        label: request.metric.label,
+        outputType: "distribution" as const,
+        frameNumber: 45,
+        time: 45,
+        bins: [
+          [Math.round(objective * 100) / 100, request.runCount],
+        ] as (readonly [number, number])[],
+        value: null,
+        frameValue: null,
+        timeValue: null,
+        runSampleCount: request.runCount,
+        timeSampleCount: request.runCount,
+      };
+      return new Promise((resolve) => {
+        setTimeout(
+          () =>
+            resolve({
+              runsCompleted: request.runCount,
+              metricFrames: [frame],
+            }),
+          100,
+        );
+      });
+    },
+    ...overrides,
+  }));
+
+  const value: ExperimentsContextValue = {
+    experiments,
+    selectedExperimentId,
+    selectedExperiment,
+    ...actions,
+  };
+
+  return (
+    <ExperimentsContext value={value}>
+      <ExperimentsActionsContext value={actions}>
+        {children}
+      </ExperimentsActionsContext>
+    </ExperimentsContext>
+  );
 }
 
 export function FakeEditorProvider({

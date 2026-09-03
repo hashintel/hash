@@ -91,11 +91,13 @@ export const petrinautDocNames = [
   "useful-patterns",
   "simulation",
   "scenarios",
+  "ad-hoc-scenarios",
   "experiments",
   "optimization",
   "actual-mode",
   "ai-assistant",
   "visual-settings",
+  "compilation-output",
   "examples",
 ] as const;
 
@@ -112,6 +114,8 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
     "Single-run simulation: initial state, simulation settings (scenario picker, dt, ODE solver, parameters), running, frame computation, deadlock, playback controls, timeline, locked editing.",
   scenarios:
     "Named simulation configurations: scenario parameters, parameter bindings, per-place vs code-mode initial state, running and switching scenarios.",
+  "ad-hoc-scenarios":
+    "Inline initial state + parameters without saving a scenario: the shared form (scenario.<name> variables, fixed/dynamic/count-optimized rows chosen from the row gutter's menu, shared columns, phantom row, place totals, live type checking), its three surfaces (quick simulation, experiments, optimizations), and Optimize selections with generated adhoc.* parameter names.",
   experiments:
     "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), lifecycle/statuses, cancel/remove, results (median/mean/p10/p90), active-experiments popover.",
   optimization:
@@ -119,11 +123,13 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "actual-mode":
     "Actual mode: host-provided live execution view, Brunch stream URL route, read-only extension-free net, current limits.",
   "ai-assistant":
-    "In-app AI assistant: opening the panel, conversation surface, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
+    "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   "visual-settings":
-    "Animations, keep-panels-mounted, minimap, snap-to-grid, compact vs classic nodes, partial selection, tree view, arc rendering style.",
+    "Animations, keep-panels-mounted, minimap, snap-to-grid, compact vs classic nodes, partial selection, tree view, arc rendering style, compute backend, compilation output, parameter sweeps, optimization surface.",
+  "compilation-output":
+    "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   examples:
-    "Walkthroughs of the built-in examples and the scenarios/metrics each ships with: SIR, Supply Chain, Deployment Pipeline, Production Machines, Satellites in Orbit, Probabilistic Satellites Launcher.",
+    "Walkthroughs of the built-in examples and the scenarios/metrics each ships with: SIR, Supply Chain with Disruption, Supply Chain Profit, Deployment Pipeline, Production with Machine Failure, Probabilistic Satellite Launcher, Café Queue, Drone Patrol.",
 };
 
 const getLatestNetDefinitionToolInputSchema = z

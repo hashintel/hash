@@ -71,5 +71,6 @@ export default defineConfig({
     "apps/petrinaut-website/src/routeTree.gen.ts",
     "**/openapi.json",
     "**/*.aux.mir",
+    "**/docs/task-dependencies.json",
   ],
 });

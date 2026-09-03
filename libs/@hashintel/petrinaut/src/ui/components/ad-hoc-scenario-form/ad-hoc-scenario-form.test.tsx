@@ -17,7 +17,7 @@ import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
 } from "../../../react/lsp/context";
-import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
+import { AdHocScenarioForm, FormLayoutColumn } from "./ad-hoc-scenario-form";
 
 import type { AdHocFormSelection } from "./form-context";
 import type {
@@ -58,6 +58,9 @@ class ObserverStub {
 globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
 globalThis.IntersectionObserver =
   ObserverStub as unknown as typeof IntersectionObserver;
+// jsdom implements no scrolling at all, and the Scale list scrolls itself to
+// the selected option when it opens.
+Element.prototype.scrollTo = () => {};
 
 afterEach(cleanup);
 
@@ -110,11 +113,15 @@ const Harness: React.FC<{
   onState?: (state: AdHocScenarioState) => void;
   initial?: AdHocScenarioState;
   withVariables?: boolean;
+  renderLayout?: React.ComponentProps<typeof AdHocScenarioForm>["renderLayout"];
+  mode?: React.ComponentProps<typeof AdHocScenarioForm>["mode"];
 }> = ({
   selection = "optimize",
   onState,
   initial = EMPTY_AD_HOC_STATE,
   withVariables,
+  renderLayout,
+  mode,
 }) => {
   const [state, setState] = useState(initial);
   return (
@@ -127,6 +134,8 @@ const Harness: React.FC<{
       context={context}
       selection={selection}
       withVariables={withVariables}
+      renderLayout={renderLayout}
+      mode={mode}
     />
   );
 };
@@ -914,6 +923,66 @@ describe("AdHocScenarioForm", () => {
     expect(screen.queryByText("Scale")).toBe(null);
   });
 
+  it("keeps the optimize bounds usable while the slab is open", async () => {
+    let latest: AdHocScenarioState | undefined;
+    const initial: AdHocScenarioState = {
+      variables: [
+        {
+          name: "n",
+          type: "integer",
+          expression: "2",
+          optimize: { min: "0", max: "10", step: "1", scale: "linear" },
+        },
+      ],
+      netParameters: [],
+      places: {},
+    };
+    render(
+      <Harness
+        initial={initial}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "n" }));
+    const minCell = await screen.findByRole("button", { name: "Min of n" });
+    const slab = document.querySelector("[data-adhoc-slab]");
+
+    // The slab takes its own pointer events: a portal container is often a
+    // pointer-transparent layer, and a click-through slab hands every press
+    // to the row beneath it — which the dismiss handler reads as a press
+    // outside and closes the slab on.
+    expect(slab?.className).toContain("pointer-events_auto");
+
+    // A layer opened from inside the slab lives inside it, so pressing its
+    // options is not an outside press.
+    fireEvent.click(screen.getByRole("combobox", { name: "Scale of n" }));
+    const scaleList = await screen.findByRole("listbox");
+    expect(slab?.contains(scaleList)).toBe(true);
+    fireEvent.keyDown(scaleList, { key: "Escape" });
+
+    // Editing one bound keeps focus in its editor. Each keystroke dispatches
+    // and re-renders the slab, and the one-shot Min selection must not
+    // re-arm on the re-render: it used to steal focus mid-edit, so the next
+    // character overwrote Min instead.
+    fireEvent.keyDown(minCell, { key: "ArrowRight" });
+    fireEvent.click(screen.getByRole("button", { name: "Max of n" }));
+    const editor = await screen.findByRole("textbox", { name: "Expression" });
+    // The real editor focuses itself on mount; the jsdom stand-in does not.
+    editor.focus();
+    fireEvent.change(editor, { target: { value: "12" } });
+    expect(latest?.variables[0]?.optimize?.max).toBe("12");
+    expect(document.activeElement).toBe(editor);
+    // ...on the commit after that one too, which is where a guard re-armed
+    // by the ref churn would have taken the focus.
+    fireEvent.change(editor, { target: { value: "125" } });
+    expect(latest?.variables[0]?.optimize?.max).toBe("125");
+    expect(document.activeElement).toBe(editor);
+    expect(latest?.variables[0]?.optimize?.min).toBe("0");
+  });
+
   it("selects on pointer click and opens the menu from the dots", async () => {
     render(<Harness />);
     fireEvent.click(
@@ -1064,6 +1133,151 @@ describe("AdHocScenarioForm", () => {
     fireEvent.pointerDown(addLine);
     fireEvent.click(addLine, { detail: 1 });
     expect(latest?.variables).toHaveLength(1);
+  });
+
+  const RUN_STATE: AdHocScenarioState = {
+    variables: [
+      {
+        name: "altitude",
+        type: "real",
+        expression: "400",
+        optimize: null,
+        exposed: true,
+      },
+      { name: "helper", type: "real", expression: "2", optimize: null },
+    ],
+    netParameters: [],
+    places: {
+      "place-pumps": {
+        kind: "coloured",
+        variables: [
+          { name: "boost", type: "real", expression: "1", optimize: null },
+        ],
+        rows: [
+          {
+            kind: "fixed",
+            cells: [
+              { expression: "400", optimize: null },
+              { expression: "false", optimize: null },
+            ],
+          },
+        ],
+        sharedColumns: {},
+      },
+    },
+  };
+
+  it("run mode lists only exposed variables and offers no structural edits", () => {
+    render(<Harness selection="none" mode="run" initial={RUN_STATE} />);
+
+    // The exposed Variable is a static-name row; the auxiliary top-level
+    // and per-place Variables are gone entirely.
+    expect(screen.getByText("altitude")).toBeTruthy();
+    expect(screen.queryByText("helper")).toBe(null);
+    expect(screen.queryByText("boost")).toBe(null);
+    // No add-lines, no row menus, no dots affordance.
+    expect(screen.queryByRole("button", { name: /Add a variable/ })).toBe(null);
+    expect(screen.queryByRole("button", { name: /Add a token row/ })).toBe(
+      null,
+    );
+    expect(screen.queryByRole("button", { name: "Row 1 menu" })).toBe(null);
+  });
+
+  it("run mode edits exposed values and nothing else, but still walks", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        selection="none"
+        mode="run"
+        initial={RUN_STATE}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    // A read-only cell: activation opens no editor, Delete clears nothing,
+    // but arrows still walk the grid.
+    const cell = screen.getByRole("button", {
+      name: "Pumps › item 0 › pressure",
+    });
+    cell.focus();
+    fireEvent.click(cell, { detail: 0 });
+    expect(screen.queryByLabelText("Expression")).toBe(null);
+    fireEvent.keyDown(cell, { key: "Delete" });
+    expect(latest).toBe(undefined);
+    fireEvent.keyDown(cell, { key: "ArrowRight" });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Pumps › item 0 › worn",
+    );
+
+    // The exposed Variable's value cell opens and edits.
+    const value = screen.getByRole("button", { name: "altitude" });
+    value.focus();
+    fireEvent.click(value, { detail: 0 });
+    const editor = screen.getByLabelText("Expression");
+    fireEvent.change(editor, { target: { value: "500" } });
+    expect(latest?.variables[0]?.expression).toBe("500");
+  });
+
+  it("renderLayout columns: vertical arrows stay, horizontal ones cross with memory", () => {
+    render(
+      <Harness
+        withVariables={false}
+        renderLayout={({ parameters, places }) => (
+          <div>
+            <div>
+              <FormLayoutColumn>{parameters}</FormLayoutColumn>
+            </div>
+            <div>
+              <FormLayoutColumn>{places}</FormLayoutColumn>
+            </div>
+          </div>
+        )}
+      />,
+    );
+
+    // Down past the parameters grid's last row stays put — the columns sit
+    // side by side, so vertical moves never slide across.
+    const rateValue = screen.getByRole("button", { name: "Rate" });
+    rateValue.focus();
+    fireEvent.keyDown(rateValue, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(rateValue);
+
+    // Up from the places column's first member stays inside the column.
+    const pumpsHeader = screen.getByRole("button", { name: "Pumps place" });
+    pumpsHeader.focus();
+    fireEvent.keyDown(pumpsHeader, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(pumpsHeader);
+
+    // Right from the parameters row's last cell crosses into the places
+    // column, entering its first member.
+    const optimizeToggle = screen.getByRole("button", {
+      name: "Optimize Rate",
+    });
+    optimizeToggle.focus();
+    fireEvent.keyDown(optimizeToggle, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(pumpsHeader);
+
+    // Left from a places grid crosses back to the parameters column's
+    // remembered cell. The dense layout starts places collapsed and a
+    // collapsed place mounts no content, so expand it first.
+    fireEvent.keyDown(pumpsHeader, { key: "ArrowRight" });
+    const addVariable = screen.getByRole("button", {
+      name: "Add a variable (Variables of Pumps)",
+    });
+    addVariable.focus();
+    fireEvent.keyDown(addVariable, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(optimizeToggle);
+
+    // Within the places column the walk still chains: up from the token
+    // table's column header lands on the place's own add-variable line.
+    const pressureHeader = screen.getByRole("button", {
+      name: "Share column pressure",
+    });
+    pressureHeader.focus();
+    fireEvent.keyDown(pressureHeader, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(addVariable);
   });
 
   // The three tests below stay LAST: their undo/redo and editor-overlay

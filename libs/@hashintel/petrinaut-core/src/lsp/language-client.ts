@@ -9,6 +9,7 @@ import {
 import type { PetrinautExtensionSettings } from "../extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
 import type { HirCompileResult, ScenarioHir } from "../hir";
+import type { CompileHirArtifactsOptions } from "../hir/compile";
 import type { AdHocSynthesisContext } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import type { ReadableStore } from "../store";
 import type { Scenario, SDCPN } from "../types/sdcpn";
@@ -99,6 +100,12 @@ export interface LanguageClient {
     this: void,
     sdcpn: SDCPN,
     extensions?: PetrinautExtensionSettings,
+    /**
+     * Pass `{ includeHir: true }` when the caller needs the HIR tree — only the
+     * WebGPU backend does. It roughly triples artifact size, so it is off by
+     * default.
+     */
+    options?: CompileHirArtifactsOptions,
   ): Promise<HirCompileResult>;
 
   /**
@@ -363,10 +370,11 @@ export function createLanguageClient(
         position,
       });
     },
-    requestHirArtifacts(sdcpn, extensions) {
+    requestHirArtifacts(sdcpn, extensions, options) {
       return sendRequest<HirCompileResult>("sdcpn/compileHirArtifacts", {
         sdcpn,
         extensions,
+        options,
       });
     },
     requestScenarioHir(scenario, adHocContext) {

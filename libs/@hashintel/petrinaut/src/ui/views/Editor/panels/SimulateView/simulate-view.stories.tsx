@@ -30,6 +30,7 @@ import {
   FakeEditorProvider,
   FakeExperimentsProvider,
   makeExperiment,
+  makeParameterSweepExperiment,
   makeProgress,
   multipleExperiments,
   oneExperiment,
@@ -59,11 +60,16 @@ const rootStyle = css({
   backgroundColor: "neutral.s00",
 });
 
+// Covers the story, so presses fall through to it — but the portalled
+// surfaces themselves are this layer's children and have to stay clickable.
 const portalContainerStyle = css({
   position: "absolute",
   inset: "[0]",
   zIndex: "modal",
   pointerEvents: "none",
+  "& > *": {
+    pointerEvents: "auto",
+  },
 });
 
 type StoryExample = {
@@ -422,10 +428,58 @@ export const InProgress: Story = {
   ),
 };
 
+export const ParameterSweep: Story = {
+  name: "Parameter sweep",
+  render: () => (
+    <SimulateViewStory experiments={[makeParameterSweepExperiment()]} />
+  ),
+};
+
 export const Complete: Story = {
   render: () => (
     <SimulateViewStory
       experiments={[makeExperiment(1, { status: "complete" })]}
+    />
+  ),
+};
+
+export const CompleteOnGpu: Story = {
+  name: "Complete on GPU",
+  render: () => {
+    // The point of the backend: milliseconds where the CPU takes seconds. Both
+    // timestamps are set here so the duration does not depend on how the fixture
+    // derives them.
+    const startedAt = Date.now() - 30_000;
+
+    return (
+      <SimulateViewStory
+        experiments={[
+          makeExperiment(1, {
+            name: "SIR Monte Carlo (GPU)",
+            status: "complete",
+            computeBackend: "webgpu",
+            startedAt,
+            finishedAt: startedAt + 3,
+          }),
+        ]}
+      />
+    );
+  },
+};
+
+export const CompleteAfterGpuFallback: Story = {
+  name: "Complete after GPU fallback",
+  render: () => (
+    <SimulateViewStory
+      experiments={[
+        makeExperiment(1, {
+          name: "SIR Monte Carlo (fell back)",
+          status: "complete",
+          computeBackend: "cpu",
+          computeBackendFallbackReason:
+            'place "Susceptible" holds typed tokens without a declared capacity',
+        }),
+      ]}
     />
   ),
 };

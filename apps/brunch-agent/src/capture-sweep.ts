@@ -34,15 +34,22 @@ export interface CaptureSweepResult {
 const conversationUrl = (instanceId: string): string =>
   `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`;
 
-const ownedTransport = (identity: ConversationIdentity): typeof fetch => {
+const sourceAppTransport: typeof fetch = async (input, init) => {
+  const { default: app } = await import("./app.ts");
+  return app.fetch(input instanceof Request ? input : new Request(input, init));
+};
+
+const ownedTransport = (
+  identity: ConversationIdentity,
+  transport: typeof fetch,
+): typeof fetch => {
   const ownership = agentOwnershipHeaders(identity);
   return async (input, init) => {
-    const { default: app } = await import("./app.ts");
     const headers = new Headers(init?.headers);
     for (const [key, value] of Object.entries(ownership)) {
       headers.set(key, value);
     }
-    return app.fetch(
+    return transport(
       input instanceof Request
         ? new Request(input, { headers })
         : new Request(input, { ...init, headers }),
@@ -53,6 +60,7 @@ const ownedTransport = (identity: ConversationIdentity): typeof fetch => {
 export const applyCaptureSweep = async (
   identity: ConversationIdentity,
   userEntryIds: readonly string[],
+  transport: typeof fetch = sourceAppTransport,
 ): Promise<CaptureSweepResult> => {
   const instanceId = flueConversationIdFrom(identity);
   const store = createLocalCaptureStore(captureStorePath(instanceId), {
@@ -60,7 +68,7 @@ export const applyCaptureSweep = async (
   });
   const historyReader = createFlueHistoryReader({
     resolveConversationUrl: conversationUrl,
-    transport: ownedTransport(identity),
+    transport: ownedTransport(identity, transport),
     archive: store,
   });
   const snapshot = await historyReader.read(instanceId);

@@ -1,30 +1,37 @@
 //! Request authentication for axum routers.
 //!
-//! A service layers [`authentication_middleware`] over its routes with the provider chain it
-//! builds, and handlers receive the acting actor through the [`AuthenticatedActorId`] extractor —
-//! taking it as an `Option` is how a handler serves anonymous callers. A request with an invalid
+//! A service layers [`AuthenticationLayer`] over its routes with the provider chain it builds,
+//! and handlers receive the acting actor through the [`AuthenticatedActorId`] extractor — taking
+//! it as an `Option` is how a handler serves anonymous callers. A request with an invalid
 //! credential never reaches a handler, and a request without credentials resolves through the
 //! chain's [`Caller`] type: a chain over [`ActorId`] rejects it, a chain over `Option<ActorId>`
 //! verifies it as anonymous.
 //!
-//! Bootstrap routes — the paths the service names through the middleware's predicate — require
-//! the service secret regardless of the chain and pass even when no actor resolves. Routes that
-//! take no
-//! actor at all are gated by [`service_secret_middleware`] instead.
+//! Bootstrap routes, the paths the service names through the layer's predicate, require the
+//! service secret regardless of the chain. With the secret presented they tolerate exactly one
+//! failure: a verified service credential that names no delegated actor. Every other rejection
+//! still fails the request. Routes that take no actor at all use [`ServiceSecretLayer`]
+//! instead.
 
 pub mod provider;
 pub mod request;
 pub mod service_secret;
 
 use alloc::sync::Arc;
+use core::{
+    future,
+    marker::PhantomData,
+    sync::atomic::{AtomicBool, Ordering},
+    task,
+};
 
 use axum::{
-    extract::{FromRequestParts, OptionalFromRequestParts, Request},
+    extract::{FromRequestParts, OptionalFromRequestParts},
     http::request::Parts,
-    middleware::Next,
-    response::Response,
+    response::{IntoResponse, Response},
 };
 use error_stack::Report;
+use futures::{TryFutureExt as _, future::Either};
 use opentelemetry::{
     KeyValue,
     metrics::{Counter, Meter},
@@ -34,25 +41,50 @@ use type_system::principal::actor::ActorId;
 
 use self::{
     provider::{AuthenticationProvider, Caller},
-    request::{AuthenticationError, log_rejection, resolve_request_actor},
+    request::{AuthenticationError, AuthenticationErrorKind, resolve_request_actor},
     service_secret::{presents_service_secret, service_credential},
 };
 use crate::response::error_response;
 
-/// Instruments recording authentication rejections.
+/// How a request proceeded although its credential resolution failed.
+#[derive(Copy, Clone)]
+enum Degradation {
+    /// A verified rejection resolved as anonymous on a chain serving anonymous callers.
+    Anonymous,
+    /// A bootstrap route admitted the service credential without its delegated actor.
+    Bootstrap,
+}
+
+impl Degradation {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Anonymous => "anonymous",
+            Self::Bootstrap => "bootstrap",
+        }
+    }
+}
+
+/// Instruments recording credential failures.
 ///
 /// A route wired without the middleware answers with an internal error that is not counted here.
 pub struct AuthenticationMetrics {
     rejections: Counter<u64>,
+    degradations: Counter<u64>,
 }
 
 impl AuthenticationMetrics {
+    /// Creates the instruments on `meter`.
     #[must_use]
     pub fn new(meter: &Meter) -> Self {
         Self {
             rejections: meter
                 .u64_counter("hash.authentication.rejections")
                 .with_description("Requests rejected for their credentials")
+                .with_unit("{request}")
+                .build(),
+            degradations: meter
+                .u64_counter("hash.authentication.degradations")
+                .with_description("Requests served although their credential failed")
                 .with_unit("{request}")
                 .build(),
         }
@@ -70,26 +102,106 @@ impl AuthenticationMetrics {
             ],
         );
     }
+
+    fn record_degradation(&self, error: &AuthenticationError, degradation: Degradation) {
+        self.degradations.add(
+            1,
+            &[
+                KeyValue::new("mechanism", degradation.as_str()),
+                KeyValue::new("fault_domain", error.fault_domain().as_str()),
+            ],
+        );
+    }
+}
+
+/// The response a request that failed authentication is answered with.
+///
+/// A rejection records itself when it drops, whether or not a response was rendered from it,
+/// so no holder logs or counts one. The log latches on the error — shared across the requests
+/// one verification answered — and the count on the request, so every rejected request counts
+/// once.
+#[derive(Clone)]
+pub enum AuthenticationRejection {
+    /// The credentials did not resolve to a caller the route admits.
+    Authentication {
+        /// Why the credentials were rejected.
+        report: Arc<Report<AuthenticationError>>,
+        /// The instruments the rejection is counted on.
+        metrics: Arc<AuthenticationMetrics>,
+        /// Whether this request's rejection has been counted.
+        recorded: Arc<AtomicBool>,
+    },
+    /// [`AuthenticatedActorId`] was extracted on a route without [`AuthenticationLayer`].
+    ///
+    /// Answered as an internal error: the fault is the router's wiring, never the request.
+    Misconfigured,
+}
+
+impl IntoResponse for AuthenticationRejection {
+    fn into_response(self) -> Response {
+        match &self {
+            Self::Authentication { report, .. } => {
+                let error = report.current_context();
+                error_response(error.status_code(), error.kind().client_message())
+            }
+            Self::Misconfigured => error_response(
+                http::StatusCode::INTERNAL_SERVER_ERROR,
+                "internal server error",
+            ),
+        }
+    }
+}
+
+impl Drop for AuthenticationRejection {
+    fn drop(&mut self) {
+        match self {
+            Self::Authentication {
+                report,
+                metrics,
+                recorded,
+            } => {
+                AuthenticationError::ensure_logged(report);
+                // `Relaxed` is permissible here, as it is only used to avoid double-counting.
+                if recorded
+                    .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+                    .is_ok()
+                {
+                    metrics.record_rejection(report.current_context());
+                }
+            }
+            Self::Misconfigured => {
+                tracing::error!(
+                    "`AuthenticatedActorId` extracted on a route without authentication middleware"
+                );
+            }
+        }
+    }
 }
 
 /// The resolved authentication of a request, stored as a request extension, alongside the
 /// metrics the rejections it leads to are recorded on.
 ///
-/// A rejection carries the full report. The [`Arc`] is what lets it live in an extension:
-/// [`Report`] is not [`Clone`], and an extension value has to be.
+/// A rejection carries the full report. An extension value has to be [`Clone`], and [`Report`]
+/// is not — the [`Arc`] is what lets the outcome live here.
 #[derive(Clone)]
 pub(crate) struct ResolvedAuthentication {
     outcome: Result<Option<ActorId>, Arc<Report<AuthenticationError>>>,
     metrics: Arc<AuthenticationMetrics>,
+    /// Whether this request's rejection has been counted.
+    rejection_recorded: Arc<AtomicBool>,
 }
 
 impl ResolvedAuthentication {
     #[cfg(test)]
-    pub(crate) const fn new(
+    pub(crate) fn new(
         outcome: Result<Option<ActorId>, Arc<Report<AuthenticationError>>>,
         metrics: Arc<AuthenticationMetrics>,
     ) -> Self {
-        Self { outcome, metrics }
+        Self {
+            outcome,
+            metrics,
+            rejection_recorded: Arc::new(AtomicBool::new(false)),
+        }
     }
 
     pub(crate) const fn outcome(
@@ -99,46 +211,32 @@ impl ResolvedAuthentication {
     }
 }
 
-/// Converts an authentication failure into the response returned to the client, counting it.
-///
-/// The response carries the client-safe message. Identifiers and the report's attachments stay in
-/// the server-side logs, where [`log_rejection`] has already reported them.
-fn rejection(metrics: &AuthenticationMetrics, report: &Report<AuthenticationError>) -> Response {
-    let error = report.current_context();
-    metrics.record_rejection(error);
-    error_response(error.status_code(), error.client_message().to_owned())
-}
-
-/// Reports a rejection and converts it into the response returned to the client.
-fn logged_rejection(metrics: &AuthenticationMetrics, error: AuthenticationError) -> Response {
-    let report = Report::new(error);
-    log_rejection(&report);
-    rejection(metrics, &report)
-}
-
 /// Returns the rejection for a request that does not carry the service secret, [`None`] when it
 /// does.
 fn service_secret_rejection(
     headers: &http::HeaderMap,
     service_secret: &str,
-    metrics: &AuthenticationMetrics,
-) -> Option<Response> {
+    metrics: &Arc<AuthenticationMetrics>,
+) -> Option<AuthenticationRejection> {
     if presents_service_secret(headers, service_secret) {
         return None;
     }
 
     // A presented credential that does not match says the sender believed it had one, which the
     // fault domain separates from a request carrying none at all.
-    Some(logged_rejection(
-        metrics,
-        if service_credential(headers).is_some() {
-            AuthenticationError::InvalidServiceSecret
-        } else {
-            AuthenticationError::MissingServiceSecret
-        },
-    ))
-}
+    let kind = if service_credential(headers).is_some() {
+        AuthenticationErrorKind::InvalidServiceSecret
+    } else {
+        AuthenticationErrorKind::MissingServiceSecret
+    };
 
+    let report = Report::new(AuthenticationError::new(kind));
+    Some(AuthenticationRejection::Authentication {
+        report: Arc::new(report),
+        metrics: Arc::clone(metrics),
+        recorded: Arc::new(AtomicBool::new(false)),
+    })
+}
 /// Rejects requests that do not carry the service secret.
 ///
 /// No credential is resolved, so no actor reaches the handler.
@@ -147,74 +245,110 @@ fn service_secret_rejection(
 ///
 /// ```
 /// # use std::sync::Arc;
-/// # use axum::{Router, middleware, routing::get};
-/// use hash_middleware::authentication::{AuthenticationMetrics, service_secret_middleware};
+/// # use axum::{Router, routing::get};
+/// use hash_middleware::authentication::{AuthenticationMetrics, ServiceSecretLayer};
 ///
 /// # let meter = opentelemetry::global::meter("doc");
-/// let service_secret: Arc<str> = Arc::from("service-secret");
-/// let metrics = Arc::new(AuthenticationMetrics::new(&meter));
 /// let router: Router = Router::new()
 ///     .route("/snapshot", get(async || "gated"))
-///     .route_layer(middleware::from_fn(move |request, next| {
-///         service_secret_middleware(
-///             Arc::clone(&service_secret),
-///             Arc::clone(&metrics),
-///             request,
-///             next,
-///         )
-///     }));
+///     .route_layer(ServiceSecretLayer {
+///         service_secret: Arc::from("service-secret"),
+///         metrics: Arc::new(AuthenticationMetrics::new(&meter)),
+///     });
 /// ```
-pub async fn service_secret_middleware(
+#[derive(Clone)]
+pub struct ServiceSecretLayer {
+    /// The secret a request must present.
+    pub service_secret: Arc<str>,
+    /// The instruments rejections are counted on.
+    pub metrics: Arc<AuthenticationMetrics>,
+}
+
+impl<S> tower::Layer<S> for ServiceSecretLayer {
+    type Service = ServiceSecretService<S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        ServiceSecretService {
+            service_secret: Arc::clone(&self.service_secret),
+            metrics: Arc::clone(&self.metrics),
+            inner,
+        }
+    }
+}
+
+/// The service [`ServiceSecretLayer`] wraps its inner service into.
+#[derive(Clone)]
+pub struct ServiceSecretService<S> {
     service_secret: Arc<str>,
     metrics: Arc<AuthenticationMetrics>,
-    request: Request,
-    next: Next,
-) -> Response {
-    if let Some(rejection) = service_secret_rejection(request.headers(), &service_secret, &metrics)
-    {
-        return rejection;
+    inner: S,
+}
+
+impl<B, S> tower::Service<axum::http::Request<B>> for ServiceSecretService<S>
+where
+    S: tower::Service<axum::http::Request<B>>,
+{
+    type Error = S::Error;
+    type Response = Result<S::Response, AuthenticationRejection>;
+
+    type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
+
+    fn poll_ready(&mut self, cx: &mut task::Context<'_>) -> task::Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
     }
 
-    next.run(request).await
+    fn call(&mut self, req: axum::http::Request<B>) -> Self::Future {
+        if let Some(rejection) =
+            service_secret_rejection(req.headers(), &self.service_secret, &self.metrics)
+        {
+            Either::Right(future::ready(Ok(Err(rejection))))
+        } else {
+            Either::Left(self.inner.call(req).map_ok(Ok))
+        }
+    }
 }
 
 /// Records the authenticated actor on the request span and stores the outcome as a request
 /// extension.
-fn store_outcome(
-    request: &mut Request,
+fn store_outcome<B>(
+    request: &mut http::Request<B>,
     outcome: Result<Option<ActorId>, Arc<Report<AuthenticationError>>>,
     metrics: Arc<AuthenticationMetrics>,
 ) {
     if let Ok(Some(actor_id)) = &outcome {
         tracing::Span::current().record("actor_entity_uuid", tracing::field::display(actor_id));
     }
-    request
-        .extensions_mut()
-        .insert(ResolvedAuthentication { outcome, metrics });
+
+    request.extensions_mut().insert(ResolvedAuthentication {
+        outcome,
+        metrics,
+        rejection_recorded: Arc::new(AtomicBool::new(false)),
+    });
 }
 
-/// Resolves the request's credentials against `provider` and rejects the request when they are
-/// invalid.
+/// Resolves the request's credentials against the provider chain and rejects the request when
+/// they are invalid.
 ///
 /// Layer it over every route whose handlers take [`AuthenticatedActorId`] — the extractor serves
-/// only routes this middleware covers. A request without credentials resolves through the chain's
+/// only routes this layer covers. A request without credentials resolves through the chain's
 /// [`Caller`] type: a chain over [`ActorId`] rejects it, a chain over `Option<ActorId>` verifies
 /// it as anonymous, and whether an anonymous caller may proceed is the handler's to state,
 /// through which extractor it takes.
 ///
-/// Bootstrap routes are service operations: `bootstrap_route` names their paths, they require the
-/// service secret regardless of any actor credential, and they pass even when no actor resolves.
-/// A service
-/// without such routes passes `|_| false`.
+/// Bootstrap routes are service operations: `bootstrap_route` names their paths and they require
+/// the service secret regardless of any actor credential. With the secret presented, the one
+/// rejection they tolerate is a verified service credential that names no delegated actor, and
+/// every other failure still rejects the request. A service without such routes passes
+/// `|_| false`.
 ///
-/// Routes that take no actor are gated by [`service_secret_middleware`] instead.
+/// Routes that take no actor are gated by [`ServiceSecretLayer`] instead.
 ///
 /// # Example
 ///
 /// ```
-/// # use core::ops::ControlFlow;
+/// # use core::{marker::PhantomData, ops::ControlFlow};
 /// # use std::sync::Arc;
-/// # use axum::{Router, middleware, routing::get};
+/// # use axum::{Router, routing::get};
 /// # use error_stack::Report;
 /// # use hash_middleware::authentication::{
 /// #     provider::{AuthenticationProvider, Caller},
@@ -222,7 +356,7 @@ fn store_outcome(
 /// # };
 /// # use http::HeaderMap;
 /// use hash_middleware::authentication::{
-///     AuthenticatedActorId, AuthenticationMetrics, authentication_middleware,
+///     AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics,
 /// };
 /// use type_system::principal::actor::ActorId;
 ///
@@ -231,7 +365,7 @@ fn store_outcome(
 /// #     async fn authenticate(
 /// #         &self,
 /// #         _headers: &HeaderMap,
-/// #     ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+/// #     ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
 /// #         ControlFlow::Continue(())
 /// #     }
 /// # }
@@ -240,64 +374,146 @@ fn store_outcome(
 /// }
 ///
 /// # let meter = opentelemetry::global::meter("doc");
-/// let provider = Arc::new(Verifier);
-/// let service_secret: Arc<str> = Arc::from("service-secret");
-/// let metrics = Arc::new(AuthenticationMetrics::new(&meter));
-/// let router: Router =
-///     Router::new()
-///         .route("/whoami", get(whoami))
-///         .route_layer(middleware::from_fn(move |request, next| {
-///             authentication_middleware::<_, ActorId>(
-///                 Arc::clone(&provider),
-///                 Arc::clone(&service_secret),
-///                 Arc::clone(&metrics),
-///                 |_path| false,
-///                 request,
-///                 next,
-///             )
-///         }));
+/// let router: Router = Router::new().route("/whoami", get(whoami)).route_layer(
+///     AuthenticationLayer::<_, ActorId> {
+///         provider: Arc::new(Verifier),
+///         service_secret: Arc::from("service-secret"),
+///         metrics: Arc::new(AuthenticationMetrics::new(&meter)),
+///         bootstrap_route: |_path| false,
+///         caller: PhantomData,
+///     },
+/// );
 /// ```
-pub async fn authentication_middleware<P, C>(
+pub struct AuthenticationLayer<P, C> {
+    /// The provider chain requests resolve against.
+    pub provider: Arc<P>,
+    /// The secret bootstrap routes require.
+    pub service_secret: Arc<str>,
+    /// The instruments rejections are counted on.
+    pub metrics: Arc<AuthenticationMetrics>,
+    /// Names the bootstrap routes by path.
+    pub bootstrap_route: fn(&str) -> bool,
+
+    /// Selects the caller type the chain resolves to: [`ActorId`] rejects uncredentialed
+    /// requests, `Option<ActorId>` serves them anonymously.
+    pub caller: PhantomData<fn() -> C>,
+}
+
+impl<P, C> Clone for AuthenticationLayer<P, C> {
+    fn clone(&self) -> Self {
+        Self {
+            provider: Arc::clone(&self.provider),
+            service_secret: Arc::clone(&self.service_secret),
+            metrics: Arc::clone(&self.metrics),
+            bootstrap_route: self.bootstrap_route,
+            caller: PhantomData,
+        }
+    }
+}
+
+impl<P, C, S> tower::Layer<S> for AuthenticationLayer<P, C> {
+    type Service = AuthenticationService<P, C, S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        AuthenticationService {
+            inner,
+            _caller: PhantomData,
+            provider: Arc::clone(&self.provider),
+            service_secret: Arc::clone(&self.service_secret),
+            metrics: Arc::clone(&self.metrics),
+            bootstrap_route: self.bootstrap_route,
+        }
+    }
+}
+
+/// The service [`AuthenticationLayer`] wraps its inner service into.
+pub struct AuthenticationService<P, C, S> {
+    inner: S,
+    _caller: PhantomData<fn() -> C>,
+
     provider: Arc<P>,
     service_secret: Arc<str>,
     metrics: Arc<AuthenticationMetrics>,
     bootstrap_route: fn(&str) -> bool,
-    mut request: Request,
-    next: Next,
-) -> Response
-where
-    P: AuthenticationProvider<C>,
-    C: Caller,
-{
-    let bootstrap = bootstrap_route(request.uri().path());
-    if bootstrap
-        && let Some(rejection) =
-            service_secret_rejection(request.headers(), &service_secret, &metrics)
-    {
-        return rejection;
-    }
-
-    let outcome = resolve_request_actor(&*provider, request.headers())
-        .await
-        .map(Caller::into_actor)
-        .map_err(Arc::new);
-
-    match &outcome {
-        Err(report)
-            if bootstrap
-                && matches!(
-                    report.current_context(),
-                    AuthenticationError::MissingDelegatedActor
-                ) => {}
-        Err(report) => return rejection(&metrics, report),
-        Ok(_) => {}
-    }
-
-    store_outcome(&mut request, outcome, metrics);
-    next.run(request).await
 }
 
-/// Axum extractor providing the acting principal resolved by [`authentication_middleware`].
+impl<P, C, S: Clone> Clone for AuthenticationService<P, C, S> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+            _caller: PhantomData,
+            provider: Arc::clone(&self.provider),
+            service_secret: Arc::clone(&self.service_secret),
+            metrics: Arc::clone(&self.metrics),
+            bootstrap_route: self.bootstrap_route,
+        }
+    }
+}
+
+impl<B, P, C, S> tower::Service<http::Request<B>> for AuthenticationService<P, C, S>
+where
+    S: tower::Service<http::Request<B>> + Clone,
+    C: Caller,
+    P: AuthenticationProvider<C>,
+{
+    type Error = S::Error;
+    type Response = Result<S::Response, AuthenticationRejection>;
+
+    type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
+
+    fn poll_ready(&mut self, cx: &mut task::Context<'_>) -> task::Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, mut req: http::Request<B>) -> Self::Future {
+        let clone = self.inner.clone();
+        let mut next = core::mem::replace(&mut self.inner, clone);
+
+        let bootstrap = (self.bootstrap_route)(req.uri().path());
+        if bootstrap
+            && let Some(rejection) =
+                service_secret_rejection(req.headers(), &self.service_secret, &self.metrics)
+        {
+            return Either::Right(future::ready(Ok(Err(rejection))));
+        }
+
+        let provider = Arc::clone(&self.provider);
+        let metrics = Arc::clone(&self.metrics);
+
+        Either::Left(async move {
+            let outcome = resolve_request_actor(&*provider, req.headers(), &metrics)
+                .await
+                .map(Caller::into_actor);
+
+            let outcome = match outcome {
+                Err(report)
+                    if bootstrap
+                        && matches!(
+                            report.current_context().kind(),
+                            AuthenticationErrorKind::MissingDelegatedActor
+                        ) =>
+                {
+                    metrics.record_degradation(report.current_context(), Degradation::Bootstrap);
+                    Err(report)
+                }
+                Err(report) => {
+                    return Ok(Err(AuthenticationRejection::Authentication {
+                        report,
+                        metrics,
+                        recorded: Arc::new(AtomicBool::new(false)),
+                    }));
+                }
+                Ok(value) => Ok(value),
+            };
+
+            store_outcome(&mut req, outcome, metrics);
+
+            next.call(req).await.map(Ok)
+        })
+    }
+}
+
+/// Axum extractor providing the acting principal resolved by [`AuthenticationLayer`].
 ///
 /// Taking this extractor is how a handler states that it requires an actor: an anonymous caller
 /// is rejected here rather than reaching the handler. Handlers that serve callers without an
@@ -307,39 +523,39 @@ where
 pub struct AuthenticatedActorId(pub ActorId);
 
 impl<S: Sync> FromRequestParts<S> for AuthenticatedActorId {
-    type Rejection = Response;
+    type Rejection = AuthenticationRejection;
 
     fn from_request_parts(
         parts: &mut Parts,
         _state: &S,
     ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
-        core::future::ready(match parts.extensions.get::<ResolvedAuthentication>() {
+        future::ready(match parts.extensions.get::<ResolvedAuthentication>() {
             Some(ResolvedAuthentication {
                 outcome: Ok(Some(actor_id)),
                 ..
             }) => Ok(Self(*actor_id)),
-            // Resolution succeeded and found no actor; the rejection originates here, in the
-            // handler's requirement, so this is the site that reports it.
+
             Some(ResolvedAuthentication {
                 outcome: Ok(None),
                 metrics,
-            }) => Err(logged_rejection(
-                metrics,
-                AuthenticationError::MissingCredentials,
-            )),
+                rejection_recorded,
+            }) => Err(AuthenticationRejection::Authentication {
+                report: Arc::new(Report::new(AuthenticationError::new(
+                    AuthenticationErrorKind::MissingCredentials,
+                ))),
+                metrics: Arc::clone(metrics),
+                recorded: Arc::clone(rejection_recorded),
+            }),
             Some(ResolvedAuthentication {
                 outcome: Err(report),
                 metrics,
-            }) => Err(rejection(metrics, report)),
-            None => {
-                tracing::error!(
-                    "`AuthenticatedActorId` extracted on a route without authentication middleware"
-                );
-                Err(error_response(
-                    http::StatusCode::INTERNAL_SERVER_ERROR,
-                    "internal server error".to_owned(),
-                ))
-            }
+                rejection_recorded,
+            }) => Err(AuthenticationRejection::Authentication {
+                report: Arc::clone(report),
+                metrics: Arc::clone(metrics),
+                recorded: Arc::clone(rejection_recorded),
+            }),
+            None => Err(AuthenticationRejection::Misconfigured),
         })
     }
 }
@@ -350,13 +566,13 @@ impl<S: Sync> FromRequestParts<S> for AuthenticatedActorId {
 /// actor. An invalid credential is still rejected — [`None`] means the chain resolved the request
 /// as anonymous, never that a credential failed.
 impl<S: Sync> OptionalFromRequestParts<S> for AuthenticatedActorId {
-    type Rejection = Response;
+    type Rejection = AuthenticationRejection;
 
     fn from_request_parts(
         parts: &mut Parts,
         _state: &S,
     ) -> impl Future<Output = Result<Option<Self>, Self::Rejection>> + Send {
-        core::future::ready(match parts.extensions.get::<ResolvedAuthentication>() {
+        future::ready(match parts.extensions.get::<ResolvedAuthentication>() {
             Some(ResolvedAuthentication {
                 outcome: Ok(caller),
                 ..
@@ -364,16 +580,13 @@ impl<S: Sync> OptionalFromRequestParts<S> for AuthenticatedActorId {
             Some(ResolvedAuthentication {
                 outcome: Err(report),
                 metrics,
-            }) => Err(rejection(metrics, report)),
-            None => {
-                tracing::error!(
-                    "`AuthenticatedActorId` extracted on a route without authentication middleware"
-                );
-                Err(error_response(
-                    http::StatusCode::INTERNAL_SERVER_ERROR,
-                    "internal server error".to_owned(),
-                ))
-            }
+                rejection_recorded,
+            }) => Err(AuthenticationRejection::Authentication {
+                report: Arc::clone(report),
+                metrics: Arc::clone(metrics),
+                recorded: Arc::clone(rejection_recorded),
+            }),
+            None => Err(AuthenticationRejection::Misconfigured),
         })
     }
 }
@@ -381,16 +594,24 @@ impl<S: Sync> OptionalFromRequestParts<S> for AuthenticatedActorId {
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
+    use core::{future::Future, marker::PhantomData, ops::ControlFlow, sync::atomic::AtomicBool};
 
-    use axum::{Router, body::Body, middleware, routing::get};
-    use http::{Request, StatusCode};
+    use axum::{Router, body::Body, routing::get};
+    use error_stack::Report;
+    use http::{HeaderMap, Request, StatusCode};
     use tower::ServiceExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
-    use super::{AuthenticatedActorId, AuthenticationMetrics, authentication_middleware};
+    use super::{
+        AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, AuthenticationRejection,
+        ServiceSecretLayer,
+    };
     use crate::{
-        authentication::provider::StaticAuthenticationProvider,
+        authentication::{
+            provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
+            request::{AuthenticationError, AuthenticationErrorKind},
+        },
         test_metrics::{RecordedMetrics, noop_meter},
     };
 
@@ -434,21 +655,13 @@ mod tests {
         provider: StaticAuthenticationProvider,
         metrics: Arc<AuthenticationMetrics>,
     ) -> Router {
-        let provider = Arc::new(provider);
-        let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
-        routes().layer(middleware::from_fn(move |request, next| {
-            let provider = Arc::clone(&provider);
-            let service_secret = Arc::clone(&service_secret);
-            let metrics = Arc::clone(&metrics);
-            authentication_middleware::<_, Option<ActorId>>(
-                provider,
-                service_secret,
-                metrics,
-                is_bootstrap_route,
-                request,
-                next,
-            )
-        }))
+        routes().layer(AuthenticationLayer::<_, Option<ActorId>> {
+            provider: Arc::new(provider),
+            service_secret: Arc::from(SERVICE_SECRET),
+            metrics,
+            bootstrap_route: is_bootstrap_route,
+            caller: PhantomData,
+        })
     }
 
     fn request(uri: &str) -> Request<Body> {
@@ -472,6 +685,21 @@ mod tests {
             .header("Authorization", format!("HASH-Service {secret}"))
             .body(Body::empty())
             .expect("the request should build")
+    }
+
+    /// A provider chain whose service credential verified without naming a delegated actor.
+    struct MissingDelegation;
+
+    impl<C: Caller> AuthenticationProvider<C> for MissingDelegation {
+        fn authenticate(
+            &self,
+            _headers: &HeaderMap,
+        ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send
+        {
+            core::future::ready(ControlFlow::Break(Err(Arc::new(Report::new(
+                AuthenticationError::missing_delegated_actor(),
+            )))))
+        }
     }
 
     #[tokio::test]
@@ -623,22 +851,13 @@ mod tests {
 
     /// A router requiring an actor.
     fn actor_required_router(provider: StaticAuthenticationProvider) -> Router {
-        let provider = Arc::new(provider);
-        let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
-        let metrics = Arc::new(AuthenticationMetrics::new(&noop_meter()));
-        routes().layer(middleware::from_fn(move |request, next| {
-            let provider = Arc::clone(&provider);
-            let service_secret = Arc::clone(&service_secret);
-            let metrics = Arc::clone(&metrics);
-            authentication_middleware::<_, ActorId>(
-                provider,
-                service_secret,
-                metrics,
-                is_bootstrap_route,
-                request,
-                next,
-            )
-        }))
+        routes().layer(AuthenticationLayer::<_, ActorId> {
+            provider: Arc::new(provider),
+            service_secret: Arc::from(SERVICE_SECRET),
+            metrics: Arc::new(AuthenticationMetrics::new(&noop_meter())),
+            bootstrap_route: is_bootstrap_route,
+            caller: PhantomData,
+        })
     }
 
     #[tokio::test]
@@ -694,13 +913,10 @@ mod tests {
 
     /// A router gated by the service secret alone, as bulk-destructive admin routes are.
     fn secret_gated_router() -> Router {
-        let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
-        let metrics = Arc::new(AuthenticationMetrics::new(&noop_meter()));
-        routes().layer(middleware::from_fn(move |request, next| {
-            let service_secret = Arc::clone(&service_secret);
-            let metrics = Arc::clone(&metrics);
-            super::service_secret_middleware(service_secret, metrics, request, next)
-        }))
+        routes().layer(ServiceSecretLayer {
+            service_secret: Arc::from(SERVICE_SECRET),
+            metrics: Arc::new(AuthenticationMetrics::new(&noop_meter())),
+        })
     }
 
     #[tokio::test]
@@ -865,6 +1081,213 @@ mod tests {
             recorded.counter("hash.authentication.rejections", &[]),
             0,
             "an anonymously served request should not count as a rejection"
+        );
+    }
+
+    /// A verified rejection that resolves as anonymous counts as a degradation, never as a
+    /// rejection: the request was served.
+    #[tokio::test]
+    async fn anonymous_degrade_counts_as_degradation() {
+        let recorded = RecordedMetrics::new();
+        let router = router_recording(
+            StaticAuthenticationProvider::Rejected,
+            Arc::new(AuthenticationMetrics::new(&recorded.meter())),
+        );
+
+        let response = router
+            .oneshot(request("/anonymous-allowed"))
+            .await
+            .expect("the router should respond");
+        assert_eq!(response.status(), StatusCode::OK);
+
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.degradations",
+                &[("mechanism", "anonymous"), ("fault_domain", "caller")],
+            ),
+            1,
+            "the anonymous degrade should count with its mechanism and fault domain"
+        );
+        assert_eq!(
+            recorded.counter("hash.authentication.rejections", &[]),
+            0,
+            "a degraded request should not count as a rejection"
+        );
+    }
+
+    /// The tolerated bootstrap failure counts as a degradation, never as a rejection: the
+    /// request was served.
+    #[tokio::test]
+    async fn bootstrap_toleration_counts_as_degradation() {
+        let recorded = RecordedMetrics::new();
+        let router = routes().layer(AuthenticationLayer::<_, Option<ActorId>> {
+            provider: Arc::new(MissingDelegation),
+            service_secret: Arc::from(SERVICE_SECRET),
+            metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
+            bootstrap_route: is_bootstrap_route,
+            caller: PhantomData,
+        });
+
+        let response = router
+            .oneshot(request_with_secret("/bootstrap", SERVICE_SECRET))
+            .await
+            .expect("the router should respond");
+        assert_eq!(response.status(), StatusCode::OK);
+
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.degradations",
+                &[("mechanism", "bootstrap"), ("fault_domain", "caller")],
+            ),
+            1,
+            "the tolerated bootstrap failure should count with its mechanism and fault domain"
+        );
+        assert_eq!(
+            recorded.counter("hash.authentication.rejections", &[]),
+            0,
+            "a tolerated request should not count as a rejection"
+        );
+    }
+
+    /// Recording rides the rejection's drop, so a path that builds one and never renders it
+    /// still reaches the meter.
+    #[test]
+    fn unrendered_rejection_counts() {
+        let recorded = RecordedMetrics::new();
+        let metrics = Arc::new(AuthenticationMetrics::new(&recorded.meter()));
+
+        drop(AuthenticationRejection::Authentication {
+            report: Arc::new(Report::new(AuthenticationError::new(
+                AuthenticationErrorKind::MissingCredentials,
+            ))),
+            metrics: Arc::clone(&metrics),
+            recorded: Arc::new(AtomicBool::new(false)),
+        });
+
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.rejections",
+                &[
+                    ("http.response.status_code", "401"),
+                    ("fault_domain", "caller"),
+                ],
+            ),
+            1,
+            "a dropped rejection should count without being rendered"
+        );
+    }
+
+    /// A clone copies the [`Arc`]s, so both drops see one request cell and the count latches.
+    #[test]
+    fn cloned_rejection_counts_once() {
+        let recorded = RecordedMetrics::new();
+        let metrics = Arc::new(AuthenticationMetrics::new(&recorded.meter()));
+
+        let rejection = AuthenticationRejection::Authentication {
+            report: Arc::new(Report::new(AuthenticationError::new(
+                AuthenticationErrorKind::MissingCredentials,
+            ))),
+            metrics: Arc::clone(&metrics),
+            recorded: Arc::new(AtomicBool::new(false)),
+        };
+        let clone = rejection.clone();
+        drop(rejection);
+        drop(clone);
+
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.rejections",
+                &[
+                    ("http.response.status_code", "401"),
+                    ("fault_domain", "caller"),
+                ],
+            ),
+            1,
+            "clones share one request cell, which counts one rejected request"
+        );
+    }
+
+    /// Extractors rebuild a rejection from the report the extension stores, so several
+    /// extractions on one request drop several rejections over one request cell.
+    #[test]
+    fn rebuilt_rejection_counts_once() {
+        let recorded = RecordedMetrics::new();
+        let metrics = Arc::new(AuthenticationMetrics::new(&recorded.meter()));
+        let report = Arc::new(Report::new(AuthenticationError::new(
+            AuthenticationErrorKind::MissingCredentials,
+        )));
+        let request_cell = Arc::new(AtomicBool::new(false));
+
+        drop(AuthenticationRejection::Authentication {
+            report: Arc::clone(&report),
+            metrics: Arc::clone(&metrics),
+            recorded: Arc::clone(&request_cell),
+        });
+        drop(AuthenticationRejection::Authentication {
+            report,
+            metrics: Arc::clone(&metrics),
+            recorded: request_cell,
+        });
+
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.rejections",
+                &[
+                    ("http.response.status_code", "401"),
+                    ("fault_domain", "caller"),
+                ],
+            ),
+            1,
+            "rejections over one request cell are one rejected request"
+        );
+    }
+
+    /// A provider handing every request the same shared rejection, as a caching provider does
+    /// for concurrent requests of one credential.
+    struct SharedRejectionProvider(Arc<Report<AuthenticationError>>);
+
+    impl<C: Caller> AuthenticationProvider<C> for SharedRejectionProvider {
+        fn authenticate(
+            &self,
+            _headers: &HeaderMap,
+        ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send
+        {
+            core::future::ready(ControlFlow::Break(Err(Arc::clone(&self.0))))
+        }
+    }
+
+    #[tokio::test]
+    async fn shared_report_counts_every_request() {
+        let recorded = RecordedMetrics::new();
+        let router = routes().layer(AuthenticationLayer::<_, ActorId> {
+            provider: Arc::new(SharedRejectionProvider(Arc::new(Report::new(
+                AuthenticationError::new(AuthenticationErrorKind::ProviderUnreachable),
+            )))),
+            service_secret: Arc::from(SERVICE_SECRET),
+            metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
+            bootstrap_route: is_bootstrap_route,
+            caller: PhantomData,
+        });
+
+        for _ in 0..2 {
+            let response = router
+                .clone()
+                .oneshot(request("/protected"))
+                .await
+                .expect("the router should respond");
+            assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        }
+
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.rejections",
+                &[
+                    ("http.response.status_code", "503"),
+                    ("fault_domain", "service"),
+                ],
+            ),
+            2,
+            "each request sharing the report should count its own rejection"
         );
     }
 

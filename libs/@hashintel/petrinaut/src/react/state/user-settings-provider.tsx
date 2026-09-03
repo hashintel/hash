@@ -18,12 +18,30 @@ import type {
 
 const STORAGE_KEY = "petrinaut:user-settings";
 
+/** The persisted blob, including keys no longer part of `UserSettings`. */
+type PersistedUserSettings = Partial<UserSettings> & {
+  /**
+   * Replaced by `webGpuEnabled` when the backend became a per-experiment choice.
+   * Still present in blobs written before that.
+   */
+  computeBackend?: "cpu" | "webgpu";
+};
+
 const loadSettings = (): UserSettings => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as Partial<UserSettings>;
-      return { ...defaultUserSettings, ...parsed };
+      // Destructured rather than read through the spread, so the dead key is
+      // dropped from storage on the next write instead of persisting forever.
+      const { computeBackend, ...parsed } = JSON.parse(
+        raw,
+      ) as PersistedUserSettings;
+      return {
+        ...defaultUserSettings,
+        ...parsed,
+        // Someone who had selected the GPU globally keeps it available.
+        webGpuEnabled: parsed.webGpuEnabled ?? computeBackend === "webgpu",
+      };
     }
   } catch {
     // Ignore corrupted or unavailable localStorage
@@ -82,8 +100,18 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, enableNetComponents: value })),
     setEnableNotebookView: (value: boolean) =>
       setState((prev) => ({ ...prev, enableNotebookView: value })),
+    setEnableAdHocScenarios: (value: boolean) =>
+      setState((prev) => ({ ...prev, enableAdHocScenarios: value })),
     setShowWalkthroughOnInit: (value: boolean) =>
       setState((prev) => ({ ...prev, showWalkthroughOnInit: value })),
+    setWebGpuEnabled: (value: boolean) =>
+      setState((prev) => ({ ...prev, webGpuEnabled: value })),
+    setShowCompilationOutput: (value: boolean) =>
+      setState((prev) => ({ ...prev, showCompilationOutput: value })),
+    setEnableParameterSweeps: (value: boolean) =>
+      setState((prev) => ({ ...prev, enableParameterSweeps: value })),
+    setEnableOptimizationSurface: (value: boolean) =>
+      setState((prev) => ({ ...prev, enableOptimizationSurface: value })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,

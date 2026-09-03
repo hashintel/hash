@@ -1,6 +1,8 @@
 import { createContext } from "react";
 
 import type {
+  AdHocSynthesisContext,
+  CompileHirArtifactsOptions,
   CompletionList,
   Diagnostic,
   DocumentUri,
@@ -52,13 +54,19 @@ export interface LanguageClientContextValue {
   requestHirArtifacts: (
     sdcpn: SDCPN,
     extensions?: PetrinautExtensionSettings,
+    options?: CompileHirArtifactsOptions,
   ) => Promise<HirCompileResult>;
   /**
    * Lower a scenario's expressions and code-mode body to HIR (in the
    * language worker). `compileScenario` type-checks and interprets the
-   * result.
+   * result. A scenario whose initial state is `adhoc` synthesizes against
+   * `adHocContext` first — without it, lowering that scenario reports an
+   * error item.
    */
-  requestScenarioHir: (scenario: ScenarioLoweringInput) => Promise<ScenarioHir>;
+  requestScenarioHir: (
+    scenario: ScenarioLoweringInput,
+    adHocContext?: AdHocSynthesisContext,
+  ) => Promise<ScenarioHir>;
   /**
    * Re-print a single scenario-expression canonically (normalized spacing,
    * minimal parentheses, numeric literals preserved). Resolves null when the

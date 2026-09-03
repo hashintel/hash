@@ -10,15 +10,9 @@ import {
   fauxThinking,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
-import { sqlite, start } from "@flue/runtime/node";
+import { setProvider } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
-import {
-  ACTIVATE_SKILL_TOOL_NAME,
-  CHAT_MODEL_ID,
-  ChatAgent,
-  STUB_SKILL_NAME,
-} from "../src/agents/chat-agent.ts";
 import { applyCaptureSweep } from "../src/capture-sweep.ts";
 import { CLIENT_TOOL_RESULT_SIGNAL } from "../src/client-tool.ts";
 import {
@@ -26,6 +20,7 @@ import {
   flueConversationIdFrom,
 } from "../src/conversation-identity.ts";
 import { formatFlueTranscript } from "../src/flue-transcript.ts";
+import { loadBuiltBrunchApplication } from "../src/load-built-application.ts";
 import { CHAT_AGENT_ROUTE } from "../src/routes.ts";
 import { PING_TOOL_NAME } from "../src/tools/ping.ts";
 import { READ_PETRINAUT_DOC_TOOL_NAME } from "../src/tools/read-petrinaut-doc.ts";
@@ -35,6 +30,11 @@ import type {
   PetrinautResumeResult,
 } from "./petrinaut-chat-result";
 import type { UIMessageChunk } from "ai";
+
+const ACTIVATE_SKILL_TOOL_NAME = "activate_skill";
+const CHAT_MODEL_ID = "claude-haiku-4-5";
+const RUNBOOK_SKILL_NAME = "sdcpn-modelling";
+const READ_SKILL_RESOURCE_TOOL_NAME = "read_skill_resource";
 
 const principalKey = "principal-mission-1";
 const conversationId = "conversation-mission-1";
@@ -47,6 +47,8 @@ const dbFile = dbPath.endsWith(".db")
   ? dbPath
   : join(dbPath, "conversations.db");
 
+process.env.BRUNCH_CHAT_MODEL = CHAT_MODEL_ID;
+process.env.BRUNCH_DEV_DB_PATH = dbFile;
 process.env.BRUNCH_TRANSPORT_AISDK_INSPECT ??= "1";
 
 const chunksFrom = (body: string): UIMessageChunk[] =>
@@ -73,15 +75,11 @@ const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: CHAT_MODEL_ID, reasoning: true }],
 });
-
-const flue = await start({
-  agents: [ChatAgent],
-  providers: [faux.provider],
-  db: sqlite(dbFile),
-});
+setProvider(faux.provider);
+const application = await loadBuiltBrunchApplication();
 
 try {
-  const { default: app } = await import("../src/app.ts");
+  const app = application;
   const appTransport: typeof fetch = async (input, init) =>
     app.fetch(input instanceof Request ? input : new Request(input, init));
   const historyClient = createFlueClient({
@@ -114,18 +112,50 @@ try {
     };
     process.stdout.write(`PETRINAUT_RESUME_RESULT ${JSON.stringify(result)}\n`);
   } else {
+    const packagedSkillResourcePathFrom = (
+      context: unknown,
+      fileName: string,
+    ): string => {
+      const serialized = JSON.stringify(context);
+      const match = serialized.match(
+        new RegExp(
+          `/\\.flue/packaged-skills/[^"\\s\\\\]+/${fileName.replace(".", "\\.")}`,
+        ),
+      );
+      if (match === null) {
+        throw new Error(
+          `activate_skill briefing did not advertise ${fileName}`,
+        );
+      }
+      return match[0];
+    };
+
     faux.setResponses([
       fauxAssistantMessage(
         [
-          fauxThinking("Load the mount confirmation skill."),
+          fauxThinking("Load the modelling runbook skill."),
           fauxToolCall(
             ACTIVATE_SKILL_TOOL_NAME,
-            { name: STUB_SKILL_NAME },
+            { name: RUNBOOK_SKILL_NAME },
             { id: "tool-skill-1" },
           ),
         ],
         { stopReason: "toolUse" },
       ),
+      (context) =>
+        fauxAssistantMessage(
+          [
+            fauxThinking("Read elicitation teaching from the skill package."),
+            fauxToolCall(
+              READ_SKILL_RESOURCE_TOOL_NAME,
+              {
+                path: packagedSkillResourcePathFrom(context, "elicitation.md"),
+              },
+              { id: "tool-resource-1" },
+            ),
+          ],
+          { stopReason: "toolUse" },
+        ),
       fauxAssistantMessage(
         [
           fauxThinking("Confirm the server path, then read the guide."),
@@ -208,6 +238,14 @@ try {
         ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
           chunk.type === "tool-input-available" &&
           chunk.toolName === ACTIVATE_SKILL_TOOL_NAME,
+      ) ?? null;
+    const readSkillResourceCall =
+      initialChunks.find(
+        (
+          chunk,
+        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
+          chunk.type === "tool-input-available" &&
+          chunk.toolName === READ_SKILL_RESOURCE_TOOL_NAME,
       ) ?? null;
     const pingOutputChunk = initialChunks.find(
       (chunk) =>
@@ -310,8 +348,16 @@ try {
         message.purpose === "dispatch" &&
         message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL,
     ).length;
-    const firstSweep = await applyCaptureSweep(identity, userEntryIds);
-    const secondSweep = await applyCaptureSweep(identity, userEntryIds);
+    const firstSweep = await applyCaptureSweep(
+      identity,
+      userEntryIds,
+      appTransport,
+    );
+    const secondSweep = await applyCaptureSweep(
+      identity,
+      userEntryIds,
+      appTransport,
+    );
     const interviewerToolNames = [
       ...new Set(
         snapshot.messages.flatMap((message) =>
@@ -422,6 +468,7 @@ try {
       instanceId,
       dbPath: dbFile,
       activateSkillCall,
+      readSkillResourceCall,
       interviewerToolNames,
       captureUserText: userTextFromHistory(
         snapshot.messages.map((message) => ({
@@ -438,5 +485,5 @@ try {
     process.stdout.write(`PETRINAUT_CHAT_RESULT ${JSON.stringify(result)}\n`);
   }
 } finally {
-  await flue.stop();
+  await application.stop();
 }

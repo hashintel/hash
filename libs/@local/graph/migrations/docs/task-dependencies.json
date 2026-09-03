@@ -1,0 +1,17 @@
+{
+  "package": "@rust/hash-graph-migrations",
+  "dependencies": [
+    "@rust/error-stack",
+    "@rust/hash-graph-migrations-macros",
+    "@rust/hash-telemetry"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "start:migrate:down": [],
+    "start:migrate:up": []
+  }
+}

@@ -7,18 +7,18 @@
     "brunch:fixture": "node --experimental-strip-types scripts/brunch-sse-fixture.ts",
     "build": "vite build",
     "codegen": "node --experimental-strip-types scripts/generate-route-tree.ts",
-    "dev": "yarn examples:generate && vite",
-    "dev:optimization": "node scripts/optimization-dev.mjs",
+    "dev": "bash scripts/dev.sh",
     "examples:generate": "node --experimental-strip-types scripts/generate-example-artifacts.ts",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "generate:icons": "node scripts/generate-favicons.mjs",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "preview": "vite preview",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.63",
+    "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
     "@hashintel/ds-components": "workspace:*",
     "@hashintel/ds-helpers": "workspace:*",

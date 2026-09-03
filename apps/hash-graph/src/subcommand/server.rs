@@ -17,7 +17,7 @@ use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
     rest::{
         ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies,
-        auth::{CloudflareAccessConfig, KratosSessionConfig},
+        auth::{CloudflareAccessConfig, KratosSessionConfig, SessionCacheConfig},
         entity::ClusteringContext,
         hashql::CompilerContext,
         rate_limit::RateLimitConfig,
@@ -195,6 +195,26 @@ pub struct KratosSessionAuthConfig {
         value_parser = clap::value_parser!(u64).range(1..)
     )]
     pub session_http_timeout_secs: u64,
+
+    /// Time a verified session is served from the cache before re-verifying (in seconds).
+    ///
+    /// Bounds how long a revoked session, or an actor removed from the principal store, keeps
+    /// authenticating. Set to 0 to disable the cache and verify every request against Kratos.
+    #[clap(
+        long,
+        env = "HASH_GRAPH_SESSION_CACHE_TTL",
+        default_value_t = 60,
+        value_parser = clap::value_parser!(u64).range(..=86400)
+    )]
+    pub session_cache_ttl_secs: u64,
+
+    /// Maximum number of verified sessions kept in the cache.
+    #[clap(
+        long,
+        env = "HASH_GRAPH_SESSION_CACHE_CAPACITY",
+        default_value = "100000"
+    )]
+    pub session_cache_capacity: NonZero<u64>,
 }
 
 impl KratosSessionAuthConfig {
@@ -211,9 +231,25 @@ impl KratosSessionAuthConfig {
             ));
         }
 
+        let cache = SessionCacheConfig::new(
+            Duration::from_secs(self.session_cache_ttl_secs),
+            self.session_cache_capacity,
+        );
+        match &cache {
+            Some(cache) => tracing::info!(
+                ttl_secs = cache.ttl.as_secs(),
+                capacity = cache.capacity.get(),
+                "session cache enabled"
+            ),
+            None => {
+                tracing::info!("session cache disabled, every request verifies against Kratos");
+            }
+        }
+
         Ok(KratosSessionConfig {
             kratos_public_url,
             http_timeout: Duration::from_secs(self.session_http_timeout_secs),
+            cache,
         })
     }
 }
@@ -814,4 +850,33 @@ pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckE
     .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use core::num::NonZero;
+
+    use reqwest::Url;
+
+    use super::KratosSessionAuthConfig;
+
+    #[test]
+    fn session_cache_ttl_zero_disables_the_cache() {
+        let config = KratosSessionAuthConfig {
+            kratos_public_url: Some(
+                Url::parse("http://localhost:4433").expect("the Kratos URL should parse"),
+            ),
+            session_http_timeout_secs: 10,
+            session_cache_ttl_secs: 0,
+            session_cache_capacity: NonZero::new(100_000)
+                .expect("the capacity literal should be non-zero"),
+        }
+        .into_provider_config()
+        .expect("the session configuration should convert");
+
+        assert!(
+            config.cache.is_none(),
+            "a zero TTL should leave the provider uncached"
+        );
+    }
 }

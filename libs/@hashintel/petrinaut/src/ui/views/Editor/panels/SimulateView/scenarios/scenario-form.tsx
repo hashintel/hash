@@ -17,6 +17,7 @@ import { Section, SectionList } from "../../../../../components/section";
 import { Spreadsheet } from "../../../../../components/spreadsheet";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getScenarioDocumentUri } from "../../../../../monaco/editor-paths";
+import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
 
 import type {
   SpreadsheetCellValue,
@@ -331,7 +332,7 @@ function validateScenarioParams(
  * Validate the scenario name: must be non-empty and unique among existing
  * scenarios (excluding the one being edited, when `editingScenarioId` is set).
  */
-function validateScenarioName(
+export function validateScenarioName(
   name: string,
   existingNames: ReadonlySet<string>,
 ): string | undefined {
@@ -838,49 +839,57 @@ const ScenarioFormSections = ({
             all places&rdquo; above.
           </span>
         ) : (
-          [...places]
-            .filter((place) => state.showAllPlaces || place.showAsInitialState)
-            .sort((a, b) => {
-              const aP = a.showAsInitialState ? 0 : 1;
-              const bP = b.showAsInitialState ? 0 : 1;
-              return aP - bP;
-            })
-            .map((place) => {
-              const uri = scenarioSessionId
-                ? getScenarioDocumentUri(
-                    "scenario-initial-state",
-                    scenarioSessionId,
-                    place.id,
-                  )
-                : undefined;
-              return (
-                <PlaceInitialStateRow
-                  key={place.id}
-                  place={place}
-                  placeType={
-                    place.colorId ? typesById.get(place.colorId) : undefined
-                  }
-                  tokenCount={state.initialTokenCounts[place.id] ?? ""}
-                  onTokenCountChange={(value) =>
-                    callbacks.onInitialTokenCountsChange((prev) => ({
-                      ...prev,
-                      [place.id]: value,
-                    }))
-                  }
-                  tokenData={state.initialTokenData[place.id] ?? []}
-                  onTokenDataChange={(data) =>
-                    callbacks.onInitialTokenDataChange((prev) => ({
-                      ...prev,
-                      [place.id]: data,
-                    }))
-                  }
-                  documentUri={uri}
-                  error={getError(uri)}
-                  onFocus={() => setFocusedUri(uri ?? null)}
-                  onBlur={() => setFocusedUri(null)}
-                />
-              );
-            })
+          // One vertical focus flow over the per-place token grids: arrows
+          // run off one spreadsheet's edge into the next place's.
+          <FocusRoot>
+            <FocusStack axis="vertical">
+              {[...places]
+                .filter(
+                  (place) => state.showAllPlaces || place.showAsInitialState,
+                )
+                .sort((a, b) => {
+                  const aP = a.showAsInitialState ? 0 : 1;
+                  const bP = b.showAsInitialState ? 0 : 1;
+                  return aP - bP;
+                })
+                .map((place) => {
+                  const uri = scenarioSessionId
+                    ? getScenarioDocumentUri(
+                        "scenario-initial-state",
+                        scenarioSessionId,
+                        place.id,
+                      )
+                    : undefined;
+                  return (
+                    <PlaceInitialStateRow
+                      key={place.id}
+                      place={place}
+                      placeType={
+                        place.colorId ? typesById.get(place.colorId) : undefined
+                      }
+                      tokenCount={state.initialTokenCounts[place.id] ?? ""}
+                      onTokenCountChange={(value) =>
+                        callbacks.onInitialTokenCountsChange((prev) => ({
+                          ...prev,
+                          [place.id]: value,
+                        }))
+                      }
+                      tokenData={state.initialTokenData[place.id] ?? []}
+                      onTokenDataChange={(data) =>
+                        callbacks.onInitialTokenDataChange((prev) => ({
+                          ...prev,
+                          [place.id]: data,
+                        }))
+                      }
+                      documentUri={uri}
+                      error={getError(uri)}
+                      onFocus={() => setFocusedUri(uri ?? null)}
+                      onBlur={() => setFocusedUri(null)}
+                    />
+                  );
+                })}
+            </FocusStack>
+          </FocusRoot>
         )}
       </Section>
     </SectionList>

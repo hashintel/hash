@@ -1,0 +1,20 @@
+# Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+direction: right
+
+plan: "runsPerTile\nmin(buffer ceiling / bytesPerRun,\ndispatch width)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+device: "GPU device" {
+  style.stroke-dash: 4
+  tiles: "tile 1 → tile 2 → … → tile N\n(state + summary re-seeded per tile,\nseeds from absolute run indices)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+  hist: "one histogram buffer\n(every tile adds into it)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+  summary: "summary buffer\n(one tile at a time)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+}
+
+host: "host accumulators\nstatuses + final counts\nat absolute run offsets" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+frames: "metric frames\n(latest delivery per frame wins)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+plan -> device.tiles: "runs per tile"
+device.tiles -> device.hist: "atomicAdd per frame\n(bins are sums, merge is free)"
+device.tiles -> device.summary: at each tile's end
+device.summary -> host: read back per tile
+device.hist -> frames: "chunk readbacks; later tiles\nre-deliver cumulative frames"

@@ -6,9 +6,7 @@
 
 use core::num::NonZeroU32;
 
-pub use hash_middleware::rate_limit::{
-    ClientIpSource, RateLimitMode, RateLimiters, ip_gate_middleware, principal_limit_middleware,
-};
+pub use hash_middleware::rate_limit::{ClientIpSource, RateLimitMode, RateLimiters};
 
 /// Configuration for the request rate limits.
 ///
@@ -127,7 +125,9 @@ mod tests {
     use core::net::{IpAddr, SocketAddr};
 
     use axum::{Router, body::Body, extract::ConnectInfo, routing::get};
-    use hash_middleware::authentication::provider::StaticAuthenticationProvider;
+    use hash_middleware::{
+        authentication::provider::StaticAuthenticationProvider, rate_limit::IpGateLayer,
+    };
     use http::{Request, StatusCode};
     use tower::ServiceExt as _;
     use type_system::principal::actor::ActorId;
@@ -296,17 +296,12 @@ mod tests {
         let limiters =
             RateLimiters::start(&(&config(1)).into(), &opentelemetry::global::meter("test"));
         let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
-        let router =
-            Router::new()
-                .route("/entities", get(async || "ok"))
-                .layer(axum::middleware::from_fn(move |request, next| {
-                    super::ip_gate_middleware(
-                        Arc::clone(&limiters),
-                        Arc::clone(&service_secret),
-                        request,
-                        next,
-                    )
-                }));
+        let router = Router::new()
+            .route("/entities", get(async || "ok"))
+            .layer(IpGateLayer {
+                limiters,
+                service_secret,
+            });
         let client: IpAddr = "192.0.2.1".parse().expect("the address should parse");
 
         assert_eq!(

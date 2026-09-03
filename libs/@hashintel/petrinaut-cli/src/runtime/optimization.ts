@@ -2,19 +2,23 @@ import { readFile } from "node:fs/promises";
 
 import {
   compileScenario,
+  createMonteCarloExperiment,
   deriveRunSeed,
   parseDocumentText,
   petrinautOptimizationEvaluateParamsSchema,
   petrinautOptimizationManifestSchema,
 } from "@hashintel/petrinaut-core";
 import { lowerScenarioToHir } from "@hashintel/petrinaut-core/hir";
+import { createInProcessMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
 
 import type {
+  MonteCarloExperiment,
   PetrinautOptimizationDescribeParameter,
   PetrinautOptimizationDescribeResult,
   PetrinautOptimizationEvaluateResult,
   PetrinautOptimizationManifest,
   Scenario,
+  WorkerFactory,
 } from "@hashintel/petrinaut-core";
 import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
 
@@ -152,11 +156,53 @@ export function deriveTrialSeeds(
   );
 }
 
+/** Resolves when the experiment reports its terminal event. */
+function waitForCompletion(experiment: MonteCarloExperiment): Promise<void> {
+  return new Promise((resolve, reject) => {
+    experiment.events.subscribe((event) => {
+      if (event.type === "complete") {
+        // A run that threw keeps reporting its last sampled frame, so its
+        // metric value would pass the finite check as a stale objective.
+        if (event.progress.erroredRuns > 0) {
+          reject(
+            new Error(
+              `${event.progress.erroredRuns} of ${event.progress.runCount} optimization replicates failed`,
+            ),
+          );
+        } else {
+          resolve();
+        }
+      } else if (event.type === "error") {
+        reject(new Error(event.message));
+      } else if (event.type === "cancelled") {
+        reject(new Error("Optimization trial was cancelled"));
+      }
+    });
+  });
+}
+
 export function createOptimizationProtocol(args: {
   manifest: PetrinautOptimizationManifest;
   model: PetrinautCompiledModel;
+  /**
+   * Spawns one simulation worker per replicate shard.
+   *
+   * The CLI passes its `worker_threads` factory; without one, replicates run
+   * through the in-process worker — same protocol, calling thread, no
+   * parallelism.
+   */
+  createWorker?: WorkerFactory;
+  /**
+   * Upper bound on worker shards per trial; the experiment caps it at the
+   * replicate count. Absent means one shard.
+   */
+  shardCount?: number;
+  /** Test seam: observe or fake the experiment a trial runs as. */
+  createExperiment?: typeof createMonteCarloExperiment;
 }): OptimizationProtocol {
   const { manifest, model } = args;
+  const createWorker = args.createWorker ?? createInProcessMonteCarloWorker;
+  const createExperiment = args.createExperiment ?? createMonteCarloExperiment;
   const seedsPerTrial = manifest.execution.seedsPerTrial ?? 1;
   const trialSeeds = deriveTrialSeeds(manifest.execution.seed, seedsPerTrial);
   const scenario = manifest.model.definition.scenarios?.[0];
@@ -256,19 +302,61 @@ export function createOptimizationProtocol(args: {
         );
       }
 
-      // Sequential seeded runs: each replicate is validated as it lands, so a
-      // bad objective fails the trial before the remaining seeds run.
-      // Parallelising is deferred to the shared experiment-backend interface.
-      const replicates = trialSeeds.map((seed) => {
-        const result = model.run({
-          initialMarking: compiledScenario.result.initialState,
-          parameterValues: compiledScenario.result.parameterValues,
-          metrics: [manifest.objective.metricId],
-          seed,
-          dt: manifest.execution.dt,
-          maxTime: manifest.execution.maxTime,
-        });
-        const value = result.metrics[metric.name];
+      // Replicates run as one Monte Carlo experiment: one run per seed, split
+      // across simulation workers. Explicit run seeds keep the contract that
+      // replicate 0 is the base seed verbatim, whatever the shard layout.
+      const metricArtifact = Object.hasOwn(
+        model.hirArtifacts.metrics,
+        metric.id,
+      )
+        ? model.hirArtifacts.metrics[metric.id]
+        : undefined;
+      if (!metricArtifact) {
+        throw new Error(
+          `Objective metric "${metric.name}" has no compiled artifact`,
+        );
+      }
+
+      const experiment = await createExperiment({
+        sdcpn: model.sdcpn,
+        hirArtifacts: model.hirArtifacts,
+        initialMarking: compiledScenario.result.initialState,
+        parameterValues: compiledScenario.result.parameterValues,
+        seed: manifest.execution.seed,
+        dt: manifest.execution.dt,
+        maxTime: manifest.execution.maxTime,
+        runCount: seedsPerTrial,
+        runs: trialSeeds.map((seed) => ({ seed })),
+        createWorker,
+        ...(args.shardCount === undefined
+          ? {}
+          : { shardCount: args.shardCount }),
+        metricSpecs: [
+          {
+            kind: "expression",
+            id: metric.id,
+            label: metric.name,
+            // Completed runs keep reporting their frozen state, so each run's
+            // latest sample is its final-frame value.
+            sampleRuns: "all",
+            code: metric.code,
+            artifact: metricArtifact,
+          },
+        ],
+      });
+
+      let runResults: ReadonlyMap<number, Readonly<Record<string, number>>>;
+      try {
+        const completion = waitForCompletion(experiment);
+        experiment.start();
+        await completion;
+        runResults = experiment.runResults.get();
+      } finally {
+        experiment.dispose();
+      }
+
+      const replicates = trialSeeds.map((seed, runIndex) => {
+        const value = runResults.get(runIndex)?.[metric.id];
         if (value === undefined || !Number.isFinite(value)) {
           throw new Error(
             `Petrinaut result omitted a finite objective metric "${metric.name}" for seed ${seed}`,

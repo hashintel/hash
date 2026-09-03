@@ -1,6 +1,5 @@
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions";
 import { resolveNetParameterValues } from "../../../parameter-values";
-import { createUserKeyedRecord } from "../../../validation/record-keys";
 import { createWorkerTransport } from "../../runtime/transport";
 import {
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
@@ -9,9 +8,12 @@ import {
 import { createMonteCarloMetricShardMerger } from "../metrics/merge";
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 import {
-  getDefaultMonteCarloShardCount,
-  planMonteCarloShards,
-} from "./shard-plan";
+  appendMetricFrames,
+  createEmptyMetricsState,
+  createEventStream,
+  createReadableStore,
+} from "./experiment-stores";
+import { planMonteCarloShards } from "./shard-plan";
 
 import type { AbortSignalLike } from "../../../environment";
 import type { PetrinautExtensionSettings } from "../../../extensions";
@@ -30,11 +32,16 @@ import type {
   MonteCarloUserDefinedMetricConfig,
   MonteCarloUserDefinedMetricFrame,
 } from "../metrics";
-import type { MonteCarloAdvanceResult, MonteCarloSimulator } from "../types";
+import type {
+  MonteCarloAdvanceResult,
+  MonteCarloRunConfig,
+  MonteCarloSimulator,
+} from "../types";
 import type {
   MonteCarloToMainMessage,
   MonteCarloWorkerProgress,
 } from "../worker/messages";
+import type { MonteCarloExperimentMetrics } from "./experiment-stores";
 import type { MonteCarloShardPlanEntry } from "./shard-plan";
 
 export type MonteCarloExperimentState =
@@ -45,10 +52,7 @@ export type MonteCarloExperimentState =
   | "Error"
   | "Cancelled";
 
-export type MonteCarloExperimentMetrics = {
-  frames: readonly MonteCarloUserDefinedMetricFrame[];
-  latestByMetricId: Readonly<Record<string, MonteCarloUserDefinedMetricFrame>>;
-};
+export type { MonteCarloExperimentMetrics } from "./experiment-stores";
 
 export type MonteCarloExperimentEvent =
   | { type: "complete"; progress: MonteCarloWorkerProgress }
@@ -67,15 +71,27 @@ type CreateMonteCarloExperimentBaseConfig = {
    * dynamics/lambda/kernel user code in the net. */
   hirArtifacts?: HirArtifacts;
   runCount: number;
+  /**
+   * Per-run overrides, indexed by global run index; length must equal
+   * `runCount` when present.
+   *
+   * Explicit seeds are how optimization replicates keep their contract: the
+   * first replicate reuses the base seed verbatim, which the default
+   * derivation does not.
+   */
+  runs?: readonly MonteCarloRunConfig[];
   batchSize?: number;
   /**
-   * How many workers to split the runs across.
+   * How many workers to split the runs across; never more than `runCount`.
    *
-   * Defaults to one per logical core minus one (capped at `runCount`). Runs are
-   * independent and seeds derive from the global run index, so shard count
-   * changes only how fast an experiment finishes, never what it reports. Only
-   * honoured for `createWorker` experiments — a caller-supplied `transport` is a
-   * single channel and always runs as one shard.
+   * Defaults to **one**: the experiment is pure and never inspects the host,
+   * so hardware detection belongs to whoever supplies `createWorker` — the
+   * editor passes `getDefaultMonteCarloShardCount()`, the CLI derives it from
+   * `os.availableParallelism()`. Runs are independent and seeds derive from
+   * the global run index, so shard count changes only how fast an experiment
+   * finishes, never what it reports. Only honoured for `createWorker`
+   * experiments — a caller-supplied `transport` is a single channel and always
+   * runs as one shard.
    */
   shardCount?: number;
   signal?: AbortSignalLike;
@@ -110,10 +126,24 @@ export type CreateMonteCarloExperimentConfig =
         }
     );
 
+/** Each run's final metric values, keyed by global run index then metric id. */
+export type MonteCarloExperimentRunResults = ReadonlyMap<
+  number,
+  Readonly<Record<string, number>>
+>;
+
 export interface MonteCarloExperiment {
   readonly status: ReadableStore<MonteCarloExperimentState>;
   readonly progress: ReadableStore<MonteCarloWorkerProgress | null>;
   readonly metrics: ReadableStore<MonteCarloExperimentMetrics>;
+  /**
+   * Per-run final metric values, populated as runs finish.
+   *
+   * Metric frames aggregate across runs; this keeps the run axis, which is
+   * what optimization replicates read. Complete once the `complete` event has
+   * fired.
+   */
+  readonly runResults: ReadableStore<MonteCarloExperimentRunResults>;
   readonly events: EventStream<MonteCarloExperimentEvent>;
 
   start(this: void): void;
@@ -121,46 +151,9 @@ export interface MonteCarloExperiment {
   dispose(this: void): void;
 }
 
-function createReadableStore<T>(initial: T): ReadableStore<T> & {
-  set(next: T): void;
-} {
-  let current = initial;
-  const listeners = new Set<(value: T) => void>();
-
-  return {
-    get: () => current,
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    set(next) {
-      if (Object.is(next, current)) {
-        return;
-      }
-      current = next;
-      for (const listener of listeners) {
-        listener(current);
-      }
-    },
-  };
-}
-
-function createEventStream<T>(): EventStream<T> & { emit(event: T): void } {
-  const listeners = new Set<(event: T) => void>();
-
-  return {
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    emit(event) {
-      for (const listener of listeners) {
-        listener(event);
-      }
-    },
-  };
-}
-
+/**
+ * Yields to the host between compute batches so the worker stays responsive.
+ */
 function delay(): Promise<void> {
   const runtime = globalThis as {
     setTimeout?: (handler: () => void, timeout?: number) => unknown;
@@ -171,33 +164,6 @@ function delay(): Promise<void> {
         runtime.setTimeout!(() => resolve(undefined), 0);
       })
     : Promise.resolve();
-}
-
-function createEmptyMetricsState(): MonteCarloExperimentMetrics {
-  return {
-    frames: [],
-    latestByMetricId: {},
-  };
-}
-
-function appendMetricFrames(
-  state: MonteCarloExperimentMetrics,
-  nextFrames: readonly MonteCarloUserDefinedMetricFrame[],
-): MonteCarloExperimentMetrics {
-  // Keyed by metric ids from the net definition: no prototype.
-  const latestByMetricId = Object.assign(
-    createUserKeyedRecord<MonteCarloUserDefinedMetricFrame>(),
-    state.latestByMetricId,
-  );
-
-  for (const frame of nextFrames) {
-    latestByMetricId[frame.metricId] = frame;
-  }
-
-  return {
-    frames: [...state.frames, ...nextFrames],
-    latestByMetricId,
-  };
 }
 
 function takePendingMetricFrames(
@@ -316,6 +282,9 @@ function createLocalMonteCarloExperiment(
   const metrics = createReadableStore<MonteCarloExperimentMetrics>(
     createEmptyMetricsState(),
   );
+  const runResults = createReadableStore<MonteCarloExperimentRunResults>(
+    new Map(),
+  );
   const events = createEventStream<MonteCarloExperimentEvent>();
   let disposed = false;
   let running = false;
@@ -336,8 +305,26 @@ function createLocalMonteCarloExperiment(
       maxTime: config.maxTime,
       hirArtifacts: config.hirArtifacts,
       runCount: config.runCount,
+      runs: config.runs,
       metrics: userMetrics,
     });
+
+    const publishRunResults = () => {
+      const byRunIndex = new Map<number, Record<string, number>>();
+      for (const metric of userMetrics) {
+        for (const [runIndex, value] of metric.getRunValues()) {
+          let values = byRunIndex.get(runIndex);
+          if (!values) {
+            values = {};
+            byRunIndex.set(runIndex, values);
+          }
+          values[metric.id] = value;
+        }
+      }
+      if (byRunIndex.size > 0) {
+        runResults.set(byRunIndex);
+      }
+    };
 
     const syncStores = (nextProgress: MonteCarloWorkerProgress | null) => {
       const nextMetricFrames = takePendingMetricFrames(
@@ -401,6 +388,7 @@ function createLocalMonteCarloExperiment(
 
           if (result.allFinished) {
             running = false;
+            publishRunResults();
             status.set("Complete");
             events.emit({ type: "complete", progress: nextProgress });
             return;
@@ -415,6 +403,7 @@ function createLocalMonteCarloExperiment(
       status,
       progress,
       metrics,
+      runResults,
       events,
       start() {
         if (disposed || running) {
@@ -480,6 +469,14 @@ function createLocalMonteCarloExperiment(
 export function createMonteCarloExperiment(
   config: CreateMonteCarloExperimentConfig,
 ): Promise<MonteCarloExperiment> {
+  if (config.runs && config.runs.length !== config.runCount) {
+    return Promise.reject(
+      new Error(
+        `Monte Carlo experiment received ${config.runs.length} run configs for ${config.runCount} runs`,
+      ),
+    );
+  }
+
   if ("metrics" in config && config.metrics !== undefined) {
     return createLocalMonteCarloExperiment(config);
   }
@@ -516,10 +513,7 @@ export function createMonteCarloExperiment(
   } else if ("createWorker" in config && config.createWorker !== undefined) {
     const { createWorker } = config;
     try {
-      shards = planMonteCarloShards(
-        config.runCount,
-        config.shardCount ?? getDefaultMonteCarloShardCount(config.runCount),
-      );
+      shards = planMonteCarloShards(config.runCount, config.shardCount ?? 1);
     } catch (error) {
       return Promise.reject(
         error instanceof Error
@@ -541,6 +535,9 @@ export function createMonteCarloExperiment(
   const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
   const metrics = createReadableStore<MonteCarloExperimentMetrics>(
     createEmptyMetricsState(),
+  );
+  const runResults = createReadableStore<MonteCarloExperimentRunResults>(
+    new Map(),
   );
   const events = createEventStream<MonteCarloExperimentEvent>();
   let disposed = false;
@@ -691,6 +688,7 @@ export function createMonteCarloExperiment(
       status,
       progress,
       metrics,
+      runResults,
       events,
       start() {
         if (disposed) {
@@ -793,6 +791,16 @@ export function createMonteCarloExperiment(
             publishMetricFrames(merger.accept(shardIndex, message.frames));
             break;
           }
+          case "runResults": {
+            // Run indices are global and shards own disjoint slices, so a
+            // plain union cannot collide.
+            const merged = new Map(runResults.get());
+            for (const { runIndex, values } of message.results) {
+              merged.set(runIndex, values);
+            }
+            runResults.set(merged);
+            break;
+          }
           case "progress":
             shardProgress[shardIndex] = message.progress;
             publishProgress();
@@ -849,6 +857,10 @@ export function createMonteCarloExperiment(
           hirArtifacts: config.hirArtifacts,
           runCount: shard.runCount,
           runIndexOffset: shard.runIndexOffset,
+          runs: config.runs?.slice(
+            shard.runIndexOffset,
+            shard.runIndexOffset + shard.runCount,
+          ),
           batchSize: config.batchSize,
           metricSpecs: "metricSpecs" in config ? config.metricSpecs : undefined,
         });

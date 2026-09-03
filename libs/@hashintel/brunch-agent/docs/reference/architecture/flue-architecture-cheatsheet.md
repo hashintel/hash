@@ -5,12 +5,12 @@ An architect's consolidation of the Flue documentation — all 21 guide entrypoi
 FE-1383/FE-1357 roadmap. Purpose (Lu's charter): align with recommended patterns and use
 provided affordances _before_ we diverge by building layers we don't need or drawing
 boundaries in the wrong place. Companion to the narrower usage audit
-([`flue-patterns-audit-2026-08-17.md`](../../evidence/proofs/audits/flue-patterns-audit-2026-08-17.md)); same caveat —
+([`flue-patterns-audit-2026-08-17.md`](../../evidence/audits/flue-patterns-audit-2026-08-17.md)); same caveat —
 WebFetch summarizes, so unquoted API details are paraphrase-grade.
 
 The FE-1391 B1/B2 gate later checked the installed 2.0.3 source, exported types, and
 package-shipped docs directly. Its corrections below are source-grade and link to the
-[source-read record](../../evidence/proofs/audits/flue-entry-projection-source-read-2026-08-18.md).
+[source-read record](../../evidence/audits/flue-entry-projection-source-read-2026-08-18.md).
 
 Link form: every page has a markdown mirror at `<url>/index.md`.
 
@@ -320,7 +320,7 @@ between the second and third:
 
 ## Reconciliation with the Flue-vs-tilde analysis (2026-08-14)
 
-The comparative analysis at [`../../reference/amp-analysis-flue-vs-tilde.md`](../../reference/amp-analysis-flue-vs-tilde.md)
+The comparative analysis at [`../../reference/amp-analysis-flue-vs-tilde.md`](../../research/amp-analysis-flue-vs-tilde.md)
 read Flue's _source and changelog_, not only the guides, so where it speaks it carries higher
 evidence grade than this sheet's paraphrase-level doc reads. Reconciled 2026-08-17; no
 contradictions found — the analysis's verdict (keep Flue; Tilde is a hosted control plane, not

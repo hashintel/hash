@@ -4,7 +4,7 @@ Status: **provisional**, rewritten 2026-08-25 under
 [ADR-0006](../adr/0006-plugins-per-target-formalism.md); FE-1402 owns it. The previous draft,
 with its CPS `DemandTable` and `where`-scoped clause vocabulary, is archived at
 [`elicitation-completion-2026-08-25-full-draft.md`](../archive/specs/elicitation-completion-2026-08-25-full-draft.md);
-the FE-1402 [rehearsal](../evidence/proofs/design/elicitation-completion-rehearsal.md) is a
+the FE-1402 [rehearsal](../evidence/design/elicitation-completion-rehearsal.md) is a
 golden-fixture candidate once re-expressed at kind level, not authority.
 
 ## The function
@@ -19,7 +19,7 @@ table of one plugin file at one plugin version, with the static floor stated und
 ([`plugin-sdcpn/plugin.yaml`](../../packages/plugin-sdcpn/plugin.yaml) is the exemplar). The function is pure and reads nothing
 else: not the transcript, conversation fluency, turn count, delivery state, session state, or a
 deferral report. Each numbered statement below is a test the implementation must pass; the
-[plain rendering](../evidence/proofs/design/elicitation-completion-plain.md) explains the same
+[plain rendering](../evidence/design/elicitation-completion-plain.md) explains the same
 rules in a second register.
 
 ## Shape of the answer

@@ -37,8 +37,16 @@ const sectionStyle = css({
   zIndex: "[0]",
   // No vertical padding here — the sticky header owns its own padding so it
   // can fully cover scrolling content underneath it.
+  //
+  // A focused section paints over its unfocused siblings, but never over a
+  // sticky header: sections nest (a drawer section hosting the ad-hoc form,
+  // which brings its own), and the host's header sits at 2 in the same
+  // stacking context. Lifting a focused section above that let the nested
+  // section's title and rows paint straight through the header pinned above
+  // them, so 1 is the ceiling here — high enough to win against a sibling
+  // at 0, low enough to stay under every header.
   "&:focus-within": {
-    zIndex: "[3]",
+    zIndex: "[1]",
   },
 });
 
@@ -52,9 +60,6 @@ const fillHeightSectionStyle = css({
 });
 
 const headerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
   position: "sticky",
   top: "[0]",
   zIndex: "[2]",
@@ -76,6 +81,16 @@ const headerStyle = css({
       "[linear-gradient(to bottom, var(--colors-neutral-s00), transparent)]",
     pointerEvents: "none",
   },
+});
+
+const headerRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+});
+
+const stickyBandStyle = css({
+  paddingTop: "2",
 });
 
 const contentPaddingStyle = css({
@@ -162,6 +177,13 @@ interface SectionProps {
   /** Registers the collapse trigger, e.g. for keyboard navigation. */
   triggerRef?: (element: HTMLButtonElement | null) => void;
   onTriggerKeyDown?: React.KeyboardEventHandler;
+  /**
+   * Rendered inside the sticky header block, under the title row, so it stays
+   * pinned while the section's content scrolls beneath it — a control strip
+   * whose effect the user watches further down (e.g. sweep parameter
+   * controls above streaming charts). Sticks with the title as one unit.
+   */
+  renderStickyBand?: () => ReactNode;
   children: ReactNode;
   className?: string;
 }
@@ -179,6 +201,7 @@ export const Section = ({
   renderHeaderAction,
   triggerRef,
   onTriggerKeyDown,
+  renderStickyBand,
   children,
   className,
 }: SectionProps) => {
@@ -205,19 +228,24 @@ export const Section = ({
         className={cx(sectionStyle, className)}
       >
         <div className={headerStyle}>
-          {headerLeft}
-          {renderHeaderAction && <div>{renderHeaderAction()}</div>}
-          <Collapsible.Trigger className={triggerButtonStyle} asChild>
-            <TriggerButton
-              ref={triggerRef}
-              size="xs"
-              variant="ghost"
-              aria-label={`Toggle ${title} section`}
-              iconName="chevronUp"
-              tooltip="Toggle section"
-              onKeyDown={onTriggerKeyDown}
-            />
-          </Collapsible.Trigger>
+          <div className={headerRowStyle}>
+            {headerLeft}
+            {renderHeaderAction && <div>{renderHeaderAction()}</div>}
+            <Collapsible.Trigger className={triggerButtonStyle} asChild>
+              <TriggerButton
+                ref={triggerRef}
+                size="xs"
+                variant="ghost"
+                aria-label={`Toggle ${title} section`}
+                iconName="chevronUp"
+                tooltip="Toggle section"
+                onKeyDown={onTriggerKeyDown}
+              />
+            </Collapsible.Trigger>
+          </div>
+          {renderStickyBand && (
+            <div className={stickyBandStyle}>{renderStickyBand()}</div>
+          )}
         </div>
         <Collapsible.Content
           className={cx(
@@ -241,18 +269,28 @@ export const Section = ({
       )}
     >
       <div className={headerStyle}>
-        {headerLeft}
-        {renderHeaderAction && <div>{renderHeaderAction()}</div>}
-      </div>
-      <div
-        className={cx(
-          contentStyle,
-          contentPaddingStyle,
-          fillHeight && fillHeightContentStyle,
+        <div className={headerRowStyle}>
+          {headerLeft}
+          {renderHeaderAction && <div>{renderHeaderAction()}</div>}
+        </div>
+        {renderStickyBand && (
+          <div className={stickyBandStyle}>{renderStickyBand()}</div>
         )}
-      >
-        {children}
       </div>
+      {/* A section whose body lives entirely in the sticky band (the sweep
+          navigator) passes null children; rendering the wrapper anyway left
+          ~20px of dead space under it. */}
+      {children === null ? null : (
+        <div
+          className={cx(
+            contentStyle,
+            contentPaddingStyle,
+            fillHeight && fillHeightContentStyle,
+          )}
+        >
+          {children}
+        </div>
+      )}
     </div>
   );
 };

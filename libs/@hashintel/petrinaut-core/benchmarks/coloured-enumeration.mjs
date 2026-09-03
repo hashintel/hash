@@ -2,9 +2,15 @@
  * Measures how per-frame cost scales with token count for a transition whose
  * coloured input arc has weight 2.
  *
- * `enumerateWeightedMarkingIndicesGenerator` materialises the full per-place
- * combination list up front, so the expectation is O(C(n, 2)) = O(n^2) work and
- * allocation per transition evaluation per frame.
+ * Three cases bound the enumeration cost. With a lambda that reads token
+ * attributes: a transition that never fires examines every combination each
+ * frame (O(C(n, 2)) lambda evaluations — irreducible), and one that always
+ * fires examines one. Lazy enumeration makes both allocation-free; the eager
+ * implementation it replaced also materialised the full C(n, 2) combination
+ * list per evaluation, which made even the always-fires case quadratic.
+ * With a token-independent lambda, the artifact carries
+ * `readsNoInputTokens` and the engine tests only the first combination, so
+ * even the never-fires case is O(1) per frame.
  */
 import { performance } from "node:perf_hooks";
 
@@ -52,8 +58,10 @@ const sdcpn = {
       outputArcs: [{ placeId: "sink", weight: 1 }],
       lambdaType: "predicate",
       // Never fires, so token counts stay constant and we measure pure
-      // enablement/enumeration cost at a fixed marking size.
-      lambdaCode: "export default Lambda(() => false);",
+      // enablement/enumeration cost at a fixed marking size. Reads a token
+      // attribute so the lambda is NOT token-independent — every combination
+      // must be examined.
+      lambdaCode: "export default Lambda((input) => input.Pool[0].v < 0);",
       transitionKernelCode:
         "export default TransitionKernel(() => ({ Sink: [{ v: 1 }] }));",
       x: 50,
@@ -64,16 +72,43 @@ const sdcpn = {
   parameters: [],
 };
 
-const artifacts = compileHirArtifacts(sdcpn).artifacts;
+/**
+ * The always-fires variant: a self loop that consumes two pool tokens and
+ * produces two, so the marking size stays constant while the transition fires
+ * on the first combination every frame.
+ */
+const selfLoopSdcpn = {
+  ...sdcpn,
+  transitions: [
+    {
+      ...sdcpn.transitions[0],
+      inputArcs: [{ placeId: "pool", weight: 2, type: "standard" }],
+      outputArcs: [{ placeId: "pool", weight: 2 }],
+      lambdaCode: "export default Lambda((input) => input.Pool[0].v >= 0);",
+      transitionKernelCode:
+        "export default TransitionKernel(() => ({ Pool: [{ v: 1 }, { v: 2 }] }));",
+    },
+  ],
+};
 
-process.stdout.write(
-  "coloured place, input arc weight 2, transition never fires\n" +
-    "tokens   C(n,2)      ns/run-frame\n",
-);
+/**
+ * A token-independent never-firing lambda: the compiler flags it, and the
+ * engine tests only the first combination — O(1) per frame regardless of
+ * token count.
+ */
+const tokenIndependentSdcpn = {
+  ...sdcpn,
+  transitions: [
+    {
+      ...sdcpn.transitions[0],
+      lambdaCode: "export default Lambda(() => false);",
+    },
+  ],
+};
 
-for (const tokens of [10, 25, 50, 100, 200, 400]) {
+function measure(net, artifacts, tokens) {
   const simulator = createMonteCarloSimulator({
-    sdcpn,
+    sdcpn: net,
     initialMarking: {
       pool: Array.from({ length: tokens }, (_, index) => ({ v: index })),
       sink: [],
@@ -95,10 +130,32 @@ for (const tokens of [10, 25, 50, 100, 200, 400]) {
   for (const summary of simulator.getSummaries()) {
     frames += summary.frameNumber;
   }
+  return (ms / frames) * 1e6;
+}
 
-  const combinations = (tokens * (tokens - 1)) / 2;
+const cases = [
+  ["token-reading lambda, never fires (examines every combination)", sdcpn],
+  [
+    "token-reading lambda, always fires (examines one combination)",
+    selfLoopSdcpn,
+  ],
+  [
+    "token-independent lambda, never fires (first combination only)",
+    tokenIndependentSdcpn,
+  ],
+];
+
+for (const [label, net] of cases) {
+  const artifacts = compileHirArtifacts(net).artifacts;
   process.stdout.write(
-    `${String(tokens).padStart(6)}   ${String(combinations).padStart(7)}   ` +
-      `${((ms / frames) * 1e6).toFixed(0).padStart(12)}\n`,
+    `weight-2 coloured arc, ${label}\n` + "tokens   C(n,2)      ns/run-frame\n",
   );
+  for (const tokens of [10, 25, 50, 100, 200, 400]) {
+    const combinations = (tokens * (tokens - 1)) / 2;
+    process.stdout.write(
+      `${String(tokens).padStart(6)}   ${String(combinations).padStart(7)}   ` +
+        `${measure(net, artifacts, tokens).toFixed(0).padStart(12)}\n`,
+    );
+  }
+  process.stdout.write("\n");
 }

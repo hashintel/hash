@@ -1,19 +1,25 @@
 {
   "extends": ["//"],
   "tasks": {
-    "baseline:run": {
-      "cache": false,
-      "passThroughEnv": [
-        "ANTHROPIC_API_KEY",
-        "BRUNCH_BASELINE_ANTHROPIC_MODULE"
-      ]
-    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
     "linear:graph": {
       "cache": false
+    },
+    "test:unit": {
+      "dependsOn": [
+        "codegen",
+        "^build",
+        "@hashintel/brunch-agent-plugin-gherkin#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/**",
+        "!$TURBO_ROOT$/libs/@hashintel/brunch-agent/**/{.flue,.turbo,dist,node_modules}/**"
+      ]
     }
   }
 }

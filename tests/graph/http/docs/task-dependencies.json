@@ -1,0 +1,12 @@
+{
+  "package": "@rust/hash-graph-http-tests",
+  "dependencies": [
+    "@apps/hash-graph"
+  ],
+  "tasks": {
+    "test:integration": [
+      "@apps/hash-graph#start:test:healthcheck",
+      "@local/status#build"
+    ]
+  }
+}

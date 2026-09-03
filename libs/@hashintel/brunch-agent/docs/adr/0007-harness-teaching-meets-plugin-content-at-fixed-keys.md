@@ -13,7 +13,7 @@ a harness package, never in app `skills/` directories), [ADR-0003](0003-three-re
 as code), IR Layer B's rule that interview ordering is derived from completion rather than
 taught, and completion rule 15 (whether a session may stop is session control, never guidance)
 Decided on: the `ln/fe-1406-harness-teaching-adr` branch, from the
-[lineage audit](../evidence/proofs/audits/harness-teaching-lineage-audit.md) and the
+[lineage audit](../evidence/audits/harness-teaching-lineage-audit.md) and the
 [penciled directions of 2026-08-14](../archive/planning-inputs/penciled-directions-2026-08-14.md);
 owning issue FE-1406 (gist: what the harness teaches)
 
@@ -23,7 +23,7 @@ Kernel spec §11.5 has said since 2026-08-11 that **guidance ownership follows v
 ownership**: a plugin teaches what to notice in its formalism; the harness teaches how to work an
 interview situation the shared envelope can name. The rule was reaffirmed by FE-1397, ADR-0002,
 FE-1406, and ADR-0006's supersession map, and it has never been designed. The
-[audit](../evidence/proofs/audits/harness-teaching-lineage-audit.md) finds fifteen restatements,
+[audit](../evidence/audits/harness-teaching-lineage-audit.md) finds fifteen restatements,
 eight vocabularies, five layers, and no build; each rescoping shrank the deliverable — a designed
 quiver, then graduated cards, then five relocated rows — while the rule stood. What ships today is
 eight protocol sentences in `packages/core` followed by the plugin file's prose.

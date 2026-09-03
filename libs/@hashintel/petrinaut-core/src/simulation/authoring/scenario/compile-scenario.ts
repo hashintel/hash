@@ -1,55 +1,43 @@
-import { HirInterpretError, interpretHir } from "../../../hir/interpret";
 import {
   buildScenarioCodeContext,
   buildScenarioExpressionContext,
 } from "../../../hir/surface-context";
-import { typecheckHir } from "../../../hir/typecheck";
 import { parseParameterValue } from "../../../parameter-values";
 import { createUserKeyedRecord, getOwn } from "../../../validation/record-keys";
-import { coerceTokenRecord } from "../../engine/token-values";
-import { TYPE_POLICIES } from "../../engine/type-policies";
+import {
+  compileCodeModeInitialState,
+  compilePerPlaceInitialState,
+} from "./compile-scenario/initial-state";
+import {
+  describeValue,
+  interpretPreparedItem,
+  prepareScenarioItem,
+} from "./compile-scenario/prepared-items";
 
 import type { HirInterpretBindings, HirValue } from "../../../hir/interpret";
-import type { ScenarioHir, ScenarioHirItem } from "../../../hir/scenario";
-import type {
-  HirScenarioCodeContext,
-  HirScenarioExpressionContext,
-  HirSurfaceContext,
-} from "../../../hir/surface-context";
+import type { ScenarioHir } from "../../../hir/scenario";
 import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
-import type {
-  InitialMarking,
-  InitialPlaceMarking,
-  InitialTokenAttributeValue,
-} from "../../api";
-
-// -- Result types -------------------------------------------------------------
+import type { InitialMarking, InitialPlaceMarking } from "../../api";
+import type { InitialStateOutcome } from "./compile-scenario/initial-state";
+import type { PreparedScenarioItem } from "./compile-scenario/prepared-items";
 
 /**
- * Compiled initial state entry for a single place.
- * - Uncolored places: token count number.
- * - Colored places: array of token records keyed by color element name.
+ * A token count for an uncoloured place, or token records keyed by color
+ * element name for a coloured one.
  */
 export type CompiledPlaceMarking = InitialPlaceMarking;
 
 export interface CompiledScenarioResult {
-  /**
-   * Resolved parameter values keyed by variableName (matches the format
-   * expected by the simulation worker).
-   */
+  /** Resolved parameter values keyed by variable name, as the worker reads them. */
   parameterValues: Record<string, string>;
-  /**
-   * Resolved initial marking keyed by place ID.
-   */
+  /** Resolved initial marking keyed by place id. */
   initialState: InitialMarking;
 }
 
 export interface ScenarioCompilationError {
-  /** Which field failed: "parameterOverride", "initialState", or "scenarioParameter" */
   source: "parameterOverride" | "initialState" | "scenarioParameter";
-  /** ID of the parameter or place that failed */
+  /** The parameter or place that failed, or `__code__` for the code block. */
   itemId: string;
-  /** Human-readable error message */
   message: string;
 }
 
@@ -67,69 +55,38 @@ export interface CompileScenarioOptions {
   scenarioParameterValues?: ScenarioParameterValues;
 }
 
-// -- HIR evaluation -----------------------------------------------------------
-
 type NetParameterValues = Record<string, number | boolean>;
 
 /**
- * Type-checks one lowered scenario item against the net and interprets it,
- * or explains why it cannot run. Lowering happens elsewhere
- * (`lowerScenarioToHir`); this half is pure and free of the TypeScript
- * compiler.
+ * A scenario compiler whose value-independent work is already done.
+ *
+ * Preparation runs the parts that do not depend on the scenario parameter
+ * values — expression contexts, net-parameter default parsing, the lookup
+ * maps, and the type check of every override and initial-state item — so a
+ * caller compiling the same scenario at many assignments pays them once.
  */
-function evaluateScenarioItem(
-  item: ScenarioHirItem | undefined,
-  context: HirSurfaceContext,
-  bindings: HirInterpretBindings,
-): { ok: true; value: HirValue } | { ok: false; message: string } {
-  if (item === undefined) {
-    return {
-      ok: false,
-      message:
-        "This scenario code has not been compiled — the lowered scenario is stale. Recompile it from the current scenario.",
-    };
-  }
-  if (!item.ok) {
-    return {
-      ok: false,
-      message: item.diagnostics
-        .map((diagnostic) => diagnostic.message)
-        .join("\n"),
-    };
-  }
-  const checked = typecheckHir(item.fn, context);
-  const errors = checked.diagnostics.filter(
-    (diagnostic) => diagnostic.severity === "error",
-  );
-  if (errors.length > 0) {
-    return {
-      ok: false,
-      message: errors.map((diagnostic) => diagnostic.message).join("\n"),
-    };
-  }
-  try {
-    return { ok: true, value: interpretHir(item.fn, bindings) };
-  } catch (error) {
-    return {
-      ok: false,
-      message:
-        error instanceof HirInterpretError || error instanceof Error
-          ? error.message
-          : String(error),
-    };
-  }
-}
-
-/** Renders an interpreted value for an error message. */
-function describeValue(value: HirValue): string {
-  return typeof value === "object" ? JSON.stringify(value) : String(value);
-}
+export type PreparedScenarioCompiler = {
+  /** `compileScenario` for one concrete assignment of the scenario parameters. */
+  compile(
+    scenarioParameterValues?: ScenarioParameterValues,
+  ): CompileScenarioOutcome;
+  /**
+   * The resolved net parameter values as the numbers and booleans they
+   * evaluated to, without the initial state: an initial-state error does not
+   * fail this. The returned record is fresh per call.
+   */
+  compileParameterNumbers(
+    scenarioParameterValues?: ScenarioParameterValues,
+  ):
+    | { ok: true; parameters: Record<string, number | boolean> }
+    | { ok: false; errors: ScenarioCompilationError[] };
+};
 
 /** Applies a parameter's type rules to an evaluated override value. */
-function coerceOverrideValue(
+const coerceOverrideValue = (
   param: Parameter,
   value: HirValue,
-): { ok: true; value: number | boolean } | { ok: false; message: string } {
+): { ok: true; value: number | boolean } | { ok: false; message: string } => {
   if (param.type === "boolean") {
     return typeof value === "boolean"
       ? { ok: true, value }
@@ -151,317 +108,56 @@ function coerceOverrideValue(
     };
   }
   return { ok: true, value };
-}
+};
 
-type MarkingTokenRecord = Record<string, InitialTokenAttributeValue>;
+/** The worker input format: every resolved value as a string. */
+const stringifyParameters = (
+  parameters: NetParameterValues,
+): Record<string, string> => {
+  const parameterValues = createUserKeyedRecord<string>();
+  for (const [key, value] of Object.entries(parameters)) {
+    parameterValues[key] = String(value);
+  }
+  return parameterValues;
+};
 
 /**
- * Coerces one raw token source through the runtime codec, then converts each
- * attribute to its at-rest form (uuid bigints become canonical lowercase
- * strings) so the compiled initial state stays JSON-serializable. Arbitrary
- * uuid inputs (free text, numbers) are normalized deterministically via
- * `toUuid` inside `coerceTokenRecord`.
- */
-function compileTokenRecord(
-  source: Record<string, unknown>,
-  elements: Color["elements"],
-): MarkingTokenRecord {
-  const coerced = coerceTokenRecord(
-    source,
-    elements,
-    "Scenario initial state token",
-  );
-  // Element names come from the net definition: no prototype.
-  const token = createUserKeyedRecord<InitialTokenAttributeValue>();
-  for (const element of elements) {
-    token[element.name] = TYPE_POLICIES[element.type].encodeAtRest(
-      coerced[element.name]!,
-    );
-  }
-  return token;
-}
-
-function tokenRecordsFromRows(
-  rows: readonly (number | boolean | string)[][],
-  elements: Color["elements"],
-): MarkingTokenRecord[] {
-  return rows.map((row) => {
-    const token = createUserKeyedRecord<unknown>();
-    for (let i = 0; i < elements.length; i++) {
-      token[elements[i]!.name] = row[i];
-    }
-    return compileTokenRecord(token, elements);
-  });
-}
-
-function normalizeTokenRecords(
-  tokens: unknown[],
-  elements: Color["elements"],
-): MarkingTokenRecord[] {
-  return tokens.flatMap((rawToken) => {
-    if (
-      typeof rawToken !== "object" ||
-      rawToken === null ||
-      Array.isArray(rawToken)
-    ) {
-      return [];
-    }
-
-    const source = rawToken as Record<string, unknown>;
-    return [compileTokenRecord(source, elements)];
-  });
-}
-
-// -- Initial state ------------------------------------------------------------
-
-/**
- * Evaluates a code-mode initial state body: it returns a record keyed by
- * place NAME (not ID), with numbers for uncoloured places and token-record
- * arrays for coloured ones. Writes into `initialState`; failures land in
- * `errors`.
- */
-function compileCodeModeInitialState(args: {
-  item: ScenarioHirItem | undefined;
-  context: HirScenarioCodeContext;
-  bindings: HirInterpretBindings;
-  placeByName: ReadonlyMap<string, Place>;
-  typeById: ReadonlyMap<string, Color>;
-  initialState: InitialMarking;
-  errors: ScenarioCompilationError[];
-}): void {
-  const {
-    bindings,
-    context,
-    errors,
-    initialState,
-    item,
-    placeByName,
-    typeById,
-  } = args;
-  const evaluated = evaluateScenarioItem(item, context, bindings);
-  if (!evaluated.ok) {
-    errors.push({
-      source: "initialState",
-      itemId: "__code__",
-      message: `Initial state code: ${evaluated.message}`,
-    });
-    return;
-  }
-  if (typeof evaluated.value !== "object" || Array.isArray(evaluated.value)) {
-    errors.push({
-      source: "initialState",
-      itemId: "__code__",
-      message: `Initial state code must return an object, got ${typeof evaluated.value}.`,
-    });
-    return;
-  }
-  for (const [placeName, tokens] of Object.entries(evaluated.value)) {
-    const place = placeByName.get(placeName);
-    if (!place) {
-      // Reported at evaluation as well as by the type checker: the checker
-      // cannot see keys when the inferred return type collapses to unknown
-      // (e.g. a ternary whose branches return different records).
-      errors.push({
-        source: "initialState",
-        itemId: "__code__",
-        message: `Initial state code returned \`${placeName}\`, which is not a place in this net.`,
-      });
-      continue;
-    }
-
-    if (typeof tokens === "number") {
-      // Uncolored place: just a token count
-      initialState[place.id] = Math.max(0, Math.round(tokens));
-    } else if (Array.isArray(tokens)) {
-      // Colored place: array of token objects.
-      const color = place.colorId ? typeById.get(place.colorId) : undefined;
-      const elements = color?.elements ?? [];
-      initialState[place.id] = normalizeTokenRecords(tokens, elements);
-    }
-  }
-}
-
-/**
- * Evaluates per-place initial state: coloured places carry literal token
- * rows, uncoloured places an expression producing a token count. Writes into
- * `initialState`; failures land in `errors`.
- */
-function compilePerPlaceInitialState(args: {
-  content: Record<string, string | (number | boolean | string)[][]>;
-  hir: ScenarioHir;
-  context: HirScenarioExpressionContext;
-  bindings: HirInterpretBindings;
-  placeById: ReadonlyMap<string, Place>;
-  typeById: ReadonlyMap<string, Color>;
-  initialState: InitialMarking;
-  errors: ScenarioCompilationError[];
-}): void {
-  const {
-    bindings,
-    content,
-    context,
-    errors,
-    hir,
-    initialState,
-    placeById,
-    typeById,
-  } = args;
-  for (const [placeId, value] of Object.entries(content)) {
-    // Colored places: row data stored directly by the UI.
-    if (Array.isArray(value)) {
-      const place = placeById.get(placeId);
-      const color = place?.colorId ? typeById.get(place.colorId) : undefined;
-      const hasTokenRows = value.length > 0;
-
-      if (hasTokenRows && !place) {
-        errors.push({
-          source: "initialState",
-          itemId: placeId,
-          message: `Initial state for place "${placeId}" uses colored token rows, but the place does not exist.`,
-        });
-        continue;
-      }
-
-      if (hasTokenRows && (!color || color.elements.length === 0)) {
-        errors.push({
-          source: "initialState",
-          itemId: placeId,
-          message: `Initial state for place "${placeId}" uses colored token rows, but the place has no color elements.`,
-        });
-        continue;
-      }
-
-      const elementCount = color?.elements.length ?? 0;
-      const tooWideRow = value.find((row) => row.length > elementCount);
-      if (tooWideRow) {
-        errors.push({
-          source: "initialState",
-          itemId: placeId,
-          message: `Initial state for place "${placeId}" has ${tooWideRow.length} values per token, but the color type has ${elementCount} elements.`,
-        });
-        continue;
-      }
-
-      try {
-        initialState[placeId] = tokenRecordsFromRows(
-          value,
-          color?.elements ?? [],
-        );
-      } catch (error) {
-        // Row coercion throws on invalid typed values (e.g. a non-finite
-        // number); report it like every other compilation failure instead
-        // of letting compileScenario throw.
-        errors.push({
-          source: "initialState",
-          itemId: placeId,
-          message:
-            error instanceof Error
-              ? error.message
-              : `Invalid token rows for place "${placeId}".`,
-        });
-      }
-      continue;
-    }
-
-    // Uncolored places: expression string → evaluate to token count
-    const trimmed = value.trim();
-    if (trimmed === "") {
-      initialState[placeId] = 0;
-      continue;
-    }
-    const evaluated = evaluateScenarioItem(
-      getOwn(hir.placeExpressions, placeId),
-      context,
-      bindings,
-    );
-    if (!evaluated.ok) {
-      errors.push({
-        source: "initialState",
-        itemId: placeId,
-        message: `Initial state for place "${placeId}": ${evaluated.message}`,
-      });
-      continue;
-    }
-    if (typeof evaluated.value !== "number" || Number.isNaN(evaluated.value)) {
-      errors.push({
-        source: "initialState",
-        itemId: placeId,
-        message: `Initial state for place "${placeId}" evaluated to ${describeValue(evaluated.value)}, expected a number.`,
-      });
-      continue;
-    }
-    initialState[placeId] = Math.max(0, Math.round(evaluated.value));
-  }
-}
-
-// -- Compiler -----------------------------------------------------------------
-
-/**
- * Compile a scenario into concrete parameter values and initial token counts.
+ * Prepares `scenario` for repeated compilation. The inputs are captured and
+ * assumed not to mutate; re-prepare after editing the scenario or the net.
  *
- * Evaluation order (dependencies flow top-down):
- * 1. Scenario parameter defaults → builds the `scenario` object
- * 2. Parameter overrides → each expression evaluated with `{ parameters, scenario }`
- *    → produces the final `parameters` object
- * 3. Initial state expressions → each evaluated with the resolved `{ parameters, scenario }`
- *    → produces per-place token counts
+ * Evaluation order per `compile` call, each step reading the previous:
+ * 1. Scenario parameter defaults build the `scenario` object.
+ * 2. Parameter override expressions, evaluated with `{ parameters, scenario }`,
+ *    produce the final `parameters` object.
+ * 3. Initial state expressions, evaluated with the resolved `{ parameters,
+ *    scenario }`, produce the per-place marking.
  *
- * @param scenario - The scenario to compile
- * @param hir - The scenario's lowered code (`lowerScenarioToHir`), produced
- *   where the TypeScript compiler is available (LSP worker / Node)
- * @param netParameters - The net-level parameter definitions (for defaults and variable names)
- * @param places - All places in the SDCPN (needed for code-mode name→ID mapping)
- * @param types - All color types (needed for code-mode token flattening)
+ * `hir` is the scenario's lowered code (`lowerScenarioToHir`), produced where
+ * the TypeScript compiler is available (the LSP worker, or Node).
  */
-export function compileScenario(
+export const prepareScenarioCompiler = (
   scenario: Scenario,
   hir: ScenarioHir,
   netParameters: Parameter[],
   places: Place[] = [],
   types: Color[] = [],
-  options: CompileScenarioOptions = {},
-): CompileScenarioOutcome {
-  const errors: ScenarioCompilationError[] = [];
+): PreparedScenarioCompiler => {
+  const scenarioParameters = scenario.scenarioParameters.filter(
+    (sp) => sp.identifier.trim() !== "",
+  );
 
-  // ── Step 1: Build the `scenario` object from scenario parameter defaults ──
-
-  // Scenario parameter identifiers come from the net definition: no prototype.
-  const scenarioObj: NetParameterValues = createUserKeyedRecord();
-  for (const sp of scenario.scenarioParameters) {
-    if (sp.identifier.trim() === "") {
-      continue;
-    }
-
-    const value =
-      getOwn(options.scenarioParameterValues, sp.identifier) ?? sp.default;
-    if (!Number.isFinite(value)) {
-      errors.push({
-        source: "scenarioParameter",
-        itemId: sp.identifier,
-        message: `Scenario parameter "${sp.identifier}" must be a finite number.`,
-      });
-      scenarioObj[sp.identifier] =
-        sp.type === "boolean" ? sp.default !== 0 : sp.default;
-      continue;
-    }
-
-    scenarioObj[sp.identifier] = sp.type === "boolean" ? value !== 0 : value;
-  }
-
-  // ── Step 2: Evaluate parameter overrides ──
-  //
-  // Start with net-level defaults, then apply each override expression.
-  // Expressions have access to the base `parameters` and `scenario`.
-
-  const parametersObj: NetParameterValues = createUserKeyedRecord();
+  // A default that does not parse fails identically at every assignment, so
+  // its error is precomputed with the template.
+  const defaultsTemplate: NetParameterValues = createUserKeyedRecord();
+  const defaultErrors: ScenarioCompilationError[] = [];
   for (const param of netParameters) {
     try {
-      parametersObj[param.variableName] = parseParameterValue(
+      defaultsTemplate[param.variableName] = parseParameterValue(
         param,
         param.defaultValue,
       );
     } catch (error) {
-      errors.push({
+      defaultErrors.push({
         source: "parameterOverride",
         itemId: param.id,
         message: error instanceof Error ? error.message : String(error),
@@ -469,111 +165,216 @@ export function compileScenario(
     }
   }
 
-  // One binding pair serves every evaluation: the records are mutated in
-  // place, so later expressions see earlier overrides.
-  const bindings: HirInterpretBindings = {
-    parameters: parametersObj,
-    scenario: scenarioObj,
-  };
   // Contexts share every model-derived fact; only `expected` varies per item.
   const expressionContext = buildScenarioExpressionContext(
     netParameters,
     scenario.scenarioParameters,
     "real",
   );
-
-  // Build a lookup: paramId → Parameter
   const paramById = new Map(netParameters.map((p) => [p.id, p]));
+  const typeById = new Map(types.map((t) => [t.id, t]));
 
+  // Empty expressions keep the default and unknown parameter ids are ignored.
+  const preparedOverrides: {
+    itemId: string;
+    param: Parameter;
+    prepared: PreparedScenarioItem;
+  }[] = [];
   for (const [paramId, expression] of Object.entries(
     scenario.parameterOverrides,
   )) {
     const param = paramById.get(paramId);
-    if (!param) {
+    if (!param || expression.trim() === "") {
       continue;
     }
-    if (expression.trim() === "") {
-      // No override — keep the default
-      continue;
-    }
-    const evaluated = evaluateScenarioItem(
-      getOwn(hir.parameterOverrides, paramId),
-      { ...expressionContext, expected: param.type },
-      bindings,
-    );
-    if (!evaluated.ok) {
-      errors.push({
-        source: "parameterOverride",
-        itemId: paramId,
-        message: `Parameter "${param.name}": ${evaluated.message}`,
-      });
-      continue;
-    }
-    const coerced = coerceOverrideValue(param, evaluated.value);
-    if (!coerced.ok) {
-      errors.push({
-        source: "parameterOverride",
-        itemId: paramId,
-        message: `Parameter "${param.name}" ${coerced.message}`,
-      });
-      continue;
-    }
-    parametersObj[param.variableName] = coerced.value;
+    preparedOverrides.push({
+      itemId: paramId,
+      param,
+      prepared: prepareScenarioItem(getOwn(hir.parameterOverrides, paramId), {
+        ...expressionContext,
+        expected: param.type,
+      }),
+    });
   }
 
-  // ── Step 3: Evaluate initial state ──
-
-  // Keyed by place id; in code mode the key set additionally derives from
-  // whatever record the user-authored code block returns: no prototype.
-  const initialState: InitialMarking = createUserKeyedRecord();
-  const typeById = new Map(types.map((t) => [t.id, t]));
-
-  if (scenario.initialState.type === "per_place") {
-    compilePerPlaceInitialState({
-      content: scenario.initialState.content,
-      hir,
-      context: expressionContext,
-      bindings,
-      placeById: new Map(places.map((p) => [p.id, p])),
-      typeById,
-      initialState,
-      errors,
-    });
-  } else {
-    // Code mode; an ad-hoc definition lowers to the same code-mode HIR
-    // (`lowerScenarioToHir` synthesizes it against the net), and its derived
-    // scenarioParameters and parameterOverrides are persisted on the
-    // scenario itself, which steps 1 and 2 already applied.
-    const hasCode =
-      scenario.initialState.type === "adhoc" ||
-      scenario.initialState.content.trim() !== "";
-    if (hasCode) {
-      compileCodeModeInitialState({
-        item: hir.initialStateCode,
-        context: buildScenarioCodeContext(
+  // Exactly the initial-state items `compile` evaluates: the code block when
+  // code mode has content, else each uncoloured place's non-empty expression.
+  // An ad-hoc definition lowers to the same code-mode HIR, and its derived
+  // scenarioParameters and parameterOverrides live on the scenario itself, so
+  // steps 1 and 2 apply them like any other.
+  const initialStateSpec = scenario.initialState;
+  const hasCode =
+    initialStateSpec.type === "adhoc" ||
+    (initialStateSpec.type === "code" &&
+      initialStateSpec.content.trim() !== "");
+  const preparedInitialStateCode: PreparedScenarioItem | null = hasCode
+    ? prepareScenarioItem(
+        hir.initialStateCode,
+        buildScenarioCodeContext(
           netParameters,
           scenario.scenarioParameters,
           places,
           types,
         ),
-        bindings,
-        placeByName: new Map(places.map((p) => [p.name, p])),
-        typeById,
-        initialState,
-        errors,
-      });
+      )
+    : null;
+  const preparedPlaceExpressions = new Map<string, PreparedScenarioItem>();
+  if (initialStateSpec.type === "per_place") {
+    for (const [placeId, value] of Object.entries(initialStateSpec.content)) {
+      if (typeof value === "string" && value.trim() !== "") {
+        preparedPlaceExpressions.set(
+          placeId,
+          prepareScenarioItem(
+            getOwn(hir.placeExpressions, placeId),
+            expressionContext,
+          ),
+        );
+      }
     }
   }
 
-  if (errors.length > 0) {
-    return { ok: false, errors };
-  }
+  const placeById = new Map(places.map((p) => [p.id, p]));
+  const placeByName = new Map(places.map((p) => [p.name, p]));
 
-  // Convert parameters to string values (simulation worker input format)
-  const parameterValues = createUserKeyedRecord<string>();
-  for (const [key, value] of Object.entries(parametersObj)) {
-    parameterValues[key] = String(value);
-  }
+  /** Steps 1–2 at one assignment. */
+  const evaluateParameters = (
+    scenarioParameterValues?: ScenarioParameterValues,
+  ): {
+    errors: ScenarioCompilationError[];
+    parameters: NetParameterValues;
+    bindings: HirInterpretBindings;
+  } => {
+    const errors: ScenarioCompilationError[] = [];
 
-  return { ok: true, result: { parameterValues, initialState } };
-}
+    const scenarioObj: NetParameterValues = createUserKeyedRecord();
+    for (const sp of scenarioParameters) {
+      const value =
+        getOwn(scenarioParameterValues, sp.identifier) ?? sp.default;
+      if (!Number.isFinite(value)) {
+        errors.push({
+          source: "scenarioParameter",
+          itemId: sp.identifier,
+          message: `Scenario parameter "${sp.identifier}" must be a finite number.`,
+        });
+        scenarioObj[sp.identifier] =
+          sp.type === "boolean" ? sp.default !== 0 : sp.default;
+        continue;
+      }
+      scenarioObj[sp.identifier] = sp.type === "boolean" ? value !== 0 : value;
+    }
+
+    const parameters: NetParameterValues = Object.assign(
+      createUserKeyedRecord(),
+      defaultsTemplate,
+    );
+    errors.push(...defaultErrors);
+
+    // One binding pair serves every evaluation: the records are mutated in
+    // place, so later expressions see earlier overrides.
+    const bindings: HirInterpretBindings = {
+      parameters,
+      scenario: scenarioObj,
+    };
+
+    for (const { itemId, param, prepared } of preparedOverrides) {
+      const evaluated = interpretPreparedItem(prepared, bindings);
+      if (!evaluated.ok) {
+        errors.push({
+          source: "parameterOverride",
+          itemId,
+          message: `Parameter "${param.name}": ${evaluated.message}`,
+        });
+        continue;
+      }
+      const coerced = coerceOverrideValue(param, evaluated.value);
+      if (!coerced.ok) {
+        errors.push({
+          source: "parameterOverride",
+          itemId,
+          message: `Parameter "${param.name}" ${coerced.message}`,
+        });
+        continue;
+      }
+      parameters[param.variableName] = coerced.value;
+    }
+
+    return { errors, parameters, bindings };
+  };
+
+  /** Step 3 at one assignment. */
+  const evaluateInitialState = (
+    bindings: HirInterpretBindings,
+  ): InitialStateOutcome => {
+    if (initialStateSpec.type === "per_place") {
+      return compilePerPlaceInitialState({
+        content: initialStateSpec.content,
+        preparedExpressions: preparedPlaceExpressions,
+        bindings,
+        placeById,
+        typeById,
+      });
+    }
+    if (preparedInitialStateCode === null) {
+      return { marking: createUserKeyedRecord(), errors: [] };
+    }
+    return compileCodeModeInitialState({
+      prepared: preparedInitialStateCode,
+      bindings,
+      placeByName,
+      typeById,
+    });
+  };
+
+  return {
+    compile: (scenarioParameterValues) => {
+      const { errors, parameters, bindings } = evaluateParameters(
+        scenarioParameterValues,
+      );
+      const initialState = evaluateInitialState(bindings);
+      errors.push(
+        ...initialState.errors.map(
+          (error): ScenarioCompilationError => ({
+            source: "initialState",
+            ...error,
+          }),
+        ),
+      );
+      if (errors.length > 0) {
+        return { ok: false, errors };
+      }
+      return {
+        ok: true,
+        result: {
+          parameterValues: stringifyParameters(parameters),
+          initialState: initialState.marking,
+        },
+      };
+    },
+    compileParameterNumbers: (scenarioParameterValues) => {
+      const { errors, parameters } = evaluateParameters(
+        scenarioParameterValues,
+      );
+      return errors.length > 0
+        ? { ok: false, errors }
+        : { ok: true, parameters };
+    },
+  };
+};
+
+/**
+ * Compiles a scenario into concrete parameter values and an initial marking.
+ *
+ * One-shot form of `prepareScenarioCompiler`. Callers compiling the same
+ * scenario repeatedly should prepare once.
+ */
+export const compileScenario = (
+  scenario: Scenario,
+  hir: ScenarioHir,
+  netParameters: Parameter[],
+  places: Place[] = [],
+  types: Color[] = [],
+  options: CompileScenarioOptions = {},
+): CompileScenarioOutcome =>
+  prepareScenarioCompiler(scenario, hir, netParameters, places, types).compile(
+    options.scenarioParameterValues,
+  );

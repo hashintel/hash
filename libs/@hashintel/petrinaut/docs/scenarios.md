@@ -17,7 +17,7 @@ You can save as many scenarios as you like; they are stored on the net alongside
 
 ## No built-in default scenario
 
-A new net starts with the scenario list empty and **no scenario selected** (the Simulation Settings dropdown shows "No scenario"). In that state the simulation uses each place's manually-entered initial marking and the net-level parameter defaults.
+A new net starts with the scenario list empty and **no scenario selected** (the Simulation Settings dropdown shows "No scenario"). In that state the simulation uses each place's manually-entered initial marking and the values in the panel's Parameters inputs (pre-filled with the net-level defaults) — unless you define an [ad-hoc initial state](ad-hoc-scenarios.md) in the panel's Initial state column, which overrides the manual marking for every place it defines.
 
 You will need scenarios when you want to:
 
@@ -37,6 +37,8 @@ You will need scenarios when you want to:
 
 The view drawer (opened by clicking a row in the Scenarios list) is the same form populated with the existing values. It has **Close** and **Save** buttons.
 
+With the experimental [Ad-hoc scenarios](ad-hoc-scenarios.md#enabling-the-feature) setting on, the Create Scenario drawer instead shows the [ad-hoc form](ad-hoc-scenarios.md#saved-ad-hoc-scenarios): name and description above one inline Initial State + Parameters form, with a **Scenario Parameter** toggle on each Variable and no "Define as code" toggle. A scenario created that way always edits through the same form.
+
 ## Initial state: per-place vs code
 
 The Initial State section has a **Define as code** toggle.
@@ -51,7 +53,7 @@ You see a row per place. Which places appear depends on the **Show all places** 
 What you enter per place depends on whether it has a type:
 
 - **Uncoloured places**: a single-line TypeScript expression that evaluates to the token count. The result is rounded down and clamped to `>= 0`. You can reference `parameters.<variable_name>` and `scenario.<identifier>`, plus the `range` helper described under [Code mode](#code-mode-define-as-code). Empty/missing means zero tokens.
-- **Coloured places**: a small spreadsheet, one row per token, one column per element of the place's type. Cell values are literal values matching each column's type — numbers for Real/Integer, true/false for Boolean, free text for String, and identifiers for UUID; expressions are not supported in the spreadsheet. UUID columns accept any text: a UUID string is used as-is, and any other text (e.g. `order-1`) is converted deterministically to a UUID, so the same text always produces the same identifier. If you later edit the type itself, existing rows follow along: added elements get a default column, removed elements' columns are dropped, reordered elements keep their values, and changing an element's type converts each stored value (falling back to the new type's default when a value can't be converted).
+- **Coloured places**: a small spreadsheet, one row per token, one column per element of the place's type. Cell values are literal values matching each column's type — numbers for Real/Integer, true/false for Boolean, free text for String, and identifiers for UUID; expressions are not supported in the spreadsheet. UUID columns accept any text: a UUID string is used as-is, and any other text (e.g. `order-1`) is converted deterministically to a UUID, so the same text always produces the same identifier. If you later edit the type itself, existing rows follow along: added elements get a default column, removed elements' columns are dropped, reordered elements keep their values, and changing an element's type converts each stored value (falling back to the new type's default when a value can't be converted). Each spreadsheet is a single Tab stop with arrow-key movement (arrows also flow from one place's spreadsheet into the next), click-to-select then click-to-edit cells, and a row-number column where Delete removes the row.
 
 ### Code mode (Define as code)
 

@@ -25,7 +25,11 @@ import {
   useState,
 } from "react";
 
-import { Select, usePortalContainerRef } from "@hashintel/ds-components";
+import {
+  PortalContainerContext,
+  Select,
+  usePortalContainerRef,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocNeutralExpression,
@@ -89,6 +93,13 @@ const OPEN_EVENT = "petrinaut-adhoc-editor-open";
 const overlayStyle = css({
   position: "fixed",
   zIndex: "popover",
+  // A portal container is often a full-bleed layer that lets presses through
+  // to the app beneath it (`pointer-events: none`), so a surface portaled
+  // into one has to take its own presses back. Without this the whole slab
+  // is click-through: Min, Max, Step and Scale never see the press, and the
+  // press lands on whatever sits under the slab — which the dismiss handler
+  // then reads as a click outside and closes the slab.
+  pointerEvents: "auto",
 });
 
 const overlayBodyStyle = css({
@@ -243,6 +254,12 @@ export interface ValueEditorProps {
    * editing is delegated to the shared column's own editor by the parent.
    */
   derived?: boolean;
+  /**
+   * The cell never opens an editor or accepts an edit — Delete and
+   * type-to-overwrite included — but stays focusable, selectable, and part
+   * of the keyboard walk (the form's run mode).
+   */
+  readOnly?: boolean;
   /** Extra classname for the trigger. */
   className?: string;
   /** Overrides the trigger content (defaults to the expression). */
@@ -402,6 +419,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   target,
   kind,
   derived = false,
+  readOnly = false,
   className,
   display,
   placeholder,
@@ -456,8 +474,15 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     setEditingBound(null);
   }
   const boundRefs = useRef(new Map<string, HTMLButtonElement>());
-  // Opening the slab selects the Min cell once; reset per open.
-  const minAutoSelectedRef = useRef(false);
+  // Opening the slab selects the Min cell once, and the guard is the element
+  // it selected rather than a flag. The ref callback is a fresh closure on
+  // every render, so React detaches and re-attaches it on every commit, and a
+  // flag cleared by either side of that churn re-arms the selection: an edit
+  // in a neighbouring bound (every keystroke dispatches) then yanked focus to
+  // Min mid-typing, where the next character overwrote Min's own bound.
+  // Comparing elements needs no reset — closing the slab unmounts the cell,
+  // so a reopened slab always presents a new button to select.
+  const minSelectedElementRef = useRef<HTMLButtonElement | null>(null);
 
   // Value slots carry Optimize toggles only in optimize mode; expose mode
   // marks whole top-level Variables (in their own rows), never value slots.
@@ -580,7 +605,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const [seenAutoOpen, setSeenAutoOpen] = useState(autoOpen);
   if (autoOpen !== seenAutoOpen) {
     setSeenAutoOpen(autoOpen);
-    if (autoOpen > 0) {
+    if (autoOpen > 0 && !readOnly) {
       setMountSelection("all");
       setOpenState(true);
     }
@@ -776,15 +801,12 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     (element: HTMLButtonElement | null) => {
       if (element) {
         boundRefs.current.set(key, element);
-        if (selectOnAttach && !minAutoSelectedRef.current) {
-          minAutoSelectedRef.current = true;
+        if (selectOnAttach && minSelectedElementRef.current !== element) {
+          minSelectedElementRef.current = element;
           element.focus();
         }
       } else {
         boundRefs.current.delete(key);
-        if (selectOnAttach) {
-          minAutoSelectedRef.current = false;
-        }
       }
     };
   const boundValue = (key: "min" | "max" | "step"): string =>
@@ -829,7 +851,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
             onOpenDerived?.();
             return;
           }
-          if (triggerActivation.shouldActivate(event)) {
+          if (triggerActivation.shouldActivate(event) && !readOnly) {
             setMountSelection("all");
             setOpenState(true);
           }
@@ -840,14 +862,19 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           if (event.key === "Delete" || event.key === "Backspace") {
             event.preventDefault();
             event.stopPropagation();
-            if (!derived && !optimized && value.expression !== "") {
+            if (
+              !derived &&
+              !readOnly &&
+              !optimized &&
+              value.expression !== ""
+            ) {
               dispatch({ type: "setExpression", target, expression: "" });
             }
             return;
           }
           // Typing on a selected cell overwrites it, spreadsheet-style: the
           // typed character replaces the value and the editor opens on it.
-          if (!derived && !optimized && isOverwriteKey(event)) {
+          if (!derived && !readOnly && !optimized && isOverwriteKey(event)) {
             event.preventDefault();
             event.stopPropagation();
             dispatch({
@@ -872,6 +899,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
             ref={overlayRef}
             className={overlayStyle}
             role="presentation"
+            data-adhoc-slab=""
             // The slab portals outside the form root, so the root's undo
             // capture and Delete/Backspace stop are re-attached here — keys
             // on the slab's non-Monaco controls must reach form undo, never
@@ -893,147 +921,159 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
               minHeight: rect.height,
             }}
           >
-            <div className={pathLabelStyle}>{label}</div>
-            <div
-              className={cx(
-                overlayBodyStyle,
-                !selectable && bodyBottomEdgeStyle,
-              )}
-            >
-              {optimized && booleanDomain ? (
-                <div className={booleanNoteStyle}>
-                  The optimizer tries true and false.
-                </div>
-              ) : optimized ? (
-                <div className={boundsGridStyle}>
-                  {boundFields.map((field, fieldIndex) => (
-                    <div key={field.key} className={boundsColumnStyle}>
-                      <div className={boundsLabelStyle}>{field.fieldLabel}</div>
-                      <BoundCell
-                        label={field.fieldLabel}
-                        valueLabel={label}
-                        bound={boundValue(field.key)}
-                        uri={uriFor({ target, part: field.key }) || undefined}
-                        error={errorFor({ target, part: field.key })}
-                        editing={editingBound === field.key}
-                        onStartEdit={() => setEditingBound(field.key)}
-                        onEndEdit={() => endBoundEdit(field.key)}
-                        onChange={(next) =>
+            {/* A layer opened from inside the slab — the Scale list — portals
+                into the slab itself, not into the app container it would
+                otherwise share with the slab as a sibling. As a descendant it
+                inherits the slab's pointer events, the dismiss handler's
+                containment test accepts a press on it, and choosing a value
+                commits instead of closing the slab. */}
+            <PortalContainerContext value={overlayRef}>
+              <div className={pathLabelStyle}>{label}</div>
+              <div
+                className={cx(
+                  overlayBodyStyle,
+                  !selectable && bodyBottomEdgeStyle,
+                )}
+              >
+                {optimized && booleanDomain ? (
+                  <div className={booleanNoteStyle}>
+                    The optimizer tries true and false.
+                  </div>
+                ) : optimized ? (
+                  <div className={boundsGridStyle}>
+                    {boundFields.map((field, fieldIndex) => (
+                      <div key={field.key} className={boundsColumnStyle}>
+                        <div className={boundsLabelStyle}>
+                          {field.fieldLabel}
+                        </div>
+                        <BoundCell
+                          label={field.fieldLabel}
+                          valueLabel={label}
+                          bound={boundValue(field.key)}
+                          uri={uriFor({ target, part: field.key }) || undefined}
+                          error={errorFor({ target, part: field.key })}
+                          editing={editingBound === field.key}
+                          onStartEdit={() => setEditingBound(field.key)}
+                          onEndEdit={() => endBoundEdit(field.key)}
+                          onChange={(next) =>
+                            dispatch({
+                              type: "setDomainField",
+                              target,
+                              field: field.key,
+                              value: next,
+                            })
+                          }
+                          registerTrigger={registerBound(
+                            field.key,
+                            fieldIndex === 0,
+                          )}
+                          onNavigate={(delta) =>
+                            navigateBound(field.key, delta)
+                          }
+                          onEditorMount={(editorInstance) => {
+                            monacoRef.current = editorInstance;
+                          }}
+                        />
+                      </div>
+                    ))}
+                    <div
+                      ref={(element) => {
+                        const trigger =
+                          element?.querySelector<HTMLButtonElement>(
+                            "[data-part='trigger']",
+                          ) ?? null;
+                        if (trigger) {
+                          boundRefs.current.set("scale", trigger);
+                        } else {
+                          boundRefs.current.delete("scale");
+                        }
+                      }}
+                      className={cx(
+                        boundsColumnStyle,
+                        boundsScaleColumnStyle,
+                        cellSelectStyle,
+                      )}
+                      onKeyDownCapture={(event) => {
+                        const trigger = event.currentTarget.querySelector(
+                          "[data-part='trigger']",
+                        );
+                        if (trigger?.getAttribute("aria-expanded") === "true") {
+                          return;
+                        }
+                        if (event.key === "ArrowLeft") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          navigateBound("scale", -1);
+                        }
+                      }}
+                    >
+                      <div className={boundsLabelStyle}>Scale</div>
+                      <Select
+                        required
+                        size="sm"
+                        aria-label={`Scale of ${label}`}
+                        value={value.optimize!.scale}
+                        onChange={(scale) =>
                           dispatch({
                             type: "setDomainField",
                             target,
-                            field: field.key,
-                            value: next,
+                            field: "scale",
+                            value: scale,
                           })
                         }
-                        registerTrigger={registerBound(
-                          field.key,
-                          fieldIndex === 0,
-                        )}
-                        onNavigate={(delta) => navigateBound(field.key, delta)}
-                        onEditorMount={(editorInstance) => {
-                          monacoRef.current = editorInstance;
-                        }}
+                        items={[
+                          { value: "linear", text: "Linear" },
+                          { value: "log", text: "Log" },
+                        ]}
                       />
                     </div>
-                  ))}
-                  <div
-                    ref={(element) => {
-                      const trigger =
-                        element?.querySelector<HTMLButtonElement>(
-                          "[data-part='trigger']",
-                        ) ?? null;
-                      if (trigger) {
-                        boundRefs.current.set("scale", trigger);
-                      } else {
-                        boundRefs.current.delete("scale");
-                      }
-                    }}
-                    className={cx(
-                      boundsColumnStyle,
-                      boundsScaleColumnStyle,
-                      cellSelectStyle,
-                    )}
-                    onKeyDownCapture={(event) => {
-                      const trigger = event.currentTarget.querySelector(
-                        "[data-part='trigger']",
-                      );
-                      if (trigger?.getAttribute("aria-expanded") === "true") {
-                        return;
-                      }
-                      if (event.key === "ArrowLeft") {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        navigateBound("scale", -1);
-                      }
-                    }}
-                  >
-                    <div className={boundsLabelStyle}>Scale</div>
-                    <Select
-                      required
-                      size="sm"
-                      aria-label={`Scale of ${label}`}
-                      value={value.optimize!.scale}
-                      onChange={(scale) =>
+                  </div>
+                ) : (
+                  <div className={expressionRowStyle}>
+                    <CodeEditor
+                      singleLine
+                      frameless
+                      language="typescript"
+                      path={uriFor(expressionSlot) || undefined}
+                      value={value.expression}
+                      mountSelection={mountSelection}
+                      placeholder={triggerPlaceholder}
+                      onMount={(editorInstance) => {
+                        monacoRef.current = editorInstance;
+                        editorInstance.focus();
+                      }}
+                      onChange={(expression) =>
                         dispatch({
-                          type: "setDomainField",
+                          type: "setExpression",
                           target,
-                          field: "scale",
-                          value: scale,
+                          expression: expression ?? "",
                         })
                       }
-                      items={[
-                        { value: "linear", text: "Linear" },
-                        { value: "log", text: "Log" },
-                      ]}
+                      onSubmit={() => {
+                        commitFormat();
+                        setOpenState(false);
+                        buttonRef.current?.focus();
+                      }}
                     />
                   </div>
-                </div>
-              ) : (
-                <div className={expressionRowStyle}>
-                  <CodeEditor
-                    singleLine
-                    frameless
-                    language="typescript"
-                    path={uriFor(expressionSlot) || undefined}
-                    value={value.expression}
-                    mountSelection={mountSelection}
-                    placeholder={triggerPlaceholder}
-                    onMount={(editorInstance) => {
-                      monacoRef.current = editorInstance;
-                      editorInstance.focus();
-                    }}
-                    onChange={(expression) =>
-                      dispatch({
-                        type: "setExpression",
-                        target,
-                        expression: expression ?? "",
-                      })
+                )}
+              </div>
+              {selectable ? (
+                <div className={belowStripStyle}>
+                  <OptimizeToggle
+                    text={adHocSelectionText(selection)}
+                    label={`${adHocSelectionText(selection)} ${label}`}
+                    value={value.optimize !== null}
+                    onChange={(on) =>
+                      dispatch({ type: "toggleSelection", target, on })
                     }
-                    onSubmit={() => {
-                      commitFormat();
-                      setOpenState(false);
-                      buttonRef.current?.focus();
-                    }}
                   />
                 </div>
-              )}
-            </div>
-            {selectable ? (
-              <div className={belowStripStyle}>
-                <OptimizeToggle
-                  text={adHocSelectionText(selection)}
-                  label={`${adHocSelectionText(selection)} ${label}`}
-                  value={value.optimize !== null}
-                  onChange={(on) =>
-                    dispatch({ type: "toggleSelection", target, on })
-                  }
-                />
-              </div>
-            ) : null}
-            {boundsError ? (
-              <div className={fieldErrorStyle}>{boundsError}</div>
-            ) : null}
+              ) : null}
+              {boundsError ? (
+                <div className={fieldErrorStyle}>{boundsError}</div>
+              ) : null}
+            </PortalContainerContext>
           </div>
         </Portal>
       ) : null}

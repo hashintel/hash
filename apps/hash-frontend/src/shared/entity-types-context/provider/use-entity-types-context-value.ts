@@ -1,13 +1,19 @@
+import { useLazyQuery } from "@apollo/client";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { getEntityTypes } from "@blockprotocol/graph/stdlib";
 
 import { useBlockProtocolQueryEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
+import { checkUserPermissionsOnEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
 import {
   getParentIds,
   isSpecialEntityType,
 } from "../shared/is-special-entity-type";
 
+import type {
+  CheckUserPermissionsOnEntityTypesQuery,
+  CheckUserPermissionsOnEntityTypesQueryVariables,
+} from "../../../graphql/api-types.gen";
 import type {
   EntityTypesContextValue,
   SpecialEntityTypeRecord,
@@ -16,10 +22,14 @@ import type {
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
 
 export const useEntityTypesContextValue = (): EntityTypesContextValue => {
   const [types, setTypes] = useState<
-    Omit<EntityTypesContextValue, "refetch" | "ensureFetched">
+    Omit<
+      EntityTypesContextValue,
+      "refetch" | "ensureFetched" | "entityTypePermissions"
+    >
   >({
     entityTypes: null,
     isSpecialEntityTypeLookup: null,
@@ -29,7 +39,19 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
     subgraph: null,
   });
 
+  const [entityTypePermissions, setEntityTypePermissions] = useState<Record<
+    VersionedUrl,
+    UserPermissionsOnEntityType
+  > | null>(null);
+
   const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
+
+  const [checkEntityTypePermissions] = useLazyQuery<
+    CheckUserPermissionsOnEntityTypesQuery,
+    CheckUserPermissionsOnEntityTypesQueryVariables
+  >(checkUserPermissionsOnEntityTypesQuery, {
+    fetchPolicy: "cache-and-network",
+  });
 
   const controllerRef = useRef<AbortController | null>(null);
 
@@ -105,7 +127,29 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
       subgraph: subgraph ?? null,
       loading: false,
     });
-  }, [queryEntityTypes]);
+
+    // Fetch permissions separately so the types above aren't blocked on it
+    const entityTypeIds = entityTypes.map((type) => type.schema.$id);
+    if (entityTypeIds.length === 0) {
+      setEntityTypePermissions({});
+    } else {
+      void checkEntityTypePermissions({
+        variables: { entityTypeIds },
+      }).then(({ data }) => {
+        if (controller.signal.aborted || !data) {
+          return;
+        }
+        setEntityTypePermissions(
+          Object.fromEntries(
+            data.checkUserPermissionsOnEntityTypes.map((record) => [
+              record.entityTypeId,
+              record.permissions,
+            ]),
+          ),
+        );
+      });
+    }
+  }, [checkEntityTypePermissions, queryEntityTypes]);
 
   const ensureFetched = useCallback(() => {
     if (!fetched.current) {
@@ -115,7 +159,7 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
   }, [fetch]);
 
   return useMemo(
-    () => ({ ...types, refetch: fetch, ensureFetched }),
-    [fetch, types, ensureFetched],
+    () => ({ ...types, entityTypePermissions, refetch: fetch, ensureFetched }),
+    [fetch, types, entityTypePermissions, ensureFetched],
   );
 };

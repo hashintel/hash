@@ -1,0 +1,21 @@
+{
+  "package": "@rust/hash-repo-chores",
+  "dependencies": [
+    "@rust/error-stack",
+    "@rust/hash-telemetry"
+  ],
+  "tasks": {
+    "analyze-benchmarks": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "build": [],
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "upload-benchmarks": [
+      "@rust/hash-repo-chores#build"
+    ]
+  }
+}

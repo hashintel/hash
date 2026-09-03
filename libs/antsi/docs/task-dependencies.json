@@ -1,0 +1,9 @@
+{
+  "package": "@rust/antsi",
+  "dependencies": [],
+  "tasks": {
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:unit": []
+  }
+}

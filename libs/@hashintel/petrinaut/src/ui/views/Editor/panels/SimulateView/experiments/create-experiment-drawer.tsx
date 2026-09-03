@@ -4,24 +4,41 @@ import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Button,
   Drawer,
-  Form,
   Icon,
   LoadingSpinner,
   NumberInput,
   Select,
   TextInput,
+  Toggle,
+  Tooltip,
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import {
+  EMPTY_AD_HOC_STATE,
+  isWebGpuAvailable,
+} from "@hashintel/petrinaut-core";
+import {
+  analyzeCompilation,
+  summarizeGpuUnavailability,
+  toGpuMetricSpecs,
+} from "@hashintel/petrinaut-core/webgpu";
 
 import {
-  ExperimentsContext,
+  ExperimentsActionsContext,
   type ExperimentMetricSpecInput,
 } from "../../../../../../react/experiments/context";
+import {
+  buildParameterAxis,
+  type ExperimentParameterAxis,
+  type ExperimentParameterInput,
+  type ExperimentParameterRangeInput,
+} from "../../../../../../react/experiments/parameter-grid";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
@@ -39,9 +56,12 @@ import {
   getExperimentMetricDiagnosticError,
   type MetricLspDiagnosticSummary,
 } from "./experiment-metric-lsp-validation";
+import { ExperimentScenarioRun } from "./experiment-scenario-run";
 
 import type {
+  AdHocScenarioState,
   MonteCarloMetricSpec,
+  PetrinautExtensionSettings,
   Scenario,
   ScenarioParameter,
   SDCPN,
@@ -49,17 +69,80 @@ import type {
 
 // -- Styles -------------------------------------------------------------------
 
-// metric rows use slightly lighter field labels than the default
-const metricFieldLabelStyle = css({
-  "& :is(label, legend)": {
-    fontWeight: "medium",
-  },
-});
-
 const fieldStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[6px]",
+});
+
+const labelStyle = css({
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.s120",
+});
+
+const backendControlStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+  flexShrink: "[0]",
+  // Matches the height the sibling inputs occupy, so the grid row's baselines
+  // line up rather than the control floating in a shorter cell.
+  minHeight: "[34px]",
+});
+
+const backendSideLabelStyle = css({
+  fontSize: "sm",
+  fontWeight: "medium",
+  lineHeight: "[1]",
+  // Muted until selected, so the toggle's position reads as a choice between two
+  // named backends rather than an unlabelled on/off.
+  color: "neutral.s100",
+  transition: "[color 0.15s ease]",
+  "&[data-selected=true]": {
+    color: "neutral.s120",
+  },
+});
+
+/**
+ * The GPU side is purple rather than neutral, so the accelerated path is visibly
+ * a different thing and not merely the toggle in its other position.
+ */
+const gpuSideLabelStyle = css({
+  "&[data-selected=true]": {
+    color: "purple.s90",
+  },
+});
+
+/*
+ * The design system's toggle has no purple tone, and adding one there would change
+ * a shared component for one screen's sake. These reach into its parts from
+ * outside instead: `&[data-state='checked'] [data-part='control']` is one
+ * selector more specific than the recipe's own `&[data-state='checked']`, so it
+ * wins without `!important`.
+ */
+const gpuToggleStyle = css({
+  "&[data-state='checked'] [data-part='control']": {
+    backgroundColor: "purple.s80",
+  },
+  "&[data-state='checked']:hover:not([data-disabled]) [data-part='control']": {
+    backgroundColor: "purple.s70",
+  },
+});
+
+const gpuToggleGlowStyle = css({
+  "&[data-state='checked'] [data-part='control']": {
+    animationName: "[petrinautGpuGlow]",
+    animationDuration: "[2.4s]",
+    animationIterationCount: "[infinite]",
+    animationTimingFunction: "ease-in-out",
+  },
+});
+
+const gridStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
+  gap: "3",
 });
 
 const paramRowStyle = css({
@@ -84,6 +167,32 @@ const paramTypeStyle = css({
   color: "neutral.s80",
   width: "[60px]",
   flexShrink: 0,
+});
+
+const paramSweepToggleStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+  flexShrink: 0,
+  fontSize: "xs",
+  color: "neutral.s80",
+});
+
+const paramRangeStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+  flex: "1",
+  minWidth: "[0]",
+  "& > *": { flex: "1", minWidth: "[0]" },
+});
+
+const sweepSummaryStyle = css({
+  fontSize: "xs",
+  color: "neutral.s80",
+  fontVariantNumeric: "tabular-nums",
+  "&[data-tone='warning']": { color: "orange.s100" },
+  "&[data-tone='error']": { color: "red.s100" },
 });
 
 const metricListStyle = css({
@@ -174,12 +283,11 @@ const metricKindTriggerLabelStyle = css({
   fontWeight: "medium",
 });
 
-// top padding separates the properties from the metric row's collapse header
 const metricExpandedContentStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "2",
-  padding: "[1px 16px 16px]",
+  padding: "[0 16px 16px]",
 });
 
 const metricCollapsibleContentStyle = css({
@@ -200,6 +308,12 @@ const metricSpecificFieldsStyle = css({
   gap: "2",
 });
 
+const codeDiagnosticStyle = css({
+  fontSize: "xs",
+  color: "red.s100",
+  whiteSpace: "pre-wrap",
+});
+
 const emptyParamsStyle = css({
   display: "flex",
   alignItems: "center",
@@ -209,7 +323,10 @@ const emptyParamsStyle = css({
   color: "neutral.s80",
 });
 
-const errorsStyle = css({
+const errorStyle = css({
+  fontSize: "sm",
+  color: "red.s100",
+  marginRight: "auto",
   whiteSpace: "pre-wrap",
 });
 
@@ -455,25 +572,78 @@ function buildMetricSpecs(
 
 // -- Component ----------------------------------------------------------------
 
+/** The interval a parameter starts sweeping with: around its default. */
+function initialRangeFor(
+  param: ScenarioParameter,
+): ExperimentParameterRangeInput {
+  const base = typeof param.default === "number" ? param.default : 0;
+  if (param.type === "ratio") {
+    return { mode: "range", min: 0, max: 1 };
+  }
+  const spread = Math.max(Math.abs(base), 1);
+  const min =
+    param.type === "integer" ? Math.round(base - spread) : base - spread;
+  const max =
+    param.type === "integer" ? Math.round(base + spread) : base + spread;
+  return { mode: "range", min, max };
+}
+
 const ScenarioParameterRow = ({
   param,
   value,
+  sweepable,
   onChange,
 }: {
   param: ScenarioParameter;
-  value: string;
-  onChange: (value: string) => void;
+  value: ExperimentParameterInput;
+  /** Whether the parameter may be turned into an interval. */
+  sweepable: boolean;
+  onChange: (value: ExperimentParameterInput) => void;
 }) => (
   <div className={paramRowStyle}>
     <span className={paramNameStyle}>{param.identifier}</span>
     <span className={paramTypeStyle}>{param.type}</span>
-    <CodeEditor
-      singleLine
-      language="typescript"
-      value={value}
-      onChange={(v) => onChange(v ?? "")}
-      placeholder={String(param.default)}
-    />
+    {value.mode === "range" ? (
+      <div className={paramRangeStyle}>
+        <NumberInput
+          size="sm"
+          aria-label={`${param.identifier} minimum`}
+          step="any"
+          value={Number.isFinite(value.min) ? value.min : null}
+          onChange={(min) => onChange({ ...value, min: min ?? Number.NaN })}
+        />
+        <NumberInput
+          size="sm"
+          aria-label={`${param.identifier} maximum`}
+          step="any"
+          value={Number.isFinite(value.max) ? value.max : null}
+          onChange={(max) => onChange({ ...value, max: max ?? Number.NaN })}
+        />
+      </div>
+    ) : (
+      <CodeEditor
+        singleLine
+        language="typescript"
+        value={value.value}
+        onChange={(v) => onChange({ mode: "fixed", value: v ?? "" })}
+        placeholder={String(param.default)}
+      />
+    )}
+    {sweepable && param.type !== "boolean" ? (
+      <span className={paramSweepToggleStyle}>
+        Sweep
+        <Toggle
+          size="sm"
+          aria-label={`Sweep ${param.identifier}`}
+          value={value.mode === "range"}
+          onChange={(checked) =>
+            onChange(
+              checked ? initialRangeFor(param) : { mode: "fixed", value: "" },
+            )
+          }
+        />
+      </span>
+    ) : null}
   </div>
 );
 
@@ -517,19 +687,8 @@ const ExperimentExpressionMetricEditor = ({
   const codeUri = getMetricDocumentUri(metricSessionId);
 
   return (
-    <Form.Field
-      label="Code"
-      size="sm"
-      className={metricFieldLabelStyle}
-      errors={
-        lspDiagnostics.count > 0
-          ? [
-              lspDiagnostics.firstMessage ??
-                `${lspDiagnostics.count} diagnostics`,
-            ]
-          : undefined
-      }
-    >
+    <div className={fieldStyle}>
+      <span className={labelStyle}>Code</span>
       <CodeEditor
         language="typescript"
         path={codeUri}
@@ -538,7 +697,12 @@ const ExperimentExpressionMetricEditor = ({
         height="260px"
         options={readOnly ? { readOnly: true } : undefined}
       />
-    </Form.Field>
+      {lspDiagnostics.count > 0 ? (
+        <span className={codeDiagnosticStyle}>
+          {lspDiagnostics.firstMessage ?? `${lspDiagnostics.count} diagnostics`}
+        </span>
+      ) : null}
+    </div>
   );
 };
 
@@ -731,11 +895,8 @@ const ExperimentMetricRow = ({
           metric.kind === "transitionFiringCount" ? (
             <div className={metricSpecificFieldsStyle}>
               {metric.kind === "placeTokenCountMean" ? (
-                <Form.Field
-                  label="Place"
-                  size="sm"
-                  className={metricFieldLabelStyle}
-                >
+                <div className={fieldStyle}>
+                  <span className={labelStyle}>Place</span>
                   <Select
                     required
                     value={metric.placeId}
@@ -743,15 +904,12 @@ const ExperimentMetricRow = ({
                     items={placeOptions}
                     size="sm"
                   />
-                </Form.Field>
+                </div>
               ) : null}
               {metric.kind === "transitionFiringCount" ? (
                 <>
-                  <Form.Field
-                    label="Transition"
-                    size="sm"
-                    className={metricFieldLabelStyle}
-                  >
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Transition</span>
                     <Select
                       required
                       value={metric.transitionId}
@@ -761,12 +919,9 @@ const ExperimentMetricRow = ({
                       items={transitionOptions}
                       size="sm"
                     />
-                  </Form.Field>
-                  <Form.Field
-                    label="Count"
-                    size="sm"
-                    className={metricFieldLabelStyle}
-                  >
+                  </div>
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Count</span>
                     <Select
                       required
                       value={metric.transitionMode}
@@ -776,7 +931,7 @@ const ExperimentMetricRow = ({
                       items={transitionModeOptions}
                       size="sm"
                     />
-                  </Form.Field>
+                  </div>
                 </>
               ) : null}
             </div>
@@ -804,18 +959,132 @@ interface CreateExperimentDrawerProps {
   onClose: () => void;
 }
 
+/**
+ * Whether the GPU backend could run this experiment, and the reason when it
+ * could not.
+ *
+ * The net is analysed asynchronously (lowering user code happens in the language
+ * worker) but the metric gate is evaluated synchronously from the drafts, so
+ * editing a metric updates the answer without another round-trip.
+ */
+function useGpuAvailability({
+  enabled,
+  sdcpn,
+  extensions,
+  metricSpecs,
+}: {
+  enabled: boolean;
+  sdcpn: SDCPN;
+  extensions: PetrinautExtensionSettings;
+  metricSpecs: readonly ExperimentMetricSpecInput[] | null;
+}): { available: boolean; reason: string | null; pending: boolean } {
+  const { requestHirArtifacts } = use(LanguageClientContext);
+  const [netReason, setNetReason] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    let cancelled = false;
+    setPending(true);
+
+    const analyze = async () => {
+      try {
+        const { artifacts } = await requestHirArtifacts(sdcpn, extensions, {
+          includeHir: true,
+        });
+        if (cancelled) {
+          return;
+        }
+        setNetReason(
+          summarizeGpuUnavailability(
+            analyzeCompilation({ sdcpn, artifacts, extensions }),
+          ),
+        );
+      } catch (caught) {
+        if (!cancelled) {
+          setNetReason(
+            caught instanceof Error
+              ? `The net could not be compiled: ${caught.message}`
+              : "The net could not be compiled.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setPending(false);
+        }
+      }
+    };
+
+    void analyze();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, sdcpn, extensions, requestHirArtifacts]);
+
+  if (!enabled) {
+    return { available: false, reason: null, pending: false };
+  }
+  if (pending) {
+    return { available: false, reason: null, pending: true };
+  }
+  if (netReason !== null) {
+    return { available: false, reason: netReason, pending: false };
+  }
+
+  // Expression metrics are computed from full simulation state, which the GPU
+  // path never materialises on the host, so they rule the backend out before the
+  // histogram gate is worth consulting. Narrowing as we go also gives
+  // `toGpuMetricSpecs` the compiled-spec type it wants without a cast: only
+  // expression specs lack an `artifact`.
+  const histogramSpecs: MonteCarloMetricSpec[] = [];
+  for (const spec of metricSpecs ?? []) {
+    if (spec.kind === "expression") {
+      return {
+        available: false,
+        reason: `Metric "${spec.label}" is an expression metric, which the GPU backend cannot compute. Use place token-count metrics to run on the GPU.`,
+        pending: false,
+      };
+    }
+    histogramSpecs.push(spec);
+  }
+
+  if (histogramSpecs.length > 0) {
+    const gpuMetrics = toGpuMetricSpecs(histogramSpecs);
+    if (!gpuMetrics.ok) {
+      return { available: false, reason: gpuMetrics.reason, pending: false };
+    }
+  }
+
+  return { available: true, reason: null, pending: false };
+}
+
 export const CreateExperimentDrawer = ({
   open,
   onClose,
 }: CreateExperimentDrawerProps) => {
-  const { petriNetDefinition } = use(SDCPNContext);
-  const { createExperiment } = use(ExperimentsContext);
+  const { petriNetDefinition, extensions } = use(SDCPNContext);
+  // Read here, not in ExperimentsProvider: that provider is mounted outside
+  // UserSettingsProvider and so cannot see these settings.
+  const {
+    webGpuEnabled,
+    showAnimations,
+    enableAdHocScenarios,
+    enableParameterSweeps,
+  } = use(UserSettingsContext);
+  const { createExperiment } = use(ExperimentsActionsContext);
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
     null,
   );
-  const [paramValues, setParamValues] = useState<Record<string, string>>({});
+  const [paramInputs, setParamInputs] = useState<
+    Record<string, ExperimentParameterInput>
+  >({});
+  const [adHocState, setAdHocState] = useState<AdHocScenarioState | null>(null);
   const [runCount, setRunCount] = useState(DEFAULT_RUN_COUNT);
   const [seed, setSeed] = useState(DEFAULT_SEED);
   const [dt, setDt] = useState(DEFAULT_DT);
@@ -826,6 +1095,7 @@ export const CreateExperimentDrawer = ({
   );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gpuRequested, setGpuRequested] = useState(false);
 
   const effectiveSelectedScenarioId = getEffectiveScenarioSelection(
     scenarios,
@@ -845,13 +1115,80 @@ export const CreateExperimentDrawer = ({
     metricDrafts.length === 0
       ? "Define at least one metric"
       : metricDiagnosticError;
+  /**
+   * The sweep the current interval inputs define. `error` carries the first
+   * invalid interval; `null` summary means no parameter sweeps, i.e. a plain
+   * single-combination experiment.
+   */
+  // The ad-hoc worksheet edits fixed values only; a swept parameter keeps its
+  // range and shows as blank there.
+  const fixedParamValues: Record<string, string> = {};
+  for (const [identifier, input] of Object.entries(paramInputs)) {
+    if (input.mode === "fixed") {
+      fixedParamValues[identifier] = input.value;
+    }
+  }
+
+  const sweepSummary = ((): {
+    text: string;
+    tone: "neutral" | "warning" | "error";
+    error: boolean;
+  } | null => {
+    const axes: ExperimentParameterAxis[] = [];
+    for (const param of selectedScenario?.scenarioParameters ?? []) {
+      const input = paramInputs[param.identifier];
+      if (!input || input.mode !== "range") {
+        continue;
+      }
+      const outcome = buildParameterAxis(param, input);
+      if (!outcome.ok) {
+        return { text: outcome.error, tone: "error", error: true };
+      }
+      axes.push(outcome.axis);
+    }
+    if (axes.length === 0) {
+      return null;
+    }
+    const names = axes.map((axis) => axis.identifier).join(", ");
+    return {
+      text: `${axes.length === 1 ? `${names} swept over its interval` : `${names} swept over their intervals`} — the whole selection computes progressively, and the navigator narrows it to regions or points`,
+      tone: "neutral",
+      error: false,
+    };
+  })();
+
   const footerError = error ?? metricFormError;
-  const canRun = !isSubmitting && metricFormError === null;
+  const canRun =
+    !isSubmitting && metricFormError === null && sweepSummary?.error !== true;
+
+  // `null` while the drafts are incomplete: the GPU metric gate has nothing to
+  // judge yet, and Run is disabled for the same reason.
+  let draftMetricSpecs: ExperimentMetricSpecInput[] | null = null;
+  try {
+    draftMetricSpecs = buildMetricSpecs(metricDrafts, petriNetDefinition);
+  } catch {
+    draftMetricSpecs = null;
+  }
+
+  const webGpuAvailable = isWebGpuAvailable();
+  const gpu = useGpuAvailability({
+    enabled: open && webGpuEnabled && webGpuAvailable,
+    sdcpn: petriNetDefinition,
+    extensions,
+    metricSpecs: draftMetricSpecs,
+  });
+  // Derived rather than stored, so a net edited into ineligibility after the
+  // switch was flipped neither shows as on nor submits a GPU experiment. The
+  // switch's own state and the submitted backend read the same value, so they
+  // cannot disagree.
+  const gpuSelected = gpuRequested && gpu.available;
+  const computeBackend = gpuSelected ? "webgpu" : "cpu";
 
   const resetForm = () => {
     setName(DEFAULT_EXPERIMENT_NAME);
     setSelectedScenarioId(null);
-    setParamValues({});
+    setParamInputs({});
+    setAdHocState(null);
     setRunCount(DEFAULT_RUN_COUNT);
     setSeed(DEFAULT_SEED);
     setDt(DEFAULT_DT);
@@ -860,6 +1197,7 @@ export const CreateExperimentDrawer = ({
     setMetricLabelFocusId(null);
     setError(null);
     setIsSubmitting(false);
+    setGpuRequested(false);
   };
 
   const handleClose = () => {
@@ -873,7 +1211,7 @@ export const CreateExperimentDrawer = ({
 
   const handleScenarioChange = (scenarioId: string) => {
     setSelectedScenarioId(scenarioId);
-    setParamValues({});
+    setParamInputs({});
     setError(null);
   };
 
@@ -949,12 +1287,20 @@ export const CreateExperimentDrawer = ({
           effectiveSelectedScenarioId === NO_SCENARIO_VALUE
             ? null
             : effectiveSelectedScenarioId,
-        scenarioParameterValues: paramValues,
+        scenarioParameterValues: paramInputs,
+        adHocScenario:
+          enableAdHocScenarios &&
+          effectiveSelectedScenarioId === NO_SCENARIO_VALUE
+            ? adHocState
+            : null,
         runCount: Number(runCount),
         seed: Number(seed),
         dt: Number(dt),
         maxTime: Number(maxTime),
         metricSpecs,
+        // Read here rather than in ExperimentsProvider, which is mounted outside
+        // UserSettingsProvider and so cannot see this setting.
+        computeBackend,
       });
       resetForm();
     } catch (submitError) {
@@ -984,11 +1330,19 @@ export const CreateExperimentDrawer = ({
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
           <Section title="Experiment" collapsible defaultOpen>
-            <Form.Field label="Name" size="sm">
+            <div className={fieldStyle}>
+              <span className={labelStyle}>Name</span>
               <TextInput size="sm" value={name} onChange={setName} />
-            </Form.Field>
-            <Form.Row>
-              <Form.Field label="Runs" size="sm">
+            </div>
+            <div className={gridStyle}>
+              <div className={fieldStyle}>
+                {/* A sweep refines each selection progressively (8, 25, 100,
+                    ... 1000, 5000, ...) up to this budget, so for sweeps this
+                    is a ceiling, not a batch size — 100,000 is a reasonable
+                    value on the GPU. */}
+                <span className={labelStyle}>
+                  {sweepSummary ? "Max runs per selection" : "Runs"}
+                </span>
                 <NumberInput
                   size="sm"
                   min={1}
@@ -999,8 +1353,9 @@ export const CreateExperimentDrawer = ({
                     )
                   }
                 />
-              </Form.Field>
-              <Form.Field label="Time step" size="sm">
+              </div>
+              <div className={fieldStyle}>
+                <span className={labelStyle}>Time step</span>
                 <NumberInput
                   size="sm"
                   min={0}
@@ -1010,8 +1365,9 @@ export const CreateExperimentDrawer = ({
                     setDt(nextDt === null ? "" : String(nextDt))
                   }
                 />
-              </Form.Field>
-              <Form.Field label="Max time (s)" size="sm">
+              </div>
+              <div className={fieldStyle}>
+                <span className={labelStyle}>Max time (s)</span>
                 <NumberInput
                   size="sm"
                   min={0}
@@ -1021,8 +1377,61 @@ export const CreateExperimentDrawer = ({
                     setMaxTime(nextMaxTime === null ? "" : String(nextMaxTime))
                   }
                 />
-              </Form.Field>
-            </Form.Row>
+              </div>
+              {/* A labelled cell in the same grid as Runs / Time step / Max time:
+                  the backend is a property of the experiment like the rest, and a
+                  bare control below the grid read as an orphan. */}
+              {webGpuEnabled && webGpuAvailable && (
+                <div
+                  className={fieldStyle}
+                  // `pending` and `unavailable` both disable the toggle, so which
+                  // one it is gets published for tests to distinguish.
+                  data-backend-state={
+                    gpu.pending
+                      ? "pending"
+                      : gpu.available
+                        ? "available"
+                        : "unavailable"
+                  }
+                >
+                  <span className={labelStyle}>Backend</span>
+                  <Tooltip
+                    content={gpu.reason ?? ""}
+                    disableTooltip={gpu.reason === null}
+                    position="top-start"
+                  >
+                    {/* Wrapped so the tooltip still opens while the control is
+                        disabled — a disabled control fires no pointer events. */}
+                    <span className={backendControlStyle}>
+                      <span
+                        className={backendSideLabelStyle}
+                        data-selected={!gpuSelected}
+                      >
+                        CPU
+                      </span>
+                      <Toggle
+                        size="sm"
+                        value={gpuSelected}
+                        onChange={setGpuRequested}
+                        disabled={!gpu.available}
+                        className={cx(
+                          gpuToggleStyle,
+                          showAnimations && gpuToggleGlowStyle,
+                        )}
+                      />
+                      <span
+                        className={cx(backendSideLabelStyle, gpuSideLabelStyle)}
+                        data-selected={gpuSelected}
+                      >
+                        GPU
+                      </span>
+                    </span>
+                  </Tooltip>
+                </div>
+              )}
+            </div>
+            {/* Only shown once WebGPU is switched on in settings — otherwise the
+                choice does not exist and the row would be noise. */}
           </Section>
 
           <Section title="Scenario" collapsible defaultOpen>
@@ -1060,23 +1469,86 @@ export const CreateExperimentDrawer = ({
             </div>
 
             {selectedScenario ? (
-              selectedScenario.scenarioParameters.length === 0 ? (
+              enableAdHocScenarios ? (
+                // The selected scenario shows through the ad-hoc form in run
+                // mode: scenario parameters editable in worksheet style, and
+                // a collapsed "Computed state" preview of the exact values
+                // and tokens each run starts with.
+                <ExperimentScenarioRun
+                  scenario={selectedScenario}
+                  context={{
+                    netParameters: extensions.parameters
+                      ? petriNetDefinition.parameters
+                      : [],
+                    places: petriNetDefinition.places,
+                    types: extensions.colors ? petriNetDefinition.types : [],
+                  }}
+                  values={fixedParamValues}
+                  onValuesChange={(updates) =>
+                    setParamInputs((prev) => {
+                      const next = { ...prev };
+                      for (const update of updates) {
+                        next[update.identifier] = {
+                          mode: "fixed",
+                          value: update.value,
+                        };
+                      }
+                      return next;
+                    })
+                  }
+                />
+              ) : selectedScenario.scenarioParameters.length === 0 ? (
                 <div className={emptyParamsStyle}>No scenario parameters</div>
               ) : (
-                selectedScenario.scenarioParameters.map((param) => (
-                  <ScenarioParameterRow
-                    key={param.identifier}
-                    param={param}
-                    value={paramValues[param.identifier] ?? ""}
-                    onChange={(v) =>
-                      setParamValues((prev) => ({
-                        ...prev,
-                        [param.identifier]: v,
-                      }))
-                    }
-                  />
-                ))
+                <>
+                  {selectedScenario.scenarioParameters.map((param) => (
+                    <ScenarioParameterRow
+                      key={param.identifier}
+                      param={param}
+                      sweepable={enableParameterSweeps}
+                      value={
+                        paramInputs[param.identifier] ?? {
+                          mode: "fixed",
+                          value: "",
+                        }
+                      }
+                      onChange={(v) =>
+                        setParamInputs((prev) => ({
+                          ...prev,
+                          [param.identifier]: v,
+                        }))
+                      }
+                    />
+                  ))}
+                  {sweepSummary ? (
+                    <span
+                      className={sweepSummaryStyle}
+                      data-tone={sweepSummary.tone}
+                    >
+                      {sweepSummary.text}
+                    </span>
+                  ) : null}
+                </>
               )
+            ) : enableAdHocScenarios ? (
+              // With no scenario, the experiment's Initial State + Parameters
+              // are defined inline and compile through a scenario generated
+              // at experiment start, never persisted. Left untouched, the
+              // experiment runs exactly as before. Behind the Ad-hoc
+              // scenarios setting; off, no scenario means the model's own
+              // initial marking, as before the feature.
+              <AdHocScenarioForm
+                state={adHocState ?? EMPTY_AD_HOC_STATE}
+                onChange={setAdHocState}
+                context={{
+                  netParameters: extensions.parameters
+                    ? petriNetDefinition.parameters
+                    : [],
+                  places: petriNetDefinition.places,
+                  types: extensions.colors ? petriNetDefinition.types : [],
+                }}
+                selection="none"
+              />
             ) : null}
           </Section>
 
@@ -1122,11 +1594,7 @@ export const CreateExperimentDrawer = ({
       <Drawer.Footer
         secondaryActions={
           footerError ? (
-            <Form.Field.Errors
-              className={errorsStyle}
-              errors={[footerError]}
-              size="sm"
-            />
+            <span className={errorStyle}>{footerError}</span>
           ) : undefined
         }
         actions={

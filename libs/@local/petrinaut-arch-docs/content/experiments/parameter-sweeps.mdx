@@ -1,0 +1,128 @@
+---
+title: Parameter sweeps
+description: Why a sweep computes only the selected region, and how quantized intervals, the refinement ladder, the cache, and common random numbers fit together.
+sidebar_order: 20
+attachTo: react.experiments
+---
+
+A sweep experiment declares an interval per swept scenario parameter — nothing
+else. Each interval quantizes into ~50 positions (`SWEEP_AXIS_STEPS`,
+`parameter-grid.ts`; integer parameters step by whole numbers), and the
+navigator selects an inclusive position range per parameter: the whole
+interval by default, collapsible to a single point. Only the selected region
+computes, and compute moves the moment the selection does. The model is a
+raytracer's: rays for the current camera, dropped on movement, never
+precomputed for cameras nobody is looking through.
+
+![The selected region refining](@diagrams/sweep-refinement.svg)
+
+## Points, ranges, and the refinement ladder
+
+A **point** selection runs the experiment at that value. A **range**
+selection runs one stochastic experiment over the ranges: each run carries
+its own drawn value per ranged parameter (`sweepRangeRuns`), low-discrepancy
+across the selected value interval, rotated by a seed-derived shift
+(Cranley–Patterson, so draws are unbiased over the seed and each experiment
+seed explores its own sequence) and prefix-stable in the seed, axis, and
+global run index — the quantized positions bound the interval, they do not
+grid it. One
+selection is one experiment: full worker-pool parallelism, and the metric
+stream is the experiment's own, so the distribution over the region streams
+from the first frames and sharpens as runs land.
+
+Either kind climbs the ladder — 8, 25, 100, 500, 1000, then ×5/×2, capped by
+the run budget — in batches that fold into a cache keyed by the whole
+selection (a point is a degenerate range). The climb is **pipelined**: run
+ranges are disjoint and draws and seeds are prefix-stable in the run index,
+so as soon as a rung streams its first frames the next rung starts alongside
+it — at most two in flight, which hides each rung's setup and straggler tail
+without committing the whole ladder up front. Folds stay strictly ordered: a
+rung folds only after every earlier rung folded, and a rung cancelled by a
+selection change discards its started successor whole (a gap can never enter
+the cache). Revisiting any earlier selection restores its runs and resumes
+from its cached rung.
+
+Per-run parameter values travel as `ExperimentRequest.runPlan` — one
+run-major `Float64Array` plus the overridden names, uniform by construction.
+The WebGPU backend converts it straight into its per-run buffer, the CPU
+backend expands it into the engine's per-run configs at the worker-pool
+boundary, and range and point batches walk the same backend selection. The
+record form (`ExperimentRequest.runs`) remains for what a numeric plan
+cannot carry — per-run seeds, markings, non-numeric values — and a batch
+whose translation meets one falls back to it. Scenario compilation needs one
+value per parameter, so an initial state derived from a ranged parameter
+holds at the range midpoint while runtime reads vary per run.
+
+## What a batch costs on the main thread
+
+Everything between a slider commit and the first dispatch runs on the main
+thread: drawing per-run values, translating them through the scenario, and
+building the backend request. At large rungs that work is what the user
+feels — profiled at a 1,000,000-run range batch, the page's two longest
+main-thread tasks (1.16 s and 1.45 s) were batch instantiation, and most of
+that was scenario compilation: `translateRangeDraws` compiles the scenario
+once per run's draws.
+
+Draws are continuous inside the selected interval, so per-draw results
+cannot be cached — almost every assignment is new. What repeats is the
+value-independent half of each compile: type-checking every override and
+initial-state item, building expression contexts, parsing net-parameter
+defaults. `prepareScenarioCompiler` (`compile-scenario.ts`, core) runs that
+half once, and each `compile(values)` call only merges the assignment,
+interprets the override expressions, and coerces the results. The provider
+prepares one compiler per experiment and every consumer — batch midpoints,
+per-run translation, surface sampling — compiles through it.
+
+Per-run translation compiles less still: `compileParameterNumbers` runs the
+parameter steps and skips both the initial state, which per-run translation
+never reads — per-run initial markings do not exist, and a batch's own
+marking comes from its midpoint `compile` — and the string conversion. An
+initial-state error therefore fails the batch, not each of its runs.
+
+Nothing else in the per-run pipeline materializes a record per run either:
+`sweepRangeDraws` writes one typed array of draws, and `translateRangeDraws`
+compares each run's compiled numbers against the base and fills per-name
+`Float64Array` columns, pre-filled with the base value so the uniform layout
+falls out. A million-run batch's plumbing allocates a handful of arrays
+instead of a million records of stringified numbers (each run's scenario
+compile still builds its own small binding records), and the garbage
+collector drops out of the profile's top entries.
+
+What remains is still linear in the run count, so the draw and translation
+loops yield cooperatively (`cooperative-yield.ts`): every few thousand
+iterations they check an 8 ms budget and hand the thread back —
+`scheduler.yield()` where the browser has it, a macrotask elsewhere. The
+loops' total cost is unchanged; no single task holds the main thread through
+it. Measured end to end at the same 1,000,000-run batch, the pipeline's
+blocking went from two tasks of 1.16 s and 1.45 s to 178 ms in total with no
+task over ~130 ms.
+
+## Determinism
+
+A cell's batch covering runs `[from, target)` seeds itself with
+`deriveRunSeed(seed, from)` (the first batch keeps the base seed verbatim).
+The ladder is the same for every cell, so the same rung draws the same seeds
+everywhere — common random numbers across the space — and a re-run of a
+cancelled rung repeats it exactly. Cached results never go stale: the same
+position always means the same runs.
+
+## Where the pieces live
+
+`createSweepSession` (`react/experiments/sweep-session.ts`) owns the loop:
+selection, region enumeration, ladder, cache, cancellation. It is
+backend-agnostic — it consumes an injected `instantiateBatch` returning a
+`MonteCarloExperiment`, so the CPU worker pool and the WebGPU backend behave
+identically. The provider wires that seam: a sweep's first batch runs the same
+[backend-selection walk](doc:experiments/backend-selection) as a plain
+experiment, and later batches re-assess the chosen backend with each batch's
+request — which is where the GPU backend regenerates its shader for the new
+parameter values. Scenario compilation also happens per batch, because a
+cell's swept values change the compiled initial state.
+
+The navigator (`sweep-navigator.tsx`) renders one range slider per parameter
+in the drawer section's sticky band, so the controls stay pinned while the
+charts stream beneath them. Sliders commit on release — dragging previews
+locally — and a Range/Point control collapses a slider to a single value or
+expands it back to the whole interval. Updates go through one context call,
+`setSweepSelection`; everything else the UI shows is plain record state the
+session streams out.

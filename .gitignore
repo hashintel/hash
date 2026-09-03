@@ -104,7 +104,7 @@ libs/@local/graph/authorization/typescript/src/generated
 libs/@local/graph/store/typescript/src/generated
 
 # vscode config
-**/.vscode/settings.json
+**/.vscode/*
 
 # intellij IDEs config
 **/.idea/

@@ -1,11 +1,13 @@
 //! Provider-based request authentication.
 
+use alloc::sync::Arc;
 use core::ops::ControlFlow;
 
 use error_stack::Report;
 use http::HeaderMap;
 use type_system::principal::actor::ActorId;
 
+use super::request::AuthenticationErrorKind;
 use crate::authentication::request::AuthenticationError;
 
 mod sealed {
@@ -34,7 +36,7 @@ pub trait Caller: Send + Sized + sealed::Sealed {
     ///
     /// - [`MissingCredentials`] if the caller type requires an actor
     ///
-    /// [`MissingCredentials`]: AuthenticationError::MissingCredentials
+    /// [`MissingCredentials`]: AuthenticationErrorKind::MissingCredentials
     fn anonymous() -> Result<Self, AuthenticationError>;
 
     /// Returns the actor, or [`None`] for an anonymous caller.
@@ -47,7 +49,9 @@ impl Caller for ActorId {
     }
 
     fn anonymous() -> Result<Self, AuthenticationError> {
-        Err(AuthenticationError::MissingCredentials)
+        Err(AuthenticationError::new(
+            AuthenticationErrorKind::MissingCredentials,
+        ))
     }
 
     fn into_actor(self) -> Option<ActorId> {
@@ -76,12 +80,16 @@ impl Caller for Option<ActorId> {
 /// and the chain moves on. Breaking with `Ok` carries the caller the credential verified to, with
 /// `Err` the reason it did not — either way the chain stops, so a rejected credential never falls
 /// through to another provider.
+///
+/// A rejection is handed out shared: one verification may answer several concurrent requests,
+/// and [`Report`] is not [`Clone`], so the [`Arc`] carries the one report to every request it
+/// rejected.
 pub trait AuthenticationProvider<C: Caller>: Send + Sync {
     /// Resolves the credential of a request.
     fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send;
+    ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send;
 }
 
 /// An absent provider recognizes no credential, so the chain moves on.
@@ -93,7 +101,7 @@ where
     async fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+    ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
         match self {
             Some(provider) => provider.authenticate(headers).await,
             None => ControlFlow::Continue(()),
@@ -111,7 +119,7 @@ where
     async fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+    ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
         self.0.authenticate(headers).await?;
         self.1.authenticate(headers).await
     }
@@ -138,16 +146,16 @@ where
     fn authenticate(
         &self,
         _headers: &HeaderMap,
-    ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send {
+    ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send {
         core::future::ready(match self {
             Self::NotRecognized => ControlFlow::Continue(()),
             Self::Verified(actor) => ControlFlow::Break(Ok(C::from_actor(*actor))),
-            Self::Rejected => {
-                ControlFlow::Break(Err(Report::new(AuthenticationError::InvalidSession)))
-            }
-            Self::Unreachable => {
-                ControlFlow::Break(Err(Report::new(AuthenticationError::ProviderUnreachable)))
-            }
+            Self::Rejected => ControlFlow::Break(Err(Arc::new(Report::new(
+                AuthenticationError::new(AuthenticationErrorKind::InvalidSession),
+            )))),
+            Self::Unreachable => ControlFlow::Break(Err(Arc::new(Report::new(
+                AuthenticationError::new(AuthenticationErrorKind::ProviderUnreachable),
+            )))),
         })
     }
 }
@@ -160,8 +168,8 @@ where
 #[cfg(any(test, feature = "test-utils"))]
 #[track_caller]
 pub fn expect_rejection<C: core::fmt::Debug>(
-    authentication: ControlFlow<Result<C, Report<AuthenticationError>>>,
-) -> Report<AuthenticationError> {
+    authentication: ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>,
+) -> Arc<Report<AuthenticationError>> {
     match authentication {
         ControlFlow::Break(Err(report)) => report,
         ControlFlow::Break(Ok(_)) | ControlFlow::Continue(()) => {
@@ -172,14 +180,14 @@ pub fn expect_rejection<C: core::fmt::Debug>(
 
 #[cfg(test)]
 mod tests {
-    use core::ops::ControlFlow;
+    use core::{assert_matches, ops::ControlFlow};
 
     use http::HeaderMap;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
     use super::{AuthenticationProvider as _, Caller, StaticAuthenticationProvider};
-    use crate::authentication::request::AuthenticationError;
+    use crate::authentication::request::AuthenticationErrorKind;
 
     fn random_user() -> ActorId {
         ActorId::User(UserId::new(ActorEntityUuid::new(Uuid::new_v4())))
@@ -195,11 +203,9 @@ mod tests {
 
     #[test]
     fn anonymous_caller_fails_where_an_actor_is_required() {
-        assert!(
-            matches!(
-                <ActorId as Caller>::anonymous(),
-                Err(AuthenticationError::MissingCredentials)
-            ),
+        assert_matches!(
+            <ActorId as Caller>::anonymous(),
+            Err(error) if *error.kind() == AuthenticationErrorKind::MissingCredentials,
             "a required caller should reject anonymity"
         );
     }
@@ -213,8 +219,9 @@ mod tests {
         );
 
         let decision: ControlFlow<Result<ActorId, _>> = chain.authenticate(&HeaderMap::new()).await;
-        assert!(
-            matches!(decision, ControlFlow::Break(Ok(resolved)) if resolved == actor),
+        assert_matches!(
+            decision,
+            ControlFlow::Break(Ok(resolved)) if resolved == actor,
             "the chain should fall through to the second provider"
         );
     }
@@ -228,8 +235,9 @@ mod tests {
         );
 
         let decision: ControlFlow<Result<ActorId, _>> = chain.authenticate(&HeaderMap::new()).await;
-        assert!(
-            matches!(decision, ControlFlow::Break(Ok(resolved)) if resolved == actor),
+        assert_matches!(
+            decision,
+            ControlFlow::Break(Ok(resolved)) if resolved == actor,
             "the chain should stop at the first verified credential"
         );
     }
@@ -242,8 +250,9 @@ mod tests {
         );
 
         let decision: ControlFlow<Result<ActorId, _>> = chain.authenticate(&HeaderMap::new()).await;
-        assert!(
-            matches!(decision, ControlFlow::Break(Err(_))),
+        assert_matches!(
+            decision,
+            ControlFlow::Break(Err(_)),
             "a rejection by the first provider should never fall through to the second"
         );
     }
@@ -256,8 +265,9 @@ mod tests {
         );
 
         let decision: ControlFlow<Result<ActorId, _>> = chain.authenticate(&HeaderMap::new()).await;
-        assert!(
-            matches!(decision, ControlFlow::Continue(())),
+        assert_matches!(
+            decision,
+            ControlFlow::Continue(()),
             "the chain should recognize nothing when no provider does"
         );
     }

@@ -1,6 +1,10 @@
 export { createMonteCarloSimulator } from "./monte-carlo-simulator";
 export { deriveRunSeed } from "./run-state";
 export {
+  getDefaultMonteCarloShardCount,
+  planMonteCarloShards,
+} from "./runtime/shard-plan";
+export {
   addAllMonteCarloMetricValues,
   createMonteCarloMetricHistogramAccumulator,
   createMonteCarloMetricNumericAccumulator,
@@ -8,6 +12,8 @@ export {
   createMonteCarloUserDefinedMetric,
 } from "./metrics";
 export { createMonteCarloExperiment } from "./runtime/experiment";
+export { runExperimentToCompletion } from "./runtime/experiment-completion";
+export type { ExperimentCompletion } from "./runtime/experiment-completion";
 export type {
   MonteCarloAdvanceResult,
   MonteCarloRunConfig,
@@ -40,6 +46,7 @@ export type {
   MonteCarloUserDefinedMetricAggregation,
   MonteCarloUserDefinedMetricConfig,
   MonteCarloUserDefinedDistributionMetricFrame,
+  MonteCarloUserDefinedMetricBinExtent,
   MonteCarloUserDefinedMetricDistributionBin,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloUserDefinedMetricMeasureInput,

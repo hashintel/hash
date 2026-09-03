@@ -109,3 +109,41 @@ test("user can recover account and set a new password", async ({ page }) => {
   });
   await expectSignedIn(page);
 });
+
+test("recovery page tells an already signed-in user to log out", async ({
+  page,
+}) => {
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.pwRecoverySignedIn,
+  );
+
+  await page.goto("/recovery");
+
+  await expect(
+    page.getByRole("heading", { name: "Account Recovery" }),
+  ).toBeVisible({ timeout: 10_000 });
+
+  // A single element holding both lines means the break between them collapsed.
+  await expect(
+    page.getByRole("paragraph").filter({ hasText: "You are logged in as" }),
+  ).toHaveText(`You are logged in as ${credentials.email}`, {
+    timeout: 10_000,
+  });
+
+  await expect(
+    page
+      .getByRole("paragraph")
+      .filter({ hasText: "recover a different account" }),
+  ).toHaveText(
+    "If you want to recover a different account, please log out first",
+  );
+
+  await expect(
+    page.getByRole("button", { name: "Recover account" }),
+  ).toBeHidden();
+
+  await page.getByRole("link", { name: "Go Home" }).click();
+  await page.waitForURL((url) => url.pathname === "/");
+  await expectSignedIn(page);
+});

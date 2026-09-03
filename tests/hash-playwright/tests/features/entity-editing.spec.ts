@@ -1,32 +1,8 @@
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { expect, test } from "../shared/runtime";
 
 import type { Locator, Page } from "../shared/runtime";
-
-/**
- * This gets the text for the requested cell in the hidden html table,
- * which replicates the rendered content for accessibility and testing purposes.
- *
- * The presence of a value in the HTML table does not guarantee that it is rendered on the canvas,
- * which depends on the canvas cell renderers correctly taking the value and drawing it.
- */
-const getCellText = async (
-  canvas: Locator,
-  /** zero-based (first column -> 0) */
-  colIndex: number,
-  /** zero-based (first row after header row -> 0) */
-  rowIndex: number,
-) => {
-  // wait until glide-grid updates the cell texts (on the invisible accessibility table)
-  await sleep(500);
-
-  const text = await canvas
-    .getByTestId(`glide-cell-${colIndex}-${rowIndex}`)
-    .textContent();
-  return text;
-};
 
 /**
  * Check that there is content rendered in the first cell of the first non-header row
@@ -86,6 +62,9 @@ const clickOnValueCell = async (
   /** zero-based (first row after header row -> 0) */
   rowIndex: number,
 ) => {
+  await expect(canvas).toBeVisible();
+  await canvas.scrollIntoViewIfNeeded();
+
   const canvasPos = await canvas.boundingBox();
 
   if (!canvasPos) {
@@ -127,20 +106,22 @@ test("user can update values on property table", async ({ page }) => {
 
   await clickOnValueCell(page, propertyTableCanvas, 0);
 
-  await expect(page.getByPlaceholder("Start typing...")).toBeVisible();
+  const valueInput = page.getByPlaceholder("Start typing...");
+
+  await expect(valueInput).toBeVisible();
 
   const profileUrl = "https://github.com/Example";
 
-  await page.keyboard.type(profileUrl);
-  await page.keyboard.press("Enter");
+  await valueInput.pressSequentially(profileUrl);
+  await valueInput.press("Enter");
 
   /**
    * Check that the hidden accessibility / testing HTML table contains the correct value.
    * This tests that the value has been successfully entered, but not that it is rendered.
    */
-  const cell1Text = await getCellText(propertyTableCanvas, 1, 0);
-
-  expect(cell1Text).toBe(profileUrl);
+  await expect(propertyTableCanvas.getByTestId("glide-cell-1-0")).toHaveText(
+    profileUrl,
+  );
 });
 
 test("both the link and properties tables render some content", async ({

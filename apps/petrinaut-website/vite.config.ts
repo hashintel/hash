@@ -24,6 +24,8 @@ const loadServerEnv = (mode: string) => {
 const apiModules = [
   ["/api/chat", "/api/chat.ts"],
   ["/api/oembed", "/api/oembed.ts"],
+  ["/api/voice/config", "/api/voice/config.ts"],
+  ["/api/voice/realtime-call", "/api/voice/realtime-call.ts"],
 ] as const;
 
 // Plugin required to serve the Vercel fetch handlers in dev. In production,
@@ -82,6 +84,8 @@ export default defineConfig(({ mode }) => {
       port: process.env.PORT ? Number(process.env.PORT) : 4173,
     },
     server: {
+      /** the Claude Code preview may provide a PORT to run on */
+      port: process.env.PORT ? Number(process.env.PORT) : 5173,
       proxy: {
         "/api/petrinaut-opt": {
           target: process.env.PETRINAUT_OPT_ORIGIN ?? "http://127.0.0.1:4004",

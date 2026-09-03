@@ -3,8 +3,8 @@
 Status: draft for review
 Assembled: 2026-08-10, from the resolved
 [wayfinder map](../archive/elicitation-kernel/map.md) (tickets 01–13), the two inbox references
-([challenges](../reference/agentic-elicitation-challenges-2026-08-06T10-02-41Z.md),
-[criteria](../reference/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md)), and the
+([challenges](../research/agentic-elicitation-challenges-2026-08-06T10-02-41Z.md),
+[criteria](../research/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md)), and the
 [2026-08-10 consistency pre-pass](../archive/elicitation-kernel/notes/consistency-prepass-2026-08-10.md).
 Contradiction adjudications are collected in [Appendix A](#appendix-a--adjudications).
 Amended 2026-08-24 by

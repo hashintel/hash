@@ -1,0 +1,21 @@
+{
+  "package": "@local/hash-graph-store",
+  "dependencies": [
+    "@blockprotocol/type-system",
+    "@local/hash-graph-authorization",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@local/hash-graph-store#codegen"
+    ],
+    "codegen": [
+      "@blockprotocol/type-system#build",
+      "@local/hash-graph-authorization#build",
+      "@rust/hash-graph-store#build:types"
+    ],
+    "lint:tsc": [
+      "@local/hash-graph-store#codegen"
+    ]
+  }
+}

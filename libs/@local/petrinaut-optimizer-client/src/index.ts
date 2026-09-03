@@ -13,5 +13,6 @@ export {
   PetrinautOptimizerHttpError,
   petrinautOptimizerHttpErrorFromResponse,
 } from "./optimizer-http.js";
+export { createServicePetrinautOptimization } from "./service-optimization.js";
 export type { PetrinautOptimizerFetch } from "./optimizer-http.js";
 export type { components, operations, paths, webhooks } from "./openapi.gen.js";

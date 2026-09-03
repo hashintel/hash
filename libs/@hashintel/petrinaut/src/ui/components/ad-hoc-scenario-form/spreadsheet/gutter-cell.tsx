@@ -39,6 +39,12 @@ export interface GutterCellProps {
   onKeyDown: React.KeyboardEventHandler<HTMLButtonElement>;
   /** Delete/Backspace on the selected gutter. */
   onDelete: () => void;
+  /**
+   * No row actions: the menu, the dots affordance, and Delete are gone,
+   * while the button stays focusable so the row can still be selected and
+   * walked (the form's run mode).
+   */
+  readOnly?: boolean;
 }
 
 export const GutterCell: React.FC<GutterCellProps> = ({
@@ -56,6 +62,7 @@ export const GutterCell: React.FC<GutterCellProps> = ({
   onBlur,
   onKeyDown,
   onDelete,
+  readOnly = false,
 }) => {
   const button = (
     <button
@@ -71,7 +78,9 @@ export const GutterCell: React.FC<GutterCellProps> = ({
         if (event.key === "Delete" || event.key === "Backspace") {
           event.preventDefault();
           event.stopPropagation();
-          onDelete();
+          if (!readOnly) {
+            onDelete();
+          }
           return;
         }
         onKeyDown(event);
@@ -79,7 +88,7 @@ export const GutterCell: React.FC<GutterCellProps> = ({
       onClick={(event) => {
         // A pointer click only selects; the keyboard "click" (Enter) and the
         // dots button open the menu.
-        if (event.detail === 0) {
+        if (event.detail === 0 && !readOnly) {
           onOpenMenu(event.currentTarget);
         }
       }}
@@ -91,15 +100,17 @@ export const GutterCell: React.FC<GutterCellProps> = ({
   return (
     <>
       {tooltip ? <Tooltip content={tooltip}>{button}</Tooltip> : button}
-      <button
-        type="button"
-        tabIndex={-1}
-        className={gutterMenuButtonStyle}
-        aria-label={menuLabel}
-        onClick={(event) => onOpenMenu(event.currentTarget)}
-      >
-        ⋯
-      </button>
+      {readOnly ? null : (
+        <button
+          type="button"
+          tabIndex={-1}
+          className={gutterMenuButtonStyle}
+          aria-label={menuLabel}
+          onClick={(event) => onOpenMenu(event.currentTarget)}
+        >
+          ⋯
+        </button>
+      )}
       {menuAnchor ? (
         <GutterMenu
           anchor={menuAnchor}

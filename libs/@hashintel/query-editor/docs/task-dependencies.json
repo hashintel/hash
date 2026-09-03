@@ -1,0 +1,26 @@
+{
+  "package": "@hashintel/query-editor",
+  "dependencies": [
+    "@blockprotocol/graph",
+    "@blockprotocol/type-system",
+    "@hashintel/design-system",
+    "@local/eslint"
+  ],
+  "tasks": {
+    "fix:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/eslint#build"
+    ]
+  }
+}

@@ -14,14 +14,18 @@ COVERAGE=$usage_coverage
 STRATEGY=$usage_test_strategy
 declare -a "ARGUMENTS=($usage_arguments)" # We're using "declare -a" here to allow for quoted arguments to be properly parsed as single array elements
 
-# Check if the package argument starts with `@rust/` if that isn't the case exit out
-if [[ $PACKAGE != "@rust/"* ]]; then
-    echo "Error: Only rust crates are supported for now"
+# Remove the package namespace from the package to get the crate name
+CRATE=${PACKAGE#@*/}
+
+METADATA=$(cargo metadata --format-version=1 --no-deps)
+
+if ! jq -e --arg crate "$CRATE" '.packages | any(.name == $crate)' <<< "$METADATA" > /dev/null; then
+    echo "Error: '$PACKAGE' is not a crate in the Cargo workspace"
     exit 1
 fi
 
-# Remove the package namespace from the package to get the crate name
-CRATE=${PACKAGE#*@rust/}
+# Binary-only crates have no target that carries doc-tests
+HAS_DOCTESTS=$(jq --arg crate "$CRATE" '.packages[] | select(.name == $crate) | .targets | any(.doctest)' <<< "$METADATA")
 
 declare -a COMMON_ARGUMENTS
 COMMON_ARGUMENTS+=("-p" "$CRATE")
@@ -79,10 +83,17 @@ if [[ $COVERAGE == "true" || ${TEST_COVERAGE:-false} == 'true' || ${TEST_COVERAG
 
     cargo llvm-cov clean --workspace
     cargo hack "${HACK_ARGUMENTS[@]}" llvm-cov "${LLVM_COV_ARGUMENTS[@]}" --no-report nextest "${NEXTEST_ARGUMENTS[@]}" --cargo-profile coverage "${ARGUMENTS[@]:-}"
-    cargo llvm-cov "${LLVM_COV_ARGUMENTS[@]}" "${LLVM_COV_REPORT_ARGUMENTS[@]}" --no-clean --doctests test "${COMMON_ARGUMENTS[@]}" --all-features --profile coverage --doc
+    if [[ $HAS_DOCTESTS == "true" ]]; then
+        cargo llvm-cov "${LLVM_COV_ARGUMENTS[@]}" "${LLVM_COV_REPORT_ARGUMENTS[@]}" --no-clean --doctests test "${COMMON_ARGUMENTS[@]}" --all-features --profile coverage --doc
+    else
+        cargo llvm-cov report --profile coverage --branch --ignore-filename-regex "$EXCLUSIONS" "${LLVM_COV_REPORT_ARGUMENTS[@]}"
+    fi
 
     exit 0
 fi
 
 cargo hack "${HACK_ARGUMENTS[@]}" nextest run "${NEXTEST_ARGUMENTS[@]}" "${ARGUMENTS[@]:-}"
-cargo test "${COMMON_ARGUMENTS[@]}" --all-features --doc
+
+if [[ $HAS_DOCTESTS == "true" ]]; then
+    cargo test "${COMMON_ARGUMENTS[@]}" --all-features --doc
+fi

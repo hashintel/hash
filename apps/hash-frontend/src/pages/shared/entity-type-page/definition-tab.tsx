@@ -93,6 +93,9 @@ export const DefinitionTab = ({
       dataTypeOptions={dataTypeOptions}
       entityType={entityTypeAndPropertyTypes.entityType}
       entityTypeOptions={entityTypeOptions}
+      entityTypePermissions={
+        entityTypesContext.entityTypePermissions ?? undefined
+      }
       key={entityTypeAndPropertyTypes.entityType.schema.$id} // Reset state when switching entity types, helps avoid state mismatch issues
       ontologyFunctions={ontologyFunctions}
       propertyTypeOptions={propertyTypeOptions}

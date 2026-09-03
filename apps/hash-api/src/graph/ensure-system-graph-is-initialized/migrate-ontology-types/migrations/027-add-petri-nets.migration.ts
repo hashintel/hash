@@ -114,6 +114,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Petri Net",
+        titlePlural: "Petri Nets",
         description:
           "A Petri net is a mathematical model of a system that can be used to represent and analyze complex systems.",
         properties: [

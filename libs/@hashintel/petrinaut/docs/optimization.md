@@ -14,20 +14,26 @@ attempted during the outage instead reports an error in its result drawer.
 
 An optimization requires:
 
-- A saved [scenario](scenarios.md) with at least one scenario parameter.
+- A saved [scenario](scenarios.md) with at least one scenario parameter, **or**
+  an [ad-hoc scenario](ad-hoc-scenarios.md) defined inline while creating the
+  optimization.
 - A numeric objective, either from a saved metric or custom metric code entered
   while creating the optimization.
 
 Only scenario parameters can be optimized. Petrinaut does not expose arbitrary
-model fields or nested paths to the optimizer.
+model fields or nested paths to the optimizer. The ad-hoc form works within
+that rule: each value you mark **Optimize** becomes a generated scenario
+parameter behind the scenes.
 
 ## Creating an optimization
 
 1. Switch to **Simulate** mode and choose **Optimizations**.
 2. Click **Create**.
-3. Explicitly select a scenario in the first section. Petrinaut never picks a
-   scenario automatically. Selecting another scenario resets the optimization
-   form for that scenario.
+3. Explicitly select a scenario in the first section, or pick **Ad-hoc
+   (define inline)** to [define initial state and parameters
+   inline](ad-hoc-scenarios.md) with Optimize toggles on every value.
+   Petrinaut never picks a scenario automatically. Selecting another scenario
+   resets the optimization form for that scenario.
 4. Give the optimization a name and choose its number of optimization steps
    (between 1 and 1,000), time step (default `0.1`), and maximum simulation
    time.
@@ -70,8 +76,10 @@ steps arrive and shows:
 - The current best metric value.
 - The best flat scenario-parameter assignment.
 - The latest received steps, including their parameters, objective values, and
-  colored state indicators. For long runs, the drawer displays the newest 200
-  steps while retaining aggregate progress and the current best result.
+  colored state indicators. The step list sits at the bottom of the drawer and
+  scrolls on its own — the summary, the best parameters, and the surface above
+  it hold still. For long runs, the drawer displays the newest 200 steps while
+  retaining aggregate progress and the current best result.
 
 Closing the drawer does not stop the optimization. Use **Cancel** to abort an
 active run. Completed, cancelled, and failed records can be removed from their
@@ -81,6 +89,30 @@ If a run fails, the drawer explains what happened — for example, a lost
 connection reports how many of the requested trials had completed and includes
 a diagnostic identifier for support. Trials received before the failure are
 kept, and a **Retry** action starts a fresh run with the same settings.
+
+## The surface view
+
+The surface is experimental and off by default. Turn on **Optimization
+surface** under Simulation in the [settings
+dialog](visual-settings.md#optimization-surface-experimental) to see it.
+
+A study with two or more optimized numeric parameters grows a **Surface**
+section between the best parameters and the step list: an Optuna-style contour
+of the objective over two parameters you pick. The study's own trials appear as rings (the best
+trial highlighted), and the filled contour comes from points **computed
+locally on your machine** — the study's model snapshot runs on a background
+worker, a few runs per point, and the plot fills in coarse shape first.
+
+One slider per optimized parameter navigates the space; parameters not shown
+on the plot hold at their slider position, which starts at the best trial's
+value. Move a slider, or **click or drag on the plot**, and the selected point
+recomputes with escalating batches while the readout streams the objective's
+mean and median. Points you have visited are cached, so returning to them is
+instant.
+
+Log-scale domains slide in log space, and integer domains snap to their step.
+Local points always reflect the model as it was when the study launched, even
+if you have edited the net since.
 
 ## Connection drops and reloads
 

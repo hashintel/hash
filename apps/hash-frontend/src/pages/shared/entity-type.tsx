@@ -564,6 +564,7 @@ export const EntityType = ({
               <Box ref={titleWrapperRef} sx={typeHeaderContainerStyles}>
                 <EntityTypeTabHeaderContainer isInSlide={isInSlide}>
                   <EntityTypeHeader
+                    canInstantiate={!!userPermissions?.instantiate}
                     currentVersion={currentVersion}
                     entityTypeSchema={entityType.schema}
                     isArchived={isArchived}

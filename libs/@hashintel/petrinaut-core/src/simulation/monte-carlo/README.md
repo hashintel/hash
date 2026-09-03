@@ -62,14 +62,14 @@ analysis could adjust the growth ratio per run based on observed growth rate.
 
 ## Scheduling
 
-The current strategy is single-threaded deterministic round-robin. This keeps
-all runs moving together and avoids one long run starving the others. Future
-parallelization can shard `MonteCarloRun`s across Web Workers without changing
-the run state model.
+Within one shard, `advanceAll()` is deterministic round-robin: all runs move
+together and one long run cannot starve the others. An experiment shards its
+runs across several workers, each running its own simulator over a contiguous
+slice — the fan-out lives in `runtime/`, the worker protocol in `worker/`, and
+the mergeable metric states in `metrics/`.
 
-## Current Limits
+## User code
 
-This first implementation focuses on bounded frame retention and a testable API.
-It still reuses the existing user-code object API for dynamics, lambda, and
-transition kernels. Future IR compilation can make those functions operate
-directly on numeric buffers.
+Dynamics, lambdas, and transition kernels run as compiled buffer-ABI HIR
+programs that read packed token bytes directly from the frame buffers
+(`transition-effect.ts` binds them per firing).

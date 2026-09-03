@@ -1,0 +1,14 @@
+{
+  "package": "@rust/harpc-system",
+  "dependencies": [
+    "@rust/harpc-tower",
+    "@rust/harpc-types"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": []
+  }
+}

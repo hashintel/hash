@@ -1,0 +1,49 @@
+{
+  "package": "@apps/hash-graph",
+  "dependencies": [
+    "@blockprotocol/type-system-rs",
+    "@rust/error-stack",
+    "@rust/harpc-codec",
+    "@rust/harpc-server",
+    "@rust/hash-codec",
+    "@rust/hash-graph-api",
+    "@rust/hash-graph-authorization",
+    "@rust/hash-graph-embeddings",
+    "@rust/hash-graph-postgres-store",
+    "@rust/hash-graph-store",
+    "@rust/hash-graph-type-fetcher",
+    "@rust/hash-telemetry",
+    "@rust/hash-temporal-client"
+  ],
+  "tasks": {
+    "build:docker": [],
+    "compile": [],
+    "compile:release": [],
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "start": [
+      "@apps/hash-graph#start:migrate"
+    ],
+    "start:healthcheck": [
+      "@apps/hash-graph#compile:release"
+    ],
+    "start:migrate": [
+      "@apps/hash-graph#compile:release"
+    ],
+    "start:test": [
+      "@apps/hash-graph#start:test:migrate"
+    ],
+    "start:test:healthcheck": [
+      "@apps/hash-graph#compile"
+    ],
+    "start:test:migrate": [
+      "@apps/hash-graph#compile"
+    ],
+    "test:unit": [
+      "@local/status#build"
+    ]
+  }
+}

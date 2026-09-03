@@ -8,6 +8,15 @@
  * @role Contexts, hooks and providers that mirror core state into React
  */
 
+// --- Palette commands ---
+export {
+  CommandRegistryProvider,
+  useCommand,
+  useCommandRegistry,
+  useCommands,
+} from "./commands/command-registry";
+export { formatShortcutKeys } from "./commands/format-shortcut";
+
 // --- Instance access + low-level adapters ---
 export { PetrinautInstanceContext } from "./instance-context";
 export { usePetrinautInstance } from "./use-petrinaut-instance";
@@ -57,10 +66,15 @@ export type {
   OptimizationStatus,
   OptimizationsContextValue,
 } from "./optimizations/context";
-export { ExperimentsContext, isExperimentActive } from "./experiments/context";
+export {
+  ExperimentsActionsContext,
+  ExperimentsContext,
+  isExperimentActive,
+} from "./experiments/context";
 export type {
   CreateExperimentInput,
   ExperimentRecord,
+  ExperimentsActionsValue,
   ExperimentStatus,
   ExperimentsContextValue,
 } from "./experiments/context";

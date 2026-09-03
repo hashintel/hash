@@ -1,0 +1,11 @@
+{
+  "package": "@rust/effect-dns-hickory",
+  "dependencies": [],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": []
+  }
+}

@@ -10,15 +10,35 @@ import {
   Toggle,
 } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import {
+  classicRunParameterValues,
+  classicRunVariables,
+  classicScenarioRunState,
+  compileScenario,
+  createUserKeyedRecord,
+  EMPTY_AD_HOC_STATE,
+  initialMarkingToAdHocPlaces,
+} from "@hashintel/petrinaut-core";
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
+import { useScenarioHir } from "../../../../../../react/simulation/use-scenario-hir";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import {
+  AdHocScenarioForm,
+  FormLayoutColumn,
+} from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { Slider } from "../../../../../components/slider";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
+import {
+  scenarioRunParameterValues,
+  seedScenarioRunState,
+} from "./scenario-run-state";
 
 import type { SubView } from "../../../../../components/sub-view/types";
+import type { AdHocScenarioState, Scenario } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -39,9 +59,31 @@ const scenarioRowStyle = css({
   alignItems: "center",
   gap: "2",
   flexShrink: 0,
-  // Small right inset so the action buttons don't hug the column edge,
+  // Small right inset so the row's controls don't hug the panel edge,
   // matching the parameters list below.
   paddingRight: "2",
+  marginBottom: "3",
+});
+
+// The picker reads as one control, not a full-panel bar; the Time Step
+// control fills the row's right edge.
+const scenarioPickerGroupStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flex: "[1]",
+  minWidth: "[0]",
+  maxWidth: "[420px]",
+});
+
+// Time Step sits inline on the picker row, pushed to the right edge — the
+// columns below keep the full panel width to themselves.
+const timeStepInlineStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+  marginLeft: "auto",
+  flexShrink: 0,
 });
 
 const scenarioLabelStyle = css({
@@ -74,18 +116,54 @@ const parameterSliderInputStyles = css({
 
 const containerStyle = css({
   display: "grid",
-  gridTemplateColumns: "[1fr 1fr]",
   gap: "8",
   flex: "[1]",
   minHeight: "[0]",
 });
 
-// Left column: the scenario picker and the parameters list share one width.
-const scenarioColumnStyle = css({
+// Parameters alone normally; the ad-hoc embedding adds a wider Initial
+// state column. The scenario picker and Time Step sit above the grid, so
+// the columns keep the full panel width and their headers align.
+const parametersOnlyContainerStyle = css({
+  gridTemplateColumns: "[1fr]",
+});
+
+const adHocColumnsContainerStyle = css({
+  gridTemplateColumns: "[1fr 1.4fr]",
+});
+
+// The left ad-hoc column stacks Variables above Parameters in one scroll
+// area; the gap separates the two titled blocks.
+const leftColumnSectionsStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "5",
+  gap: "6",
+});
+
+// The form wraps the whole grid when the ad-hoc embedding is live, so its
+// keyboard handling covers both form columns; it must fill the panel like
+// the grid it contains.
+const adHocFormRootStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
   minHeight: "[0]",
+});
+
+const initialStateTitleRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+});
+
+const initialStateSpacerStyle = css({
+  flex: "[1]",
+});
+
+// The inline form while a simulation is live: visible but inert and dimmed,
+// matching the panel's disabled inputs.
+const lockedFormStyle = css({
+  opacity: "[0.5]",
 });
 
 const sectionStyle = css({
@@ -107,20 +185,6 @@ const sectionTitleStyle = css({
   textTransform: "uppercase",
   color: "neutral.a100",
   letterSpacing: "[0.5px]",
-});
-
-const settingsRowStyle = css({
-  display: "flex",
-  flexDirection: "row",
-  gap: "6",
-  flexWrap: "wrap",
-});
-
-const settingGroupStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  minWidth: "[120px]",
 });
 
 const labelStyle = css({
@@ -186,6 +250,11 @@ const parametersListStyle = css({
   paddingBottom: "3",
   // Small right inset so row values don't hug the scrollbar/column edge.
   paddingRight: "2",
+  // Bleed: place headers pull their chevron 18px left of the tables; the
+  // padding/negative-margin pair keeps positions identical while extending
+  // the clip box so the chevron isn't cropped.
+  paddingLeft: "[18px]",
+  marginLeft: "[-18px]",
 });
 
 // Plain rows separated by hairline dividers, matching the sidebar's
@@ -237,18 +306,50 @@ const ratioSliderStyle = css({
   opacity: "[1]",
 });
 
+// The Clear affordance stays quiet until pointed at: it wipes the whole
+// draft, so it should not compete with the fields it clears.
+const quietClearButtonStyle = css({
+  opacity: "[0.55]",
+  transition: "[opacity 0.12s ease]",
+  _hover: { opacity: "[1]" },
+  _focusVisible: { opacity: "[1]" },
+  _disabled: { opacity: "[0.3]" },
+});
+
 const emptyMessageStyle = css({
   fontSize: "xs",
   color: "neutral.s85",
   fontStyle: "italic",
 });
 
-// Error callout shown when the selected scenario fails to compile, so a broken
-// scenario is never silently ignored. `flexShrink` keeps it from collapsing in
-// the settings column; the compact `textStyle`/`padding` keep the banner to the
-// same footprint (and wrap points) as the plain callout it replaced.
+// The classic-scenario preview's status line: why the Initial state section
+// is not (fully) showing yet — compiling, a compilation error, or a row cap.
+const runNoticeStyle = css({
+  fontSize: "xs",
+  color: "neutral.s90",
+  backgroundColor: "[rgb(217 119 6 / 0.08)]",
+  border: "1px solid",
+  borderColor: "[rgb(217 119 6 / 0.35)]",
+  borderRadius: "sm",
+  paddingX: "2",
+  paddingY: "1.5",
+  marginBottom: "2",
+});
+
+// Error callout shown when the selected scenario fails to compile, so a
+// broken scenario is never silently ignored. It docks at the panel's bottom,
+// below the columns: appearing takes height from the content grid — whose
+// columns scroll internally, so nothing becomes unreachable — rather than
+// covering it or shifting it downward. Flat and barely rounded, so it reads
+// as a bar of the panel, not a floating toast; a long error list scrolls
+// inside the banner rather than swallowing the panel.
 const scenarioBannerStyle = css({
   flexShrink: 0,
+  marginTop: "2",
+  marginBottom: "2",
+  maxHeight: "[40%]",
+  overflowY: "auto",
+  borderRadius: "sm",
   textStyle: "xs",
   lineHeight: "[1.3]",
   padding: "[6px 8px]",
@@ -308,7 +409,7 @@ const SimulationSettingsContent: React.FC = () => {
   const { navigateTo, setSimulateDrawer } = use(EditorContext);
   const {
     extensions,
-    petriNetDefinition: { parameters, scenarios },
+    petriNetDefinition: { parameters, scenarios, places, types },
   } = use(SDCPNContext);
   const globalParameters = extensions.parameters ? parameters : [];
   const {
@@ -322,7 +423,13 @@ const SimulationSettingsContent: React.FC = () => {
     scenarioParameterValues,
     setScenarioParameterValue,
     scenarioCompilationErrors,
+    adHocScenario,
+    setAdHocScenario,
+    adHocNetParameters,
+    initialMarking,
   } = use(SimulationContext);
+
+  const { enableAdHocScenarios } = use(UserSettingsContext);
 
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
@@ -331,6 +438,236 @@ const SimulationSettingsContent: React.FC = () => {
     simulationState === "Running" || simulationState === "Paused";
 
   const selectedScenario = scenarios?.find((s) => s.id === selectedScenarioId);
+
+  // The inline ad-hoc embedding: only behind the user setting, and only
+  // with no scenario selected. Off, the panel renders exactly as before
+  // the feature.
+  const adHocActive = enableAdHocScenarios && !selectedScenario;
+
+  // A selected ad-hoc scenario shows through the form too, in run mode:
+  // the panel edits a local copy whose only writable slots are the exposed
+  // Variables (the scenario's parameters); every edit resolves to ordinary
+  // scenario-parameter values, so the run path is the selected scenario's.
+  const selectedAdHocScenario =
+    enableAdHocScenarios && selectedScenario?.initialState.type === "adhoc"
+      ? selectedScenario
+      : undefined;
+  // Any other selected scenario shows through the same form: its scenario
+  // parameters stay editable, and the right column previews the state the
+  // run will actually start with — the compiled initial marking,
+  // materialized into literal read-only rows.
+  const selectedClassicScenario =
+    enableAdHocScenarios && selectedScenario && !selectedAdHocScenario
+      ? selectedScenario
+      : undefined;
+  const classicHir = useScenarioHir(selectedClassicScenario);
+  // `seededFrom` is the persisted scenario object the run state came from:
+  // saving an edit to the selected scenario replaces that object, so the
+  // form reseeds to the new definition instead of showing the old one while
+  // the run compiles the new. `seed` counts reseeds — it keys the form so a
+  // reseed (or a scenario switch) remounts it, discarding an undo history
+  // whose snapshots belong to another definition.
+  const [scenarioRun, setScenarioRun] = useState<{
+    scenarioId: string;
+    seededFrom: Scenario;
+    seed: number;
+    state: AdHocScenarioState;
+  } | null>(null);
+  if (
+    selectedAdHocScenario &&
+    selectedAdHocScenario.initialState.type === "adhoc" &&
+    (scenarioRun?.scenarioId !== selectedAdHocScenario.id ||
+      scenarioRun.seededFrom !== selectedAdHocScenario)
+  ) {
+    setScenarioRun({
+      scenarioId: selectedAdHocScenario.id,
+      seededFrom: selectedAdHocScenario,
+      seed: (scenarioRun?.seed ?? 0) + 1,
+      state: seedScenarioRunState(
+        selectedAdHocScenario.initialState.content,
+        scenarioParameterValues,
+      ),
+    });
+  }
+  if (
+    selectedClassicScenario &&
+    (scenarioRun?.scenarioId !== selectedClassicScenario.id ||
+      scenarioRun.seededFrom !== selectedClassicScenario)
+  ) {
+    // Only the Variables (the editable scenario parameters) live in local
+    // state; the overrides and places are derived from compilation below.
+    setScenarioRun({
+      scenarioId: selectedClassicScenario.id,
+      seededFrom: selectedClassicScenario,
+      seed: (scenarioRun?.seed ?? 0) + 1,
+      state: {
+        variables: classicRunVariables(
+          selectedClassicScenario,
+          scenarioParameterValues,
+        ),
+        netParameters: [],
+        places: {},
+      },
+    });
+  }
+  // Deselecting (No scenario, or the ad-hoc embedding) drops the run state
+  // entirely: reselecting the same scenario later must reseed from the
+  // then-current parameter values, not resurface stale edits the run no
+  // longer uses.
+  if (!selectedAdHocScenario && !selectedClassicScenario && scenarioRun) {
+    setScenarioRun(null);
+  }
+  // Until a definition exists, the form stands in for the markings entered
+  // on the canvas: those are what a run uses while the draft is null, so
+  // showing an empty place for each of them would be a lie the run does not
+  // tell. Seeding also means the first edit materializes a draft that
+  // already holds them, so nothing is silently zeroed. No row cap: a cap
+  // here would drop tokens from the draft the moment the user typed.
+  const seededAdHocState: AdHocScenarioState = {
+    ...EMPTY_AD_HOC_STATE,
+    places: initialMarkingToAdHocPlaces(
+      initialMarking,
+      { places, types: extensions.colors ? types : [] },
+      Number.POSITIVE_INFINITY,
+    ).places,
+  };
+
+  const adHocFormContext = {
+    // The quick-sim embedding sees the overlaid parameters the run compiles
+    // against (the raw panel inputs are hidden while it is live); a selected
+    // scenario keeps the net's own defaults — its overrides rule.
+    netParameters: adHocActive ? adHocNetParameters : globalParameters,
+    places,
+    types: extensions.colors ? types : [],
+  };
+  const onScenarioRunChange = (next: AdHocScenarioState) => {
+    if (!selectedAdHocScenario) {
+      return;
+    }
+    setScenarioRun((current) => current && { ...current, state: next });
+    for (const { identifier, value } of scenarioRunParameterValues(
+      next,
+      adHocFormContext,
+    )) {
+      setScenarioParameterValue(identifier, value);
+    }
+  };
+  const onClassicRunChange = (next: AdHocScenarioState) => {
+    if (!selectedClassicScenario) {
+      return;
+    }
+    setScenarioRun(
+      (current) =>
+        current && {
+          ...current,
+          state: { variables: next.variables, netParameters: [], places: {} },
+        },
+    );
+    for (const { identifier, value } of classicRunParameterValues(
+      next,
+      selectedClassicScenario,
+    )) {
+      setScenarioParameterValue(identifier, value);
+    }
+  };
+
+  // What the run-mode branch renders, for either scenario kind. A classic
+  // scenario's places come from compiling its initial state with the
+  // current parameter values; until that preview is ready (or when it
+  // fails) the notice explains and the Initial state section stays empty.
+  const scenarioRunView: {
+    state: AdHocScenarioState;
+    onChange: (next: AdHocScenarioState) => void;
+    notice: string | null;
+    previewReady: boolean;
+  } | null = (() => {
+    if (
+      selectedAdHocScenario &&
+      scenarioRun?.scenarioId === selectedAdHocScenario.id
+    ) {
+      return {
+        state: scenarioRun.state,
+        onChange: onScenarioRunChange,
+        notice: null,
+        previewReady: true,
+      };
+    }
+    if (
+      !selectedClassicScenario ||
+      scenarioRun?.scenarioId !== selectedClassicScenario.id
+    ) {
+      return null;
+    }
+    const withoutPreview = (notice: string) => ({
+      state: {
+        variables: scenarioRun.state.variables,
+        netParameters: Object.entries(
+          selectedClassicScenario.parameterOverrides,
+        ).map(([parameterId, expression]) => ({
+          parameterId,
+          expression,
+          optimize: null,
+        })),
+        places: {},
+      },
+      onChange: onClassicRunChange,
+      notice,
+      previewReady: false,
+    });
+    if (classicHir.error !== null) {
+      return withoutPreview(
+        `The initial state preview could not be compiled: ${classicHir.error}`,
+      );
+    }
+    if (classicHir.hir === null) {
+      return withoutPreview("Compiling the initial state preview…");
+    }
+    const numericValues = createUserKeyedRecord<number>();
+    for (const [identifier, value] of Object.entries(scenarioParameterValues)) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        numericValues[identifier] = parsed;
+      }
+    }
+    const outcome = compileScenario(
+      selectedClassicScenario,
+      classicHir.hir,
+      globalParameters,
+      places,
+      adHocFormContext.types,
+      { scenarioParameterValues: numericValues },
+    );
+    if (!outcome.ok) {
+      return withoutPreview(
+        `The initial state preview could not be computed: ${outcome.errors
+          .map((error) => error.message)
+          .join(" · ")}`,
+      );
+    }
+    const materialized = classicScenarioRunState(
+      selectedClassicScenario,
+      outcome.result.initialState,
+      { places, types: adHocFormContext.types },
+      scenarioParameterValues,
+    );
+    return {
+      state: {
+        ...materialized.state,
+        variables: scenarioRun.state.variables,
+      },
+      onChange: onClassicRunChange,
+      notice:
+        materialized.truncated.length > 0
+          ? `Preview truncated: ${materialized.truncated
+              .map(
+                (cut) =>
+                  `${cut.placeName} shows ${cut.shown} of ${cut.total} rows`,
+              )
+              .join(" · ")}`
+          : null,
+      previewReady: true,
+    };
+  })();
 
   // When a scenario is selected, show its scenario parameters + overridden net params.
   // When no scenario, show net-level parameters.
@@ -361,6 +698,30 @@ const SimulationSettingsContent: React.FC = () => {
     { value: NO_SCENARIO, text: "No scenario" },
   ];
 
+  const timeStepControl = (
+    <div className={timeStepInlineStyle}>
+      <label htmlFor="time-step-input" className={labelStyle}>
+        Time Step <span className={smallLabelStyle}>(sec/frame)</span>
+        <HelpTooltip content="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
+      </label>
+      <NumberInput
+        htmlForId="time-step-input"
+        size="xs"
+        width="xs"
+        min={0.001}
+        step={0.001}
+        hideStepper
+        value={dt}
+        onChange={(nextDt) => {
+          if (nextDt !== null && nextDt > 0) {
+            setDt(nextDt);
+          }
+        }}
+        disabled={isSimulationActive}
+      />
+    </div>
+  );
+
   return (
     <div className={rootStyle}>
       <ViewScenarioDrawer
@@ -369,116 +730,265 @@ const SimulationSettingsContent: React.FC = () => {
         scenario={selectedScenario}
       />
 
-      <div className={containerStyle}>
-        {/* Scenario & Parameters Column */}
-        <div className={scenarioColumnStyle}>
-          {/* Scenario Picker */}
-          <div className={scenarioRowStyle}>
-            <span className={scenarioLabelStyle}>Scenario</span>
-            <div className={scenarioSelectWrapperStyle}>
-              <Select
-                required
-                value={selectedScenarioId}
-                onChange={(scenarioId) =>
-                  setContextScenarioId(
-                    scenarioId === NO_SCENARIO ? null : scenarioId,
-                  )
-                }
-                items={scenarioOptions}
-                size="xs"
-                disabled={isSimulationActive}
-                renderItem={(value) => {
-                  const option = scenarioOptions.find(
-                    (opt) => opt.value === value,
-                  );
-                  return (
+      {/* The scenario picker and Time Step share the top row, so the
+          PARAMETERS and INITIAL STATE columns below keep the full panel
+          width and their headers start at the same height. */}
+      <div className={scenarioRowStyle}>
+        <div className={scenarioPickerGroupStyle}>
+          <span className={scenarioLabelStyle}>Scenario</span>
+          <div className={scenarioSelectWrapperStyle}>
+            <Select
+              required
+              value={selectedScenarioId}
+              onChange={(scenarioId) =>
+                setContextScenarioId(
+                  scenarioId === NO_SCENARIO ? null : scenarioId,
+                )
+              }
+              items={scenarioOptions}
+              size="xs"
+              disabled={isSimulationActive}
+              renderItem={(value) => {
+                const option = scenarioOptions.find(
+                  (opt) => opt.value === value,
+                );
+                return (
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      minWidth: 0,
+                    }}
+                  >
+                    {value === NO_SCENARIO && (
+                      <Icon
+                        name="dash"
+                        size="xs"
+                        className={css({ opacity: "[0.4]" })}
+                      />
+                    )}
                     <span
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      {value === NO_SCENARIO && (
-                        <Icon
-                          name="dash"
-                          size="xs"
-                          className={css({ opacity: "[0.4]" })}
-                        />
-                      )}
-                      <span
-                        style={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {option?.text}
-                      </span>
+                      {option?.text}
                     </span>
-                  );
-                }}
-              />
-            </div>
-            <div style={{ display: "flex" }}>
-              {selectedScenario && (
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  aria-label="Edit scenario"
-                  tooltip="Edit Scenario"
-                  iconName="pencil"
-                  onClick={() => setIsViewScenarioOpen(true)}
-                />
-              )}
-              <Button
-                size="xs"
-                variant="ghost"
-                aria-label="Create scenario"
-                tooltip="Create Scenario"
-                iconName="plus"
-                onClick={() => setSimulateDrawer({ type: "create-scenario" })}
-              />
-              <Button
-                size="xs"
-                variant="ghost"
-                aria-label="Manage scenarios"
-                tooltip="Manage Scenarios"
-                iconName="list"
-                onClick={() =>
-                  navigateTo({
-                    globalMode: "simulate",
-                    simulateViewMode: "scenarios",
-                  })
-                }
-              />
-            </div>
-          </div>
-
-          {scenarioCompilationErrors && (
-            <Banner
-              tone="error"
-              icon={false}
-              role="alert"
-              className={scenarioBannerStyle}
-            >
-              <Banner.Title as="h3">
-                Scenario failed to compile — its parameter overrides and initial
-                state are not applied.
-              </Banner.Title>
-              <Banner.Description className={scenarioMessagesStyle}>
-                {scenarioCompilationErrors.map((compilationError) => (
-                  <span
-                    key={`${compilationError.source}:${compilationError.itemId}:${compilationError.message}`}
-                  >
-                    {compilationError.message}
                   </span>
-                ))}
-              </Banner.Description>
-            </Banner>
-          )}
+                );
+              }}
+            />
+          </div>
+          <div style={{ display: "flex" }}>
+            {selectedScenario && (
+              <Button
+                size="xs"
+                variant="ghost"
+                aria-label="Edit scenario"
+                tooltip="Edit Scenario"
+                iconName="pencil"
+                onClick={() => setIsViewScenarioOpen(true)}
+              />
+            )}
+            <Button
+              size="xs"
+              variant="ghost"
+              aria-label="Create scenario"
+              tooltip="Create Scenario"
+              iconName="plus"
+              onClick={() => setSimulateDrawer({ type: "create-scenario" })}
+            />
+            <Button
+              size="xs"
+              variant="ghost"
+              aria-label="Manage scenarios"
+              tooltip="Manage Scenarios"
+              iconName="list"
+              onClick={() =>
+                navigateTo({
+                  globalMode: "simulate",
+                  simulateViewMode: "scenarios",
+                })
+              }
+            />
+          </div>
+        </div>
+        {timeStepControl}
+      </div>
 
+      {adHocActive ? (
+        /* The ad-hoc embedding: Variables and Parameters share the left
+           panel column, Initial state fills the right one, laid out
+           through renderLayout — the form's keyboard handling wraps the
+           whole grid, and each visual column is one FormLayoutColumn in
+           the keyboard flow. This embedding offers no Optimize/expose
+           toggles. */
+        <AdHocScenarioForm
+          state={adHocScenario ?? seededAdHocState}
+          onChange={setAdHocScenario}
+          context={adHocFormContext}
+          selection="none"
+          className={adHocFormRootStyle}
+          renderLayout={({
+            variables: variableRows,
+            parameters: parameterRows,
+            places: placesList,
+          }) => (
+            <div className={cx(containerStyle, adHocColumnsContainerStyle)}>
+              <FormLayoutColumn>
+                <div className={cx(sectionStyle, fillSectionStyle)}>
+                  <ParametersScrollArea>
+                    <div
+                      inert={isSimulationActive}
+                      className={cx(
+                        leftColumnSectionsStyle,
+                        isSimulationActive && lockedFormStyle,
+                      )}
+                    >
+                      <div>
+                        <div className={initialStateTitleRowStyle}>
+                          <div className={sectionTitleStyle}>Variables</div>
+                          <HelpTooltip content="Named values written scenario.<name> in every expression, to drive many values from one number." />
+                        </div>
+                        {variableRows}
+                      </div>
+                      <div>
+                        <div className={initialStateTitleRowStyle}>
+                          <div className={sectionTitleStyle}>Parameters</div>
+                          <HelpTooltip content="Override a parameter's value for this run with an expression. Empty keeps the default. Expressions may read parameters.<name>." />
+                        </div>
+                        {parameterRows ?? (
+                          <div className={emptyMessageStyle}>
+                            No parameters defined
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </ParametersScrollArea>
+                </div>
+              </FormLayoutColumn>
+
+              <FormLayoutColumn>
+                <div className={cx(sectionStyle, fillSectionStyle)}>
+                  <div className={initialStateTitleRowStyle}>
+                    <div className={sectionTitleStyle}>Initial state</div>
+                    <HelpTooltip content="Token counts and values for this run, without saving a scenario. Every value is an expression and may read parameters.<name>." />
+                    <span className={initialStateSpacerStyle} />
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      tone="neutral"
+                      iconName="rotateLeft"
+                      className={quietClearButtonStyle}
+                      disabled={adHocScenario === null || isSimulationActive}
+                      onClick={() => setAdHocScenario(null)}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  <ParametersScrollArea>
+                    {/* Like every input in this panel, the definition locks
+                        while a simulation is live — an edit would dispose the
+                        run. The scroll container stays interactive so the
+                        content can still be reviewed mid-run. */}
+                    <div
+                      inert={isSimulationActive}
+                      className={cx(isSimulationActive && lockedFormStyle)}
+                    >
+                      {placesList}
+                    </div>
+                  </ParametersScrollArea>
+                </div>
+              </FormLayoutColumn>
+            </div>
+          )}
+        />
+      ) : scenarioRunView ? (
+        /* A selected ad-hoc scenario, shown through the form in run mode:
+           the scenario's parameters (its exposed Variables) take value
+           edits in the left column; Parameters and Initial state sit
+           read-only in the right one, still walkable and selectable. */
+        <AdHocScenarioForm
+          key={`${scenarioRun?.scenarioId}:${scenarioRun?.seed}`}
+          state={scenarioRunView.state}
+          onChange={scenarioRunView.onChange}
+          context={adHocFormContext}
+          selection="none"
+          mode="run"
+          className={adHocFormRootStyle}
+          renderLayout={({
+            variables: scenarioParameterRows,
+            parameters: parameterRows,
+            places: placesList,
+          }) => (
+            <div className={cx(containerStyle, adHocColumnsContainerStyle)}>
+              <FormLayoutColumn>
+                <div className={cx(sectionStyle, fillSectionStyle)}>
+                  <ParametersScrollArea>
+                    <div
+                      inert={isSimulationActive}
+                      className={cx(isSimulationActive && lockedFormStyle)}
+                    >
+                      <div className={initialStateTitleRowStyle}>
+                        <div className={sectionTitleStyle}>
+                          Scenario parameters
+                        </div>
+                        <HelpTooltip content="The scenario's tunable parameters. Change a value for this run; the scenario itself stays untouched." />
+                      </div>
+                      {scenarioParameterRows ?? (
+                        <div className={emptyMessageStyle}>
+                          This scenario exposes no parameters
+                        </div>
+                      )}
+                    </div>
+                  </ParametersScrollArea>
+                </div>
+              </FormLayoutColumn>
+              <FormLayoutColumn>
+                <div className={cx(sectionStyle, fillSectionStyle)}>
+                  <ParametersScrollArea>
+                    <div
+                      inert={isSimulationActive}
+                      className={cx(
+                        leftColumnSectionsStyle,
+                        isSimulationActive && lockedFormStyle,
+                      )}
+                    >
+                      <div>
+                        <div className={initialStateTitleRowStyle}>
+                          <div className={sectionTitleStyle}>Parameters</div>
+                          <HelpTooltip content="The parameter overrides the scenario fixes. Read-only here." />
+                        </div>
+                        {parameterRows ?? (
+                          <div className={emptyMessageStyle}>
+                            No parameters defined
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <div className={initialStateTitleRowStyle}>
+                          <div className={sectionTitleStyle}>Initial state</div>
+                          <HelpTooltip content="The initial marking the scenario defines. Read-only here." />
+                        </div>
+                        {scenarioRunView.notice === null ? null : (
+                          <div className={runNoticeStyle}>
+                            {scenarioRunView.notice}
+                          </div>
+                        )}
+                        {scenarioRunView.previewReady ? placesList : null}
+                      </div>
+                    </div>
+                  </ParametersScrollArea>
+                </div>
+              </FormLayoutColumn>
+            </div>
+          )}
+        />
+      ) : (
+        <div className={cx(containerStyle, parametersOnlyContainerStyle)}>
           {/* Parameters Section */}
           <div className={cx(sectionStyle, fillSectionStyle)}>
             <div className={sectionTitleStyle}>Parameters</div>
@@ -604,36 +1114,30 @@ const SimulationSettingsContent: React.FC = () => {
             )}
           </div>
         </div>
+      )}
 
-        {/* Computation Section */}
-        <div className={sectionStyle}>
-          <div className={sectionTitleStyle}>Computation</div>
-          <div className={settingsRowStyle}>
-            {/* Time Step Input */}
-            <div className={settingGroupStyle}>
-              <label htmlFor="time-step-input" className={labelStyle}>
-                Time Step <span className={smallLabelStyle}>(sec/frame)</span>
-                <HelpTooltip content="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
-              </label>
-              <NumberInput
-                htmlForId="time-step-input"
-                size="xs"
-                width="xs"
-                min={0.001}
-                step={0.001}
-                hideStepper
-                value={dt}
-                onChange={(nextDt) => {
-                  if (nextDt !== null && nextDt > 0) {
-                    setDt(nextDt);
-                  }
-                }}
-                disabled={isSimulationActive}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      {scenarioCompilationErrors && (
+        <Banner
+          tone="error"
+          icon={false}
+          role="alert"
+          className={scenarioBannerStyle}
+        >
+          <Banner.Title as="h3">
+            Scenario failed to compile — its parameter overrides and initial
+            state are not applied.
+          </Banner.Title>
+          <Banner.Description className={scenarioMessagesStyle}>
+            {scenarioCompilationErrors.map((compilationError) => (
+              <span
+                key={`${compilationError.source}:${compilationError.itemId}:${compilationError.message}`}
+              >
+                {compilationError.message}
+              </span>
+            ))}
+          </Banner.Description>
+        </Banner>
+      )}
     </div>
   );
 };

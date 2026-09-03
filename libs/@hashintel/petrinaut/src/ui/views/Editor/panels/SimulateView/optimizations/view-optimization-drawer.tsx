@@ -8,8 +8,10 @@ import {
   type OptimizationRecord,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { Section, SectionList } from "../../../../../components/section";
 import { Table, type TableColumn } from "../../../../../components/table";
+import { OptimizationSurface } from "./optimization-surface";
 
 const summaryStyle = css({
   marginTop: "-1",
@@ -66,6 +68,39 @@ const errorStyle = css({
 const stepHintStyle = css({
   fontSize: "xs",
   color: "neutral.s80",
+});
+
+// The drawer body is a column: the summary and surface hold still at the
+// top, and the steps list alone scrolls in the space that remains.
+const drawerBodyStyle = css({
+  paddingTop: "[0]",
+  display: "flex",
+  flexDirection: "column",
+  // The overlay body scrolls by default; here only the step list may.
+  overflow: "hidden",
+});
+
+const fixedSectionStyle = css({
+  flexShrink: "0",
+});
+
+const stepsScrollStyle = css({
+  flex: "[1]",
+  minHeight: "[160px]",
+  overflowY: "auto",
+  scrollbarWidth: "[thin]",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "md",
+  // Pin the table's header while the steps scroll beneath it. The sticky
+  // element must be the header's rowgroup: a sticky row could only move
+  // within that rowgroup, which is exactly as tall as the row itself.
+  "& [role='table'] > [role='rowgroup']:first-child": {
+    position: "sticky",
+    top: "[0]",
+    zIndex: "[1]",
+  },
 });
 
 const stepStateStyle = css({
@@ -300,6 +335,15 @@ export const ViewOptimizationDrawer = ({
 
   const active = isOptimizationActive(optimization);
   const displayedSteps = optimization.trials.slice(-200).reverse();
+  // The surface is experimental, and needs two navigable (non-boolean
+  // optimized) parameters.
+  const { enableOptimizationSurface } = use(UserSettingsContext);
+  const surfaceEligible =
+    enableOptimizationSurface &&
+    Object.values(optimization.input.scenario.parameterBindings).filter(
+      (binding) =>
+        binding.kind === "optimize" && binding.domain.kind !== "boolean",
+    ).length >= 2;
 
   return (
     <Drawer
@@ -312,13 +356,23 @@ export const ViewOptimizationDrawer = ({
         title={optimization.input.name}
         description="Optimization progress and results"
       />
-      <Drawer.Body className={css({ paddingTop: "[0]" })}>
+      <Drawer.Body className={drawerBodyStyle}>
         <SectionList>
-          <Section title="Summary" collapsible defaultOpen>
+          <Section
+            title="Summary"
+            collapsible
+            defaultOpen
+            className={fixedSectionStyle}
+          >
             <OptimizationSummary optimization={optimization} />
           </Section>
           {optimization.best ? (
-            <Section title="Best parameters" collapsible defaultOpen>
+            <Section
+              title="Best parameters"
+              collapsible
+              defaultOpen
+              className={fixedSectionStyle}
+            >
               <div className={bestParametersStyle}>
                 {Object.entries(optimization.best.parameters).map(
                   ([identifier, value]) => (
@@ -335,20 +389,36 @@ export const ViewOptimizationDrawer = ({
               </div>
             </Section>
           ) : null}
+          {surfaceEligible ? (
+            <Section
+              title="Surface"
+              tooltip="The objective over two optimized parameters, computed locally on this machine — the study's own trials appear as rings. Move the sliders or click the plot to recompute elsewhere."
+              collapsible
+              defaultOpen
+              className={fixedSectionStyle}
+            >
+              <OptimizationSurface
+                key={optimization.id}
+                optimization={optimization}
+              />
+            </Section>
+          ) : null}
           {optimization.trials.length > 0 ? (
-            <Section title="Steps" collapsible defaultOpen>
+            <Section title="Steps" fillHeight>
               {optimization.trials.length > displayedSteps.length ? (
                 <span className={stepHintStyle}>
                   Showing the latest {displayedSteps.length} of{" "}
                   {optimization.trials.length} received steps.
                 </span>
               ) : null}
-              <Table
-                columns={stepColumns}
-                emptyLabel="No steps completed yet"
-                getRowId={(trial) => String(trial.trial)}
-                rows={displayedSteps}
-              />
+              <div className={stepsScrollStyle}>
+                <Table
+                  columns={stepColumns}
+                  emptyLabel="No steps completed yet"
+                  getRowId={(trial) => String(trial.trial)}
+                  rows={displayedSteps}
+                />
+              </div>
             </Section>
           ) : null}
         </SectionList>

@@ -74,6 +74,17 @@ export type {
   TransitionLogicAvailability,
 } from "./extensions";
 
+// --- Command registry (palette commands) ---
+export {
+  combineCommandRegistries,
+  createCommandRegistry,
+} from "./command-registry/command-registry";
+export type {
+  Command,
+  CommandRegistry,
+  CommandRegistryView,
+} from "./command-registry/command-registry";
+
 // --- Instance ---
 export { createPetrinaut } from "./instance";
 export type {
@@ -214,15 +225,20 @@ export {
   PETRINAUT_DEFAULT_SEED,
   addAllMonteCarloMetricValues,
   createMonteCarloExperiment,
+  runExperimentToCompletion,
   createMonteCarloMetricHistogramAccumulator,
   createMonteCarloMetricNumericAccumulator,
   createMonteCarloSimulator,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
+  getDefaultMonteCarloShardCount,
   createSimulation,
   createWorkerTransport,
   deriveRunSeed,
 } from "./simulation";
+// Dependency-free WebGPU capability check. The backend itself lives behind the
+// `./webgpu` entry point, which bundles the HIR frontend and must not reach UI.
+export { isWebGpuAvailable } from "./webgpu/support";
 export type {
   BackpressureConfig,
   CreateMonteCarloExperimentConfig,
@@ -245,6 +261,7 @@ export type {
   MonteCarloAdvanceResult,
   MonteCarloActiveRunPlaceCountsVisitor,
   MonteCarloExperiment,
+  ExperimentCompletion,
   MonteCarloExperimentEvent,
   MonteCarloExperimentMetrics,
   MonteCarloExperimentState,
@@ -274,6 +291,7 @@ export type {
   MonteCarloUserDefinedMetricAggregation,
   MonteCarloUserDefinedMetricConfig,
   MonteCarloUserDefinedDistributionMetricFrame,
+  MonteCarloUserDefinedMetricBinExtent,
   MonteCarloUserDefinedMetricDistributionBin,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloUserDefinedMetricMeasureInput,
@@ -313,6 +331,7 @@ export type {
 // --- HIR (type-only from the main entry; the compiler itself stays in the
 // LSP worker, runtime instantiation in ./hir-runtime) ---
 export type {
+  CompileHirArtifactsOptions,
   HirArtifacts,
   HirCompileFailure,
   HirCompileResult,
@@ -404,6 +423,7 @@ export {
 } from "./default-codes";
 export {
   compileScenario,
+  prepareScenarioCompiler,
   type CompiledPlaceMarking,
   type CompiledScenarioResult,
   type CompileScenarioOptions,
@@ -474,6 +494,14 @@ export {
   type AdHocActionInput,
   type AdHocActionName,
 } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-actions";
+export {
+  CLASSIC_RUN_ROW_CAP,
+  classicRunParameterValues,
+  classicRunVariables,
+  classicScenarioRunState,
+  initialMarkingToAdHocPlaces,
+  type TruncatedPlace,
+} from "./simulation/authoring/scenario/ad-hoc/materialize-run-state";
 export { adHocScenarioStateSchema } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-state-schema";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {

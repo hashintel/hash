@@ -94,6 +94,12 @@ captures, never a persistence surface. Defining a plugin's IR means writing its 
 must-know tables.
 _Avoid_: knowledge store, domain model (as a stored unit), staging area.
 
+**Runbook IR** — Mission 3's structurally typed Markdown workpiece: filled during elicitation and
+consumed during PN construction, with explicit unknowns, assumptions, conflicts, omissions, and
+losses. It is an experiment in an intermediate representation, not yet the typed three-register
+**IR** above: it is not folded from captures, does not require kinds/slots/grades, and is not a new
+persistence surface.
+
 **Capture envelope** — the domain-free wrapper around an opaque plugin payload: harness-minted id,
 evidence spans, epistemic status, confidence, value-xor-absence, alternatives grouping, one
 `supersedes` link. The hourglass waist. Status (`active | superseded | retracted`) derives at read
@@ -142,17 +148,25 @@ whether "not applicable" is accepted, and why the model needs it. Kind-level onl
 trigger (declared kind, optionally one unsatisfied demanded slot), `when` text, and an `ask`
 question. Never names a domain.
 
-**Runbook** — the `kickoff`, `trajectory`, and `close` keys for one **job** (`construct`,
-`review and revise`); harness default interleaved with the plugin's cell. `kickoff` produces a
-posture; `close` is honest stopping, never the decision to stop.
+**Runbook** — the structurally typed, human-readable definition for eliciting and constructing
+one **target formalism**. It pairs universal repertoire teaching with formalism-specific purpose,
+investigation typologies, guidance, an IR template, transformation knowledge, completion, and
+checks in a nested Markdown hierarchy. `kickoff`, `trajectory`, and `close` are lifecycle regions
+inside the runbook, not its whole definition; the existing YAML field named `runbooks` keeps that
+narrower code-level meaning. Structural headings do not require captures or IR contents to use
+closed semantic types. Mission 3 delivers the first runbook through one Flue skill and disclosed
+resources; that packaging is not part of the term's definition.
 
-**Key** — one fixed, harness-owned heading of plugin authoring: the harness defines, teaches, and
-ships a default; a plugin specialises it in a cell. Four groups: contract data, guidance, runbook,
-machinery. Rendered key → harness default → plugin cell.
+**Key** — one fixed, harness-owned heading of the YAML plugin/repertoire precursor: the harness
+defines, teaches, and ships a default; a plugin specialises it in a cell. Four groups: contract
+data, guidance, runbook, machinery. Rendered key → harness default → plugin cell. Mission 3 mines
+this authoring structure as evidence; it does not restore the renderer as the runbook architecture.
 
-**Repertoire** — the harness's own filling of every guidance and runbook key, shipped behind
-core's guarded `./prompts` subpath, rendered by bindings, never imported by a plugin. Admitted by
-evidence, not plausibility.
+**Repertoire** — generally applicable elicitation concepts, directives, procedures, judgment
+activations, caveats, and failure knowledge: how an expert-knowledge interview goes well regardless
+of target formalism. The current YAML is the harness's evidence-admitted filling of guidance and
+lifecycle keys behind core's guarded `./prompts` subpath. A rendered runbook may incorporate this
+teaching without using that runtime.
 
 **Mechanism type** — how a guidance key works on the interviewer: a **license** permits what the
 model would hedge on; a **technique** is a form of question or move; an **attention** key names

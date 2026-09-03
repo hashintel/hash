@@ -1,15 +1,21 @@
-import { Fragment, use, useEffect, useRef, useState } from "react";
+import { Fragment, use, useRef, useState } from "react";
 
 import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { clampIndex } from "../../../../../lib/clamp-index";
+import { focusLands } from "../../../../../worksheet/focus-flow";
+import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
+import { RowActionCell } from "./row-action-cell";
 
 import type {
   SubView,
   SubViewResizeConfig,
 } from "../../../../../components/sub-view/types";
+import type {
+  FocusStop,
+  FocusStopTarget,
+} from "../../../../../worksheet/use-focus-stops";
 import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
 import type { ComponentType, ReactNode } from "react";
 
@@ -20,8 +26,6 @@ const listContainerStyle = css({
   flex: "[1]",
   /** Reduce horizontal padding from the parent */
   mx: "-1",
-  /** Suppress browser default focus ring — focus is shown per-row via isFocused variant */
-  outline: "none",
   /** Enable animating height to/from `auto` for collapsible group children */
   interpolateSize: "[allow-keywords]",
 });
@@ -44,61 +48,47 @@ const listItemRowStyle = cva({
     fontWeight: "medium",
     color: "neutral.s115",
     backgroundColor: "[transparent]",
-
+    cursor: "pointer",
     transition: "[background-color 100ms ease-out, opacity 150ms ease-out]",
+
+    /* Focus shows as a background change, like hover. */
+    _focus: {
+      outline: "none",
+      backgroundColor: "neutral.s25",
+    },
+
+    /* The action button shows on hover, while the row or the button holds
+       focus, or while its menu is open. Hidden with `display` so it takes no
+       width until shown. */
+    "& [data-row-action]": {
+      display: "none",
+    },
+    "&:hover [data-row-action], &:focus-within [data-row-action], & [data-row-action]:has([data-state=open])":
+      {
+        display: "flex",
+      },
   },
   variants: {
-    selectable: {
-      true: {
-        cursor: "pointer",
-
-        /* Reveal the action button on hover or when its menu is open. Hidden
-           with `display` rather than `opacity` so it takes no space and the
-           label keeps the full row width until the button is shown. */
-        "& [data-row-action]": {
-          display: "none",
-        },
-        "&:hover [data-row-action], & [data-row-action][data-state=open]": {
-          display: "flex",
-        },
-      },
-    },
     isSelected: {
       true: {
         backgroundColor: "blue.s30",
-        "&:has([data-row-action][data-state=open])": {
+        _focus: {
+          backgroundColor: "blue.s40",
+        },
+        "&:has([data-row-action] [data-state=open])": {
           backgroundColor: "blue.s40",
         },
       },
-      false: {},
-    },
-    isFocused: {
-      true: {
-        backgroundColor: "neutral.s25",
-      },
-    },
-  },
-  compoundVariants: [
-    {
-      isFocused: true,
-      isSelected: true,
-      css: {
-        backgroundColor: "blue.s40",
-      },
-    },
-    {
-      selectable: true,
-      isSelected: false,
-      css: {
+      false: {
         _hover: {
           backgroundColor: "neutral.bg.surface.hover",
         },
-        "&:has([data-row-action][data-state=open])": {
+        "&:has([data-row-action] [data-state=open])": {
           backgroundColor: "neutral.bg.surface.hover",
         },
       },
     },
-  ],
+  },
 });
 
 const listItemContentStyle = css({
@@ -230,7 +220,6 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
           size="xxs"
           variant="ghost"
           iconName="ellipsis"
-          data-row-action
           onClick={(event) => event.stopPropagation()}
         />
       }
@@ -240,20 +229,43 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
   );
 };
 
-const NonEmptyFilterableListContent = <T extends FilterableListItem>({
+const targetKey = (target: FocusStopTarget): string =>
+  `${target.stopId}:${target.column}`;
+
+interface VisibleRow<T> {
+  item: T;
+  isGroup: boolean;
+}
+
+/** The rows the keyboard flow walks, in document order; a collapsed group hides its children. */
+const visibleRowsOf = <T extends FilterableListItem>(
+  items: T[],
+  collapsedGroups: Set<string>,
+): VisibleRow<T>[] =>
+  items.flatMap((item): VisibleRow<T>[] => {
+    const children = item.children as T[] | undefined;
+    if (children === undefined) {
+      return [{ item, isGroup: false }];
+    }
+    const visibleChildren = collapsedGroups.has(item.id) ? [] : children;
+    return [
+      { item, isGroup: true },
+      ...visibleChildren.map((child) => ({ item: child, isGroup: false })),
+    ];
+  });
+
+const FilterableListContent = <T extends FilterableListItem>({
   items,
   getSelectionItem,
   renderItem,
   renderRowMenu: RenderRowMenu,
-  collapsedGroups,
-  toggleGroup,
+  emptyMessage,
 }: {
   items: T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
   renderRowMenu?: ComponentType<{ item: T }>;
-  collapsedGroups: Set<string>;
-  toggleGroup: (groupId: string) => void;
+  emptyMessage: string;
 }) => {
   const {
     isSelected: checkIsSelected,
@@ -263,418 +275,266 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
     setSelection,
   } = use(EditorContext);
 
-  const [focusedIndexState, setFocusedIndex] = useState<number | null>(null);
-  const [anchorIndexState, setAnchorIndex] = useState<number | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  // Flatten tree: items with children become group header + child rows.
-  // Children are always included (even when collapsed) so the DOM stays
-  // stable for height animation. The `hidden` flag marks collapsed children
-  // so keyboard navigation can skip them.
-  const flatRows: {
-    item: T;
-    depth: number;
-    isGroup: boolean;
-    hidden: boolean;
-    emptyGroupMessage?: string;
-  }[] = [];
-  for (const item of items) {
-    const children = item.children as T[] | undefined;
-    const isGroup = children !== undefined;
-    flatRows.push({ item, depth: 0, isGroup, hidden: false });
-    if (isGroup) {
-      const isCollapsed = collapsedGroups.has(item.id);
-      if (children!.length > 0) {
-        for (const child of children!) {
-          flatRows.push({
-            item: child,
-            depth: 1,
-            isGroup: false,
-            hidden: isCollapsed,
-          });
-        }
-      } else if (item.emptyGroupMessage) {
-        flatRows.push({
-          item,
-          depth: 1,
-          isGroup: false,
-          hidden: isCollapsed,
-          emptyGroupMessage: item.emptyGroupMessage,
-        });
-      }
-    }
-  }
-
-  const focusedIndex = clampIndex(focusedIndexState, flatRows.length);
-  const anchorIndex = clampIndex(anchorIndexState, flatRows.length);
-
-  // Truncate stale row refs when visible rows change.
-  useEffect(() => {
-    rowRefs.current.length = flatRows.length;
-  }, [flatRows.length]);
-
-  // Scroll focused item into view
-  useEffect(() => {
-    if (focusedIndex !== null) {
-      rowRefs.current[focusedIndex]?.scrollIntoView({ block: "nearest" });
-    }
-  }, [focusedIndex]);
-
-  const selectRange = (fromIndex: number | null, toIndex: number) => {
-    const start = Math.min(fromIndex ?? toIndex, toIndex);
-    const end = Math.max(fromIndex ?? toIndex, toIndex);
-    const newSelection: SelectionMap = new Map();
-    for (let i = start; i <= end; i++) {
-      const row = flatRows[i];
-      if (row && !row.isGroup && !row.hidden && !row.emptyGroupMessage) {
-        const selItem = getSelectionItem(row.item);
-        newSelection.set(selItem.id, selItem);
-      }
-    }
-    setSelection(newSelection);
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    // Ignore key events bubbling from nested interactive controls (e.g. row menu buttons)
-    if (event.target !== event.currentTarget) {
-      return;
-    }
-    if (flatRows.length === 0) {
-      return;
-    }
-
-    switch (event.key) {
-      case "ArrowDown": {
-        event.preventDefault();
-        let nextIndex =
-          focusedIndex === null
-            ? 0
-            : Math.min(focusedIndex + 1, flatRows.length - 1);
-        // Skip hidden and empty placeholder rows
-        while (
-          nextIndex < flatRows.length - 1 &&
-          (flatRows[nextIndex]?.hidden ||
-            flatRows[nextIndex]?.emptyGroupMessage)
-        ) {
-          nextIndex++;
-        }
-        setFocusedIndex(nextIndex);
-        const row = flatRows[nextIndex];
-        if (row && !row.isGroup && !row.hidden && !row.emptyGroupMessage) {
-          if (event.shiftKey) {
-            selectRange(anchorIndex ?? nextIndex, nextIndex);
-          } else {
-            selectItem(getSelectionItem(row.item));
-            setAnchorIndex(nextIndex);
-          }
-        }
-        break;
-      }
-      case "ArrowUp": {
-        event.preventDefault();
-        let nextIndex =
-          focusedIndex === null
-            ? flatRows.length - 1
-            : Math.max(focusedIndex - 1, 0);
-        // Skip hidden and empty placeholder rows
-        while (
-          nextIndex > 0 &&
-          (flatRows[nextIndex]?.hidden ||
-            flatRows[nextIndex]?.emptyGroupMessage)
-        ) {
-          nextIndex--;
-        }
-        setFocusedIndex(nextIndex);
-        const row = flatRows[nextIndex];
-        if (row && !row.isGroup && !row.hidden && !row.emptyGroupMessage) {
-          if (event.shiftKey) {
-            selectRange(anchorIndex ?? nextIndex, nextIndex);
-          } else {
-            selectItem(getSelectionItem(row.item));
-            setAnchorIndex(nextIndex);
-          }
-        }
-        break;
-      }
-      case "Enter":
-      case " ": {
-        event.preventDefault();
-        if (focusedIndex !== null) {
-          const row = flatRows[focusedIndex];
-          if (row && !row.hidden && !row.emptyGroupMessage) {
-            if (row.isGroup) {
-              toggleGroup(row.item.id);
-            } else {
-              selectItem(getSelectionItem(row.item));
-              setAnchorIndex(focusedIndex);
-            }
-          }
-        }
-        break;
-      }
-      case "ArrowRight": {
-        if (focusedIndex !== null) {
-          const row = flatRows[focusedIndex];
-          if (row?.isGroup && collapsedGroups.has(row.item.id)) {
-            event.preventDefault();
-            toggleGroup(row.item.id);
-          }
-        }
-        break;
-      }
-      case "ArrowLeft": {
-        if (focusedIndex !== null) {
-          const row = flatRows[focusedIndex];
-          if (row?.isGroup && !collapsedGroups.has(row.item.id)) {
-            event.preventDefault();
-            toggleGroup(row.item.id);
-          }
-        }
-        break;
-      }
-      case "Escape": {
-        clearSelection();
-        setFocusedIndex(null);
-        setAnchorIndex(null);
-        break;
-      }
-    }
-  };
-
-  const handleContainerClick = () => {
-    clearSelection();
-    setFocusedIndex(null);
-    setAnchorIndex(null);
-  };
-
-  const handleRowClick = (
-    event: React.MouseEvent,
-    index: number,
-    row: { item: T; isGroup: boolean },
-  ) => {
-    event.stopPropagation();
-    setFocusedIndex(index);
-
-    if (row.isGroup) {
-      toggleGroup(row.item.id);
-      return;
-    }
-
-    const selectionItem = getSelectionItem(row.item);
-    if (event.shiftKey && anchorIndex !== null) {
-      selectRange(anchorIndex, index);
-    } else if (event.metaKey || event.ctrlKey) {
-      toggleItem(selectionItem);
-      setAnchorIndex(index);
-    } else {
-      selectItem(selectionItem);
-      setAnchorIndex(index);
-    }
-  };
-
-  return (
-    <div
-      ref={containerRef}
-      className={listContainerStyle}
-      role="listbox"
-      aria-multiselectable="true"
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-      onClick={handleContainerClick}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-          setFocusedIndex(null);
-          setAnchorIndex(null);
-        }
-      }}
-    >
-      {items.map((topItem) => {
-        const children = topItem.children as T[] | undefined;
-        const isGroup = children !== undefined;
-        const isCollapsed = isGroup && collapsedGroups.has(topItem.id);
-
-        const itemRow = (item: T, depth: number) => {
-          const index = flatRows.findIndex(
-            (r) => r.item === item && r.depth === depth,
-          );
-          const isItemGroup = item === topItem && isGroup;
-          const selected = !isItemGroup && checkIsSelected(item.id);
-          const focused = focusedIndex === index;
-
-          return (
-            <div
-              key={`${depth}-${item.id}`}
-              ref={(el) => {
-                rowRefs.current[index] = el;
-              }}
-              onClick={(event) =>
-                handleRowClick(event, index, {
-                  item,
-                  isGroup: isItemGroup,
-                })
-              }
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  if (isItemGroup) {
-                    toggleGroup(item.id);
-                  } else {
-                    selectItem(getSelectionItem(item));
-                    setFocusedIndex(index);
-                    setAnchorIndex(index);
-                  }
-                }
-              }}
-              role="option"
-              tabIndex={-1}
-              aria-selected={selected}
-              className={listItemRowStyle({
-                selectable: true,
-                isSelected: selected,
-                isFocused: focused,
-              })}
-              style={
-                depth > 0
-                  ? { paddingLeft: depth * NESTING_INDENT + 4 }
-                  : undefined
-              }
-            >
-              <div className={listItemContentStyle}>
-                {isItemGroup && (
-                  <span className={chevronStyle({ expanded: !isCollapsed })}>
-                    <Icon name="chevronRight" size="xxs" />
-                  </span>
-                )}
-                {item.icon && (
-                  <span
-                    className={listItemIconStyle}
-                    style={{
-                      color: item.iconColor ?? LIST_ITEM_ICON_COLOR,
-                    }}
-                  >
-                    <item.icon size={LIST_ITEM_ICON_SIZE} />
-                  </span>
-                )}
-                <div className={listItemNameStyle}>
-                  {renderItem(item, selected)}
-                </div>
-              </div>
-              {isItemGroup && item.renderGroupAction && (
-                <span
-                  role="presentation"
-                  data-row-action
-                  onClick={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => event.stopPropagation()}
-                >
-                  <item.renderGroupAction />
-                </span>
-              )}
-              {!isItemGroup && RenderRowMenu && <RenderRowMenu item={item} />}
-            </div>
-          );
-        };
-
-        if (!isGroup) {
-          return itemRow(topItem, 0);
-        }
-
-        return (
-          <Fragment key={topItem.id}>
-            {itemRow(topItem, 0)}
-            <div
-              className={groupChildrenStyle}
-              style={{ height: isCollapsed ? 0 : "auto" }}
-            >
-              {children!.length > 0
-                ? children!.map((child) => itemRow(child, 1))
-                : topItem.emptyGroupMessage && (
-                    <div
-                      className={listItemRowStyle({
-                        selectable: false,
-                        isSelected: false,
-                        isFocused: false,
-                      })}
-                      style={{ paddingLeft: NESTING_INDENT + 4 }}
-                    >
-                      <div className={listItemContentStyle}>
-                        <div
-                          className={listItemNameStyle}
-                          style={{ color: "var(--colors-neutral-s65)" }}
-                        >
-                          {topItem.emptyGroupMessage}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-            </div>
-          </Fragment>
-        );
-      })}
-    </div>
-  );
-};
-
-const FilterableListContent = <T extends FilterableListItem>({
-  items,
-  getSelectionItem,
-  renderItem,
-  renderRowMenu,
-  emptyMessage,
-}: {
-  items: T[];
-  getSelectionItem: (item: T) => SelectionItem;
-  renderItem: (item: T, isSelected: boolean) => ReactNode;
-  renderRowMenu?: ComponentType<{ item: T }>;
-  emptyMessage: string;
-}) => {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
     () => new Set(),
   );
+  // The Shift-range anchor: the item the last plain selection landed on.
+  const [anchorId, setAnchorId] = useState<string | null>(null);
+  const targets = useRef<Map<string, HTMLElement>>(new Map());
+
+  const visibleRows = visibleRowsOf(items, collapsedGroups);
+  const stops: FocusStop[] = visibleRows.map((row) => ({
+    id: row.item.id,
+    kind: "row",
+  }));
+  const {
+    onKeyDown: onStopsKeyDown,
+    onFocusTarget,
+    tabIndexFor,
+    attach,
+  } = useFocusStops({
+    stops,
+    // Column 0 is the row, column 1 its action button (menu or add).
+    columnCount: 2,
+    focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
+  });
+
+  const registerTarget =
+    (target: FocusStopTarget) => (element: HTMLElement | null) => {
+      if (element) {
+        targets.current.set(targetKey(target), element);
+      } else {
+        targets.current.delete(targetKey(target));
+      }
+    };
 
   const toggleGroup = (groupId: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
+      if (!next.delete(groupId)) {
         next.add(groupId);
       }
       return next;
     });
   };
 
-  if (items.length === 0) {
+  const select = (item: T) => {
+    selectItem(getSelectionItem(item));
+    setAnchorId(item.id);
+  };
+
+  const selectRange = (toId: string) => {
+    const ids = visibleRows.map((row) => row.item.id);
+    const toIndex = ids.indexOf(toId);
+    if (toIndex === -1) {
+      return;
+    }
+    const anchorIndex = anchorId === null ? -1 : ids.indexOf(anchorId);
+    const fromIndex = anchorIndex === -1 ? toIndex : anchorIndex;
+    const selection: SelectionMap = new Map();
+    for (const row of visibleRows.slice(
+      Math.min(fromIndex, toIndex),
+      Math.max(fromIndex, toIndex) + 1,
+    )) {
+      if (!row.isGroup) {
+        const entry = getSelectionItem(row.item);
+        selection.set(entry.id, entry);
+      }
+    }
+    setSelection(selection);
+  };
+
+  /** Arrows select as they move: apply the selection to the row that took focus. */
+  const selectFocusedRow = (extendRange: boolean) => {
+    const landed = visibleRows.find(
+      (row) =>
+        targets.current.get(targetKey({ stopId: row.item.id, column: 0 })) ===
+        document.activeElement,
+    );
+    if (!landed || landed.isGroup) {
+      return;
+    }
+    if (extendRange) {
+      selectRange(landed.item.id);
+    } else {
+      select(landed.item);
+    }
+  };
+
+  const onRowKeyDown =
+    (row: VisibleRow<T>): React.KeyboardEventHandler =>
+    (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (row.isGroup) {
+          toggleGroup(row.item.id);
+        } else {
+          select(row.item);
+        }
+        return;
+      }
+      // A group header owns the horizontal arrow that changes its state; the
+      // other one falls through to the flow (ArrowRight on an expanded group
+      // reaches its action button).
+      if (
+        row.isGroup &&
+        (event.key === "ArrowLeft" || event.key === "ArrowRight")
+      ) {
+        const collapsed = collapsedGroups.has(row.item.id);
+        if (event.key === "ArrowRight" ? collapsed : !collapsed) {
+          event.preventDefault();
+          event.stopPropagation();
+          toggleGroup(row.item.id);
+          return;
+        }
+      }
+      onStopsKeyDown({ stopId: row.item.id, column: 0 })(event);
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        selectFocusedRow(event.shiftKey);
+      }
+    };
+
+  const onRowClick = (event: React.MouseEvent, row: VisibleRow<T>) => {
+    event.stopPropagation();
+    if (row.isGroup) {
+      toggleGroup(row.item.id);
+    } else if (event.shiftKey && anchorId !== null) {
+      selectRange(row.item.id);
+    } else if (event.metaKey || event.ctrlKey) {
+      toggleItem(getSelectionItem(row.item));
+      setAnchorId(row.item.id);
+    } else {
+      select(row.item);
+    }
+  };
+
+  const clear = () => {
+    clearSelection();
+    setAnchorId(null);
+  };
+
+  // A collapsed group's children stay mounted for the height animation; they
+  // are out of `stops`, so `tabIndexFor` keeps them out of the tab order.
+  const renderRow = (item: T, depth: number, isGroup: boolean) => {
+    const row: VisibleRow<T> = { item, isGroup };
+    const selected = !isGroup && checkIsSelected(item.id);
+    const rowTarget: FocusStopTarget = { stopId: item.id, column: 0 };
+    const actionTarget: FocusStopTarget = { stopId: item.id, column: 1 };
+    const action = isGroup ? (
+      item.renderGroupAction ? (
+        <item.renderGroupAction />
+      ) : null
+    ) : RenderRowMenu ? (
+      <RenderRowMenu item={item} />
+    ) : null;
+
     return (
       <div
-        className={listContainerStyle}
-        role="listbox"
-        aria-multiselectable="true"
-        tabIndex={0}
+        key={item.id}
+        role="option"
+        aria-selected={selected}
+        ref={registerTarget(rowTarget)}
+        tabIndex={tabIndexFor(rowTarget)}
+        className={listItemRowStyle({ isSelected: selected })}
+        style={
+          depth > 0 ? { paddingLeft: depth * NESTING_INDENT + 4 } : undefined
+        }
+        onClick={(event) => onRowClick(event, row)}
+        onKeyDown={onRowKeyDown(row)}
+        onFocus={(event) => {
+          // Focus bubbles: the row reports its own position, its action
+          // button reports through the cell.
+          if (event.target === event.currentTarget) {
+            onFocusTarget(rowTarget);
+          }
+        }}
       >
-        <div className={emptyMessageStyle}>{emptyMessage}</div>
+        <div className={listItemContentStyle}>
+          {isGroup ? (
+            <span
+              className={chevronStyle({
+                expanded: !collapsedGroups.has(item.id),
+              })}
+            >
+              <Icon name="chevronRight" size="xxs" />
+            </span>
+          ) : null}
+          {item.icon ? (
+            <span
+              className={listItemIconStyle}
+              style={{ color: item.iconColor ?? LIST_ITEM_ICON_COLOR }}
+            >
+              <item.icon size={LIST_ITEM_ICON_SIZE} />
+            </span>
+          ) : null}
+          <div className={listItemNameStyle}>{renderItem(item, selected)}</div>
+        </div>
+        {action ? (
+          <RowActionCell
+            registerButton={registerTarget(actionTarget)}
+            onArrowKeyDown={onStopsKeyDown(actionTarget)}
+            onButtonFocus={() => onFocusTarget(actionTarget)}
+          >
+            {action}
+          </RowActionCell>
+        ) : null}
       </div>
     );
-  }
+  };
 
   return (
-    <NonEmptyFilterableListContent
-      items={items}
-      getSelectionItem={getSelectionItem}
-      renderItem={renderItem}
-      renderRowMenu={renderRowMenu}
-      collapsedGroups={collapsedGroups}
-      toggleGroup={toggleGroup}
-    />
+    <div
+      ref={attach}
+      className={listContainerStyle}
+      role="listbox"
+      aria-multiselectable="true"
+      tabIndex={-1}
+      onClick={clear}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          clear();
+        }
+      }}
+    >
+      {items.length === 0 ? (
+        <div className={emptyMessageStyle}>{emptyMessage}</div>
+      ) : (
+        items.map((item) => {
+          const children = item.children as T[] | undefined;
+          if (children === undefined) {
+            return renderRow(item, 0, false);
+          }
+          const collapsed = collapsedGroups.has(item.id);
+          return (
+            <Fragment key={item.id}>
+              {renderRow(item, 0, true)}
+              <div
+                className={groupChildrenStyle}
+                style={{ height: collapsed ? 0 : "auto" }}
+              >
+                {children.length > 0 ? (
+                  children.map((child) => renderRow(child, 1, false))
+                ) : item.emptyGroupMessage ? (
+                  <div
+                    className={emptyMessageStyle}
+                    style={{ paddingLeft: NESTING_INDENT + 4 }}
+                  >
+                    {item.emptyGroupMessage}
+                  </div>
+                ) : null}
+              </div>
+            </Fragment>
+          );
+        })
+      )}
+    </div>
   );
 };
 
 /**
- * Creates a SubView definition for a filterable list.
- *
- * This factory function encapsulates the common pattern of a list of selectable items
- * with a filter button in the header. Each subview can optionally provide an additional
- * header action (e.g., an "Add" button) and customize how items are rendered.
+ * A left-sidebar list of selectable items with a search button in its header,
+ * an optional extra header action, and per-row menus.
  */
 export function createFilterableListSubView<T extends FilterableListItem>(
   config: FilterableListSubViewConfig<T>,

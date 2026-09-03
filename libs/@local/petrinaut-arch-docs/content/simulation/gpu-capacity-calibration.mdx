@@ -1,0 +1,111 @@
+---
+title: GPU capacity calibration
+description: How typed places without declared capacities get their slabs by probing, and when the planned token arena takes over.
+sidebar_order: 33
+attachTo: core.webgpu
+---
+
+A typed place's tokens live in preallocated slots inside each run's state, so
+the shader's memory layout needs a per-place slot count at compile time. That
+number used to come from one source only: a capacity the modeler declared,
+and a typed place without one refused the GPU outright — eight separate
+"set a capacity on this place" messages for a net whose bounds the modeler
+never wanted to think about.
+
+## The problem
+
+Requiring a declared capacity conflated two different things:
+
+- **A buffer size**, which the backend needs and the modeler often cannot
+  know better than a measurement can.
+- **Blocking semantics**: a declared capacity also _stops firings_ that would
+  exceed it, on both backends. Forcing modelers to declare one just to run on
+  the GPU changed their model's dynamics.
+
+## The current solution
+
+A typed place without a declared capacity is now eligible: its slab is
+**derived by probing**, and the derived bound is sizing-only — the shader
+never blocks a firing over it.
+
+![Probe, decide, grow](@diagrams/gpu-capacity-calibration.svg)
+
+1. **Probe.** Before the experiment handle exists, a small prefix of the runs
+   executes at generous slabs (four times each place's initial tokens). Few
+   runs afford big slabs, the probe's frames stream to the charts, and its
+   shader tracks each derived place's **per-run maximum count** (a register
+   per place, folded into the summary). A probe that overflows quadruples the
+   slabs, recompiles, and probes again — shedding runs to stay inside a
+   128 MB probe budget, so seven growth attempts reach counts past a million
+   (64 × 4⁷) before conceding to the CPU.
+2. **Decide, per place.** The probe yields the largest per-run maximum and
+   the mean of the per-run maxima. When the largest is close to typical, the
+   slab becomes 1.5 × the observed maximum plus headroom — recompile, run in
+   full. When the largest is far past typical (over four times the mean) _and_
+   the outlier-sized slab would be big, that heavy-tailed shape is the
+   planned **per-run token arena**'s case — shared place-tagged slots sized
+   by the simultaneous total, paying indirection only where nothing else
+   works. Until the arena exists, that branch refuses cleanly during
+   creation, so the backend-selection walk falls back to the CPU, which
+   sizes its buffers dynamically. The experiment runs on the other backend,
+   with the reason surfaced only as the backend indicator's tooltip.
+3. **Detect and grow, in a loop.** The full run can still outgrow the probe's
+   estimate. A frame whose post-fold count exceeds a derived slab sets the
+   run's status to _overflowed_ — an exact check, since the highest slot a
+   frame writes is its post-fold count minus one; the out-of-bounds writes
+   themselves are clamped by WebGPU's robust buffer access, and any overflow
+   discards the attempt. The handle doubles the slabs, recompiles, and
+   re-runs. Seeds derive from absolute run indices, so a re-run reproduces
+   the same trajectories and each retry strictly grows — the loop converges
+   or hands the experiment to the CPU.
+
+Derived and declared capacities keep distinct semantics, recorded as
+`capacitySource` on the profile: declared blocks firings (CPU parity),
+derived detects overflow. A model whose declared capacity never binds
+produces bit-identical results either way — verified on-device with the
+Drone Patrol example, capacities stripped versus declared.
+
+## Potential future solutions
+
+- **The per-run token arena.** The heavy-tail branch's real implementation:
+  one slot pool per run with place-tagged slots, sized by the maximum
+  simultaneous total rather than a per-place worst case. Costs shader
+  indirection and preserving the CPU's token-enumeration order — the same
+  order-parity problem the pair unranking solved.
+- **Structural bounds.** P-invariants over the incidence matrix bound many
+  places from the net's structure and the initial marking — exact for
+  conservative nets. They would replace the probe where derivable, size
+  metric histograms exactly, and prove when a probe cannot be wrong.
+- **Persisting derived capacities.** A sweep re-probes per experiment; a
+  session-level memory of derived slabs per net would let later experiments
+  start calibrated.
+
+## Reuse across a session's batches
+
+A sweep instantiates a batch per ladder rung, and each once repeated the
+whole setup: request a device, generate and compile the WGSL, probe. The
+experiment backend now holds a `gpu-backend-cache`: one entry keyed by what
+actually shapes the shader — net and artifact identity, baked parameter
+values, metric set, `dt`, integration method, initial marking. Values of
+parameters carried in the per-run buffer are deliberately NOT in the key, so
+range batches across different selections share one backend, and with it the
+calibration (windows, derived capacities, the shader compiled at them)
+learned by earlier batches. A stale calibration heals through the same
+escape/overflow re-runs that calibrate from scratch, and the cache is
+updated with what each batch learned.
+
+Devices need explicit destruction and pipelined rungs lease the backend
+concurrently, so entries count leases: a displaced (or unsupported) entry
+destroys its device once the last lease ends. On the SIR bench story this
+cut the full 1,000-run GPU ladder from ~1.6 s to ~0.9 s — rungs after the
+first skip the device request, the shader compile, and the window probe.
+
+## The preview tile
+
+A streamed experiment's first tile is small (`GPU_PREVIEW_RUNS`, 128):
+every tile re-delivers the whole time axis cumulatively, so a fast first
+tile puts a statistically usable picture on screen while the bulk still
+computes — the GPU's version of the ladder's first rung. Seeds derive from
+absolute run indices, so the split changes nothing about the results; the
+preview is skipped when nobody streams or the run count is too small for
+the extra tile boundary to pay.

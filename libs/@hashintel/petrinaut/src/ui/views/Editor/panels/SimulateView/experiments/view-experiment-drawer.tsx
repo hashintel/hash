@@ -1,229 +1,95 @@
-import { use, useState } from "react";
+import { use } from "react";
 
-import { Button, Drawer, Icon } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { Button, Drawer, Icon, Tooltip } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import {
-  ExperimentsContext,
+  ExperimentsActionsContext,
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
 import { Section, SectionList } from "../../../../../components/section";
-import {
-  ExperimentMetricTimeline,
-  type MetricSize,
-} from "./experiment-metric-timeline";
+import { SweepNavigator } from "./sweep-navigator";
+import { SweepSurface } from "./sweep-surface";
+import { ExperimentMetrics } from "./view-experiment-drawer/experiment-metrics";
+import { ExperimentSummary } from "./view-experiment-drawer/experiment-summary";
 
-const summaryStyle = css({
-  marginTop: "-1",
-  marginBottom: "3",
-});
-
-const summaryGridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
-  gap: "3",
-});
-
-const statStyle = css({
-  display: "flex",
-  flexDirection: "column",
-});
-
-const statLabelStyle = css({
+// Local rather than the design system's `Badge`, whose `brand` scheme puts
+// #5EB1EF on a near-white #FBFDFF — about 2.3:1, below the 4.5:1 WCAG AA
+// needs for text this size.
+const backendBadgeStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  paddingX: "1.5",
+  paddingY: "[2px]",
+  borderRadius: "sm",
   fontSize: "xs",
   fontWeight: "medium",
-  color: "neutral.s80",
+  color: "neutral.s110",
+  backgroundColor: "neutral.s10",
+  "&[data-tone=active]": {
+    color: "blue.s100",
+    backgroundColor: "blue.s10",
+  },
 });
 
-const statValueStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-const progressBarStyle = css({
-  height: "[6px]",
-  width: "full",
-  backgroundColor: "neutral.s30",
-  borderRadius: "full",
-  overflow: "hidden",
-  marginTop: "4",
-});
-
-const progressFillStyle = css({
-  height: "full",
-  backgroundColor: "neutral.s120",
-});
-
-const errorStyle = css({
-  fontSize: "sm",
-  color: "red.s100",
-  whiteSpace: "pre-wrap",
-});
-
-const metricGridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  alignItems: "start",
-  gap: "3",
-});
-
-const metricItemStyle = css({
+// The drawer body is a column: the summary, the navigator, and the surface
+// hold still at the top, and the metric charts alone scroll below them.
+const drawerBodyStyle = css({
+  paddingTop: "[0]",
   display: "flex",
   flexDirection: "column",
-  gap: "1",
-  minWidth: "[0]",
-  padding: "3",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "md",
-  backgroundColor: "neutral.s00",
+  // The overlay body scrolls by default; here only the metric list may.
+  overflow: "hidden",
 });
 
-const metricItemLargeStyle = css({
-  gridColumn: "[1 / -1]",
+const fixedSectionStyle = css({
+  flexShrink: "0",
 });
 
-type MetricFrame = ExperimentRecord["metricFrames"][number];
+const metricsScrollStyle = css({
+  flex: "[1]",
+  minHeight: "[160px]",
+  overflowY: "auto",
+  scrollbarWidth: "[thin]",
+});
 
-function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(3);
-}
-
-function formatStatus(experiment: ExperimentRecord): string {
-  switch (experiment.status) {
-    case "initializing":
-      return "Initializing";
-    case "running":
-      return "Running";
-    case "complete":
-      return "Complete";
-    case "error":
-      return "Error";
-    case "cancelled":
-      return "Cancelled";
+const describeComputeBackend = (experiment: ExperimentRecord): string => {
+  if (experiment.computeBackend === "webgpu") {
+    return "Stepped on the GPU through WebGPU. Distributions match the CPU backend statistically; individual trajectories differ (different random generators).";
   }
-}
-
-function groupMetricFramesByMetric(
-  metricFrames: readonly MetricFrame[],
-): MetricFrame[][] {
-  const groups = new Map<string, MetricFrame[]>();
-
-  for (const frame of metricFrames) {
-    const frames = groups.get(frame.metricId) ?? [];
-    frames.push(frame);
-    groups.set(frame.metricId, frames);
+  if (experiment.computeBackendFallbackReason !== null) {
+    // The notification that carried this is gone by the time anyone wonders
+    // why the results are not GPU-backed.
+    return `The GPU backend was requested but could not run this net: ${experiment.computeBackendFallbackReason}`;
   }
-
-  return [...groups.values()];
-}
-
-const ExperimentSummary = ({
-  experiment,
-}: {
-  experiment: ExperimentRecord;
-}) => {
-  const progress = experiment.progress;
-  const progressPercent =
-    progress && experiment.maxTime > 0
-      ? Math.min(100, (progress.time / experiment.maxTime) * 100)
-      : 0;
-
-  return (
-    <div className={summaryStyle}>
-      <div className={summaryGridStyle}>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Status</span>
-          <span className={statValueStyle}>{formatStatus(experiment)}</span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Scenario</span>
-          <span className={statValueStyle}>
-            {experiment.scenarioName ?? "Default"}
-          </span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Runs</span>
-          <span className={statValueStyle}>
-            {progress
-              ? `${progress.activeRuns} active, ${progress.completedRuns} complete`
-              : experiment.runCount}
-          </span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Errors</span>
-          <span className={statValueStyle}>{progress?.erroredRuns ?? 0}</span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Frame</span>
-          <span className={statValueStyle}>{progress?.frameNumber ?? 0}</span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Time</span>
-          <span className={statValueStyle}>
-            {formatNumber(progress?.time ?? 0)} /{" "}
-            {formatNumber(experiment.maxTime)}
-          </span>
-        </div>
-      </div>
-      <div className={progressBarStyle}>
-        <div
-          className={progressFillStyle}
-          style={{ width: `${progressPercent}%` }}
-        />
-      </div>
-      {experiment.error ? (
-        <span className={errorStyle}>{experiment.error}</span>
-      ) : null}
-    </div>
-  );
+  return "Stepped on the CPU, across worker threads.";
 };
 
-const ExperimentMetrics = ({
+// Keeps its footprint when a run can no longer be cancelled, so Remove and
+// Close do not slide when a run finishes.
+const cancelSlotStyle = css({
+  display: "inline-flex",
+  "&[data-hidden=true]": { visibility: "hidden" },
+});
+
+const ComputeBackendBadge = ({
   experiment,
 }: {
   experiment: ExperimentRecord;
 }) => {
-  const [sizes, setSizes] = useState<Record<string, MetricSize>>({});
-  const metricFrameGroups = groupMetricFramesByMetric(experiment.metricFrames);
-
-  if (metricFrameGroups.length === 0) {
-    return null;
-  }
+  const isGpu = experiment.computeBackend === "webgpu";
 
   return (
-    <div className={metricGridStyle}>
-      {metricFrameGroups.map((frames) => {
-        const latestFrame = frames.at(-1)!;
-        const size = sizes[latestFrame.metricId] ?? "small";
-
-        return (
-          <div
-            key={latestFrame.metricId}
-            className={cx(
-              metricItemStyle,
-              size === "large" && metricItemLargeStyle,
-            )}
-          >
-            <ExperimentMetricTimeline
-              frames={frames}
-              displaySize={size}
-              onDisplaySizeChange={(nextSize) =>
-                setSizes((previous) => ({
-                  ...previous,
-                  [latestFrame.metricId]: nextSize,
-                }))
-              }
-            />
-          </div>
-        );
-      })}
-    </div>
+    <Tooltip content={describeComputeBackend(experiment)} position="bottom-end">
+      <span
+        className={backendBadgeStyle}
+        data-tone={isGpu ? "active" : "neutral"}
+      >
+        {isGpu ? <Icon name="lightning" size="xs" /> : null}
+        {isGpu ? "GPU" : "CPU"}
+      </span>
+    </Tooltip>
   );
 };
 
@@ -236,7 +102,9 @@ export const ViewExperimentDrawer = ({
   onClose: () => void;
   experiment: ExperimentRecord | undefined;
 }) => {
-  const { cancelExperiment, removeExperiment } = use(ExperimentsContext);
+  const { cancelExperiment, removeExperiment, setSweepSelection } = use(
+    ExperimentsActionsContext,
+  );
 
   if (!open || !experiment) {
     return null;
@@ -254,16 +122,77 @@ export const ViewExperimentDrawer = ({
     >
       <Drawer.Header
         title={experiment.name}
-        description="Monte Carlo experiment metrics"
+        description={`${experiment.scenarioName ?? "Default scenario"} · ${experiment.runCount.toLocaleString("en-US")} runs · dt ${experiment.dt}`}
       />
-      <Drawer.Body className={css({ paddingTop: "[0]" })}>
+      <Drawer.Body className={drawerBodyStyle}>
         <SectionList>
-          <Section title="Summary" collapsible defaultOpen>
+          <Section
+            title="Summary"
+            collapsible
+            defaultOpen
+            className={fixedSectionStyle}
+            // In the header rather than the strip below, so which backend ran
+            // stays visible when the section is collapsed.
+            renderHeaderAction={() => (
+              <ComputeBackendBadge experiment={experiment} />
+            )}
+          >
             <ExperimentSummary experiment={experiment} />
           </Section>
-          {experiment.metricFrames.length > 0 ? (
-            <Section title="Metrics" collapsible defaultOpen>
-              <ExperimentMetrics experiment={experiment} />
+          {experiment.sweep ? (
+            <Section
+              title="Parameters"
+              tooltip="Only the selected combination computes. Move a control and compute follows it; results for visited combinations are kept."
+              className={fixedSectionStyle}
+              // Not collapsible: the navigator stays usable while the charts
+              // below stream.
+              renderStickyBand={() =>
+                experiment.sweep ? (
+                  <SweepNavigator
+                    axes={experiment.parameterAxes}
+                    selection={experiment.sweep.selection}
+                    status={{
+                      computing: experiment.sweep.computing,
+                      runsCompleted: experiment.sweep.runsCompleted,
+                      runsSampled: experiment.sweep.runsSampled,
+                      runTarget: experiment.sweep.runTarget,
+                      runCount: experiment.runCount,
+                    }}
+                    onSelectionChange={(selection) =>
+                      setSweepSelection(experiment.id, selection)
+                    }
+                  />
+                ) : null
+              }
+            >
+              {null}
+            </Section>
+          ) : null}
+          {experiment.sweep && experiment.parameterAxes.length >= 2 ? (
+            <Section
+              title="Surface"
+              tooltip="One metric's final value over two swept parameters, with every other parameter held at the middle of its range."
+              collapsible
+              defaultOpen
+              className={fixedSectionStyle}
+            >
+              {/* Keyed so the axis and metric pickers never carry one
+                  experiment's identifiers into another when the drawer swaps
+                  records in place. */}
+              <SweepSurface key={experiment.id} experiment={experiment} />
+            </Section>
+          ) : null}
+          {experiment.metricSpecs.length > 0 ? (
+            <Section title="Metrics" fillHeight>
+              <div className={metricsScrollStyle}>
+                {/* Keyed so faded previous pictures and size choices never
+                    leak from one experiment into another when the drawer
+                    swaps records in place. */}
+                <ExperimentMetrics
+                  key={experiment.id}
+                  experiment={experiment}
+                />
+              </div>
             </Section>
           ) : null}
         </SectionList>
@@ -283,17 +212,22 @@ export const ViewExperimentDrawer = ({
             >
               Remove
             </Button>
-            {canCancel ? (
+            <span
+              className={cancelSlotStyle}
+              data-hidden={!canCancel}
+              aria-hidden={!canCancel}
+            >
               <Button
                 variant="subtle"
                 tone="neutral"
                 size="sm"
                 prefix={<Icon name="stop" size="sm" />}
+                disabled={!canCancel}
                 onClick={() => cancelExperiment(experiment.id)}
               >
                 Cancel
               </Button>
-            ) : null}
+            </span>
             <Button variant="solid" tone="neutral" size="sm" onClick={onClose}>
               Close
             </Button>

@@ -11,12 +11,18 @@ import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
  * `diagnosticsByUri`. With the default (no-op) language client this is
  * harmless: no documents exist and no diagnostics ever arrive.
  */
-export function useAdHocLspSession(state: AdHocScenarioState): string {
+export function useAdHocLspSession(
+  state: AdHocScenarioState,
+  /** Externally-owned session id, so a host (a drawer footer) can address
+   * this session's diagnostics; generated per mount when omitted. */
+  externalSessionId?: string,
+): string {
   const { initializeAdHocSession, updateAdHocSession, killAdHocSession } = use(
     LanguageClientContext,
   );
   // useState (not useRef/useMemo) — needed for a stable per-mount value.
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [generatedSessionId] = useState(() => crypto.randomUUID());
+  const sessionId = externalSessionId ?? generatedSessionId;
   const initializedRef = useRef(false);
 
   useEffect(() => {

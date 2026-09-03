@@ -1,63 +1,34 @@
 ---
-title: "Simulation performance: threads, WASM, and GPU"
-description: Measured cost centres of the Monte Carlo engine, and the sequenced plan across sharding, hot-path fixes, codegen, WASM, and GPU.
+title: Simulation performance
+description: Measured cost structure of the Monte Carlo engine, the parallel and GPU paths built on it, and the remaining plan.
 sidebar_order: 20
 attachTo: core.simulation
 ---
 
-Status: §3 (worker sharding) and §5 (place capacity) are implemented. §2 and
-§4 measurements still stand and are unaddressed. §6–§9 remain proposals.
-
-Goal: make **Experiments** (Monte Carlo batches) as fast as possible, with
-per-seed parallelism across threads/workers, and decide whether WASM (browser),
-native (server), and WebGPU are worth their cost.
-
-Everything labelled _measured_ below comes from harnesses in
+The goal is to make Experiments — Monte Carlo batches — as fast as possible,
+and to decide whether WASM (browser), native (server), and WebGPU are worth
+their cost. Everything labelled _measured_ comes from the harnesses in
 [`libs/@hashintel/petrinaut-core/benchmarks/`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/benchmarks/README.md),
 run on a 10-core Apple Silicon laptop, Node 25.6, against the built `dist` of
-`@hashintel/petrinaut-core`.
+`@hashintel/petrinaut-core`. Absolute figures are machine-specific; the ratios
+are the point.
 
----
+## State of play
 
-## TL;DR
+| Area                                                  | Status                                                                                               |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [Worker sharding](#worker-sharding)                   | Shipped. ~4× on 8 shards, byte-identical results at every shard count.                               |
+| [Per-place token capacity](#per-place-token-capacity) | Shipped. Its fixed-size-frame follow-ons are not built.                                              |
+| [WebGPU backend](#the-webgpu-backend)                 | Shipped. ~1780× on the SIR net, for a restricted subset of nets.                                     |
+| [Weighted-arc enumeration](#weighted-arc-enumeration) | Fixed (FE-1526, FE-1528). Lazy, allocation-free, and skipped outright for token-independent lambdas. |
+| [Hot-path fixes](#hot-path-fixes)                     | Open. Estimated 5–15× combined, behaviour-preserving.                                                |
+| [Whole-loop codegen](#whole-loop-codegen)             | Proposed. Where the largest single-thread win is.                                                    |
+| [WASM and native](#wasm-and-native)                   | Proposed. A second codegen backend once whole-loop codegen exists.                                   |
+| [Event-driven stepping](#event-driven-stepping)       | Proposed. A semantics change; potentially a bigger lever than everything above.                      |
 
-1. **The engine is ~36× slower than equivalent flat JavaScript.** The gap is
-   architectural (allocation, copying, string-keyed lookup, per-run
-   recompilation), not "JavaScript is slow". WASM addresses the _wrong_ 3% of
-   the problem until that is fixed.
-2. **There is a quadratic blow-up on coloured input arcs with weight ≥ 2** that
-   dwarfs everything else: 13.4 ms _per run-frame_ at 400 tokens in a place.
-   That is ~6.7 hours for a 1000-run × 1800-frame experiment. Fixing it is a
-   contained change and should happen before anything on this list.
-3. **Per-seed worker sharding needs no `SharedArrayBuffer` and is
-   result-preserving — now implemented** (§3.3): ~4× on 8 shards (10-core
-   machine), byte-identical output at every shard count. The metric accumulators
-   were already monoids (`empty`/`merge`), so this was designed for.
-4. **Optional per-place token capacity — now implemented** (§5.3). Beyond the
-   modelling feature, it is the keystone that converts frames from growable to
-   fixed-size, which is the precondition for SoA layout, a WASM linear-memory
-   ABI, a computable state-space bound, and any GPU path. Those follow-ons are
-   _not_ done: the runtime still uses growable frames.
-5. **WASM is worth doing, but as a second codegen backend behind whole-loop
-   codegen, not as a rewrite.** Expect ~1.5–3× over _good_ JS, not over
-   today's engine.
-6. **WebGPU: discrete transitions are possible but only for a restricted
-   subset, and WGSL has no `f64`** — so a GPU path is a numerically-different
-   fork, not an acceleration of the existing one. Offloading _only_ ODEs is
-   architecturally worse than doing nothing (per-frame round-trip).
+## The two stepping paths
 
-Done: **§3 worker sharding**, **§5 capacities**.
-Remaining, in order: **§4 hot-path fixes → §6 whole-loop codegen → §7
-WASM/native → §8 GPU (spike only)**.
-
-§4 item 1 (the quadratic enumeration blow-up) is the single highest-value change
-left and is independent of everything else.
-
----
-
-## 1. What runs today
-
-Two engines share `engine/` compilation but differ in stepping:
+Two engines share `engine/` compilation but step differently:
 
 | Path                           | Used by                         | Frame storage                                |
 | ------------------------------ | ------------------------------- | -------------------------------------------- |
@@ -65,23 +36,18 @@ Two engines share `engine/` compilation but differ in stepping:
 | `monte-carlo/advance-run.ts`   | **Experiments**                 | two reusable buffers, swapped per step       |
 
 Experiments are the target, so everything below concerns the Monte Carlo path.
-One experiment now runs several Web Workers (§3.3), each owning a slice of the
-runs and running its own `MonteCarloSimulator`, which advances its runs
-round-robin one frame at a time (`advanceAll()`) and streams per-frame metric
-state to the main thread for merging. The §2 measurements below are per worker
-and unaffected by that fan-out.
+An experiment fans out over several workers ([Worker
+sharding](doc:simulation/worker-sharding)), each running its own
+`MonteCarloSimulator` over a slice of the runs.
 
-User code (dynamics, lambdas, kernels, expression metrics) is compiled by the
-HIR pipeline in the LSP worker into buffer-ABI JS programs
-(`hir/emit-buffer-js.ts`), instantiated via `new Function`, and reads packed
-token bytes directly. That part is already well designed — it is the _engine
-around it_ that is expensive.
+User code — dynamics, lambdas, kernels, expression metrics — is compiled by
+the HIR pipeline in the LSP worker into buffer-ABI JS programs
+(`hir/emit-buffer-js.ts`) that read packed token bytes directly. That part is fast; the profile below shows it
+barely registers. The engine _around_ it is the expensive part.
 
----
+## Where the time goes
 
-## 2. Where the time actually goes (measured)
-
-### 2.1 Baseline throughput
+### Baseline and the ceiling
 
 SIR example, 500 S + 5 I, 3 uncoloured places, 2 transitions, `dt` 0.1,
 `maxTime` 60, 4000 runs (2.4 M run-frames), single thread:
@@ -94,18 +60,19 @@ SIR example, 500 S + 5 I, 3 uncoloured places, 2 transitions, `dt` 0.1,
 | Current engine, 3 metrics (2 distributions)   | 3 798          |
 | Hand-written flat SoA stepper, same semantics | **31**         |
 
-The last row is the headline. `benchmarks/flat-stepper-ceiling.mjs` implements
-the same net — same RNG shape, same `exp(-λ·elapsed) ≤ u` acceptance test, same
-deadlock rule — as typed arrays with no allocation, no string lookup, and no
-per-frame copying. It produces the same mean recovered count and runs **~36×
-faster**.
+The last row is the headline: the engine is **~36× slower than equivalent flat
+JavaScript**. `benchmarks/flat-stepper-ceiling.mjs` implements the same net —
+same RNG shape, same acceptance test, same deadlock rule — as typed arrays with
+no allocation, no string lookup, and no per-frame copying, and produces the
+same mean recovered count. The gap is architectural (allocation, copying,
+string-keyed lookup, per-run recompilation), not "JavaScript is slow".
 
-Caveat, stated plainly: that stepper is _specialised to one net_. A generic
-engine cannot reach 31 ns. But a **code-generating** engine can get close, and
-this codebase already generates code (§6). Treat 36× as the ceiling and
-5–15× as the realistic target for a generic flat rewrite.
+That stepper is specialised to one net, so a generic engine cannot reach
+31 ns — but a code-generating engine can get close, and this codebase already
+generates code ([Whole-loop codegen](#whole-loop-codegen)). Treat 36× as the
+ceiling and 5–15× as the realistic target for a generic flat rewrite.
 
-### 2.2 Self-time profile
+### Self-time profile
 
 `--cpu-prof` over 2.4 M run-frames, simulation portion only:
 
@@ -116,28 +83,27 @@ this codebase already generates code (§6). Treat 36× as the ceiling and
 | `advanceRun` + `advanceAll`                | 14%     | scheduling, `Set`/`Map` churn per step                                                                                          |
 | `nextRandom`                               | 9%      | one draw per transition per frame                                                                                               |
 | token add/remove/merge                     | 7%      | `Object.entries`, `new Set`, `Record<PlaceID, …>`                                                                               |
-| `enumerateWeightedMarkingIndicesGenerator` | 4%      | see §2.4                                                                                                                        |
+| `enumerateWeightedMarkingIndicesGenerator` | 4%      | see [Weighted-arc enumeration](#weighted-arc-enumeration)                                                                       |
 | `getPlaceIndex`                            | 3%      | `Map<string, number>` lookup **in the innermost loop**                                                                          |
 | GC                                         | 2%      | consequence of the above                                                                                                        |
 
-Note what is _absent_: the compiled user code barely registers. The buffer-ABI
-programs are fast. The engine wrapping them is not.
-
-Three of these are pure waste rather than trade-offs:
+The compiled user code is absent from this table: the buffer-ABI programs are
+fast, and the engine wrapping them is not. Three of these costs are pure waste
+rather than trade-offs:
 
 - **The frame copy.** `writeFrameAfterDynamics` copies current → next
-  unconditionally, then applies dynamics. With no dynamics-enabled places
-  (the SIR case, and many others) the copy is the only thing that happens.
+  unconditionally, then applies dynamics. With no dynamics-enabled places (the
+  SIR case, and many others) the copy is the only thing that happens.
 - **String-keyed place lookup.** `frameLayout.placeIndexById.get(placeId)` runs
   per place per transition per frame. Indices are known at build time.
 - **`Record<PlaceID, …>` for removals/additions.** Every firing allocates
   objects keyed by string IDs, immediately iterated with `Object.entries`.
 
-### 2.3 Per-run construction
+### Per-run construction
 
-`createRunState` calls `buildSimulation()` **once per run**, and
-`buildSimulation` calls `instantiateHirBuffer{Lambda,Kernel,Dynamics}`, each of
-which is a `new Function`.
+`createRunState` calls `buildSimulation()` once per run, and `buildSimulation`
+calls `instantiateHirBuffer{Lambda,Kernel,Dynamics}`, each of which is a
+`new Function`:
 
 | Runs  | Construction | Per run |
 | ----- | ------------ | ------- |
@@ -146,66 +112,79 @@ which is a `new Function`.
 | 4 000 | 319 ms       | 80 µs   |
 
 For a 1000-run experiment on a 5-transition net that is ~10 000 `new Function`
-calls, ~1000 duplicate `frameLayout` maps, and 1000 distinct function identities
-at every shared call site in the engine — which also defeats V8 inlining. The
-compiled programs are **pure and stateless**; only the scratch buffers
+calls, ~1000 duplicate `frameLayout` maps, and 1000 distinct function
+identities at every shared call site — which also defeats V8 inlining. The
+compiled programs are pure and stateless; only the scratch buffers
 (`placeBases`, `indices`, `kernelStaging`) are per-run, and those are small.
 One compiled `SimulationDefinition` should be shared by all runs in a shard,
-with per-run state reduced to buffers + RNG + counters.
+with per-run state reduced to buffers + RNG + counters. This also explains part
+of why sharding scales sub-linearly: every shard pays its own construction
+cost.
 
-This also explains part of why sharding scales sub-linearly (§3): every shard
-pays its own construction cost.
+### Weighted-arc enumeration
 
-### 2.4 The quadratic blow-up (most important finding)
+The largest cost in the engine does not show on the profile above, because the
+SIR net has no weighted coloured arcs. On nets that do, it dwarfs everything
+else.
 
-`enumerateWeightedMarkingIndicesGenerator` is a generator, but it is only lazy
-over the _Cartesian product across arcs_. Per arc it eagerly materialises the
-full combination list:
+`enumerateWeightedMarkingIndicesGenerator` was only lazy over the Cartesian
+product _across_ arcs: per arc it eagerly materialised the full combination
+list, so a transition with a coloured input arc of weight `w` over a place
+holding `n` tokens allocated `C(n, w)` arrays on every evaluation, every frame
+— and the engine fires the first accepted combination, so nearly all of it was
+discarded. Measured before the fix, one weight-2 arc, transition never firing:
+13.4 ms per run-frame at 400 tokens (~170 ns per enumerated combination,
+quadratic in the token count); a 1000-run × 1800-frame experiment at that size
+would have taken ~6.7 hours. Weight 3 made it cubic. The general bound for one
+transition is `∏ᵢ C(nᵢ, wᵢ)` over its coloured non-inhibitor input arcs.
 
-```ts
-const perPlaceCombos = places.map((p) => indexCombinations(p.count, p.weight));
-```
+Fixed in
+[FE-1526](https://linear.app/hash/issue/FE-1526/enumerate-weighted-arc-token-combinations-lazily-in-the-engine):
+enumeration is an in-place lexicographic successor per arc under an odometer
+over arcs, allocating nothing per combination and yielding a reused buffer
+(consumers copy on accept — the contract is in the module doc comment). The
+enumeration order is unchanged, which matters twice over: the engine fires the
+first passing combination, so an order change would diverge seeded
+trajectories, and the GPU backend reproduces the same order by unranking.
 
-`indexCombinations(n, k)` backtracks and pushes **every** k-combination into an
-array before a single one is yielded. So a transition with a coloured input arc
-of weight `w` over a place holding `n` tokens allocates `C(n, w)` arrays on
-_every evaluation, every frame_ — and `computeTransitionEffect` `return`s on the
-first accepted combination, so nearly all of it is discarded.
+Measured on the same harness (`benchmarks/coloured-enumeration.mjs`), before →
+after:
 
-Measured, one coloured place, one weight-2 input arc, transition never fires:
+| Tokens | `C(n,2)` | Never fires (all examined)  | Always fires (one examined) |
+| ------ | -------- | --------------------------- | --------------------------- |
+| 50     | 1 225    | 221 µs → 40 µs (5.6×)       | 45 µs → 3.2 µs (14×)        |
+| 100    | 4 950    | 1 002 µs → 159 µs (6.3×)    | 207 µs → 4.7 µs (44×)       |
+| 400    | 79 800   | 13 771 µs → 2 463 µs (5.6×) | 3 858 µs → 12.6 µs (305×)   |
 
-| Tokens in place | `C(n,2)` | ns / run-frame |
-| --------------- | -------- | -------------- |
-| 10              | 45       | 17 892         |
-| 25              | 300      | 58 276         |
-| 50              | 1 225    | 214 988        |
-| 100             | 4 950    | 870 518        |
-| 200             | 19 900   | 3 318 793      |
-| 400             | 79 800   | **13 406 833** |
+A firing transition's cost is now flat in the token count (the residual growth
+is the firing's own token compaction). A never-firing transition still
+examines every combination — each one's rate must be evaluated — so that case
+keeps its `C(n, w)` lambda evaluations, at ~31 ns each instead of ~170 ns.
 
-Clean quadratic, ~170 ns per enumerated combination. At 400 tokens that is
-**13.4 ms for one run-frame**; a 1000-run × 1800-frame experiment would take
-~6.7 hours. Weight 3 makes it cubic.
+That remaining `C(n, w)` term only applies to lambdas whose rate depends on
+which tokens are selected. When the HIR analysis proves a lambda reads no
+token attributes or counts
+([FE-1528](https://linear.app/hash/issue/FE-1528/skip-combination-enumeration-for-lambdas-that-read-no-input-tokens)),
+the compiler marks its artifact `readsNoInputTokens` and both engines test
+only the first combination — indices `0..w-1` per arc, the first tokens in
+place order. This is exact rather than approximate: the acceptance draw is
+shared across combinations, so with a combination-independent rate either the
+first combination fires or none does — same RNG stream, same consumed tokens,
+same trajectories. Engine-supplied constant lambdas (a transition with no
+lambda code) take the same path. Measured, never-firing weight-2 arc at 400
+tokens: 2 543 µs per run-frame with a token-reading lambda against **0.9 µs**
+token-independent — flat in the token count. The static enumeration-bound lint
+([FE-948](https://linear.app/hash/issue/FE-948/show-and-kill-combinatorial-explosion))
+remains the guard for nets whose token-reading lambdas make even lazy
+enumeration too much.
 
-The general bound for one transition is `∏ᵢ C(nᵢ, wᵢ)` over its coloured
-non-inhibitor input arcs.
-
-**Fix** (contained, no architecture change): iterate combinations by index
-without materialising them — an odometer over per-arc combination ranks, with
-`combinationCount = C(n, w)` computed arithmetically and the _k_-th combination
-unranked on demand. Cost becomes proportional to combinations actually
-_examined_, which for a firing transition is often 1. This is worth doing
-independently of everything else in this document.
-
-### 2.5 Metric aggregation
+### Metric aggregation
 
 `createMonteCarloMetricHistogramAccumulator().add` does `new Map(state)` per
 sample — an O(bins) copy per run per frame per metric. With 4000 runs that is
 4000 map clones per frame. Measured cost at 4000 runs: **+94%** for one
-distribution metric, **+232%** for three metrics.
-
-Worse, that cost is not constant per unit of work — it **grows with run count**,
-because bin count grows with the number of runs sampled:
+distribution metric, **+232%** for three metrics. Worse, the cost grows with
+run count, because bin count grows with the number of runs sampled:
 
 | Runs  | Engine ns/run-frame | With 1 distribution metric | Metric cost |
 | ----- | ------------------- | -------------------------- | ----------- |
@@ -215,97 +194,41 @@ because bin count grows with the number of runs sampled:
 | 4 000 | 1 101               | 2 139                      | **1 038**   |
 
 The engine term is flat (~900–1150 ns, within noise); the metric term rises
-2.4× across a 32× increase in runs. So doubling an experiment's run count more
-than doubles its distribution-metric time — exactly the wrong scaling property
-for a tool whose answer to "I need better statistics" is "run more seeds".
+2.4× across a 32× increase in runs. Doubling an experiment's run count more
+than doubles its distribution-metric time — the wrong scaling property for a
+tool whose answer to "I need better statistics" is "run more seeds".
 
-The accumulators are already monoids, which is exactly right for sharding
-(§3); they just need mutable-in-place `add` on a private state object, plus a
-reused typed-array bin table when binning is fixed-width. Also,
-`forEachRunFrame` allocates a fresh `SimulationFrameReader` **per run per frame
-per metric** (`createMonteCarloFrameReader`) — that should be one reusable
-cursor rebound to each run.
+The accumulators are already monoids, which is what sharding needs; they also
+need mutable-in-place `add` on a private state object, plus a reused
+typed-array bin table when binning is fixed-width. `forEachRunFrame` likewise
+allocates a fresh `SimulationFrameReader` per run per frame per metric — that
+should be one reusable cursor rebound to each run.
 
----
+## What shipped
 
-## 3. Per-seed parallelism (the headline ask)
+### Worker sharding
 
-### 3.1 Why this is the easy win
+Runs are independent — separate seed, separate RNG state, separate frame
+buffers — and the only cross-run interaction is metric aggregation, whose
+accumulators expose `empty`/`merge`. An experiment therefore shards runs across
+workers and merges per-frame metric states on the main thread.
+[Worker sharding](doc:simulation/worker-sharding) describes the shipped
+design; this section records the measurements and the invariants that keep
+shard count out of the results:
 
-Runs are fully independent: separate seed, separate RNG state, separate frame
-buffers, no shared mutable state. The only cross-run interaction is metric
-aggregation, and `MonteCarloMetricMonoid` already exposes `empty`/`merge`.
+1. **Seeds derive from the global run index**, not the shard-local one, so run
+   _i_ gets the same seed no matter which shard owns it.
+2. **Merge is associative, and shards fold in index order**, so shard
+   completion order does not matter; `last` is not commutative and relies on
+   that ordering.
 
-So the design is: **shard runs across N workers; each shard runs the existing
-simulator over its slice; the main thread merges per-frame metric states.**
+No `SharedArrayBuffer` is needed. The app is not cross-origin isolated (no
+COOP/COEP headers), so `SharedArrayBuffer` — and therefore WASM threads — is
+unavailable today; message-passing shards with transferable `ArrayBuffer`s
+sidestep that entirely.
 
-Two invariants make shard count invisible to results:
-
-1. **Seeds derive from the global run index**, not the shard-local one — so run
-   _i_ gets the same seed no matter which shard owns it. `deriveRunSeed` already
-   takes a run index; shards must pass the global one.
-2. **Merge is associative and commutative** over the per-frame accumulator
-   state, so shard completion order does not matter.
-
-Notably, this needs **no `SharedArrayBuffer`**. The app is not cross-origin
-isolated (no COOP/COEP headers), so `SharedArrayBuffer` — and therefore WASM
-threads — is unavailable today. Message-passing shards with transferable
-`ArrayBuffer`s sidestep that entirely. Worth remembering when §7 tempts you
-toward WASM threading.
-
-### 3.2 Prototype and results
-
-[`benchmarks/shard-main.mjs`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/benchmarks/README.md) shards 4000 SIR runs
-across Node `worker_threads`, using the **shipped, unmodified**
-`MonteCarloSimulator`, with one distribution metric merged on the main thread:
-
-| Shards | Wall clock | Speedup | Merged result identical to 1 shard |
-| ------ | ---------- | ------- | ---------------------------------- |
-| 1      | 5 866 ms   | 1.00×   | —                                  |
-| 2      | 2 990 ms   | 1.96×   | **yes**                            |
-| 4      | 1 785 ms   | 3.29×   | **yes**                            |
-| 8      | 1 414 ms   | 4.15×   | **yes**                            |
-| 12     | 1 619 ms   | 3.62×   | **yes**                            |
-
-One representative run; timings vary ±10% between invocations (8 shards
-measured between 3.79× and 4.18× across repeats). Result-preservation does not
-vary — it is exact, verified by fingerprinting every frame's merged histogram
-and comparing across shard counts, identical on every row of every repeat. That
-is the property that matters most: sharding must not change what an experiment
-reports.
-
-Scaling is sub-linear and regresses past core count, for understandable
-reasons: 4 performance + 6 efficiency cores, per-shard HIR compile, and the
-per-run construction cost of §2.3 paid N times. Fixing §2.3 should improve
-parallel efficiency as well as single-thread speed.
-
-### 3.3 What shipped
-
-Implemented — `createMonteCarloExperiment` now fans out over N transports:
-
-| Piece                                     | Where                                          |
-| ----------------------------------------- | ---------------------------------------------- |
-| Shard sizing and contiguous split         | `monte-carlo/runtime/shard-plan.ts`            |
-| Global-index seed derivation              | `MonteCarloSimulatorConfig.runIndexOffset`     |
-| Streaming monoid merge of per-frame state | `monte-carlo/metrics/merge.ts`                 |
-| Fan-out, progress, lifecycle              | `monte-carlo/runtime/experiment.ts`            |
-| Host-level override                       | `ExperimentsProvider`'s `experimentShardCount` |
-
-Two design points worth keeping in mind when touching this:
-
-- **Scalar frames carry `runAggregate`**, the pre-reduction accumulator state,
-  because `frameValue` cannot be merged — a mean of means is not a mean. Time
-  aggregation is recomputed on the main thread from merged frame values, while
-  distribution metrics aggregate per _run_ over time and so are already correct
-  shard-locally.
-- **Frames are released on a watermark**: a frame number finalises only once
-  every still-running shard has reported it, with finished shards dropped from
-  the watermark rather than blocking it. That is also why merged output matches
-  an unsharded run — a finished shard has no active runs left to contribute,
-  exactly like the completed runs a single simulator skips.
-
-Measured end to end by `benchmarks/sharded-experiment.mjs`, which drives the real
-runtime over real worker threads and fails if any shard count changes results:
+Measured end to end by `benchmarks/sharded-experiment.mjs`, which drives the
+real runtime over worker threads and fails if any shard count changes results:
 
 | Shards | Wall clock | Speedup | Identical to 1 shard |
 | ------ | ---------- | ------- | -------------------- |
@@ -314,155 +237,296 @@ runtime over real worker threads and fails if any shard count changes results:
 | 4      | 1 058 ms   | 2.98×   | yes                  |
 | 8      | 769 ms     | 4.11×   | yes                  |
 
-Still open:
+(The pre-production prototype, `benchmarks/shard-main.mjs`, measured the same
+shape against the unmodified simulator: 4.15× at 8 shards, regressing to 3.62×
+at 12. Timings vary ±10% between invocations; result preservation does not —
+every frame's merged histogram is fingerprinted and compared across shard
+counts.)
 
-- **Concurrent experiments do not share a pool.** Three 8-way experiments spawn
-  24 workers and compete for cores. Memory is roughly unchanged (sharding splits
-  runs rather than duplicating them), so this degrades gracefully rather than
-  breaking, and the docs tell users to run experiments one at a time for maximum
-  speed — but a shared pool would be better.
-- **Metric state crosses threads as `[number, number][]`**, not typed arrays, so
-  it is cloned rather than transferred.
-- Scaling is sub-linear past ~4 shards, partly from efficiency cores and partly
-  because each shard repays the per-run construction cost of §2.3.
+Two design points worth keeping in mind when touching this:
 
-Server side (`petrinaut-cli`), the same sharding applies via
-`node:worker_threads` — not yet wired up. Note the existing memory constraint
-recorded for the optimisation path — a 1 GB ECS task against multiple Node CLIs
-each capped at 768 MB — so shard count there must be bounded by memory, not just
-cores.
+- **Scalar frames carry `runAggregate`**, the pre-reduction accumulator state,
+  because `frameValue` cannot be merged — a mean of means is not a mean. Time
+  aggregation is recomputed on the main thread from merged frame values, while
+  distribution metrics aggregate per _run_ over time and so are already
+  correct shard-locally.
+- **Frames are released on a watermark**: a frame number finalises only once
+  every still-running shard has reported it, with finished shards dropped from
+  the watermark rather than blocking it. Merged output matches an unsharded run
+  while every shard is active; once a shard finishes, its completed runs stop
+  contributing samples to later frames, where an unsharded run keeps sampling
+  their frozen state.
 
----
+The CLI shards the same way through the shared experiment backend, over
+`node:worker_threads`, defaulting to one worker per core minus one. Note the
+memory constraint recorded for the optimisation path — a 1 GB ECS task against
+multiple Node CLIs each capped at 768 MB — so shard count there must be bounded
+by memory, not just cores.
 
-## 4. Hot-path fixes (do these first)
+Still open: concurrent experiments do not share a pool (three 8-way
+experiments spawn 24 workers and compete for cores — memory degrades
+gracefully because sharding splits runs rather than duplicating them); metric
+state crosses threads as `[number, number][]` rather than a transferable typed
+array; and scaling is sub-linear past ~4 shards, partly from efficiency cores
+and partly because each shard repays the per-run construction cost above.
 
-Ordered by measured value per unit of risk. None require new toolchain, new
-ABI, or user-visible change.
+### Per-place token capacity
+
+`Place.capacity` is an optional hard upper bound on tokens in a place. A
+transition is not enabled when firing would take any output place above its
+capacity — the supply-side mirror of an input arc that cannot be satisfied.
+Three details were decisions rather than consequences:
+
+- **Net change, not gross output.** Constraints are the sum of output arc
+  weights on a place minus the standard input arc weights on the same place,
+  so a 1-in/1-out self loop is never blocked by its own full place. Read and
+  inhibitor arcs consume nothing and therefore do not make room.
+- **Same-frame pending output counts.** Output tokens are applied once at the
+  end of a frame, so counts lag during transition evaluation. Without folding
+  in what earlier transitions already committed, two producers feeding one
+  capped place would each individually fit and jointly overflow. Tracked in
+  `MonteCarloRunState.pendingOutputCounts`, allocated only for nets that
+  declare a capacity.
+- **Deadlock includes capacity.** Both engines' structural-enablement checks
+  consider capacity, so a net whose remaining transitions are all blocked by
+  full places reports deadlock instead of stepping to `maxTime` idle.
+
+Constraints are precomputed per transition at build time
+(`engine/capacity.ts`) and are empty for nets without capacities, so the hot
+path pays nothing for a feature it does not use. An initial marking above a
+place's capacity is rejected at build time: capacity blocks transitions, so it
+cannot repair a starting state that already violates the bound.
+
+Beyond the modelling feature, capacity is the keystone for most of the
+remaining plan:
+
+- **Fixed frame size.** With every place bounded, a frame's byte length is
+  static — no `ensureFrameCapacity`, no reallocation, no per-step repacking
+  (a measured 3%, worse on colour-heavy nets), and `placeOffsets` becomes a
+  build-time constant. Fixed-size frames are trivially poolable and
+  transferable, and they are the precondition for SoA layout and a WASM
+  linear-memory ABI. **Not built yet** — the runtime still uses growable
+  frames.
+- **A computable state-space bound.** For uncoloured places, reachable
+  markings are at most `∏ (capacity_p + 1)`. For coloured places the bound is
+  over token values too and is generally not enumerable.
+- **A static worst-case enumeration bound.** Per transition,
+  `∏ᵢ C(capacity_i, wᵢ)` is computable at compile time, worth surfacing as a
+  lint — "this transition can enumerate up to 79 800 token combinations per
+  frame" would have caught the enumeration blow-up before it was measured
+  ([FE-948](https://linear.app/hash/issue/FE-948/show-and-kill-combinatorial-explosion)).
+- **The GPU precondition.** GPU buffers are fixed at dispatch, so the GPU
+  backend requires typed places to declare capacities.
+
+Capacity does not participate in the HIR artifact fingerprint: it changes
+enablement but no compiled program, so artifacts stay valid. If capacity ever
+feeds into codegen, that has to change.
+
+### The WebGPU backend
+
+The GPU question was scoped as a spike with a kill bar: is a GPU path ≥10×
+the CPU, or not worth having? Measured on SIR, 4096 runs × 600 frames, one
+distribution metric, Apple metal-3:
+
+|                | Wall clock | ns / run-frame |
+| -------------- | ---------- | -------------- |
+| CPU engine     | 6060 ms    | 2466           |
+| WebGPU backend | 3.4 ms     | 1.87           |
+
+**~1780×**, so it shipped: uncoloured discrete nets are the sweet spot — a
+run's whole state is 36 bytes of integers that live in registers for a whole
+dispatch. [GPU backend](doc:simulation/gpu-backend) describes the design — one invocation per run, WGSL generated from the same HIR the CPU
+compiles, whole-experiment dispatch, on-device histogram reduction, and a
+compact summary readback. It is selected by a **Compute backend** setting; a
+net the backend cannot run falls back to the CPU with the reason recorded on
+the experiment, and `ExperimentRecord.computeBackend` records which backend
+actually ran, because the two are not numerically interchangeable.
+
+The constraint analysis that preceded it mostly held, with two corrections
+worth recording:
+
+**Partial offload is worse than nothing — confirmed, and it dictated the
+API.** A frame is `dynamics → transitions → timers`, and the discrete part
+reads exactly what the continuous part wrote. Offloading only the ODEs would
+mean, every frame, uploading the token region, dispatching, and reading back —
+with `mapAsync` readback latency in the hundreds of microseconds against a
+whole-frame CPU cost of ~1 µs per run. The round-trip would be 100–1000× the
+work it replaces. GPU pays off only if the entire stepping loop lives on the
+device for many frames without readback, which is why the backend owns whole
+experiments and deliberately does not implement `MonteCarloSimulator`, whose
+synchronous per-frame `advanceAll()` would force exactly that round-trip.
+`webgpu/runner.ts` dispatches 300 frames at a time.
+
+**`f32` is not the limiting factor for ODEs — prediction wrong.** WGSL has no
+`f64`, which was expected to be a fidelity problem. Measured on logistic
+growth integrated to _t_ = 10 against a closed-form reference:
+
+| `dt` | GPU Euler f32 | GPU RK2 f32 | GPU RK4 f32  | CPU Euler f64 (incumbent) |
+| ---- | ------------- | ----------- | ------------ | ------------------------- |
+| 0.5  | 0.15%         | 0.128%      | **0.00155%** | 0.15%                     |
+| 0.1  | 0.02%         | 0.00422%    | **5.3e-7%**  | 0.02%                     |
+| 0.01 | 0.00179%      | 0.0000235%  | 0.0000082%   | 0.00181%                  |
+
+f32 Euler tracks f64 Euler to three significant figures: integrator truncation
+error dwarfs rounding error at these step counts. Because a token's derivative
+depends only on that token, RK4's four stages fit in one invocation with no
+extra dispatch — measured at 2.5× Euler's cost for four orders of magnitude
+less error, so RK4 is the default. At `dt` 0.1 the GPU path is ~38 000× more
+accurate than the CPU's Euler.
+
+**Weighted typed arcs vectorise after all — prediction wrong.** The concern
+was SIMT divergence from data-dependent trip counts over `C(n, w)`
+combinations. Unranking through the combinatorial number system maps a flat
+index to the _x_-th lexicographic combination in closed form, turning the
+search into a single loop over a statically-shaped index space (a standard
+technique for triangular thread domains — see
+[A Non-linear GPU Thread Map for Triangular Domains](https://arxiv.org/abs/1609.01490)).
+Two things were checked rather than assumed:
+
+- **f32 suffices for unranking**: simulating f32 rounding and round-tripping
+  every pair is exact through `n = 4096`, first mismatch at `n = 5793`; the
+  eligibility gate's `maxBytesPerRun` already caps a typed place's capacity
+  around 1024 single-word tokens, a ~4× margin.
+- **Ordering is the real constraint, not throughput**: the engine draws one
+  acceptance uniform per transition per frame and fires the **lowest-indexed**
+  passing combination, not the one with the largest rate. The GPU scan
+  reproduces the CPU's pair order, and `webgpu/pair-selection.ts` tests that
+  order against the engine's own enumerator.
+
+Only the pair case (`weight ≤ 2`) has a closed-form unranking that preserves
+the engine's ordering; wider arcs are refused. With kernels emitting too, the
+whole satellites net compiles once its places declare capacities — three
+lambdas, one dynamics, three kernels, 333 lines of WGSL over 552 bytes of
+state per run. (Its own experiment still runs on the CPU for an unrelated
+reason: two of its metrics reduce over token attributes, which only an
+expression metric can express, and the GPU serves only place-token-count
+metrics.)
+
+Bring-up left five records worth keeping:
+
+- **Kernel writes must be hoisted before compaction.** A kernel reads the
+  attributes of the tokens the firing consumes, and compaction overwrites
+  exactly those slots. Emitting writes in source order silently read a
+  survivor that compaction had just moved into the consumed token's place.
+  Every produced value is hoisted into a `let kout_N` before compaction, and
+  `compile-net-shader.test.ts` pins that relative order. Produced tokens are
+  written above `counts[p] + pending[p]`, mirroring the CPU's deferral of
+  additions to the end of the frame.
+- **Ask the adapter, not the spec, for limits.** `requestDevice()` without
+  `requiredLimits` returns the WebGPU _default_ limits — the floor, not the
+  hardware. The two that bind are `maxStorageBufferBindingSize` (default
+  128 MiB) and `maxBufferSize` (256 MiB); the same adapter reports 4096 MiB
+  for both, so the defaults cost a factor of 32 and refused run counts the
+  device could hold. Both limits must be raised together, and asking for the
+  adapter's own reported value is always valid.
+- **Stage the seed upload; read back a summary.** Building the initial state
+  as one host-side `Uint32Array` put 2.90 GiB in one allocation at a million
+  runs, which the browser refuses; seeding now stages 4 MiB at a time (with
+  the run index absolute, not chunk-relative, or chunks would repeat RNG
+  streams and silently correlate runs). On the way back, the host decodes only
+  place counts and status, so the shader writes those into a compact summary
+  buffer — readback falls from 2.90 GiB to 15 MiB, and run state never leaves
+  the device. The ceiling is now the state storage buffer itself
+  (`maxStorageBufferBindingSize / bytesPerRun`, ~1.38 M runs at that size),
+  and `describeBufferOverflow` reports exactly how many runs fit. Host-visible
+  memory is scarcer than device memory and no limit predicts it (a 1.94 GiB
+  mappable buffer allocates; 2.90 GiB does not, on a 4 GiB adapter), so the
+  code attempts the allocation and explains a failure rather than guessing a
+  threshold.
+- **The browser cannot lower HIR; carry it on the artifacts.** WGSL is
+  generated from HIR, and lowering needs the TypeScript compiler, whose
+  `require("module")` webpack cannot resolve for a browser target. The import
+  chain is valid TypeScript, so `lint:tsc`, `lint:eslint` and `test:unit` are
+  all blind to it — only bundling a consumer surfaces it, and it broke the
+  `@apps/hash-frontend` build twice. The fix is to carry HIR on the compiled
+  artifacts, produced in the LSP worker where the compiler legitimately lives,
+  and have `webgpu/hir-from-artifacts.ts` read it back. HIR roughly triples
+  artifact size (15.3 KB → 45.5 KB on `supplyChainWithDisruption`) and
+  artifacts are structured-cloned to every shard worker, so it is opt-in:
+  `compileHirArtifacts(sdcpn, extensions, { includeHir })`, requested only
+  when the chosen backend is WebGPU. `scripts/check-browser-safe-entries.mjs`
+  walks the built entry graphs for Node-only specifiers as part of
+  `yarn build` — about a second, against roughly nine minutes for a frontend
+  build.
+- **Dawn signals out-of-memory by returning an error buffer**, not by
+  throwing, so allocation looks successful and every later use reports being
+  "invalid due to a previous error". Buffer creation is wrapped in an
+  out-of-memory error scope so the actual message reaches the user.
+
+The two backends use different generators by choice — the GPU uses PCG, a
+stronger generator than the CPU's LCG, which 32-bit integer arithmetic could
+reproduce exactly — and WGSL builtin accuracy is implementation-defined
+(`sin`/`cos` carry ~2⁻¹¹ absolute error), so agreement is statistical rather
+than seed-for-seed, and
+GPU results are reproducible only across runs on one adapter. Verified against
+the CPU engine on identical configuration:
+
+| Frame | CPU mean infected | GPU    | Diff |
+| ----- | ----------------- | ------ | ---- |
+| 60    | 9.950             | 9.960  | 0.1% |
+| 240   | 24.039            | 23.997 | 0.2% |
+| 480   | 42.760            | 42.675 | 0.2% |
+| 599   | 52.027            | 51.873 | 0.3% |
+
+Matching the two backends' firing statistics was itself instructive: an early
+shader that redrew the acceptance variate every frame diverged by 21% by frame
+599, systematically. Aligning the sampling semantics — and investigating the
+CPU generator while doing so — surfaced three CPU defects (an inflated firing
+test, a discarded draw on non-firing evaluations, and an LCG whose float
+product overflowed 2⁵³ and collapsed the generator to a ~10 500-state cycle),
+all since fixed in
+[FE-1499](https://linear.app/hash/issue/FE-1499/stochastic-transitions-fire-at-inflated-non-exponential-rates):
+both engines now test the per-frame hazard over `dt`, and `seeded-rng.ts`
+computes the LCG recurrence exactly with 32-bit integer arithmetic. (The 21%
+figure predates FE-1499: redrawing diverged against the then-inflated CPU
+test. With the CPU fixed, one consumed draw per enabled transition per frame
+is the shared rule, and FE-1553 aligned the shader to it — the committed
+`Dev / GpuParity` Storybook harness now measures the agreement instead of a
+hand-run comparison.)
+
+The run-count bound is gone: an experiment larger than the device's buffers
+runs as sequential tiles over one shared histogram buffer, which merges itself
+because histogram bins are sums —
+[GPU run tiling](doc:simulation/gpu-run-tiling). A cheaper GPU idea remains
+unexplored: using WebGPU only for _rendering_ large token populations and
+distribution charts, which has no numerical-fidelity question at all.
+
+## The remaining plan
+
+The items below are ordered by dependency, not preference: the hot-path fixes
+and the fixed-size frame layout are what make codegen worth generating, and
+codegen is what makes WASM worth emitting.
+
+![What unlocks what](@diagrams/performance-roadmap.svg)
+
+### Hot-path fixes
+
+Ordered by measured value per unit of risk. None require a new toolchain, a
+new ABI, or user-visible change.
 
 | #   | Change                                                                                   | Expected                                                   |
 | --- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 1   | Lazy, index-based combination enumeration (§2.4)                                         | up to ~1000× on affected nets; nothing on weight-1 nets    |
-| 2   | Share one compiled `SimulationDefinition` across a shard's runs (§2.3)                   | removes 80–230 µs/run and improves inlining                |
-| 3   | Skip the frame copy when no place has dynamics; otherwise copy only dynamic places       | ~20%                                                       |
-| 4   | Replace `Record<PlaceID, …>` removals/additions with dense per-place-index typed arrays  | ~10% + most GC                                             |
-| 5   | Resolve place/transition indices at build time; delete `getPlaceIndex` from the hot loop | ~3%                                                        |
-| 6   | Mutable-in-place metric accumulators + reusable frame cursor (§2.5)                      | ~30–50% of metric overhead                                 |
-| 7   | Single RNG draw per frame reused across transitions where semantics allow                | up to 9% — **needs a semantics decision**, changes streams |
+| 1   | Share one compiled `SimulationDefinition` across a shard's runs                          | removes 80–230 µs/run and improves inlining                |
+| 2   | Skip the frame copy when no place has dynamics; otherwise copy only dynamic places       | ~20%                                                       |
+| 3   | Replace `Record<PlaceID, …>` removals/additions with dense per-place-index typed arrays  | ~10% + most GC                                             |
+| 4   | Resolve place/transition indices at build time; delete `getPlaceIndex` from the hot loop | ~3%                                                        |
+| 5   | Mutable-in-place metric accumulators + reusable frame cursor                             | ~30–50% of metric overhead                                 |
+| 6   | Single RNG draw per frame reused across transitions where semantics allow                | up to 9% — changes RNG streams, permitted but user-visible |
 
-Items 1–6 are behaviour-preserving. Item 7 changes RNG streams, so existing
-seeds would produce different (equally valid) trajectories — a product call,
-not an engineering one.
+Items 1–5 are behaviour-preserving. Item 6 changes RNG streams — the
+reproducibility decision below permits that across engine versions, but
+existing seeds would produce different (equally valid) trajectories, which is
+a product-visible change. Estimated for items 1–5 plus the landed enumeration
+fix, on a typical coloured net: **5–15×** before any threading, **20–60×**
+combined with sharding on 8 cores.
 
-My estimate for 1–6 combined on a typical coloured net: **5–15×**, before any
-threading. Combined with §3 on 8 cores: **20–60×**. That is likely enough to
-make WASM optional rather than urgent.
+### Whole-loop codegen
 
----
-
-## 5. Optional per-place token capacity
-
-You raised this as a prerequisite; it is, and for more reasons than frame
-sizing.
-
-### 5.1 Shape
-
-Add to `Place` in `types/sdcpn.ts`:
-
-```ts
-/** Optional hard upper bound on tokens in this place. */
-capacity?: number | null;
-```
-
-Semantics to decide (see §10): when a firing would exceed capacity, is the
-transition _not enabled_ (classical capacity / self-loop semantics), or does it
-fire and **error**? These differ observably. Classical Petri-net capacity treats
-it as an enablement condition, and that is also the cheaper check — it folds
-into the existing structural-enablement test alongside inhibitor arcs.
-
-### 5.2 What it unlocks
-
-**Fixed frame size.** With every place bounded, the frame's byte length is
-static:
-
-```text
-frameBytes = header
-           + placeCount   × (4 + 4)              // counts + offsets
-           + transitionCount × (8 + 4 + 1)       // elapsed + firingCount + flag
-           + Σ_p capacity_p × stride_p           // token region, padded
-```
-
-No `ensureFrameCapacity`, no reallocation, no `reallocations` counter, no
-per-step repacking to keep places contiguous — each place gets a fixed slot and
-`placeOffsets` becomes a build-time constant. That removes `applyTokenAdditions`
-repacking entirely (a measured 3%, worse on colour-heavy nets) and makes frames
-trivially poolable and transferable.
-
-**A computable state-space bound.** For uncoloured places, reachable markings
-are at most `∏ (capacity_p + 1)`. Report it in the UI so users see when they
-have specified something astronomically large. For coloured places the bound is
-over token _values_ too and is generally not enumerable — be careful not to
-promise a "combinatorial explosion" number that only holds for uncoloured nets.
-
-**A static worst-case enumeration bound.** Per transition,
-`∏ᵢ C(capacity_i, wᵢ)` (§2.4) is computable at compile time. This is worth
-surfacing as a **lint**: "this transition can enumerate up to 79 800 token
-combinations per frame". That warning would have caught §2.4 before it was
-measured.
-
-**The GPU/WASM precondition.** Fixed per-run frame size is what lets you
-allocate `runs × frameBytes` as one contiguous block — required for a WASM
-linear-memory layout and mandatory for GPU (§8).
-
-### 5.3 Semantics as implemented
-
-A transition is not enabled when firing would take any output place above its
-capacity — the supply-side mirror of an input arc that cannot be satisfied. Three
-details that were decisions rather than consequences:
-
-- **Net change, not gross output.** Constraints are the sum of output arc weights
-  on a place minus the _standard_ input arc weights on the same place, so a
-  1-in/1-out self loop is never blocked by its own full place. Read and inhibitor
-  arcs consume nothing and therefore do not make room.
-- **Same-frame pending output counts.** Output tokens are applied once at the end
-  of a frame, so the frame's counts lag during transition evaluation. Without
-  folding in what earlier transitions already committed, two producers feeding
-  one capped place would each individually fit and jointly overflow. Tracked in
-  `MonteCarloRunState.pendingOutputCounts`, allocated only for nets that declare
-  a capacity.
-- **Deadlock includes capacity.** Both engines' structural-enablement checks
-  consider capacity, so a net whose remaining transitions are all blocked by full
-  places reports deadlock instead of stepping to `maxTime` with nothing
-  happening.
-
-Constraints are precomputed per transition at build time
-(`engine/capacity.ts`) and are empty for nets without capacities, so the hot path
-pays nothing for a feature it does not use.
-
-An initial marking above a place's capacity is rejected at build time: capacity
-blocks transitions, so it cannot repair a starting state that already violates
-the bound.
-
-Shipped alongside: the `Place.capacity` field and zod schema, a place-inspector
-control, and `drawing-a-net.md` / `simulation.md` updates.
-
-Not done: capacity does **not** yet participate in the HIR artifact fingerprint.
-It changes enablement but not any compiled program, so artifacts stay valid; if
-capacity ever feeds into codegen (§6) that has to change. The fixed-size frame
-layout this unlocks (§5.2) is also still unbuilt — the runtime keeps using
-growable frames.
-
----
-
-## 6. Whole-loop codegen (where the real win is)
-
-The engine currently interprets net structure at runtime: loop over
-`transitionIds`, look up compiled transition, build input descriptors, enumerate,
-call lambda, call kernel, apply effects generically. The user code is compiled;
-the _net_ is not.
-
-Since the net is known when an experiment starts, emit **one specialised
-stepper per net** — the whole frame loop, with structure unrolled and user code
-inlined:
+The engine interprets net structure at runtime: loop over transitions, look up
+compiled programs, build input descriptors, enumerate, apply effects
+generically. The user code is compiled; the _net_ is not. Since the net is
+known when an experiment starts, emit one specialised stepper per net — the
+whole frame loop, with structure unrolled and user code inlined:
 
 ```text
 for each run in shard:
@@ -473,221 +537,97 @@ for each run in shard:
 ```
 
 No dispatch, no descriptor objects, no string lookup, no generic enumeration
-for weight-1 arcs, no `Record` allocation. This _is_ the flat stepper of §2.1,
-generated rather than hand-written.
+for weight-1 arcs, no `Record` allocation. This _is_ the flat stepper from the
+ceiling measurement, generated rather than hand-written — and it is a natural
+extension of the existing pipeline: `emit-buffer-js.ts` already emits
+per-surface programs from HIR, and the HIR is designed for it (pure, no
+recursion, no unbounded loops, statically unrollable `map`).
 
-This is a natural extension of the existing pipeline, not a new concept:
-`emit-buffer-js.ts` already emits per-surface programs from HIR. This emits one
-program per _net_, splicing those bodies in. The HIR is designed for it — pure,
-no recursion, no unbounded loops, statically unrollable `map`, and the module
-docblock already names "JavaScript today, WASM/GPU later" as the intended
-backend set.
-
-Sequencing matters: **do §4 and §5 first.** Codegen over a growable frame with
-`Record`-based effects would just generate the same expensive shapes.
+Sequencing matters: do the hot-path fixes and the fixed-size frame layout
+first. Codegen over a growable frame with `Record`-based effects would
+generate the same expensive shapes.
 
 Risks: compile time per experiment start (mitigate by caching on the artifact
 fingerprint, which already exists); debuggability of generated code (keep the
-current interpreted path as a reference implementation and differential-test
-against it — the existing test suite becomes the oracle); and code size for
-large nets.
+interpreted path as a reference implementation and differential-test against
+it); and code size for large nets.
 
----
+### WASM and native
 
-## 7. WASM (browser) and native (server)
+WASM buys predictable numeric performance without JIT warm-up or
+deoptimisation cliffs. Against well-written JS over typed arrays, expect
+**~1.5–3×** — not the 10× that "rewrite it in WASM" implies. The measured cost
+centres are allocation, copying, and dispatch, which WASM does not fix by
+itself, so it is a worthwhile _second backend_ once whole-loop codegen exists,
+and a poor first move.
 
-### 7.1 The honest case for WASM
+The only viable shape is the codegen design emitted as WASM instead of JS: one
+module per net containing the entire stepping loop with user code inlined,
+frames in linear memory as `runs × frameBytes` (needs capacities), one host
+call advancing a whole batch of frames — zero boundary crossings per frame.
+Designs rejected on that criterion: a Rust engine in WASM with user code in JS
+(a boundary crossing per transition per frame — slower than today); a Rust
+engine plus HIR interpreter in WASM (interpretation loses to JIT-compiled JS);
+runtime Cranelift in the browser (not available).
 
-WASM buys predictable numeric performance without a JIT warm-up and without
-V8's deoptimisation cliffs. Against **well-written** JS numeric code over typed
-arrays, expect **~1.5–3×** — not the 10× that "rewrite it in WASM" implies. All
-of §2's cost centres are allocation, copying, and dispatch, and WASM does not
-fix those by itself; a flat JS rewrite captures most of the same ground.
+Because nets and user code are authored at runtime, direct WASM emission from
+HIR is the only route that covers the product (~1.5–2.5k lines for the
+emitter). The in-repo `wasm-bindgen` precedent
+(`libs/@blockprotocol/type-system/rust`) is ahead-of-time compiled Rust, which
+is the case that does not apply.
 
-So: WASM is a worthwhile _second backend_ once §6 exists, and a poor
-_first_ move.
+One real cost: WASM's `f64` instruction set has only `sqrt`, `abs`, `min`,
+`max`, `ceil`, `floor`, `trunc`, `nearest`. There is no `exp`, `log`, `pow`,
+`sin`, `cos`, `tan` — and `HIR_MATH_FNS` exposes all of them, with `Math.exp`
+on the firing path of every transition evaluation. Importing them from JS
+would mean a host call per invocation, erasing the win, so a WASM backend must
+ship its own `libm` subset. The reproducibility decision below softens this:
+the module need not be bit-identical to V8's `Math.*`, only internally
+deterministic.
 
-### 7.2 Design that works
+On the server, the elegant option is one HIR→WASM backend, two hosts: the
+browser runs the module on its engine, `petrinaut-cli` runs the same module
+under Wasmtime, which compiles it natively. One emitter, one set of semantics,
+one place to verify. A Rust engine with Cranelift JIT of the HIR would have a
+faster ceiling but adds a second codegen backend to keep semantically in sync
+— avoid until there is evidence it is needed. Remember `SharedArrayBuffer` is
+unavailable in the browser (no cross-origin isolation), so WASM threading is
+not an option there; sharding stays at the worker level.
 
-The only viable shape is **one module per net containing the entire stepping
-loop with user code inlined** — the §6 design, emitted as WASM instead of JS.
-Frames live in linear memory as `runs × frameBytes` (needs §5). One host call
-advances a whole batch of frames for all runs in the shard, so there are
-**zero boundary crossings per frame**.
+### Event-driven stepping
 
-Designs to reject:
+The engine uses fixed-`dt` time-stepping: cost is `frames × transitions`
+regardless of activity — `maxTime` 180 / `dt` 0.1 = 1800 frames per run,
+whether or not anything happened. For nets where firings are sparse relative
+to `dt`, an event-driven scheme (Gillespie SSA / next-reaction method, with
+ODE integration between events) does work proportional to _events_, not
+frames. That can be 10–100× fewer steps, and it composes with everything
+above. It is a semantics change — different trajectories, a different meaning
+for `dt`, hybrid continuous/discrete handling — so it would have to be an
+opt-in mode. But "reduce the number of steps" is a bigger lever than "make
+each step faster", and it deserves evaluation alongside the engineering work.
 
-- _Rust engine in WASM, user code in JS_ — a boundary crossing per transition
-  per frame. Slower than today.
-- _Rust engine + HIR interpreter in WASM_ — interpretation loses to JIT-compiled
-  JS on hot code.
-- _Runtime Cranelift in the browser_ — not available.
+## Decisions
 
-### 7.3 The `libm` gotcha
+Taken:
 
-WASM has only `sqrt`, `abs`, `min`, `max`, `ceil`, `floor`, `trunc`, `nearest`
-for `f64`. It has **no `exp`, `log`, `pow`, `sin`, `cos`, `tan`** — and
-`HIR_MATH_FNS` exposes all of them, with `Math.exp` on the firing path of
-_every_ transition evaluation.
+1. **Capacity semantics** — a firing that would exceed a place's capacity
+   leaves the transition not enabled; it does not error. Capacity is opt-in
+   per place, and nets that set none behave exactly as before.
+2. **Reproducibility contract** — the same seed need not give the same
+   trajectory across engine versions. That frees hot-path item 7 and softens
+   the WASM `libm` bit-exactness problem. Sharding preserves determinism
+   outright, so it needed no trade-off.
+3. **Worker budget** — full parallelism per experiment: one worker per core
+   minus one, capped at the run count. Concurrent experiments oversubscribe
+   rather than share a pool, and the user-facing docs say to run them one at a
+   time for maximum speed. A shared pool remains a possible refinement.
 
-Importing them from JS means a host call per invocation, which would erase the
-win. So a WASM backend must ship its own `libm` subset in the module. That is a
-known, bounded piece of work, but it is real, and it must produce
-**bit-identical** results to V8's `Math.*` or seeded runs will diverge between
-backends. Getting bit-identical `exp` across V8 and a hand-rolled
-implementation is not guaranteed — this may force accepting per-backend
-divergence, which is a product decision about what "same seed" promises.
+Open:
 
-Two build routes:
-
-| Route                                                                       | Notes                                                                                                                        |
-| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Emit WASM bytes directly from HIR                                           | No runtime toolchain; ~1.5–2.5k lines for the emitter; must hand-roll libm                                                   |
-| Rust engine template + generated Rust for user code, compiled ahead of time | Only works if nets are known at build time — they are not (users author code at runtime), so this cannot be the general path |
-
-Since nets and user code are authored at runtime, **direct WASM emission from
-HIR is the only route that covers the product**. Precedent exists in-repo:
-`libs/@blockprotocol/type-system/rust` already ships `cdylib` + `wasm-bindgen`,
-and `wasm-bindgen` is pinned in the workspace — but note that precedent is for
-_ahead-of-time_ compiled Rust, which is the case that does not apply here.
-
-### 7.4 Server: native
-
-The elegant option: **one HIR→WASM backend, two hosts.** The browser runs it on
-the built-in engine; `petrinaut-cli` runs the same module under Wasmtime, which
-compiles it natively with good codegen. One emitter, one set of semantics, one
-place for bit-exactness to be verified — and CPU-native speed on the server.
-
-Alternative if the server should not depend on WASM: a Rust engine plus
-**Cranelift** JIT of the HIR (Cranelift is a normal crate; runtime codegen is
-fine off-browser). Faster ceiling, but a second codegen backend to keep
-semantically in sync with the browser's — I would avoid that until there is
-evidence it is needed.
-
-Either way the server also wants §3's sharding across `worker_threads` (or OS
-processes, given the recorded 768 MB-per-CLI cap).
-
----
-
-## 8. GPU / WebGPU
-
-### 8.1 Is Petri-net simulation possible on a GPU?
-
-Yes — but the parallelism axis has to be **across runs, not within a run**. One
-GPU thread per seed is exactly the embarrassingly-parallel shape GPUs want, and
-it is what an experiment already is. Within a single run there is very little to
-parallelise: transitions must be evaluated in a defined order because each
-firing mutates the marking the next transition observes (`applyTokenRemovals`
-runs immediately, inside the loop).
-
-So the model is: `runs` threads, each stepping its own net for many frames,
-with metrics reduced on-GPU via atomics into histogram buffers, reading back
-only every N frames.
-
-### 8.2 The four hard constraints
-
-**1. No `f64` in WGSL.** WebGPU core has `f32`; `f16` behind the `shader-f16`
-feature; `f64` is an open proposal, not a shipped extension
-([gpuweb#2805](https://github.com/gpuweb/gpuweb/issues/2805)). The entire token
-layout is `f64`, dynamics integrate in `f64`, and `real`/`integer` both map to
-`f64` lanes. A GPU path is therefore **`f32`** — different rounding, ~7
-significant digits, and integer exactness only to 2²⁴. Consequences: Euler
-integration on stiff dynamics degrades noticeably, and **GPU results will not
-match CPU results for the same seed**. For a product whose reproducibility
-story is "same seed, same trajectory", that is a fork in semantics, not an
-optimisation.
-
-Also no `u64`: the string-pool ids and 128-bit UUIDs need `u32` pairs, with
-manual 64-bit arithmetic if compared or hashed.
-
-**2. Variable token counts.** GPU buffers are fixed at dispatch. §5 capacities
-are therefore **mandatory**, not optional, for any GPU path — and the total
-allocation is `runs × frameBytes`, so generous capacities multiply fast.
-
-**3. Unbounded enumeration.** `∏ᵢ C(nᵢ, wᵢ)` combinations per transition with
-data-dependent trip counts is hostile to SIMT: divergence plus per-thread work
-imbalance. A realistic GPU subset would restrict to weight-1 coloured arcs (or
-first-match semantics), which is a real capability reduction.
-
-**4. Divergence.** Each run fires different transitions, so a subgroup executes
-the union of taken branches. Bounded by transition count — the CPU engine walks
-all transitions every frame anyway — but kernel bodies with heavy user code
-will diverge badly.
-
-### 8.3 Why "ODEs on the GPU only" is the wrong split
-
-This is the specific idea worth pushing back on. A frame is
-`dynamics → transitions → timers`, and the discrete part reads exactly what the
-continuous part wrote. Running dynamics on the GPU and transitions on the CPU
-means, **every frame**, uploading the token region, dispatching, and reading
-back — with `mapAsync` readback latency in the hundreds of microseconds to
-milliseconds, against a whole-frame CPU cost of ~1 µs per run today. The
-round-trip would be 100–1000× the work it replaces.
-
-Same for "timing of the next firing": that is one `exp` and a compare per
-transition. There is nothing there to offload.
-
-The rule: **GPU pays off only if the entire stepping loop lives on the GPU for
-many frames without readback.** Partial offload of any per-frame stage is
-strictly worse than not doing it.
-
-### 8.4 Verdict
-
-Sequence this **after** §4–§7, and scope it as a spike, not a roadmap item.
-Realistic upside for a suitable net — bounded capacities, weight-1 arcs,
-`f32`-tolerant, thousands of runs — is large (plausibly 10–100× over a
-multi-threaded CPU implementation, dominated by how much divergence the net
-causes). But it is a second engine with different numerics, a restricted
-feature subset, and a hard dependency on §5, and it only helps at run counts
-where a well-optimised threaded CPU engine may already be fast enough.
-
-Reasonable spike, ~1 week, answering one question: for the SIR net with 10 000
-runs, `f32`, capacities set, what is the end-to-end wall clock versus the
-threaded CPU path? If it is not ≥10×, drop it.
-
-A cheaper GPU idea worth noting: keep simulation on the CPU and use WebGPU only
-for **rendering** large token populations and distribution charts, which has no
-numerical-fidelity problem at all.
-
----
-
-## 9. Not covered above: the algorithmic option
-
-Worth flagging because it may beat every item here. The engine uses fixed-`dt`
-time-stepping: cost is `frames × transitions` regardless of activity —
-`maxTime` 180 / `dt` 0.1 = 1800 frames per run, whether or not anything
-happened. For nets where firings are sparse relative to `dt`, an **event-driven
-scheme** (Gillespie SSA / next-reaction method, with ODE integration between
-events) does work proportional to _events_, not frames. That can be 10–100×
-fewer steps, and it composes with everything above.
-
-It is a semantics change — different trajectories, different meaning for
-`dt`, and hybrid continuous/discrete handling — so it would have to be an
-opt-in mode. But "reduce the number of steps" is a bigger lever than "make each
-step faster", and it deserves evaluation alongside the engineering work.
-
----
-
-## 10. Questions for you
-
-Blocking design decisions:
-
-1. **Capacity semantics** — when a firing would exceed a place's capacity: is
-   the transition not enabled (classical, cheap, composes with inhibitor arcs),
-   or does it error and fail the run? Do capacities affect _existing_ nets at
-   all, or only where explicitly set?
-2. **Reproducibility contract** — must the same seed give the same trajectory
-   across (a) shard counts, (b) engine versions, (c) CPU vs WASM vs GPU
-   backends? (a) is preserved by the §3 design. (b) is broken by hot-path item 7.
-   (c) is essentially impossible for GPU (`f32`) and hard for WASM (`libm`).
-   Knowing which of these you are willing to give up decides §7 and §8.
-3. **Worker budget** — one shared pool across concurrent experiments, or per
-   experiment? What is the acceptable core count while the user keeps editing?
-
-Sequencing:
-
-1. Should I start with §4 items 1–6 (measurable, behaviour-preserving, no new
-   concepts), or do you want the §3 sharding landed first because it is the
-   visible feature?
-2. Is the §9 event-driven mode in scope at all, or is fixed-`dt` a fixed
-   product decision?
+1. Does the GPU path's `f32` divergence from the CPU path's `f64` count as
+   acceptable for the same seed _and the same engine version_? Cross-version
+   divergence is permitted, but that does not settle the cross-backend case
+   within one version.
+2. Is event-driven stepping in scope, or is fixed-`dt` a settled product
+   decision? It is a larger lever than any remaining engineering item here.

@@ -1,0 +1,23 @@
+{
+  "package": "@rust/hashql-compiletest",
+  "dependencies": [
+    "@rust/error-stack",
+    "@rust/hashql-ast",
+    "@rust/hashql-core",
+    "@rust/hashql-diagnostics",
+    "@rust/hashql-eval",
+    "@rust/hashql-hir",
+    "@rust/hashql-mir",
+    "@rust/hashql-syntax-jexpr"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:unit": [
+      "@local/status#build"
+    ]
+  }
+}

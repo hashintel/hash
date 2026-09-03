@@ -2,6 +2,7 @@ import {
   addAllMonteCarloMetricValues,
   createMonteCarloMetricHistogramAccumulator,
   createMonteCarloMetricNumericAccumulator,
+  getDistributionBinExtent,
 } from "./accumulators";
 
 import type { MonteCarloMetricNumericAccumulatorState } from "./accumulators";
@@ -72,6 +73,7 @@ export function createMonteCarloUserDefinedMetric(
     number,
     MonteCarloMetricNumericAccumulatorState
   >();
+  const latestRunValues = new Map<number, number>();
 
   return {
     id: config.id,
@@ -80,11 +82,13 @@ export function createMonteCarloUserDefinedMetric(
       return frames;
     },
     getLatestFrame: () => frames.at(-1) ?? null,
+    getRunValues: () => latestRunValues,
     clear: () => {
       frames.length = 0;
       scalarFrameCountState = frameCountAccumulator.empty();
       scalarTimeState = scalarTimeAccumulator?.empty() ?? null;
       runTimeStatesByRunIndex.clear();
+      latestRunValues.clear();
     },
     observeFrame: (context) => {
       const runSamples: { runIndex: number; value: number }[] = [];
@@ -106,6 +110,10 @@ export function createMonteCarloUserDefinedMetric(
           runSamples.push({ runIndex: run.runIndex, value: sample });
         }
       });
+
+      for (const { runIndex, value } of runSamples) {
+        latestRunValues.set(runIndex, value);
+      }
 
       const runValues = runSamples.map(({ value }) => value);
 
@@ -153,6 +161,7 @@ export function createMonteCarloUserDefinedMetric(
               distributionValues,
             ),
           ),
+          binExtent: getDistributionBinExtent(runOutput.binning),
           runSampleCount: runValues.length,
           timeSampleCount,
         });

@@ -19,13 +19,18 @@ import {
   PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
   PETRINAUT_OPTIMIZATION_MAX_TRIALS,
   createUserKeyedRecord,
+  EMPTY_AD_HOC_STATE,
   metricSchema,
   petrinautOptimizationInputSchema,
+  adHocOptimizationBindings,
+  synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
@@ -49,6 +54,8 @@ import {
 } from "./optimization-parameter-row";
 
 import type {
+  AdHocScenarioState,
+  AdHocSynthesisError,
   Metric,
   PetrinautOptimizationInput,
   PetrinautOptimizationParameterBinding,
@@ -170,6 +177,8 @@ const directionOptions = [
 ];
 
 const OPTIMIZATION_SAMPLER = "tpe" as const;
+const AD_HOC_SCENARIO_VALUE = "__adhoc__";
+const AD_HOC_SCENARIO_LABEL = "No scenario";
 const DEFAULT_DT = 0.1;
 const CUSTOM_OBJECTIVE_METRIC_NAME = "Custom objective";
 const CUSTOM_OBJECTIVE_METRIC_FORM_STATE = {
@@ -299,9 +308,56 @@ export function validateOptimizationParameterDraft(
   return null;
 }
 
+function adHocHasOptimizeSelection(
+  state: AdHocScenarioState,
+  definition: SDCPN,
+): boolean {
+  if (
+    state.variables.some((variable) => variable.optimize !== null) ||
+    state.netParameters.some((entry) => entry.optimize !== null)
+  ) {
+    return true;
+  }
+  const colourById = new Map(definition.types.map((type) => [type.id, type]));
+  return Object.entries(state.places).some(([placeId, place]) => {
+    if (place.kind === "uncoloured") {
+      return place.count.optimize !== null;
+    }
+    const colorId = definition.places.find(
+      (candidate) => candidate.id === placeId,
+    )?.colorId;
+    const elements = colorId ? (colourById.get(colorId)?.elements ?? []) : [];
+    return (
+      place.variables.some((variable) => variable.optimize !== null) ||
+      Object.values(place.sharedColumns).some(
+        (value) => value.optimize !== null,
+      ) ||
+      place.rows.some(
+        (row) =>
+          (row.kind === "template" && row.count.optimize !== null) ||
+          // A shared column supersedes its cells, so a muted cell toggle is
+          // not a selection — synthesis would emit nothing for it.
+          row.cells.some(
+            (cell, column) =>
+              cell.optimize !== null &&
+              !(elements[column] && place.sharedColumns[elements[column].name]),
+          ),
+      )
+    );
+  });
+}
+
+function formatAdHocSynthesisErrors(errors: AdHocSynthesisError[]): string {
+  return errors
+    .map((error) => `${error.source}:${error.itemId} ${error.message}`)
+    .join("\n");
+}
+
 function getConfigurationError({
   name,
   scenario,
+  adHocState,
+  definition,
   drafts,
   objectiveMetricReady,
   missingObjectiveMessage,
@@ -311,7 +367,9 @@ function getConfigurationError({
   maxTime,
 }: {
   name: string;
-  scenario: Scenario;
+  scenario: Scenario | null;
+  adHocState: AdHocScenarioState | null;
+  definition: SDCPN;
   drafts: ParameterDrafts;
   objectiveMetricReady: boolean;
   missingObjectiveMessage: string;
@@ -323,24 +381,31 @@ function getConfigurationError({
   if (name.trim() === "") {
     return "Optimization name is required";
   }
-  if (scenario.scenarioParameters.length === 0) {
-    return "The selected scenario has no parameters to optimize";
-  }
-  if (
-    !scenario.scenarioParameters.some(
-      (parameter) => drafts[parameter.identifier]?.mode === "optimize",
-    )
-  ) {
-    return "Choose at least one scenario parameter to optimize";
-  }
-  for (const parameter of scenario.scenarioParameters) {
-    const error = validateOptimizationParameterDraft(
-      parameter,
-      drafts[parameter.identifier],
-    );
-    if (error) {
-      return error;
+  if (scenario) {
+    if (scenario.scenarioParameters.length === 0) {
+      return "The selected scenario has no parameters to optimize";
     }
+    if (
+      !scenario.scenarioParameters.some(
+        (parameter) => drafts[parameter.identifier]?.mode === "optimize",
+      )
+    ) {
+      return "Choose at least one scenario parameter to optimize";
+    }
+    for (const parameter of scenario.scenarioParameters) {
+      const error = validateOptimizationParameterDraft(
+        parameter,
+        drafts[parameter.identifier],
+      );
+      if (error) {
+        return error;
+      }
+    }
+  } else if (
+    adHocState === null ||
+    !adHocHasOptimizeSelection(adHocState, definition)
+  ) {
+    return "Enable Optimize on at least one value";
   }
   if (!objectiveMetricReady) {
     return missingObjectiveMessage;
@@ -465,6 +530,54 @@ export function buildPetrinautOptimizationInput({
   });
 }
 
+/**
+ * The ad-hoc variant of {@link buildPetrinautOptimizationInput}: the scenario
+ * and its parameter bindings come out of `synthesizeAdHocOptimization`, so
+ * the manifest carries the generated scenario in the model definition and
+ * binds the generated `adhoc.*` parameters to their optimize domains.
+ */
+export function buildAdHocPetrinautOptimizationInput({
+  name,
+  title,
+  definition,
+  scenario,
+  parameterBindings,
+  metric,
+  direction,
+  optimizationSteps,
+  dt,
+  maxTime,
+}: {
+  name: string;
+  title: string;
+  definition: SDCPN;
+  scenario: Scenario;
+  parameterBindings: Record<string, PetrinautOptimizationParameterBinding>;
+  metric: Metric;
+  direction: Direction;
+  optimizationSteps: number;
+  dt: number;
+  maxTime: number;
+}): PetrinautOptimizationInput {
+  return petrinautOptimizationInputSchema.parse({
+    kind: "petrinaut-optimization",
+    version: 1,
+    name,
+    model: {
+      title,
+      definition: {
+        ...definition,
+        scenarios: [scenario],
+        metrics: [metric],
+      },
+    },
+    scenario: { id: scenario.id, parameterBindings },
+    objective: { metricId: metric.id, direction },
+    execution: { seed: PETRINAUT_DEFAULT_SEED, dt, maxTime },
+    study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
+  });
+}
+
 export const CreateOptimizationDrawer = ({
   open,
   onClose,
@@ -475,6 +588,7 @@ export const CreateOptimizationDrawer = ({
   const { extensions, petriNetDefinition, title } = use(SDCPNContext);
   const { requestHirArtifacts } = use(LanguageClientContext);
   const { createOptimization } = use(OptimizationsContext);
+  const { enableAdHocScenarios } = use(UserSettingsContext);
   const scenarios = petriNetDefinition.scenarios ?? [];
   const metrics = petriNetDefinition.metrics ?? [];
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -482,6 +596,7 @@ export const CreateOptimizationDrawer = ({
   );
   const [name, setName] = useState("Optimization");
   const [drafts, setDrafts] = useState<ParameterDrafts>({});
+  const [adHocState, setAdHocState] = useState<AdHocScenarioState | null>(null);
   const [metricSource, setMetricSource] = useState<MetricSource>("saved");
   const [savedMetricId, setSavedMetricId] = useState<string | null>(null);
   const [customMetricId, setCustomMetricId] = useState(() =>
@@ -496,16 +611,26 @@ export const CreateOptimizationDrawer = ({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isAdHoc =
+    enableAdHocScenarios && selectedScenarioId === AD_HOC_SCENARIO_VALUE;
   const selectedScenario = scenarios.find(
     (scenario) => scenario.id === selectedScenarioId,
   );
   const selectedSavedMetric = metrics.find(
     (metric) => metric.id === savedMetricId,
   );
-  const scenarioOptions = scenarios.map((scenario) => ({
-    value: scenario.id,
-    text: scenario.name,
-  }));
+  const scenarioOptions = [
+    ...scenarios.map((scenario) => ({
+      value: scenario.id,
+      text: scenario.name,
+    })),
+    // "No scenario" runs the inline ad-hoc definition; only behind the
+    // Ad-hoc scenarios setting — off, the drawer requires a saved scenario,
+    // as before the feature.
+    ...(enableAdHocScenarios
+      ? [{ value: AD_HOC_SCENARIO_VALUE, text: AD_HOC_SCENARIO_LABEL }]
+      : []),
+  ];
   const metricKindGroups = createMetricKindGroups(petriNetDefinition, {
     includeBuiltIn: false,
   });
@@ -530,6 +655,9 @@ export const CreateOptimizationDrawer = ({
     );
   };
   const renderScenarioLabel = (scenarioId: string, selected = false) => {
+    if (scenarioId === AD_HOC_SCENARIO_VALUE) {
+      return AD_HOC_SCENARIO_LABEL;
+    }
     const scenario = scenarios.find(({ id }) => id === scenarioId);
     return scenario ? (
       <ScenarioSelectLabel scenario={scenario} selected={selected} />
@@ -554,6 +682,7 @@ export const CreateOptimizationDrawer = ({
 
   const resetState = () => {
     setSelectedScenarioId(null);
+    setAdHocState(null);
     resetConfigurationState();
   };
 
@@ -562,28 +691,64 @@ export const CreateOptimizationDrawer = ({
     resetMetricForm: () => void,
     metricAlreadyValidated = false,
   ) => {
-    const validationError = selectedScenario
-      ? getConfigurationError({
-          name,
-          scenario: selectedScenario,
-          drafts,
-          objectiveMetricReady: true,
-          missingObjectiveMessage: "Select an objective metric",
-          direction,
-          optimizationSteps,
-          dt,
-          maxTime,
-        })
-      : "Select a scenario";
+    const validationError =
+      selectedScenario || isAdHoc
+        ? getConfigurationError({
+            name,
+            scenario: selectedScenario ?? null,
+            adHocState: isAdHoc ? (adHocState ?? EMPTY_AD_HOC_STATE) : null,
+            definition: petriNetDefinition,
+            drafts,
+            objectiveMetricReady: true,
+            missingObjectiveMessage: "Select an objective metric",
+            direction,
+            optimizationSteps,
+            dt,
+            maxTime,
+          })
+        : "Select a scenario";
     if (
       isSubmitting ||
-      !selectedScenario ||
+      (!selectedScenario && !isAdHoc) ||
       validationError ||
       direction === null ||
       optimizationSteps === null ||
       dt === null ||
       maxTime === null
     ) {
+      return;
+    }
+
+    // The ad-hoc definition synthesizes into a scenario generated here and
+    // never persisted; its Optimize selections become the generated
+    // `adhoc.*` parameter bindings the manifest carries.
+    let scenarioForRun: Scenario;
+    let adHocBindings: Record<
+      string,
+      PetrinautOptimizationParameterBinding
+    > | null = null;
+    if (isAdHoc) {
+      const synthesized = synthesizeAdHocOptimization(
+        adHocState ?? EMPTY_AD_HOC_STATE,
+        {
+          netParameters: extensions.parameters
+            ? petriNetDefinition.parameters
+            : [],
+          places: petriNetDefinition.places,
+          types: petriNetDefinition.types,
+        },
+      );
+      if (!synthesized.ok) {
+        setError(formatAdHocSynthesisErrors(synthesized.errors));
+        return;
+      }
+      scenarioForRun = synthesized.output.scenario;
+      adHocBindings = adHocOptimizationBindings(
+        synthesized.output.optimizedFields,
+      );
+    } else if (selectedScenario) {
+      scenarioForRun = selectedScenario;
+    } else {
       return;
     }
 
@@ -596,7 +761,7 @@ export const CreateOptimizationDrawer = ({
           requestHirArtifacts,
           sdcpn: {
             ...petriNetDefinition,
-            scenarios: [selectedScenario],
+            scenarios: [scenarioForRun],
           },
           extensions,
           metric,
@@ -608,18 +773,31 @@ export const CreateOptimizationDrawer = ({
         }
       }
 
-      const input = buildPetrinautOptimizationInput({
-        name,
-        title,
-        definition: petriNetDefinition,
-        scenario: selectedScenario,
-        drafts,
-        metric,
-        direction,
-        optimizationSteps,
-        dt,
-        maxTime,
-      });
+      const input = adHocBindings
+        ? buildAdHocPetrinautOptimizationInput({
+            name,
+            title,
+            definition: petriNetDefinition,
+            scenario: scenarioForRun,
+            parameterBindings: adHocBindings,
+            metric,
+            direction,
+            optimizationSteps,
+            dt,
+            maxTime,
+          })
+        : buildPetrinautOptimizationInput({
+            name,
+            title,
+            definition: petriNetDefinition,
+            scenario: scenarioForRun,
+            drafts,
+            metric,
+            direction,
+            optimizationSteps,
+            dt,
+            maxTime,
+          });
       await createOptimization(input);
       resetState();
       resetMetricForm();
@@ -647,14 +825,17 @@ export const CreateOptimizationDrawer = ({
     },
     {
       validateOnSubmit: async (value) => {
-        if (!selectedScenario) {
+        if (!selectedScenario && !isAdHoc) {
           return "Select a scenario";
         }
+        // For the ad-hoc path the generated scenario is synthesized at
+        // submit time; metric code never reads scenarios, so validation
+        // compiles against the model alone.
         return await validateMetricCompiles({
           requestHirArtifacts,
           sdcpn: {
             ...petriNetDefinition,
-            scenarios: [selectedScenario],
+            scenarios: selectedScenario ? [selectedScenario] : [],
           },
           extensions,
           metric: buildMetricFromFormState(value, customMetricId),
@@ -685,22 +866,25 @@ export const CreateOptimizationDrawer = ({
       : customMetricReady;
   const visibleCustomMetricError =
     metricSource === "custom" ? customMetricFormError : undefined;
-  const configurationError = selectedScenario
-    ? getConfigurationError({
-        name,
-        scenario: selectedScenario,
-        drafts,
-        objectiveMetricReady,
-        missingObjectiveMessage:
-          metricSource === "saved"
-            ? "Select an objective metric"
-            : "Define the custom objective metric",
-        direction,
-        optimizationSteps,
-        dt,
-        maxTime,
-      })
-    : "Select a scenario";
+  const configurationError =
+    selectedScenario || isAdHoc
+      ? getConfigurationError({
+          name,
+          scenario: selectedScenario ?? null,
+          adHocState: isAdHoc ? (adHocState ?? EMPTY_AD_HOC_STATE) : null,
+          definition: petriNetDefinition,
+          drafts,
+          objectiveMetricReady,
+          missingObjectiveMessage:
+            metricSource === "saved"
+              ? "Select an objective metric"
+              : "Define the custom objective metric",
+          direction,
+          optimizationSteps,
+          dt,
+          maxTime,
+        })
+      : "Select a scenario";
 
   const handleClose = () => {
     if (submissionInProgress) {
@@ -716,7 +900,12 @@ export const CreateOptimizationDrawer = ({
       return;
     }
     const scenario = scenarios.find(({ id }) => id === scenarioId);
-    setSelectedScenarioId(scenario?.id ?? null);
+    setSelectedScenarioId(
+      scenarioId === AD_HOC_SCENARIO_VALUE
+        ? AD_HOC_SCENARIO_VALUE
+        : (scenario?.id ?? null),
+    );
+    setAdHocState(null);
     resetConfigurationState(scenario);
     customMetricForm.reset();
   };
@@ -795,15 +984,16 @@ export const CreateOptimizationDrawer = ({
                   an optimization.
                 </span>
               ) : null
-            ) : scenarios.length === 0 ? (
+            ) : scenarios.length === 0 && !isAdHoc ? (
               <span className={emptyStyle}>
-                Create a scenario with configurable parameters before starting
-                an optimization.
+                {enableAdHocScenarios
+                  ? `Pick "${AD_HOC_SCENARIO_LABEL}" to define the run inline, or create a scenario with configurable parameters first.`
+                  : "Create a scenario with configurable parameters first."}
               </span>
             ) : null}
           </Section>
 
-          {selectedScenario ? (
+          {selectedScenario || isAdHoc ? (
             <>
               <Section title="Optimization" collapsible defaultOpen>
                 <Form.Field label="Name" size="sm">
@@ -841,34 +1031,62 @@ export const CreateOptimizationDrawer = ({
                 </Form.Row>
               </Section>
 
-              <Section
-                title="Parameters"
-                tooltip="Only scenario parameters can be optimized. The optimizer receives a flat list of identifiers."
-                collapsible
-                defaultOpen
-              >
-                <span className={hintStyle}>
-                  Parameters are fixed by default.
-                  <br />
-                  Enable Optimize and define a domain for every value the
-                  optimizer may vary.
-                </span>
-                <div className={parameterListStyle}>
-                  {selectedScenario.scenarioParameters.map((parameter) => (
-                    <OptimizationParameterRow
-                      key={parameter.identifier}
-                      parameter={parameter}
-                      draft={drafts[parameter.identifier]!}
-                      onChange={(draft) =>
-                        setDrafts((current) => ({
-                          ...current,
-                          [parameter.identifier]: draft,
-                        }))
-                      }
-                    />
-                  ))}
-                </div>
-              </Section>
+              {selectedScenario ? (
+                <Section
+                  title="Parameters"
+                  tooltip="Only scenario parameters can be optimized. The optimizer receives a flat list of identifiers."
+                  collapsible
+                  defaultOpen
+                >
+                  <span className={hintStyle}>
+                    Parameters are fixed by default.
+                    <br />
+                    Enable Optimize and define a domain for every value the
+                    optimizer may vary.
+                  </span>
+                  <div className={parameterListStyle}>
+                    {selectedScenario.scenarioParameters.map((parameter) => (
+                      <OptimizationParameterRow
+                        key={parameter.identifier}
+                        parameter={parameter}
+                        draft={drafts[parameter.identifier]!}
+                        onChange={(draft) =>
+                          setDrafts((current) => ({
+                            ...current,
+                            [parameter.identifier]: draft,
+                          }))
+                        }
+                      />
+                    ))}
+                  </div>
+                </Section>
+              ) : (
+                <Section
+                  title="Initial state and parameters"
+                  tooltip="Defined inline for this optimization and never saved as a scenario. Every Optimize selection becomes a generated parameter the optimizer varies."
+                  collapsible
+                  defaultOpen
+                >
+                  <span className={hintStyle}>
+                    Values are fixed expressions by default.
+                    <br />
+                    Enable Optimize and define a domain for every value the
+                    optimizer may vary.
+                  </span>
+                  <AdHocScenarioForm
+                    state={adHocState ?? EMPTY_AD_HOC_STATE}
+                    onChange={setAdHocState}
+                    context={{
+                      netParameters: extensions.parameters
+                        ? petriNetDefinition.parameters
+                        : [],
+                      places: petriNetDefinition.places,
+                      types: extensions.colors ? petriNetDefinition.types : [],
+                    }}
+                    selection="optimize"
+                  />
+                </Section>
+              )}
 
               <Section title="Objective" collapsible defaultOpen>
                 <span className={hintStyle}>
@@ -920,13 +1138,13 @@ export const CreateOptimizationDrawer = ({
       <Drawer.Footer
         secondaryActions={
           error ||
-          (selectedScenario ? configurationError : null) ||
+          (selectedScenario || isAdHoc ? configurationError : null) ||
           visibleCustomMetricError ? (
             <Form.Field.Errors
               className={errorsStyle}
               errors={[
                 error ??
-                  (selectedScenario ? configurationError : null) ??
+                  (selectedScenario || isAdHoc ? configurationError : null) ??
                   visibleCustomMetricError,
               ]}
               size="sm"

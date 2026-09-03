@@ -44,6 +44,26 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 Replaces the tabbed left sidebar with a unified **tree view** showing all entities (nodes, types, equations, parameters) in a single hierarchy.
 
+### Ad-hoc scenarios (experimental)
+
+Off by default. Enables the [ad-hoc scenario form](ad-hoc-scenarios.md): defining initial state and parameters inline in Simulation Settings, the experiment and optimization drawers, and the scenario creation form. Off, "No scenario" everywhere means the model's own initial marking, as before.
+
+### WebGPU (experimental)
+
+Off by default. Offers a GPU option when creating an experiment; each experiment then chooses its own backend. See [Compute backend](experiments.md#compute-backend-experimental).
+
+### Compilation output (experimental)
+
+Off by default. Adds a [Compilation](compilation-output.md) tab to the bottom panel.
+
+### Parameter sweeps (experimental)
+
+Off by default. Adds a **Sweep** toggle to every numeric scenario parameter in the experiment form, so an experiment can explore an interval instead of one value. See [Parameter sweeps](experiments.md#parameter-sweeps).
+
+### Optimization surface (experimental)
+
+Off by default. Adds a **Surface** section to an optimization study with two or more optimized numeric parameters, computed locally on your machine. See [The surface view](optimization.md#the-surface-view).
+
 ### Arcs rendering
 
 Choose how arcs are drawn between nodes:

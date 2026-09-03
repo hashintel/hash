@@ -1,0 +1,156 @@
+---
+title: Usage manual
+description: Creating a command registry, registering commands from React and from plain code, merging registries, and rendering a palette.
+attachTo: core.command-registry
+sidebar_order: 10
+---
+
+A command is a labelled, argument-free action a person picks from a list:
+"Undo", "Add a place", "Auto-layout the net". The registry in
+`petrinaut-core/src/command-registry/command-registry.ts` holds the current
+set. The editor writes to it from components; the host reads it and renders
+a palette. Petrinaut ships no palette.
+
+![Who writes to the registry and who reads it](@diagrams/command-registry-flow.svg)
+
+## The model
+
+```ts
+interface Command {
+  id: string; // stable and namespaced: "petrinaut.edit.undo", "demo.net.new"
+  label: string;
+  category?: string;
+  keywords?: readonly string[];
+  shortcut?: string; // display only, e.g. "mod+shift+z"
+  run: () => void;
+}
+
+interface CommandRegistryView {
+  list: () => readonly Command[];
+  execute: (id: string) => boolean;
+  subscribe: (listener: () => void) => () => void;
+}
+
+interface CommandRegistry extends CommandRegistryView {
+  register: (command: Command) => () => void;
+}
+```
+
+- Registering an id again replaces the entry in place, so a relabelled
+  command keeps its position in the list.
+- `register` returns a disposer. Once the id has been re-registered, the old
+  disposer does nothing, so a stale cleanup cannot remove a newer entry.
+- `list()` returns the same array until the set changes, which is what
+  `useSyncExternalStore` requires of a snapshot.
+- `shortcut` is metadata for keycaps. The registry binds no keys; the
+  editor's keyboard handler still dispatches them.
+
+## Create and provide a registry
+
+Wrap the editor in `CommandRegistryProvider` from `@hashintel/petrinaut/react`,
+the [React bindings](layer:react.commands). Without a `registry` prop the
+provider creates one. The editor's commands register into whichever registry
+is ambient.
+
+```tsx
+<CommandRegistryProvider>
+  <Petrinaut handle={handle} />
+  <MyPalette />
+</CommandRegistryProvider>
+```
+
+To share one registry with code outside the tree, create it and pass it in:
+
+```tsx
+const registry = createCommandRegistry(); // from @hashintel/petrinaut-core
+
+<CommandRegistryProvider registry={registry}>…</CommandRegistryProvider>;
+```
+
+## Register from a component
+
+```tsx
+useCommand({
+  id: "demo.net.new",
+  label: "Create a new empty net",
+  category: "Demo",
+  run: () => createNewNet(),
+});
+
+useCommand(
+  {
+    id: "demo.counter.reset",
+    label: "Reset the counter",
+    run: () => setCount(0),
+  },
+  { when: count > 0 },
+);
+```
+
+- The command is registered while the component is mounted and removed on
+  unmount.
+- `when` is a boolean computed during render. The command leaves the
+  registry when it turns false and returns when it turns true.
+- `run` always sees the latest render. The registration is replaced only
+  when the id, label, category, keywords, or shortcut change, so subscribers
+  are not notified on every render.
+- Outside a provider the hook does nothing: a component can declare commands
+  whether or not the host renders a palette.
+
+The editor declares its own commands this way in `use-editor-commands.ts`,
+from a null-rendering leaf so their context subscriptions re-render nothing
+else.
+
+## Register without React
+
+Plain code registers imperatively and keeps the disposer:
+
+```ts
+const dispose = registry.register({
+  id: "host.net.auto-layout",
+  label: "Auto-layout the net",
+  run: () => void instance.commands.applyAutoLayout(),
+});
+```
+
+The editor registers its own auto-layout command from `use-editor-commands.ts`,
+gated on edit mode, so a host embedding the full editor needs none of this.
+
+## Merge registries
+
+A host with several command sources renders one list over
+`combineCommandRegistries(a, b)`: a read view whose `list` concatenates the
+sources, `execute` tries each in turn, and `subscribe` forwards their
+notifications. Writes stay on the sources.
+
+## Render a palette
+
+```tsx
+const registry = useCommandRegistry();
+const commands = useCommands();
+
+{
+  commands.map((command) => (
+    <button key={command.id} onClick={() => registry?.execute(command.id)}>
+      {command.label}
+      {command.shortcut
+        ? formatShortcutKeys(command.shortcut).map((key) => (
+            <kbd key={key}>{key}</kbd>
+          ))
+        : null}
+    </button>
+  ));
+}
+```
+
+- `useCommands()` re-renders the palette when the set changes. Run entries
+  through `execute(id)` rather than a captured `run`, so the current
+  registration runs.
+- `formatShortcutKeys("mod+shift+z")` gives `["⌘", "⇧", "Z"]` on Apple
+  platforms and `["Ctrl", "Shift", "Z"]` elsewhere. Pass `{ apple }` to pin
+  the platform.
+- The opener chord (⌘K in the examples) is the host's binding.
+
+Two reference palettes exist: the `Commands / Command palette` story (`yarn
+workspace @hashintel/petrinaut storybook`) and the demo website's ⌘K palette
+in `apps/petrinaut-website/src/main/app/command-palette.tsx`.

@@ -36,6 +36,7 @@ import type {
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 
 interface EntityTypeHeaderProps {
+  canInstantiate: boolean;
   currentVersion: OntologyTypeVersion;
   entityTypeSchema: EntityType;
   isArchived: boolean;
@@ -47,6 +48,7 @@ interface EntityTypeHeaderProps {
 }
 
 export const EntityTypeHeader = ({
+  canInstantiate,
   currentVersion,
   entityTypeSchema,
   isArchived,
@@ -246,7 +248,8 @@ export const EntityTypeHeader = ({
               {isLink && <EntityTypeInverse readonly={isReadonly} />}
             </Stack>
           </Stack>
-          {!isDraft && !isArchived ? (
+          {/* Extending requires permission to instantiate the parent type */}
+          {!isDraft && !isArchived && canInstantiate ? (
             <Button
               onClick={() => setShowExtendTypeModal(true)}
               variant="secondary"

@@ -1,0 +1,51 @@
+{
+  "package": "@apps/brunch-agent",
+  "dependencies": [
+    "@hashintel/brunch-agent-binding-flue",
+    "@hashintel/brunch-agent-transport-aisdk",
+    "@hashintel/petrinaut-core"
+  ],
+  "tasks": {
+    "build": [
+      "@hashintel/brunch-agent-binding-flue#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/petrinaut-core#build"
+    ],
+    "dev": [
+      "@hashintel/brunch-agent-binding-flue#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/petrinaut-core#build"
+    ],
+    "fix:eslint": [
+      "@hashintel/brunch-agent-binding-flue#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@hashintel/brunch-agent-binding-flue#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@hashintel/brunch-agent-binding-flue#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/petrinaut-core#build"
+    ],
+    "petrinaut:dev": [
+      "@hashintel/brunch-agent-binding-flue#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/petrinaut-core#build"
+    ],
+    "test:unit": [
+      "@apps/brunch-agent#build",
+      "@hashintel/brunch-agent#build",
+      "@hashintel/brunch-agent-binding-flue#build",
+      "@hashintel/brunch-agent-plugin-gherkin#build",
+      "@hashintel/brunch-agent-plugin-sdcpn#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/petrinaut-core#build"
+    ]
+  }
+}

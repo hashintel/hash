@@ -3,6 +3,11 @@ export { AvatarGroup } from "./components/AvatarGroup/avatar-group";
 export { Badge } from "./components/Badge/badge";
 export { BaseBadge } from "./components/Badge/base-badge";
 export { Banner } from "./components/Banner/banner";
+export {
+  type BreadcrumbItemProps,
+  BreadCrumbs,
+  type BreadcrumbSubItem,
+} from "./components/Breadcumbs/breadcrumbs";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { ButtonGroup } from "./components/ButtonGroup/button-group";
 export { CharacterCount } from "./components/CharacterCount/character-count";

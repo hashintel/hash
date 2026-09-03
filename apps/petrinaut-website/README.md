@@ -7,7 +7,8 @@ role: Demo site and embed host for the Petrinaut editor
 
 A website for demoing Petrinaut (libs/@hashintel/petrinaut).
 
-A SPA with API functions for AI assistance and JSON oEmbed discovery.
+A SPA with API functions for AI assistance, voice initialization, and JSON
+oEmbed discovery.
 
 ## Quickstart
 
@@ -18,7 +19,7 @@ cp .env.example .env.local
 turbo run dev
 ```
 
-The dev server runs at [http://localhost:5173](http://localhost:5173). A plugin in `vite.config.ts` loads the API function.
+The dev server runs at [http://localhost:5173](http://localhost:5173). A plugin in `vite.config.ts` loads the API functions.
 
 In production, the functions in the `api` folder are automatically deployed as
 Vercel Functions.
@@ -43,10 +44,10 @@ use provider-pattern discovery instead.
 From the repository root, run:
 
 ```sh
-yarn dev:petrinaut-optimization
+turbo run dev --filter @apps/petrinaut-website -- --with-optimizer-service
 ```
 
-This builds and starts the local Petrinaut Opt Docker image, waits for its
+The flag builds and starts the local Petrinaut Opt Docker image, waits for its
 health endpoint, and starts the website with the real optimization provider.
 Open [http://localhost:5173/optimization](http://localhost:5173/optimization).
 Stopping the command also stops and removes its optimizer container.
@@ -60,15 +61,88 @@ provides a fake optimizer for isolated UI development.
 
 ## Environment variables
 
-| Name                          | Required         | Used by          | Notes                                                     |
-| ----------------------------- | ---------------- | ---------------- | --------------------------------------------------------- |
-| `OPENAI_API_KEY`              | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.        |
-| `PETRINAUT_AI_MODEL`          | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                    |
-| `PETRINAUT_OPT_ORIGIN`        | no               | `vite.config.ts` | Overrides the local optimizer proxy target.               |
-| `VITE_PETRINAUT_OPT_PROVIDER` | no               | website          | Set to `service` to enable the optimization route.        |
-| `SENTRY_DSN`                  | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time. |
+| Name                             | Required         | Used by          | Notes                                                      |
+| -------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------- |
+| `OPENAI_API_KEY`                 | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.         |
+| `OPENAI_VOICE_API_KEY`           | for voice        | voice API        | Dedicated OpenAI key used to create Realtime WebRTC calls. |
+| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice outside production.          |
+| `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                     |
+| `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.                |
+| `VITE_BRUNCH_CHAT_ENDPOINT`      | for voice input  | website          | Full Brunch Petrinaut chat endpoint used by the panel.     |
+| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the optimization route.         |
+| `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.  |
 
-Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the chat function. In production, set these in the Vercel project settings.
+Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
+
+### Brunch Voice mode preview
+
+Voice mode is disabled by default and always unavailable when `VERCEL_ENV` is
+`production`. To exercise the preview locally or in a Vercel preview, set a
+real `VITE_BRUNCH_CHAT_ENDPOINT`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a
+dedicated `OPENAI_VOICE_API_KEY`.
+
+Text and Voice mode use one assistant transcript and composer. When Voice mode
+is available, the empty first-run prompt and empty composer show a waveform
+action; non-whitespace text replaces it with **Send**, and a busy assistant
+shows **Stop**. Starting Voice mode opens an inline, versioned consent
+disclosure before requesting microphone access. The disclosure also provides a
+microphone check and is remembered in browser storage only after Voice mode
+starts.
+
+An active session stays at the end of the transcript. Its compact divider shows
+a waveform and **Connecting**, **Listening**, **Speaking**, **Paused**, or a
+recovery state. Listening levels follow microphone input; provisional words
+appear immediately above the divider in an ephemeral user-style bubble. The
+bubble is replaced by the finalized message or pending-question tool output,
+which retains a waveform indicator without duplicating the answer. Provisional
+transcription and Realtime audio are not persisted as chat history.
+
+The text composer remains available. Sending typed text ends Voice mode first,
+then submits the draft exactly once through the same conversation; a failed
+handoff restores the draft. Closing the assistant pauses capture and speech
+before hiding it. Reopening preserves the mounted session in **Paused** state.
+**Pause** and **End voice mode** live under **Voice mode actions**, while
+**Resume** or **Reconnect** appears as the primary action when applicable.
+
+The browser sends its SDP offer to this app; the server initializes a trusted
+`gpt-realtime-2` audio-input/audio-output session through OpenAI's unified
+Realtime call endpoint. The provider key, model, instructions, tools, language,
+and vocabulary policy stay server-side. The session uses semantic VAD with low
+eagerness so natural thinking pauses are less likely to end an answer early.
+
+Realtime is the disposable media plane: it carries continuous microphone and
+remote audio, detects complete turns, and handles barge-in. Brunch remains the
+control plane and sole authority for questions, captures, state, completion,
+and durable history. The browser bridge accepts only the configured
+`continue_interview` function, validates and serializes its arguments, rejects
+duplicate or stale calls, and submits the answer through Petrinaut's shared
+composer path with pending-`brunch_ask` correlation.
+
+The bridge waits for the correlated Brunch turn before returning canonical
+speech segments to Realtime. It then requests audio with tools disabled and
+instructs Realtime to speak only those segments. Generated audio is not a
+verbatim record: canonical Brunch text remains visible and authoritative. The
+microphone stays active while the interviewer speaks and while Brunch is
+working. Speaking over assistant audio interrupts playback automatically;
+WebRTC truncates provider-side unheard audio without changing Brunch history.
+
+The Brunch deployment must allow the website origin through its
+`BRUNCH_PETRINAUT_ORIGINS` setting. Denying microphone permission leaves the
+text composer available and submits nothing to Brunch. When Voice mode cannot
+continue, the inline recovery state distinguishes microphone, connection, and
+other Voice failures, explains the next action, and offers **Reconnect** where
+appropriate. Sanitized error codes and diagnostic references remain collapsed
+under **Technical details**.
+
+Realtime connection, transcription, and canonical speech timings use random
+request IDs, and the existing Brunch transport provides its own request
+correlation. Browser and server diagnostics report only operation, stage,
+outcome, duration, request ID, and—where applicable—status or a sanitized error
+code. Voice responses also expose privacy-safe `Server-Timing` metrics. These
+diagnostics never record audio, SDP, transcript or prompt contents, canonical
+speech text, credentials, or provider response bodies. This controlled-preview
+evidence does not enable production: production remains unconditionally
+disabled by the server policy.
 
 ## Testing the API against the built output
 

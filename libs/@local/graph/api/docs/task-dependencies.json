@@ -1,0 +1,46 @@
+{
+  "package": "@rust/hash-graph-api",
+  "dependencies": [
+    "@blockprotocol/type-system-rs",
+    "@rust/error-stack",
+    "@rust/harpc-client",
+    "@rust/harpc-codec",
+    "@rust/harpc-server",
+    "@rust/harpc-system",
+    "@rust/harpc-tower",
+    "@rust/harpc-types",
+    "@rust/hash-codec",
+    "@rust/hash-graph-authentication",
+    "@rust/hash-graph-authorization",
+    "@rust/hash-graph-embeddings",
+    "@rust/hash-graph-postgres-store",
+    "@rust/hash-graph-store",
+    "@rust/hash-graph-temporal-versioning",
+    "@rust/hash-graph-type-fetcher",
+    "@rust/hash-graph-types",
+    "@rust/hash-graph-validation",
+    "@rust/hash-middleware",
+    "@rust/hash-status",
+    "@rust/hash-temporal-client",
+    "@rust/hashql-ast",
+    "@rust/hashql-core",
+    "@rust/hashql-diagnostics",
+    "@rust/hashql-eval",
+    "@rust/hashql-hir",
+    "@rust/hashql-mir",
+    "@rust/hashql-syntax-jexpr"
+  ],
+  "tasks": {
+    "build:openapi": [
+      "@local/status#build"
+    ],
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:unit": [
+      "@local/status#build"
+    ]
+  }
+}

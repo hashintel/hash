@@ -14,7 +14,9 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
+  cafeQueue,
   deploymentPipelineSDCPN,
+  dronePatrol,
   probabilisticSatellitesSDCPN,
   productionMachines,
   sirModel,
@@ -30,6 +32,7 @@ import { useEffectiveGlobalMode } from "../../../react/state/use-effective-globa
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { VoiceSessionProvider } from "../../../react/voice-session/provider";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import {
@@ -52,8 +55,10 @@ import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 import { SimulateView } from "./panels/SimulateView/simulate-view";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
+import { EditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
+import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
 import type { ViewportAction } from "../../types/viewport-action";
 
@@ -159,6 +164,8 @@ export const EditorView = ({
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
     string | null
   >(null);
+  const [pendingAiInteractionMode, setPendingAiInteractionMode] =
+    useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
 
   const {
@@ -374,6 +381,22 @@ export const EditorView = ({
                 },
               },
               {
+                id: "load-example-cafe-queue",
+                text: "Café Queue",
+                onClick: () => {
+                  createNewNet(cafeQueue);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-drone-patrol",
+                text: "Drone Patrol",
+                onClick: () => {
+                  createNewNet(dronePatrol);
+                  clearSelection();
+                },
+              },
+              {
                 id: "load-example-deployment-pipeline",
                 text: "Deployment Pipeline",
                 onClick: () => {
@@ -439,6 +462,7 @@ export const EditorView = ({
 
   return (
     <>
+      <EditorCommands />
       <ImportErrorDialog
         open={importError !== null}
         onOpenChange={({ open }) => {
@@ -468,59 +492,73 @@ export const EditorView = ({
         slots={slots}
       />
 
-      <Stack direction="row" className={rowContainerStyle}>
-        {effectiveMode === "simulate" ? (
-          <SimulateView />
-        ) : effectiveMode === "notebook" ? (
-          <NotebookView key={petriNetId ?? "no-net"} />
-        ) : (
-          <Box className={canvasContainerStyle}>
-            {/* Left Sidebar - Tools and content panels */}
-            <LeftSideBar />
+      {/* Voice session state is shared between the assistant panel that owns
+          the session and the toolbar segment that controls it. */}
+      <VoiceSessionProvider>
+        <Stack direction="row" className={rowContainerStyle}>
+          {effectiveMode === "simulate" ? (
+            <SimulateView />
+          ) : effectiveMode === "notebook" ? (
+            <NotebookView key={petriNetId ?? "no-net"} />
+          ) : (
+            <Box className={canvasContainerStyle}>
+              {/* Left Sidebar - Tools and content panels */}
+              <LeftSideBar />
 
-            {/* Properties Panel - Right Side */}
-            <PropertiesPanel />
+              {/* Properties Panel - Right Side */}
+              <PropertiesPanel />
 
-            {/* SDCPN Visualization */}
-            <SDCPNView viewportActions={viewportActions} />
+              {/* SDCPN Visualization */}
+              <SDCPNView viewportActions={viewportActions} />
 
-            {showEmptyAiHero && (
-              <AiCtaModal
-                bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
-                onDismiss={() => setIsAiCtaDismissed(true)}
-                onSubmit={(message) => {
-                  setPendingAiAssistantMessage(message);
-                  setAiAssistantOpen(true);
-                }}
+              {showEmptyAiHero && (
+                <AiCtaModal
+                  bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
+                  onDismiss={() => setIsAiCtaDismissed(true)}
+                  onStartVoiceMode={() => {
+                    setPendingAiInteractionMode("voice");
+                    setAiAssistantOpen(true);
+                  }}
+                  onSubmit={(message) => {
+                    setPendingAiAssistantMessage(message);
+                    setPendingAiInteractionMode("text");
+                    setAiAssistantOpen(true);
+                  }}
+                  voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
+                />
+              )}
+
+              {/* Bottom Panel */}
+              <BottomPanel />
+
+              <BottomBar
+                mode={effectiveMode}
+                editionMode={editionMode}
+                onEditionModeChange={setEditionMode}
+                cursorMode={cursorMode}
+                onCursorModeChange={setCursorMode}
+                hasAiAssistant={aiAssistant !== undefined}
               />
-            )}
 
-            {/* Bottom Panel */}
-            <BottomPanel />
-
-            <BottomBar
-              mode={effectiveMode}
-              editionMode={editionMode}
-              onEditionModeChange={setEditionMode}
-              cursorMode={cursorMode}
-              onCursorModeChange={setCursorMode}
-              hasAiAssistant={aiAssistant !== undefined}
-            />
-
-            {aiAssistant && (
-              <AiAssistantPanel
-                /** Reset state (e.g. initial messages) when the active net changes */
-                key={petriNetId ?? "no-net"}
-                aiAssistant={aiAssistant}
-                initialMessage={pendingAiAssistantMessage}
-                onInitialMessageConsumed={() =>
-                  setPendingAiAssistantMessage(null)
-                }
-              />
-            )}
-          </Box>
-        )}
-      </Stack>
+              {aiAssistant && (
+                <AiAssistantPanel
+                  /** Reset state (e.g. initial messages) when the active net changes */
+                  key={petriNetId ?? "no-net"}
+                  aiAssistant={aiAssistant}
+                  initialMessage={pendingAiAssistantMessage}
+                  initialInteractionMode={pendingAiInteractionMode}
+                  onInitialMessageConsumed={() =>
+                    setPendingAiAssistantMessage(null)
+                  }
+                  onInitialInteractionModeConsumed={() =>
+                    setPendingAiInteractionMode(null)
+                  }
+                />
+              )}
+            </Box>
+          )}
+        </Stack>
+      </VoiceSessionProvider>
 
       <SimulationCreationDrawer />
     </>

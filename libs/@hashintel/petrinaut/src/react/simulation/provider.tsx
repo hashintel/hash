@@ -8,6 +8,8 @@ import { use, useEffect, useRef, useState } from "react";
 import {
   createSimulation,
   compileScenario,
+  synthesizeAdHocScenario,
+  type AdHocScenarioState,
   type ReadableStore,
   type Scenario,
   type ScenarioCompilationError,
@@ -25,6 +27,7 @@ import { LanguageClientContext } from "../lsp/context";
 import { usePetrinautNavigation } from "../navigation";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
+import { UserSettingsContext } from "../state/user-settings-context";
 import { useStore } from "../use-store";
 import {
   type InitialMarking,
@@ -54,6 +57,8 @@ type SimulationStateValues = {
   selectedScenarioId: string | null | undefined;
   /** User-editable scenario parameter values (identifier → string value). */
   scenarioParameterValues: Record<string, string>;
+  /** Inline definition used when no scenario is selected; never persisted. */
+  adHocScenario: AdHocScenarioState | null;
   dt: number;
   maxTime: number | null;
 };
@@ -82,6 +87,7 @@ function createInitialStateValues(options?: {
     initialMarking: {},
     selectedScenarioId: options?.selectedScenarioId,
     scenarioParameterValues: {},
+    adHocScenario: null,
     dt: 0.01,
     maxTime: null,
   };
@@ -176,6 +182,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const navigation = usePetrinautNavigation();
   const { extensions, petriNetDefinition } = sdcpnContext;
   const { addNotification } = use(NotificationsContext);
+  // Gates the inline ad-hoc definition end to end: with the setting off, a
+  // definition kept in state (typed while it was on) must not steer runs
+  // the pre-feature UI no longer shows it in.
+  const { enableAdHocScenarios } = use(UserSettingsContext);
 
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
@@ -318,6 +328,15 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       );
     };
 
+  const setAdHocScenario: SimulationContextValue["setAdHocScenario"] = (
+    adHocScenario,
+  ) => {
+    if (stateValuesRef.current.adHocScenario !== adHocScenario) {
+      invalidateSimulationForConfigurationChange();
+    }
+    setStateValues((prev) => ({ ...prev, adHocScenario }));
+  };
+
   const setScenarioParameterValue: SimulationContextValue["setScenarioParameterValue"] =
     (identifier, value) => {
       if (
@@ -423,7 +442,18 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       ? currentState.parameterValues
       : {};
     // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-    const scenarioToCompile = tweakedScenarioRef.current;
+    const scenarioToCompile = scenarioToCompileRef.current;
+
+    // Refused before anything is torn down: a definition that does not
+    // compile leaves the run that is already going, and only reports.
+    if (scenarioToCompile?.kind === "invalid") {
+      const refusal = new Error(
+        `The inline initial state does not compile:\n${scenarioToCompile.messages.join("\n")}`,
+      );
+      setError(refusal.message);
+      setErrorItemId(null);
+      throw refusal;
+    }
 
     // Dispose any active simulation before starting a new one. Update both
     // the ref and React state so same-tick callers see the cleared handle.
@@ -442,17 +472,28 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       let initialMarking = manualInitialMarking;
       let parameterValues: Record<string, string> = manualParameterValues;
       if (scenarioToCompile) {
-        const scenarioHir = await requestScenarioHir({
-          parameterOverrides: scenarioToCompile.parameterOverrides,
-          initialState: scenarioToCompile.initialState,
-        });
+        const scenarioHir = await requestScenarioHir(
+          {
+            parameterOverrides: scenarioToCompile.scenario.parameterOverrides,
+            initialState: scenarioToCompile.scenario.initialState,
+          },
+          // A persisted ad-hoc scenario synthesizes against the net inside
+          // the worker; other kinds ignore the context.
+          {
+            netParameters: simulationExtensions.parameters
+              ? sdcpn.parameters
+              : [],
+            places: sdcpn.places,
+            types: sdcpn.types,
+          },
+        );
         if (initializationGenerationRef.current !== generation) {
           return;
         }
         const outcome = compileScenario(
-          scenarioToCompile,
+          scenarioToCompile.scenario,
           scenarioHir,
-          simulationExtensions.parameters ? sdcpn.parameters : [],
+          scenarioToCompile.netParameters,
           sdcpn.places,
           sdcpn.types,
         );
@@ -634,10 +675,42 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         (s) => s.id === effectiveSelectedScenarioId,
       )
     : undefined;
+
+  // No scenario selected: the ad-hoc definition compiles through a scenario
+  // generated here and never persisted. The panel's parameter inputs stay
+  // the owner of parameter values, so the net parameters are tweaked to the
+  // panel's values before expressions read them.
+  const adHocNetParameters = extensions.parameters
+    ? petriNetDefinition.parameters.map((parameter) => ({
+        ...parameter,
+        defaultValue:
+          stateValues.parameterValues[parameter.variableName] ??
+          parameter.defaultValue,
+      }))
+    : [];
+  const adHocSynthesized =
+    enableAdHocScenarios && !selectedScenario && stateValues.adHocScenario
+      ? synthesizeAdHocScenario(stateValues.adHocScenario, {
+          netParameters: adHocNetParameters,
+          places: petriNetDefinition.places,
+          types: petriNetDefinition.types,
+        })
+      : null;
+
   // Scenario code is lowered to HIR in the language worker (async, keyed on
   // the scenario's code); type checking and interpretation run synchronously
   // during render below. React Compiler will memoize based on inputs.
-  const scenarioHirState = useScenarioHir(selectedScenario);
+  const scenarioHirState = useScenarioHir(
+    selectedScenario ??
+      (adHocSynthesized?.ok ? adHocSynthesized.scenario : undefined),
+    // A persisted ad-hoc scenario synthesizes in the worker against the
+    // net context; the quick-sim definition was synthesized above already.
+    {
+      netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
+      places: petriNetDefinition.places,
+      types: petriNetDefinition.types,
+    },
+  );
 
   // Build a scenario with user-tweaked parameter values.
   const tweakedScenario = selectedScenario
@@ -681,6 +754,40 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }
     // While lowering is in flight both stay null: the scenario is neither
     // applied nor failing for this render, matching a just-selected scenario.
+  } else if (adHocSynthesized) {
+    if (!adHocSynthesized.ok) {
+      scenarioCompilationErrors = adHocSynthesized.errors.map(
+        (synthesisError) => ({
+          source:
+            synthesisError.source === "netParameter"
+              ? ("parameterOverride" as const)
+              : ("initialState" as const),
+          itemId: synthesisError.itemId,
+          message: synthesisError.message,
+        }),
+      );
+    } else if (scenarioHirState.error !== null) {
+      scenarioCompilationErrors = [
+        {
+          source: "initialState",
+          itemId: "__lowering__",
+          message: `Scenario code could not be compiled: ${scenarioHirState.error}`,
+        },
+      ];
+    } else if (scenarioHirState.hir !== null) {
+      const outcome = compileScenario(
+        adHocSynthesized.scenario,
+        scenarioHirState.hir,
+        adHocNetParameters,
+        petriNetDefinition.places,
+        petriNetDefinition.types,
+      );
+      if (outcome.ok) {
+        compiledScenarioResult = outcome.result;
+      } else {
+        scenarioCompilationErrors = outcome.errors;
+      }
+    }
   }
 
   // When a scenario is compiled, override parameterValues and initialMarking
@@ -700,8 +807,37 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     };
   }
 
-  // Snapshot for `initialize`, which compiles the scenario itself.
-  const tweakedScenarioRef = useLatest(tweakedScenario);
+  // Snapshot for `initialize`, which compiles the scenario itself: the
+  // saved (tweaked) scenario, or the quick-sim ad-hoc definition already
+  // synthesized above — a run must consume the same definition AND the
+  // same net parameters the render preview compiled with (the ad-hoc
+  // preview overlays the panel's values onto the defaults).
+  const scenarioToCompileRef = useLatest(
+    tweakedScenario
+      ? {
+          kind: "scenario" as const,
+          scenario: tweakedScenario,
+          netParameters: extensions.parameters
+            ? petriNetDefinition.parameters
+            : [],
+        }
+      : adHocSynthesized
+        ? adHocSynthesized.ok
+          ? {
+              kind: "scenario" as const,
+              scenario: adHocSynthesized.scenario,
+              netParameters: adHocNetParameters,
+            }
+          : // A broken inline definition must refuse to run — falling back
+            // to the manual marking would silently ignore what was typed.
+            {
+              kind: "invalid" as const,
+              messages: adHocSynthesized.errors.map(
+                (synthesisError) => synthesisError.message,
+              ),
+            }
+        : null,
+  );
 
   const contextValue: SimulationContextValue = {
     state: simulationState,
@@ -713,6 +849,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     scenarioParameterValues: effectiveScenarioParameterValues,
     compiledScenarioResult,
     scenarioCompilationErrors,
+    adHocScenario: stateValues.adHocScenario,
+    adHocNetParameters,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,
     totalFrames,
@@ -720,6 +858,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     getAllFrames: useStableCallback(getAllFrames),
     getFramesInRange: useStableCallback(getFramesInRange),
     setSelectedScenarioId: useStableCallback(setSelectedScenarioId),
+    setAdHocScenario: useStableCallback(setAdHocScenario),
     setScenarioParameterValue: useStableCallback(setScenarioParameterValue),
     setInitialMarking: useStableCallback(setInitialMarking),
     setParameterValue: useStableCallback(setParameterValue),

@@ -201,33 +201,41 @@ describe("enumerateWeightedMarkingIndices", () => {
 });
 
 describe("enumerateWeightedMarkingIndicesGenerator", () => {
+  /**
+   * The generator reuses its yielded arrays between iterations, so collecting
+   * a sequence must clone each marking as it arrives.
+   */
+  function collectMarkings(
+    places: { count: number; weight: number }[],
+  ): number[][][] {
+    return Array.from(
+      enumerateWeightedMarkingIndicesGenerator(places),
+      (marking) => marking.map((combo) => [...combo]),
+    );
+  }
   it("yields [[]] when no places are provided", () => {
-    const iterator = enumerateWeightedMarkingIndicesGenerator([]);
-    expect(Array.from(iterator)).toEqual([[]]);
+    expect(collectMarkings([])).toEqual([[]]);
   });
 
   it("yields nothing when a weight exceeds the token count", () => {
-    const iterator = enumerateWeightedMarkingIndicesGenerator([
-      { count: 2, weight: 3 },
-    ]);
-    expect(Array.from(iterator)).toEqual([]);
+    expect(collectMarkings([{ count: 2, weight: 3 }])).toEqual([]);
   });
 
   it("handles single place with weight 0", () => {
     const places = [{ count: 3, weight: 0 }];
-    const result = Array.from(enumerateWeightedMarkingIndicesGenerator(places));
+    const result = collectMarkings(places);
     expect(result).toEqual([[[]]]);
   });
 
   it("handles single place with single token", () => {
     const places = [{ count: 1, weight: 1 }];
-    const result = Array.from(enumerateWeightedMarkingIndicesGenerator(places));
+    const result = collectMarkings(places);
     expect(result).toEqual([[[0]]]);
   });
 
   it("generates all 2-combinations from 3 tokens in single place", () => {
     const places = [{ count: 3, weight: 2 }];
-    const result = Array.from(enumerateWeightedMarkingIndicesGenerator(places));
+    const result = collectMarkings(places);
 
     expect(result).toEqual([[[0, 1]], [[0, 2]], [[1, 2]]]);
   });
@@ -238,7 +246,7 @@ describe("enumerateWeightedMarkingIndicesGenerator", () => {
       { count: 3, weight: 2 },
     ];
 
-    const result = Array.from(enumerateWeightedMarkingIndicesGenerator(places));
+    const result = collectMarkings(places);
 
     // First place combinations: [0,1], [0,2], [1,2]
     // Second place combinations: [0,1], [0,2], [1,2]
@@ -291,7 +299,7 @@ describe("enumerateWeightedMarkingIndicesGenerator", () => {
       { count: 3, weight: 1 }, // combinations: [0], [1], [2]
     ];
 
-    const result = Array.from(enumerateWeightedMarkingIndicesGenerator(places));
+    const result = collectMarkings(places);
 
     // Expected: 2 × 1 × 3 = 6 combinations
     expect(result).toEqual([
@@ -310,7 +318,7 @@ describe("enumerateWeightedMarkingIndicesGenerator", () => {
       { count: 3, weight: 3 },
     ];
 
-    const result = Array.from(enumerateWeightedMarkingIndicesGenerator(places));
+    const result = collectMarkings(places);
 
     // Only one combination per place when selecting all tokens
     expect(result).toEqual([
@@ -327,7 +335,7 @@ describe("enumerateWeightedMarkingIndicesGenerator", () => {
       { count: 3, weight: 2 },
     ];
 
-    const result = Array.from(enumerateWeightedMarkingIndicesGenerator(places));
+    const result = collectMarkings(places);
 
     // First place contributes empty array
     // Second place has 3 combinations
@@ -344,7 +352,7 @@ describe("enumerateWeightedMarkingIndicesGenerator", () => {
       { count: 3, weight: 2 }, // C(3,2) = 3
     ];
 
-    const result = Array.from(enumerateWeightedMarkingIndicesGenerator(places));
+    const result = collectMarkings(places);
 
     // Total combinations: 6 × 3 = 18
     expect(result).toHaveLength(18);
@@ -365,7 +373,7 @@ describe("enumerateWeightedMarkingIndicesGenerator", () => {
       { count: 2, weight: 1 },
     ];
 
-    const result = Array.from(enumerateWeightedMarkingIndicesGenerator(places));
+    const result = collectMarkings(places);
 
     // Each result should have 2 elements (one per place)
     // Each place should have its own array
@@ -381,6 +389,103 @@ describe("enumerateWeightedMarkingIndicesGenerator", () => {
       expect(marking).toHaveLength(2); // 2 places
       expect(Array.isArray(marking[0])).toBe(true);
       expect(Array.isArray(marking[1])).toBe(true);
+    }
+  });
+
+  it("reuses the yielded marking and its combination arrays between iterations", () => {
+    const places = [
+      { count: 3, weight: 2 },
+      { count: 2, weight: 1 },
+    ];
+
+    const yielded = Array.from(
+      enumerateWeightedMarkingIndicesGenerator(places),
+    );
+
+    // Every yield hands back the same (mutated) structure: consumers that
+    // keep a marking past the next iteration must copy it.
+    expect(yielded.length).toBe(6);
+    for (const marking of yielded) {
+      expect(marking).toBe(yielded[0]);
+      expect(marking[0]).toBe(yielded[0]![0]);
+    }
+  });
+
+  it("matches an eager reference implementation on a case matrix", () => {
+    /** The pre-lazy algorithm, kept as the ordering oracle. */
+    function referenceCombinations(n: number, k: number): number[][] {
+      if (k === 0) {
+        return [[]];
+      }
+      if (k > n) {
+        return [];
+      }
+      const result: number[][] = [];
+      const backtrack = (start: number, combo: number[]) => {
+        if (combo.length === k) {
+          result.push([...combo]);
+          return;
+        }
+        for (let i = start; i <= n - (k - combo.length); i++) {
+          combo.push(i);
+          backtrack(i + 1, combo);
+          combo.pop();
+        }
+      };
+      backtrack(0, []);
+      return result;
+    }
+
+    function referenceMarkings(
+      places: { count: number; weight: number }[],
+    ): number[][][] {
+      const perPlace = places.map((place) =>
+        referenceCombinations(place.count, place.weight),
+      );
+      if (perPlace.some((combos) => combos.length === 0)) {
+        return [];
+      }
+      let acc: number[][][] = [[]];
+      for (const combos of perPlace) {
+        const next: number[][][] = [];
+        for (const partial of acc) {
+          for (const combo of combos) {
+            next.push([...partial, combo]);
+          }
+        }
+        acc = next;
+      }
+      return acc;
+    }
+
+    const cases: { count: number; weight: number }[][] = [
+      [{ count: 5, weight: 2 }],
+      [{ count: 6, weight: 3 }],
+      [{ count: 7, weight: 1 }],
+      [{ count: 4, weight: 4 }],
+      [{ count: 4, weight: 0 }],
+      [
+        { count: 4, weight: 2 },
+        { count: 3, weight: 1 },
+      ],
+      [
+        { count: 3, weight: 1 },
+        { count: 2, weight: 2 },
+        { count: 4, weight: 3 },
+      ],
+      [
+        { count: 2, weight: 0 },
+        { count: 3, weight: 2 },
+        { count: 2, weight: 1 },
+      ],
+      [
+        { count: 5, weight: 2 },
+        { count: 5, weight: 2 },
+      ],
+    ];
+
+    for (const places of cases) {
+      expect(collectMarkings(places)).toEqual(referenceMarkings(places));
     }
   });
 });

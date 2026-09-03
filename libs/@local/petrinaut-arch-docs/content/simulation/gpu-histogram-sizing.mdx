@@ -1,0 +1,109 @@
+---
+title: GPU histogram sizing
+description: How the bin count is chosen per shader and how windows calibrate themselves to the sampled range instead of warning.
+sidebar_order: 31
+attachTo: core.webgpu
+---
+
+The GPU backend never stores per-run metric samples. Each frame, every
+workgroup reduces its runs' place counts into a shared histogram and merges it
+into a global buffer ([GPU backend](doc:simulation/gpu-backend)). That fixed
+layout is what makes the memory static and the per-chunk streaming readback
+possible. Two questions size it: how many bins a shader gets, and which count
+range those bins cover.
+
+## The problem
+
+The bin count was a fixed constant, 256, and bins were zero-anchored: bin `i`
+meant count `i`. That coupled the representable range to the bin budget and
+produced four distinct failures:
+
+- A sampled count past the bins landed in the top bin. The distribution was
+  wrong above the ceiling, reported only as a warning after the run — one the
+  user could do nothing about.
+- A sampled place whose initial marking was already past the bins was
+  refused, because its chart would have been a flat line from frame 0.
+- A place living in a narrow high band — counts between 1000 and 1200, say —
+  wasted every bin below the band while still failing the range check on the
+  absolute count.
+- Seventeen or more metrics made `local_hist` — `bins × metrics` u32 atomics
+  in workgroup storage — exceed the 16 KB `maxComputeWorkgroupStorageSize`
+  that WebGPU guarantees, and pipeline creation failed.
+
+## The current solution
+
+Two mechanisms, one per question.
+
+**Bin count** — `histogramBinCount` in `compile-net-shader.ts` sizes the
+histogram per shader from two inputs, and the result is baked into the WGSL
+and carried on `CompiledNetShader.histogramBins` so the host decodes with the
+same value.
+
+![How the bin count is chosen](@diagrams/gpu-histogram-sizing.svg)
+
+- **The workgroup-storage budget divides among metrics.**
+  `bins = min(1024, ⌊(16384 − 8 × metricCount) / (4 × metricCount)⌋)` — the
+  observed-range atomics share the budget. Up to three metrics get the full
+  1024 bins, four times the old range; more metrics get proportionally fewer
+  bins each, and `local_hist` plus the range reduction fit the 16 KB budget
+  by construction, so the seventeen-metric pipeline failure cannot occur.
+- **A known count ceiling shrinks the histogram to fit it.** A typed place's
+  count cannot exceed its slot capacity, and a declared capacity on any place
+  is enforced by the shader's eligibility constraints. When every sampled
+  place has such a ceiling, `bins = ceiling + 1` — capacity 16 gets 17 bins,
+  and the per-frame loops shrink accordingly.
+
+The budget is the WebGPU _baseline_ limit rather than the adapter's:
+`requestGpuDevice` raises only the buffer limits, so the created device sits at
+the 16 KB default anyway, and sizing against the baseline keeps the shader
+deterministic and device-independent.
+
+1024 is a cap, not a target. The global histogram buffer and the host decode
+are linear in the bin count — 600 frames × 1024 bins × 3 metrics is 7.4 MB —
+and the merge loop skips empty slots, so unused range costs little; the cap
+mainly bounds the decode and the buffer for long experiments.
+
+**Window** — bin `i` covers counts `[lo + i × stride, lo + (i+1) × stride)`,
+and `lo`/`stride` are _uniforms_ in the shader's config (`metric-windows.ts`
+plans them), so moving the window needs no recompile. The window calibrates
+itself instead of warning:
+
+1. The first attempt is exact for a ceiling-bounded place (`lo = 0`,
+   `stride = 1` when the capacity fits the bins) and a generous guess
+   anchored on the initial count otherwise — a wider window is a larger
+   stride over the same bins, so guessing large costs resolution, never
+   memory.
+2. The shader tracks each metric's observed min and max on the device
+   (workgroup-reduced, like the histogram itself) and counts samples that
+   escaped the window into an edge bin — at both ends.
+3. Any escape recalibrates: the experiment handle replans the window from
+   the observed range and re-runs. Seeds derive from absolute run indices,
+   so the re-run reproduces the same trajectories and the observed range is
+   exact — one re-run always converges.
+4. A large run with guessed windows probes first: a small prefix of the runs
+   (`GPU_PREVIEW_RUNS`) streams its frames to the charts, its observed
+   range plus margin sizes the full run's window, and the full attempt's
+   frames replace the probe's as they re-deliver.
+
+A count past the old fixed range is therefore no longer an error, a warning,
+or a refusal — a 1,030-token initial marking runs with a window that covers
+it, and a place living in [1000, 1200] gets bin-exact resolution across its
+actual span. The clamped edge bins of a guessed first attempt are only ever
+an intermediate picture on screen during calibration.
+
+## Potential future solutions
+
+- **Range binning.** A host-declared window maps `bin = (count − lo) × bins /
+(hi − lo)`. Counts in the tens of thousands become representable at reduced
+  resolution. This changes bin semantics from exact counts to intervals, so
+  the decode and the charts must carry the window.
+- **Exact readback for small run counts.** Below a few hundred runs the raw
+  per-run counts are smaller than the histogram; an opt-in exact mode would
+  remove the ceiling entirely where it is cheapest to do so.
+- **Structural bounds.** P-invariants over the incidence matrix give count
+  ceilings for conservative nets with no declared capacities — an SIR
+  population is bounded by its initial total. That would size bins exactly for
+  the common population models and lift the initial-marking refusal, without
+  the modeler declaring anything. See
+  [GPU run tiling](doc:simulation/gpu-run-tiling) for the same idea applied to
+  state memory.

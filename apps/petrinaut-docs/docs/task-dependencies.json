@@ -1,0 +1,20 @@
+{
+  "package": "@apps/petrinaut-docs",
+  "dependencies": [
+    "@local/petrinaut-arch-docs"
+  ],
+  "tasks": {
+    "build": [
+      "@apps/petrinaut-docs#sync:bundle"
+    ],
+    "dev": [
+      "@apps/petrinaut-docs#sync:bundle"
+    ],
+    "lint:tsc": [
+      "@apps/petrinaut-docs#sync:bundle"
+    ],
+    "sync:bundle": [
+      "@local/petrinaut-arch-docs#doc:architecture"
+    ]
+  }
+}

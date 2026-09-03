@@ -123,6 +123,10 @@ import WandMagicSparkles from "./svgs/regular/wand-magic-sparkles.svg";
 import Xmark from "./svgs/regular/xmark.svg";
 import Bug from "./svgs/solid/bug.svg";
 import CaretDown from "./svgs/solid/caret-down.svg";
+import ChevronDownSolid from "./svgs/solid/chevron-down.svg";
+import ChevronLeftSolid from "./svgs/solid/chevron-left.svg";
+import ChevronRightSolid from "./svgs/solid/chevron-right.svg";
+import ChevronUpSolid from "./svgs/solid/chevron-up.svg";
 import CircleSolid from "./svgs/solid/circle.svg";
 import ForwardStepSolid from "./svgs/solid/forward-step.svg";
 import GripVertical from "./svgs/solid/grip-vertical.svg";
@@ -162,9 +166,13 @@ const IconMap = {
   chartLine: ChartLine,
   check: Check,
   chevronDown: ChevronDown,
+  chevronDownHeavy: ChevronDownSolid,
   chevronLeft: ChevronLeft,
+  chevronLeftHeavy: ChevronLeftSolid,
   chevronRight: ChevronRight,
+  chevronRightHeavy: ChevronRightSolid,
   chevronUp: ChevronUp,
+  chevronUpHeavy: ChevronUpSolid,
   circle: Circle,
   circleFilled: CircleSolid,
   circleCheck: CircleCheck,
@@ -281,22 +289,23 @@ export const Icon = ({
   name,
   size,
   alt,
-  ...dataAttributes
+  ...rest
 }: {
   className?: string;
   name: IconName;
   size?: FormInputSize;
   alt?: string;
-} & DataAttributes) => {
+} & DataAttributes &
+  React.AriaAttributes) => {
   const IconSvg = IconMap[name];
 
   return (
     <IconSvg
-      {...dataAttributes}
       className={cx(styles({ size }), className)}
       aria-label={alt}
       role={alt ? "img" : undefined}
       aria-hidden={alt ? undefined : "true"}
+      {...rest}
     />
   );
 };

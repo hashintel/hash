@@ -50,7 +50,7 @@
     "build": "yarn build:lib && yarn build:buildinfo",
     "build:buildinfo": "panda ship --config panda.ship.config.ts --outfile dist/panda.buildinfo.json",
     "build:lib": "vite build",
-    "dev": "storybook dev",
+    "dev": "bash scripts/dev.sh",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
@@ -84,6 +84,7 @@
   },
   "devDependencies": {
     "@hashintel/ds-helpers": "workspace:*",
+    "@local/petrinaut-optimizer-client": "workspace:*",
     "@pandacss/dev": "1.11.1",
     "@storybook/react-vite": "10.4.6",
     "@testing-library/dom": "10.4.1",

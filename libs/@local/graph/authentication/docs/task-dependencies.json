@@ -1,0 +1,19 @@
+{
+  "package": "@rust/hash-graph-authentication",
+  "dependencies": [
+    "@blockprotocol/type-system-rs",
+    "@rust/error-stack",
+    "@rust/hash-graph-authorization",
+    "@rust/hash-graph-store",
+    "@rust/hash-middleware"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:integration": [],
+    "test:unit": []
+  }
+}

@@ -12,6 +12,8 @@
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
+    "runbook:elicit": "vite build && node --experimental-strip-types src/runbook-elicitation-run.ts",
+    "runbook:headless": "vite build && node --experimental-strip-types src/runbook-headless-run.ts",
     "test:unit": "vitest run --config vitest.config.ts",
     "transcript": "node --experimental-strip-types src/transcript-cli.ts"
   },

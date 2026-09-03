@@ -90,6 +90,15 @@ export function useAdHocFormHistory(
   state: AdHocScenarioState,
   context: AdHocSynthesisContext,
   onChange: (state: AdHocScenarioState) => void,
+  /**
+   * Whether the host owns part of the state and recomputes it from the
+   * form's own edits. In run mode the computed parameters and marking are
+   * derived, so they belong to the host rather than to the undo stack: an
+   * external change adopts in place instead of adding a step. Recording it
+   * as a step made an edit land twice — the value, then the preview it
+   * derived — and undo could never get back past the second one.
+   */
+  hostDerivesState = false,
 ): AdHocFormHistory {
   const [model, setModel] = useState<HistoryModel>(() => ({
     entries: [{ state, timestamp: new Date().toISOString() }],
@@ -100,13 +109,17 @@ export function useAdHocFormHistory(
   // The invariant is `entries[cursor].state === state`; every dispatch,
   // undo, and redo maintains it. A mismatch means the parent changed the
   // state externally — record that as a fresh step (render-adjusted state,
-  // no effect involved). Same-content rematerializations are adopted
-  // silently instead: run-mode hosts compose their state per render, and
-  // recording each of those as an edit would fill the history with steps
-  // that undo nothing.
+  // no effect involved). Two kinds of mismatch are adopted in place
+  // instead: a same-content rematerialization (hosts compose their state
+  // per render, and a step that undoes nothing is noise), and any external
+  // change at all when the host derives part of the state, because then
+  // the change is the host's own answer to an edit already recorded.
   const cursorEntry = model.entries[model.cursor]!;
   if (cursorEntry.state !== state) {
-    if (JSON.stringify(cursorEntry.state) === JSON.stringify(state)) {
+    if (
+      hostDerivesState ||
+      JSON.stringify(cursorEntry.state) === JSON.stringify(state)
+    ) {
       const entries = [...model.entries];
       entries[model.cursor] = { state, timestamp: cursorEntry.timestamp };
       setModel({ ...model, entries });

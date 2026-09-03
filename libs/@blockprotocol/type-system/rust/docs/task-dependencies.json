@@ -1,0 +1,19 @@
+{
+  "package": "@blockprotocol/type-system-rs",
+  "dependencies": [
+    "@rust/error-stack",
+    "@rust/hash-codec",
+    "@rust/hash-codegen",
+    "@rust/hash-graph-temporal-versioning"
+  ],
+  "tasks": {
+    "build:types": [],
+    "build:wasm": [],
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:unit": []
+  }
+}

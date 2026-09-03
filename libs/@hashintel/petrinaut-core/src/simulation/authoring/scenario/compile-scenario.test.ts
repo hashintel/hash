@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { lowerScenarioToHir } from "../../../hir/scenario";
-import { compileScenario } from "./compile-scenario";
+import { compileScenario, prepareScenarioCompiler } from "./compile-scenario";
 
 import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
 import type { CompileScenarioOptions } from "./compile-scenario";
@@ -1120,5 +1120,107 @@ describe("compileScenario", () => {
         ).toBe(true);
       }
     });
+  });
+});
+
+describe("prepareScenarioCompiler", () => {
+  const sweptScenario = scenario({
+    scenarioParameters: [{ identifier: "speed", type: "real", default: 1 }],
+    parameterOverrides: { p1: "scenario.speed * 2" },
+    initialState: { type: "per_place", content: { pl1: "scenario.speed + 1" } },
+  });
+  const netParameters = [param("p1", "rate", "0.5")];
+  const places = [place("pl1", "Waiting", null)];
+
+  it("compiles repeatedly, matching the one-shot compiler at each assignment", () => {
+    const prepared = prepareScenarioCompiler(
+      sweptScenario,
+      lowerScenarioToHir(sweptScenario),
+      netParameters,
+      places,
+    );
+    for (const speed of [1, 3, 7.5]) {
+      const repeated = prepared.compile({ speed });
+      const oneShot = compile(sweptScenario, netParameters, places, [], {
+        scenarioParameterValues: { speed },
+      });
+      expect(repeated).toEqual(oneShot);
+    }
+  });
+
+  it("keeps calls independent: a later assignment sees no earlier overrides", () => {
+    const prepared = prepareScenarioCompiler(
+      sweptScenario,
+      lowerScenarioToHir(sweptScenario),
+      netParameters,
+      places,
+    );
+    const first = prepared.compile({ speed: 5 });
+    const second = prepared.compile({});
+    if (!first.ok || !second.ok) {
+      throw new Error("expected both compiles to succeed");
+    }
+    expect(first.result.parameterValues.rate).toBe("10");
+    // The default assignment: overrides evaluate from the defaults template,
+    // not from the mutated bindings of the previous call.
+    expect(second.result.parameterValues.rate).toBe("2");
+    expect(second.result.initialState.pl1).toBe(2);
+  });
+
+  it("reports a type error on every compile, found once at preparation", () => {
+    const broken = scenario({
+      parameterOverrides: { p1: "scenario.missing + 1" },
+    });
+    const prepared = prepareScenarioCompiler(
+      broken,
+      lowerScenarioToHir(broken),
+      netParameters,
+    );
+    for (let call = 0; call < 2; call++) {
+      const outcome = prepared.compile({});
+      expect(outcome.ok).toBe(false);
+      if (!outcome.ok) {
+        expect(outcome.errors[0]?.source).toBe("parameterOverride");
+      }
+    }
+  });
+
+  it("compiles parameter numbers without evaluating the initial state", () => {
+    const brokenInitialState = scenario({
+      scenarioParameters: [{ identifier: "speed", type: "real", default: 1 }],
+      parameterOverrides: { p1: "scenario.speed * 2" },
+      // An initial-state expression that fails at evaluation: `compile`
+      // reports it, the parameters-only entry point never runs it.
+      initialState: { type: "per_place", content: { pl1: "unknown_name" } },
+    });
+    const prepared = prepareScenarioCompiler(
+      brokenInitialState,
+      lowerScenarioToHir(brokenInitialState),
+      [param("p1", "rate", "0.5"), param("p2", "enabled", "false", "boolean")],
+      [place("pl1", "Waiting", null)],
+    );
+
+    expect(prepared.compile({ speed: 3 }).ok).toBe(false);
+    const numbers = prepared.compileParameterNumbers({ speed: 3 });
+    expect(numbers.ok).toBe(true);
+    if (numbers.ok) {
+      expect(numbers.parameters).toEqual({ rate: 6, enabled: false });
+    }
+  });
+
+  it("fails compileParameterNumbers on override errors, like compile", () => {
+    const broken = scenario({
+      parameterOverrides: { p1: "scenario.missing + 1" },
+    });
+    const prepared = prepareScenarioCompiler(
+      broken,
+      lowerScenarioToHir(broken),
+      [param("p1", "rate", "0.5")],
+    );
+    const outcome = prepared.compileParameterNumbers({});
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) {
+      expect(outcome.errors[0]?.source).toBe("parameterOverride");
+    }
   });
 });

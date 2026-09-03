@@ -180,6 +180,19 @@ export type MonteCarloUserDefinedMetricDistributionBin = readonly [
   frequency: number,
 ];
 
+/**
+ * How far every bin of a frame reaches below and above its labelled value:
+ * a bin labelled `v` holds the samples in `[v - below, v + above)`. Set by
+ * producers that bin at a known width (width binning labels a bin by its
+ * lower edge; a GPU histogram window labels a stride of integer counts by
+ * its middle count). Exact bins carry no extent: they are points, and a
+ * consumer drawing them picks the resolution.
+ */
+export type MonteCarloUserDefinedMetricBinExtent = {
+  readonly below: number;
+  readonly above: number;
+};
+
 export type MonteCarloUserDefinedScalarMetricFrame =
   MonteCarloUserDefinedMetricFrameBase & {
     outputType: "scalar";
@@ -211,6 +224,8 @@ export type MonteCarloUserDefinedDistributionMetricFrame =
   MonteCarloUserDefinedMetricFrameBase & {
     outputType: "distribution";
     bins: readonly MonteCarloUserDefinedMetricDistributionBin[];
+    /** Absent when the bins are exact values. */
+    binExtent?: MonteCarloUserDefinedMetricBinExtent;
     value: null;
     frameValue: null;
     timeValue: null;
@@ -232,5 +247,14 @@ export type MonteCarloUserDefinedMetric = MonteCarloFrameMetric & {
   readonly label: string;
   readonly frames: readonly MonteCarloUserDefinedMetricFrame[];
   getLatestFrame: () => MonteCarloUserDefinedMetricFrame | null;
+  /**
+   * Latest sampled value per run index.
+   *
+   * A run keeps its frozen state once it completes, so after the experiment
+   * finishes each entry holds the run's final-frame value — what a single-run
+   * evaluation of the same metric would report. Optimization replicates read
+   * their per-seed objectives from this.
+   */
+  getRunValues: () => ReadonlyMap<number, number>;
   clear: () => void;
 };

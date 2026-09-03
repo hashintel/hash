@@ -16,7 +16,7 @@
 //! assertion failure aborts the test before its cleanup, leaving the identity behind — acceptable
 //! because the addresses are unique per run and CI discards the container.
 
-use core::{error::Error, time::Duration};
+use core::{assert_matches, error::Error, time::Duration};
 
 use hash_graph_authentication::{
     actor::ResolveActor,
@@ -24,7 +24,7 @@ use hash_graph_authentication::{
     kratos::{IdentityDeletion, KratosAdminClient, KratosAdminConfig, KratosEmailActorResolver},
 };
 use hash_graph_authorization::policies::store::error::DetermineActorError;
-use hash_middleware::authentication::request::AuthenticationError;
+use hash_middleware::authentication::request::AuthenticationErrorKind;
 use reqwest::{Client, Url};
 use serde_json::json;
 use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
@@ -157,13 +157,10 @@ async fn unverified_address_does_not_resolve() -> Result<(), Box<dyn Error>> {
     delete_identity(&client, &identity_id).await?;
 
     let report = resolved.expect_err("an unverified address should not resolve");
-    assert!(
-        matches!(
-            report.current_context(),
-            AuthenticationError::IdentityWithoutActor
-        ),
-        "an unverified address should fail as an identity without actor, got {:?}",
-        report.current_context()
+    assert_matches!(
+        report.current_context().kind(),
+        AuthenticationErrorKind::IdentityWithoutActor,
+        "an unverified address should fail as an identity without actor"
     );
     Ok(())
 }
@@ -179,13 +176,10 @@ async fn identity_without_graph_actor_does_not_resolve() -> Result<(), Box<dyn E
     delete_identity(&client, &identity_id).await?;
 
     let report = resolved.expect_err("an unprovisioned identity should not resolve");
-    assert!(
-        matches!(
-            report.current_context(),
-            AuthenticationError::NotProvisioned { .. }
-        ),
-        "an identity without a Graph actor should fail as unprovisioned, got {:?}",
-        report.current_context()
+    assert_matches!(
+        report.current_context().kind(),
+        AuthenticationErrorKind::NotProvisioned { .. },
+        "an identity without a Graph actor should fail as unprovisioned"
     );
     Ok(())
 }
@@ -197,13 +191,10 @@ async fn address_without_an_identity_does_not_resolve() {
         .await
         .expect_err("an address without an identity should not resolve");
 
-    assert!(
-        matches!(
-            report.current_context(),
-            AuthenticationError::IdentityWithoutActor
-        ),
-        "an unknown address should fail as an identity without actor, got {:?}",
-        report.current_context()
+    assert_matches!(
+        report.current_context().kind(),
+        AuthenticationErrorKind::IdentityWithoutActor,
+        "an unknown address should fail as an identity without actor"
     );
 }
 

@@ -11,11 +11,13 @@ Select a place and open the **State** sub-view in its properties:
 - **Untyped places** -- set a token count (integer).
 - **Typed places** -- define individual tokens with values for each dimension in a spreadsheet editor. Add a row to create a new token. UUID dimensions show a shortened identifier (hover for the full value); when editing, enter a UUID string or any free text -- non-UUID text is converted deterministically to a UUID.
 
+The spreadsheet works like a data grid: it is a single Tab stop, and the arrow keys move between cells. Click a cell to select it and click again (or press Enter, or just start typing) to edit it; Enter commits and moves to the next cell. The row-number column on the left selects whole rows: press Delete there to remove the row, or fill in the empty bottom row to add a token.
+
 <img width="581" height="228" alt="initial-states" src="https://github.com/user-attachments/assets/6ecfad1c-f6cf-47e9-94fc-f068d534307c" />
 
 If no initial marking is set, a place starts empty (zero tokens).
 
-When a [scenario](scenarios.md) is selected in Simulation Settings, the per-place State sub-view becomes read-only ("Defined by scenario") and the scenario's initial state is used instead.
+When a [scenario](scenarios.md) is selected in Simulation Settings, the per-place State sub-view becomes read-only ("Defined by scenario") and the scenario's initial state is used instead. With no scenario selected, an [ad-hoc initial state](ad-hoc-scenarios.md) defined in the panel's Initial state column likewise takes precedence over the manual marking for every place it defines — the State sub-view stays editable, but the run uses the ad-hoc value until you clear the definition.
 
 ## Simulation settings
 
@@ -25,14 +27,14 @@ Open the **Simulation Settings** tab in the bottom panel to configure:
 
 The **Scenario** dropdown lists "No scenario" plus every saved [scenario](scenarios.md). Selecting a scenario overrides parameters and the per-place initial marking with the scenario's values for this run. The picker is locked while a simulation is running; reset to change scenario.
 
-Quick-action buttons next to the picker let you edit the selected scenario, create a new scenario, or jump to the [Scenarios](scenarios.md) management view in Simulate mode.
+Quick-action buttons next to the picker let you edit the selected scenario, create a new scenario, or jump to the [Scenarios](scenarios.md) management view in Simulate mode. With "No scenario" selected, the panel becomes an [ad-hoc scenario](ad-hoc-scenarios.md) for the next run, without saving anything: **Variables** and **Parameters** share the left column and an **Initial state** column fills the right; a **Clear** button next to the Initial state title resets it.
 
 ### Parameters
 
 Override values for this run:
 
 - With **No scenario** selected: each [net-level parameter](petri-net-extensions.md#global-parameters) shows its name and variable name. Boolean parameters use a toggle; real and integer parameters use a numeric input pre-filled with the default.
-- With a scenario selected: the **scenario parameters** are shown instead, pre-filled with that scenario's defaults. Net-level parameter values are fixed by the scenario's [parameter bindings](scenarios.md#parameter-bindings) and are not editable here.
+- With a scenario selected: the **scenario parameters** are shown instead, pre-filled with that scenario's defaults. Net-level parameter values are fixed by the scenario's [parameter bindings](scenarios.md#parameter-bindings) and are not editable here. Every selected scenario shows through the [ad-hoc form](ad-hoc-scenarios.md): its scenario parameters take value edits in the left column, and its parameter overrides and initial state sit read-only in the right one -- browsable with the same keyboard navigation, but only a scenario edit (the pencil next to the picker) changes them. A scenario saved from the ad-hoc form shows its definition; any other scenario shows a computed preview of the exact tokens the run will start with, recomputed as you change parameter values (very large places preview their first 100 rows).
 
 Changes here do not modify the parameter definition or the scenario -- they only apply to the simulation. Parameter values are locked while a simulation is running. Reset the simulation to change them.
 
