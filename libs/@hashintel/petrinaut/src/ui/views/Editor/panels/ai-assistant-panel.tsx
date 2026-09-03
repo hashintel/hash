@@ -899,8 +899,8 @@ export const AiAssistantPanel = ({
       target?: "auto" | "message";
       text: string;
     }): Promise<PetrinautAiComposerSubmitTextResult> => {
-      const trimmed = text.trim();
-      if (!trimmed) {
+      const submissionText = source === "voice" ? text : text.trim();
+      if (!submissionText.trim()) {
         const submissionError = new Error(
           "AI assistant text must not be empty.",
         );
@@ -979,7 +979,7 @@ export const AiAssistantPanel = ({
         try {
           output = mappedToolCall.mapText({
             input: mappedToolCall.input,
-            text: trimmed,
+            text: submissionText,
           });
         } catch (caught) {
           const submissionError =
@@ -1033,7 +1033,7 @@ export const AiAssistantPanel = ({
       await submitMessage({
         id: messageId,
         ...(source === "voice" ? { metadata: { source } } : {}),
-        parts: [{ text: trimmed, type: "text" }],
+        parts: [{ text: submissionText, type: "text" }],
         role: "user",
       });
       return { kind: "message", messageId };

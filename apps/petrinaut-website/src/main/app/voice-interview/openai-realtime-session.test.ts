@@ -904,12 +904,31 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
   });
 
-  test("treats transcripts as display-only and never closes capture", async () => {
+  test("requires a matching speech-start boundary before exposing transcripts", async () => {
     const harness = createHarness();
     await harness.session.connect();
     harness.session.setMicrophoneEnabled(true);
     const channel = harness.channels[0]!;
 
+    channel.receive({
+      content_index: 0,
+      delta: "Missing boundary",
+      item_id: "item-without-boundary",
+      type: "conversation.item.input_audio_transcription.delta",
+    });
+    channel.receive({
+      content_index: 0,
+      item_id: "item-without-boundary",
+      transcript: "This must stay rejected.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    expect(harness.events).toEqual([]);
+
+    channel.receive({
+      audio_start_ms: 100,
+      item_id: "item-user",
+      type: "input_audio_buffer.speech_started",
+    });
     channel.receive({
       content_index: 0,
       delta: "The supervisor",
@@ -925,6 +944,11 @@ describe("OpenAIRealtimeSession", () => {
 
     expect(harness.events).toEqual([
       {
+        connectionEpoch: 1,
+        itemId: "item-user",
+        type: "input-speech-started",
+      },
+      {
         key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-user" },
         text: "The supervisor",
         type: "partial",
@@ -938,11 +962,67 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.localTracks[0]!.enabled).toBe(true);
   });
 
+  test("does not retroactively accept a completion that precedes its speech boundary", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+
+    channel.receive({
+      content_index: 0,
+      item_id: "item-reordered",
+      transcript: "This completed before its boundary.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    channel.receive({
+      audio_start_ms: 100,
+      item_id: "item-reordered",
+      type: "input_audio_buffer.speech_started",
+    });
+
+    expect(harness.events).toEqual([
+      {
+        connectionEpoch: 1,
+        itemId: "item-reordered",
+        type: "input-speech-started",
+      },
+    ]);
+  });
+
+  test("does not reuse a speech boundary from a previous connection epoch", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    harness.channels[0]!.receive({
+      audio_start_ms: 100,
+      item_id: "reused-item",
+      type: "input_audio_buffer.speech_started",
+    });
+
+    await harness.session.disconnect();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    harness.events.length = 0;
+    harness.channels[1]!.receive({
+      content_index: 0,
+      item_id: "reused-item",
+      transcript: "This lacks a current-epoch boundary.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+
+    expect(harness.events).toEqual([]);
+  });
+
   test("keeps the duplex session alive when optional input transcription fails", async () => {
     const harness = createHarness();
     await harness.session.connect();
     harness.session.setMicrophoneEnabled(true);
 
+    harness.channels[0]!.receive({
+      audio_start_ms: 100,
+      item_id: "item-user",
+      type: "input_audio_buffer.speech_started",
+    });
     harness.channels[0]!.receive({
       content_index: 0,
       error: { message: "private provider detail" },
@@ -951,6 +1031,11 @@ describe("OpenAIRealtimeSession", () => {
     });
 
     expect(harness.events).toEqual([
+      {
+        connectionEpoch: 1,
+        itemId: "item-user",
+        type: "input-speech-started",
+      },
       {
         key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-user" },
         type: "transcription-failed",

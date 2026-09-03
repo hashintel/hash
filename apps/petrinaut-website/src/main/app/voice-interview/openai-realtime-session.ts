@@ -219,7 +219,6 @@ export class OpenAIRealtimeSession {
   #microphoneTrack: MediaStreamTrack | null = null;
   #peerConnection: RTCPeerConnection | null = null;
   #remoteAudio: RemoteAudio | null = null;
-  #requireInputSpeechStart = false;
   #responseCreateEventId: string | null = null;
   #responseTerminalSequence = 0;
   #speakingResponseId: string | null = null;
@@ -409,7 +408,6 @@ export class OpenAIRealtimeSession {
     this.#cancelOutputPromise = cancelOutputPromise;
     this.#cancelOutputAwaitingInputBufferClear = true;
     this.#cancelOutputAwaitingOutputBufferResponseId = this.#speakingResponseId;
-    this.#requireInputSpeechStart = true;
     for (const itemId of this.#acceptedInputItemIds) {
       this.#playbackOverlappingInputItemIds.add(itemId);
     }
@@ -967,8 +965,7 @@ export class OpenAIRealtimeSession {
     const key = { connectionEpoch, contentIndex, itemId };
     const overlapsPlayback =
       this.#playbackOverlappingInputItemIds.has(itemId) ||
-      (this.#requireInputSpeechStart &&
-        !this.#acceptedInputItemIds.has(itemId));
+      !this.#acceptedInputItemIds.has(itemId);
     if (overlapsPlayback) {
       if (
         event.type ===
@@ -1372,7 +1369,6 @@ export class OpenAIRealtimeSession {
     this.#responseTerminalSequence = 0;
     this.#speakingResponseId = null;
     this.#microphoneRequested = false;
-    this.#requireInputSpeechStart = false;
     this.#waitingForResponseTerminal = false;
     this.#activeEpoch = null;
     this.#connected = false;
