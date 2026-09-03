@@ -137,6 +137,10 @@ export const requestFlueStop = async (
   return result.aborted ? "stop-requested" : "already-settled";
 };
 
+const createConversationTrackerFor = (
+  _conversationId: string | null,
+): BrunchPanelConversationTracker => new BrunchPanelConversationTracker();
+
 const getStoredSDCPNsForDisplay = (
   storedSDCPNs: Record<string, SDCPNInLocalStorage>,
 ): Record<string, SDCPNInLocalStorage> => {
@@ -257,8 +261,9 @@ export const LocalStorageDemoApp = ({
   search: SharedExampleSearch;
 }) => {
   const sentryFeedbackAction = useSentryFeedbackAction();
-  const [openAIVoiceConfig, setOpenAIVoiceConfig] =
-    useState<OpenAIVoiceConfig | null>();
+  const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
+    OpenAIVoiceConfig | null | undefined
+  >(() => (brunchPreviewConfig.isBrunchConfigured ? undefined : null));
   /**
    * History is left to the library's default on purpose. That default already
    * replaces rather than pushes while an intent continues, so a drag-select
@@ -292,7 +297,6 @@ export const LocalStorageDemoApp = ({
 
   useEffect(() => {
     if (!brunchPreviewConfig.isBrunchConfigured) {
-      setOpenAIVoiceConfig(null);
       return;
     }
 
@@ -464,9 +468,8 @@ export const LocalStorageDemoApp = ({
     [conversationId],
   );
   const conversationTracker = useMemo(
-    () => new BrunchPanelConversationTracker(),
     // Correlation state belongs to one conversation and must not cross a net switch.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    () => createConversationTrackerFor(conversationId),
     [conversationId],
   );
   const brunchVoiceMode = useMemo(

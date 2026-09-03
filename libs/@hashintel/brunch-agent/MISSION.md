@@ -26,7 +26,7 @@ Adopted on restack onto the parent spine's 2026-09-03 litmus reframing. A produc
 
 ### Recut rationale
 
-Inspected at the real boundary on 2026-09-03 (`node_modules/@flue/sdk/docs/reference/streaming-protocol.md`, `packages/transport-aisdk/src/index.ts`, `apps/brunch-agent/src/conversation/ui-stream.ts`, `apps/petrinaut-website/src/main/app/local-storage-demo/brunch-panel-transport.ts`, `node_modules/ai/dist/index.d.ts` `ChatTransport`):
+Inspected at the real boundary on 2026-09-03 (`node_modules/@flue/sdk/docs/reference/streaming-protocol.md`, `packages/transport-aisdk/src/index.ts`, `packages/transport-aisdk/src/ui-stream.ts`, `apps/petrinaut-website/src/main/app/local-storage-demo/brunch-panel-transport.ts`, `node_modules/ai/dist/index.d.ts` `ChatTransport`):
 
 - Flue's SSE does not remove the need for translation while the panel speaks `useChat`: Flue admits one `DeliveredMessage` with a 202 and streams `ConversationStreamChunk` batches on a separate, never-ending offset-resumed read; the AI SDK posts the whole `messages` array and expects one finite `UIMessageChunk` stream per turn. Request shape, vocabulary, and lifecycle all differ, and `@flue/*` ships no AI SDK adapter.
 - The current adapter is one translation cut across two homes by the transport topology gate: AI SDK request framing, CORS, and principal parsing in `transport-aisdk` (Flue-free), and the load-bearing `ConversationStreamChunk → UIMessageChunk` projection plus snapshot → UI messages in `apps/brunch-agent/src/conversation/`.
@@ -54,7 +54,7 @@ The real boundary is the local Petrinaut surface driven by `yarn dev:brunch` —
 → panel: existing `ConversationStreamChunk → UIMessageChunk` projector, terminated on `submission-settled`
 → Voice: canonical completed Brunch text displayed and passed unchanged as TTS input
 → local playback/observation cancellation or explicit conversation-wide `abort()`
-→ `history()`/observation rehydration after reopening the same logical conversation
+→ observation rehydration after reopening the same logical conversation
 ```
 
 The `/api/chat` route, `createPetrinautChatHandler`, the in-process `init().dispatch()/read()` admission path, the `GET ?id=` history door, and the `/api/chat` Vite proxy are removed from the Brunch app; the local launcher proxies `/agents/chat/*` instead. `@hashintel/brunch-agent-transport-aisdk` is repurposed as the browser-side adapter: it exports the projector, the snapshot → UI-message projection, the header names, and a `ChatTransport` factory over a caller-supplied `FlueClient`, and depends on `ai` and the public `@flue/sdk` client only. The Petrinaut panel itself stays on `useChat`; it is not rewritten onto `@flue/react`.
@@ -108,7 +108,7 @@ This proof establishes that one real local typed turn and one real local Voice t
 ~ libs/@hashintel/brunch-agent/packages/transport-aisdk/src/  delete the HTTP handler; add ChatTransport factory over FlueClient; receive ui-stream + snapshotToUiMessages + headers
 ~ libs/@hashintel/brunch-agent/packages/transport-aisdk/package.json  deps become ai + @flue/sdk; drop valibot if unused
 ~ libs/@hashintel/brunch-agent/packages/transport-aisdk/test/ replace chat-handler/golden with transport + projector + snapshot tests
-~ libs/@hashintel/brunch-agent/packages/core/test/architecture/boundaries.test.ts  amend the transport gate
+~ apps/brunch-agent/test/architecture/boundaries.integration.ts                 amend the transport gate
 - apps/brunch-agent/src/http/petrinaut-chat.ts                server-side door removed
 - apps/brunch-agent/src/conversation/ui-stream.ts              moves into the transport package
 ~ apps/brunch-agent/src/conversation/transcript.ts             snapshotToUiMessages moves out; formatFlueTranscript stays for the CLI
@@ -136,7 +136,7 @@ This proof establishes that one real local typed turn and one real local Voice t
 - How a finalized Voice answer enters Flue. Two shapes are admissible: **(B, preferred)** Voice submits through the panel's own Flue `ChatTransport` (`useChat.sendMessage` → `send()`), so the panel's `useChat` messages remain the single visible store and Voice's `observe()` shrinks to selecting completed canonical text for TTS — or reads the panel's completed assistant message and drops `observe()` entirely; **(A)** Voice calls `send()` directly and keeps its own `observe()` state, with the panel rehydrating. Start with B; fall back to A only if the existing hold-while-streaming, epoch, or TTS-correlation semantics demonstrably strain under the panel's transport, and record the observed strain. Either way, one finalization is one `send()`, and if the chosen shape would create two mutable transcript stores or a second custom reducer, stop and reorient at the panel boundary.
 - The smallest honest home for the browser-safe principal + logical-conversation-id → Flue-instance-id contract and the two ownership header names. `apps/brunch-agent/src/conversation/identity-web.ts` proves the algorithm; the website must not gain an app-to-app source import, and core must not own HTTP header names. The leading candidate is the repurposed transport package, which already exports the principal header; a website-local copy pinned by an equality test against the app is the fallback. Do not create a new package to hold two strings and a hash.
 - Whether `wait(admission, { onEvent })` alone gives the browser transport a clean finite per-turn stream, or whether the panel needs `observe()` for reconnect during a turn. `wait()` rejects on failed/aborted settlement and on `terminal_event_missing`; the transport must map those to `error`/`abort` chunks rather than throwing past `useChat`. The first real disconnect mid-turn decides; do not pre-build reconnect machinery.
-- Whether `reconnectToStream` should return `null` (history-only rehydration, the current behavior) or resume an unsettled submission after reload. Start with `null` plus `history()`; re-enter only if the witness observes a lost in-flight turn.
+- Whether `reconnectToStream` should return `null` (observation-only rehydration, the current behavior) or resume an unsettled submission after reload. Start with `null` plus SDK observation; re-enter only if the witness observes a lost in-flight turn.
 - The exact subset of PRs #9496, #9507, and #9512 to port after semantic comparison with the current branch. Their useful Voice state-machine behavior is evidence; their app-local agent topology, temporary ask shim, and generative preparation are not presumed requirements.
 - The bounded speech-selection policy if the exercised Brunch response contains multiple completed text blocks or an interactive part. Begin with canonical completed visible text in order; if this produces duplicate, misleading, or unspeakable output, retain the mismatch and seek a Brunch-owned deterministic presentation rule rather than another generator.
 - Whether the existing Stop affordance can express both local Voice interruption and explicit conversation-wide durable abort without misleading the user. The first real race decides the smallest UI distinction.
