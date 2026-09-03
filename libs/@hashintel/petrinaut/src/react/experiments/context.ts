@@ -7,6 +7,7 @@ import type {
 import type { SweepCellSnapshot, SweepSelection } from "./sweep-session";
 import type {
   AdHocScenarioState,
+  SDCPN,
   MonteCarloExpressionMetricSpec,
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
@@ -201,9 +202,37 @@ export type ExperimentsContextValue = {
    */
   sampleSweepCell: (
     experimentId: string,
-    parameterValues: Readonly<Record<string, number>>,
+    position: Readonly<Record<string, number>>,
     minRuns: number,
   ) => Promise<SweepCellSnapshot | null>;
+  /**
+   * Computes one metric sample against an arbitrary net snapshot, on the
+   * background single-worker lane — the optimization surface's local compute
+   * path, which must run a study's frozen model rather than the live editor
+   * net. Batches are serialized; compilation is cached per `cacheKey`.
+   * Resolves null when the batch is refused or fails (a hole in the surface,
+   * not an error).
+   */
+  sampleDetachedObjective: (
+    request: DetachedObjectiveRequest,
+  ) => Promise<SweepCellSnapshot | null>;
+};
+
+/** One local compute batch for an optimization study's objective. */
+export type DetachedObjectiveRequest = {
+  /** Compile-cache identity; one study keeps one compiled snapshot. */
+  cacheKey: string;
+  /** The frozen model snapshot to run (not the live editor net). */
+  definition: SDCPN;
+  scenarioId: string;
+  /** Parsed values for every scenario parameter (bindings plus navigation). */
+  scenarioParameterValues: Readonly<Record<string, number | boolean>>;
+  /** The study's objective metric, evaluated as an expression metric. */
+  metric: { id: string; label: string; code: string };
+  seed: number;
+  runCount: number;
+  dt: number;
+  maxTime: number;
 };
 
 const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
@@ -216,6 +245,7 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   removeExperiment: () => {},
   setSweepSelection: () => {},
   sampleSweepCell: () => Promise.resolve(null),
+  sampleDetachedObjective: () => Promise.resolve(null),
 };
 
 export const ExperimentsContext = createContext<ExperimentsContextValue>(

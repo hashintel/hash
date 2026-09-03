@@ -305,6 +305,44 @@ export function FakeExperimentsProvider({
           current.filter((experiment) => experiment.id !== experimentId),
         );
       },
+      sampleDetachedObjective: (request) => {
+        // The same synthetic bump as sampleSweepCell, over the study's real
+        // parameter values, so the optimization surface story fills live.
+        const values = Object.values(request.scenarioParameterValues).filter(
+          (entry): entry is number => typeof entry === "number",
+        );
+        const x = values[0] ?? 0;
+        const y = values[1] ?? 0;
+        const objective =
+          100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
+          6 * Math.sin(x * 9) +
+          y / 4;
+        const frame = {
+          metricId: request.metric.id,
+          label: request.metric.label,
+          outputType: "distribution" as const,
+          frameNumber: 45,
+          time: 45,
+          bins: [
+            [Math.round(objective * 100) / 100, request.runCount],
+          ] as (readonly [number, number])[],
+          value: null,
+          frameValue: null,
+          timeValue: null,
+          runSampleCount: request.runCount,
+          timeSampleCount: request.runCount,
+        };
+        return new Promise((resolve) => {
+          setTimeout(
+            () =>
+              resolve({
+                runsCompleted: request.runCount,
+                metricFrames: [frame],
+              }),
+            100,
+          );
+        });
+      },
       setSweepSelection: (experimentId, selection) => {
         setExperiments((current) =>
           current.map((experiment) =>
