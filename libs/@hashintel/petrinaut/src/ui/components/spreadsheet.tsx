@@ -527,6 +527,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                   // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful; cell contents must stay out of the key (string cells are arbitrary-length, and value changes should update the row, not remount it)
                   key={`row-${rowIndex}`}
                   role="row"
+                  aria-selected={selectedRow === rowIndex}
                   className={rowStyle({
                     isSelected: selectedRow === rowIndex,
                     isSticky: isPhantomRow,

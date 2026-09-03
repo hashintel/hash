@@ -345,6 +345,45 @@ describe("worksheet focus flow", () => {
     expect(screen.getByText("A 0,0").tabIndex).toBe(-1);
   });
 
+  it("keeps one tabbable stop after the remembered stop is removed", () => {
+    const stopsOf = (ids: string[]): FocusStop[] =>
+      ids.map((id) => ({ id, kind: "row" }));
+    const view = render(
+      <FocusRoot>
+        <StopsHarness label="T" stops={stopsOf(["a", "b"])} columnCount={1} />
+      </FocusRoot>,
+    );
+
+    focusPart("T b c0");
+    view.rerender(
+      <FocusRoot>
+        <StopsHarness label="T" stops={stopsOf(["a"])} columnCount={1} />
+      </FocusRoot>,
+    );
+
+    expect(view.container.querySelectorAll("[tabindex='0']")).toHaveLength(1);
+    expect(screen.getByText("T a c0")).toHaveProperty("tabIndex", 0);
+  });
+
+  it("keeps one tabbable stop after the remembered column is dropped", () => {
+    const stops: FocusStop[] = [{ id: "a", kind: "row" }];
+    const view = render(
+      <FocusRoot>
+        <StopsHarness label="T" stops={stops} columnCount={2} />
+      </FocusRoot>,
+    );
+
+    focusPart("T a c1");
+    view.rerender(
+      <FocusRoot>
+        <StopsHarness label="T" stops={stops} columnCount={1} />
+      </FocusRoot>,
+    );
+
+    expect(view.container.querySelectorAll("[tabindex='0']")).toHaveLength(1);
+    expect(screen.getByText("T a c0")).toHaveProperty("tabIndex", 0);
+  });
+
   it("walks stops vertically with column memory, nearest sparse column, and a gutter lane", () => {
     render(
       <FocusRoot>

@@ -263,6 +263,19 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
       moveFrom(direction, overflowFrom);
     };
 
+  // The roving tab stop: the remembered position while its stop and column
+  // still exist, else the first stop. A row removed or filtered away, or a
+  // column dropped, must not take the table out of the tab order.
+  const tabStop: FocusStopTarget =
+    tabbable &&
+    stops.some((stop) => stop.id === tabbable.stopId) &&
+    (tabbable.column === "gutter" || tabbable.column < columnCount)
+      ? tabbable
+      : {
+          stopId: stops[0]?.id ?? "",
+          column: stops[0]?.kind === "row" && stops[0].gutter ? "gutter" : 0,
+        };
+
   return {
     onKeyDown,
     onFocusTarget: (position) => {
@@ -276,13 +289,7 @@ export function useFocusStops(options: FocusStopsOptions): FocusStops {
         current && samePosition(current, position) ? current : position,
       );
     },
-    tabIndexFor: (position) => {
-      const current = tabbable ?? {
-        stopId: stops[0]?.id ?? "",
-        column: stops[0]?.kind === "row" && stops[0].gutter ? "gutter" : 0,
-      };
-      return samePosition(current, position) ? 0 : -1;
-    },
+    tabIndexFor: (position) => (samePosition(tabStop, position) ? 0 : -1),
     attach: setElement,
     moveFrom,
   };
