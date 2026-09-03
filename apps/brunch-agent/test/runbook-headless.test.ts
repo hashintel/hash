@@ -26,6 +26,8 @@ test("the built ChatAgent constructs a validated net from the saved IR", async (
     ) as {
       sourceIrUsed: boolean;
       parseOk: boolean;
+      placeCount: number;
+      transitionCount: number;
       toolNames: string[];
       resourceFilesRead: string[];
       validationRejections: string[];
@@ -35,6 +37,8 @@ test("the built ChatAgent constructs a validated net from the saved IR", async (
     };
     expect(result.sourceIrUsed).toBe(true);
     expect(result.parseOk).toBe(true);
+    expect(result.placeCount).toBeGreaterThan(0);
+    expect(result.transitionCount).toBeGreaterThan(0);
     expect(result.toolNames).toContain("activate_skill");
     expect(result.toolNames).toContain("read_skill_resource");
     expect(result.toolNames).toEqual(

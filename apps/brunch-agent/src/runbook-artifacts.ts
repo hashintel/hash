@@ -47,6 +47,7 @@ export const skillResourcePathsFrom = (
     message.parts.flatMap((part) => {
       if (part.type !== "dynamic-tool") return [];
       if (part.toolName !== "read_skill_resource") return [];
+      if (part.state !== "output-available") return [];
       if (
         typeof part.input !== "object" ||
         part.input === null ||

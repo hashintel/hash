@@ -18,7 +18,9 @@ Current process-model-elicitation assets:
 - `protocols/ir-quality-ruler-v1/` — the independent omniscient and cold-review procedures.
 - `protocols/legacy-baseline/` — retained historical instrument; do not use it for new runs.
 
-The prospective ruler has been calibrated, but the three-run baseline has not yet been executed.
+The prospective ruler was calibrated and the baseline campaign closed after three paid
+invocations: one runtime-invalid member and two complete, independently graded members. Its
+adjudication lives with the observed evidence.
 
 When an instrument ceases to be supported, archive a short record under
 `docs/archive/evaluations/`, retain its observed output, and remove its executable source rather

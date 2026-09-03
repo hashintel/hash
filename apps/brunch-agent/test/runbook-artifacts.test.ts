@@ -48,7 +48,7 @@ describe("runbook artifact recovery", () => {
     expect(recoverRunbookIr(snapshot)).toContain("# Runbook IR");
   });
 
-  test("collects read_skill_resource paths", () => {
+  test("collects only successfully read skill resource paths", () => {
     const snapshot = {
       messages: [
         {
@@ -66,6 +66,25 @@ describe("runbook artifact recovery", () => {
                 path: "/.flue/packaged-skills/skill:sdcpn-modelling:abc/elicitation.md",
               },
               output: "ok",
+            },
+            {
+              type: "dynamic-tool",
+              toolCallId: "t2",
+              toolName: "read_skill_resource",
+              state: "output-error",
+              input: {
+                path: "/.flue/packaged-skills/skill:sdcpn-modelling:abc/missing.md",
+              },
+              errorText: "not found",
+            },
+            {
+              type: "dynamic-tool",
+              toolCallId: "t3",
+              toolName: "read_skill_resource",
+              state: "input-available",
+              input: {
+                path: "/.flue/packaged-skills/skill:sdcpn-modelling:abc/pending.md",
+              },
             },
           ],
         },

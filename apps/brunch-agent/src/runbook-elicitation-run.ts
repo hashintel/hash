@@ -210,6 +210,9 @@ const expertUsage = {
   cacheWriteTokens: 0,
 };
 
+const errorMessageFrom = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
 const askExpert = async (interviewerText: string): Promise<string> => {
   expertMessages.push({ role: "user", content: interviewerText });
   const response = await expertClient.messages.create({
@@ -314,6 +317,7 @@ try {
 
   let interviewTurns = 1;
   let stopReason = "hard-stop";
+  let failure: string | undefined;
   await dispatch(openingMessage);
 
   while (interviewTurns < hardStop) {
@@ -329,8 +333,15 @@ try {
       stopReason = "empty-interviewer";
       break;
     }
-    // oxlint-disable-next-line eslint/no-await-in-loop -- the expert must answer this settled interviewer turn.
-    const expertReply = await askExpert(interviewerText);
+    let expertReply: string;
+    try {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- the expert must answer this settled interviewer turn.
+      expertReply = await askExpert(interviewerText);
+    } catch (error) {
+      stopReason = "expert-error";
+      failure = errorMessageFrom(error);
+      break;
+    }
     // oxlint-disable-next-line eslint/no-await-in-loop -- the next interviewer turn depends on the expert reply.
     await dispatch(expertReply);
     interviewTurns += 1;
@@ -364,6 +375,7 @@ try {
     toolNames,
     resourcePaths,
     ir,
+    failure,
     wroteCaptureStore: false,
     instrument: {
       sourceCommit,
@@ -406,11 +418,12 @@ try {
       interviewTurns,
       toolNames,
       resourceFilesRead,
+      failure,
       wroteCaptureStore: false,
       artifactBase,
     })}\n`,
   );
-  if (ir === undefined) process.exitCode = 1;
+  if (failure !== undefined || ir === undefined) process.exitCode = 1;
 } finally {
   stopObserving();
   await application.stop();

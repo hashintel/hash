@@ -8,13 +8,17 @@ export default {
   messages: {
     create: () =>
       Promise.resolve({
-        content: [
-          {
-            type: "text",
-            text:
-              replies[replyIndex++] ?? "I don't know anything more about that.",
-          },
-        ],
+        content:
+          process.env["BRUNCH_RUNBOOK_EMPTY_EXPERT"] === "1"
+            ? []
+            : [
+                {
+                  type: "text",
+                  text:
+                    replies[replyIndex++] ??
+                    "I don't know anything more about that.",
+                },
+              ],
         model: "faux-vestera-expert",
         usage: {
           input_tokens: 10,

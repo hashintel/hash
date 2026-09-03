@@ -15,7 +15,7 @@ Each corresponding pair of part reports was compared before either ensemble over
 
 The ensembles largely synthesized the same local source pool. Repeated wording across them is therefore not independent corroboration. Confidence rises where distinct evidence classes align: verified literature, observed Mission 3 behavior, current teaching, and the elicitation-to-IR oracle's obligations.
 
-The historical Mission 3 runs remain calibration evidence, not a replicated baseline. They can identify plausible failures and candidate interventions, but they do not establish comparative effectiveness. The frozen prospective three-run baseline has not yet been executed.
+The historical Mission 3 runs remain calibration evidence, not a replicated baseline. They can identify plausible failures and candidate interventions, but they do not establish comparative effectiveness. The later frozen prospective baseline closed with three paid invocations—one runtime-invalid and two complete, independently graded—and establishes a control range rather than comparative effectiveness.
 
 ## Executive conclusion
 

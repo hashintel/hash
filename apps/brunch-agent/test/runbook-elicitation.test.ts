@@ -93,3 +93,62 @@ test("the prospective runner records a recoverable IR without construction or ca
     await rm(outputDirectory, { recursive: true, force: true });
   }
 });
+
+test("the prospective runner retains evidence when the expert returns no text", async () => {
+  const outputDirectory = await mkdtemp(
+    join(tmpdir(), "brunch-runbook-elicitation-failure-"),
+  );
+  try {
+    const { exitCode, stdout } = await runNodeScript(
+      join(testDirectory, "../src/runbook-elicitation-run.ts"),
+      join(testDirectory, "../../.."),
+      {
+        BRUNCH_CHAT_MODEL: "claude-haiku-4-5",
+        BRUNCH_RUNBOOK_EXPERT_MODEL: "faux-vestera-expert",
+        BRUNCH_RUNBOOK_HARD_STOP: "2",
+        BRUNCH_RUNBOOK_OUTPUT_DIR: outputDirectory,
+        BRUNCH_RUNBOOK_ALLOW_DIRTY_INSTRUMENT: "1",
+        BRUNCH_RUNBOOK_ANTHROPIC_MODULE: join(
+          testDirectory,
+          "runbook-elicitation-faux-expert.ts",
+        ),
+        BRUNCH_RUNBOOK_INTERVIEWER_PROVIDER_MODULE: join(
+          testDirectory,
+          "runbook-elicitation-faux-provider.ts",
+        ),
+        BRUNCH_RUNBOOK_EMPTY_EXPERT: "1",
+      },
+    );
+    expect(exitCode).toBe(1);
+    const resultLine = stdout
+      .split("\n")
+      .find((line) => line.startsWith("RUNBOOK_ELICITATION_RESULT "));
+    expect(resultLine, stdout).toBeDefined();
+    const result = JSON.parse(
+      resultLine!.slice("RUNBOOK_ELICITATION_RESULT ".length),
+    ) as {
+      artifactBase: string;
+      failure: string;
+    };
+    expect(result.failure).toBe("The simulated expert returned no text");
+    expect(await readdir(outputDirectory)).toEqual(
+      expect.arrayContaining([
+        `${result.artifactBase.split("/").at(-1)}.ir.md`,
+        `${result.artifactBase.split("/").at(-1)}.json`,
+        `${result.artifactBase.split("/").at(-1)}.md`,
+      ]),
+    );
+    const record = JSON.parse(
+      await readFile(`${result.artifactBase}.json`, "utf8"),
+    ) as {
+      failure: string;
+      stopReason: string;
+    };
+    expect(record).toMatchObject({
+      failure: "The simulated expert returned no text",
+      stopReason: "expert-error",
+    });
+  } finally {
+    await rm(outputDirectory, { recursive: true, force: true });
+  }
+});

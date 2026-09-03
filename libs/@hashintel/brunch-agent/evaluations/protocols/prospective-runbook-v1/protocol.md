@@ -1,6 +1,6 @@
 # Prospective runbook elicitation baseline v1
 
-Status: **ready; not yet executed**
+Status: **closed; three paid invocations completed, two runtime-valid**
 
 This protocol drives the production `ChatAgent` through elicitation with a second model playing the
 Vestera expert. It stops before Petri-net construction and recovers the emitted Markdown runbook IR.

@@ -334,11 +334,14 @@ try {
     .flatMap((part) => (part.type === "text" ? [part.text] : []))
     .join("\n");
   const parsed = petrinautClient.parse();
+  const definition = petrinautClient.definition();
 
   process.stdout.write(
     `RUNBOOK_HEADLESS_HERMETIC ${JSON.stringify({
       sourceIrUsed: filledIr.includes("VW-02 dark tint restriction"),
       parseOk: parsed.ok,
+      placeCount: definition.places.length,
+      transitionCount: definition.transitions.length,
       toolNames: interviewerToolNamesFrom(snapshot),
       resourceFilesRead: RUNBOOK_RESOURCE_FILES.filter((resourceFile) =>
         resourcePaths.some((resourcePath) =>
