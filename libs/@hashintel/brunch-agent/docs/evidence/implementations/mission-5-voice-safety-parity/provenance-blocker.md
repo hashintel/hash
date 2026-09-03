@@ -5,6 +5,9 @@
 Flue 2.0.3 can durably preserve Voice provenance for client-tool results: the
 existing client-tool result signal carries each Voice-origin tool-call id, and
 canonical snapshot projection can reconstruct every surviving sibling origin.
+Regression coverage preserves successful siblings after a partial failure,
+projects both origins from the persisted signal, and restores them through the
+production observation hook after unmount and reopen.
 
 The corresponding direct-user seam does not exist in the installed public
 contract:

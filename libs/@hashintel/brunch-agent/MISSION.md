@@ -69,7 +69,7 @@ OpenAI Realtime microphone input
 → observe({ live: "sse" }) hydration and reopen
 ```
 
-Realtime exposes no tools, uses `tool_choice: "none"`, and configures semantic VAD with `create_response: false`. Model function-call arguments are ignored even if a provider violates the policy. Provisional transcription is display-only and disappears without submission.
+Realtime exposes no tools, uses `tool_choice: "none"`, and configures semantic VAD with `create_response: false`. Model function-call arguments are ignored even if a provider violates the policy. Provisional transcription is display-only and disappears without submission. OpenAI permits transcription completion for any committed audio item and does not guarantee completion order across turns; this mission deliberately accepts only an item whose matching `speech_started` boundary occurred during the current input turn. A boundaryless or completion-before-boundary item remains rejected rather than gaining authority retroactively.
 
 Local playback cancellation, local observation cancellation, the HTTP request `AbortSignal`, and durable conversation-wide `FlueClient.abort()` remain separate operations. The first three never masquerade as durable Stop; durable Stop never appears as a Voice transcription or playback failure.
 
@@ -101,7 +101,7 @@ This mission closes the Voice safety and UX-parity stratum on the parent's route
 - Preserve the parent's one product route, memoized Flue client, browser `ChatTransport`, shared panel `useChat`, path-B Voice submission, canonical speech selection, durable Stop seam, and SDK observation hydration. Do not rebuild them.
 - Transplant relevant regression tests before implementation. Reimplement donor behavior semantically against the current Flue path; donor branches and PRs are never merged, cherry-picked, rebased, rewritten, retargeted, or closed by this implementation.
 - Derive one deterministic admission key per logical delivery. Treat `deduplicated` as successful convergence and `submission_conflict` as evidence of the already-admitted submission. Do not automatically retry an ambiguous admission.
-- Normalize completed transcripts exactly once with trim plus Unicode whitespace collapse, then enforce the 32,000-code-point bound. Provisional text remains ephemeral and display-only.
+- Normalize completed transcripts exactly once in the Realtime bridge with trim plus Unicode whitespace collapse, then enforce the 32,000-code-point bound. The generic panel validates but does not mutate that already-normalized Voice payload. Provisional text remains ephemeral and display-only.
 - The half-duplex microphone is closed during output, cancellation, pause, error, and submission states. A cancellation promise is part of the turn boundary, not a cosmetic animation state.
 - Brunch canonical text is never summarized, shortened, paraphrased, or regenerated for speech or replay.
 - Preserve every surviving Voice origin independently. Provenance must use supported Flue data or deterministic durable correlation; never encode it in visible user text.
