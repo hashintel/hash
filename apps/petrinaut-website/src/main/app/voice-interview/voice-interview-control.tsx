@@ -12,7 +12,10 @@ import { css } from "@hashintel/ds-helpers/css";
 import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
 import { selectCanonicalSpeechSegments } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
-import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
+import {
+  RealtimeBrunchBridge,
+  type RealtimeBrunchAdmissionTarget,
+} from "./realtime-brunch-bridge";
 import { toVoiceSessionState } from "./voice-session-state";
 import {
   VoiceTurnController,
@@ -26,6 +29,10 @@ import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 type ResolveSubmission = (
   messageId: string,
 ) => AgentSendResult["submissionId"] | undefined;
+type SubscribeToAdmission = (
+  target: RealtimeBrunchAdmissionTarget,
+  listener: (submissionId: AgentSendResult["submissionId"]) => void,
+) => () => void;
 
 export interface OpenAIVoiceConfig {
   readonly available: true;
@@ -232,11 +239,13 @@ const AvailableVoiceInterviewControl = ({
   context,
   resolveInputSubmission,
   resolveResponseSubmission,
+  subscribeToAdmission,
 }: {
   config: OpenAIVoiceConfig;
   context: PetrinautAiVoiceModeContext;
   resolveInputSubmission?: ResolveSubmission;
   resolveResponseSubmission?: ResolveSubmission;
+  subscribeToAdmission?: SubscribeToAdmission;
 }) => {
   "use no memo";
 
@@ -246,6 +255,7 @@ const AvailableVoiceInterviewControl = ({
     // rather than what was captured here.
     let latestSubmitVoiceInput = context.submitVoiceInput;
     let latestResolveInputSubmission = resolveInputSubmission;
+    let latestSubscribeToAdmission = subscribeToAdmission;
     const session = new OpenAIRealtimeSession({
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
@@ -262,7 +272,12 @@ const AvailableVoiceInterviewControl = ({
     const bridge = new RealtimeBrunchBridge({
       session,
       submitInterviewAnswer: async (input) => {
-        const result = await latestSubmitVoiceInput(input);
+        const unsubscribe =
+          latestSubscribeToAdmission?.(
+            input.admissionTarget,
+            input.onAdmission,
+          ) ?? (() => {});
+        const result = await latestSubmitVoiceInput(input).finally(unsubscribe);
         if (result.kind !== "message") return result;
         const submissionId = latestResolveInputSubmission?.(result.messageId);
         if (
@@ -293,9 +308,11 @@ const AvailableVoiceInterviewControl = ({
         nextResolveInputSubmission:
           | ((messageId: string) => string | undefined)
           | undefined,
+        nextSubscribeToAdmission: SubscribeToAdmission | undefined,
       ) => {
         latestSubmitVoiceInput = nextSubmitVoiceInput;
         latestResolveInputSubmission = nextResolveInputSubmission;
+        latestSubscribeToAdmission = nextSubscribeToAdmission;
       },
     };
   });
@@ -320,6 +337,7 @@ const AvailableVoiceInterviewControl = ({
     store.updateSubmissionContext(
       context.submitVoiceInput,
       resolveInputSubmission,
+      subscribeToAdmission,
     );
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
@@ -340,6 +358,7 @@ const AvailableVoiceInterviewControl = ({
     context.submitVoiceInput,
     resolveInputSubmission,
     resolveResponseSubmission,
+    subscribeToAdmission,
     store,
   ]);
 
@@ -454,11 +473,13 @@ export const VoiceInterviewControl = ({
   config,
   resolveInputSubmission,
   resolveResponseSubmission,
+  subscribeToAdmission,
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmission;
+  readonly subscribeToAdmission?: SubscribeToAdmission;
 }) => (
   <AvailableVoiceInterviewControl
     key={context.conversationId}
@@ -466,5 +487,6 @@ export const VoiceInterviewControl = ({
     context={context}
     resolveInputSubmission={resolveInputSubmission}
     resolveResponseSubmission={resolveResponseSubmission}
+    subscribeToAdmission={subscribeToAdmission}
   />
 );

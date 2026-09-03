@@ -89,11 +89,21 @@ describe("VoiceTurnController", () => {
     });
     harness.advanceTime(10);
     harness.emitBridge({
+      callId: "call-opaque",
+      submissionId: "submission-opaque",
+      type: "submission-admitted",
+    });
+    harness.emitBridge({
+      callId: "call-opaque",
+      submissionId: "submission-opaque",
+      type: "submission-admitted",
+    });
+    harness.advanceTime(10);
+    harness.emitBridge({
       answer: "Private finalized answer",
       callId: "call-opaque",
       type: "submission-accepted",
     });
-    harness.advanceTime(10);
     harness.emitBridge({
       callId: "call-opaque",
       type: "canonical-text-ready",
