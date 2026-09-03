@@ -378,6 +378,41 @@ impl From<Option<DeltaEpoch>> for ScopeEpoch {
     }
 }
 
+/// A view's scope as the token carries it, bound to no presenter yet.
+///
+/// The actor it names is the token's claim about who may present it. [`bind`](Self::bind) is the
+/// only way from here to a [`Scope`], and every [`Scope`] opened from a token names its
+/// presenter. The byte form is [`Scope`]'s own, read in place from the [`SealedState`].
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::TryFromBytes,
+)]
+#[repr(transparent)]
+struct UnboundScope(Scope);
+
+impl UnboundScope {
+    /// Binds the scope to its presenter, refusing an actor the token does not name.
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "the derived `PartialEq` behind `!=` is not const-callable"
+    )]
+    fn bind(self, actor: ActorId) -> Result<Scope, AuthorityError> {
+        if self.0.actor != actor.into() {
+            return Err(AuthorityError::Actor);
+        }
+
+        Ok(self.0)
+    }
+}
+
 /// One view's sealed identity and state.
 ///
 /// The actor and filter digest name the visibility proof the view answers under. `k` is the
@@ -452,7 +487,7 @@ impl Scope {
 )]
 #[repr(C)]
 struct SealedState {
-    scope: Scope,
+    scope: UnboundScope,
     epoch: ScopeEpoch,
 }
 
@@ -556,7 +591,7 @@ impl<R> TokenAuthority<R> {
         R: TryCryptoRng,
     {
         let sealed = SealedState {
-            scope,
+            scope: UnboundScope(scope),
             epoch: self.epoch,
         };
 
@@ -625,7 +660,7 @@ impl<R> TokenAuthority<R> {
             return Err(AuthorityError::Stale);
         }
 
-        Self::subject(scope, actor)
+        scope.bind(actor)
     }
 
     /// Reads the view state a presented token carries, for a renewal.
@@ -654,7 +689,7 @@ impl<R> TokenAuthority<R> {
         let (_issued_at, sealed) = self.unseal(blob)?;
         let scope = self.alive(sealed)?;
 
-        Self::subject(scope, actor)
+        scope.bind(actor)
     }
 
     /// Parses and authenticates one envelope: the zerocopy cast and the tag, nothing judged.
@@ -689,25 +724,12 @@ impl<R> TokenAuthority<R> {
         clippy::missing_const_for_fn,
         reason = "the derived `PartialEq` behind `!=` is not const-callable"
     )]
-    fn alive(&self, sealed: SealedState) -> Result<Scope, AuthorityError> {
+    fn alive(&self, sealed: SealedState) -> Result<UnboundScope, AuthorityError> {
         if sealed.epoch != self.epoch {
             return Err(AuthorityError::Epoch);
         }
 
         Ok(sealed.scope)
-    }
-
-    /// Resolves the sealed state for `actor`, refusing a presenter the token does not name.
-    #[expect(
-        clippy::missing_const_for_fn,
-        reason = "the derived `PartialEq` behind `!=` is not const-callable"
-    )]
-    fn subject(scope: Scope, actor: ActorId) -> Result<Scope, AuthorityError> {
-        if scope.actor != actor.into() {
-            return Err(AuthorityError::Actor);
-        }
-
-        Ok(scope)
     }
 }
 

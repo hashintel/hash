@@ -32,8 +32,14 @@ pin_project! {
     /// - [`tokio::io::AsyncWrite`] for asynchronous streams,
     /// - [`Sink`](futures_sink::Sink) for framed byte chunks.
     ///
-    /// Writes always succeed in full, and flush, shutdown, and close are no-ops. The accumulator is
-    /// the public field, so the finished value is one field access away.
+    /// The accumulator absorbs exactly the bytes the inner stream accepts: a short write feeds the
+    /// accepted prefix, and a failed write feeds nothing. Flush, shutdown and close delegate to the
+    /// inner stream. The finished value is the public `accumulator` field.
+    ///
+    /// # Warning
+    ///
+    /// The accumulator absorbs a [`Sink`](futures_sink::Sink) item before the inner sink accepts
+    /// it. After a rejected item the accumulator is ahead of the stream.
     ///
     /// # Examples
     ///
@@ -68,8 +74,10 @@ where
 {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.accumulator.update(buf);
-        self.writer.write(buf)
+        let written = self.writer.write(buf)?;
+        self.accumulator.update(&buf[..written]);
+
+        Ok(written)
     }
 
     #[inline]
@@ -90,8 +98,10 @@ where
     ) -> task::Poll<io::Result<usize>> {
         let this = self.project();
 
-        this.accumulator.update(buf);
-        this.writer.poll_write(cx, buf)
+        let written = task::ready!(this.writer.poll_write(cx, buf))?;
+        this.accumulator.update(&buf[..written]);
+
+        task::Poll::Ready(Ok(written))
     }
 
     fn poll_flush(
@@ -152,8 +162,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use core::pin::Pin;
-    use std::io::Write as _;
+    use core::{pin::Pin, task};
+    use std::io::{self, Write as _};
 
     use futures_sink::Sink as _;
 
@@ -169,8 +179,76 @@ mod tests {
         }
     }
 
+    /// A writer that accepts at most `limit` bytes a call and records what it took.
+    struct ShortWriter {
+        accepted: Vec<u8>,
+        limit: usize,
+    }
+
+    impl ShortWriter {
+        fn new(limit: usize) -> Self {
+            Self {
+                accepted: Vec::new(),
+                limit,
+            }
+        }
+
+        fn take(&mut self, buf: &[u8]) -> usize {
+            let accepted = buf.len().min(self.limit);
+            self.accepted.extend_from_slice(&buf[..accepted]);
+            accepted
+        }
+    }
+
+    impl io::Write for ShortWriter {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            Ok(self.take(buf))
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl tokio::io::AsyncWrite for ShortWriter {
+        fn poll_write(
+            mut self: Pin<&mut Self>,
+            _cx: &mut task::Context<'_>,
+            buf: &[u8],
+        ) -> task::Poll<io::Result<usize>> {
+            task::Poll::Ready(Ok(self.take(buf)))
+        }
+
+        fn poll_flush(
+            self: Pin<&mut Self>,
+            _cx: &mut task::Context<'_>,
+        ) -> task::Poll<io::Result<()>> {
+            task::Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(
+            self: Pin<&mut Self>,
+            _cx: &mut task::Context<'_>,
+        ) -> task::Poll<io::Result<()>> {
+            task::Poll::Ready(Ok(()))
+        }
+    }
+
+    /// A writer that refuses every write.
+    struct Refusing;
+
+    impl io::Write for Refusing {
+        fn write(&mut self, _buf: &[u8]) -> io::Result<usize> {
+            Err(io::Error::from(io::ErrorKind::BrokenPipe))
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
     #[test]
-    fn io_write_absorbs_everything() {
+    fn io_write_whole() {
         let mut writer = Writer {
             accumulator: Recorder::default(),
             writer: std::io::sink(),
@@ -185,7 +263,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn async_write_absorbs_everything() {
+    async fn async_write_whole() {
         let mut writer = Writer {
             accumulator: Recorder::default(),
             writer: tokio::io::sink(),
@@ -198,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    fn sink_absorbs_every_chunk() {
+    fn sink_chunks() {
         let mut writer = Writer {
             accumulator: Recorder::default(),
             writer: futures::sink::drain::<&'static [u8]>(),
@@ -206,5 +284,50 @@ mod tests {
         let Ok(()) = Pin::new(&mut writer).start_send(b"ab");
         let Ok(()) = Pin::new(&mut writer).start_send(b"c");
         assert_eq!(writer.accumulator.0, b"abc");
+    }
+
+    #[test]
+    fn io_write_short() {
+        let mut writer = Writer {
+            accumulator: Recorder::default(),
+            writer: ShortWriter::new(2),
+        };
+
+        writer
+            .write_all(b"abcde")
+            .expect("should absorb writes without failing");
+
+        assert_eq!(writer.accumulator.0, writer.writer.accepted);
+        assert_eq!(writer.accumulator.0, b"abcde");
+    }
+
+    #[tokio::test]
+    async fn async_write_short() {
+        let mut writer = Writer {
+            accumulator: Recorder::default(),
+            writer: ShortWriter::new(2),
+        };
+
+        tokio::io::AsyncWriteExt::write_all(&mut writer, b"abcde")
+            .await
+            .expect("should absorb writes without failing");
+
+        assert_eq!(writer.accumulator.0, writer.writer.accepted);
+        assert_eq!(writer.accumulator.0, b"abcde");
+    }
+
+    #[test]
+    fn io_write_refused() {
+        let mut writer = Writer {
+            accumulator: Recorder::default(),
+            writer: Refusing,
+        };
+
+        let error = writer
+            .write(b"abc")
+            .expect_err("should surface the writer's refusal");
+
+        assert_eq!(error.kind(), io::ErrorKind::BrokenPipe);
+        assert!(writer.accumulator.0.is_empty());
     }
 }

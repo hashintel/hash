@@ -1,10 +1,9 @@
-//! The authority token's envelope, checked against an independent reimplementation.
+//! The authority token's contract, driven through its facade.
 //!
-//! These cases rebuild the envelope from the primitives - HKDF for the key, the header's byte
-//! layout by hand, the AEAD over a hand-assembled associated-data buffer - and compare bytes with
-//! what [`TokenAuthority`] produces, in both directions. Every width below is a hand-summed literal
-//! rather than a `size_of` over the production layout types, which is what keeps the battery an
-//! independent check on the byte order. Each case asserts agreement rather than inheriting it.
+//! Every case issues a token, opens it or reads it for a renewal through [`TokenAuthority`] alone,
+//! and asserts each outcome by its [`AuthorityError`] cause. The envelope's layout belongs to the
+//! production types, and the cases reach every byte without naming an offset: the tamper case flips
+//! each position of the envelope in turn, and the nonce case compares whole envelopes.
 #![expect(
     clippy::min_ident_chars,
     reason = "`k` is the delivery-cut offset's name throughout the density contract"
@@ -13,90 +12,30 @@
 use core::time::Duration;
 use std::time::SystemTime;
 
-use chacha20poly1305::{
-    KeyInit as _, XChaCha20Poly1305, XNonce,
-    aead::{Aead as _, Payload},
-};
-use hkdf::Hkdf;
 use rand::{SeedableRng as _, rngs::ChaCha20Rng};
-use sha2::Sha256;
 use type_system::principal::actor::{ActorId, UserId};
 use uuid::Uuid;
-use zerocopy::IntoBytes as _;
 
 use crate::{
     integrity::SecretHexBytes,
     serve::{
         DeltaEpoch,
-        authorization::{AuthorityError, Scope, TokenAuthority},
+        authorization::{AuthorityError, Scope, TOKEN_BYTES, TokenAuthority},
         cache::scope::FilterDigest,
         density::CutOffset,
     },
 };
 
-/// The format version's width.
-const VERSION_BYTES: usize = 1;
+/// The acceptance window of every fixture authority.
+const HARD: Duration = Duration::from_mins(10);
 
-/// The issue time's width.
-///
-/// The issue time is whole seconds as a little-endian unsigned 64-bit integer.
-const ISSUED_AT_BYTES: usize = 8;
-
-/// The nonce width: `XChaCha20`'s 192-bit extended nonce.
-const NONCE_BYTES: usize = 24;
-
-/// The clear header's width.
-const HEADER_BYTES: usize = VERSION_BYTES + ISSUED_AT_BYTES + NONCE_BYTES;
-
-/// The width of an actor kind, one discriminant byte naming user, machine, or ai.
-const ACTOR_KIND_BYTES: usize = 1;
-
-/// An actor uuid's width.
-const ACTOR_BYTES: usize = 16;
-
-/// The filter presence byte's width.
-const PRESENCE_BYTES: usize = 1;
-
-/// A SHA-256 digest's width.
-const DIGEST_BYTES: usize = 32;
-
-/// The delivery-cut offset's width.
-const OFFSET_BYTES: usize = 1;
-
-/// A delta epoch's width.
-const EPOCH_BYTES: usize = 16;
-
-/// The sealed plaintext's width.
-///
-/// The sealed plaintext is an actor kind byte, an actor uuid, a presence byte, a filter digest,
-/// the offset byte, a second presence byte, and the delta epoch.
-const PLAINTEXT_BYTES: usize = ACTOR_KIND_BYTES
-    + ACTOR_BYTES
-    + PRESENCE_BYTES
-    + DIGEST_BYTES
-    + OFFSET_BYTES
-    + PRESENCE_BYTES
-    + EPOCH_BYTES;
-
-/// Poly1305's tag width.
-const TAG_BYTES: usize = 16;
-
-/// The whole envelope's width.
-///
-/// Where a hand-assembled envelope meets a production signature, the compiler unifies this sum with
-/// the production width, so a layout drift fails the build before it fails a case.
-const ENVELOPE_BYTES: usize = HEADER_BYTES + PLAINTEXT_BYTES + TAG_BYTES;
-
-/// The offset of the nonce inside the clear header: past the version byte and the issue time.
-const NONCE_OFFSET: usize = VERSION_BYTES + ISSUED_AT_BYTES;
-
-/// The expansion label.
-const LABEL: &[u8] = b"atlas.authorization.v1";
+/// The canonical filter document of the filtered fixtures.
+const FILTER: &[u8] = b"{\"kind\":\"all\"}";
 
 /// A deterministic CSPRNG for the fixtures.
 ///
 /// Seeded rather than drawn from the operating system: these cases never depend on the nonce's
-/// value, so a fixed stream keeps a failure reproducible.
+/// value, and a fixed stream keeps a failure reproducible.
 fn rng() -> ChaCha20Rng {
     ChaCha20Rng::from_seed([7; 32])
 }
@@ -132,256 +71,76 @@ fn scope(actor_id: u128, k: u8, filter: Option<&[u8]>) -> Scope {
     )
 }
 
-/// Derives the sealing key independently: HKDF-SHA256, generation digest as salt, one label.
-fn key() -> [u8; 32] {
-    let mut key = [0_u8; 32];
-    Hkdf::<Sha256>::new(Some(&generation().digest().to_bytes()), secret().as_bytes())
-        .expand(LABEL, &mut key)
-        .expect("thirty-two bytes is a valid HKDF-SHA256 output length");
-
-    key
+/// An authority over the fixture generation and secret, holding `epoch`.
+fn authority(epoch: Option<DeltaEpoch>) -> TokenAuthority<ChaCha20Rng> {
+    TokenAuthority::new(generation(), &secret(), HARD, epoch, rng())
 }
 
-/// Assembles the clear header by hand: version, issue time in little-endian seconds, nonce.
-fn header(now: SystemTime, nonce: &[u8]) -> [u8; HEADER_BYTES] {
-    let mut bytes = [0_u8; HEADER_BYTES];
-    bytes[0] = 1;
-    bytes[VERSION_BYTES..NONCE_OFFSET].copy_from_slice(
-        &now.duration_since(SystemTime::UNIX_EPOCH)
-            .expect("the fixture instant is after the epoch")
-            .as_secs()
-            .to_le_bytes(),
-    );
-    bytes[NONCE_OFFSET..].copy_from_slice(nonce);
-
-    bytes
-}
-
-/// Assembles the sealed plaintext by hand.
+/// An issued token opens to the scope it sealed, filtered or not, under either epoch form.
 ///
-/// The bytes run actor kind byte, actor uuid, presence byte, filter digest, offset byte, epoch
-/// presence byte, and epoch, in that order. The presenter is a user here, kind byte zero over its
-/// uuid. An absent filter and an absent epoch each leave their presence byte and payload zeroed.
-fn plaintext(
-    actor: u128,
-    k: u8,
-    filter: Option<&[u8]>,
-    epoch: Option<DeltaEpoch>,
-) -> [u8; PLAINTEXT_BYTES] {
-    const FILTER_AT: usize = ACTOR_KIND_BYTES + ACTOR_BYTES;
-    const OFFSET_AT: usize = FILTER_AT + PRESENCE_BYTES + DIGEST_BYTES;
-
-    let mut bytes = [0_u8; PLAINTEXT_BYTES];
-    bytes[0] = 0;
-    bytes[ACTOR_KIND_BYTES..FILTER_AT].copy_from_slice(&Uuid::from_u128(actor).into_bytes());
-    if let Some(canonical) = filter {
-        bytes[FILTER_AT] = 1;
-        bytes[FILTER_AT + PRESENCE_BYTES..OFFSET_AT]
-            .copy_from_slice(FilterDigest::of(canonical).as_bytes());
-    }
-    bytes[OFFSET_AT] = k;
-    if let Some(epoch) = epoch {
-        bytes[OFFSET_AT + OFFSET_BYTES] = 1;
-        bytes[OFFSET_AT + OFFSET_BYTES + PRESENCE_BYTES..].copy_from_slice(epoch.as_bytes());
-    }
-
-    bytes
-}
-
-/// Seals a plaintext under the independent implementation.
-///
-/// The production `open` must accept the resulting envelope, which makes this the counterpart of
-/// the byte-compared issuance.
-fn seal_raw(
-    plaintext: &[u8; PLAINTEXT_BYTES],
-    now: SystemTime,
-    nonce: &[u8; NONCE_BYTES],
-) -> [u8; ENVELOPE_BYTES] {
-    let clear = header(now, nonce);
-    let body = XChaCha20Poly1305::new(&key().into())
-        .encrypt(
-            XNonce::from_slice(nonce),
-            Payload {
-                msg: plaintext,
-                aad: &clear,
-            },
-        )
-        .expect("the fixture payload encrypts");
-
-    let mut blob = [0_u8; ENVELOPE_BYTES];
-    blob[..HEADER_BYTES].copy_from_slice(&clear);
-    blob[HEADER_BYTES..].copy_from_slice(&body);
-
-    blob
-}
-
-/// An issued token is byte-identical to an independently assembled envelope, filtered or not.
-///
-/// The associated data is the clear header's own bytes, so this case pins that too. An
-/// implementation that authenticated a re-encoded form of the same fields would produce a different
-/// tag and fail here. The envelope is the same fixed 117 bytes at either offset and with or without
-/// a filter. An absent filter leaves the digest field zero rather than dropping it, and an absent
-/// epoch does the same, so neither presence shows in the length.
+/// The opened scope carries the actor, the filter digest and the offset unchanged, and the epoch
+/// an authority holds at issuance is the one its own open accepts.
 #[test]
-fn minted_token_matches_an_independent_envelope() {
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
+fn open_roundtrip() {
+    let epoch = DeltaEpoch::fresh(&mut rng()).expect("the seeded generator is infallible");
 
-    for (k, filter) in [(0, None), (5, Some(b"{\"kind\":\"all\"}".as_slice()))] {
-        let minted = authority
-            .issue(scope(11, k, filter), issued_at())
-            .expect("the seeded generator is infallible");
+    for authority in [authority(None), authority(Some(epoch))] {
+        for (k, filter) in [(0, None), (5, Some(FILTER))] {
+            let minted = authority
+                .issue(scope(11, k, filter), issued_at())
+                .expect("the seeded generator is infallible");
 
-        // The nonce is public, so the reimplementation takes it from the envelope under test and
-        // derives everything else - which is why this case needs no control over the entropy
-        // source.
-        let nonce = &minted[NONCE_OFFSET..NONCE_OFFSET + NONCE_BYTES];
-        let clear = header(issued_at(), nonce);
-        let body = XChaCha20Poly1305::new(&key().into())
-            .encrypt(
-                XNonce::from_slice(nonce),
-                Payload {
-                    msg: &plaintext(11, k, filter, None),
-                    aad: &clear,
-                },
-            )
-            .expect("the fixture payload encrypts");
-
-        let mut expected = clear.to_vec();
-        expected.extend_from_slice(&body);
-
-        assert_eq!(
-            minted.as_slice(),
-            expected.as_slice(),
-            "the envelope is not the assembled bytes"
-        );
-        assert_eq!(
-            minted.len(),
-            ENVELOPE_BYTES,
-            "the envelope is a fixed 117 bytes"
-        );
+            assert_eq!(
+                authority
+                    .open(&minted, actor(11), issued_at())
+                    .expect("an issued token opens"),
+                scope(11, k, filter),
+                "the opened scope differs from the sealed one"
+            );
+        }
     }
 }
 
-/// An independent decryption recovers the sealed plaintext.
+/// Every byte of the envelope is under the tag, and the version byte leads it.
 ///
-/// The issue-side byte comparison has its counterpart here. This case decrypts the body under the
-/// independently derived key and compares it with the hand-assembled plaintext, which pins the
-/// sealed bytes from both sides of the AEAD.
+/// The header is the associated data, and the rest is ciphertext and tag. A flipped bit at any
+/// position past the first refuses as an authentication fault, a moved issue time included, since
+/// `open` judges the tag before the window. A flipped bit in the first byte, the format version,
+/// fails the zerocopy cast ahead of the tag and refuses as an envelope fault.
 #[test]
-fn independent_open_recovers_the_scope() {
-    let canonical = b"{\"kind\":\"all\"}".as_slice();
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
+fn open_tampered_byte() {
+    let authority = authority(None);
     let minted = authority
-        .issue(scope(11, 5, Some(canonical)), issued_at())
-        .expect("the seeded generator is infallible");
-
-    let (clear, body) = minted.split_at(HEADER_BYTES);
-    let recovered = XChaCha20Poly1305::new(&key().into())
-        .decrypt(
-            XNonce::from_slice(&clear[NONCE_OFFSET..]),
-            Payload {
-                msg: body,
-                aad: clear,
-            },
-        )
-        .expect("the tag authenticates under the independent key");
-
-    assert_eq!(
-        recovered,
-        plaintext(11, 5, Some(canonical), None),
-        "the sealed plaintext is not the assembled bytes"
-    );
-}
-
-/// A hand-assembled envelope opens to the scope it names, filtered or not.
-///
-/// The independent implementation seals, the production `open` accepts and resolves the scope. With
-/// the issue-side byte comparison this closes the loop in both directions, so the round trip
-/// through the production pair alone needs no case of its own.
-#[test]
-fn hand_assembled_envelope_opens() {
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
-
-    for (k, filter) in [(0, None), (5, Some(b"{\"kind\":\"all\"}".as_slice()))] {
-        let blob = seal_raw(
-            &plaintext(11, k, filter, None),
-            issued_at(),
-            &[9; NONCE_BYTES],
-        );
-
-        assert_eq!(
-            authority
-                .open(&blob, actor(11), issued_at())
-                .expect("a hand-assembled envelope opens"),
-            scope(11, k, filter),
-            "the opened scope differs from the sealed one"
-        );
-    }
-}
-
-/// A rewritten issue time refuses as an authentication fault.
-///
-/// The clear header is in the associated data, so editing the field the age check reads invalidates
-/// the tag. `open` judges the tag first, which is why the cause is authentication rather than
-/// staleness whichever direction the edit moves the clock.
-#[test]
-fn rewritten_issue_time_refuses() {
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
-    let mut minted = authority
         .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
-    // Move the recorded second, which the tag covers.
-    minted[VERSION_BYTES] = minted[VERSION_BYTES].wrapping_add(1);
+    for index in 0..TOKEN_BYTES {
+        let mut tampered = minted;
+        tampered[index] ^= 1;
 
-    assert_eq!(
-        authority.open(&minted, actor(11), issued_at()),
-        Err(AuthorityError::Authentication),
-        "an edited header opened"
-    );
+        let expected = if index == 0 {
+            AuthorityError::Envelope
+        } else {
+            AuthorityError::Authentication
+        };
+        assert_eq!(
+            authority.open(&tampered, actor(11), issued_at()),
+            Err(expected),
+            "a token with a flipped bit at byte {index} opened, or refused for another cause"
+        );
+    }
 }
 
 /// A token at or past the hard window refuses, and so does a future-dated one.
 #[test]
-fn token_outside_the_window_refuses() {
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
+fn open_outside_window() {
+    let authority = authority(None);
     let minted = authority
         .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
-    let hard = Duration::from_mins(10);
 
     assert_eq!(
-        authority.open(&minted, actor(11), issued_at() + hard),
+        authority.open(&minted, actor(11), issued_at() + HARD),
         Err(AuthorityError::Stale),
         "a token at the hard window opened"
     );
@@ -394,25 +153,18 @@ fn token_outside_the_window_refuses() {
         .open(
             &minted,
             actor(11),
-            issued_at() + hard - Duration::from_secs(1),
+            issued_at() + HARD - Duration::from_secs(1),
         )
         .expect("a token one second inside the window opens");
 }
 
 /// A token issued under another generation refuses.
 ///
-/// The generation salts the key, so this refusal happens at the tag rather than at a field
-/// comparison, and it holds for a token whose plaintext is otherwise identical.
+/// The generation salts the key. The refusal happens at the tag rather than at a field comparison,
+/// and it holds for a token whose plaintext is otherwise identical.
 #[test]
-fn foreign_generation_refuses() {
-    let minting = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
-    let minted = minting
+fn open_foreign_generation() {
+    let minted = authority(None)
         .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
@@ -421,7 +173,7 @@ fn foreign_generation_refuses() {
             .parse()
             .expect("64 hexadecimal digits name a generation"),
         &secret(),
-        Duration::from_mins(10),
+        HARD,
         None,
         rng(),
     );
@@ -435,25 +187,19 @@ fn foreign_generation_refuses() {
 
 /// A token opened under another secret refuses at the tag.
 #[test]
-fn foreign_secret_refuses() {
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
-    let minted = authority
+fn open_foreign_secret() {
+    let minted = authority(None)
         .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     let foreign = TokenAuthority::new(
         generation(),
         &SecretHexBytes::new([0xA5; 32]),
-        Duration::from_mins(10),
+        HARD,
         None,
         rng(),
     );
+
     assert_eq!(
         foreign.open(&minted, actor(11), issued_at()),
         Err(AuthorityError::Authentication),
@@ -461,52 +207,13 @@ fn foreign_secret_refuses() {
     );
 }
 
-/// Tampering with any authenticated byte refuses.
-///
-/// The issue time has its own case, and the nonce, the ciphertext, and the tag cover the remaining
-/// regions. The nonce is in the clear header, so its edit fails through the associated data, while
-/// the other two fail as ciphertext.
-#[test]
-fn tampered_byte_refuses() {
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
-    let minted = authority
-        .issue(scope(11, 5, None), issued_at())
-        .expect("the seeded generator is infallible");
-
-    for (region, index) in [
-        ("nonce", NONCE_OFFSET),
-        ("ciphertext", HEADER_BYTES),
-        ("tag", minted.len() - 1),
-    ] {
-        let mut tampered = minted;
-        tampered[index] ^= 1;
-        assert_eq!(
-            authority.open(&tampered, actor(11), issued_at()),
-            Err(AuthorityError::Authentication),
-            "a token with a tampered {region} byte opened"
-        );
-    }
-}
-
 /// A valid token presented by an actor it does not name refuses.
 ///
 /// The tag proves the server issued the token, not that the presenter is its subject: without this
 /// refusal a leaked token would grant any authenticated actor the subject's scope.
 #[test]
-fn foreign_actor_refuses() {
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
+fn open_foreign_actor() {
+    let authority = authority(None);
     let minted = authority
         .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
@@ -518,167 +225,26 @@ fn foreign_actor_refuses() {
     );
 }
 
-/// An expired token no longer opens, yet still yields its view state for a renewal.
-///
-/// The property the carried read exists for: hard invalidation forces a fresh token without
-/// perturbing the view. At an instant past the hard window, `open` refuses the token as stale while
-/// `carried` still reads the sealed state - and a token re-issued from that state opens, sealing
-/// the same view.
-#[test]
-fn expired_token_still_carries_its_scope() {
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
-    let minted = authority
-        .issue(scope(11, 5, None), issued_at())
-        .expect("the seeded generator is infallible");
-    let later = issued_at() + Duration::from_mins(11);
-
-    assert_eq!(
-        authority.open(&minted, actor(11), later),
-        Err(AuthorityError::Stale),
-        "an expired token opened"
-    );
-
-    let carried = authority
-        .continuity(&minted, actor(11))
-        .expect("an expired token still carries its state");
-    assert_eq!(carried, scope(11, 5, None), "the carried state differs");
-
-    let renewed = authority
-        .issue(carried, later)
-        .expect("the seeded generator is infallible");
-    assert_eq!(
-        authority
-            .open(&renewed, actor(11), later)
-            .expect("the renewed token opens"),
-        scope(11, 5, None),
-        "the renewal perturbed the view"
-    );
-}
-
-/// The carried read forgives staleness alone: the tag and the actor still refuse.
-#[test]
-fn carried_read_still_enforces_tag_and_actor() {
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
-    let minted = authority
-        .issue(scope(11, 5, None), issued_at())
-        .expect("the seeded generator is infallible");
-
-    let mut tampered = minted;
-    tampered[HEADER_BYTES] ^= 1;
-    assert_eq!(
-        authority.continuity(&tampered, actor(11)),
-        Err(AuthorityError::Authentication),
-        "a tampered token carried"
-    );
-    assert_eq!(
-        authority.continuity(&minted, actor(12)),
-        Err(AuthorityError::Actor),
-        "another actor's presentation carried"
-    );
-}
-
-/// An issued token seals the authority's delta epoch at the hand-assembled offsets.
-///
-/// Issuance stamps the held epoch rather than reading one from the scope, so the sealed bytes are
-/// the authority's to prove. This case decrypts under the independent key and compares against
-/// the hand-assembled plaintext carrying the same epoch, which pins the epoch's offset and its
-/// presence byte.
-#[test]
-fn minted_token_seals_the_held_epoch() {
-    let epoch = DeltaEpoch::fresh(&mut rng()).expect("the seeded generator is infallible");
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        Some(epoch),
-        rng(),
-    );
-    let minted = authority
-        .issue(scope(11, 5, None), issued_at())
-        .expect("the seeded generator is infallible");
-
-    let (clear, body) = minted.split_at(HEADER_BYTES);
-    let recovered = XChaCha20Poly1305::new(&key().into())
-        .decrypt(
-            XNonce::from_slice(&clear[NONCE_OFFSET..]),
-            Payload {
-                msg: body,
-                aad: clear,
-            },
-        )
-        .expect("the tag authenticates under the independent key");
-
-    assert_eq!(
-        recovered,
-        plaintext(11, 5, None, Some(epoch)),
-        "the sealed plaintext is not the assembled bytes"
-    );
-
-    authority
-        .open(&minted, actor(11), issued_at())
-        .expect("a token opens under the epoch that sealed it");
-}
-
-/// A token sealed under a dead delta epoch refuses, on the data read and the renewal read alike.
+/// A token sealed under a dead delta epoch refuses to open.
 ///
 /// The issuing and successor authorities share one generation and secret, standing in for a
-/// serving process before and after a restart: the sealing key is identical, so the refusal is
-/// the epoch comparison rather than the tag. The renewal read is the path the session-replacement
-/// contract names - view state accumulated beside a dead register must not carry into a token
-/// issued under the live one - and the successor still issues fresh tokens that open.
+/// serving process before and after a restart. The sealing key is identical, and the refusal is
+/// the epoch comparison rather than the tag.
 #[test]
-fn dead_epoch_refuses_open_and_carry() {
+fn open_dead_epoch() {
     let mut draws = rng();
     let first = DeltaEpoch::fresh(&mut draws).expect("the seeded generator is infallible");
     let second = DeltaEpoch::fresh(&mut draws).expect("the seeded generator is infallible");
 
-    let minting = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        Some(first),
-        rng(),
-    );
-    let minted = minting
+    let minted = authority(Some(first))
         .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
-    let successor = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        Some(second),
-        rng(),
-    );
     assert_eq!(
-        successor.open(&minted, actor(11), issued_at()),
+        authority(Some(second)).open(&minted, actor(11), issued_at()),
         Err(AuthorityError::Epoch),
         "a dead epoch's token opened"
     );
-    assert_eq!(
-        successor.continuity(&minted, actor(11)),
-        Err(AuthorityError::Epoch),
-        "a dead epoch's token carried into a renewal"
-    );
-
-    let renewed = successor
-        .issue(scope(11, 5, None), issued_at())
-        .expect("the seeded generator is infallible");
-    successor
-        .open(&renewed, actor(11), issued_at())
-        .expect("the successor's own token opens");
 }
 
 /// The absent and present epoch forms refuse each other in both directions.
@@ -688,22 +254,10 @@ fn dead_epoch_refuses_open_and_carry() {
 /// rows from a delta predecessor, and exact equality of the sealed form is the one rule covering
 /// both.
 #[test]
-fn epoch_presence_binds_in_both_directions() {
+fn open_epoch_presence_mismatch() {
     let epoch = DeltaEpoch::fresh(&mut rng()).expect("the seeded generator is infallible");
-    let without = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
-    let with = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        Some(epoch),
-        rng(),
-    );
+    let without = authority(None);
+    let with = authority(Some(epoch));
 
     let absent_sealed = without
         .issue(scope(11, 5, None), issued_at())
@@ -726,30 +280,16 @@ fn epoch_presence_binds_in_both_directions() {
 
 /// Two no-delta authorities accept each other's tokens.
 ///
-/// The absent form is a value that equals itself across constructions, which is what keeps
-/// tokens valid across the restarts of a process serving without a delta consumer.
+/// The absent form equals itself across constructions, and a process serving without a delta
+/// consumer keeps its tokens valid across restarts.
 #[test]
-fn absent_epochs_survive_a_restart() {
-    let minting = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
-    let minted = minting
+fn open_absent_epoch_after_restart() {
+    let minted = authority(None)
         .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
-    let restarted = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
     assert_eq!(
-        restarted
+        authority(None)
             .open(&minted, actor(11), issued_at())
             .expect("a no-delta token opens after a no-delta restart"),
         scope(11, 5, None),
@@ -757,20 +297,109 @@ fn absent_epochs_survive_a_restart() {
     );
 }
 
+/// An expired token no longer opens, yet still yields its view state for a renewal.
+///
+/// The property the carried read exists for: hard invalidation forces a fresh token without
+/// perturbing the view. At an instant past the hard window, `open` refuses the token as stale while
+/// `continuity` still reads the sealed state, and a token re-issued from that state opens, sealing
+/// the same view.
+#[test]
+fn continuity_expired() {
+    let authority = authority(None);
+    let minted = authority
+        .issue(scope(11, 5, None), issued_at())
+        .expect("the seeded generator is infallible");
+    let later = issued_at() + HARD + Duration::from_mins(1);
+
+    assert_eq!(
+        authority.open(&minted, actor(11), later),
+        Err(AuthorityError::Stale),
+        "an expired token opened"
+    );
+
+    let carried = authority
+        .continuity(&minted, actor(11))
+        .expect("an expired token still yields its view state");
+    assert_eq!(
+        carried,
+        scope(11, 5, None),
+        "the continuity read differs from the sealed scope"
+    );
+
+    let renewed = authority
+        .issue(carried, later)
+        .expect("the seeded generator is infallible");
+    assert_eq!(
+        authority
+            .open(&renewed, actor(11), later)
+            .expect("the renewed token opens"),
+        scope(11, 5, None),
+        "the renewal perturbed the view"
+    );
+}
+
+/// The continuity read skips the window and keeps the tag: a flipped tag byte refuses.
+#[test]
+fn continuity_tampered() {
+    let authority = authority(None);
+    let mut tampered = authority
+        .issue(scope(11, 5, None), issued_at())
+        .expect("the seeded generator is infallible");
+    tampered[TOKEN_BYTES - 1] ^= 1;
+
+    assert_eq!(
+        authority.continuity(&tampered, actor(11)),
+        Err(AuthorityError::Authentication),
+        "a tampered token carried"
+    );
+}
+
+/// The continuity read skips the window and keeps the actor comparison: a presenter the token does
+/// not name refuses.
+#[test]
+fn continuity_foreign_actor() {
+    let authority = authority(None);
+    let minted = authority
+        .issue(scope(11, 5, None), issued_at())
+        .expect("the seeded generator is infallible");
+
+    assert_eq!(
+        authority.continuity(&minted, actor(12)),
+        Err(AuthorityError::Actor),
+        "another actor's presentation carried"
+    );
+}
+
+/// A token sealed under a dead delta epoch refuses to carry into a renewal.
+///
+/// The renewal read is the path the session-replacement contract names: view state accumulated
+/// beside a dead register must not carry into a token issued under the live one.
+#[test]
+fn continuity_dead_epoch() {
+    let mut draws = rng();
+    let first = DeltaEpoch::fresh(&mut draws).expect("the seeded generator is infallible");
+    let second = DeltaEpoch::fresh(&mut draws).expect("the seeded generator is infallible");
+
+    let minted = authority(Some(first))
+        .issue(scope(11, 5, None), issued_at())
+        .expect("the seeded generator is infallible");
+
+    assert_eq!(
+        authority(Some(second)).continuity(&minted, actor(11)),
+        Err(AuthorityError::Epoch),
+        "a dead epoch's token carried into a renewal"
+    );
+}
+
 /// A second issuance draws a different nonce.
 ///
-/// Nonce reuse under one key repeats the keystream and the Poly1305 one-time key, so the property
-/// worth witnessing is the opposite of determinism: the entropy source advances per issuance. Both
-/// tokens open.
+/// Nonce reuse under one key repeats the keystream and the Poly1305 one-time key, and the property
+/// worth witnessing is the opposite of determinism: the entropy source advances per issuance. Two
+/// tokens of one scope at one instant differ through the nonce alone, and an equal pair would mean
+/// a repeated draw. Both tokens open.
 #[test]
-fn two_mints_draw_distinct_nonces() {
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
+fn issue_distinct_nonces() {
+    let authority = authority(None);
     let first = authority
         .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
@@ -778,11 +407,7 @@ fn two_mints_draw_distinct_nonces() {
         .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
-    assert_ne!(
-        first[NONCE_OFFSET..NONCE_OFFSET + NONCE_BYTES],
-        second[NONCE_OFFSET..NONCE_OFFSET + NONCE_BYTES],
-        "two mints shared a nonce"
-    );
+    assert_ne!(first, second, "two issuances shared a nonce");
     for minted in [&first, &second] {
         authority
             .open(minted, actor(11), issued_at())
