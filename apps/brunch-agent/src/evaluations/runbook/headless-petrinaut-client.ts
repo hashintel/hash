@@ -12,7 +12,7 @@ import {
   getLatestNetDefinitionToolName,
 } from "@hashintel/petrinaut-core/ai";
 
-import type { Petrinaut } from "@hashintel/petrinaut-core";
+import type { Petrinaut, SDCPN } from "@hashintel/petrinaut-core";
 
 export interface HeadlessPetrinautToolCall {
   readonly toolCallId: string;
@@ -45,15 +45,18 @@ const constructionToolNames = new Set<string>(
 const errorMessageFrom = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-export const createHeadlessPetrinautClient = (title: string) => {
+export const createHeadlessPetrinautClient = (
+  title: string,
+  initial: SDCPN = {
+    places: [],
+    transitions: [],
+    types: [],
+    parameters: [],
+    differentialEquations: [],
+  },
+) => {
   const handle = createJsonDocHandle({
-    initial: {
-      places: [],
-      transitions: [],
-      types: [],
-      parameters: [],
-      differentialEquations: [],
-    },
+    initial,
   });
   const instance = createPetrinaut({ document: handle });
   const writableCallbacks = createPetrinautAiWritableCallbacks(

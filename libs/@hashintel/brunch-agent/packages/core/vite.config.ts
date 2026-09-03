@@ -14,6 +14,7 @@ export default defineConfig({
         flue: fileURLToPath(new URL("src/flue.ts", import.meta.url)),
         index: fileURLToPath(new URL("src/index.ts", import.meta.url)),
         storage: fileURLToPath(new URL("src/storage.ts", import.meta.url)),
+        workpiece: fileURLToPath(new URL("src/workpiece.ts", import.meta.url)),
       },
       fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],

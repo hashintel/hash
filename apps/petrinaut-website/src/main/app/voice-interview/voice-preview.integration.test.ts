@@ -522,6 +522,7 @@ describe("controlled voice preview", () => {
       expect.objectContaining({ type: "submission-accepted" }),
     );
     expect(send).toHaveBeenCalledWith({
+      idempotencyKey: "ai-sdk:user:voice-realtime:1:call-1",
       message: { kind: "user", body: "The supervisor approves it." },
       signal: undefined,
     });
