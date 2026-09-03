@@ -14,11 +14,12 @@ use hash_middleware::{
     telemetry::HttpTracingLayer,
 };
 use rand::rngs::SysRng;
+use tower::ServiceBuilder;
 use type_system::principal::actor::ActorId;
 
 use super::RootArgs;
 use crate::{
-    api,
+    api::{self, problem::IntoProblemLayer},
     device::PinnedDevice,
     file::generation::{CurrentError, GenerationRoot},
     serve::{
@@ -433,23 +434,31 @@ impl ServeCommand {
         // request middlewares, while the liveness route, added after the budgets, spends none of
         // them. The tracing layer covers everything and its predicate skips the liveness path.
         let router = api::router(atlas, self.limits, details, pool, visibility, epoch, cell)
-            .route_layer(PrincipalLimitLayer {
-                limiters: Arc::clone(&limiters),
-                service_secret: Arc::clone(&service_secret),
-            })
-            .route_layer(AuthenticationLayer::<_, ActorId> {
-                provider,
-                service_secret: Arc::clone(&service_secret),
-                metrics: Arc::new(AuthenticationMetrics::new(&meter)),
-                // The atlas names no bootstrap route, so no route answers on the service
-                // secret alone.
-                bootstrap_route: |_path| false,
-                caller: core::marker::PhantomData,
-            })
-            .layer(IpGateLayer {
-                limiters,
-                service_secret,
-            })
+            .route_layer(
+                ServiceBuilder::new()
+                    .layer(IntoProblemLayer)
+                    .layer(PrincipalLimitLayer {
+                        limiters: Arc::clone(&limiters),
+                        service_secret: Arc::clone(&service_secret),
+                    })
+                    .layer(IntoProblemLayer)
+                    .layer(AuthenticationLayer::<_, ActorId> {
+                        provider,
+                        service_secret: Arc::clone(&service_secret),
+                        metrics: Arc::new(AuthenticationMetrics::new(&meter)),
+                        // Atlas requires no bootstrap
+                        bootstrap_route: |_path| false,
+                        caller: core::marker::PhantomData,
+                    }),
+            )
+            .layer(
+                ServiceBuilder::new()
+                    .layer(IntoProblemLayer)
+                    .layer(IpGateLayer {
+                        limiters,
+                        service_secret,
+                    }),
+            )
             .route(
                 STATUS_PATH,
                 axum::routing::get(async || axum::http::StatusCode::OK),

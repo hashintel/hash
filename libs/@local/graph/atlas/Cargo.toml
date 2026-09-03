@@ -70,6 +70,7 @@ smallvec                  = { workspace = true }
 steppe                    = { workspace = true }
 tiktoken-rs               = { workspace = true }
 time                      = { workspace = true }
+tower                     = { workspace = true }
 tracing                   = { workspace = true }
 tracing-subscriber        = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }
 unicode-segmentation      = { workspace = true }

@@ -97,6 +97,31 @@ pub(super) fn authority() -> openapi::ReferenceOr<openapi::Header> {
     })
 }
 
+/// Documents the `Retry-After` header every `429` carries.
+#[expect(
+    clippy::default_trait_access,
+    reason = "we do not want to pull in a dependency just to pin its default"
+)]
+pub(super) fn retry_after() -> openapi::ReferenceOr<openapi::Header> {
+    openapi::ReferenceOr::Item(openapi::Header {
+        description: Some(
+            "whole seconds until the crossed budget admits the request again, at least one"
+                .to_owned(),
+        ),
+        style: openapi::HeaderStyle::Simple,
+        required: true,
+        deprecated: None,
+        format: openapi::ParameterSchemaOrContent::Schema(openapi::SchemaObject {
+            json_schema: schemars::json_schema!({"type": "integer", "minimum": 1}),
+            example: None,
+            external_docs: None,
+        }),
+        example: None,
+        examples: Default::default(),
+        extensions: Default::default(),
+    })
+}
+
 /// Documents a response header that always carries `value`.
 #[expect(
     clippy::default_trait_access,

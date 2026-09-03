@@ -8,14 +8,19 @@
 //! a wrong method) stay plain.
 
 use alloc::borrow::Cow;
+use core::{num::NonZero, task};
 
 use aide::{OperationOutput, generate::GenContext, openapi};
 use axum::{
     Json,
-    http::{StatusCode, header},
+    http::{self, StatusCode, header},
     response::{IntoResponse, Response},
 };
-use hash_middleware::authentication::request::AuthenticationError;
+use futures::TryFutureExt as _;
+use hash_middleware::{
+    authentication::{AuthenticationRejection, request::AuthenticationError},
+    rate_limit::{RateLimitRejection, TooManyRequests},
+};
 
 use super::AppState;
 use crate::{file::generation::GenerationId, serve::VARIANTS};
@@ -73,17 +78,9 @@ pub(super) enum ProblemType {
     /// Resolving the caller's scope failed, so the process cannot say what they may see.
     #[serde(rename = "/problems/atlas/visibility-unavailable")]
     VisibilityUnavailable,
-}
-
-/// One RFC 9457 problem document.
-#[derive(Debug, serde::Serialize, schemars::JsonSchema)]
-pub(crate) struct Problem<'content> {
-    r#type: ProblemType,
-    title: Cow<'content, str>,
-    #[serde(serialize_with = "status_as_u16")]
-    #[schemars(with = "u16")]
-    status: StatusCode,
-    detail: Cow<'content, str>,
+    /// The caller is over its request budget, and `Retry-After` states when it admits again.
+    #[serde(rename = "/problems/atlas/too-many-requests")]
+    TooManyRequests,
 }
 
 /// Serializes the problem's `status` member as its integer form.
@@ -96,6 +93,17 @@ fn status_as_u16<S: serde::Serializer>(
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     serializer.serialize_u16(status.as_u16())
+}
+
+/// One RFC 9457 problem document.
+#[derive(Debug, serde::Serialize, schemars::JsonSchema)]
+pub(crate) struct Problem<'content> {
+    r#type: ProblemType,
+    title: Cow<'content, str>,
+    #[serde(serialize_with = "status_as_u16")]
+    #[schemars(with = "u16")]
+    status: StatusCode,
+    detail: Cow<'content, str>,
 }
 
 impl<'content> Problem<'content> {
@@ -204,6 +212,115 @@ impl OperationOutput for Problem<'_> {
         Self::operation_response(ctx, operation)
             .map(|response| vec![(None, response)])
             .unwrap_or_default()
+    }
+}
+
+pub(crate) struct ProblemResponse<'content> {
+    problem: Problem<'content>,
+    retry_after: Option<NonZero<u64>>,
+}
+
+impl<'content, T> From<T> for ProblemResponse<'content>
+where
+    T: Into<Problem<'content>>,
+{
+    fn from(problem: T) -> Self {
+        Self {
+            problem: problem.into(),
+            retry_after: None,
+        }
+    }
+}
+
+impl From<TooManyRequests> for ProblemResponse<'static> {
+    fn from(TooManyRequests { retry_after }: TooManyRequests) -> Self {
+        Self {
+            problem: Problem::new(
+                StatusCode::TOO_MANY_REQUESTS,
+                ProblemType::TooManyRequests,
+                "rate limit exceeded",
+            ),
+            retry_after: Some(retry_after),
+        }
+    }
+}
+
+impl From<RateLimitRejection> for ProblemResponse<'static> {
+    fn from(error: RateLimitRejection) -> Self {
+        match error {
+            RateLimitRejection::TooManyRequests(too_many_requests) => too_many_requests.into(),
+            RateLimitRejection::InternalError => Problem::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ProblemType::InternalError,
+                "internal server error",
+            )
+            .into(),
+        }
+    }
+}
+
+impl From<AuthenticationRejection> for ProblemResponse<'static> {
+    fn from(error: AuthenticationRejection) -> Self {
+        match error {
+            AuthenticationRejection::Authentication {
+                ref report,
+                metrics: _,
+            } => Problem::from(report.current_context()).into(),
+            AuthenticationRejection::Misconfigured => Problem::internal(
+                "`Actor` extracted on a route without the authentication middleware",
+                "the caller's authentication was never resolved",
+            )
+            .into(),
+        }
+    }
+}
+
+impl IntoResponse for ProblemResponse<'_> {
+    fn into_response(self) -> Response {
+        let mut response = self.problem.into_response();
+        if let Some(retry_after) = self.retry_after {
+            response
+                .headers_mut()
+                .insert(header::RETRY_AFTER, retry_after.get().into());
+        }
+        response
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct IntoProblemLayer;
+
+impl<S> tower::Layer<S> for IntoProblemLayer {
+    type Service = IntoProblemService<S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        IntoProblemService { inner }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct IntoProblemService<S> {
+    inner: S,
+}
+
+impl<S, B, T, U> tower::Service<http::Request<B>> for IntoProblemService<S>
+where
+    S: tower::Service<http::Request<B>, Response = Result<T, U>>,
+    U: Into<ProblemResponse<'static>>,
+{
+    type Error = S::Error;
+    type Response = Result<T, ProblemResponse<'static>>;
+
+    type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
+
+    fn poll_ready(&mut self, cx: &mut task::Context<'_>) -> task::Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, req: http::Request<B>) -> Self::Future {
+        self.inner
+            .call(req)
+            .map_ok(|result| result.map_err(Into::into))
     }
 }
 

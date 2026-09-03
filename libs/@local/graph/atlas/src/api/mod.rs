@@ -54,7 +54,7 @@ mod headers;
 mod locate;
 mod manifest;
 mod openapi;
-mod problem;
+pub(crate) mod problem;
 mod saltile;
 mod tile;
 mod translate;
@@ -300,7 +300,7 @@ pub(crate) fn router(
         .route("/v1/atlas/openapi.json", axum::routing::get(openapi::json))
         .route("/v1/atlas/openapi", axum::routing::get(openapi::html))
         .with_state(state)
-        .finish_api(&mut api);
+        .finish_api_with(&mut api, clause::middleware);
 
     router.layer(Extension(OpenApiDocument::new(&api)))
 }
