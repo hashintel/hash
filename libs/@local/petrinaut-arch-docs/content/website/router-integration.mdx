@@ -39,6 +39,17 @@ mirrors `navigationStateToSharedSearch(state)` to the URL, and merges external
 URL changes (Back, Forward, a shared link) back into the in-memory location.
 Fields outside the contract survive that merge untouched.
 
+## A controlled host owns the whole initial location
+
+`PetrinautNavigationProvider` reads `controller?.state ?? uncontrolledState`,
+so a host that passes a controller replaces the provider's initial state
+outright. That includes the Actual-mode default the provider applies when a
+live stream is available. A page that must open in a non-default mode states
+it in the hook's `initialState`, which seeds the fields the URL does not
+carry; the URL still wins for the fields it owns. `/brunch` seeds
+`mode: "actual"` for exactly this reason, and without it the execution frame
+would read the local simulation instead of the stream.
+
 ## Validation normalizes the location
 
 `validateSharedExampleSearch` drops everything it cannot represent: an unknown

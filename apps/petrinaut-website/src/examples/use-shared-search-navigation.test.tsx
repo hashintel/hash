@@ -6,13 +6,18 @@ import { describe, expect, it, vi } from "vitest";
 import { useSharedSearchNavigation } from "./use-shared-search-navigation";
 
 import type { SharedExampleSearch } from "./example-search";
-import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
+import type {
+  PetrinautNavigationController,
+  PetrinautNavigationState,
+} from "@hashintel/petrinaut/react";
 
 const Probe = ({
+  initialState,
   onController,
   onSearchChange,
   search,
 }: {
+  initialState?: Partial<PetrinautNavigationState>;
   onController: (controller: PetrinautNavigationController) => void;
   onSearchChange: (
     search: SharedExampleSearch,
@@ -20,7 +25,9 @@ const Probe = ({
   ) => void;
   search: SharedExampleSearch;
 }) => {
-  onController(useSharedSearchNavigation(search, onSearchChange));
+  onController(
+    useSharedSearchNavigation(search, onSearchChange, { initialState }),
+  );
   return null;
 };
 
@@ -98,5 +105,56 @@ describe("useSharedSearchNavigation", () => {
     );
     expect(controller.state.scenarioId).toBe("scenario-2");
     expect(controller.state.mode).toBe("simulate");
+  });
+
+  it("seeds the fields the URL does not carry, letting the URL win over the seed", () => {
+    let controller!: PetrinautNavigationController;
+    const onSearchChange = vi.fn();
+    render(
+      <Probe
+        initialState={{ mode: "actual", subnetId: "seeded-subnet" }}
+        onController={(value) => {
+          controller = value;
+        }}
+        onSearchChange={onSearchChange}
+        search={{ subnet: "subnet-from-url" }}
+      />,
+    );
+
+    // A controlled host replaces the provider's initial state, so a page that
+    // opens in a non-default mode has to seed it here.
+    expect(controller.state.mode).toBe("actual");
+    // `subnet` is URL-owned, so the link the visitor opened wins.
+    expect(controller.state.subnetId).toBe("subnet-from-url");
+    expect(onSearchChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps a seeded field across an external URL change", () => {
+    let controller!: PetrinautNavigationController;
+    const onSearchChange = vi.fn();
+    const view = render(
+      <Probe
+        initialState={{ mode: "actual" }}
+        onController={(value) => {
+          controller = value;
+        }}
+        onSearchChange={onSearchChange}
+        search={{}}
+      />,
+    );
+
+    view.rerender(
+      <Probe
+        initialState={{ mode: "actual" }}
+        onController={(value) => {
+          controller = value;
+        }}
+        onSearchChange={onSearchChange}
+        search={{ scenario: "scenario-1" }}
+      />,
+    );
+
+    expect(controller.state.scenarioId).toBe("scenario-1");
+    expect(controller.state.mode).toBe("actual");
   });
 });

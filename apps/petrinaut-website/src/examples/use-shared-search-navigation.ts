@@ -1,5 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
+import { defaultPetrinautNavigationState } from "@hashintel/petrinaut/react";
+
 import {
   sharedSearchesMatch,
   type SharedExampleSearch,
@@ -38,6 +40,11 @@ const mergeSharedSearch = (
  * (global mode, overlays), so the full location lives in page state and only
  * its shared projection is mirrored to the URL — otherwise every control
  * driving a non-shared field would silently snap back.
+ *
+ * `initialState` seeds the fields the URL does not carry. A controlled host
+ * replaces `PetrinautNavigationProvider`'s own initial state, including the
+ * Actual-mode default it applies when a live stream is available, so a page
+ * that opens in a non-default mode states that mode here.
  */
 export const useSharedSearchNavigation = (
   search: SharedExampleSearch,
@@ -45,11 +52,19 @@ export const useSharedSearchNavigation = (
     search: SharedExampleSearch,
     history: "push" | "replace",
   ) => void,
-  options?: { historyPolicy?: PetrinautNavigationHistoryPolicy },
+  options?: {
+    historyPolicy?: PetrinautNavigationHistoryPolicy;
+    initialState?: Partial<PetrinautNavigationState>;
+  },
 ): PetrinautNavigationController => {
   const [navigationState, setNavigationState] =
     useState<PetrinautNavigationState>(() =>
-      sharedSearchToNavigationState(search),
+      // The URL wins over the seed for the fields it owns, so a shared link
+      // still resolves to the location it names.
+      mergeSharedSearch(
+        { ...defaultPetrinautNavigationState, ...options?.initialState },
+        search,
+      ),
     );
 
   // Merge external URL changes (Back/Forward, a normalization redirect)
