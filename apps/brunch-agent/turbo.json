@@ -12,7 +12,6 @@
       "passThroughEnv": [
         "ANTHROPIC_API_KEY",
         "BRUNCH_DEV_DB_PATH",
-        "BRUNCH_PETRINAUT_ORIGINS",
         "BRUNCH_TRANSPORT_AISDK_INSPECT"
       ]
     },
