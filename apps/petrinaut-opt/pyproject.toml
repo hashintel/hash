@@ -20,7 +20,7 @@ dependencies = [
 
 [tool.uv.sources]
 petrinaut-optimizer-core = { path = "../../libs/@local/petrinaut-optimizer-core", editable = true }
-petrinaut-python = { path = "../../libs/@local/petrinaut-python", editable = true }
+petrinaut-python         = { path = "../../libs/@local/petrinaut-python", editable = true }
 
 [dependency-groups]
 dev = [
