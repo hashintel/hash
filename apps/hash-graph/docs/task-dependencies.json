@@ -41,6 +41,9 @@
     ],
     "start:test:migrate": [
       "@apps/hash-graph#compile"
+    ],
+    "test:unit": [
+      "@local/status#build"
     ]
   }
 }
