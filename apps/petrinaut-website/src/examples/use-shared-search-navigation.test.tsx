@@ -47,15 +47,24 @@ describe("useSharedSearchNavigation", () => {
       />,
     );
 
-    // A mode change is not part of the URL contract: it applies in memory
-    // and produces no URL write.
+    // The resource open inside Simulate is the one location field the URL does
+    // not carry: it applies in memory and produces no URL write.
     act(() => {
-      controller.onNavigate((current) => ({ ...current, mode: "simulate" }), {
-        history: "push",
-        intent: { cause: "user", action: "mode" },
-      });
+      controller.onNavigate(
+        (current) => ({
+          ...current,
+          simulateResource: { type: "experiment", id: "experiment-1" },
+        }),
+        {
+          history: "push",
+          intent: { cause: "user", action: "simulation-resource" },
+        },
+      );
     });
-    expect(controller.state.mode).toBe("simulate");
+    expect(controller.state.simulateResource).toEqual({
+      type: "experiment",
+      id: "experiment-1",
+    });
     expect(onSearchChange).not.toHaveBeenCalled();
 
     // A subnet change is shared: it applies in memory AND writes the URL.
@@ -66,7 +75,10 @@ describe("useSharedSearchNavigation", () => {
       );
     });
     expect(controller.state.subnetId).toBe("subnet-1");
-    expect(controller.state.mode).toBe("simulate");
+    expect(controller.state.simulateResource).toEqual({
+      type: "experiment",
+      id: "experiment-1",
+    });
     expect(onSearchChange).toHaveBeenCalledOnce();
     expect(onSearchChange).toHaveBeenCalledWith(
       { scenario: "scenario-1", subnet: "subnet-1" },
@@ -88,14 +100,20 @@ describe("useSharedSearchNavigation", () => {
     );
 
     act(() => {
-      controller.onNavigate((current) => ({ ...current, mode: "simulate" }), {
-        history: "push",
-        intent: { cause: "user", action: "mode" },
-      });
+      controller.onNavigate(
+        (current) => ({
+          ...current,
+          simulateResource: { type: "experiment", id: "experiment-1" },
+        }),
+        {
+          history: "push",
+          intent: { cause: "user", action: "simulation-resource" },
+        },
+      );
     });
 
     // Back/Forward delivers a different shared search: URL-owned fields
-    // update, the in-memory mode survives.
+    // update, and the one field the URL cannot carry survives.
     view.rerender(
       <Probe
         onController={(value) => {
@@ -106,7 +124,71 @@ describe("useSharedSearchNavigation", () => {
       />,
     );
     expect(controller.state.scenarioId).toBe("scenario-2");
-    expect(controller.state.mode).toBe("simulate");
+    expect(controller.state.simulateResource).toEqual({
+      type: "experiment",
+      id: "experiment-1",
+    });
+  });
+
+  it("returns a URL-owned field to the baseline when Back drops it", () => {
+    let controller!: PetrinautNavigationController;
+    const onSearchChange = vi.fn();
+    const view = render(
+      <Probe
+        onController={(value) => {
+          controller = value;
+        }}
+        onSearchChange={onSearchChange}
+        search={{}}
+      />,
+    );
+
+    // Opening the create-experiment overlay in Simulate is a location, so it
+    // reaches the URL and therefore the history stack.
+    act(() => {
+      controller.onNavigate(
+        (current) => ({
+          ...current,
+          mode: "simulate",
+          overlay: { type: "create-experiment" },
+        }),
+        { history: "push", intent: { cause: "user", action: "overlay" } },
+      );
+    });
+    expect(onSearchChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "simulate",
+        overlay: "create-experiment",
+      }),
+      "push",
+    );
+
+    // The router delivers the hook's own write back first; that echo is
+    // suppressed, since the in-memory location already holds it.
+    view.rerender(
+      <Probe
+        onController={(value) => {
+          controller = value;
+        }}
+        onSearchChange={onSearchChange}
+        search={{ mode: "simulate", overlay: "create-experiment" }}
+      />,
+    );
+    expect(controller.state.overlay).toEqual({ type: "create-experiment" });
+
+    // Back then returns to an entry that names neither, which is what closes
+    // the overlay and restores the mode rather than leaving them applied.
+    view.rerender(
+      <Probe
+        onController={(value) => {
+          controller = value;
+        }}
+        onSearchChange={onSearchChange}
+        search={{}}
+      />,
+    );
+    expect(controller.state.overlay).toBeNull();
+    expect(controller.state.mode).toBe("edit");
   });
 
   it("keeps a multi-item selection when the router echoes its own URL write", () => {

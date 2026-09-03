@@ -17,23 +17,27 @@ import type {
   PetrinautNavigationState,
 } from "@hashintel/petrinaut/react";
 
-/** The location fields the shared search carries, and therefore owns. */
-type UrlOwnedField = "scenarioId" | "subnetId" | "selection";
-
 /**
  * Overwrites the URL-owned fields of the in-memory location with the current
  * shared search, keeping the fields the URL cannot represent.
+ *
+ * A field the search omits resolves to the page's baseline, so Back onto an
+ * entry that does not name it returns to where the page started.
  */
 const mergeSharedSearch = (
   current: PetrinautNavigationState,
   search: SharedExampleSearch,
+  baseline: PetrinautNavigationState,
 ): PetrinautNavigationState => {
-  const shared = sharedSearchToNavigationState(search);
+  const shared = sharedSearchToNavigationState(search, baseline);
   return {
     ...current,
     scenarioId: shared.scenarioId,
     subnetId: shared.subnetId,
     selection: shared.selection,
+    mode: shared.mode,
+    simulateView: shared.simulateView,
+    overlay: shared.overlay,
   };
 };
 
@@ -49,17 +53,22 @@ const mergeSharedSearch = (
  */
 export const withClearedSharedLocation = (
   current: PetrinautNavigationState,
-): PetrinautNavigationState => mergeSharedSearch(current, {});
+): PetrinautNavigationState => ({
+  ...current,
+  scenarioId: undefined,
+  subnetId: null,
+  selection: [],
+});
 
 /**
- * Navigation controller for pages whose URL carries the shared
- * scenario/subnet/selection subset. The editor navigates more than that
- * (global mode, overlays), so the full location lives in page state and only
- * its shared projection is mirrored to the URL — otherwise every control
- * driving a non-shared field would silently snap back.
+ * Navigation controller for pages whose URL carries the shared location: the
+ * scenario, the subnet, the focused item, the mode, the Simulate section and
+ * the open overlay. The editor navigates one field more than that — the
+ * resource open inside Simulate — so the full location still lives in page
+ * state and only its shared projection reaches the URL.
  *
- * `initialState` seeds the fields the URL does not carry, and accepts only
- * those: the URL owns the rest and would overwrite them. A controlled host
+ * `initialState` is the location this page starts from, for every field the URL
+ * does not name; the URL overrides whatever it does name. A controlled host
  * replaces `PetrinautNavigationProvider`'s own initial state, including the
  * Actual-mode default it applies when a live stream is available, so a page
  * that opens in a non-default mode states that mode here.
@@ -72,17 +81,22 @@ export const useSharedSearchNavigation = (
   ) => void,
   options?: {
     historyPolicy?: PetrinautNavigationHistoryPolicy;
-    initialState?: Partial<Omit<PetrinautNavigationState, UrlOwnedField>>;
+    initialState?: Partial<PetrinautNavigationState>;
   },
 ): PetrinautNavigationController => {
+  // Snapshotted once: the caller passes a fresh object literal every render,
+  // and this is the value every absent URL field resolves to for the life of
+  // the page.
+  const [baseline] = useState<PetrinautNavigationState>(() => ({
+    ...defaultPetrinautNavigationState,
+    ...options?.initialState,
+  }));
+
   const [navigationState, setNavigationState] =
     useState<PetrinautNavigationState>(() =>
-      // The URL wins over the seed for the fields it owns, so a shared link
-      // still resolves to the location it names.
-      mergeSharedSearch(
-        { ...defaultPetrinautNavigationState, ...options?.initialState },
-        search,
-      ),
+      // The URL wins over the baseline for the fields it names, so a shared
+      // link still resolves to the location it carries.
+      mergeSharedSearch(baseline, search, baseline),
     );
 
   // Merge external URL changes (Back/Forward, a normalization redirect)
@@ -100,7 +114,9 @@ export const useSharedSearchNavigation = (
     // still merges rather than being mistaken for the same echo again.
     setWrittenSearch(null);
     if (!isOwnWrite) {
-      setNavigationState((current) => mergeSharedSearch(current, search));
+      setNavigationState((current) =>
+        mergeSharedSearch(current, search, baseline),
+      );
     }
   }
 
@@ -129,7 +145,7 @@ export const useSharedSearchNavigation = (
       navigationStateRef.current = next;
       setNavigationState(next);
 
-      const nextSearch = navigationStateToSharedSearch(next);
+      const nextSearch = navigationStateToSharedSearch(next, baseline);
       if (!sharedSearchesMatch(nextSearch, latestSearchRef.current)) {
         latestSearchRef.current = nextSearch;
         // The router delivers this write back as a new `search` prop, and the
