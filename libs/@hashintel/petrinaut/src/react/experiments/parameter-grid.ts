@@ -17,15 +17,14 @@ export type ExperimentParameterFixedInput = {
 };
 
 /**
- * A scenario parameter swept across `valueCount` evenly spaced values from
- * `min` to `max` (both inclusive). Each value becomes one axis position in
- * the experiment's parameter grid.
+ * A scenario parameter swept across the interval `[min, max]`. The interval
+ * quantizes internally (`buildParameterAxis`); nothing about its resolution
+ * is declared here.
  */
 export type ExperimentParameterRangeInput = {
   mode: "range";
   min: number;
   max: number;
-  valueCount: number;
 };
 
 export type ExperimentParameterInput =
@@ -33,20 +32,36 @@ export type ExperimentParameterInput =
   | ExperimentParameterRangeInput;
 
 /**
- * One ranged parameter of an experiment: the discrete values it takes across
- * the grid. The cartesian product of all axes defines the experiment's cells.
+ * One swept parameter of an experiment: its interval, quantized into
+ * `stepCount` steps. Positions run `0..stepCount` inclusive; position `p`
+ * maps to the value `axisValueAt(axis, p)`. Quantization is what makes
+ * revisited slider positions cache hits: every computed batch is keyed by
+ * position, so returning to a position restores its runs and distributions.
  */
 export type ExperimentParameterAxis = {
   identifier: string;
-  values: readonly number[];
+  min: number;
+  max: number;
+  /** Positions run 0..stepCount inclusive. */
+  stepCount: number;
+  integer: boolean;
 };
 
 /**
- * Hard cap on the parameter grid size. Every combination runs `runCount`
- * simulations and stores per-frame metric distributions, so an unbounded grid
- * exhausts browser memory long before it finishes computing.
+ * Quantization steps per axis. Fine enough that the slider feels continuous
+ * against the interval, coarse enough that positions repeat (and therefore
+ * hit the per-position cache) when the user returns to one.
  */
-export const MAX_EXPERIMENT_COMBINATIONS = 200;
+export const SWEEP_AXIS_STEPS = 50;
+
+/** Inclusive position range of one axis; `from === to` is a point. */
+export type SweepAxisSelection = { from: number; to: number };
+
+/**
+ * The navigator's selection: an inclusive position range per swept
+ * parameter. The default selection spans every axis whole.
+ */
+export type SweepSelection = Readonly<Record<string, SweepAxisSelection>>;
 
 /**
  * Cumulative run targets a combination climbs through as it is refined:
@@ -88,11 +103,8 @@ export function getNextRunTarget(
   return Math.min(target, maxRuns);
 }
 
-/** Grid size above which the create form warns about cost. */
-export const WARN_EXPERIMENT_COMBINATIONS = 50;
-
-export type BuildRangeValuesOutcome =
-  | { ok: true; values: number[] }
+export type BuildAxisOutcome =
+  | { ok: true; axis: ExperimentParameterAxis }
   | { ok: false; error: string };
 
 /** Strips float artifacts (e.g. 0.30000000000000004) from generated values. */
@@ -101,15 +113,14 @@ function normalizeRangeValue(value: number): number {
 }
 
 /**
- * Expands a range input into its discrete values: `valueCount` evenly spaced
- * points from `min` to `max` inclusive. Integer parameters have each point
- * rounded to the nearest integer (a range that rounds two points onto the
- * same integer is rejected rather than silently deduplicated).
+ * Builds a swept parameter's quantized axis from its interval. Integer
+ * parameters get one step per integer when the interval is narrower than
+ * `SWEEP_AXIS_STEPS`, so every position is a distinct integer.
  */
-export function buildParameterRangeValues(
+export function buildParameterAxis(
   parameter: Pick<ScenarioParameter, "identifier" | "type">,
-  range: ExperimentParameterRangeInput,
-): BuildRangeValuesOutcome {
+  range: Pick<ExperimentParameterRangeInput, "min" | "max">,
+): BuildAxisOutcome {
   const { identifier, type } = parameter;
 
   if (type === "boolean") {
@@ -124,18 +135,6 @@ export function buildParameterRangeValues(
       error: `${identifier}: range min and max must be finite numbers`,
     };
   }
-  if (!Number.isInteger(range.valueCount) || range.valueCount < 1) {
-    return {
-      ok: false,
-      error: `${identifier}: range needs a whole number of values (at least 1)`,
-    };
-  }
-  if (range.valueCount > 1 && range.max <= range.min) {
-    return {
-      ok: false,
-      error: `${identifier}: range max must be greater than min`,
-    };
-  }
   if (type === "ratio" && (range.min < 0 || range.max > 1)) {
     return {
       ok: false,
@@ -143,58 +142,178 @@ export function buildParameterRangeValues(
     };
   }
 
-  if (range.valueCount === 1) {
-    const single = type === "integer" ? Math.round(range.min) : range.min;
-    return { ok: true, values: [normalizeRangeValue(single)] };
-  }
-
-  const step = (range.max - range.min) / (range.valueCount - 1);
-  const values: number[] = [];
-  for (let index = 0; index < range.valueCount; index++) {
-    const raw =
-      index === range.valueCount - 1 ? range.max : range.min + step * index;
-    values.push(
-      normalizeRangeValue(type === "integer" ? Math.round(raw) : raw),
-    );
-  }
-
-  if (type === "integer" && new Set(values).size !== values.length) {
+  const min = type === "integer" ? Math.round(range.min) : range.min;
+  const max = type === "integer" ? Math.round(range.max) : range.max;
+  if (max <= min) {
     return {
       ok: false,
-      error: `${identifier}: the range produces duplicate integer values — reduce the number of values`,
+      error: `${identifier}: range max must be greater than min`,
     };
   }
 
-  return { ok: true, values };
+  return {
+    ok: true,
+    axis: {
+      identifier,
+      min,
+      max,
+      stepCount:
+        type === "integer"
+          ? Math.min(SWEEP_AXIS_STEPS, max - min)
+          : SWEEP_AXIS_STEPS,
+      integer: type === "integer",
+    },
+  };
 }
 
-/** Number of cells the cartesian product of the axes produces (1 when empty). */
-export function countGridCombinations(
-  axes: readonly ExperimentParameterAxis[],
+/** The concrete parameter value at a quantized position (0..stepCount). */
+export function axisValueAt(
+  axis: ExperimentParameterAxis,
+  position: number,
 ): number {
-  return axes.reduce((product, axis) => product * axis.values.length, 1);
+  const clamped = Math.min(Math.max(position, 0), axis.stepCount);
+  const raw = axis.min + ((axis.max - axis.min) * clamped) / axis.stepCount;
+  return normalizeRangeValue(axis.integer ? Math.round(raw) : raw);
 }
+
+/** The quantized position nearest to `value` (0..stepCount). */
+export function axisPositionFor(
+  axis: ExperimentParameterAxis,
+  value: number,
+): number {
+  const fraction = (value - axis.min) / (axis.max - axis.min);
+  return Math.min(
+    Math.max(Math.round(fraction * axis.stepCount), 0),
+    axis.stepCount,
+  );
+}
+
+/** The default selection: every axis spans its whole interval. */
+export function fullSweepSelection(
+  axes: readonly ExperimentParameterAxis[],
+): SweepSelection {
+  return Object.fromEntries(
+    axes.map((axis) => [axis.identifier, { from: 0, to: axis.stepCount }]),
+  );
+}
+
+/** Clamps a selection to the axes and orders each range's ends. */
+export function normalizeSweepSelection(
+  axes: readonly ExperimentParameterAxis[],
+  selection: SweepSelection,
+): SweepSelection {
+  return Object.fromEntries(
+    axes.map((axis) => {
+      const range = selection[axis.identifier] ?? {
+        from: 0,
+        to: axis.stepCount,
+      };
+      const clamp = (position: number) =>
+        Math.min(Math.max(Math.round(position), 0), axis.stepCount);
+      const from = clamp(range.from);
+      const to = clamp(range.to);
+      return [
+        axis.identifier,
+        from <= to ? { from, to } : { from: to, to: from },
+      ];
+    }),
+  );
+}
+
+/** Number of quantized cells inside the selected region. */
+export function countRegionCells(
+  axes: readonly ExperimentParameterAxis[],
+  selection: SweepSelection,
+): number {
+  return axes.reduce((product, axis) => {
+    const range = selection[axis.identifier] ?? { from: 0, to: axis.stepCount };
+    return product * (range.to - range.from + 1);
+  }, 1);
+}
+
+/** Radical inverse of `index` in `base` — the Halton sequence's coordinate. */
+function radicalInverse(index: number, base: number): number {
+  let result = 0;
+  let fraction = 1 / base;
+  let remaining = index;
+  while (remaining > 0) {
+    result += (remaining % base) * fraction;
+    remaining = Math.floor(remaining / base);
+    fraction /= base;
+  }
+  return result;
+}
+
+const HALTON_BASES = [2, 3, 5, 7, 11, 13, 17, 19];
 
 /**
- * Cartesian product of the axes' values, row-major (the first axis varies
- * slowest). Returns a single empty combination when there are no axes, so a
- * range-less experiment is just a grid with one cell.
+ * Enumerates every cell (position tuple) of the selected region exactly once,
+ * in a deterministic low-discrepancy order: early cells spread across the
+ * whole region, so a merged view over the region takes shape after a handful
+ * of batches instead of filling corner-first. Falls back to scanning the
+ * remaining cells in index order once the Halton sequence stops finding new
+ * ones, so coverage always completes.
  */
-export function buildParameterGridCombinations(
+export function* enumerateRegionCells(
   axes: readonly ExperimentParameterAxis[],
-): Record<string, number>[] {
-  let combinations: Record<string, number>[] = [{}];
+  selection: SweepSelection,
+): Generator<Record<string, number>, void, undefined> {
+  const ranges = axes.map((axis) => {
+    const range = selection[axis.identifier] ?? { from: 0, to: axis.stepCount };
+    return { identifier: axis.identifier, ...range };
+  });
+  const total = countRegionCells(axes, selection);
+  const yielded = new Set<string>();
 
-  for (const axis of axes) {
-    combinations = combinations.flatMap((combination) =>
-      axis.values.map((value) => ({
-        ...combination,
-        [axis.identifier]: value,
-      })),
+  const cellAt = (positions: number[]): Record<string, number> =>
+    Object.fromEntries(
+      ranges.map((range, axisIndex) => [
+        range.identifier,
+        positions[axisIndex]!,
+      ]),
     );
+
+  let stagnation = 0;
+  for (let index = 0; yielded.size < total && stagnation < total * 8; index++) {
+    const positions = ranges.map((range, axisIndex) => {
+      const span = range.to - range.from + 1;
+      const fraction = radicalInverse(
+        index + 1,
+        HALTON_BASES[axisIndex % HALTON_BASES.length]!,
+      );
+      return range.from + Math.min(Math.floor(fraction * span), span - 1);
+    });
+    const key = positions.join("|");
+    if (yielded.has(key)) {
+      stagnation += 1;
+      continue;
+    }
+    stagnation = 0;
+    yielded.add(key);
+    yield cellAt(positions);
   }
 
-  return combinations;
+  if (yielded.size >= total) {
+    return;
+  }
+  // Sweep the stragglers in index order (first axis slowest).
+  const counters = ranges.map((range) => range.from);
+  for (;;) {
+    const key = counters.join("|");
+    if (!yielded.has(key)) {
+      yielded.add(key);
+      yield cellAt(counters);
+    }
+    let axisIndex = ranges.length - 1;
+    while (axisIndex >= 0 && counters[axisIndex]! >= ranges[axisIndex]!.to) {
+      counters[axisIndex] = ranges[axisIndex]!.from;
+      axisIndex -= 1;
+    }
+    if (axisIndex < 0) {
+      return;
+    }
+    counters[axisIndex]! += 1;
+  }
 }
 
 function mergeDistributionBins(
