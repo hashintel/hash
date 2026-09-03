@@ -7635,6 +7635,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core"
   dependencies:
+    "@local/petrinaut-optimizer-core": "workspace:*"
     "@types/js-yaml": "npm:^4"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
@@ -7644,6 +7645,7 @@ __metadata:
     js-yaml: "npm:4.3.1"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
+    pyodide: "npm:314.0.6"
     rolldown: "npm:1.2.6"
     rolldown-plugin-dts: "npm:0.28.3"
     typescript: "npm:5.9.3"
@@ -18547,6 +18549,13 @@ __metadata:
   version: 3.3.3
   resolution: "@types/dotenv-flow@npm:3.3.3"
   checksum: 10c0/a67ecdec769e0e5bf376219ee80a2ffab423d9120dd121b538860d666bf46af07ff336860a7db2b1d41fcdd2dd006fc0ec6fa98f82cd01e566c37b00038b91ec
+  languageName: node
+  linkType: hard
+
+"@types/emscripten@npm:^1.41.4":
+  version: 1.41.5
+  resolution: "@types/emscripten@npm:1.41.5"
+  checksum: 10c0/ae816da716f896434e59df7a71b67c71ae7e85ca067a32aef1616572fc4757459515d42ade6f5b8fd8d69733a9dbd0cf23010fec5b2f41ce52c09501aa350e45
   languageName: node
   linkType: hard
 
@@ -39265,6 +39274,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"pyodide@npm:314.0.6":
+  version: 314.0.6
+  resolution: "pyodide@npm:314.0.6"
+  dependencies:
+    "@types/emscripten": "npm:^1.41.4"
+    ws: "npm:^8.5.0"
+  checksum: 10c0/0991c470ec771330dac202380bb875487625abf816dda4ab282ae87d276845a32bd863e5e5666dd2e4695c81ebcfe416dbeefc85841b0aa242555d5ac885245a
+  languageName: node
+  linkType: hard
+
 "qs@npm:6.15.2":
   version: 6.15.2
   resolution: "qs@npm:6.15.2"
@@ -46973,7 +46992,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:^8.17.1, ws@npm:^8.18.0, ws@npm:^8.18.2, ws@npm:^8.18.3, ws@npm:^8.19.0, ws@npm:^8.21.1":
+"ws@npm:^8.17.1, ws@npm:^8.18.0, ws@npm:^8.18.2, ws@npm:^8.18.3, ws@npm:^8.19.0, ws@npm:^8.21.1, ws@npm:^8.5.0":
   version: 8.21.3
   resolution: "ws@npm:8.21.3"
   peerDependencies:

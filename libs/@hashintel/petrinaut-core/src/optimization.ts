@@ -13,6 +13,9 @@ export const PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL = 100;
 
 const optimizationScalarSchema = z.union([z.number(), z.boolean()]);
 
+/** A value Optuna may suggest or a fixed binding may hold. */
+export type OptimizationScalar = z.infer<typeof optimizationScalarSchema>;
+
 export const petrinautContinuousOptimizationDomainSchema = z
   .strictObject({
     kind: z.literal("continuous"),
@@ -700,3 +703,93 @@ export type PetrinautOptimization = {
   /** Idempotently stop a detached run server-side. */
   cancelOptimizationRun(runId: string): Promise<void>;
 };
+
+/**
+ * One trial's computation, as the optimizer hands it to whoever runs
+ * simulations for it.
+ *
+ * The optimizer never simulates. It proposes values and asks its channel for
+ * the objective, so the host decides where and how a trial's runs happen and
+ * can show them as they compute.
+ */
+export type PetrinautOptimizationTrialRequest = {
+  readonly runId: string;
+  /** Optuna's trial number, from 0. */
+  readonly trial: number;
+  /** The frozen study the trial belongs to. */
+  readonly manifest: PetrinautOptimizationManifest;
+  /** The optimizer's suggestions for the optimized parameters only. */
+  readonly suggestedValues: Readonly<Record<string, OptimizationScalar>>;
+  /**
+   * Every scenario parameter's value for this trial: fixed bindings merged
+   * with the suggestions, booleans as 0/1 as the scenario compiler expects.
+   */
+  readonly scenarioParameterValues: Readonly<Record<string, number>>;
+  /**
+   * The seeds the trial's simulations run with. The same sequence for every
+   * trial (common random numbers), derived as the CLI derives them.
+   */
+  readonly seeds: readonly number[];
+  /** Aborted when the run is cancelled; the host should stop the trial's runs. */
+  readonly signal: AbortSignalLike;
+};
+
+export type PetrinautOptimizationTrialOutcome =
+  | {
+      readonly kind: "objective";
+      /** The mean of the per-seed objectives; finite. */
+      readonly objective: number;
+      readonly replicates?: readonly { seed: number; objective: number }[];
+    }
+  | {
+      /** The host could not run the trial; Optuna records it as pruned. */
+      readonly kind: "pruned";
+      readonly reason: string;
+    };
+
+/**
+ * A way to communicate with the running optimization.
+ *
+ * The host implements it; the optimizer calls it once per trial. Everything
+ * the optimizer needs computed goes through here, so the host can stream those
+ * runs into its own metrics views instead of receiving only a number.
+ */
+export type PetrinautOptimizationChannel = {
+  evaluateTrial(
+    this: void,
+    request: PetrinautOptimizationTrialRequest,
+  ): Promise<PetrinautOptimizationTrialOutcome>;
+};
+
+/**
+ * An optimization capability that runs where the host runs and needs the
+ * host's compute: connect it to a channel to obtain the capability.
+ *
+ * The remote capability (`PetrinautOptimization`) is self-contained because
+ * the service owns its simulations; this one is not, by design.
+ */
+export type PetrinautConnectedOptimization = {
+  readonly kind: "connected";
+  connect(
+    this: void,
+    channel: PetrinautOptimizationChannel,
+  ): PetrinautOptimization & { dispose(this: void): void };
+};
+
+/** What a host supplies: a remote capability, or one to connect locally. */
+export type PetrinautOptimizationSource =
+  | PetrinautOptimization
+  | PetrinautConnectedOptimization;
+
+export const isConnectedOptimization = (
+  source: PetrinautOptimizationSource,
+): source is PetrinautConnectedOptimization =>
+  (source as Partial<PetrinautConnectedOptimization>).kind === "connected";
+
+export {
+  deriveOptimizationTrialSeeds,
+  describeOptimization,
+  describeOptimizationParameter,
+  resolveTrialScenarioParameterValues,
+  validateSuggestedOptimizationValue,
+} from "./optimization/describe";

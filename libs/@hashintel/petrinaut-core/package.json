@@ -34,6 +34,10 @@
       "types": "./dist/ai.d.ts",
       "import": "./dist/ai.js"
     },
+    "./browser-optimization": {
+      "types": "./dist/browser-optimization.d.ts",
+      "import": "./dist/browser-optimization.js"
+    },
     "./compiled-model": {
       "types": "./dist/compiled-model.d.ts",
       "import": "./dist/compiled-model.js"
@@ -65,6 +69,10 @@
     "./workers/monte-carlo": {
       "types": "./dist/workers/monte-carlo.d.ts",
       "import": "./dist/workers/monte-carlo.js"
+    },
+    "./workers/optimizer": {
+      "types": "./dist/workers/optimizer.d.ts",
+      "import": "./dist/workers/optimizer.js"
     },
     "./workers/simulation": {
       "types": "./dist/workers/simulation.d.ts",
@@ -98,12 +106,14 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@local/petrinaut-optimizer-core": "workspace:*",
     "@types/js-yaml": "^4",
     "@types/node": "22.18.13",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "@webgpu/types": "0.1.71",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
+    "pyodide": "314.0.6",
     "rolldown": "1.2.6",
     "rolldown-plugin-dts": "0.28.3",
     "typescript": "5.9.3",
