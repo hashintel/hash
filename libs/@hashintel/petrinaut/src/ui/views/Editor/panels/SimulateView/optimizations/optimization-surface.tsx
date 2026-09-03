@@ -99,11 +99,13 @@ const readoutStyle = css({
 
 /**
  * Brings one cell up to at least `minRuns` locally computed runs, merging
- * batches into `cache`.
+ * batches into `cache`. A cell's entry is the promise of its deepest result,
+ * so the walk and the selected point's refinement queue behind each other
+ * instead of both sampling from the same run index.
  */
 const sampleStudyCell = async (options: {
   sampleDetachedObjective: ExperimentsContextValue["sampleDetachedObjective"];
-  cache: Map<string, SweepCellSnapshot>;
+  cache: Map<string, Promise<SweepCellSnapshot | null>>;
   optimization: Pick<OptimizationRecord, "id" | "input">;
   axes: readonly OptimizationSurfaceAxis[];
   xAxisId: string;
@@ -162,40 +164,43 @@ const sampleStudyCell = async (options: {
   }
 
   const key = `${slice}|x=${xPosition}|y=${yPosition}`;
-  const cached = cache.get(key);
-  if (cached && cached.runsCompleted >= minRuns) {
-    return cached;
-  }
-  const from = cached?.runsCompleted ?? 0;
-  const snapshot = await sampleDetachedObjective({
-    cacheKey: optimization.id,
-    definition: input.model.definition,
-    scenarioId: input.scenario.id,
-    scenarioParameterValues: values,
-    metric: {
-      id: objectiveMetric.id,
-      label: objectiveMetric.name,
-      code: objectiveMetric.code,
-    },
-    seed: sweepBatchSeed(input.execution.seed, from),
-    runCount: minRuns - from,
-    dt: input.execution.dt,
-    maxTime: input.execution.maxTime,
-  });
-  if (!snapshot) {
-    return cached ?? null;
-  }
-  const merged: SweepCellSnapshot = {
-    runsCompleted: minRuns,
-    metricFrames: cached
-      ? mergeMetricFramesAcrossCells([
-          cached.metricFrames,
-          snapshot.metricFrames,
-        ])
-      : snapshot.metricFrames,
-  };
-  cache.set(key, merged);
-  return merged;
+  const pending = cache.get(key);
+  const settled = (async (): Promise<SweepCellSnapshot | null> => {
+    const cached = await pending;
+    if (cached && cached.runsCompleted >= minRuns) {
+      return cached;
+    }
+    const from = cached?.runsCompleted ?? 0;
+    const snapshot = await sampleDetachedObjective({
+      cacheKey: optimization.id,
+      definition: input.model.definition,
+      scenarioId: input.scenario.id,
+      scenarioParameterValues: values,
+      metric: {
+        id: objectiveMetric.id,
+        label: objectiveMetric.name,
+        code: objectiveMetric.code,
+      },
+      seed: sweepBatchSeed(input.execution.seed, from),
+      runCount: minRuns - from,
+      dt: input.execution.dt,
+      maxTime: input.execution.maxTime,
+    });
+    if (!snapshot) {
+      return cached ?? null;
+    }
+    return {
+      runsCompleted: minRuns,
+      metricFrames: cached
+        ? mergeMetricFramesAcrossCells([
+            cached.metricFrames,
+            snapshot.metricFrames,
+          ])
+        : snapshot.metricFrames,
+    };
+  })();
+  cache.set(key, settled);
+  return await settled;
 };
 
 export const OptimizationSurface = ({
@@ -225,8 +230,10 @@ export const OptimizationSurface = ({
     stats: DistributionStats | null;
     cells: ReadonlyMap<string, number>;
   } | null>(null);
-  /** Finished local batches per position tuple, merged across rungs. */
-  const cellCacheRef = useRef(new Map<string, SweepCellSnapshot>());
+  /** Per position tuple, the promise of its deepest merged result. */
+  const cellCacheRef = useRef(
+    new Map<string, Promise<SweepCellSnapshot | null>>(),
+  );
 
   const xAxis = axes.find((axis) => axis.identifier === xAxisId);
   const yAxis = axes.find((axis) => axis.identifier === yAxisId);

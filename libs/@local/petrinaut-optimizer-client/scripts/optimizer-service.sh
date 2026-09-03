@@ -53,7 +53,6 @@ optimizer_stop() {
 }
 
 start_optimizer_service() {
-  optimizer_remove_leftovers
   if optimizer_healthy; then
     echo "Reusing the optimizer already serving on $OPTIMIZER_SERVICE_ORIGIN."
   else
@@ -61,6 +60,9 @@ start_optimizer_service() {
       echo "Docker is not running. Start Docker Desktop and run the command again." >&2
       exit 1
     fi
+    # Only `docker run --name` below needs the name free, and `docker ps`
+    # under `pipefail` would end the task before the guard above can report.
+    optimizer_remove_leftovers
     echo "Building Petrinaut Opt..."
     docker build \
       --file "$optimizer_repository_root/apps/petrinaut-opt/docker/Dockerfile" \

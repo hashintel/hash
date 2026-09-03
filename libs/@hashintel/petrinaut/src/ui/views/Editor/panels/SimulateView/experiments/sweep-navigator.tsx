@@ -12,8 +12,6 @@
  * positions are quantized, so a drag emits one change per step crossed and
  * compute follows the thumb.
  */
-import { LoadingSpinner, SegmentedControl } from "@hashintel/ds-components";
-
 import {
   LoadingSpinner,
   SegmentedControl,

@@ -161,7 +161,17 @@ function waitForCompletion(experiment: MonteCarloExperiment): Promise<void> {
   return new Promise((resolve, reject) => {
     experiment.events.subscribe((event) => {
       if (event.type === "complete") {
-        resolve();
+        // A run that threw keeps reporting its last sampled frame, so its
+        // metric value would pass the finite check as a stale objective.
+        if (event.progress.erroredRuns > 0) {
+          reject(
+            new Error(
+              `${event.progress.erroredRuns} of ${event.progress.runCount} optimization replicates failed`,
+            ),
+          );
+        } else {
+          resolve();
+        }
       } else if (event.type === "error") {
         reject(new Error(event.message));
       } else if (event.type === "cancelled") {

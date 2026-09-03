@@ -176,7 +176,10 @@ export const ViewExperimentDrawer = ({
               defaultOpen
               className={fixedSectionStyle}
             >
-              <SweepSurface experiment={experiment} />
+              {/* Keyed so the axis and metric pickers never carry one
+                  experiment's identifiers into another when the drawer swaps
+                  records in place. */}
+              <SweepSurface key={experiment.id} experiment={experiment} />
             </Section>
           ) : null}
           {experiment.metricSpecs.length > 0 ? (
