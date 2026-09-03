@@ -53,7 +53,7 @@ use std::{fs, path::PathBuf, sync::Arc};
 
 use axum::{
     body::Body,
-    http::{HeaderMap, Request, StatusCode, header::CONTENT_TYPE},
+    http::{HeaderMap, Method, Request, StatusCode, header::CONTENT_TYPE},
 };
 use clap::Parser;
 use error_stack::Report;
@@ -106,6 +106,9 @@ where
 
 /// The response header carrying the issued authority token.
 const AUTHORITY_HEADER: &str = "atlas-authority";
+
+/// The route serving the OpenAPI document.
+const OPENAPI_PATH: &str = "/v1/atlas/openapi.json";
 
 /// The fixture's basename under `fixtures/wire/`.
 const FIXTURE_NAME: &str = "r1-scoped-route-tile";
@@ -328,29 +331,18 @@ async fn send(
     (parts.status, parts.headers, bytes.to_vec())
 }
 
-/// Captures the fixture through the served route and verifies every law it pins.
-///
-/// Skips, loudly, unless `ATLAS_ROUTE_FIXTURE` selects a mode: the fixture's bytes depend on a
-/// fitted generation and a live store, which are operator-arranged rather than properties of
-/// every checkout. The checked-in fixture with the TypeScript conformance test remains the
-/// standing witness. This test is the honest re-derivation path.
-#[expect(
-    clippy::too_many_lines,
-    reason = "the capture is one linear protocol run whose order is the contract it witnesses"
-)]
-#[tokio::test(flavor = "multi_thread")]
-async fn route_served_scoped_tile_fixture() {
-    let Ok(mode) = std::env::var("ATLAS_ROUTE_FIXTURE") else {
-        eprintln!("route_served_scoped_tile_fixture: skipped; {ENV_CONTRACT}");
-        return;
-    };
-    assert!(
-        mode == "capture" || mode == "verify",
-        "ATLAS_ROUTE_FIXTURE selects capture or verify, not {mode:?}",
-    );
-    let actor = std::env::var("ATLAS_ROUTE_FIXTURE_ACTOR")
-        .unwrap_or_else(|_| panic!("ATLAS_ROUTE_FIXTURE_ACTOR names the actor; {ENV_CONTRACT}"));
+/// The requesting actor `ATLAS_ROUTE_FIXTURE_ACTOR` names.
+fn fixture_actor() -> String {
+    std::env::var("ATLAS_ROUTE_FIXTURE_ACTOR")
+        .unwrap_or_else(|_| panic!("ATLAS_ROUTE_FIXTURE_ACTOR names the actor; {ENV_CONTRACT}"))
+}
 
+/// The served router over the store, root and secret the environment names.
+///
+/// The delta consumer stays off, because every claim here is about the change under test and never
+/// about live store state. Rate limiting observes, because a oneshot request carries no connection
+/// info for the per-address key.
+async fn served_router() -> axum::Router {
     let store = |name: &str, fallback: &str| {
         std::env::var(format!("HASH_GRAPH_PG_{name}")).unwrap_or_else(|_| fallback.to_owned())
     };
@@ -371,11 +363,7 @@ async fn route_served_scoped_tile_fixture() {
     .await
     .expect("the store the HASH_GRAPH_PG_* environment names is reachable");
 
-    // The fixture is a claim about the change under test, never about live store state, so the
-    // delta consumer stays off and the served bytes come from the generation alone.
     let invocation = Invocation::parse_from(["route-fixture", "--no-delta"]);
-    // Observe mode, because the fixture pins transport rather than budgets, and a oneshot
-    // request has no connection info for the per-address key to read.
     let quota = |value| NonZeroU32::new(value).expect("the quota is non-zero");
     let facilities = RequestFacilities {
         provider: Arc::new(HeaderDelegation),
@@ -391,14 +379,147 @@ async fn route_served_scoped_tile_fixture() {
             rate_limit_actor_burst: quota(100),
         },
     };
-    let router = ServeCommand::new(invocation.root, invocation.serve)
+
+    ServeCommand::new(invocation.root, invocation.serve)
         .run(
             Arc::new(pool),
             VisibilityLimits::default(),
             None,
             facilities,
         )
-        .expect("the root holds an activated generation and a wire secret is configured");
+        .expect("the root holds an activated generation and a wire secret is configured")
+}
+
+/// Every route the API router registers refuses a request without an actor, and the liveness
+/// route alone answers without one.
+///
+/// Path parameters take a placeholder, because the authentication layer answers before any
+/// extractor reads the path.
+#[tokio::test(flavor = "multi_thread")]
+async fn routes_refuse_without_actor() {
+    if std::env::var_os("ATLAS_ROUTE_FIXTURE").is_none() {
+        eprintln!("routes_refuse_without_actor: skipped; {ENV_CONTRACT}");
+        return;
+    }
+    let actor = fixture_actor();
+    let router = served_router().await;
+
+    let (status, _, body) = send(
+        &router,
+        Request::get(OPENAPI_PATH)
+            .header(ACTOR_ID_HEADER, &actor)
+            .body(Body::empty())
+            .expect("the request builds"),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{}", String::from_utf8_lossy(&body));
+    let document: Value = serde_json::from_slice(&body).expect("the OpenAPI document is JSON");
+
+    let mut operations: Vec<(Method, String)> = document["paths"]
+        .as_object()
+        .expect("the document lists its paths")
+        .iter()
+        .flat_map(|(path, operations)| {
+            operations
+                .as_object()
+                .into_iter()
+                .flatten()
+                .filter_map(|(method, _operation)| {
+                    Method::from_bytes(method.to_ascii_uppercase().as_bytes())
+                        .ok()
+                        .map(|method| (method, path.clone()))
+                })
+        })
+        .collect();
+    operations.push((Method::GET, OPENAPI_PATH.to_owned()));
+    operations.push((Method::GET, "/v1/atlas/openapi".to_owned()));
+    assert!(
+        operations
+            .iter()
+            .any(|(_method, path)| path == "/v1/atlas/current"),
+        "the document lists no route the sweep knows; the sweep would be empty"
+    );
+
+    for (method, template) in &operations {
+        let path = template
+            .split('/')
+            .map(|segment| {
+                if segment.starts_with('{') {
+                    "0"
+                } else {
+                    segment
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("/");
+        let (status, headers, body) = send(
+            &router,
+            Request::builder()
+                .method(method.clone())
+                .uri(&path)
+                .body(Body::empty())
+                .expect("the request builds"),
+        )
+        .await;
+
+        assert_eq!(
+            status,
+            StatusCode::UNAUTHORIZED,
+            "{method} {template} answered without an actor: {}",
+            String::from_utf8_lossy(&body)
+        );
+        assert_eq!(
+            headers
+                .get(CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok()),
+            Some("application/problem+json"),
+            "{method} {template} refused outside the problem contract"
+        );
+        let problem: Value =
+            serde_json::from_slice(&body).expect("the refusal is a problem document");
+        assert_eq!(
+            problem["type"], "/problems/atlas/unauthenticated",
+            "{method} {template} refused for another cause: {problem}"
+        );
+    }
+
+    let (status, _, body) = send(
+        &router,
+        Request::get("/status")
+            .body(Body::empty())
+            .expect("the request builds"),
+    )
+    .await;
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "the liveness route requires an actor: {}",
+        String::from_utf8_lossy(&body)
+    );
+}
+
+/// Captures the fixture through the served route and verifies every law it pins.
+///
+/// Skips, loudly, unless `ATLAS_ROUTE_FIXTURE` selects a mode: the fixture's bytes depend on a
+/// fitted generation and a live store, which are operator-arranged rather than properties of
+/// every checkout. The checked-in fixture with the TypeScript conformance test remains the
+/// standing witness. This test is the honest re-derivation path.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the capture is one linear protocol run whose order is the contract it witnesses"
+)]
+#[tokio::test(flavor = "multi_thread")]
+async fn route_served_scoped_tile_fixture() {
+    let Ok(mode) = std::env::var("ATLAS_ROUTE_FIXTURE") else {
+        eprintln!("route_served_scoped_tile_fixture: skipped; {ENV_CONTRACT}");
+        return;
+    };
+    assert!(
+        mode == "capture" || mode == "verify",
+        "ATLAS_ROUTE_FIXTURE selects capture or verify, not {mode:?}",
+    );
+    let actor = fixture_actor();
+    let router = served_router().await;
 
     // The generation under serve, from the route that names it.
     let (status, _, body) = send(

@@ -140,10 +140,9 @@ pub(super) struct GenerationPath {
 /// scope. A client bootstraps here, so the resolution costs the request that expects a wait rather
 /// than the first tile.
 ///
-/// The handler judges the generation first, so a retired generation answers `404` whatever the
-/// caller presented, and a client re-fetching there discovers the re-pin. At the pinned generation
-/// a token that is present and unacceptable answers `401`, never a silent fresh view under the
-/// caller's `200`. An absent token bootstraps.
+/// Extraction judges the presented token before the handler judges the generation. An unacceptable
+/// token answers `401` whatever generation the route names, and a retired generation answers `404`
+/// to an absent or accepted token, where a re-fetching client discovers the re-pin.
 ///
 /// The body states the view the request wants, either a filter document or nothing for the
 /// unfiltered view. No renewal mode leaves the wanted view unstated, because the server purges a

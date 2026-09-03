@@ -71,9 +71,6 @@ pub(crate) struct MaskingActor {
 
 impl MaskingActor {
     /// Returns whether `config` masks this actor's reads.
-    ///
-    /// A deployment that protects no property masks nobody, and an instance admin's reads bypass
-    /// protection. Every other actor reads under `config`.
     #[must_use]
     pub(crate) fn masked_by(self, config: &PropertyProtectionFilterConfig<'_>) -> bool {
         !config.is_empty() && !self.instance_admin
@@ -81,8 +78,7 @@ impl MaskingActor {
 
     /// Returns the property protection over this actor's reads, absent when nothing masks.
     ///
-    /// The protection binds its self-access clause to this actor, and the actor reads its own
-    /// protected properties in full.
+    /// The self-access clause binds to this actor, who reads their own protected properties.
     #[must_use]
     pub(crate) fn protection<'config, 'rules>(
         self,
@@ -456,7 +452,7 @@ mod tests {
 
     use super::MaskingActor;
 
-    /// The actor identity `actor` names, an instance admin when `instance_admin`.
+    /// The masking actor over the user `actor` names.
     fn masking(actor: u128, instance_admin: bool) -> MaskingActor {
         MaskingActor {
             id: ActorId::User(UserId::new(Uuid::from_u128(actor))),

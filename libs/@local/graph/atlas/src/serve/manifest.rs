@@ -18,13 +18,11 @@ use crate::{file::generation::GenerationId, salt::wire::WIRE_VERSION};
 ///
 /// A limit belongs here when a correct client's own behaviour depends on it, in the requests it may
 /// send, the responses it must expect, or its refresh cadence, and the block carries nothing a
-/// client cannot act on. The authority windows are the visibility cache's own pair, named for what
-/// a client does with each. `authorityRefreshSeconds` publishes the cache's soft window. An entry
-/// older than that window refreshes asynchronously, and a client re-fetches the manifest at the
-/// same cadence. `authorityHardSeconds` publishes the hard window, which bounds a token's age at
-/// open and a cache entry's age at answer. The windows start at different events, an entry's
-/// resolution and a token's issuance, and share one configured value. The cache's entry capacity
-/// governs no client behaviour and stays absent.
+/// client cannot act on. The authority windows are the visibility cache's pair: the soft window is
+/// the cadence at which entries refresh and clients re-fetch, and the hard window bounds a token's
+/// age at open and an entry's age at answer. One configured value serves both, counted from an
+/// entry's resolution for the cache and from a token's issuance for the token. The cache's entry
+/// capacity governs no client behaviour and stays absent.
 ///
 /// The windows are safe for publication because a validity bound is discoverable by the party the
 /// bound applies to. The holder of a token reads its issue time from the clear envelope, and
@@ -59,10 +57,6 @@ pub(crate) struct ManifestLimits {
 
 impl ServeLimits {
     /// Derives the manifest's `limits` block from the values the server enforces.
-    ///
-    /// The request and response limits come from the handlers' own configuration, and the authority
-    /// windows from `visibility`, the pair the cache enforces. One source per value keeps the
-    /// published limits from disagreeing with enforcement.
     #[must_use]
     pub(crate) const fn manifest_limits(&self, visibility: VisibilityLimits) -> ManifestLimits {
         ManifestLimits {

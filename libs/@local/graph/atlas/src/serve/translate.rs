@@ -100,9 +100,9 @@ impl fmt::Display for TranslateError {
 
 impl Error for TranslateError {}
 
-/// The ratified POST body of one translate read.
+/// The POST body of one translate read.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct TranslateRequest {
     /// The upstream entity ids to translate, in the `webId~entityUuid` form.
     ///

@@ -209,9 +209,10 @@ impl OperationOutput for Problem<'_> {
         operation: &mut openapi::Operation,
     ) -> Vec<(Option<openapi::StatusCode>, openapi::Response)> {
         // One default response suffices because a problem carries its own status.
-        Self::operation_response(ctx, operation)
-            .map(|response| vec![(None, response)])
-            .unwrap_or_default()
+        let response = Self::operation_response(ctx, operation)
+            .unwrap_or_else(|| unreachable!("`operation_response` answers every operation"));
+
+        vec![(None, response)]
     }
 }
 

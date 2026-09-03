@@ -1,9 +1,4 @@
-//! The authority token's contract, driven through its facade.
-//!
-//! Every case issues a token, opens it or reads it for a renewal through [`TokenAuthority`] alone,
-//! and asserts each outcome by its [`AuthorityError`] cause. The envelope's layout belongs to the
-//! production types, and the cases reach every byte without naming an offset: the tamper case flips
-//! each position of the envelope in turn, and the nonce case compares whole envelopes.
+//! The authority token's contract, driven through [`TokenAuthority`] alone.
 #![expect(
     clippy::min_ident_chars,
     reason = "`k` is the delivery-cut offset's name throughout the density contract"
@@ -77,9 +72,6 @@ fn authority(epoch: Option<DeltaEpoch>) -> TokenAuthority<ChaCha20Rng> {
 }
 
 /// An issued token opens to the scope it sealed, filtered or not, under either epoch form.
-///
-/// The opened scope carries the actor, the filter digest and the offset unchanged, and the epoch
-/// an authority holds at issuance is the one its own open accepts.
 #[test]
 fn open_roundtrip() {
     let epoch = DeltaEpoch::fresh(&mut rng()).expect("the seeded generator is infallible");
@@ -103,10 +95,8 @@ fn open_roundtrip() {
 
 /// Every byte of the envelope is under the tag, and the version byte leads it.
 ///
-/// The header is the associated data, and the rest is ciphertext and tag. A flipped bit at any
-/// position past the first refuses as an authentication fault, a moved issue time included, since
-/// `open` judges the tag before the window. A flipped bit in the first byte, the format version,
-/// fails the zerocopy cast ahead of the tag and refuses as an envelope fault.
+/// The first byte fails the cast ahead of the tag. Every other byte, the issue time included, fails
+/// the tag ahead of the window.
 #[test]
 fn open_tampered_byte() {
     let authority = authority(None);
@@ -158,10 +148,8 @@ fn open_outside_window() {
         .expect("a token one second inside the window opens");
 }
 
-/// A token issued under another generation refuses.
-///
-/// The generation salts the key. The refusal happens at the tag rather than at a field comparison,
-/// and it holds for a token whose plaintext is otherwise identical.
+/// A token issued under another generation refuses at the tag, because the generation salts the
+/// key.
 #[test]
 fn open_foreign_generation() {
     let minted = authority(None)
@@ -227,9 +215,8 @@ fn open_foreign_actor() {
 
 /// A token sealed under a dead delta epoch refuses to open.
 ///
-/// The issuing and successor authorities share one generation and secret, standing in for a
-/// serving process before and after a restart. The sealing key is identical, and the refusal is
-/// the epoch comparison rather than the tag.
+/// Issuer and successor share one generation and secret, a serving process before and after a
+/// restart.
 #[test]
 fn open_dead_epoch() {
     let mut draws = rng();
@@ -279,9 +266,6 @@ fn open_epoch_presence_mismatch() {
 }
 
 /// Two no-delta authorities accept each other's tokens.
-///
-/// The absent form equals itself across constructions, and a process serving without a delta
-/// consumer keeps its tokens valid across restarts.
 #[test]
 fn open_absent_epoch_after_restart() {
     let minted = authority(None)
@@ -299,10 +283,7 @@ fn open_absent_epoch_after_restart() {
 
 /// An expired token no longer opens, yet still yields its view state for a renewal.
 ///
-/// The property the carried read exists for: hard invalidation forces a fresh token without
-/// perturbing the view. At an instant past the hard window, `open` refuses the token as stale while
-/// `continuity` still reads the sealed state, and a token re-issued from that state opens, sealing
-/// the same view.
+/// Hard invalidation forces a fresh token without perturbing the view.
 #[test]
 fn continuity_expired() {
     let authority = authority(None);
@@ -393,10 +374,7 @@ fn continuity_dead_epoch() {
 
 /// A second issuance draws a different nonce.
 ///
-/// Nonce reuse under one key repeats the keystream and the Poly1305 one-time key, and the property
-/// worth witnessing is the opposite of determinism: the entropy source advances per issuance. Two
-/// tokens of one scope at one instant differ through the nonce alone, and an equal pair would mean
-/// a repeated draw. Both tokens open.
+/// Tokens of one scope at one instant differ through the nonce alone.
 #[test]
 fn issue_distinct_nonces() {
     let authority = authority(None);

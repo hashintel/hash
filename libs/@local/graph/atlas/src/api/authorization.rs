@@ -28,12 +28,9 @@ use crate::{
     serve::authorization::{Scope, TOKEN_BYTES, TokenAuthority},
 };
 
-/// A request's cached caller resolution.
+/// A request's caller resolution, cached after the first extraction.
 ///
-/// [`Actor`] reads this entry before asking the middleware and stores the outcome after, so a
-/// request resolves its caller once however many extractors ask. An entry inserted before the
-/// first extraction supplies the resolution itself, which is what lets a test drive the
-/// extractors without the middleware's layer.
+/// A test inserts one ahead of the middleware, whose own resolution type is private to its crate.
 #[derive(Clone)]
 struct ActorCache(Result<Actor, AuthenticationRejection>);
 
@@ -175,7 +172,13 @@ where
             .to_str()
             .ok()
             .and_then(|text| text.parse::<HexBytes<TOKEN_BYTES>>().ok())
-            .and_then(|token| state.tokens().continuity(&token.into_inner(), actor).ok())
+            .and_then(|token| {
+                state
+                    .tokens()
+                    .continuity(&token.into_inner(), actor)
+                    .inspect_err(|error| tracing::warn!(%error, "unable to carry token"))
+                    .ok()
+            })
             .map_or_else(|| Err(unauthorized()), |scope| Ok(Some(scope)))
     }
 }

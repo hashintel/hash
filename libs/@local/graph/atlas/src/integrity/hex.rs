@@ -102,10 +102,7 @@ impl<const N: usize> HexBytes<N> {
         self.0
     }
 
-    /// Decodes `2 · N` lowercase hexadecimal bytes, validating the whole input in one pass.
-    ///
-    /// Every byte decodes and folds into one validity mask without branching on its value. The
-    /// refused position is located on the error path alone.
+    /// Decodes `2 · N` lowercase hexadecimal bytes without branching on a byte's value.
     ///
     /// # Errors
     ///

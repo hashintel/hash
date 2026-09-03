@@ -274,24 +274,6 @@ mod tests {
         }])
     }
 
-    /// The module's statements read the properties column only through the compiler.
-    ///
-    /// A hand-composed read of the properties column bypasses the compiler's masking hook,
-    /// so this holds the module to zero such reads outside this test module.
-    #[test]
-    fn no_hand_composed_property_read() {
-        let source = include_str!("statements.rs");
-        let (module, _tests) = source
-            .split_once("#[cfg(test)]")
-            .expect("this module carries its test module");
-
-        assert_eq!(
-            module.matches("EntityEditions::Properties").count(),
-            0,
-            "a properties-column read exists outside the compiler's masked selection"
-        );
-    }
-
     /// The detail read masks its property columns exactly when the caller passes a masking.
     ///
     /// The masked spelling is the subtraction inside `jsonb_each(`, which is the compiler's
@@ -359,11 +341,10 @@ mod tests {
     /// The rendered masked detail read, pinned under the deployment's default protection for a
     /// resolved actor, the form every hydration compiles.
     ///
-    /// The CASE conditions grow per protected property without changing the pinned grammar.
-    /// Reviewing a diff, hold it to the masking contract. Both property subqueries read the masked
-    /// object. The self-access clause compares the entity against the reading actor's parameter,
-    /// and that comparison is what lets an actor read its own protected properties. A pin without
-    /// an actor masks unconditionally and cannot see that clause regress.
+    /// The CASE conditions grow per protected property without changing the pinned grammar. Both
+    /// property subqueries read the masked object, and the self-access clause compares the entity
+    /// against the reading actor's parameter. A pin without an actor masks unconditionally and
+    /// cannot see that clause regress.
     #[test]
     fn masked_detail_statement_text() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();

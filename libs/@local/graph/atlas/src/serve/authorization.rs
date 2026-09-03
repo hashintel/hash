@@ -378,11 +378,7 @@ impl From<Option<DeltaEpoch>> for ScopeEpoch {
     }
 }
 
-/// A view's scope as the token carries it, bound to no presenter yet.
-///
-/// The actor it names is the token's claim about who may present it. [`bind`](Self::bind) is the
-/// only way from here to a [`Scope`], and every [`Scope`] opened from a token names its
-/// presenter. The byte form is [`Scope`]'s own, read in place from the [`SealedState`].
+/// A view's scope as the token carries it, before [`bind`](Self::bind) matches it to a presenter.
 #[derive(
     Debug,
     Copy,

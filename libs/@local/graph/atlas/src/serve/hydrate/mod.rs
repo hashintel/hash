@@ -29,9 +29,8 @@
 //! captured displays carry the same statement-shared spelling for later editions. Locate reads the
 //! generation payloads plus each placed arrival's placement capture, and edges reads
 //! captured-display-first, while hydration determines whether an entity still resolves and which
-//! live type references and properties may leave the store. The
-//! locate responses also name the base URL behind the label, which states that the entity has a
-//! value at that path without delivering it.
+//! live type references and properties may leave the store. The label property itself leaves the
+//! store under the same masking as every other property.
 //!
 //! The locate and edges responses deliver type *references* instead of rendered type display. Each
 //! entity's direct types read from `entity_edition_cache.versioned_urls`, and the client resolves

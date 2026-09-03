@@ -275,8 +275,7 @@ const STATUS_PATH: &str = "/status";
 pub struct RequestFacilities<P> {
     /// The credential verifier chain resolving each request's headers to an actor.
     ///
-    /// A request without a recognized credential resolves as anonymous, and whether an anonymous
-    /// caller may proceed is each handler's to state through the extractor it takes.
+    /// A request without a recognized credential refuses before any handler.
     pub provider: Arc<P>,
 
     /// The secret internal services present to delegate an actor and to pass the budgets
@@ -431,9 +430,6 @@ impl ServeCommand {
         let meter = opentelemetry::global::meter("hash-graph-atlas");
         let limiters = RateLimiters::start(&rate_limit, &meter);
 
-        // A layer covers only the routes added before it. The api routes sit behind all three
-        // request middlewares, while the liveness route, added after the budgets, spends none of
-        // them. The tracing layer covers everything and its predicate skips the liveness path.
         let router = api::router(atlas, self.limits, details, pool, visibility, epoch, cell)
             .route_layer(
                 ServiceBuilder::new()

@@ -79,9 +79,6 @@ impl FromStr for SecretString {
 }
 
 /// A refused secret encoding, by position and never by byte.
-///
-/// [`ParseHexError`] names the offending byte. A secret's refusal carries no field for it, and no
-/// rendering of a refused secret holds any of the secret's content.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ParseSecretHexError {
     /// The input contains a number of characters other than the encoded width.
@@ -245,10 +242,8 @@ impl<'de, const N: usize> serde::Deserialize<'de> for SecretHexBytes<N> {
 
 /// A command-line value parser for a secret, refusing without echoing the value.
 ///
-/// clap's own adapter for a fallible parse function places the rejected text into the error it
-/// renders. This parser decodes the raw argument bytes itself and renders a
-/// [`ParseSecretHexError`], and the argument's name is the only context the refusal names. `T` is
-/// the domain type the decoded secret converts into.
+/// clap's adapter for a parse function echoes the rejected text in its error. This one renders a
+/// [`ParseSecretHexError`] and names the argument alone.
 #[derive(Debug)]
 pub(crate) struct SecretHexBytesValueParser<T, const N: usize> {
     _marker: PhantomData<fn() -> (T, SecretHexBytes<N>)>,

@@ -74,9 +74,10 @@ impl OperationOutput for Saltile {
         ctx: &mut GenContext,
         operation: &mut openapi::Operation,
     ) -> Vec<(Option<openapi::StatusCode>, openapi::Response)> {
-        Self::operation_response(ctx, operation)
-            .map(|response| vec![(Some(openapi::StatusCode::Code(200)), response)])
-            .unwrap_or_default()
+        let response = Self::operation_response(ctx, operation)
+            .unwrap_or_else(|| unreachable!("`operation_response` answers every operation"));
+
+        vec![(Some(openapi::StatusCode::Code(200)), response)]
     }
 }
 
@@ -85,16 +86,10 @@ pub(super) async fn spawn<T: Send + 'static>(
     work: impl FnOnce() -> T + Send + UnwindSafe + 'static,
 ) -> Result<T, Problem<'static>> {
     offload::run(work).await.map_err(|error| match error {
-        OffloadError::Panicked(payload) => {
-            let payload = payload.unwrap_or(Cow::Borrowed("non-string panic payload"));
-            let detail: Cow<'static, str> = if cfg!(debug_assertions) {
-                Cow::Owned(format!("the response assembly panicked: {payload}"))
-            } else {
-                Cow::Borrowed("the response assembly panicked")
-            };
-
-            Problem::internal(payload, detail)
-        }
+        OffloadError::Panicked(payload) => Problem::internal(
+            payload.unwrap_or(Cow::Borrowed("non-string panic payload")),
+            "the response assembly panicked",
+        ),
         OffloadError::Vanished => Problem::internal(
             "the assembly worker dropped its channel",
             "the assembly worker vanished",
