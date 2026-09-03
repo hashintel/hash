@@ -1,21 +1,21 @@
 # Brunch future mission spine
 
-> Canonical future-planning spine, shared frame, and backlog index only. This file is not execution authority and authorizes no implementation. [`MISSION.md`](MISSION.md) is the sole live authority. Detailed provisional clusters are context repositories, not missions; re-evaluate and convert one into `MISSION.md` before acting.
+> Canonical future-planning spine, shared frame, and backlog index only. This file is not execution authority and authorizes no implementation. [`MISSION.md`](MISSION.md) is currently a closure pointer; a future owner-authorized cut must replace it with the sole live authority. Detailed provisional clusters are context repositories, not missions; re-evaluate and convert one into `MISSION.md` before acting.
 
 This spine and its four linked drafts form one future-planning record. Keep each consequential meaning in one authoritative planning home: shared contracts and unallocated concerns live here; mission-specific detail lives in its draft. A spine pointer is not a second contract. Material omitted from a future cut returns to this record at full fidelity, and the consumed draft is removed.
 
 ## Current authority and accepted spine
 
-Mission 4 remains live on this branch under the owner-accepted 2026-09-03 proof-of-life recut. Its bounded exit is accepted evidence that the independent core `elicitation` capability activates and refrains correctly on the named direct-Flue production-agent paths, plus one exact full-run conversation/workpiece/manifest bundle retained only as a downstream handoff candidate. The exit does not accept that workpiece's semantic quality, promote it to reusable fixture or database seed, prove Petrinaut `/api/chat` or browser parity, compare quality against Mission 3, or close the topology-neutral case portfolio. The first v3 campaign and witness remain historical failure evidence, not an accepted exit join. The parallel deployment branch's decision to archive Mission 4 and install Mission 8 as live authority remains historical to that branch and is **not imported here**.
+Mission 4 closed on this branch by owner adjudication on 2026-09-03. The accepted implementation is the independent core `elicitation` capability, SDCPN job-skill activation, and core/plugin/app responsibility split. The bounded evidence is narrower than the pre-registered campaign claim: Vestera and Data Centre activated correctly before substance, and S3 correctly refrained; S4 preserved the unresolved rule but did not activate elicitation, so the frozen campaign stopped before Industrial Gas. No `3/3` claim or full-run conversation/workpiece candidate exists. The owner judged immediate review-to-elicitation switching a nice-to-have at this boundary and deferred it. See the [closure decision](docs/evidence/decisions/mission-4-closure-and-deferral-2026-09-03.md), [campaign adjudication](docs/evidence/evaluations/mission-4-proof-of-life-v2/final-adjudication.md), and [Voice integration handoff](docs/evidence/implementations/mission-4-voice-integration-handoff.md). The parallel deployment branch's earlier Mission 4 transition remains historical and is not imported as independent acceptance.
 
-A future Mission 4 close-out addendum requires its own issue, branch, PR, and mission authority. It may stack directly on the proof-of-life branch and own broader reliability/hardening if warranted, browser parity, fixture/seed promotion contracts, topology-neutral case allocation, contract/readiness sweeps, archive subtraction, and Mission 8 preparation. Its exact issue/name and minimum scope remain owner decisions; do not create another Mission 4 draft.
+A future Mission 4 close-out addendum requires its own issue, branch, PR, and mission authority. It may stack on this closed branch and own broader reliability/hardening if warranted, browser parity, fixture/seed promotion contracts, topology-neutral case allocation, contract/readiness sweeps, archive subtraction, and Mission 8 preparation. It also owns the observed S4 report-versus-immediate-ask decision unless a later numbered mission first makes it load-bearing: re-enter only when a real review must continue immediately or repeated gap-only reports create visible friction; preserve S3 restraint while testing S4 activation and asking under a fresh instrument. Its exact issue/name and minimum scope remain owner decisions; do not create another Mission 4 draft.
 
-Mission 5 is a future candidate, not a live mission. It may be cut in parallel from the proof-of-life base, inspect the retained candidate, and later be reparented onto the addendum if it consumes addendum contracts. Before treating the candidate as its selected pair, Mission 5 must establish and owner-gate the minimum workpiece eligibility, identity mapping, capture provenance, and fixture/seed promotion its visible claim actually requires.
+Mission 5 is a future candidate, not a live mission. It cannot consume a Mission 4 full-run candidate because none was produced. Before cutting Mission 5, select and owner-gate an honest prebuilt pair from an explicitly eligible retained source—such as immutable Mission 3 evidence—or commission an addendum-owned run, then establish the minimum workpiece eligibility, identity mapping, capture provenance, and fixture/seed promotion its visible claim requires.
 
 ```text
-M4   live — prove independent skill activation/restraint and retain one unpromoted handoff candidate
-M4+  future successor — close-out, hardening, product parity, artifact promotion, and planning subtraction under a separate issue/PR
-M5   future draft — promote an eligible candidate into capture-backed review over one honest prebuilt pair
+M4   closed — core/plugin elicitation pattern accepted; S4 transition and full-run candidate deferred
+M4+  future successor — optional hardening, product parity, artifact preparation/promotion, and planning subtraction under a separate issue/PR
+M5   future draft — prepare one eligible source into capture-backed review over an honest prebuilt pair
 M6   automatic projection — ship one meaningful region of traceable live SDCPN projection
 M7   revision — ship bounded authorized reviewer revision and a scoped patch
 M8   deployment handoff — stopped after local application proof, before infrastructure deployment
@@ -190,7 +190,7 @@ These tracks may start only under their own issue, branch, PR, and mission autho
 
 | Track | Join gate under the accepted spine | Does not block |
 | --- | --- | --- |
-| Frozen prospective baseline | The Mission 4 proof-of-life branch preserves it unchanged and makes no quality-improvement claim; a successor uses the observed one-invalid/two-valid range only if it explicitly resumes comparative workpiece adjudication | Mission 5's candidate inspection and promotion decision |
+| Frozen prospective baseline | The closed Mission 4 branch preserves it unchanged and makes no quality-improvement claim; because Mission 4 produced no full-run candidate, a successor may inspect this observed one-invalid/two-valid Mission 3 range only if it explicitly selects and promotes an eligible source | Mission 5's source selection and promotion decision, or the optional Mission 4 addendum |
 | Inferential observer fold | Decide before Mission 7 whether observed foreground strain earns promotion; otherwise retain phase-boundary synthesis | Missions 4–6 |
 | Provider-visible nested schema | One successful canonical nested call admits Mission 6's construction tracer; a crisp upstream blocker stops or reorients it | Missions 4–5 |
 | Provenance interaction fixture | Freeze the minimal derivation fixture before Mission 5's why UI and Mission 6 projection diverge | Provider/model work while fixtures remain explicitly prepared |
@@ -324,7 +324,9 @@ Before claiming long-running provenance, prove panel/transcript/workpiece recove
 
 ### Voice
 
-Voice is a git-parent/integration constraint, not a mission. Stack on `kostandin/h-6763-openai-canonical-speech` when it is the parent, reuse the Mission 1 `POST /api/chat` dock, and resolve UUID-per-net versus `petrinaut-preview:${netId}`, stolen versus configured route, and `submitText` without `brunch_ask`. Brunch owns no provider audio.
+Voice is a git-parent/integration constraint, not a Brunch mission. The observed current remote stack is `kostandin/fe-1570-voice-optimized-brunch-responses` → `kah-6763-temporary-brunch-ask` → `kah-6800-improve-petrinaut-voice-turn-taking-and-answer-provenance` (PRs #9496, #9507, and #9512). It diverges before Mission 4's app/package restructuring. Reconciliation must preserve the current `useBrunchAgent()` + `useSdcpnPlugin()` composition and port Voice changes from old app paths onto `agents/chat-agent/agent.ts` and `conversation/{client-tools,transcript,ui-stream}.ts`; never restore the older app-local stub agent to resolve conflicts.
+
+Brunch owns question choice and canonical response text; Voice owns audio interaction, interruption/cancellation, finalized-answer provenance, and ephemeral playback preparation. Finalized typed or spoken answers enter canonical Flue history once, while provisional transcription/audio does not. If the temporary dynamic `brunch_ask` shim survives integration, re-evaluate it against the current suspended structured-question policy and mount it through current core contracts/app execution/client-tool registry without changing universal elicitation semantics. Resolve conversation identity, per-net continuity, and `submitText` correlation at the real panel boundary. The complete seam map and verification floor are in [`mission-4-voice-integration-handoff.md`](docs/evidence/implementations/mission-4-voice-integration-handoff.md).
 
 ### Observability and simulation viewing
 
@@ -339,7 +341,7 @@ Submission-scoped `read(admission)` is the actor correlation primitive; `history
 observer/audit surface, not a latest-reply lookup. The browser must attach after the first
 admission: an observer opened before the Flue instance existed stayed idle until reloaded, whereas
 attachment to the created instance caught up history, streamed the next reply, and reconstructed
-all settled messages after reload. The harness is now load-bearing for Mission 4's direct-Flue proof-of-life campaign but remains evaluation infrastructure rather than Petrinaut product evidence.
+all settled messages after reload. The harness carried Mission 4's now-closed direct-Flue proof-of-life campaign and remains evaluation infrastructure rather than Petrinaut product evidence.
 
 The harness now lives in the Brunch agent application at `apps/brunch-agent/.pi/extensions/brunch-persona-testing.ts`, with its persona policy and implementation decisions in the same-named folder beside it; it is a client of the application's composition, so the application owns, types, lints, and tests it, while it consumes reusable case inputs from this context root's `evaluations/`. A subsequent owner-authorized local remediation added explicit `none`, ordered-exact `mock`, and `real-headless` client-tool host modes. The bridge inspects only the settled submission's dynamic-tool parts, records server execution out of band, services client-deferred calls through the selected host, resumes Brunch with the existing `client-tool-result` signal and incarnation uid, and returns only the final resumed assistant text to the persona. The real-headless mode reuses the existing in-memory Petrinaut callbacks and reads checked-out Petrinaut docs; it does not claim browser execution or mount production tools. The contract suite proves server observation, mock suspension/resume and mismatch closure, real headless callback execution, and rendering, while direct Pi loading proves the relocated extension exposes its flags. No paid live tool turn was run, so live provider behavior and product/browser parity remain unproved.
 
@@ -381,7 +383,7 @@ The candidate split has one live authority, one compact spine, four provisional 
 | Standing decisions | Shared constraints and standing locks | Retained with packaged-B disposition, authority boundaries, capture/workpiece separation, platform locks, and no generalized runtime/TUI. |
 | Structured-question semantics from accepted planning | Unallocated backlog / Structured-question vertical capability | Added to its sole planning home with the required model-to-resumed-turn proof and no `brunch_ask` reactivation. |
 
-Material was removed only where the deployment branch's observed application artifact superseded its earlier proposal or where a spine summary now points to a detailed draft. All open consequences and re-entry conditions remain above. Mission 4 remains live; no future mission or remote deployment is promoted.
+Material was removed only where the deployment branch's observed application artifact superseded its earlier proposal or where a spine summary now points to a detailed draft. All open consequences and re-entry conditions remain above. Mission 4 is closed under its recorded narrower owner adjudication; no future mission or remote deployment is promoted.
 
 ## Planning-split close record
 
@@ -440,4 +442,4 @@ PY
 
 Observed results: the before/result packet resolves; `SIDE_QUEST.md` exists only before the result; `MISSION.md` and `docs/mission-archive/` are byte-identical; the result contains exactly drafts 5/6/7/9, four authority warnings, no prohibited headings, 89 relative links with none broken, and no whitespace error. Semantic review found no remaining unexplained loss, duplicate authority, false remote-deployment claim, line/readiness collapse, Mission 9 overcommitment, or lifecycle ambiguity.
 
-This non-authoritative close record does not close Mission 4, execute Missions 5–9, promote Mission 4's architecture, or claim Brunch is remotely deployed.
+This non-authoritative planning-split record did not itself close Mission 4, execute Missions 5–9, promote Mission 4's architecture, or claim Brunch was remotely deployed. Mission 4's later closure and accepted implementation boundary are recorded independently in the 2026-09-03 closure decision linked above.

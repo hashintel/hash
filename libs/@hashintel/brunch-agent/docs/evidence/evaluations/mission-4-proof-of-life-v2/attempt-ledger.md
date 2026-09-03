@@ -1,5 +1,7 @@
 # Mission 4 proof-of-life v2 attempt ledger
 
+Campaign stopped on S4 under the frozen rule. The owner later accepted Mission 4 closure with that failure deferred as non-blocking; no replacement or full run was admitted.
+
 Instrument commit: `95954b494308fbba384cc4ce169a813916f164f9`
 
 Manifest commit: `d9ca2fe1498f6484746b2abaaf18973e7abcbeaa`

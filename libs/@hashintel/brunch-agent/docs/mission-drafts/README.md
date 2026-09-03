@@ -1,6 +1,6 @@
 # Provisional mission drafts
 
-Files in this directory are detailed context repositories for possible future missions. They are not execution authority, do not create live missions, and must not be implemented. [`MISSION.md`](../../MISSION.md) is the sole execution authority; [`MISSION.next.md`](../../MISSION.next.md) is the compact future spine. A draft must be re-evaluated and converted into a new root `MISSION.md` on its own issue, branch, and PR before implementation.
+Files in this directory are detailed context repositories for possible future missions. They are not execution authority, do not create live missions, and must not be implemented. [`MISSION.md`](../../MISSION.md) is currently a closure pointer and [`MISSION.next.md`](../../MISSION.next.md) is the compact future spine. A draft must be re-evaluated and converted into a new root `MISSION.md` as the sole execution authority on its own issue, branch, and PR before implementation.
 
 Each planning item has one authoritative planning home across `MISSION.next.md` and these linked drafts. A spine summary is only a pointer. Keep accepted decisions, rejected alternatives and reasons, re-entry conditions, scenario classes, evidence, constraints, fog, stop conditions, risks, assumptions, and named mechanisms in one discoverable home at the precision needed by a cold-start builder.
 

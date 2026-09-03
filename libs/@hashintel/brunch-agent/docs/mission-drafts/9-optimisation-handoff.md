@@ -6,7 +6,7 @@
 
 A fresh builder must read these durable sources before deepening this cluster:
 
-- [`../../MISSION.md`](../../MISSION.md) — sole execution authority until Mission 4 validly closes; the eventual accepted Mission 4–7 archives become inherited authority.
+- [`../../MISSION.md`](../../MISSION.md) — current closure pointer. Mission 4 is closed; later accepted mission archives and an owner-authorized live cut become inherited authority before this draft can execute.
 - [`../../MISSION.next.md`](../../MISSION.next.md) and [`README.md`](README.md) — shared frame, standing locks, draft authority, and lifecycle.
 - [`7-bounded-reviewer-revision.md`](7-bounded-reviewer-revision.md) and the eventual accepted Mission 5–7 close evidence — inherited real-path artifacts and proof. Draft promises are not join evidence.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) — accepted workpiece leg, falsified real-model construction, and the parser-valid-empty warning.
@@ -113,7 +113,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 
 ## Inputs and joins
 
-- Mission 4: selected frozen workpiece, exact source Flue conversation, exact candidate instrument manifest, and comparative adjudication.
+- Selected upstream source: frozen workpiece, exact source Flue conversation, instrument manifest, and adjudication chosen by Mission 5 or a predecessor addendum; Mission 4 itself closed without a full-run candidate.
 - Missions 5–7: accepted bounded workpiece/net/evidence/derivation chain, revision and patch-locality evidence, and the witnessed real path Mission 9 must broaden.
 - Mission 8 actual contract: locally verified application artifact plus still-open infrastructure handoff; no remote deployment is assumed.
 - Chris/Yannis: written acceptance of the six consumer decisions and one fixture.

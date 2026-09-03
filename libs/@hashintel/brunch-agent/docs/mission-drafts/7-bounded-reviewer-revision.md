@@ -6,14 +6,14 @@
 
 A fresh builder must read these sources before cutting or implementing this cluster:
 
-- [`MISSION.md`](../../MISSION.md) — sole execution authority and the current Mission 4 workpiece decisions. Consume its exit join only after valid close evidence and owner acceptance exist.
+- [`MISSION.md`](../../MISSION.md) — closure pointer for Mission 4. Mission 4 produced no full-run workpiece candidate; consume only the source/workpiece pair explicitly selected and promoted by Mission 5 or a predecessor addendum.
 - [`MISSION.next.md`](../../MISSION.next.md) — compact shared frame, standing locks, and current mission joins.
 - [`README.md`](README.md) — durable draft authority, lifecycle, conversion, and oracle-gap rules.
 - [`docs/mission-archive/2-mechanical-capture-sweep.md`](../mission-archive/2-mechanical-capture-sweep.md) — exact-evidence capture, idempotency, Flue-history authority, and model-free scheduling.
 - [`docs/mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) — accepted workpiece leg and falsified provider-schema construction leg.
 - [`evaluations/oracles/ir-quality-ruler-v1.md`](../../evaluations/oracles/ir-quality-ruler-v1.md) and [`evaluations/protocols/ir-quality-ruler-v1/cold-ir-reviewer.md`](../../evaluations/protocols/ir-quality-ruler-v1/cold-ir-reviewer.md) — current conservation, grounding, conflict-collapse, and cold-reading criteria; neither is yet a successive-revision oracle.
 - [`docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`](../evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md) — healthy foreground-turn range, costly whole-workpiece synthesis, and observed correction handling.
-- [`packages/core/src/SYSTEM.md`](../../packages/core/src/SYSTEM.md), [`packages/plugin-sdcpn/src/skills/sdcpn-modelling/instructions.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/instructions.md), and [`packages/plugin-sdcpn/src/skills/sdcpn-modelling/workpiece-template.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/workpiece-template.md) — current foreground lifecycle and workpiece correction behavior.
+- [`packages/core/src/prompts/SYSTEM.md`](../../packages/core/src/prompts/SYSTEM.md), [`packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md), and [`packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md) — current foreground lifecycle and workpiece correction behavior.
 - [`apps/brunch-agent/test/petrinaut-chat.test.ts`](../../../../../apps/brunch-agent/test/petrinaut-chat.test.ts), [`apps/brunch-agent/test/headless-petrinaut-client.test.ts`](../../../../../apps/brunch-agent/test/headless-petrinaut-client.test.ts), and [`packages/plugin-sdcpn/src/tools/petrinaut-construction.ts`](../../packages/plugin-sdcpn/src/tools/petrinaut-construction.ts) — current real door, bounded mutation subset, and its limits.
 - [`5-capture-backed-review.md`](5-capture-backed-review.md) and [`6-traceable-projection.md`](6-traceable-projection.md) — provisional inherited artifacts, provenance seam, projection contract, and stable-identity obligations. Re-resolve these joins against accepted close evidence at cut time rather than assuming draft hypotheses landed.
 - Commit `157730cc5a214dd9c543e8d95c7193a219c48aef` on deployment branch `ln/fe-1569-brunch-agent-deployment`, especially `libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-8-deployment-handoff.md` — local application contract and the still-open infrastructure proof that any deployed durability claim must consume.
@@ -134,7 +134,7 @@ Breadth beyond the named classes and accepted scenario portfolio remains unearne
 
 ## Inputs and joins
 
-- Mission 4 exit: selected frozen workpiece, exact source Flue conversation, exact candidate instrument manifest, and comparative evaluation/adjudication.
+- Upstream source exit: the frozen workpiece, exact source Flue conversation, instrument manifest, and evaluation/adjudication explicitly selected by Mission 5 or a predecessor addendum; Mission 4 itself supplies no full-run candidate.
 - Mission 5: prebuilt workpiece/net pair, current workpiece revision and references, capture evidence references, net-element ids, projection rationale, durability disposition, and the why interaction.
 - Mission 6: selected meaningful region, canonical mutation surface, derivation records, repeat-projection identity evidence, and accepted unsupported/partial behavior.
 - Mission 8: consume the actual application contract—fail-closed Postgres Flue state, verified TLS, IAM/static-password paths, content-free OTel, restricted routes, liveness, singleton ownership policy—but do not imply it is deployed. The infrastructure handoff, real RDS/Anthropic/collector/replacement/rollback proof, and owner acceptance remain required before an outer deployed claim.

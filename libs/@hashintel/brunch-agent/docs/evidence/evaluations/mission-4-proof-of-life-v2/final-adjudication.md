@@ -1,6 +1,6 @@
 # Mission 4 proof-of-life v2 campaign adjudication
 
-Status: **frozen campaign stopped on a valid behavioral failure; owner disposition pending.**
+Status: **frozen campaign stopped on a valid behavioral failure; owner accepted Mission 4 closure with S4 deferred as non-blocking on 2026-09-03.**
 
 The Vestera and Data Centre fixed three-submission probes are technically valid, 4a-gradable, and floor-satisfying. In both, `sdcpn-modelling` then `elicitation` activation and the conditional SDCPN profile read preceded the first Substantive text at turn 2; neither opening was a Battery. The exact S3 resolvable-review entry is technically valid and passes item 4d without elicitation activation.
 
@@ -14,4 +14,4 @@ Because S4 is a valid behavioral failure, the protocol forbids its replacement a
 - Mission 4's bounded proof-of-life claim is **not established** by v2;
 - the two passing probes and S3 restraint remain attributable evidence but cannot be averaged over the S4 failure.
 
-Every admitted attempt is retained with canonical snapshot, transcript, trace, validity, adjudication, usage, and SHA-256 manifest. Final mission disposition remains an owner decision; no production repair or v3 campaign is authorized by this record.
+Every admitted attempt is retained with canonical snapshot, transcript, trace, validity, adjudication, usage, and SHA-256 manifest. The owner subsequently accepted branch closure on the narrower implementation evidence, judged immediate review-to-elicitation switching a nice-to-have at this mission boundary, and deferred it to the optional Mission 4 addendum or the first downstream mission that makes it load-bearing. This does not change the frozen failure or authorize a production repair or v3 campaign. See [`mission-4-closure-and-deferral-2026-09-03.md`](../../decisions/mission-4-closure-and-deferral-2026-09-03.md).
