@@ -1,10 +1,10 @@
 /**
  * Local FE-1436 panel launcher.
  *
- * Loads the real hash Petrinaut website config, removes only its incumbent
- * `/api/chat` dev handler, and proxies Brunch's mounted Flue route to the
- * committed application server. The real panel, wrappers, and editor stay
- * untouched; hash's tracked checkout stays clean.
+ * Loads the real hash Petrinaut website config, removes only the website's
+ * stock `/api/chat` dev handler, and proxies Brunch's mounted Flue route to
+ * the committed application server. The real panel, wrappers, and editor
+ * stay untouched; hash's tracked checkout stays clean.
  */
 
 import { join, resolve } from "node:path";

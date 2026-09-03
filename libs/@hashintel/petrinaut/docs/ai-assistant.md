@@ -16,7 +16,7 @@ The assistant panel only renders in **Edit** mode. Switching to **Simulate** mod
 While a response is streaming you can:
 
 - Watch the model's text and reasoning appear live. The **Reasoning** block is collapsible; while it is streaming, it auto-opens, shows a shimmer effect, and (once attached timing information arrives) an elapsed timer.
-- Press **Stop AI response** (the send button turns into a stop icon) to halt the current response.
+- Press **Stop AI response** (the send button turns into a stop icon) to halt the current response. A host with durable conversation execution can record that stop before Petrinaut cancels its local stream; without that host capability, Stop is local cancellation only.
 - Type your next message in the composer -- it is queued for after the current response ends.
 
 The application embedding Petrinaut may place an additional control beside the message box. For
@@ -30,6 +30,9 @@ finishes and is submitted when the conversation is ready.
 
 If an assistant request fails, Petrinaut shows the error in a brief toast rather than adding it to
 the conversation. Retry from the composer when the assistant is ready.
+
+Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant
+shows its settled and stopped turns without resubmitting a message or replaying Voice audio.
 
 When the Brunch voice preview is enabled and available, an empty composer shows a waveform action
 titled **Start voice mode**. Typing non-whitespace text replaces it with **Send**. The same dynamic
@@ -79,8 +82,9 @@ conversation; repeated send actions are ignored while that short handoff complet
 The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the
 authority on your system. Brunch still chooses every question and interview decision; OpenAI only
 delivers its words. The question and finalized response shown in the Petrinaut conversation are
-authoritative. Spoken audio is generated from that Brunch text but may not be verbatim. Interrupting
-audio does not undo the visible response or change the interview's saved history.
+authoritative. The speech request receives that exact Brunch text in part order; synthesized audio
+is generated from it but is not a verbatim recording. Interrupting audio does not undo the visible
+response or change the interview's saved history.
 
 Closing the AI panel pauses microphone capture and active speech, then hides the dock until you
 reopen the panel. The same mounted session stays paused; choose **Resume voice mode** when you are
