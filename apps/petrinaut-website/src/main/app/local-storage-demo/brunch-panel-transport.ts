@@ -1,8 +1,11 @@
-import { createFlueChatTransport } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  createFlueChatTransport,
+  FlueChatAdmissionError,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
-import { brunchClientToolNames } from "./brunch-client-tools";
 
 import type {
   SweepCapture,
@@ -23,6 +26,10 @@ export type BrunchPanelAdmissionTarget = Pick<
 >;
 
 export class BrunchPanelConversationTracker {
+  readonly #admissionFailureSubscriptions = new Set<{
+    readonly listener: (error: FlueChatAdmissionError) => void;
+    readonly target: BrunchPanelAdmissionTarget;
+  }>();
   readonly #admissionSubscriptions = new Set<{
     readonly listener: (admission: BrunchPanelAdmission) => void;
     readonly target: BrunchPanelAdmissionTarget;
@@ -91,6 +98,21 @@ export class BrunchPanelConversationTracker {
     return submission;
   }
 
+  public recordAdmissionFailure(
+    target: BrunchPanelAdmissionTarget,
+    error: FlueChatAdmissionError,
+  ): void {
+    for (const subscription of this.#admissionFailureSubscriptions) {
+      if (
+        subscription.target.kind === target.kind &&
+        subscription.target.messageId === target.messageId
+      ) {
+        this.#admissionFailureSubscriptions.delete(subscription);
+        subscription.listener(error);
+      }
+    }
+  }
+
   public submissionForInput(
     messageId: string,
   ): AgentSendResult["submissionId"] | undefined {
@@ -110,6 +132,15 @@ export class BrunchPanelConversationTracker {
     const subscription = { listener, target };
     this.#admissionSubscriptions.add(subscription);
     return () => this.#admissionSubscriptions.delete(subscription);
+  }
+
+  public subscribeToAdmissionFailure(
+    target: BrunchPanelAdmissionTarget,
+    listener: (error: FlueChatAdmissionError) => void,
+  ): () => void {
+    const subscription = { listener, target };
+    this.#admissionFailureSubscriptions.add(subscription);
+    return () => this.#admissionFailureSubscriptions.delete(subscription);
   }
 }
 
@@ -244,7 +275,7 @@ export const createBrunchPanelTransport = (
         const client = await clientPromise;
         const transport = createFlueChatTransport({
           client,
-          clientToolNames: brunchClientToolNames,
+          clientToolNames: new Set([readPetrinautDocToolName]),
           onAdmission: (event) => {
             tracker.recordAdmission(event);
             hooks?.onAdmission?.(event.admission);
@@ -252,7 +283,30 @@ export const createBrunchPanelTransport = (
           onResponseMessage: ({ messageId, submissionId }) =>
             tracker.recordResponse(messageId, submissionId),
         });
-        return decorateBrunchStream(await transport.sendMessages(sendOptions));
+        try {
+          return decorateBrunchStream(
+            await transport.sendMessages(sendOptions),
+          );
+        } catch (error) {
+          const messageId =
+            sendOptions.messageId ?? sendOptions.messages.at(-1)?.id;
+          if (
+            error instanceof FlueChatAdmissionError &&
+            messageId !== undefined
+          ) {
+            tracker.recordAdmissionFailure(
+              {
+                kind:
+                  sendOptions.messageId === undefined
+                    ? "user"
+                    : "client-tool-result",
+                messageId,
+              },
+              error,
+            );
+          }
+          throw error;
+        }
       })(),
     ),
 });

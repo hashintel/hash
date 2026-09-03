@@ -1,5 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+
 import {
   createRealtimeSubmissionId,
   RealtimeBrunchBridge,
@@ -396,6 +398,56 @@ describe("RealtimeBrunchBridge", () => {
       ),
     );
   });
+
+  test.each([
+    {
+      code: "admission-rejected",
+      failure: { kind: "rejected", status: 403 } as const,
+      message: "Brunch rejected the message before admission (HTTP 403).",
+    },
+    {
+      code: "admission-conflict",
+      failure: {
+        kind: "submission-conflict",
+        status: 409,
+        submissionId: "submission-existing",
+      } as const,
+      message:
+        "The delivery key already belongs to admitted submission submission-existing; the changed payload was not admitted.",
+    },
+    {
+      code: "admission-ambiguous",
+      failure: { kind: "ambiguous" } as const,
+      message:
+        "Brunch may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.",
+    },
+    {
+      code: "admission-aborted",
+      failure: { kind: "aborted" } as const,
+      message: "The local chat submission was cancelled.",
+    },
+  ])(
+    "preserves a $failure.kind admission outcome",
+    async ({ code, failure, message }) => {
+      const harness = createHarness();
+      harness.submitInterviewAnswer.mockRejectedValueOnce(
+        new FlueChatAdmissionError(failure),
+      );
+      startReady(harness);
+
+      harness.emit(completedTranscript(3));
+
+      await vi.waitFor(() =>
+        expect(harness.events).toContainEqual({
+          code,
+          failure,
+          message,
+          type: "error",
+        }),
+      );
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+    },
+  );
 
   test("requires a shared chat busy cycle before accepting new canonical text", async () => {
     const harness = createHarness();

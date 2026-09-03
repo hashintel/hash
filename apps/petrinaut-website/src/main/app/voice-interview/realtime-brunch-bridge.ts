@@ -1,10 +1,15 @@
+import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type {
   OpenAIRealtimeSessionEvent,
   OpenAIRealtimeTranscriptKey,
 } from "./openai-realtime-session";
 import type { AgentSendResult, FlueConversationSettlement } from "@flue/sdk";
-import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
+import type {
+  FlueChatAdmissionFailure,
+  FlueChatTransportOptions,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import type {
   PetrinautAiComposerSubmitTextResult,
   PetrinautAiVoiceModeContext,
@@ -70,10 +75,20 @@ interface ActiveSubmission {
   submissionId: AgentSendResult["submissionId"] | null;
 }
 
-export type RealtimeBridgeErrorCode =
+type RealtimeAdmissionErrorCode =
+  | "admission-aborted"
+  | "admission-ambiguous"
+  | "admission-conflict"
+  | "admission-rejected";
+
+type RealtimeInterviewErrorCode =
   | "interview-correlation"
   | "interview-response"
   | "interview-submission";
+
+export type RealtimeBridgeErrorCode =
+  | RealtimeAdmissionErrorCode
+  | RealtimeInterviewErrorCode;
 
 export type RealtimeTranscriptRejectionReason =
   | "duplicate"
@@ -125,7 +140,13 @@ export type RealtimeBrunchBridgeEvent =
       readonly type: "transcript-rejected";
     }
   | {
-      readonly code: RealtimeBridgeErrorCode;
+      readonly code: RealtimeInterviewErrorCode;
+      readonly message: string;
+      readonly type: "error";
+    }
+  | {
+      readonly code: RealtimeAdmissionErrorCode;
+      readonly failure: FlueChatAdmissionFailure;
       readonly message: string;
       readonly type: "error";
     };
@@ -148,6 +169,21 @@ const transcriptKeyId = (key: OpenAIRealtimeTranscriptKey): string =>
 
 const normalizeTranscript = (transcript: string): string =>
   transcript.trim().replace(/\s+/gu, " ");
+
+const admissionErrorCode = (
+  failure: FlueChatAdmissionFailure,
+): RealtimeAdmissionErrorCode => {
+  switch (failure.kind) {
+    case "aborted":
+      return "admission-aborted";
+    case "ambiguous":
+      return "admission-ambiguous";
+    case "rejected":
+      return "admission-rejected";
+    case "submission-conflict":
+      return "admission-conflict";
+  }
+};
 
 export class RealtimeBrunchBridge {
   readonly #acceptedInputItemIds = new Set<string>();
@@ -266,12 +302,24 @@ export class RealtimeBrunchBridge {
 
   #fail(
     message: string,
-    code: RealtimeBridgeErrorCode = "interview-correlation",
+    code: RealtimeInterviewErrorCode = "interview-correlation",
   ): void {
     ++this.#generation;
     this.#activeSubmission?.abortController.abort();
     this.#activeSubmission = null;
     this.#emit({ code, message, type: "error" });
+  }
+
+  #failAdmission(error: FlueChatAdmissionError): void {
+    ++this.#generation;
+    this.#activeSubmission?.abortController.abort();
+    this.#activeSubmission = null;
+    this.#emit({
+      code: admissionErrorCode(error.failure),
+      failure: error.failure,
+      message: error.message,
+      type: "error",
+    });
   }
 
   #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
@@ -426,12 +474,16 @@ export class RealtimeBrunchBridge {
       active.correlated = true;
       this.#emit({ answer, deliveryId, type: "submission-accepted" });
       this.#completeCorrelatedSubmission();
-    } catch {
+    } catch (error) {
       if (generation === this.#generation) {
-        this.#fail(
-          "The interview could not accept that answer. Use the composer to retry.",
-          "interview-submission",
-        );
+        if (error instanceof FlueChatAdmissionError) {
+          this.#failAdmission(error);
+        } else {
+          this.#fail(
+            "The interview could not accept that answer. Use the composer to retry.",
+            "interview-submission",
+          );
+        }
       }
     }
   }

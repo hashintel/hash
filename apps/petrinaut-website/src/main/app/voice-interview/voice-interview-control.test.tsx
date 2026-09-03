@@ -12,6 +12,8 @@ import {
 import { StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import {
   acknowledgeVoiceInterviewDisclosure,
@@ -265,8 +267,53 @@ describe("voice interview control", () => {
 
     abortController.abort();
 
-    await expect(resultPromise).rejects.toMatchObject({ name: "AbortError" });
+    await expect(resultPromise).rejects.toMatchObject({
+      failure: { kind: "aborted" },
+      name: "FlueChatAdmissionError",
+    });
     expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  test("preserves a typed failure reported after the panel submission resolves", async () => {
+    const admissionError = new FlueChatAdmissionError({ kind: "ambiguous" });
+    let reportFailure: ((error: FlueChatAdmissionError) => void) | undefined;
+    const unsubscribeFromAdmission = vi.fn();
+    const unsubscribeFromFailure = vi.fn();
+    const resultPromise = submitVoiceInputWithAdmission({
+      input: {
+        admissionTarget: { kind: "user", messageId: "voice-turn-1" },
+        id: "voice-turn-1",
+        onAdmission: vi.fn(),
+        signal: new AbortController().signal,
+        text: "One Voice turn.",
+      },
+      submitVoiceInput: async () => ({
+        kind: "message",
+        messageId: "voice-turn-1",
+      }),
+      subscribeToAdmission: () => unsubscribeFromAdmission,
+      subscribeToAdmissionFailure: (_target, listener) => {
+        reportFailure = listener;
+        return unsubscribeFromFailure;
+      },
+    });
+    let settled = false;
+    void resultPromise.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    reportFailure?.(admissionError);
+
+    await expect(resultPromise).rejects.toBe(admissionError);
+    expect(unsubscribeFromAdmission).toHaveBeenCalledOnce();
+    expect(unsubscribeFromFailure).toHaveBeenCalledOnce();
   });
 
   test("stores and reads the versioned disclosure acknowledgement", () => {

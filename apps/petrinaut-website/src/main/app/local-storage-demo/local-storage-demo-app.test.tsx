@@ -7,11 +7,11 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
+import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
-import { brunchClientToolNames } from "./brunch-client-tools";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import {
-  brunchInteractiveTools,
   getBrunchVoiceMode,
   LocalStorageDemoApp,
   requestFlueStop,
@@ -59,7 +59,8 @@ describe("local storage demo Brunch voice integration", () => {
 
   test("installs the app-owned voice control for a configured Brunch transport", () => {
     const config = { available: true as const, connectionTimeoutMs: 15_000 };
-    const voiceMode = getBrunchVoiceMode(config);
+    const tracker = new BrunchPanelConversationTracker();
+    const voiceMode = getBrunchVoiceMode(config, tracker);
     const control = voiceMode?.({
       canAcceptVoiceInput: true,
       conversationId: "petrinaut-preview:net-1",
@@ -86,17 +87,27 @@ describe("local storage demo Brunch voice integration", () => {
     if (!isValidElement(control)) {
       throw new Error("Expected the configured composer control to render.");
     }
-    expect(control).toMatchObject({
-      props: { config },
-      type: VoiceInterviewControl,
-    });
-  });
+    const failureListener = vi.fn();
+    const target = { kind: "user" as const, messageId: "voice-turn-1" };
+    const controlProps = control.props as {
+      config: typeof config;
+      subscribeToAdmissionFailure: (
+        admissionTarget: typeof target,
+        listener: (error: FlueChatAdmissionError) => void,
+      ) => () => void;
+    };
+    expect(control.type).toBe(VoiceInterviewControl);
+    expect(controlProps.config).toBe(config);
+    const unsubscribe = controlProps.subscribeToAdmissionFailure(
+      target,
+      failureListener,
+    );
+    const admissionError = new FlueChatAdmissionError({ kind: "ambiguous" });
 
-  test("registers only interactive widgets that answer declared client tools", () => {
-    expect(brunchInteractiveTools.length).toBeGreaterThan(0);
-    for (const tool of brunchInteractiveTools) {
-      expect(brunchClientToolNames.has(tool.toolName)).toBe(true);
-    }
+    tracker.recordAdmissionFailure(target, admissionError);
+
+    expect(failureListener).toHaveBeenCalledWith(admissionError);
+    unsubscribe();
   });
 
   test("correlates the existing Brunch transport request", () => {

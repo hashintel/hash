@@ -1140,6 +1140,52 @@ describe("VoiceTurnController", () => {
     expect(harness.session.connect).toHaveBeenCalledTimes(2);
   });
 
+  test.each([
+    {
+      code: "admission-rejected" as const,
+      failure: { kind: "rejected", status: 403 } as const,
+      message: "Brunch rejected the message before admission (HTTP 403).",
+    },
+    {
+      code: "admission-conflict" as const,
+      failure: {
+        kind: "submission-conflict",
+        status: 409,
+        submissionId: "submission-existing",
+      } as const,
+      message:
+        "The delivery key already belongs to admitted submission submission-existing; the changed payload was not admitted.",
+    },
+    {
+      code: "admission-ambiguous" as const,
+      failure: { kind: "ambiguous" } as const,
+      message:
+        "Brunch may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.",
+    },
+    {
+      code: "admission-aborted" as const,
+      failure: { kind: "aborted" } as const,
+      message: "The local chat submission was cancelled.",
+    },
+  ])("surfaces $failure.kind admission safely", async (admissionFailure) => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitBridge({
+      answer: "The supervisor approves it.",
+      deliveryId: "voice-turn-1",
+      type: "submission-started",
+    });
+
+    harness.emitBridge({ ...admissionFailure, type: "error" });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      connection: "error",
+      errorCode: admissionFailure.code,
+      errorMessage: admissionFailure.message,
+      lastAnswerDelivery: "failed",
+    });
+  });
+
   test("clears a provisional transcript when the interview fails", async () => {
     const harness = createHarness();
     await harness.controller.start();
