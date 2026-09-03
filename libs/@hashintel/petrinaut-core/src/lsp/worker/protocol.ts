@@ -13,6 +13,7 @@
  * upstream package directly.
  */
 import type { PetrinautExtensionSettings } from "../../extensions";
+import type { CompileHirArtifactsOptions } from "../../hir/compile";
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
@@ -172,6 +173,7 @@ type ClientRequest =
       params: {
         sdcpn: SDCPN;
         extensions?: PetrinautExtensionSettings;
+        options?: CompileHirArtifactsOptions;
       };
     }
   | {

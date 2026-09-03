@@ -1,14 +1,21 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, render, type RenderResult } from "@testing-library/react";
+import {
+  act,
+  render,
+  waitFor,
+  type RenderResult,
+} from "@testing-library/react";
 import { use } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
   type AdHocScenarioState,
+  type CompileHirArtifactsOptions,
   type MonteCarloUserDefinedMetricFrame,
   DEFAULT_PETRINAUT_EXTENSIONS,
+  type PetrinautExtensionSettings,
   type SDCPN,
   type WorkerLike,
 } from "@hashintel/petrinaut-core";
@@ -147,13 +154,45 @@ class FakeMonteCarloWorker {
  *
  * A macrotask boundary drains the entire microtask queue, so this holds however
  * many awaits setup takes. It used to await exactly two microtasks, which was the
- * count at the time and broke the moment a step was added — selecting a backend
- * inserts several.
+ * count at the time and broke the moment a step was added — selection moving
+ * behind `selectExperimentBackend` inserted three more (loading the backend,
+ * building the request, assessing it), and every test that waits for a worker
+ * message failed at once.
  */
 const flushWorkerSetup = async () => {
   await new Promise((resolve) => {
     setTimeout(resolve, 0);
   });
+};
+
+/**
+ * Makes the WebGPU backend report itself available for the duration of `body`.
+ *
+ * `isWebGpuAvailable()` only checks that `navigator.gpu` exists, and jsdom has no
+ * such property — so without this the backend is skipped before it is ever asked
+ * about a net, and every refusal reads "not available in this environment".
+ * Acquiring a device still fails, which is what makes the CPU fallback happen.
+ */
+const withWebGpuAvailable = async (body: () => Promise<void>) => {
+  // Defined on the navigator itself rather than by replacing it: its properties
+  // are prototype getters, so a spread copy would drop everything but `gpu`.
+  const descriptor = Reflect.getOwnPropertyDescriptor(
+    globalThis.navigator,
+    "gpu",
+  );
+  Object.defineProperty(globalThis.navigator, "gpu", {
+    configurable: true,
+    value: {},
+  });
+  try {
+    await body();
+  } finally {
+    if (descriptor) {
+      Object.defineProperty(globalThis.navigator, "gpu", descriptor);
+    } else {
+      Reflect.deleteProperty(globalThis.navigator, "gpu");
+    }
+  }
 };
 
 const sdcpnContextValue: SDCPNContextValue = {
@@ -186,8 +225,8 @@ const LanguageClientOverride = ({
         ...value,
         requestHirArtifacts:
           requestHirArtifacts ??
-          ((sdcpn, extensions) =>
-            Promise.resolve(compileHirArtifacts(sdcpn, extensions))),
+          ((sdcpn, extensions, options) =>
+            Promise.resolve(compileHirArtifacts(sdcpn, extensions, options))),
         // Lower for real (inline instead of in a worker), so scenarios the
         // provider synthesizes — the ad-hoc path — actually compile.
         requestScenarioHir: (scenario, adHocContext) =>
@@ -856,6 +895,402 @@ describe("ExperimentsProvider", () => {
           runSampleCount: 2,
         }),
       );
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("asks for HIR trees only when the GPU backend is requested", async () => {
+    // Only the GPU backend reads the HIR, and carrying it roughly triples the
+    // artifact payload structured-cloned to every shard worker. A CPU
+    // experiment must not pay for it.
+    const requestedOptions: (CompileHirArtifactsOptions | undefined)[] = [];
+    const requestHirArtifacts = vi.fn(
+      (
+        sdcpn: SDCPN,
+        extensions?: PetrinautExtensionSettings,
+        options?: CompileHirArtifactsOptions,
+      ) => {
+        requestedOptions.push(options);
+        return Promise.resolve(compileHirArtifacts(sdcpn, extensions, options));
+      },
+    );
+
+    for (const computeBackend of ["cpu", "webgpu"] as const) {
+      const worker = new FakeMonteCarloWorker();
+      const { getValue, renderResult } = renderExperimentsProvider(worker, {
+        requestHirArtifacts,
+      });
+
+      try {
+        await act(async () => {
+          const createPromise = getValue().createExperiment({
+            name: `${computeBackend} experiment`,
+            scenarioId: null,
+            scenarioParameterValues: {},
+            runCount: 1,
+            seed: 42,
+            dt: 1,
+            maxTime: 10,
+            metricSpecs: CONSTANT_METRIC_SPEC,
+            computeBackend,
+          });
+          // Probing the GPU adds await points before the CPU worker exists, so
+          // wait for `init` rather than assuming a single flush reaches it.
+          await waitFor(() => {
+            expect(worker.sent.map((message) => message.type)).toContain(
+              "init",
+            );
+          });
+          worker.emit({ type: "ready" });
+          await createPromise;
+        });
+      } finally {
+        renderResult.unmount();
+      }
+    }
+
+    // Both `false`, including the run that *asked* for the GPU: jsdom exposes no
+    // `navigator.gpu`, so the GPU backend reports itself unavailable and is
+    // skipped before it is ever assessed. Nothing then needs the HIR trees, and
+    // they are not compiled — a real improvement over asking for them whenever
+    // the preference was `webgpu`, since carrying them roughly triples the
+    // artifact payload cloned to every shard worker.
+    expect(requestedOptions).toStrictEqual([
+      { includeHir: false },
+      { includeHir: false },
+    ]);
+  });
+
+  it("asks for HIR trees when the GPU backend is available to try", async () => {
+    // The counterpart to the case above: with an adapter present the GPU backend
+    // is a real candidate, so the trees it needs are compiled. It still declines
+    // here — assessment succeeds and instantiation cannot get a device — which is
+    // why a second, tree-free request follows for the CPU fallback.
+    const requestedOptions: (CompileHirArtifactsOptions | undefined)[] = [];
+    const requestHirArtifacts = vi.fn(
+      (
+        sdcpn: SDCPN,
+        extensions?: PetrinautExtensionSettings,
+        options?: CompileHirArtifactsOptions,
+      ) => {
+        requestedOptions.push(options);
+        return Promise.resolve(compileHirArtifacts(sdcpn, extensions, options));
+      },
+    );
+
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      requestHirArtifacts,
+    });
+
+    try {
+      await withWebGpuAvailable(async () => {
+        await act(async () => {
+          const createPromise = getValue().createExperiment({
+            name: "gpu experiment",
+            scenarioId: null,
+            scenarioParameterValues: {},
+            runCount: 1,
+            seed: 42,
+            dt: 1,
+            maxTime: 10,
+            metricSpecs: CONSTANT_METRIC_SPEC,
+            computeBackend: "webgpu",
+          });
+          await waitFor(() => {
+            expect(worker.sent.map((message) => message.type)).toContain(
+              "init",
+            );
+          });
+          worker.emit({ type: "ready" });
+          await createPromise;
+        });
+
+        expect(requestedOptions).toStrictEqual([
+          { includeHir: true },
+          { includeHir: false },
+        ]);
+        // And it ran on the CPU, with the GPU's reason recorded.
+        expect(getValue().selectedExperiment?.computeBackend).toBe("cpu");
+        expect(
+          getValue().selectedExperiment?.computeBackendFallbackReason,
+        ).not.toBeNull();
+      });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("times stepping, not setup, and freezes the clock on completion", async () => {
+    // The clock is stubbed so that "the finish time does not move" is a real
+    // assertion. Against the real clock the whole test runs inside a single
+    // millisecond, and a re-stamped timestamp is indistinguishable from a frozen
+    // one — the test passes whether or not the provider guards the stamp.
+    const createdTime = 1_700_000_000_000;
+    let currentTime = createdTime;
+    const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => currentTime);
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      let createPromise!: Promise<string>;
+
+      await act(async () => {
+        createPromise = getValue().createExperiment({
+          name: "Timed experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+      });
+
+      // Before `ready`, the experiment is still compiling and spinning up its
+      // worker. That is setup, not simulation, so the clock has not started.
+      expect(getValue().selectedExperiment).toMatchObject({
+        createdAt: createdTime,
+        startedAt: null,
+        finishedAt: null,
+      });
+
+      // Setup took five seconds. Stepping begins after it, so that time is not
+      // charged to either backend.
+      currentTime = createdTime + 5_000;
+      await act(async () => {
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      expect(getValue().selectedExperiment).toMatchObject({
+        startedAt: createdTime + 5_000,
+        finishedAt: null,
+      });
+
+      currentTime = createdTime + 6_250;
+      await act(async () => {
+        worker.emit({
+          type: "complete",
+          progress: makeProgress({ allFinished: true, completedRuns: 1 }),
+        });
+      });
+
+      expect(getValue().selectedExperiment).toMatchObject({
+        status: "complete",
+        startedAt: createdTime + 5_000,
+        finishedAt: createdTime + 6_250,
+      });
+
+      // Completing disposes the handle, so a late worker message must not revive
+      // the record or move its timestamps.
+      currentTime = createdTime + 40_000;
+      await act(async () => {
+        worker.emit({ type: "progress", progress: makeProgress() });
+      });
+
+      expect(getValue().selectedExperiment).toMatchObject({
+        status: "complete",
+        startedAt: createdTime + 5_000,
+        finishedAt: createdTime + 6_250,
+      });
+    } finally {
+      nowSpy.mockRestore();
+      renderResult.unmount();
+    }
+  });
+
+  it("records when an errored experiment stopped", async () => {
+    // Failure is a third path to a terminal status, separate from completion and
+    // cancellation. It disposes the handle like the other two — which is what
+    // releases the backend's resources — so late worker chatter reaches nobody
+    // and cannot disturb the finish time.
+    const createdTime = 1_700_000_000_000;
+    let currentTime = createdTime;
+    const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => currentTime);
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      addNotification: () => "",
+    });
+
+    try {
+      let createPromise!: Promise<string>;
+      await act(async () => {
+        createPromise = getValue().createExperiment({
+          name: "Erroring experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      currentTime = createdTime + 1_000;
+      await act(async () => {
+        worker.emit({
+          type: "error",
+          message: "Worker failed",
+          itemId: null,
+        });
+      });
+
+      expect(getValue().selectedExperiment).toMatchObject({
+        status: "error",
+        finishedAt: createdTime + 1_000,
+      });
+
+      currentTime = createdTime + 9_000;
+      await act(async () => {
+        worker.emit({ type: "progress", progress: makeProgress() });
+      });
+
+      expect(getValue().selectedExperiment?.finishedAt).toBe(
+        createdTime + 1_000,
+      );
+    } finally {
+      nowSpy.mockRestore();
+      renderResult.unmount();
+    }
+  });
+
+  it("records when a cancelled experiment stopped", async () => {
+    // Cancellation is a separate code path from completion, and an experiment
+    // cancelled during setup never started at all.
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      await act(async () => {
+        void getValue().createExperiment({
+          name: "Cancelled during setup",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+      });
+
+      const experimentId = getValue().selectedExperimentId!;
+      await act(async () => {
+        getValue().cancelExperiment(experimentId);
+      });
+
+      expect(getValue().selectedExperiment).toMatchObject({
+        status: "cancelled",
+        startedAt: null,
+      });
+      expect(getValue().selectedExperiment?.finishedAt).toBeGreaterThan(0);
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("records the CPU backend when no GPU backend is requested", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      await act(async () => {
+        const createPromise = getValue().createExperiment({
+          name: "CPU experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+        // The handle only resolves once every shard reports ready.
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      expect(getValue().selectedExperiment).toMatchObject({
+        computeBackend: "cpu",
+        computeBackendFallbackReason: null,
+        status: "running",
+      });
+      expect(worker.sent.map((message) => message.type)).toEqual([
+        "init",
+        "start",
+      ]);
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("falls back to the CPU and records why when the GPU declines the net", async () => {
+    // The GPU backend cannot serve expression metrics, so requesting it for this
+    // experiment is declined. It must still run — silently switching backends is
+    // wrong, and failing outright is worse.
+    const worker = new FakeMonteCarloWorker();
+    const notifications: AddNotificationInput[] = [];
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      addNotification: (notification) => {
+        notifications.push(notification);
+        return "";
+      },
+    });
+
+    try {
+      await withWebGpuAvailable(async () => {
+        await act(async () => {
+          const createPromise = getValue().createExperiment({
+            name: "GPU experiment",
+            scenarioId: null,
+            scenarioParameterValues: {},
+            runCount: 1,
+            seed: 42,
+            dt: 1,
+            maxTime: 10,
+            metricSpecs: CONSTANT_METRIC_SPEC,
+            computeBackend: "webgpu",
+          });
+          // Probing the GPU adds await points before the CPU worker is created, so
+          // `init` has not necessarily been sent after a single flush.
+          await waitFor(() => {
+            expect(worker.sent.map((message) => message.type)).toContain(
+              "init",
+            );
+          });
+          worker.emit({ type: "ready" });
+          await createPromise;
+        });
+
+        const experiment = getValue().selectedExperiment;
+        expect(experiment?.computeBackend).toBe("cpu");
+        // The metric shape, not "no GPU here": with an adapter present the backend
+        // is genuinely asked about the net, and this is the reason it gives.
+        expect(experiment?.computeBackendFallbackReason).toMatch(
+          /place token counts/i,
+        );
+        // It still ran, on the CPU worker.
+        expect(worker.sent.map((message) => message.type)).toEqual([
+          "init",
+          "start",
+        ]);
+        // And the reason reached the user rather than being swallowed.
+        expect(
+          notifications.some((notification) =>
+            /running on the CPU/i.test(notification.message),
+          ),
+        ).toBe(true);
+      });
     } finally {
       renderResult.unmount();
     }

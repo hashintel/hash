@@ -24,6 +24,7 @@ import {
 import {
   ACTUAL_BOTTOM_PANEL_SUBVIEWS,
   BOTTOM_PANEL_SUBVIEWS,
+  COMPILATION_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
 
@@ -91,15 +92,18 @@ const headerRightStyle = css({
 const getBottomPanelSubViews = ({
   isActualMode,
   isSimulationActive,
+  showCompilationOutput,
 }: {
   isActualMode: boolean;
   isSimulationActive: boolean;
+  showCompilationOutput: boolean;
 }) =>
   isActualMode
     ? ACTUAL_BOTTOM_PANEL_SUBVIEWS
     : [
         ...BOTTOM_PANEL_SUBVIEWS,
         ...(isSimulationActive ? SIMULATION_ONLY_SUBVIEWS : []),
+        ...(showCompilationOutput ? COMPILATION_SUBVIEWS : []),
       ];
 
 /**
@@ -124,6 +128,8 @@ export const BottomPanel: React.FC = () => {
     globalMode,
   } = use(EditorContext);
 
+  const { keepPanelsMounted, showCompilationOutput } = use(UserSettingsContext);
+
   // Simulation state for conditional subviews
   const { state: simulationState } = use(SimulationContext);
   const actualMode = use(ActualModeContext);
@@ -147,6 +153,7 @@ export const BottomPanel: React.FC = () => {
   const subViews = getBottomPanelSubViews({
     isActualMode,
     isSimulationActive,
+    showCompilationOutput,
   });
 
   // Automatically open bottom panel and switch to the relevant timeline when a
@@ -196,6 +203,7 @@ export const BottomPanel: React.FC = () => {
     const availableSubViews = getBottomPanelSubViews({
       isActualMode,
       isSimulationActive,
+      showCompilationOutput,
     });
 
     if (!availableSubViews.some((subView) => subView.id === activeTab)) {
@@ -207,7 +215,13 @@ export const BottomPanel: React.FC = () => {
         setActiveTab(fallbackTab);
       }
     }
-  }, [activeTab, isActualMode, isSimulationActive, setActiveTab]);
+  }, [
+    activeTab,
+    isActualMode,
+    isSimulationActive,
+    setActiveTab,
+    showCompilationOutput,
+  ]);
 
   const renderedActiveTab =
     subViews.find((subView) => subView.id === activeTab)?.id ??
@@ -224,8 +238,6 @@ export const BottomPanel: React.FC = () => {
   const leftOffset = isSidebarVisible
     ? leftSidebarWidth + PANEL_MARGIN * 2
     : PANEL_MARGIN;
-
-  const { keepPanelsMounted } = use(UserSettingsContext);
 
   if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
     return null;
