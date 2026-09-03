@@ -15,6 +15,7 @@
     "test:unit": "uv run pytest && yarn codegen && git diff --exit-code -- openapi/openapi.json"
   },
   "dependencies": {
+    "@local/petrinaut-optimizer-core": "workspace:*",
     "@local/petrinaut-python": "workspace:*"
   }
 }

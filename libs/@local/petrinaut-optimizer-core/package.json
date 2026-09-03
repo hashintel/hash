@@ -1,0 +1,19 @@
+{
+  "name": "@local/petrinaut-optimizer-core",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Optuna study logic shared by the Petrinaut optimizer service and the in-browser optimizer",
+  "license": "(MIT OR Apache-2.0)",
+  "exports": {
+    "./python/*": "./src/petrinaut_optimizer_core/*",
+    "./runtime-lock.json": "./runtime-lock.json",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "fix:ruff": "uv run ruff check --fix . && uv run ruff format .",
+    "install:deps": "uv sync",
+    "lint:ruff": "uv run ruff check . && uv run ruff format --check .",
+    "lint:types": "uv run basedpyright",
+    "test:unit": "uv run pytest"
+  }
+}
