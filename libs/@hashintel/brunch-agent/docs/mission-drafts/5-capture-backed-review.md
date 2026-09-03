@@ -6,7 +6,7 @@
 
 A fresh builder must resolve the current repository and the deployment handoff rather than treating this draft as a specification:
 
-- [`../../MISSION.md`](../../MISSION.md) — sole execution authority; consume a selected frozen Mission 4 workpiece, exact source Flue conversation, candidate instrument manifest, and comparative adjudication only after Mission 4 has validly produced and the owner has accepted them.
+- [`../../MISSION.md`](../../MISSION.md) — sole execution authority; consume Mission 4's exact proof-of-life conversation/workpiece/manifest bundle only as an unpromoted handoff candidate. Before this draft is cut, re-evaluate whether Mission 5 or the separate close-out addendum owns the minimum workpiece eligibility, identity mapping, capture provenance, and fixture/seed promotion required by the selected-pair claim.
 - [`../../MISSION.next.md`](../../MISSION.next.md) — compact future spine, FE-1476 product frame, shared proof obligations, standing locks, and any later evidence admitted after this draft was written.
 - [`../mission-archive/2-mechanical-capture-sweep.md`](../mission-archive/2-mechanical-capture-sweep.md) — accepted mechanical capture throughline, exact close evidence, empty-payload boundary, conversation identity, and carried flags.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) and [`../evidence/implementations/fe-1525-headless-runbook-pn.md`](../evidence/implementations/fe-1525-headless-runbook-pn.md) — accepted runbook/workpiece leg, falsified real-model construction leg, and the distinction between a hermetic non-empty fixture and vacuous empty-net parser success.
@@ -18,7 +18,7 @@ A fresh builder must resolve the current repository and the deployment handoff r
 - On that branch, inspect `apps/brunch-agent/src/db.ts`, `src/postgres.ts`, `src/database-config.ts`, `test/postgres.test.ts`, `test/database-config.test.ts`, and `test/container-smoke.integration.ts`. Mission 5 activates capture as product data and therefore must use a durable implementation at the claimed replacement boundary; task-local JSON is not an admissible deployed capture store.
 - [`../../../petrinaut/docs/ai-assistant.md`](../../../petrinaut/docs/ai-assistant.md) and the other Petrinaut user-guide pages that mention the affected panel flow. Any user-visible change requires same-change documentation and a prompt to replace screenshots if they become stale.
 
-The selected workpiece, source conversation, prebuilt SDCPN, and derivation fixture do not yet have honest canonical paths. They are Mission 4 exit and Mission 5 preparation obligations, not names to invent here.
+Mission 4 will retain one exact source conversation and recovered workpiece as a handoff candidate, but the selected eligible workpiece, promoted fixture identity, prebuilt SDCPN, and derivation fixture do not yet have honest canonical paths. Candidate retention is a Mission 4 exit obligation; eligibility and promotion are Mission 5 or predecessor-addendum obligations to allocate before this draft is cut, not names or claims to invent here.
 
 ## Visible product advance
 
@@ -40,7 +40,7 @@ Close the **capture-backed provenance stratum for the selected prebuilt workpiec
 
 The accepted objects and minimum seam are:
 
-- one frozen current Markdown workpiece revision selected by Mission 4;
+- one current Markdown workpiece revision promoted from the exact Mission 4 handoff candidate only after explicit eligibility inspection and owner selection;
 - one exact source Flue conversation and explicit settled range;
 - immutable mechanical capture envelopes containing exact evidence and source pointers;
 - stable references from consequential workpiece passages to capture evidence;
@@ -55,7 +55,7 @@ Capture remains domain-opaque evidence. The foreground Markdown workpiece owns s
 ## Boundary crossings and current throughline hypothesis
 
 ```text
-Mission 4 selected source Flue conversation
+Mission 4 proof-of-life source Flue conversation and unpromoted workpiece candidate
   → harness explicitly names the settled source range
   → Mission 2 mechanical sweep reads Flue history
   → durable capture store archives exact user evidence and immutable envelopes
@@ -93,7 +93,7 @@ This floor proves a real capture-backed why route for one element and its honest
 
 ```text
 Mission 2 mechanical-capture throughline
-+ Mission 3/4 accepted workpiece and selected frozen pair
++ Mission 4 exact handoff candidate promoted through an explicit eligibility and identity decision
 + Mission 8 landed application contract and still-open infrastructure handoff
 → inherited capture/workpiece/deployment closure required here
 → one deployed capture-backed why answer plus broken-link refusal
@@ -108,7 +108,7 @@ Mission 2 mechanical-capture throughline
 Mission 5 consumes, but must not overstate:
 
 - **Mission 2 throughline:** explicit settled Flue history ranges produce idempotent, source-linked envelopes with payload `{}` and no extraction model. Before use as product data, replay must preserve exact source evidence, owner refusal, format validity, and atomic all-or-nothing behavior.
-- **Mission 3/4 workpiece throughline:** the selected workpiece must be cold-readable, epistemically honest, and frozen with the exact candidate instrument and conversation. If Mission 4 exits with a remaining workpiece gap, this mission must either close that named gap before preparing the pair or stop; it may not hide it in the derivation.
+- **Mission 3/4 workpiece throughline:** Mission 4 proves activation and retains an exact candidate; it does not accept semantic quality. Before preparing the pair, this mission or its predecessor addendum must establish that the selected workpiece is cold-readable and sufficiently epistemically honest for the named review slice, freeze it with the exact source conversation and instrument, and record every accepted limitation. It may use only the topology-neutral rows made load-bearing by that slice and may not hide a known gap in the derivation.
 - **Prebuilt-pair honesty:** all net content used by the visible path must have an identified preparation route, stable ids, and explicit projection rationale. Parser validity alone and the Mission 3 empty paid document are ineligible.
 - **Deployment application contract:** the pinned Mission 8 handoff has locally verified fail-closed Postgres Flue storage, TLS, image, health, content-free telemetry, and container smoke, but no remote infrastructure proof. Because this mission activates capture, its durable storage and replacement behavior become application and infrastructure obligations. Its inactive local JSON capture store is not inherited closure.
 - **Product door:** panel → AI SDK → Flue `ChatAgent` and client-tool resume already work. The panel remains the real entrypoint and the stock assistant remains independent.
@@ -143,7 +143,7 @@ Do not carry selected-pair provenance breadth, capture durability, owner refusal
 | Panel executes client tools and resumes one turn through AI SDK | Existing `apps/brunch-agent/test/petrinaut-chat.test.ts` plus `libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.test.tsx`, test `adds one dynamic output and sends one automatic follow-up`. Run `yarn workspace @apps/brunch-agent test:unit` and `yarn workspace @hashintel/petrinaut test:unit --run`. |
 | Mission 3 workpiece is recoverable and cold-readable; empty paid net is semantically false | Existing `docs/evidence/implementations/fe-1525-headless-runbook-pn.md` and `docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`; artifact inspection is the oracle. |
 | Mission 8 application contract is locally verified but remote replacement remains open | `157730cc5a214dd9c543e8d95c7193a219c48aef:libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-8-deployment-handoff.md`: exact recorded commands include `yarn workspace @apps/brunch-agent lint:tsc`, `lint:eslint`, `test:unit`, `build`, `build:docker`, and `turbo run test:unit --filter='@hashintel/brunch-agent...'`, plus native arm64, explicit `linux/amd64`, and Docker/Postgres/collector smoke. The handoff explicitly is not remote proof. |
-| Selected Mission 4 workpiece, exact conversation, manifest, and adjudication are accepted | **ORACLE GAP:** Mission 4 is live. Resolve by naming its final frozen candidate paths and recording owner acceptance/adjudication before this draft can be cut. |
+| Mission 4 handoff candidate is exact, and one workpiece is explicitly promoted as eligible for the selected pair | **ORACLE GAP:** Mission 4 will supply only a hashed proof-of-life candidate bundle. Resolve before this draft is cut by naming those exact paths, selecting the smallest workpiece-eligibility checks required by the visible review slice, recording identity/remapping rules, freezing the promoted input, and obtaining owner selection. Do not imply full topology-neutral or comparative acceptance. |
 | Every consequential element in the selected prebuilt pair has a derivation or explicit unsupported disposition | **ORACLE GAP:** no selected pair or inventory exists. Resolve with a frozen element inventory mechanically compared with the derivation fixture and human inspection of every unsupported disposition. |
 | One typed name/id yields an evidence-grounded answer and broken link yields visible refusal in deployed panel | **ORACLE GAP:** no existing test or deployed witness exercises this operation. At cut time bind it to the exact production-path test and a human panel witness; do not count a server-only fixture. |
 | Capture/workpiece/derivation survive the actual claimed replacement boundary | **ORACLE GAP:** deployment branch stopped before remote task replacement and left capture inactive. Resolve with one immutable image, selected durable store, process restart and cross-host replacement inspection against the same ids. |
@@ -160,7 +160,7 @@ Do not carry selected-pair provenance breadth, capture durability, owner refusal
 
 ## Inputs and joins
 
-- **Mission 4 exit join:** selected final frozen Markdown workpiece, exact source Flue conversation/range, exact candidate instrument manifest, valid comparative evaluation/adjudication, and any smallest remaining workpiece gap. Join fails if these are merely branch-tip files without a frozen identity or if campaign and witness exercised different instruments.
+- **Mission 4 exit join:** one exact raw Flue conversation/range, recovered Markdown workpiece, trace, proof-of-life instrument/model manifest, adjudication, hashes, and explicit `handoff-candidate` status. Before selected-pair work begins, Mission 5 or the predecessor addendum must promote one candidate through the minimum accepted eligibility and identity/remapping contract. The join fails if a branch-tip workpiece is treated as accepted, a replay is presented as model evidence, or a direct-Flue identity is presented as a Petrinaut net/user identity.
 - **Mission 2 join:** explicit `applyCaptureSweep`-style harness operation, evidence archive, capture idempotency, owner key, and no interviewer scheduling. Reuse mechanics only after inspecting current contracts; do not revive generalized typed elicitation.
 - **Prebuilt fixture join:** identified preparer, stable net element ids, current workpiece references, capture evidence references, projection rationale, and explicit unsupported dispositions. The pair must be non-empty and semantically inspectable.
 - **Mission 8 join:** consume the landed application contract and the open infrastructure handoff accurately. Mission 5 must add durable capture/product-state scope before claiming replacement durability, then join to actual ECS/RDS/collector/ingress identity supplied by infrastructure.
@@ -171,7 +171,7 @@ Do not carry selected-pair provenance breadth, capture durability, owner refusal
 
 | Risk or assumption | Impact if false | Cheapest discriminating validation |
 | --- | --- | --- |
-| A selected Mission 4 workpiece can host stable passage/reference identity without becoming assertion cards | If false, links churn or a second semantic artifact is needed | Prepare references for the consequential prebuilt pair and revise a non-semantic line; observe whether meaning-bearing references remain unambiguous. Stop before choosing a new ontology. |
+| A workpiece promoted from the Mission 4 candidate can host stable passage/reference identity without becoming assertion cards | If false, links churn or a second semantic artifact is needed | Prepare references for the consequential prebuilt pair and revise a non-semantic line; observe whether meaning-bearing references remain unambiguous. Stop before choosing a new ontology. |
 | Visible element name is unique enough for reviewer input, with id as escape hatch | If false, a name-only why request can resolve the wrong element | Inventory duplicate/renamed names and exercise an ambiguous query that must request/disclose the id rather than guess. |
 | A minimal companion derivation fixture is sufficient for why review | If false, rationale or loss cannot be recovered without transcript reread | Cold-read one consequential and one unsupported element using only workpiece, derivation, and captures. |
 | Exact excerpts plus workpiece context are enough for a useful why answer | If false, the UI may expose provenance yet fail the review task | Human reviewer judges whether the answer explains the modelling choice and its uncertainty, not merely lists ids or quotes. |
@@ -239,7 +239,7 @@ Do not create a capture ontology package, observer package, projection engine, g
 
 ## Fog-line
 
-- The exact selected Mission 4 workpiece and whether stable references can be embedded in Markdown without changing its accepted semantics.
+- Which exact Mission 4 candidate is eligible for promotion, which limitations are accepted for the selected review slice, and whether stable references can be embedded in Markdown without changing its semantics.
 - The exact source conversation/range and capture replay needed for the pair.
 - The smallest honest derivation representation and whether it travels with the workpiece, net, or as a companion manifest.
 - The consequential-element inventory and what counts as consequential for the selected pair.
@@ -254,7 +254,7 @@ Do not create a capture ontology package, observer package, projection engine, g
 
 Stop and surface the smallest blocker if:
 
-- Mission 4 has not frozen the selected workpiece, source conversation, instrument manifest, and adjudication;
+- Mission 4 has not retained its exact proof-of-life candidate bundle, or no owner-selected eligibility and identity/remapping decision promotes one candidate for the selected pair;
 - a selected pair cannot be prepared without inventing unsupported operational meaning or hiding material workpiece gaps;
 - product language or UI implies the prebuilt net was automatically projected;
 - why resolution depends on rereading the transcript, model-generated plausible links, or source-path proximity rather than stored references;
@@ -272,7 +272,7 @@ Stop and surface the smallest blocker if:
 
 - Mission 2 established the least capture pipe: explicit harness range, one exact envelope per user utterance, payload `{}`, stable ids on replay, no model extraction, no sweep tool. It did not establish typed semantics, a workpiece join, or durable remote product data.
 - Mission 3 accepted one Flue runbook/workpiece path and falsified real-model construction on the exercised provider-visible schema bridge. The hermetic non-empty callback fixture proves packaging and canonical validation; the paid empty net is not a candidate prebuilt pair.
-- Mission 4 is expected to supply the selected workpiece and exact conversation. Its owner-led semantic choices remain upstream; this mission may not silently redesign them while adding references.
+- Mission 4 is expected to supply one exact conversation/workpiece candidate without semantic-quality acceptance. Mission 5 or the predecessor addendum must explicitly promote it for the named review slice; this mission may not silently upgrade candidate status, claim the full topology-neutral portfolio, or redesign accepted upstream semantics while adding references.
 - The pinned Mission 8 handoff supplies a locally verified application contract and explicit handoff: fail-closed Postgres Flue state, IAM/static-password paths, TLS, image, health, content-free OTel, and container smoke landed; ECS/RDS/collector/ingress credentials, real IAM/provider turn, replacement recovery, rollback, and acceptance did not. Capture remained inactive and local JSON. That distinction is load-bearing.
 - The full capture/workpiece A–D alternatives, shadow-join probe, measurements, and re-entry conditions live in [`MISSION.next.md`](../../MISSION.next.md#captureworkpiece-seam-history-and-rejected-mechanisms). **Mission 5 selects support links only for the prepared pair:** immutable evidence stays separate from editable Markdown synthesis and joins through stable references plus derivation. Complete independence loses only as a sufficient FE-1476 delivery posture; capture-fold and one-artifact shapes remain rejected here.
 - Versioned assertion cards remain a possible future response only if the selected Markdown reference seam fails under observed revision strain. They are not the Mission 5 default.

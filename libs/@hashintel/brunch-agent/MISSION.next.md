@@ -6,20 +6,23 @@ This spine and its four linked drafts form one future-planning record. Keep each
 
 ## Current authority and accepted spine
 
-Mission 4 remains live on this branch. Its exit handoff is a selected frozen workpiece, exact source Flue conversation, exact candidate-instrument manifest, and valid comparative evaluation/adjudication. The first v3 campaign and witness are historical failure evidence, not an accepted exit join. The parallel deployment branch's decision to archive Mission 4 and install Mission 8 as live authority remains historical to that branch and is **not imported here**.
+Mission 4 remains live on this branch under the owner-accepted 2026-09-03 proof-of-life recut. Its bounded exit is accepted evidence that the independent core `elicitation` capability activates and refrains correctly on the named direct-Flue production-agent paths, plus one exact full-run conversation/workpiece/manifest bundle retained only as a downstream handoff candidate. The exit does not accept that workpiece's semantic quality, promote it to reusable fixture or database seed, prove Petrinaut `/api/chat` or browser parity, compare quality against Mission 3, or close the topology-neutral case portfolio. The first v3 campaign and witness remain historical failure evidence, not an accepted exit join. The parallel deployment branch's decision to archive Mission 4 and install Mission 8 as live authority remains historical to that branch and is **not imported here**.
 
-Mission 5 is a future candidate, not a live mission. Re-evaluate its linked draft only after Mission 4 has produced and the owner has accepted its exit join.
+A future Mission 4 close-out addendum requires its own issue, branch, PR, and mission authority. It may stack directly on the proof-of-life branch and own broader reliability/hardening if warranted, browser parity, fixture/seed promotion contracts, topology-neutral case allocation, contract/readiness sweeps, archive subtraction, and Mission 8 preparation. Its exact issue/name and minimum scope remain owner decisions; do not create another Mission 4 draft.
+
+Mission 5 is a future candidate, not a live mission. It may be cut in parallel from the proof-of-life base, inspect the retained candidate, and later be reparented onto the addendum if it consumes addendum contracts. Before treating the candidate as its selected pair, Mission 5 must establish and owner-gate the minimum workpiece eligibility, identity mapping, capture provenance, and fixture/seed promotion its visible claim actually requires.
 
 ```text
-M4  live — recut accepted 2026-09-02; prove the implemented core/plugin elicitation architecture
-M5  future draft — capture-backed review over an honest prebuilt pair
-M6  automatic projection — ship one meaningful region of traceable live SDCPN projection
-M7  revision — ship bounded authorized reviewer revision and a scoped patch
-M8  deployment handoff — stopped after local application proof, before infrastructure deployment
-M9  optimisation — ship an accepted optimisation handoff after its consumer contract exists
+M4   live — prove independent skill activation/restraint and retain one unpromoted handoff candidate
+M4+  future successor — close-out, hardening, product parity, artifact promotion, and planning subtraction under a separate issue/PR
+M5   future draft — promote an eligible candidate into capture-backed review over one honest prebuilt pair
+M6   automatic projection — ship one meaningful region of traceable live SDCPN projection
+M7   revision — ship bounded authorized reviewer revision and a scoped patch
+M8   deployment handoff — stopped after local application proof, before infrastructure deployment
+M9   optimisation — ship an accepted optimisation handoff after its consumer contract exists
 ```
 
-Every numbered mission from Mission 4 onward must produce a distinct visible advancement through the deployed Petrinaut/Brunch boundary once that boundary exists. Architecture, schema repair, fixtures, evaluation, rehearsal, and spikes may support that advancement but cannot be its sole outcome. Parallel work means separate issue, branch, PR, and mission authority; it never means multiple live missions here.
+Every numbered product mission after the proof-of-life exception must produce a distinct visible advancement through the deployed Petrinaut/Brunch boundary once that boundary exists. Architecture, schema repair, fixtures, evaluation, rehearsal, and spikes may support that advancement but cannot be its sole outcome. Parallel work means separate issue, branch, PR, and mission authority; it never means multiple live missions here.
 
 ## FE-1476 product frame
 
@@ -187,7 +190,7 @@ These tracks may start only under their own issue, branch, PR, and mission autho
 
 | Track | Join gate under the accepted spine | Does not block |
 | --- | --- | --- |
-| Frozen prospective baseline | Mission 4 consumes the observed one-invalid/two-valid range before freezing or claiming improvement of its candidate instrument | Mission 5's prepared-pair work |
+| Frozen prospective baseline | The Mission 4 proof-of-life branch preserves it unchanged and makes no quality-improvement claim; a successor uses the observed one-invalid/two-valid range only if it explicitly resumes comparative workpiece adjudication | Mission 5's candidate inspection and promotion decision |
 | Inferential observer fold | Decide before Mission 7 whether observed foreground strain earns promotion; otherwise retain phase-boundary synthesis | Missions 4–6 |
 | Provider-visible nested schema | One successful canonical nested call admits Mission 6's construction tracer; a crisp upstream blocker stops or reorients it | Missions 4–5 |
 | Provenance interaction fixture | Freeze the minimal derivation fixture before Mission 5's why UI and Mission 6 projection diverge | Provider/model work while fixtures remain explicitly prepared |
@@ -336,9 +339,7 @@ Submission-scoped `read(admission)` is the actor correlation primitive; `history
 observer/audit surface, not a latest-reply lookup. The browser must attach after the first
 admission: an observer opened before the Flue instance existed stayed idle until reloaded, whereas
 attachment to the created instance caught up history, streamed the next reply, and reconstructed
-all settled messages after reload. The harness was useful but not load-bearing for Mission 4's
-candidate run because the inherited headless production path remains available and no candidate
-attempt failed for lack of this view.
+all settled messages after reload. The harness is now load-bearing for Mission 4's direct-Flue proof-of-life campaign but remains evaluation infrastructure rather than Petrinaut product evidence.
 
 The harness now lives in the Brunch agent application at `apps/brunch-agent/.pi/extensions/brunch-persona-testing.ts`, with its persona policy and implementation decisions in the same-named folder beside it; it is a client of the application's composition, so the application owns, types, lints, and tests it, while it consumes reusable case inputs from this context root's `evaluations/`. A subsequent owner-authorized local remediation added explicit `none`, ordered-exact `mock`, and `real-headless` client-tool host modes. The bridge inspects only the settled submission's dynamic-tool parts, records server execution out of band, services client-deferred calls through the selected host, resumes Brunch with the existing `client-tool-result` signal and incarnation uid, and returns only the final resumed assistant text to the persona. The real-headless mode reuses the existing in-memory Petrinaut callbacks and reads checked-out Petrinaut docs; it does not claim browser execution or mount production tools. The contract suite proves server observation, mock suspension/resume and mismatch closure, real headless callback execution, and rendering, while direct Pi loading proves the relocated extension exposes its flags. No paid live tool turn was run, so live provider behavior and product/browser parity remain unproved.
 
