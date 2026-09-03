@@ -210,7 +210,9 @@ export const VoiceSessionIndicator = ({
     context.setTransform(scale, 0, 0, scale, 0, 0);
 
     const targetColor = parseColor(window.getComputedStyle(canvas).color);
-    colorRef.current ??= targetColor;
+    if (colorRef.current === null) {
+      colorRef.current = targetColor;
+    }
 
     const levelOf = phaseLevel[phase];
     const travelSpeed =

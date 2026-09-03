@@ -56,7 +56,15 @@ const confirmationTool = definePetrinautAiInteractiveTool({
   toolName: "confirmOperation",
   inputSchema: z.object({ question: z.string() }),
   outputSchema: z.object({ approved: z.boolean() }),
-  component: ({ input, state, submit, submittedOutput, toolCallId }) =>
+  supportsSubmittedOutputProvenance: true,
+  component: ({
+    input,
+    state,
+    submit,
+    submittedOutput,
+    submittedOutputProvenance,
+    toolCallId,
+  }) =>
     state === "awaiting" ? (
       <section data-tool-call-id={toolCallId}>
         <p>{input.question}</p>
@@ -64,7 +72,10 @@ const confirmationTool = definePetrinautAiInteractiveTool({
         <button onClick={() => submit({ approved: false })}>Decline</button>
       </section>
     ) : (
-      <p>{submittedOutput.approved ? "Approved" : "Declined"}</p>
+      <div>
+        <p>{submittedOutput.approved ? "Approved" : "Declined"}</p>
+        {submittedOutputProvenance}
+      </div>
     ),
 });
 
@@ -84,9 +95,13 @@ checked before Petrinaut calls the AI SDK's `addToolOutput`.
 
 The component receives a stable `toolCallId` plus a discriminated lifecycle:
 `state: "awaiting"` has no submitted output, while `state: "submitted"`
-includes the validated `submittedOutput`. While a submission is in flight,
-duplicate `submit` calls are ignored. An accepted submission stays one-shot;
-if the AI SDK rejects it, the awaiting component can submit again. Once every
+includes the validated `submittedOutput`. A tool can set
+`supportsSubmittedOutputProvenance: true` and position
+`submittedOutputProvenance` next to its submitted value; Petrinaut uses that
+slot for context-appropriate provenance when available. Widgets that omit the
+opt-in keep the trailing provenance fallback. While a submission is in flight,
+duplicate `submit` calls are ignored. An accepted submission stays one-shot; if
+the AI SDK rejects it, the awaiting component can submit again. Once every
 pending tool call has output, the existing AI SDK automatic follow-up runs as
 usual.
 

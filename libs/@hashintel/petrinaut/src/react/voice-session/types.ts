@@ -20,6 +20,8 @@ export type PetrinautAiVoiceSessionState = {
   canReadFullResponse?: boolean;
   /** Whether the current canonical interview question is safe to repeat. */
   canRepeatQuestion?: boolean;
+  /** Whether the user can manually cancel Voice output and start their turn. */
+  canTakeTurn?: boolean;
   errorMessage: string | null;
   /** Whether microphone capture is muted independently of whose turn it is. */
   microphoneMuted: boolean;

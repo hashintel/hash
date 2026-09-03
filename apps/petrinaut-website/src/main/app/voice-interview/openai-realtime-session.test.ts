@@ -376,6 +376,89 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.localTracks[0]!.enabled).toBe(false);
   });
 
+  test("cancels buffered speech before accepting a fresh post-handoff utterance", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+    channel.receive({
+      audio_start_ms: 40,
+      item_id: "item-before-handoff",
+      type: "input_audio_buffer.speech_started",
+    });
+    harness.session.speakCanonical([
+      canonicalSegment("ask-handoff", "What happens next?"),
+    ]);
+    authorizeLatestSpeechResponse(channel, "response-handoff");
+    channel.receive({
+      response_id: "response-handoff",
+      type: "output_audio_buffer.started",
+    });
+
+    const cancellation = harness.session.cancelOutput();
+
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+    expect(sentEvents(channel).slice(-3)).toEqual([
+      { type: "input_audio_buffer.clear" },
+      expect.objectContaining({
+        response_id: "response-handoff",
+        type: "response.cancel",
+      }),
+      { type: "output_audio_buffer.clear" },
+    ]);
+    channel.receive({
+      content_index: 0,
+      item_id: "item-before-handoff",
+      transcript: "This began too early.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    channel.receive({ type: "input_audio_buffer.cleared" });
+    channel.receive({
+      response_id: "response-handoff",
+      type: "output_audio_buffer.cleared",
+    });
+    channel.receive({
+      response: {
+        id: "response-handoff",
+        output: [],
+        status: "cancelled",
+      },
+      type: "response.done",
+    });
+    await cancellation;
+
+    expect(harness.localTracks[0]!.enabled).toBe(true);
+    expect(
+      harness.events.some(
+        (event) =>
+          event.type === "completed" &&
+          event.key.itemId === "item-before-handoff",
+      ),
+    ).toBe(false);
+    channel.receive({
+      audio_start_ms: 120,
+      item_id: "item-after-handoff",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      content_index: 0,
+      item_id: "item-after-handoff",
+      transcript: "This began after the handoff.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+
+    expect(harness.events).toContainEqual({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "item-after-handoff",
+      },
+      text: "This began after the handoff.",
+      type: "completed",
+    });
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
+  });
+
   test("never surfaces model-generated function-call arguments as user speech", async () => {
     const harness = createHarness();
     await harness.session.connect();
@@ -670,17 +753,20 @@ describe("OpenAIRealtimeSession", () => {
       type: "response.created",
     });
 
-    harness.session.cancelOutput();
+    void harness.session.cancelOutput();
 
     await expect(preparation).resolves.toEqual({
       kind: "fallback",
       reason: "interrupted",
       sourceSegmentIds: request.sourceSegmentIds,
     });
-    expect(sentEvents(channel).slice(-1)[0]).toMatchObject({
-      response_id: "response-preparation",
-      type: "response.cancel",
-    });
+    expect(sentEvents(channel).slice(-2)).toEqual([
+      expect.objectContaining({
+        response_id: "response-preparation",
+        type: "response.cancel",
+      }),
+      { type: "output_audio_buffer.clear" },
+    ]);
     channel.receive({
       delta: "Late output must be ignored.",
       response_id: "response-preparation",
@@ -860,7 +946,7 @@ describe("OpenAIRealtimeSession", () => {
     ]);
     const responseCreate = sentEvents(channel)[0]!;
 
-    harness.session.cancelOutput();
+    void harness.session.cancelOutput();
 
     expect(
       sentEvents(channel).filter(({ type }) => type === "response.cancel"),
@@ -990,6 +1076,7 @@ describe("OpenAIRealtimeSession", () => {
   test("ignores a correlated cancel for an already-finished response", async () => {
     const harness = createHarness();
     await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
     const channel = harness.channels[0]!;
     harness.session.speakCanonical([
       canonicalSegment("question", "Canonical question"),
@@ -1007,7 +1094,7 @@ describe("OpenAIRealtimeSession", () => {
       type: "output_audio_buffer.started",
     });
 
-    harness.session.cancelOutput();
+    const cancellation = harness.session.cancelOutput();
     const cancelEvent = sentEvents(channel).findLast(
       ({ type }) => type === "response.cancel",
     )!;
@@ -1024,10 +1111,17 @@ describe("OpenAIRealtimeSession", () => {
       },
       type: "error",
     });
+    channel.receive({ type: "input_audio_buffer.cleared" });
+    channel.receive({
+      response_id: "response-canonical",
+      type: "output_audio_buffer.cleared",
+    });
+    await cancellation;
 
     expect(harness.events).not.toContainEqual(
       expect.objectContaining({ type: "error" }),
     );
+    expect(harness.localTracks[0]!.enabled).toBe(true);
     expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
   });
 
@@ -1051,7 +1145,7 @@ describe("OpenAIRealtimeSession", () => {
       type: "output_audio_buffer.started",
     });
 
-    harness.session.cancelOutput();
+    void harness.session.cancelOutput();
     const cancelEvent = sentEvents(channel).findLast(
       ({ type }) => type === "response.cancel",
     )!;

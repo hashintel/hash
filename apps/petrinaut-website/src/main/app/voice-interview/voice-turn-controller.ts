@@ -17,6 +17,7 @@ export type VoiceConnectionState =
   | "error";
 export type VoiceInputState = "listening" | "paused" | "submitting";
 export type VoiceOutputState =
+  | "cancelling"
   | "idle"
   | "waiting-for-tool"
   | "speaking"
@@ -33,6 +34,7 @@ export type VoiceInputNotice = "none" | "not-heard";
 export interface VoiceTurnSnapshot {
   readonly canReadFullResponse: boolean;
   readonly canRepeatQuestion: boolean;
+  readonly canTakeTurn: boolean;
   readonly canReviseLastAnswer: boolean;
   readonly connection: VoiceConnectionState;
   readonly currentQuestion: string;
@@ -62,7 +64,7 @@ export interface VoiceLatencyEvent {
 type ChatStatus = "ready" | "submitted" | "streaming" | "error";
 
 interface RealtimeSession {
-  cancelOutput(): void;
+  cancelOutput(): Promise<void>;
   connect(): Promise<number>;
   disconnect(): Promise<void>;
   setMicrophoneEnabled(enabled: boolean): void;
@@ -104,6 +106,7 @@ type SnapshotListener = (snapshot: VoiceTurnSnapshot) => void;
 const initialSnapshot: VoiceTurnSnapshot = {
   canReadFullResponse: false,
   canRepeatQuestion: false,
+  canTakeTurn: false,
   canReviseLastAnswer: false,
   connection: "idle",
   currentQuestion: "",
@@ -143,10 +146,12 @@ export class VoiceTurnController {
   #generation = 0;
   #inputStateOnResume: Exclude<VoiceInputState, "paused"> | null = null;
   #inputTurnPending = false;
+  #outputCancellationPromise: Promise<void> | null = null;
   #pauseRequested = false;
   #snapshot = initialSnapshot;
   #speechSource: InterviewSpeechSource | null = null;
   #submittingQuestionId: string | null = null;
+  #takingTurnPromise: Promise<void> | null = null;
   #teardownPromise: Promise<void> | null = null;
   #transcriptItemId: string | null = null;
   #transcriptKey: string | null = null;
@@ -206,6 +211,7 @@ export class VoiceTurnController {
 
     this.#inputStateOnResume = null;
     this.#inputTurnPending = false;
+    this.#outputCancellationPromise = null;
     this.#pauseRequested = false;
     this.#bridgeStarted = false;
     this.#activeSpeechOutputEnded = false;
@@ -257,7 +263,9 @@ export class VoiceTurnController {
     this.#currentQuestionId = null;
     this.#inputStateOnResume = null;
     this.#inputTurnPending = false;
+    this.#outputCancellationPromise = null;
     this.#submittingQuestionId = null;
+    this.#takingTurnPromise = null;
     this.#pauseRequested = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
@@ -307,7 +315,7 @@ export class VoiceTurnController {
     this.#inputStateOnResume = this.#snapshot.input;
     this.#pauseRequested = true;
     const output = this.#snapshot.output === "idle" ? "idle" : "interrupted";
-    this.#cancelOutput();
+    void this.#cancelOutput();
     this.#session.setMicrophoneEnabled(false);
     this.#update({
       input: "paused",
@@ -330,16 +338,41 @@ export class VoiceTurnController {
     ) {
       return;
     }
-    this.#session.setMicrophoneEnabled(!muted);
+    if (!this.#takingTurnPromise) {
+      this.#session.setMicrophoneEnabled(!muted);
+    }
     this.#update({ microphoneEnabled: !muted, microphoneLevel: 0 });
   }
 
-  public resume(): void {
+  public async resume(): Promise<void> {
     if (
       this.#snapshot.connection !== "connected" ||
       this.#snapshot.input !== "paused"
     ) {
       return;
+    }
+    const generation = this.#generation;
+    while (this.#outputCancellationPromise) {
+      try {
+        await this.#outputCancellationPromise;
+      } catch (error) {
+        if (generation !== this.#generation) {
+          return;
+        }
+        const voiceError =
+          error instanceof VoiceError
+            ? error
+            : new VoiceError("speech", "network", "");
+        this.#setError(
+          voiceError.message,
+          voiceError.code,
+          voiceError.requestId,
+        );
+        return;
+      }
+      if (!this.#canResume(generation)) {
+        return;
+      }
     }
     const input = this.#inputStateOnResume ?? "listening";
     this.#inputStateOnResume = null;
@@ -415,6 +448,67 @@ export class VoiceTurnController {
     this.#session.speakCanonical([question]);
   }
 
+  /**
+   * Ends the assistant's pending or active speech without ending Realtime.
+   * Capture stays closed until the session confirms its input and output
+   * buffers are clear, so the next accepted utterance begins after the click.
+   */
+  public takeTurn(): Promise<void> {
+    if (this.#takingTurnPromise) {
+      return this.#takingTurnPromise;
+    }
+    if (!this.#snapshot.canTakeTurn) {
+      return Promise.resolve();
+    }
+
+    const generation = this.#generation;
+    this.#bridge.cancelPendingSpeech();
+    this.#session.setMicrophoneEnabled(false);
+    this.#inputTurnPending = false;
+    this.#transcriptItemId = null;
+    this.#transcriptKey = null;
+    this.#update({ output: "cancelling", partialText: "" });
+
+    const takingTurnPromise = this.#session
+      .cancelOutput()
+      .then(() => {
+        if (
+          generation !== this.#generation ||
+          this.#snapshot.connection !== "connected" ||
+          this.#snapshot.input === "paused"
+        ) {
+          return;
+        }
+        this.#activeSpeechOutputEnded = false;
+        this.#activeSpeechResponseId = null;
+        this.#activeSpeechResponseTerminal = false;
+        this.#session.setMicrophoneEnabled(this.#snapshot.microphoneEnabled);
+        this.#update({ output: "interrupted" });
+      })
+      .catch((error: unknown) => {
+        if (generation !== this.#generation) {
+          return;
+        }
+        const voiceError =
+          error instanceof VoiceError
+            ? error
+            : new VoiceError("speech", "network", "");
+        this.#setError(
+          voiceError.message,
+          voiceError.code,
+          voiceError.requestId,
+        );
+      })
+      .finally(() => {
+        if (this.#takingTurnPromise === takingTurnPromise) {
+          this.#takingTurnPromise = null;
+        }
+      });
+    this.#takingTurnPromise = takingTurnPromise;
+    this.#update({});
+    return takingTurnPromise;
+  }
+
   public updateChat(update: ChatUpdate): void {
     this.#speechSource = update.automaticSource ?? null;
     const canReplay = this.#canReplay(this.#snapshot);
@@ -434,7 +528,7 @@ export class VoiceTurnController {
     }
     this.#bridge.updateChat(update);
     if (this.#snapshot.input === "paused") {
-      this.#cancelOutput();
+      void this.#cancelOutput();
     }
   }
 
@@ -503,7 +597,7 @@ export class VoiceTurnController {
     const paused = this.#snapshot.input === "paused";
     if (paused) {
       this.#inputStateOnResume = "listening";
-      this.#cancelOutput();
+      void this.#cancelOutput();
     }
     this.#update({
       input: paused ? "paused" : "listening",
@@ -537,7 +631,7 @@ export class VoiceTurnController {
       this.#activeSpeechResponseId = event.responseId;
       this.#activeSpeechResponseTerminal = false;
       if (this.#snapshot.input === "paused") {
-        this.#cancelOutput();
+        void this.#cancelOutput();
         this.#update({ output: "interrupted" });
         return;
       }
@@ -555,7 +649,9 @@ export class VoiceTurnController {
         this.#activeSpeechResponseId = null;
         this.#activeSpeechResponseTerminal = false;
       }
-      this.#update({ output: "idle" });
+      this.#update({
+        output: this.#takingTurnPromise ? "cancelling" : "idle",
+      });
       if (this.#currentQuestionId) {
         this.#recordLatency("question-spoken", this.#currentQuestionId);
       }
@@ -569,10 +665,13 @@ export class VoiceTurnController {
         this.#activeSpeechResponseId = null;
         this.#activeSpeechResponseTerminal = false;
       }
-      this.#update({ output: "interrupted" });
+      this.#update({
+        output: this.#takingTurnPromise ? "cancelling" : "interrupted",
+      });
       return;
     }
     if (event.type === "input-speech-started") {
+      if (this.#takingTurnPromise) return;
       this.#inputTurnPending = true;
       this.#bridge.cancelPendingSpeech();
       this.#transcriptItemId = event.itemId;
@@ -643,6 +742,8 @@ export class VoiceTurnController {
     this.#activeSpeechResponseTerminal = false;
     this.#inputStateOnResume = null;
     this.#inputTurnPending = false;
+    this.#outputCancellationPromise = null;
+    this.#takingTurnPromise = null;
     this.#bridgeStarted = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
@@ -666,9 +767,23 @@ export class VoiceTurnController {
     });
   }
 
-  #cancelOutput(): void {
+  #cancelOutput(): Promise<void> {
     this.#bridge.cancelPendingSpeech();
-    this.#session.cancelOutput();
+    const cancellationPromise = this.#session.cancelOutput();
+    this.#outputCancellationPromise = cancellationPromise;
+    void cancellationPromise.then(
+      () => {
+        if (this.#outputCancellationPromise === cancellationPromise) {
+          this.#outputCancellationPromise = null;
+        }
+      },
+      () => {
+        if (this.#outputCancellationPromise === cancellationPromise) {
+          this.#outputCancellationPromise = null;
+        }
+      },
+    );
+    return cancellationPromise;
   }
 
   #recordLatency(name: VoiceLatencyEvent["name"], questionId: string): void {
@@ -700,6 +815,28 @@ export class VoiceTurnController {
     );
   }
 
+  #canTakeTurn(snapshot: VoiceTurnSnapshot): boolean {
+    return (
+      snapshot.connection === "connected" &&
+      snapshot.input !== "paused" &&
+      (snapshot.output === "waiting-for-tool" ||
+        snapshot.output === "speaking") &&
+      this.#currentQuestionId !== null &&
+      this.#currentQuestionId !== this.#answeredQuestionId &&
+      this.#currentQuestionId !== this.#submittingQuestionId &&
+      Boolean(snapshot.currentQuestion) &&
+      this.#takingTurnPromise === null
+    );
+  }
+
+  #canResume(generation: number): boolean {
+    return (
+      generation === this.#generation &&
+      this.#snapshot.connection === "connected" &&
+      this.#snapshot.input === "paused"
+    );
+  }
+
   #isPauseRequested(): boolean {
     return this.#pauseRequested;
   }
@@ -714,6 +851,7 @@ export class VoiceTurnController {
       canRepeatQuestion:
         this.#canReplay(snapshot) &&
         Boolean(this.#speechSource?.questionSegment),
+      canTakeTurn: this.#canTakeTurn(snapshot),
       canReviseLastAnswer: this.#canReviseLastAnswer(snapshot),
     };
     for (const listener of this.#listeners) listener(this.#snapshot);

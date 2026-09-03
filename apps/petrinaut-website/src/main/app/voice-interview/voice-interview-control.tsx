@@ -13,6 +13,10 @@ import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
 import { selectInterviewSpeech } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
+import {
+  acknowledgeVoiceInterviewDisclosure,
+  isVoiceInterviewDisclosureAcknowledged,
+} from "./voice-interview-disclosure";
 import { toVoiceSessionState } from "./voice-session-state";
 import {
   VoiceTurnController,
@@ -20,94 +24,8 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { OpenAIVoiceConfig } from "./load-openai-voice-config";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
-
-export interface OpenAIVoiceConfig {
-  readonly available: true;
-  readonly connectionTimeoutMs: number;
-}
-
-export const VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
-  "petrinaut:voice-interview-disclosure:v1";
-const VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED = "acknowledged";
-
-const getVoiceInterviewDisclosureStorage = (): Storage | null => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-};
-
-export const isVoiceInterviewDisclosureAcknowledged = (
-  storage: Pick<
-    Storage,
-    "getItem"
-  > | null = getVoiceInterviewDisclosureStorage(),
-): boolean => {
-  try {
-    return (
-      storage?.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY) ===
-      VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED
-    );
-  } catch {
-    return false;
-  }
-};
-
-export const acknowledgeVoiceInterviewDisclosure = (
-  storage: Pick<
-    Storage,
-    "setItem"
-  > | null = getVoiceInterviewDisclosureStorage(),
-): void => {
-  try {
-    storage?.setItem(
-      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
-      VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED,
-    );
-  } catch {
-    // Storage is optional; the disclosure will appear again next time.
-  }
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-export const loadOpenAIVoiceConfig = async (
-  fetch: typeof globalThis.fetch,
-  signal: AbortSignal = new AbortController().signal,
-): Promise<OpenAIVoiceConfig | null> => {
-  try {
-    const response = await fetch("/api/voice/config", {
-      cache: "no-store",
-      method: "GET",
-      signal,
-    });
-    if (!response.ok) {
-      return null;
-    }
-    const body: unknown = await response.json();
-    if (
-      !isRecord(body) ||
-      body.available !== true ||
-      !Number.isInteger(body.connectionTimeoutMs) ||
-      (body.connectionTimeoutMs as number) < 1_000 ||
-      (body.connectionTimeoutMs as number) > 60_000
-    ) {
-      return null;
-    }
-    return {
-      available: true,
-      connectionTimeoutMs: body.connectionTimeoutMs as number,
-    };
-  } catch {
-    return null;
-  }
-};
 
 const disclosureStyle = css({
   display: "flex",
@@ -317,9 +235,12 @@ const AvailableVoiceInterviewControl = ({
           void store.controller.reconnect();
         },
         repeatQuestion: () => store.controller.repeatQuestion(),
-        resume: () => store.controller.resume(),
+        resume: () => {
+          void store.controller.resume();
+        },
         setMicrophoneMuted: (muted) =>
           store.controller.setMicrophoneMuted(muted),
+        takeTurn: () => store.controller.takeTurn(),
       }),
     [registerVoiceModeControls, store],
   );

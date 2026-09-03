@@ -63,6 +63,8 @@ export const getInteractiveTool = (
             parseInput: hostDefinition.parseInput,
             parseOutput: hostDefinition.parseOutput,
             fromComposerText: hostDefinition.fromComposerText,
+            supportsSubmittedOutputProvenance:
+              hostDefinition.supportsSubmittedOutputProvenance,
             Widget: hostDefinition.component,
           }
         : undefined;

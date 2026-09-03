@@ -12,14 +12,15 @@ import {
 import { StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { loadOpenAIVoiceConfig } from "./load-openai-voice-config";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
+import * as voiceInterviewControlModule from "./voice-interview-control";
+import { VoiceInterviewControl } from "./voice-interview-control";
 import {
   acknowledgeVoiceInterviewDisclosure,
   isVoiceInterviewDisclosureAcknowledged,
-  loadOpenAIVoiceConfig,
   VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
-  VoiceInterviewControl,
-} from "./voice-interview-control";
+} from "./voice-interview-disclosure";
 import { VoiceTurnController } from "./voice-turn-controller";
 
 import type {
@@ -179,6 +180,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("voice interview Fast Refresh boundary", () => {
+  test("keeps the control module free of non-component exports", () => {
+    expect(Object.keys(voiceInterviewControlModule)).toEqual([
+      "VoiceInterviewControl",
+    ]);
+  });
+});
+
 describe("voice interview control", () => {
   test("stores and reads the versioned disclosure acknowledgement", () => {
     const values = new Map<string, string>();
@@ -213,7 +222,7 @@ describe("voice interview control", () => {
     ).not.toThrow();
   });
 
-  test("registers canonical replay controls with the host", () => {
+  test("registers canonical replay and manual handoff controls with the host", () => {
     const repeatQuestion = vi.spyOn(
       VoiceTurnController.prototype,
       "repeatQuestion",
@@ -222,13 +231,16 @@ describe("voice interview control", () => {
       VoiceTurnController.prototype,
       "readFullResponse",
     );
+    const takeTurn = vi.spyOn(VoiceTurnController.prototype, "takeTurn");
     render(<VoiceInterviewHarness />);
 
     registeredVoiceModeControls?.repeatQuestion?.();
     registeredVoiceModeControls?.readFullResponse?.();
+    void registeredVoiceModeControls?.takeTurn?.();
 
     expect(repeatQuestion).toHaveBeenCalledOnce();
     expect(readFullResponse).toHaveBeenCalledOnce();
+    expect(takeTurn).toHaveBeenCalledOnce();
   });
 
   test("loads only a schema-valid available server configuration", async () => {

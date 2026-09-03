@@ -58,22 +58,28 @@ instead; turning it off holds them back again, and it starts off with each sessi
 never held back either way: anything you typed, and any inline question waiting for your answer. When
 the session ends, the held turns appear together under a **Voice session · N turns** divider. Only
 finalized answers and canonical Brunch text become chat history; provisional transcription and
-Realtime audio are ephemeral. Finalized spoken user messages carry a small **Voice** chip in front of
-the words themselves, and the exact inline answer completed by speech carries the same chip, so Voice
-provenance remains visible without duplicating an answer.
+Realtime audio are ephemeral. Finalized spoken user messages carry a small waveform icon in front of
+the words themselves. Every inline-question answer completed by speech carries the same icon inside
+its compact user-turn bubble, so Voice provenance remains visible without duplicating the answer as a
+separate user message.
 
 Microphone capture pauses while the interviewer speaks so speaker echo cannot be submitted as your
-answer. Wait for playback to finish; Voice resumes listening automatically in your previous mute
-state. Semantic voice detection finishes each answer after a natural pause and is tuned to allow
-longer thinking pauses. There is no required done-speaking action.
+answer. Wait for playback to finish, or select **Your turn** while the interviewer is preparing or
+speaking. **Your turn** cancels pending speech, stops playback, and clears audio already buffered for
+the turn without disconnecting Voice. The microphone reopens only after that cancellation finishes,
+and only speech that begins after you selected **Your turn** is accepted as your answer. The
+interrupted question remains visible and available from **Repeat question** if you want to hear it
+again. Voice otherwise resumes listening automatically in your previous mute state. Semantic voice
+detection finishes each answer after a natural pause and is tuned to allow longer thinking pauses.
+There is no required done-speaking action.
 
 Every session control lives in the dock: **Show transcription in chat** on the left, and on the right
-**Mute microphone** (**Unmute microphone** once muted) beside **End voice mode**. Muting stops
-sending audio without ending the turn, so the assistant plays out whatever it is saying and unmuting
-drops you straight back into the conversation. **Resume voice mode** replaces the microphone action
-while a session is paused, and **Reconnect voice mode** replaces it after a failure. Nothing is added
-to the canvas toolbar. To send a typed message, first select **End voice mode** to restore the
-composer.
+**Your turn** while the interviewer is preparing or speaking, **Mute microphone** (**Unmute
+microphone** once muted), and **End voice mode**. Muting stops sending audio without ending the turn,
+so the assistant plays out whatever it is saying and unmuting drops you straight back into the
+conversation. **Resume voice mode** replaces the microphone action while a session is paused, and
+**Reconnect voice mode** replaces it after a failure. Nothing is added to the canvas toolbar. To send
+a typed message, first select **End voice mode** to restore the composer.
 
 The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the
 authority on your system. Brunch still chooses every question and interview decision. Its exact

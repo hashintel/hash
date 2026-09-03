@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 
 /** A runtime parser such as a Zod schema. */
 export type PetrinautAiInteractiveToolSchema<Value> = {
@@ -21,10 +21,13 @@ export type PetrinautAiInteractiveToolWidgetProps<Input, Output> =
       | {
           state: "awaiting";
           submittedOutput?: never;
+          submittedOutputProvenance?: never;
         }
       | {
           state: "submitted";
           submittedOutput: Output;
+          /** Optional host-positioned provenance for the submitted value. */
+          submittedOutputProvenance?: ReactNode;
         }
     );
 
@@ -45,6 +48,10 @@ export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
    * output before completing the tool call.
    */
   fromComposerText?: (params: { input: Input; text: string }) => Output;
+  /**
+   * Opt in to positioning Petrinaut-provided provenance inside the widget.
+   */
+  supportsSubmittedOutputProvenance?: true;
   /** Inline component shown while awaiting input and after submission. */
   component: ComponentType<
     PetrinautAiInteractiveToolWidgetProps<Input, Output>
@@ -56,6 +63,7 @@ type ErasedInteractiveToolDefinition = {
   parseInput: (value: unknown) => unknown;
   parseOutput: (value: unknown) => unknown;
   fromComposerText?: (params: { input: unknown; text: string }) => unknown;
+  supportsSubmittedOutputProvenance?: true;
   component: ComponentType<
     PetrinautAiInteractiveToolWidgetProps<unknown, unknown>
   >;
@@ -93,6 +101,8 @@ export const definePetrinautAiInteractiveTool = <Input, Output>(
               }),
             )
         : undefined,
+      supportsSubmittedOutputProvenance:
+        definition.supportsSubmittedOutputProvenance,
       component: definition.component as ComponentType<
         PetrinautAiInteractiveToolWidgetProps<unknown, unknown>
       >,

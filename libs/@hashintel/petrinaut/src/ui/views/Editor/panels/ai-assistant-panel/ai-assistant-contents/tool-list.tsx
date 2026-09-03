@@ -497,7 +497,8 @@ export const toToolRenderItem = (
       state === "output-available" &&
       typeof part.toolCallId === "string" &&
       message.metadata?.source === "voice" &&
-      message.metadata.toolCallId === part.toolCallId,
+      (message.metadata.voiceToolCallIds?.includes(part.toolCallId) === true ||
+        message.metadata.toolCallId === part.toolCallId),
     errorText:
       state === "output-error" && typeof part.errorText === "string"
         ? part.errorText
@@ -525,6 +526,9 @@ const InteractiveToolItem = ({
   const typedInput = definition.parseInput(input);
 
   if (submitted) {
+    const positionsVoiceProvenance =
+      tool.voiceOrigin && definition.supportsSubmittedOutputProvenance === true;
+
     return (
       <div className={interactiveToolStyle} data-tool-call-id={tool.id}>
         <Widget
@@ -532,9 +536,14 @@ const InteractiveToolItem = ({
           state="submitted"
           submit={() => {}}
           submittedOutput={definition.parseOutput(submittedOutput)}
+          submittedOutputProvenance={
+            positionsVoiceProvenance ? <VoiceInputProvenance /> : undefined
+          }
           toolCallId={tool.id}
         />
-        {tool.voiceOrigin && <VoiceInputProvenance />}
+        {tool.voiceOrigin && !positionsVoiceProvenance && (
+          <VoiceInputProvenance />
+        )}
       </div>
     );
   }

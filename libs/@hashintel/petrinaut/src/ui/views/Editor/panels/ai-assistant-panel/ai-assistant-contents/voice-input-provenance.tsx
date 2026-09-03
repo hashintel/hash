@@ -2,25 +2,27 @@ import { css } from "@hashintel/ds-helpers/css";
 
 // Sits in the text flow ahead of the words it belongs to, so a spoken turn is
 // marked where reading starts rather than by something trailing the bubble.
-const chipStyle = css({
+const iconStyle = css({
   display: "inline-flex",
   alignItems: "center",
-  gap: "[3px]",
+  justifyContent: "center",
+  width: "4",
+  height: "4",
+  flexShrink: "0",
   marginRight: "[6px]",
-  padding: "[1px 6px 1px 4px]",
   borderRadius: "full",
   backgroundColor: "blue.a30",
   color: "blue.s110",
-  fontSize: "[10px]",
-  fontWeight: "semibold",
-  letterSpacing: "[0.03em]",
-  textTransform: "uppercase",
-  verticalAlign: "[1px]",
-  whiteSpace: "nowrap",
+  verticalAlign: "middle",
 });
 
 export const VoiceInputProvenance = () => (
-  <span className={chipStyle} data-testid="voice-input-provenance">
+  <span
+    aria-label="Submitted by voice"
+    className={iconStyle}
+    data-testid="voice-input-provenance"
+    role="img"
+  >
     <svg
       aria-hidden="true"
       fill="none"
@@ -36,6 +38,5 @@ export const VoiceInputProvenance = () => (
         strokeWidth="2.4"
       />
     </svg>
-    Voice
   </span>
 );

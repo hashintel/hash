@@ -75,7 +75,7 @@ The panel and the voice edge attach to Brunch through one stable surface:
 5. **Voice mode publication**: Petrinaut accepts an optional `renderVoiceMode` callback and publishes
    provider-neutral input mode, panel visibility, messages, readiness, stable lifecycle controls,
    and `submitVoiceInput`. Finalized Voice input enters the same correlated submission path and
-   carries persisted Voice provenance on either the ordinary user message or the exact
+   carries persisted Voice provenance on either the ordinary user message or each corresponding
    `brunch_ask` tool output, never both.
 
 These five parts change only with notice to the panel and voice-edge owners. A provider-specific
