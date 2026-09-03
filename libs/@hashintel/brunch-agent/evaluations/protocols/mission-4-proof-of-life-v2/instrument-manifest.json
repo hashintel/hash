@@ -1,7 +1,7 @@
 {
   "version": 2,
   "campaign": "mission-4-proof-of-life-v2",
-  "instrumentCommit": "62197dd0ec61fa118cab2a674b8dde2ae4ae9712",
+  "instrumentCommit": "95954b494308fbba384cc4ce169a813916f164f9",
   "models": {
     "elicitor": {
       "provider": "anthropic",
@@ -25,12 +25,12 @@
     "personaContinuations": 28,
     "adjudications": 10
   },
-  "cumulativeCurrencyCeilingUsd": 10,
   "spendGate": {
+    "currencyGate": "suspended-by-owner",
+    "authority": "libs/@hashintel/brunch-agent/docs/evidence/decisions/mission-4-proof-of-life-v2-budget-suspension-2026-09-03.md",
     "knownRoundedV1PersonaAndAdjudicatorUsd": 0.636,
     "v1SonnetUsd": null,
-    "remainingAllowanceFormulaUsd": "9.364 - v1SonnetUsd",
-    "paidV2Execution": "blocked-pending-v1-sonnet-reconciliation-and-owner-authorization"
+    "usageReporting": "required"
   },
   "controlledPromptSha256": {
     "S3": "ff5755c7ffced45741f791d1ec433386ee4052d301d0065dbff46dc8c36de729",
@@ -81,7 +81,11 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/decisions/mission-4-proof-of-life-v2-preflight-2026-09-03.md",
-      "sha256": "c0d0134047385c5232a97ed4e5db452fa597bc406f4010b34c2c2de7ed4b1e73"
+      "sha256": "4a0d33d4c6314fa4eb1080b046daed941ffd6e505e3a13964faff057733bfe88"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/decisions/mission-4-proof-of-life-v2-budget-suspension-2026-09-03.md",
+      "sha256": "6e7f5dd81b76a174c331d8543345b24d15788dc91b54e77bc5c9e08039d081db"
     },
     {
       "path": "libs/@hashintel/brunch-agent/evaluations/cases/data-centre-thermal-operations/opening-message.md",
@@ -121,7 +125,7 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/evaluations/protocols/mission-4-proof-of-life-v2/protocol.md",
-      "sha256": "e8bedc57bd363e8661b514beeb7f1224f472bcc8367291e3deed762bba0d7f35"
+      "sha256": "ef81a6e30b2b69f7ac2888b49d51e42c5bb8bab86fc1031affca914382d0c8ee"
     },
     {
       "path": "libs/@hashintel/brunch-agent/packages/core/src/prompts/SYSTEM.md",
