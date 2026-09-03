@@ -1,4 +1,5 @@
 // import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
+import { openHomeReadyToCreatePage } from "../shared/open-home-ready-to-create-page";
 import { expect, test } from "../shared/runtime";
 
 import type { Response } from "../shared/runtime";
@@ -42,13 +43,12 @@ const isBlockCollectionSaveWithBlockCount = async (
 
 // @todo fix this test
 test.skip("user can create page", async ({ page }) => {
-  await page.goto("/");
+  await openHomeReadyToCreatePage(page);
   await page.waitForURL("/");
   await expect(page.locator("text=Get support")).toBeVisible();
 
   const listOfPages = page.locator(listOfPagesSelector);
 
-  await expect(listOfPages).toBeAttached();
   await page.locator(createPageButtonSelector).click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
@@ -182,12 +182,11 @@ test.skip("user can create page", async ({ page }) => {
 
 // @todo fix this test
 test.skip("user can rename page", async ({ page }) => {
-  await page.goto("/");
+  await openHomeReadyToCreatePage(page);
   const pageName1 = `Page ${pageNameSuffix}`;
   const pageName2 = `Page 2 ${pageNameSuffix}`;
   const listOfPages = page.locator(listOfPagesSelector);
 
-  await expect(listOfPages).toBeAttached();
   await page.locator(createPageButtonSelector).click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));

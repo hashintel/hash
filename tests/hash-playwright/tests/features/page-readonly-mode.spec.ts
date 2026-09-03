@@ -1,3 +1,4 @@
+import { openHomeReadyToCreatePage } from "../shared/open-home-ready-to-create-page";
 import { expect, test } from "../shared/runtime";
 
 const placeholderSelector =
@@ -10,7 +11,7 @@ const placeholderSelector =
 test.skip("user can view page in read-only mode but not update", async ({
   page,
 }) => {
-  await expect(page.locator('[data-testid="pages-tree"]')).toBeAttached();
+  await openHomeReadyToCreatePage(page);
   await page.locator('[data-testid="create-page-btn"]').click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));

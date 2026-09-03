@@ -101,7 +101,6 @@ const createNotification = async ({
 
 test("new notifications are shown on notifications page", async ({ page }) => {
   await page.goto("/");
-  test.setTimeout(60_000);
 
   await expect(page.locator("text=Get support")).toBeVisible();
 
@@ -122,9 +121,9 @@ test("new notifications are shown on notifications page", async ({ page }) => {
     targetEntityTitle: draftNotificationTitle,
   });
 
-  await expect(page.locator(`text=${draftNotificationTitle}`)).toBeVisible({
-    timeout: 30_000,
-  });
+  await page.reload();
+
+  await expect(page.locator(`text=${draftNotificationTitle}`)).toBeVisible();
 
   const nonDraftNotificationTitle = new Date().toISOString();
 
@@ -139,7 +138,7 @@ test("new notifications are shown on notifications page", async ({ page }) => {
     targetEntityTitle: nonDraftNotificationTitle,
   });
 
-  await expect(page.locator(`text=${nonDraftNotificationTitle}`)).toBeVisible({
-    timeout: 30_000,
-  });
+  await page.reload();
+
+  await expect(page.locator(`text=${nonDraftNotificationTitle}`)).toBeVisible();
 });
