@@ -1,6 +1,6 @@
 # Mission 4 proof-of-life protocol v1
 
-Status: **proposed from owner decisions recorded on 2026-09-03; not frozen and not authorized for paid execution.** Freeze only after the canonical snapshot/trace mechanism lands, all focused checks pass, exact provider/model identifiers are available in the unsandboxed runner, the instrument is rehashed at one clean commit, and the owner accepts a current currency estimate.
+Status: **freeze candidate prepared from owner decisions recorded on 2026-09-03; not frozen and not authorized for paid execution until the owner accepts the subsequent machine-readable manifest and $10 USD ceiling.** Canonical snapshot/trace/workpiece/hash retention is landed, all focused checks pass, direct-provider catalog entries and credential presence are confirmed without a model call, and current official prices and estimates are recorded.
 
 ## Claim
 
@@ -10,7 +10,7 @@ It does not estimate general reliability, grade workpiece quality, accept the to
 
 ## Accepted oracle
 
-Grade only with [`../../oracles/mission-4-activation-and-restraint-ruler-v1.md`](../../oracles/mission-4-activation-and-restraint-ruler-v1.md). The currently observed SHA-256 is `eb83027f2316a2fc27a1f165b0738afbe3bbc0136d52b33e5be1b9e366dcd780`; recompute and replace it at freeze. The ruler is evaluator-only and never enters Brunch or persona context.
+Grade only with [`../../oracles/mission-4-activation-and-restraint-ruler-v1.md`](../../oracles/mission-4-activation-and-restraint-ruler-v1.md). The freeze manifest records its exact SHA-256. The ruler is evaluator-only and never enters Brunch or persona context.
 
 ## Model and host allocation
 
@@ -18,7 +18,7 @@ Grade only with [`../../oracles/mission-4-activation-and-restraint-ruler-v1.md`]
 | --- | --- | --- |
 | Elicitor | `BRUNCH_CHAT_MODEL=claude-sonnet-4-6`, resolving through the production Anthropic provider | Record the provider-reported exact model id and verify the built app uses it. No fallback. |
 | Persona | Pi `--model openai/gpt-5.6-sol --thinking medium`, using the direct OpenAI provider | Record requested and provider-reported ids. No fallback or router substitution. |
-| Adjudicator | `anthropic/claude-opus-4-6`, high thinking, one fresh context per technically usable attempt | Verify exact availability and record requested/provider-reported ids. No fallback. |
+| Adjudicator | `anthropic/claude-opus-4-6`, high thinking, one fresh context per technically usable attempt | Record requested/provider-reported ids. No fallback. |
 | Client-tool host | `none` for every slot | Any client-tool suspension is technical invalidity; do not service it with a different host. |
 
 OpenAI elicitor comparison is outside Mission 4 and must not be inserted into this campaign. Results are reported per elicitor model and never pooled.
@@ -45,7 +45,7 @@ The first visible user message is exactly the text below the `---` separator in 
 | `data-centre-probe` | `../../cases/data-centre-thermal-operations/opening-message.md` | `bf46a637d029f34758c398f3d1f5ac70c2d10bfd169b05b23497215792a16ef8` | `../../cases/data-centre-thermal-operations/situation-pack.md` | `ab5f7f701265e4a01eea181c27327891c208b82ce75235cec0344f90fd2fe5ce` |
 | `industrial-gas-full` | `../../cases/industrial-gas-vmi/opening-message.md` | `75ac100dc0f16771feced90563f4c57a5c9e918bbd2cc6fd7af0cd5de7165659` | `../../cases/industrial-gas-vmi/situation-pack.md` | `07f36060ebbb1cccd2c20ccd2a44ae732b23d69b82e2b018c4b05e6844d6d55e` |
 
-These hashes are planning observations, not frozen identities; recompute at freeze.
+The machine-readable freeze manifest recomputes and binds these identities.
 
 Probe private objective:
 
@@ -57,7 +57,7 @@ Industrial Gas private objective:
 
 ### Controlled review inputs
 
-Use the exact S3 and S4 `prompt` strings in [`../../cases/flue-skill-composition-side-quest-v3/scenarios.json`](../../cases/flue-skill-composition-side-quest-v3/scenarios.json), file SHA-256 `1844df940b8de9d10d28e9537f966920aba581b36956a9ac26a3767824ca96cb`. S3 prompt-string SHA-256 is `ff5755c7ffced45741f791d1ec433386ee4052d301d0065dbff46dc8c36de729`; S4 prompt-string SHA-256 is `64db8fd28e3b62b244ded0de703cc1609bcda9cb2387287efea4887764720635`. Recompute all three at freeze. These fixed, explicitly cued inputs are controlled mechanism checks only.
+Use the exact S3 and S4 `prompt` strings in [`../../cases/flue-skill-composition-side-quest-v3/scenarios.json`](../../cases/flue-skill-composition-side-quest-v3/scenarios.json), file SHA-256 `1844df940b8de9d10d28e9537f966920aba581b36956a9ac26a3767824ca96cb`. S3 prompt-string SHA-256 is `ff5755c7ffced45741f791d1ec433386ee4052d301d0065dbff46dc8c36de729`; S4 prompt-string SHA-256 is `64db8fd28e3b62b244ded0de703cc1609bcda9cb2387287efea4887764720635`. The freeze manifest binds all three. These fixed, explicitly cued inputs are controlled mechanism checks only.
 
 ## Attempt identities and replacement rule
 
