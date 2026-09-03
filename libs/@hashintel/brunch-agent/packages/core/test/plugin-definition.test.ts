@@ -12,7 +12,7 @@ import {
   runbookEntries,
   type PluginDefinition,
 } from "../src/plugin-definition";
-import { CONTEXT_ROOT, contextRootPresent } from "./architecture/workspace";
+import { CONTEXT_ROOT, contextRootPresent } from "./architecture/context-root";
 import { FIXTURE_PLUGIN_YAML, fixturePluginDefinition } from "./slot-fixtures";
 
 describe("the synthetic fixture definition", () => {

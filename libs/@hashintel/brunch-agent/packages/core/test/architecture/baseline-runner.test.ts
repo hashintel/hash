@@ -18,17 +18,17 @@ import { pathToFileURL } from "node:url";
 import * as v from "valibot";
 import { afterEach, describe, expect, test } from "vitest";
 
-import { CONTEXT_ROOT, contextRootPresent } from "./workspace";
+import { CONTEXT_ROOT, contextRootPresent } from "./context-root";
 
 import type { StubReply } from "./fixtures/baseline-anthropic-stub";
 
 const BASELINE_PROTOCOL_DIR = join(
   CONTEXT_ROOT,
-  "evaluations/protocols/process-model-elicitation/baseline",
+  "evaluations/protocols/legacy-baseline",
 );
 const BASELINE_CASE_DIR = join(
   CONTEXT_ROOT,
-  "evaluations/cases/process-model-elicitation/baseline",
+  "evaluations/cases/vestera-scheduling",
 );
 const STUB_MODULE = pathToFileURL(
   join(import.meta.dirname, "fixtures/baseline-anthropic-stub.ts"),
@@ -80,11 +80,11 @@ async function createBaselineCopy(): Promise<BaselineCopy> {
   temporaryDirectories.push(testDirectory);
   const protocolDirectory = join(
     testDirectory,
-    "evaluations/protocols/process-model-elicitation/baseline",
+    "evaluations/protocols/legacy-baseline",
   );
   const caseDirectory = join(
     testDirectory,
-    "evaluations/cases/process-model-elicitation/baseline",
+    "evaluations/cases/vestera-scheduling",
   );
   await Promise.all([
     mkdir(protocolDirectory, { recursive: true }),

@@ -1,0 +1,461 @@
+version: 1-prospective
+case: vestera-coatings-baseline
+source: evaluations/cases/vestera-scheduling/situation-pack.md
+provenance:
+  authored_after_historical_runs: true
+  calibrated_against_historical_runs: true
+  frozen_before_prospective_runs: true
+use: prospective baseline and variant grading only
+warning: >-
+  This ledger was informed by the two historical Mission 3 runs, so it must not turn those runs
+  into a baseline distribution. It is frozen before future runs and may grade those prospective
+  runs when the case, prompts, model configuration, and protocol are frozen with it.
+importance_weights:
+  load-bearing: 3
+  useful: 2
+  incidental: 1
+
+calibration_rules:
+  transcript_precedence: >-
+    Grade what the simulated expert actually disclosed. Ledger truth may identify a distinction,
+    but it does not erase hedges, narrower examples, corrections, or nondisclosure in the transcript.
+  interviewer_proposals: >-
+    A value or interpretation appearing only in an interviewer question is not user evidence unless
+    the expert explicitly adopts it.
+  relevant_absences: >-
+    Entries whose epistemic_character is relevant-absence describe a relation the pack does not
+    settle. Credit elicitation that identifies the gap; do not expect the expert or IR to fill it.
+  hard_stop: >-
+    When the expert ends elicitation, distinguish unanswered suitable questions from earlier missed
+    opportunities. Do not convert turn-budget truncation into an ordinary acquisition miss.
+  partial_disclosure: >-
+    A concrete example inside a ledger range is partial evidence, not simulator failure by itself.
+    Penalize only unsupported generalization beyond the disclosed example.
+
+facts:
+  - id: objective-weekly-scheduling
+    importance: load-bearing
+    epistemic_character: explicit-goal
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Decide line assignment, order sequence, and run size for a weekly demand book.
+    expected_ir_homes: [purpose, goals, validation]
+    traps: [reducing the objective to the physical production flow]
+
+  - id: objective-priority-order
+    importance: load-bearing
+    epistemic_character: explicit-preference
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Avoid late orders first, reduce changeover hours second, improve utilization third.
+    expected_ir_homes: [goals, measures]
+    traps:
+      [
+        treating the three objectives as equally weighted,
+        inventing numerical weights,
+      ]
+
+  - id: objective-idle-versus-washdown
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Test when holding a line idle for a same-family order beats switching and later washing back.
+    expected_ir_homes: [purpose, policies, validation, situation-notes]
+    traps: [hard-coding a decision rule the expert wants the model to test]
+
+  - id: objective-line-down-replanning
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Test how to reshuffle the week when a line goes down before the 07:30 huddle.
+    expected_ir_homes: [purpose, failures, validation]
+    traps:
+      [
+        inventing failure distributions,
+        omitting the objective because statistics are unknown,
+      ]
+
+  - id: objective-buffer-argument
+    importance: useful
+    epistemic_character: tacit-goal
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked about hidden bottlenecks, blocking, or what the scheduler wants evidence to settle
+    truth: Marta suspects Line 1's mill-to-fill tank is too small; engineering disputes it.
+    expected_ir_homes: [purpose, conflicts, situation-notes]
+    traps: [recording Marta's belief as established capacity analysis]
+
+  - id: horizon-week-hours-shifts
+    importance: load-bearing
+    epistemic_character: explicit-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: The planning horizon is Monday through Friday; hour/shift resolution matters.
+    expected_ir_homes: [posture, boundary, time]
+    traps: [using only daily granularity]
+
+  - id: demand-book-shape
+    importance: load-bearing
+    epistemic_character: explicit-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: ERP supplies roughly 30–60 weekly orders; each has SKU, quantity, and due date.
+    expected_ir_homes: [boundary, triggers, quantities]
+    traps: [inventing a stochastic arrival process instead of the weekly book]
+
+  - id: demand-priority-attribute
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not say which demand-book field identifies Meridian, distributor, or small-account
+      priority, even though customer class changes lateness policy.
+    expected_ir_homes: [triggers, inputs, unknowns]
+    traps: [assuming customer priority can be recovered from SKU or due date]
+
+  - id: due-date-completion-event
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: direct-if-asked
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not establish whether an order meets its due date at production completion, QA
+      release, ready-to-ship state, or shipment.
+    expected_ir_homes: [goals, boundary, validation, unknowns]
+    traps:
+      [
+        silently choosing QA release or shipment while excluding shipping from the boundary,
+      ]
+
+  - id: process-four-stages
+    importance: load-bearing
+    epistemic_character: explicit-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Each line performs mix, mill, tint/letdown, then fill and pack in order.
+    expected_ir_homes: [activities, flow]
+    traps:
+      [collapsing stages before checking whether stage-level constraints matter]
+
+  - id: stage-resource-overlap-topology
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not specify which physical resource each stage reserves, whether different orders
+      overlap across stages on one line, or whether the line is indivisible for a whole run.
+    expected_ir_homes: [activities, resources, flow, unknowns]
+    traps: [silently making all stages serial, silently allowing overlap]
+
+  - id: intermediate-holding-tanks
+    importance: useful
+    epistemic_character: explicit-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Small holding tanks sit between stages.
+    expected_ir_homes: [activities, resources, flow]
+    traps: [omitting intermediate capacity before asking whether it blocks]
+
+  - id: line1-buffer-blocking
+    importance: load-bearing
+    epistemic_character: tacit-practice
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked for a real run, hidden waits, bottlenecks, or stage interactions
+    truth: Line 1's mill-to-fill tank can back up, forcing the mill to stop while filling catches up.
+    expected_ir_homes: [resources, flow, situation-notes]
+    traps: [treating the line as one unconstrained duration]
+
+  - id: product-families
+    importance: load-bearing
+    epistemic_character: explicit-taxonomy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: About 14 SKUs fall into whites, tints, and specialty clears.
+    expected_ir_homes: [participants-resources, activities]
+    traps: [inventing additional families]
+
+  - id: line1-capability
+    importance: load-bearing
+    epistemic_character: explicit-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Line 1 is slower but qualified for every SKU, including specialty.
+    expected_ir_homes: [resources, policies]
+    traps: [treating all lines as interchangeable]
+
+  - id: line2-capability
+    importance: load-bearing
+    epistemic_character: explicit-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Line 2 runs whites and tints, is fast on high-volume whites, and cannot run specialty.
+    expected_ir_homes: [resources, policies]
+    traps: [assigning specialty to Line 2]
+
+  - id: line2-speed-belief-correction
+    importance: load-bearing
+    epistemic_character: belief-with-qualification
+    discoverability: tension-probe
+    expert_can_answer: true
+    truth: Line 2 is about twice as fast as Line 1 for whites, but Lines 1 and 2 are nearly even for tints.
+    expected_ir_homes: [resources, time, conflicts-or-qualification]
+    traps: [generalizing the two-times claim to every family]
+
+  - id: line3-capability
+    importance: load-bearing
+    epistemic_character: explicit-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Line 3 runs whites, most tints, and specialty, but is not qualified for CT-12 or CT-14.
+    expected_ir_homes: [resources, policies]
+    traps: [treating qualification as a volatile weekly value]
+
+  - id: line-shifts
+    importance: load-bearing
+    epistemic_character: explicit-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Lines 1 and 2 run 06:00–22:00 in two shifts; Line 3 normally runs 06:00–14:00 only.
+    expected_ir_homes: [resources, time, policies]
+    traps: [assuming continuous availability]
+
+  - id: initial-line-family-state
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: direct-if-asked
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not define each line's Monday-morning family state or whether it is a required
+      schedule input, although the first changeover depends on it.
+    expected_ir_homes: [prerequisites, time, unknowns]
+    traps: [assuming every line starts clean]
+
+  - id: horizon-carryover
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      Small accounts may slide a week, but the pack does not define how deferred or unfinished orders
+      cross the Friday horizon boundary.
+    expected_ir_homes: [boundary, policies, unknowns]
+    traps: [dropping unfinished orders at the horizon]
+
+  - id: line3-overtime
+    importance: useful
+    epistemic_character: policy-with-social-cost
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Line 3 overtime needs ops-director approval, is rare, and carries an unquantified burden.
+    expected_ir_homes: [policies, unknowns, scenarios]
+    traps: [inventing an overtime cost or deterministic approval rule]
+
+  - id: shared-changeover-crew
+    importance: load-bearing
+    epistemic_character: explicit-resource-constraint
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: One two-tech changeover crew serves all three lines on day shift only; simultaneous family switches contend.
+    expected_ir_homes: [resources, flow, policies, situation-notes]
+    traps: [treating washdowns as independent line delays]
+
+  - id: changeover-window-semantics
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not say whether a family-switch washdown must finish by 14:00 or may start before
+      the crew's shift ends and continue afterward.
+    expected_ir_homes: [resources, time, policies, unknowns]
+    traps: [silently choosing start-by or finish-by semantics]
+
+  - id: changeover-crew-priority
+    importance: load-bearing
+    epistemic_character: relevant-unknown
+    discoverability: tacit-or-unknown
+    expert_can_answer: not-established
+    truth: Which line wins when two lines need the crew is not specified by the pack.
+    expected_ir_homes: [unknowns, policies]
+    traps: [inventing FIFO, Meridian priority, or optimization policy]
+
+  - id: same-family-rinse
+    importance: load-bearing
+    epistemic_character: explicit-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Line operators can perform same-family rinses in roughly 20–30 minutes.
+    expected_ir_homes: [activities, time, policies]
+    traps: [requiring the specialist crew for every changeover]
+
+  - id: directional-family-switches
+    importance: load-bearing
+    epistemic_character: explicit-asymmetric-rule
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: White→tint is about 45 minutes; tint→white about 3 hours; specialty in or out about 2 hours.
+    expected_ir_homes: [activities, time, flow, situation-notes]
+    traps: [making changeover duration symmetric]
+
+  - id: vw02-dark-tint-rule
+    importance: load-bearing
+    epistemic_character: tacit-unwritten-rule
+    discoverability: tacit
+    expert_can_answer: partially
+    reveal_when: asked for exceptions, unwritten rules, or whether particular SKUs break family rules
+    truth: VW-02 cannot follow a dark tint even after washdown; what counts as dark is not specified.
+    expected_ir_homes: [policies, unknowns, situation-notes]
+    traps:
+      [
+        dropping the exception,
+        treating every tint as dark without an assumption mark,
+      ]
+
+  - id: ramp-scrap-unknown
+    importance: useful
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Family switches cause ramp scrap, worse after large washdowns; exact quantities require quality data.
+    expected_ir_homes: [unknowns, losses, data-sources]
+    traps: [accepting Marta's guess as a measured quantity]
+
+  - id: family-specific-stage-bottlenecks
+    importance: load-bearing
+    epistemic_character: tacit-process-variation
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked which stage limits each family or why line speed varies
+    truth: Specialty is mill-limited; high-volume whites are fill-limited; the limiting stage depends on product.
+    expected_ir_homes: [activities, resources, time, situation-notes]
+    traps: [one rate per line regardless of family and stage]
+
+  - id: breakdowns-known-qualitatively
+    importance: useful
+    epistemic_character: qualitative-evidence
+    discoverability: direct-if-asked
+    expert_can_answer: partially
+    truth: Line 2 filler jams every week or two for 0.5–4 hours; Line 1 mill failures are rare but can last days.
+    expected_ir_homes: [failures, time, scenarios]
+    traps: [fitting distributions from anecdotes]
+
+  - id: breakdown-statistics-source
+    importance: useful
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Proper failure/repair statistics are unknown to Marta but available from CMMS downtime codes.
+    expected_ir_homes: [unknowns, data-sources]
+    traps: [converting anecdotes into authoritative rates]
+
+  - id: pm-with-washdown
+    importance: useful
+    epistemic_character: tacit-practice
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked about maintenance interactions, informal efficiencies, or what experienced schedulers combine
+    truth: Staff informally co-locate preventive maintenance with washdowns already being paid for.
+    expected_ir_homes: [policies, activities, situation-notes]
+    traps: [omitting maintenance because it is managed by another team]
+
+  - id: qa-capacity-and-delay
+    importance: useful
+    epistemic_character: explicit-resource-constraint
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Every batch enters QA hold; standard hold is about 4 hours, specialty up to a day, and the two-person lab backs up late in the week.
+    expected_ir_homes: [activities, resources, flow, time]
+    traps: [treating QA as an unconstrained fixed delay]
+
+  - id: qa-rejection
+    importance: incidental
+    epistemic_character: qualitative-rare-event
+    discoverability: direct-if-asked
+    expert_can_answer: partially
+    truth: QA rejection requiring rerun happens roughly once per quarter.
+    expected_ir_homes: [failures, omissions-or-scenarios]
+    traps: [making it central to the scheduling objective]
+
+  - id: order-size-and-mix
+    importance: useful
+    epistemic_character: explicit-quantities
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Typical orders are 300–500 units; whites dominate volume; specialties are few, small, and high-margin.
+    expected_ir_homes: [quantities, goals, demand]
+    traps: [treating order count and unit mix as the same]
+
+  - id: minimum-run-sizes
+    importance: load-bearing
+    epistemic_character: explicit-policy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Product-specific minimum run sizes exist; small specialty runs may not justify starting the mill.
+    expected_ir_homes: [policies, constraints, quantities]
+    traps: [assuming arbitrary splitting or fully linear run time]
+
+  - id: customer-lateness-hierarchy
+    importance: load-bearing
+    epistemic_character: tacit-practiced-priority
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked who may be late, how priorities differ, or what commercial does in practice
+    truth: Meridian must not be late; distributors may slip 2–3 days by phone; small accounts may slide a week.
+    expected_ir_homes: [goals, policies, validation]
+    traps: [inventing monetary penalties, treating all due dates equally]
+
+  - id: meridian-line2-white-rule
+    importance: load-bearing
+    epistemic_character: tacit-unwritten-allocation-rule
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked for a concrete allocation, customer-specific restrictions, or unwritten rules
+    truth: Meridian white orders normally run on Line 2 because of speed and an old customer audit; contingency on breakdown may force Line 1.
+    expected_ir_homes: [policies, constraints, failures]
+    traps:
+      [
+        treating the preference as physically absolute,
+        applying it to Meridian tints,
+      ]
+
+  - id: idle-hold-outcome-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown-objective
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Marta sometimes holds a line idle to avoid washdowns but does not know whether this is actually beneficial.
+    expected_ir_homes: [purpose, assumptions, validation]
+    traps: [recording her practice as an optimal policy]
+
+  - id: commercial-weights-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Numeric lateness and backorder weights do not exist; commercial could help invent them but cannot supply measured truth.
+    expected_ir_homes: [unknowns, losses, validation]
+    traps: [forcing objective-function weights from qualitative priorities]
+
+  - id: stage-times-data-source
+    importance: useful
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Product-specific stage timing is not known to Marta; historian data could be analyzed.
+    expected_ir_homes: [unknowns, data-sources, time]
+    traps: [generalizing one narrated order to all line-product combinations]
+
+  - id: raw-material-disruptions
+    importance: useful
+    epistemic_character: explicit-external-disturbance
+    discoverability: direct-if-asked
+    expert_can_answer: partially
+    truth: Resin deliveries slip about monthly and pigments occasionally short; Marta monitors the materials report.
+    expected_ir_homes: [boundary, failures, scenarios-or-omissions]
+    traps:
+      [silently excluding disruptions without recording the boundary choice]

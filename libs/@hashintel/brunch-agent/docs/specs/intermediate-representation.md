@@ -6,7 +6,7 @@ CPS plugin's specific payload design, the September working design. Inputs: the 
 (§5, §6, §11), the Petrinaut survey's format facts, Dora's PRO-98 ontology (its Maps-to column),
 the open-questions doc §7, and the FE-1363 use-case resolution. Layer-A amendments from the
 worked-examples exercise are marked _(amended FE-1397)_; the exercise itself is
-[`ir-worked-examples.md`](../evidence/proofs/design/intermediate-representation-worked-examples.md).
+[`ir-worked-examples.md`](../evidence/design/intermediate-representation-worked-examples.md).
 
 ## Layer A — what "the IR" is, architecturally
 
@@ -71,7 +71,7 @@ opaque plugin payload. Defining an IR is therefore defining a payload type syste
 **Status: ratified on worked examples** (Lu, 2026-08-13, FE-1397). The ratification condition —
 speculative payload designs across at least three plugin targets at different complexity levels,
 checked property by property — is discharged in
-[`ir-worked-examples.md`](../evidence/proofs/design/intermediate-representation-worked-examples.md): Gherkin (thin), CPS (thick, this document's
+[`ir-worked-examples.md`](../evidence/design/intermediate-representation-worked-examples.md): Gherkin (thin), CPS (thick, this document's
 Layer B), BPMN/process-mining (mid), with the assurance plugin (spec §13.2) as a fourth free
 corroborant. All five MUST properties survive — 2 and 3 amended as worded above — and the
 expected sublimation pressure — a payload-level concept proving so universal it rises out of

@@ -23,8 +23,20 @@
       "passThroughEnv": ["BRUNCH_CHAT_ORIGIN", "PETRINAUT_WEBSITE_ROOT"]
     },
     "test:unit": {
-      "dependsOn": ["build", "codegen", "^build"],
-      "env": ["TEST_COVERAGE"]
+      "dependsOn": [
+        "build",
+        "codegen",
+        "^build",
+        "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-plugin-gherkin#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build"
+      ],
+      "env": ["TEST_COVERAGE"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/**",
+        "!$TURBO_ROOT$/libs/@hashintel/brunch-agent/**/{.flue,.turbo,dist,node_modules}/**"
+      ]
     }
   }
 }

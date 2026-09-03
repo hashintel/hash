@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import {
   createTurnTimingRecorder,
   type TurnTimingPurpose,
-} from "../../../libs/@hashintel/brunch-agent/evaluations/protocols/process-model-elicitation/baseline/turn-timing.ts";
+} from "../../../libs/@hashintel/brunch-agent/evaluations/protocols/legacy-baseline/turn-timing.ts";
 
 import type { FlueObservation, ModelRequest } from "@flue/runtime";
 

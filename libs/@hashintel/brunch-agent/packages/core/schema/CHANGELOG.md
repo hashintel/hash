@@ -37,12 +37,12 @@ and the repertoire were written against this shape together.
 ## Cycle 2 — input, 2026-08-25
 
 What the first cycle's "validate" step returned. Source: the desk pressure review
-[`docs/evidence/proofs/design/plugin-keys-pressure-review-cycle-1.md`](../../../docs/evidence/proofs/design/plugin-keys-pressure-review-cycle-1.md)
+[`docs/evidence/design/plugin-keys-pressure-review-cycle-1.md`](../../../docs/evidence/design/plugin-keys-pressure-review-cycle-1.md)
 (100 situations from the CPS process-modelling material, the literature review,
 and the condition-2 run; a discrete-event and a formal-verification plugin
 sketched against the keys). The condition-4 baseline run (the rendered layer as
 a prompt only) adds its strains in
-`docs/evidence/evaluations/process-model-elicitation/baseline/readout.md`.
+`docs/evidence/evaluations/vestera-legacy-baseline/readout.md`.
 
 **Verdict on the catalogue: not frozen.** No key is added, merged, dropped,
 split, or renamed by this input. All 100 situations land on an existing key or
@@ -217,4 +217,4 @@ quote-repair efficiency, prompt-only delivery classification, and a terminal act
 for an incomplete engagement after the expert stops. Those findings belong to
 the sweep/fold, evaluation, and session-control machinery; none is repaired by a
 new plugin-authoring key. The evidence and full verdict are recorded in the
-[baseline read-out](../../../docs/evidence/evaluations/process-model-elicitation/baseline/readout.md).
+[baseline read-out](../../../docs/evidence/evaluations/vestera-legacy-baseline/readout.md).

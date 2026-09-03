@@ -37,6 +37,10 @@ export interface PetrinautChatResult {
     UIMessageChunk,
     { type: "tool-input-available" }
   > | null;
+  readonly readSkillResourceCall: Extract<
+    UIMessageChunk,
+    { type: "tool-input-available" }
+  > | null;
   readonly interviewerToolNames: readonly string[];
   readonly captureUserText: string;
   readonly captureIds: readonly string[];

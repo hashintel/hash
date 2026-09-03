@@ -74,7 +74,7 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 └─ test/              ✓  reviewed substrate inventory; child-process eval (audited: composed
                          from documented parts; do-not-weaken pins live here)
 
-evaluations/protocols/process-model-elicitation/baseline/run.ts   EXPERIMENT PROTOCOL
+evaluations/protocols/legacy-baseline/run.ts   EXPERIMENT PROTOCOL
 ```
 
 ## Specification — where what's next lands

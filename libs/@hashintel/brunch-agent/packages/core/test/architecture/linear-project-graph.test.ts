@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 
 import { describe, expect, test } from "vitest";
 
-import { CONTEXT_ROOT, contextRootPresent } from "./workspace";
+import { CONTEXT_ROOT, contextRootPresent } from "./context-root";
 
 /**
  * The module under test lives at the context root, outside every workspace, so

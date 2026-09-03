@@ -26,7 +26,7 @@ from this file.
 
 When work starts on a branch, state these six things in [`MISSION.md`](MISSION.md) and copy them
 into the branch/PR description. Do not create additional planning or control documents, except the
-next-concerns scratchpad below.
+next-concerns draft and bounded side quest described below.
 
 - **Imperative** — what must become true, and why now.
 - **Throughline** — the real entrypoint or boundary being changed.
@@ -39,22 +39,58 @@ next-concerns scratchpad below.
   Running the path may lengthen this list; that is calibration, not regression.
 - **Stop or reorient** — evidence that invalidates or changes the route.
 
-### One live mission, next-concerns scratchpad
+The six sections are the contract. Missions have also carried two additions that earned their
+keep: a short **Status** header (live / accepted) above the contract, and a closing **Deferred**
+section pointing at the draft. Keep both on future missions.
+
+### One live mission, next-concerns draft
 
 [`MISSION.md`](MISSION.md) is the only execution authority. Agents and humans implement against it.
 
-[`MISSION.next.md`](MISSION.next.md) is the scratchpad for discussing all next concerns. It may
-hold a longer horizon than a single mission. It is not a mission: do not implement it, do not
-treat it as a second concurrent mission, and do not declare its focus until planning is resolved.
+[`SIDE_QUEST.md`](SIDE_QUEST.md), when present, is one temporary, user-authorized experiment or
+remediation inside the live mission. It is legitimate only when evidence from that mission has
+exposed a bounded set of concrete residual failures whose investigation helps close the mission or
+informs named later clusters. It must state its relationship to the live mission, imperative,
+throughlines, proof, constraints, stop conditions, and budget for each paid activity. It must not
+supersede or contradict `MISSION.md`, broaden into speculative future work, create a second live
+mission, or coexist with another active side quest. Record its outcome in mission evidence and any
+affected `MISSION.next.md` clusters, then remove the active side-quest file before archiving the
+mission.
 
-A current mission's **Deferred** items belong in that scratchpad as well. Do not silently drop or
+[`MISSION.next.md`](MISSION.next.md) is the self-contained canonical capture repository for
+upcoming work: the draft missions and the comprehensive record of ideas, observations, questions,
+and named mechanisms already raised. It may hold a longer horizon than a single mission. It is not
+a mission: do not implement it, do not treat it as a second concurrent mission, and do not declare
+its focus until a cluster is cut.
+
+Update the draft during planning, design, grilling, or other mission elicitation while the context
+is active. Keep every hypothesis, observation, question, and named mechanism at conversational
+fidelity. A heading plus a one-line label is not a record of a design. Rejected alternatives and
+the reason they lost belong next to the locked choice. Ungrilled fog stays marked unasked. The
+draft must stand on its own; do not rely on or link to a transcript as a substitute for capturing
+that content here.
+
+When regrouping or cutting, compare the draft before and after. Every item must either move into
+the live mission or remain in the draft at the same fidelity. Once an elicitation session is over,
+the draft — not an external transcript — is the source for future cuts.
+
+Group plausible future missions as ordered, numbered `# Mission N — …` headings. Spikes that are
+not missions, standing lock / out-of-scope decisions, and a live mission's leftover / Deferred
+items get their own unnumbered headings — they are not fake missions. Do not pre-fill Imperative,
+Throughline, Proof, or Status on a cluster; those sections are the cut into `MISSION.md`. Record
+Constraints, Fog-line, and Stop or reorient on a cluster only when the conversation already earned
+them.
+
+A current mission's **Deferred** items belong in that draft as well. Do not silently drop or
 supersede them when adding other concerns.
 
 When the current mission is accepted and the next focus is resolved:
 
 1. Move `MISSION.md` to `docs/mission-archive/{n}-{slug}.md`.
-2. Cut a single focused `MISSION.md` from the scratchpad (the six-section contract above).
-3. Leave everything that did not make the cut in `MISSION.next.md`.
+2. Cut a single focused `MISSION.md` from one cluster (the six-section contract above).
+3. Leave everything that did not make the cut in `MISSION.next.md` at the same fidelity — still
+   hypotheses, still rejected alternatives, still named mechanisms. A cut is a copy of one cluster
+   into authority, not a summary of the remainder.
 
 Do not promote `MISSION.next.md` wholesale. Do not keep two live missions. Do not delete a closed
 mission; the archive is evidence of what was proven, not marching orders. Re-earn before building
