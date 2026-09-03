@@ -266,7 +266,7 @@ jobs:
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'The diff above is the task-graph change this branch has not committed yet.'
-            echo 'Run "mise run doc:task-dependencies" locally and commit the result.'
+            echo 'Run "turbo run //#doc:task-dependencies" locally and commit the result.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
