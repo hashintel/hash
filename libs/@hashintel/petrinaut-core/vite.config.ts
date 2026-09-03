@@ -23,6 +23,11 @@ export default defineConfig(({ command }) => ({
         // Dependency-free instantiation of compiled HIR artifacts.
         "hir-runtime": resolve(packageRoot, "src/hir-runtime.ts"),
         optimization: resolve(packageRoot, "src/optimization.ts"),
+        // Runs the Optuna study in a Pyodide worker; inlines the Python sources.
+        "browser-optimization": resolve(
+          packageRoot,
+          "src/browser-optimization.ts",
+        ),
         // Dependency-free entry: the selection vocabulary alone, for hosts that
         // validate selection in a route or a server function.
         selection: resolve(packageRoot, "src/selection.ts"),
@@ -40,6 +45,7 @@ export default defineConfig(({ command }) => ({
           packageRoot,
           "src/workers/monte-carlo.ts",
         ),
+        "workers/optimizer": resolve(packageRoot, "src/workers/optimizer.ts"),
         "workers/simulation": resolve(packageRoot, "src/workers/simulation.ts"),
       },
       fileName: (_format, entryName) => `${entryName}.js`,
@@ -94,9 +100,12 @@ export default defineConfig(({ command }) => ({
   ],
 
   experimental: {
+    // A worker URL resolved against the importing module survives bundling by
+    // a host: it becomes `new URL(<path>, import.meta.url)`, which the host's
+    // bundler copies as an asset, where a page-relative path would 404.
     renderBuiltUrl: (filename) => {
       if (filename.includes(".worker")) {
-        return `./${filename}`;
+        return { relative: true };
       }
       return filename;
     },

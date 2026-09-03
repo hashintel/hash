@@ -89,7 +89,11 @@
       {
         "patterns": [
           {
-            "group": ["@local/*"],
+            "group": [
+              "@local/*",
+              "!@local/petrinaut-optimizer-core",
+              "!@local/petrinaut-optimizer-core/**"
+            ],
             "message": "You cannot use unpublished local packages in a published package."
           },
           {
