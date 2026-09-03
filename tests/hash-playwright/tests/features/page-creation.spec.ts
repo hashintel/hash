@@ -1,7 +1,7 @@
 // import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
-
 import { expect, test } from "../shared/runtime";
+
+import type { Response } from "../shared/runtime";
 
 const pageNameSuffix = Date.now();
 const pageNameFallback = "Untitled";
@@ -13,26 +13,53 @@ const placeholderSelector =
   "text=Type / to browse blocks, or @ to browse entities";
 const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
 
+const isBlockCollectionSaveWithBlockCount = async (
+  response: Response,
+  blockCount: number,
+) => {
+  if (
+    !response.url().includes("/graphql") ||
+    !(response.request().postData() ?? "").includes(
+      "updateBlockCollectionContents",
+    )
+  ) {
+    return false;
+  }
+
+  const body = (await response.json()) as {
+    data?: {
+      updateBlockCollectionContents?: {
+        blockCollection: { contents: unknown[] };
+      };
+    };
+  };
+
+  return (
+    body.data?.updateBlockCollectionContents?.blockCollection.contents
+      .length === blockCount
+  );
+};
+
 // @todo fix this test
 test.skip("user can create page", async ({ page }) => {
   await page.goto("/");
   await page.waitForURL("/");
   await expect(page.locator("text=Get support")).toBeVisible();
 
-  // TODO: investigate why delay is required for create page button to work
-  await sleep(500);
+  const listOfPages = page.locator(listOfPagesSelector);
+
+  await expect(listOfPages).toBeAttached();
   await page.locator(createPageButtonSelector).click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
 
   const blockRegion = page.locator("#root");
-  const listOfPages = page.locator(listOfPagesSelector);
+  const blockHandles = blockRegion.locator('[data-testid="block-handle"]');
+  const hardBreaks = blockRegion.locator("br:not(.ProseMirror-trailingBreak)");
 
   // Wait for ProseMirror to load
   // TODO: investigate why page renaming before block loading is unstable
-  await expect(blockRegion.locator('[data-testid="block-handle"]')).toHaveCount(
-    1,
-  );
+  await expect(blockHandles).toHaveCount(1);
   await expect(listOfPages).toContainText(pageNameFallback);
 
   // Type in a paragraph block
@@ -47,13 +74,14 @@ test.skip("user can create page", async ({ page }) => {
   await page.keyboard.press(`${modifierKey}+i`);
 
   // Insert a divider
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await expect(blockRegion.locator("em")).toHaveText("italics");
   await page.keyboard.press("Enter");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await expect(blockHandles).toHaveCount(2);
   await page.keyboard.type("/divider");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await expect(
+    page.getByRole("listitem").filter({ hasText: /divider/i }),
+  ).toBeVisible();
   await page.keyboard.press("Enter");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
 
   // Wait for divider block to load
   await expect(blockRegion).not.toContainText("Loading...", {
@@ -64,18 +92,18 @@ test.skip("user can create page", async ({ page }) => {
   // TODO: Move the cursor below the new divider and update the test?
 
   // Insert a paragraph creation with newlines
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await expect(blockHandles).toHaveCount(3);
   await page.keyboard.type("Second paragraph");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await expect(blockRegion).toContainText("Second paragraph");
   await page.keyboard.press("Shift+Enter");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await expect(hardBreaks).toHaveCount(1);
   await page.keyboard.press("Shift+Enter");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await expect(hardBreaks).toHaveCount(2);
   await page.keyboard.type("with");
   await page.keyboard.press("Shift+Enter");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await expect(hardBreaks).toHaveCount(3);
   await page.keyboard.type("line breaks");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await expect(blockRegion).toContainText("line breaks");
 
   // Expect just inserted content to be present on the page
   await expect(blockRegion).toContainText(
@@ -85,16 +113,15 @@ test.skip("user can create page", async ({ page }) => {
   );
 
   // Check number of blocks
-  await expect(blockRegion.locator('[data-testid="block-handle"]')).toHaveCount(
-    3,
+  await expect(blockHandles).toHaveCount(3);
+
+  const finalSave = page.waitForResponse((response) =>
+    isBlockCollectionSaveWithBlockCount(response, 4),
   );
 
   await page.keyboard.press("Enter");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
 
-  await expect(blockRegion.locator('[data-testid="block-handle"]')).toHaveCount(
-    4,
-  );
+  await expect(blockHandles).toHaveCount(4);
 
   const blockChanger = blockRegion
     .locator('[data-testid="block-changer"]')
@@ -125,8 +152,7 @@ test.skip("user can create page", async ({ page }) => {
   //   blockRegion.locator(`[data-testid="block"]:nth-child(3) p`),
   // ).toHaveCount(0);
   //
-  // Give collab some time to sync data
-  await sleep(2000);
+  await finalSave;
 
   // Check content stability after page reload
   await page.reload();
@@ -159,13 +185,13 @@ test.skip("user can rename page", async ({ page }) => {
   await page.goto("/");
   const pageName1 = `Page ${pageNameSuffix}`;
   const pageName2 = `Page 2 ${pageNameSuffix}`;
-  // TODO: investigate why delay is required for create page button to work
-  await sleep(500);
+  const listOfPages = page.locator(listOfPagesSelector);
+
+  await expect(listOfPages).toBeAttached();
   await page.locator(createPageButtonSelector).click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
 
-  const listOfPages = page.locator(listOfPagesSelector);
   const pageTitle = page.locator(pageTitleInputSelector);
 
   // Change page name (using Enter)
@@ -175,19 +201,19 @@ test.skip("user can rename page", async ({ page }) => {
   await expect(listOfPages).toContainText(pageName2);
 
   // Revert page name change (using Tab)
-  await sleep(500); // TODO: Investigate why delay is required for <PageTitle /> state to work
+  await expect(page).toHaveTitle(`${pageName2} | HASH`);
   await pageTitle.fill(pageName1);
   await pageTitle.press("Tab");
   await expect(listOfPages).toContainText(pageName1);
 
   // Change page name (by clicking outside)
-  await sleep(500); // TODO: Investigate why delay is required for <PageTitle /> state to work
+  await expect(page).toHaveTitle(`${pageName1} | HASH`);
   await pageTitle.fill(pageName2);
   await page.click("main");
   await expect(listOfPages).toContainText(pageName2);
 
   // Revert page name change (using Esc)
-  await sleep(500); // TODO: Investigate why delay is required for <PageTitle /> state to work
+  await expect(page).toHaveTitle(`${pageName2} | HASH`);
   await pageTitle.fill(pageName1);
   await pageTitle.press("Escape");
   await expect(listOfPages).not.toContainText(pageName2);

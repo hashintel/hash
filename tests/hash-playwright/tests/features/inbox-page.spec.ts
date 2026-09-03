@@ -3,7 +3,6 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { createEntity, getUser } from "../shared/api-queries";
 import { expect, test } from "../shared/runtime";
@@ -123,10 +122,9 @@ test("new notifications are shown on notifications page", async ({ page }) => {
     targetEntityTitle: draftNotificationTitle,
   });
 
-  /** Wait for the notification poll interval to expire */
-  await sleep(12_000);
-
-  await expect(page.locator(`text=${draftNotificationTitle}`)).toBeVisible();
+  await expect(page.locator(`text=${draftNotificationTitle}`)).toBeVisible({
+    timeout: 30_000,
+  });
 
   const nonDraftNotificationTitle = new Date().toISOString();
 
@@ -141,8 +139,7 @@ test("new notifications are shown on notifications page", async ({ page }) => {
     targetEntityTitle: nonDraftNotificationTitle,
   });
 
-  /** Wait for the notification poll interval to expire */
-  await sleep(12_000);
-
-  await expect(page.locator(`text=${nonDraftNotificationTitle}`)).toBeVisible();
+  await expect(page.locator(`text=${nonDraftNotificationTitle}`)).toBeVisible({
+    timeout: 30_000,
+  });
 });

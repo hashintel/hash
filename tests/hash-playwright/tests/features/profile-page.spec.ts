@@ -1,13 +1,25 @@
 // eslint-disable-next-line no-restricted-imports
 import { test as testTolerateConsoleErrors } from "@playwright/test";
 
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
-
 import { expect } from "../shared/runtime";
+
+import type { Page } from "../shared/runtime";
 
 testTolerateConsoleErrors.beforeEach(async () => {});
 
-const blockCollectionMountTimeout = 5_000;
+const placeholderSelector =
+  "text=Type / to browse blocks, or @ to browse entities";
+
+const waitForBioSave = (page: Page, bioText: string) =>
+  page.waitForResponse((response) => {
+    const postData = response.request().postData() ?? "";
+
+    return (
+      response.url().includes("/graphql") &&
+      postData.includes("updateBlockCollectionContents") &&
+      postData.includes(bioText)
+    );
+  });
 
 /**
  * @todo H-2006 fix bugs on profile page and revert to using 'test' from ./shared/runtime
@@ -23,19 +35,18 @@ testTolerateConsoleErrors.skip(
 
     await page.click("text=Add a bio for Alice...");
 
-    await sleep(blockCollectionMountTimeout);
+    await expect(page.locator(placeholderSelector)).toBeVisible();
 
     const bioText = "Alice's bio";
+    const bioSaved = waitForBioSave(page, bioText);
 
     await page.keyboard.type(bioText);
 
     await page.click("[aria-label='Save Bio']");
 
-    await sleep(2_000);
+    await bioSaved;
 
     await page.reload();
-
-    await sleep(2_000);
 
     await expect(page.locator("text=@alice")).toBeVisible();
     await expect(page.locator(`text=${bioText}`)).toBeVisible();
@@ -56,18 +67,18 @@ testTolerateConsoleErrors.skip(
 
     await page.click("text=Add a bio for Example...");
 
-    await sleep(blockCollectionMountTimeout);
+    await expect(page.locator(placeholderSelector)).toBeVisible();
 
     const bioText = "Example Org's bio";
+    const bioSaved = waitForBioSave(page, bioText);
+
     await page.keyboard.type(bioText);
 
     await page.click("[aria-label='Save Bio']");
 
-    await sleep(2_000);
+    await bioSaved;
 
     await page.reload();
-
-    await sleep(2_000);
 
     await expect(page.locator("text=@example-org")).toBeVisible();
     await expect(page.locator(`text=${bioText}`)).toBeVisible();
