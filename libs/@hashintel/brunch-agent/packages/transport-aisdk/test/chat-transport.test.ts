@@ -100,7 +100,6 @@ test("admits one user message and projects a finite per-turn stream", async () =
   const transport = createFlueChatTransport({
     client,
     clientToolNames: new Set(["readPetrinautDoc"]),
-    clientToolResultSignal: "client-tool-result",
   });
 
   const stream = await transport.sendMessages(
@@ -134,7 +133,6 @@ test("admits one client-tool result signal and resumes its assistant id", async 
   const transport = createFlueChatTransport({
     client,
     clientToolNames: new Set(["readPetrinautDoc"]),
-    clientToolResultSignal: "client-tool-result",
   });
 
   const stream = await transport.sendMessages(
@@ -186,7 +184,6 @@ test("starts with history-only reconnection", async () => {
   const transport = createFlueChatTransport({
     client,
     clientToolNames: new Set(),
-    clientToolResultSignal: "client-tool-result",
   });
 
   await expect(
@@ -235,7 +232,6 @@ test.each([
     const transport = createFlueChatTransport({
       client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
       clientToolNames: new Set(),
-      clientToolResultSignal: "client-tool-result",
     });
 
     const stream = await transport.sendMessages(
@@ -268,7 +264,6 @@ test("keeps caller cancellation distinct from durable abort", async () => {
   const transport = createFlueChatTransport({
     client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
     clientToolNames: new Set(),
-    clientToolResultSignal: "client-tool-result",
   });
   const stream = await transport.sendMessages({
     ...sendOptions([
@@ -299,7 +294,6 @@ test("surfaces rejected and ambiguous admission without retrying", async () => {
     createFlueChatTransport({
       client: { send } as Pick<FlueClient, "send"> as FlueClient,
       clientToolNames: new Set(),
-      clientToolResultSignal: "client-tool-result",
     });
   const options = sendOptions([
     {
@@ -328,7 +322,6 @@ test("reports one admission and its correlated response message", async () => {
   const transport = createFlueChatTransport({
     client,
     clientToolNames: new Set(),
-    clientToolResultSignal: "client-tool-result",
     onAdmission,
     onResponseMessage,
   });

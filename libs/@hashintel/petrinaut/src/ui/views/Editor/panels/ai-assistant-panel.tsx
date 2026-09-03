@@ -504,6 +504,7 @@ export const AiAssistantPanel = ({
 
   const stopRequestedRef = useRef(false);
   const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
+  const hydratedConversationIdRef = useRef<string | null>(null);
 
   const {
     error,
@@ -756,6 +757,18 @@ export const AiAssistantPanel = ({
       });
     },
   });
+
+  useEffect(() => {
+    if (
+      aiAssistant.messages === undefined ||
+      status !== "ready" ||
+      hydratedConversationIdRef.current === conversationId
+    ) {
+      return;
+    }
+    hydratedConversationIdRef.current = conversationId;
+    setMessages(aiAssistant.messages);
+  }, [aiAssistant.messages, conversationId, setMessages, status]);
 
   const composerSubmissionStateRef = useLatest({
     addToolOutput,
@@ -1238,7 +1251,9 @@ export const AiAssistantPanel = ({
 
   return (
     <AiAssistantContents
-      clearMessagesDisabled={voiceActive}
+      clearMessagesDisabled={
+        voiceActive || aiAssistant.canClearMessages === false
+      }
       composerFocusRequest={composerFocusRequest}
       composerControl={composerControl}
       error={streamError ?? error}

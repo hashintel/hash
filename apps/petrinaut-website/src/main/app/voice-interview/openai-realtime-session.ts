@@ -50,7 +50,13 @@ export type OpenAIRealtimeSessionEvent =
   | {
       readonly connectionEpoch: number;
       readonly responseId: string;
+      readonly speechRequestId: string;
       readonly type: "output-started";
+    }
+  | {
+      readonly connectionEpoch: number;
+      readonly speechRequestId: string;
+      readonly type: "canonical-speech-requested";
     }
   | {
       readonly connectionEpoch: number;
@@ -198,6 +204,7 @@ export class OpenAIRealtimeSession {
   readonly #pendingClientEvents = new Map<string, PendingClientEvent>();
   readonly #pendingSpeechRequests = new Map<string, RequestTiming>();
   readonly #remoteStreams = new Set<MediaStream>();
+  readonly #speechRequestIds = new Map<string, string>();
   readonly #speechTimings = new Map<string, RequestTiming>();
   readonly #transcriptionTimings = new Map<string, RequestTiming>();
   #abortController: AbortController | null = null;
@@ -464,9 +471,12 @@ export class OpenAIRealtimeSession {
   #canonicalResponseText(segments: CanonicalSpeechSegment[]): string[] {
     const responseText = segments
       .slice(0, MAX_CANONICAL_SEGMENTS)
-      .map(({ text }) => text.trim())
-      .filter(Boolean);
-    if (responseText.length === 0 || responseText.length !== segments.length) {
+      .map(({ text }) => text);
+    if (
+      responseText.length === 0 ||
+      responseText.length !== segments.length ||
+      responseText.some((text) => text.trim().length === 0)
+    ) {
       throw new VoiceError("speech", "invalid-response", "");
     }
     return responseText;
@@ -573,6 +583,13 @@ export class OpenAIRealtimeSession {
         response: request.response,
         type: "response.create",
       });
+      if (this.#activeEpoch !== null) {
+        this.#emit({
+          connectionEpoch: this.#activeEpoch,
+          speechRequestId: request.speechRequestId,
+          type: "canonical-speech-requested",
+        });
+      }
     } catch (error) {
       this.#responseCreateEventId = null;
       this.#pendingClientEvents.delete(eventId);
@@ -682,6 +699,7 @@ export class OpenAIRealtimeSession {
     }
     this.#pendingSpeechRequests.delete(speechRequestId);
     this.#authorizedResponseIds.add(responseId);
+    this.#speechRequestIds.set(responseId, speechRequestId);
     this.#speechTimings.set(responseId, timing);
   }
 
@@ -910,7 +928,17 @@ export class OpenAIRealtimeSession {
         return;
       }
       this.#speakingResponseId = responseId;
-      this.#emit({ connectionEpoch, responseId, type: "output-started" });
+      const speechRequestId = this.#speechRequestIds.get(responseId);
+      if (!speechRequestId) {
+        this.#handleConnectionFailure("invalid-response", "connection");
+        return;
+      }
+      this.#emit({
+        connectionEpoch,
+        responseId,
+        speechRequestId,
+        type: "output-started",
+      });
       return;
     }
     const wasSpeaking = this.#speakingResponseId === responseId;
@@ -1004,6 +1032,7 @@ export class OpenAIRealtimeSession {
         errorCode,
       );
     }
+    this.#speechRequestIds.delete(responseId);
     this.#authorizedResponseIds.delete(responseId);
     if (this.#speakingResponseId === responseId) {
       this.#speakingResponseId = null;
@@ -1285,6 +1314,7 @@ export class OpenAIRealtimeSession {
     this.#pendingClientEvents.clear();
     this.#pendingSpeechRequests.clear();
     this.#speechTimings.clear();
+    this.#speechRequestIds.clear();
     this.#authorizedResponseIds.clear();
     this.#canonicalResponseIds.clear();
     this.#responseCreateEventId = null;

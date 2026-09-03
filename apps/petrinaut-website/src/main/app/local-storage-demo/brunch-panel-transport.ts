@@ -1,7 +1,4 @@
-import {
-  CLIENT_TOOL_RESULT_SIGNAL,
-  createFlueChatTransport,
-} from "@hashintel/brunch-agent-transport-aisdk";
+import { createFlueChatTransport } from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
@@ -17,8 +14,6 @@ import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type { UIMessageChunk } from "ai";
 
 export class BrunchPanelConversationTracker {
-  public constructor(public readonly conversationId: string | null) {}
-
   readonly #inputSubmissions = new Map<
     string,
     AgentSendResult["submissionId"]
@@ -185,7 +180,6 @@ export const createBrunchPanelTransport = (
     const transport = createFlueChatTransport({
       client,
       clientToolNames: new Set([readPetrinautDocToolName]),
-      clientToolResultSignal: CLIENT_TOOL_RESULT_SIGNAL,
       onAdmission: ({ admission, kind, messageId }) => {
         hooks?.onAdmission?.(admission);
         if (kind === "user") {

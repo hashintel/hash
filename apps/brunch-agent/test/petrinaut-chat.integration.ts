@@ -98,14 +98,12 @@ try {
   const panelTransport = createFlueChatTransport({
     client: historyClient,
     clientToolNames,
-    clientToolResultSignal: CLIENT_TOOL_RESULT_SIGNAL,
   });
   const projectHistory = (
     snapshot: Awaited<ReturnType<typeof historyClient.history>>,
   ) =>
     snapshotToUiMessages(snapshot, {
       clientToolNames,
-      clientToolResultSignal: CLIENT_TOOL_RESULT_SIGNAL,
     });
 
   if (process.env.BRUNCH_RESUME_PHASE === "1") {

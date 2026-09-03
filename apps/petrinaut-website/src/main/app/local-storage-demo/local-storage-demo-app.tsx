@@ -117,10 +117,7 @@ const stockChatTransport = new DefaultChatTransport({
 
 const createBrunchFlueClient = async (conversationId: string) => {
   const identity = { conversationId, principalKey: brunchPrincipal };
-  const instanceId = await flueConversationIdWeb(
-    identity.principalKey,
-    identity.conversationId,
-  );
+  const instanceId = await flueConversationIdWeb(identity);
   const mountUrl = new URL(
     brunchPreviewConfig.chatEndpoint,
     window.location.origin,
@@ -295,7 +292,6 @@ export const LocalStorageDemoApp = ({
 
   useEffect(() => {
     if (!brunchPreviewConfig.isBrunchConfigured) {
-      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Resolve the loading sentinel when voice is not configured.
       setOpenAIVoiceConfig(null);
       return;
     }
@@ -468,7 +464,9 @@ export const LocalStorageDemoApp = ({
     [conversationId],
   );
   const conversationTracker = useMemo(
-    () => new BrunchPanelConversationTracker(conversationId),
+    () => new BrunchPanelConversationTracker(),
+    // Correlation state belongs to one conversation and must not cross a net switch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [conversationId],
   );
   const brunchVoiceMode = useMemo(
@@ -492,6 +490,7 @@ export const LocalStorageDemoApp = ({
   const aiAssistant = useMemo(
     () => ({
       ...(conversationId === null ? {} : { conversationId }),
+      canClearMessages: flueClientPromise === null,
       interactiveTools: [brunchAskInteractiveTool],
       transport: petrinautAiChatTransport,
       ...(flueClientPromise === null
