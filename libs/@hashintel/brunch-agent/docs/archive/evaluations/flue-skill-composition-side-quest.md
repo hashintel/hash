@@ -10,7 +10,14 @@ The owner set aside the side quest's Candidate B fallback and directed Mission 4
 
 ## Raw-run identity and recovery
 
-The complete pre-retirement tree is historical commit `d9ae5de506a2fc00cf7473c03a217d20f3a9fc63` on PR [#9468](https://github.com/hashintel/hash/pull/9468). That SHA is an informational locator. The durable identities are the ordered path/content ledgers retained beside each comparison:
+The complete pre-retirement tree was captured at historical commit
+`d9ae5de506a2fc00cf7473c03a217d20f3a9fc63` on PR
+[#9468](https://github.com/hashintel/hash/pull/9468). Recovery does not depend on that
+intermediate commit: the final tree retains the complete 47-file corpus in
+[`flue-skill-composition-side-quest-runs.tar.gz`](flue-skill-composition-side-quest-runs.tar.gz).
+The archive's SHA-256 is
+`99d5302fb42807b9e9d77d4c432f4b52b77aeea4f7312cd6fb8f104452e3fc2a`.
+The ordered path/content ledgers retained beside each comparison verify every extracted file:
 
 | Campaign | Files | Lines | Bytes | Ledger | Ledger SHA-256 |
 | --- | ---: | ---: | ---: | --- | --- |
@@ -21,19 +28,24 @@ The complete pre-retirement tree is historical commit `d9ae5de506a2fc00cf7473c03
 Recover and verify a campaign from the repository root:
 
 ```shell
-PIN=d9ae5de506a2fc00cf7473c03a217d20f3a9fc63
 CAMPAIGN=flue-skill-composition-side-quest-v3
 ROOT=libs/@hashintel/brunch-agent
 RECOVERY_DIR=$(mktemp -d)
+ARCHIVE=$ROOT/docs/archive/evaluations/flue-skill-composition-side-quest-runs.tar.gz
 
-git archive "$PIN" -- "$ROOT/docs/evidence/evaluations/$CAMPAIGN/runs" | tar -x -C "$RECOVERY_DIR"
+echo "99d5302fb42807b9e9d77d4c432f4b52b77aeea4f7312cd6fb8f104452e3fc2a  $ARCHIVE" |
+  shasum -a 256 -c -
+tar -xzf "$ARCHIVE" -C "$RECOVERY_DIR"
 (
   cd "$RECOVERY_DIR"
   shasum -a 256 -c "$OLDPWD/$ROOT/docs/evidence/evaluations/$CAMPAIGN/retired-runs.sha256"
 )
 ```
 
-The unchanged campaign manifests still describe the executed campaigns. Their `runs/...` lists and JSON pointers are historical paths and resolve at the pinning commit, not in the current working tree. Do not reinterpret a missing live-tree run as a campaign omission.
+The core unit suite executes the same extraction and verifies all three ledgers from checked-out
+files, without fetching a historical ref. The unchanged campaign manifests still describe the
+executed campaigns. Their `runs/...` lists and JSON pointers are paths inside the archive, not
+omissions from the campaign.
 
 ## Retired material
 
