@@ -62,6 +62,9 @@ const controlsStyle = css({
   flexWrap: "wrap",
   // Compact inline controls; the ds Select otherwise stretches to the row.
   "& [data-scope='select']": { width: "[170px]" },
+  // The Select's root insists on min-content width, which overflows the
+  // 170px box over the next label; a long option name fits by ellipsis.
+  "& > div > div": { minWidth: "[0]" },
 });
 
 const controlLabelStyle = css({

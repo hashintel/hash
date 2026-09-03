@@ -84,6 +84,9 @@ const controlsStyle = css({
   gap: "2",
   flexWrap: "wrap",
   "& [data-scope='select']": { width: "[170px]" },
+  // The Select's root insists on min-content width, which overflows the
+  // 170px box over the next label; a long option name fits by ellipsis.
+  "& > div > div": { minWidth: "[0]" },
 });
 
 const controlLabelStyle = css({
