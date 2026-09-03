@@ -3,39 +3,104 @@ type PlaceSpec = {
   weight: number; // how many tokens to pick
 };
 
+/* eslint-disable no-param-reassign -- rewriting the caller's reusable
+   combination array in place is the point of these helpers: enumeration must
+   not allocate per combination */
 /**
- * Generate all k-combinations of indices [0..n-1].
- * Example: indexCombinations(3, 2) -> [ [0,1], [0,2], [1,2] ]
+ * Reset `combo` to the first k-combination of `[0..n-1]` in lexicographic
+ * order: `[0, 1, ..., k-1]`. Returns false when no combination exists
+ * (`k > n`).
  */
-function indexCombinations(n: number, k: number): number[][] {
-  if (k === 0) {
-    return [[]];
-  }
+function firstIndexCombination(combo: number[], n: number, k: number): boolean {
   if (k > n) {
-    return [];
+    return false;
   }
-
-  const result: number[][] = [];
-
-  function backtrack(start: number, combo: number[]) {
-    if (combo.length === k) {
-      result.push(combo.slice());
-      return;
-    }
-
-    for (let i = start; i <= n - (k - combo.length); i++) {
-      combo.push(i);
-      backtrack(i + 1, combo);
-      combo.pop();
-    }
+  combo.length = k;
+  for (let index = 0; index < k; index++) {
+    combo[index] = index;
   }
-
-  backtrack(0, []);
-  return result;
+  return true;
 }
 
 /**
- * Enumerate all weighted combinations, returning indices only.
+ * Advance `combo` to its lexicographic successor over `[0..n-1]`, in place.
+ * Returns false when `combo` is the last combination.
+ */
+function nextIndexCombination(combo: number[], n: number): boolean {
+  const k = combo.length;
+  for (let index = k - 1; index >= 0; index--) {
+    if (combo[index]! < n - k + index) {
+      combo[index]!++;
+      for (let rest = index + 1; rest < k; rest++) {
+        combo[rest] = combo[rest - 1]! + 1;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+/* eslint-enable no-param-reassign */
+
+/**
+ * Enumerate every weighted marking lazily: one k-combination of token indices
+ * per place, in lexicographic order per place, with the last place advancing
+ * fastest.
+ *
+ * Nothing is materialised up front — a place holding `n` tokens under a
+ * weight-`w` arc has `C(n, w)` combinations, and building them eagerly made
+ * transition evaluation quadratic in the token count (see "Weighted-arc
+ * enumeration" in
+ * `libs/@local/petrinaut-arch-docs/content/simulation/performance.mdx`).
+ * Cost is proportional to the combinations the caller actually consumes.
+ *
+ * The enumeration order is a contract: the engine fires the first passing
+ * combination, so a different order changes which tokens a firing consumes
+ * and diverges seeded trajectories, and `webgpu/pair-selection.ts` reproduces
+ * this order on the GPU by combinatorial unranking.
+ *
+ * The yielded array and its inner arrays are reused between iterations.
+ * Copy anything kept past the next `next()` call; both engines copy on
+ * accept and stop iterating.
+ */
+export function* enumerateWeightedMarkingIndicesGenerator(
+  places: PlaceSpec[],
+): Generator<number[][], void, undefined> {
+  if (places.length === 0) {
+    yield [];
+    return;
+  }
+
+  const current: number[][] = places.map(() => []);
+  for (let place = 0; place < places.length; place++) {
+    const { count, weight } = places[place]!;
+    if (!firstIndexCombination(current[place]!, count, weight)) {
+      return;
+    }
+  }
+
+  for (;;) {
+    yield current;
+
+    let place = places.length - 1;
+    while (
+      place >= 0 &&
+      !nextIndexCombination(current[place]!, places[place]!.count)
+    ) {
+      firstIndexCombination(
+        current[place]!,
+        places[place]!.count,
+        places[place]!.weight,
+      );
+      place--;
+    }
+    if (place < 0) {
+      return;
+    }
+  }
+}
+
+/**
+ * Enumerate all weighted combinations eagerly, returning indices only.
  *
  * Each marking is a flat array of indices, concatenated per place.
  *
@@ -53,61 +118,9 @@ function indexCombinations(n: number, k: number): number[][] {
 export function enumerateWeightedMarkingIndices(
   places: PlaceSpec[],
 ): number[][] {
-  // 1. combinations per place (of indices)
-  const perPlaceCombos = places.map((p) =>
-    indexCombinations(p.count, p.weight),
-  );
-
-  // 2. check for invalid places
-  if (perPlaceCombos.some((set) => set.length === 0)) {
-    return [];
+  const result: number[][] = [];
+  for (const marking of enumerateWeightedMarkingIndicesGenerator(places)) {
+    result.push(marking.flat());
   }
-
-  // 3. Cartesian product
-  let acc: number[][] = [[]];
-  for (const comboSet of perPlaceCombos) {
-    const nextAcc: number[][] = [];
-    for (const partial of acc) {
-      for (const combo of comboSet) {
-        nextAcc.push([...partial, ...combo]);
-      }
-    }
-    acc = nextAcc;
-  }
-
-  return acc;
-}
-
-export function* enumerateWeightedMarkingIndicesGenerator(
-  places: PlaceSpec[],
-): Generator<number[][], void, undefined> {
-  const perPlaceCombos = places.map((p) =>
-    indexCombinations(p.count, p.weight),
-  );
-
-  if (perPlaceCombos.some((set) => set.length === 0)) {
-    return;
-  }
-
-  if (perPlaceCombos.length === 0) {
-    yield [];
-    return;
-  }
-
-  const current: number[][] = [];
-
-  function* backtrack(index: number): Generator<number[][], void, undefined> {
-    if (index === perPlaceCombos.length) {
-      yield current.map((combo) => combo.slice());
-      return;
-    }
-
-    for (const combo of perPlaceCombos[index]!) {
-      current.push(combo);
-      yield* backtrack(index + 1);
-      current.pop();
-    }
-  }
-
-  yield* backtrack(0);
+  return result;
 }
