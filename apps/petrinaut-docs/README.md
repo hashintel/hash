@@ -137,18 +137,20 @@ blur completely, because its strongest layers sit at the top, which is exactly
 where the tint is opaque; the stretch below the tint is where a reader actually
 sees content blurred.
 
-`backdrop-filter` cannot ramp on its own, so the ramp is three layers, all
-anchored under the header and each running to a different depth: 60px at 1px of
-blur, 40px at 2px, 20px at 4px. They overlap towards the header and thin out to
-one at the bottom, so the tallest and weakest is the layer that meets unblurred
-content. Each fades out over its own lower half, so a layer ending reads as a
-soft edge rather than a line across the page.
+`backdrop-filter` cannot ramp on its own, so the ramp is two layers, both
+anchored under the header and running to a different depth: 60px at 1px of blur
+and 30px at 2px. They overlap towards the header and thin out to one at the
+bottom, so the taller and weaker is the layer that meets unblurred content. Each
+fades out over its own lower half, so a layer ending reads as a soft edge rather
+than a line across the page.
 
-The nav carries the same band, built from the same rules. It scrolls
-independently of the page, so its band keys off the rail's own `scrollTop`
-rather than the window's, and appears only once rows have gone up behind the
-header: shown unconditionally it would sit on the first row of an unscrolled
-rail and dim it for nothing. The band is positioned against the viewport from
+The nav carries the same band, built from the same rules, and grows it out of
+its own scroll. The rail scrolls independently of the page, so the header script
+writes how far it has gone as `--pnd-nav-progress`, 0 to 1 over the first 60px,
+and both the band's height and its opacity come off that one number. At rest it
+has no height at all, which is what keeps it off the first row of an unscrolled
+rail. Nothing eases it: the value already tracks the scroll frame by frame, and
+a transition on top would only make the band lag the rows it covers. The band is positioned against the viewport from
 `components.SiteTitle`, like the resize handle, and its right inset restates
 Starlight's own width for the on-this-page column since no variable holds it.
 

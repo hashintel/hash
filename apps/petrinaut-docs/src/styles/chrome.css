@@ -682,9 +682,7 @@ dialog {
   }
 
   :root:not([data-pnd-resizing]) .pnd-nav-fade {
-    transition:
-      width var(--pnd-motion-duration) var(--pnd-motion-ease),
-      opacity var(--pnd-chrome-fade) ease;
+    transition: width var(--pnd-motion-duration) var(--pnd-motion-ease);
   }
 
   :root:not([data-pnd-resizing]) .pnd-sidebar-resize {
@@ -723,7 +721,13 @@ dialog {
 .pnd-fade {
   position: fixed;
   inset-block-start: var(--sl-nav-height);
-  height: var(--pnd-content-blur-height);
+  /*
+   * Both heights scale together, so a band can be grown from nothing by
+   * driving one number. The content band leaves it at 1; the nav band derives
+   * it from how far the rail has scrolled.
+   */
+  height: calc(var(--pnd-content-blur-height) * var(--pnd-fade-scale, 1));
+  opacity: var(--pnd-fade-opacity, 1);
   pointer-events: none;
 }
 
@@ -735,13 +739,13 @@ dialog {
 }
 
 /*
- * Every layer is anchored under the header and runs to a different depth, so
- * the three overlap towards the top and thin out to one at the bottom. Each
- * fades out over its own lower half, so a layer ending is a soft edge rather
- * than a line across the content.
+ * Both layers are anchored under the header and run to a different depth, so
+ * they overlap towards the top and thin out to one at the bottom. Each fades
+ * out over its own lower half, so a layer ending is a soft edge rather than a
+ * line across the content.
  *
- * The tallest carries the weakest blur and reaches furthest into the content;
- * the shortest carries the strongest and stays up against the header.
+ * The taller carries the weaker blur and reaches furthest into the content;
+ * the shorter carries the stronger and stays up against the header.
  */
 .pnd-fade > span {
   position: absolute;
@@ -759,15 +763,9 @@ dialog {
 }
 
 .pnd-fade > span:nth-child(2) {
-  height: 66%;
+  height: 50%;
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
-}
-
-.pnd-fade > span:nth-child(3) {
-  height: 33%;
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
 }
 
 /*
@@ -779,15 +777,19 @@ dialog {
   position: absolute;
   inset-block-start: 0;
   inset-inline: 0;
-  height: var(--pnd-content-fade-height);
+  height: calc(var(--pnd-content-fade-height) * var(--pnd-fade-scale, 1));
   background: linear-gradient(to bottom, var(--sl-color-bg), transparent);
 }
 
 /*
- * The nav is its own scroll container, so the band over it appears only once
- * rows have gone up behind the header. Unconditionally it would sit on the
- * first row of an unscrolled rail and dim it for no reason. The header script
- * sets `data-pnd-nav-scrolled`.
+ * The nav is its own scroll container, so the band over it grows out of that
+ * scroll rather than being switched on by it: the header script writes how far
+ * the rail has gone as `--pnd-nav-progress`, 0 to 1, and both the band's height
+ * and its opacity come off that one number. At rest it has no height at all,
+ * which is what keeps it off the first row of an unscrolled rail.
+ *
+ * No transition: the value already tracks the scroll frame by frame, and
+ * easing on top of that only makes the band lag behind the rows it covers.
  */
 .pnd-nav-fade {
   display: none;
@@ -795,15 +797,12 @@ dialog {
 
 @media (min-width: 50rem) {
   :root[data-has-sidebar] .pnd-nav-fade {
+    --pnd-fade-scale: var(--pnd-nav-progress, 0);
+    --pnd-fade-opacity: var(--pnd-nav-progress, 0);
+
     display: block;
     inset-inline-start: 0;
     width: var(--pnd-sidebar-width);
-    opacity: 0;
-    transition: opacity var(--pnd-chrome-fade) ease;
-  }
-
-  :root[data-has-sidebar][data-pnd-nav-scrolled] .pnd-nav-fade {
-    opacity: 1;
   }
 }
 

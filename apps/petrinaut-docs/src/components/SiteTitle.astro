@@ -62,12 +62,10 @@ import DiffBadges from "./DiffBadges.astro";
 <div class="pnd-fade pnd-content-fade" aria-hidden="true">
   <span></span>
   <span></span>
-  <span></span>
 </div>
 
-{/* The same band over the nav, shown once the rail has been scrolled. */}
+{/* The same band over the nav, grown out of how far the rail has scrolled. */}
 <div class="pnd-fade pnd-nav-fade" aria-hidden="true">
-  <span></span>
   <span></span>
   <span></span>
 </div>
@@ -249,11 +247,15 @@ import DiffBadges from "./DiffBadges.astro";
       });
     };
 
+/** Rail scroll, in px, over which the band reaches its full height. */
+    const NAV_FADE_RAMP = 60;
+
     /*
      * The rail scrolls independently of the page, so the band over it keys off
-     * that scroll rather than the window's. Starlight restores the rail's
-     * scroll position on navigation, so the state is read once up front and
-     * not only on the first scroll event.
+     * that scroll rather than the window's, and grows with it: `chrome.css`
+     * takes both the height and the opacity from this one number. Starlight
+     * restores the rail's scroll position on navigation, so it is read once up
+     * front and not only on the first scroll event.
      */
     const watchNavScroll = () => {
       const pane = document.querySelector(".sidebar-pane");
@@ -262,12 +264,24 @@ import DiffBadges from "./DiffBadges.astro";
         return;
       }
 
-      const syncScrolled = () => {
-        root.toggleAttribute("data-pnd-nav-scrolled", pane.scrollTop > 0);
+      let frame = 0;
+
+      const write = () => {
+        frame = 0;
+        root.style.setProperty(
+          "--pnd-nav-progress",
+          String(Math.min(pane.scrollTop / NAV_FADE_RAMP, 1)),
+        );
       };
 
-      syncScrolled();
-      pane.addEventListener("scroll", syncScrolled, { passive: true });
+      // Scroll fires faster than the display refreshes, and each write
+      // invalidates the band's height.
+      const onScroll = () => {
+        frame ||= requestAnimationFrame(write);
+      };
+
+      write();
+      pane.addEventListener("scroll", onScroll, { passive: true });
     };
 
     const onReady = () => {
