@@ -337,7 +337,10 @@ export class RealtimeBrunchBridge {
       }
       return;
     }
-    if (event.type === "output-started") {
+    if (
+      event.type === "canonical-speech-requested" ||
+      event.type === "output-started"
+    ) {
       this.#outputActive = true;
       for (const itemId of this.#acceptedInputItemIds) {
         this.#playbackOverlappingInputItemIds.add(itemId);

@@ -209,6 +209,65 @@ describe("RealtimeBrunchBridge", () => {
     expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
   });
 
+  test("rejects unfinished input as soon as canonical speech is requested", async () => {
+    const harness = createHarness();
+    startReady(harness);
+
+    harness.emit({
+      connectionEpoch: 3,
+      itemId: "item-before-request",
+      type: "input-speech-started",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      speechRequestId: "speech-request",
+      type: "canonical-speech-requested",
+    });
+    harness.emit(
+      completedTranscript(
+        3,
+        "This completed before output started.",
+        "item-before-request",
+      ),
+    );
+
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+    expect(harness.events).toContainEqual({
+      reason: "unavailable",
+      type: "transcript-rejected",
+    });
+
+    harness.emit(
+      completedTranscript(
+        3,
+        "The stale item cannot recover authority.",
+        "item-before-request",
+      ),
+    );
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+
+    harness.emit({
+      connectionEpoch: 3,
+      responseId: "response-request",
+      type: "output-interrupted",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      itemId: "item-after-handoff",
+      type: "input-speech-started",
+    });
+    harness.emit(
+      completedTranscript(3, "This is fresh.", "item-after-handoff"),
+    );
+
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "This is fresh." }),
+    );
+  });
+
   test("derives stable delivery identity from epoch, item, and content index", () => {
     expect(
       createRealtimeSubmissionId(transcriptKey(12, "item/with spaces", 4)),
