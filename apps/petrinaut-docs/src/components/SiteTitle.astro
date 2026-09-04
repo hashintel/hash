@@ -60,8 +60,12 @@ import DiffBadges from "./DiffBadges.astro";
 */}
 <div class="pnd-fade pnd-content-fade" aria-hidden="true"><span></span></div>
 
-{/* The same band over the nav, grown out of how far the rail has scrolled. */}
+{/* The same band over the nav, grown out of how far the rail has scrolled, and
+    a mirrored one at its foot for whatever is still below the fold. */}
 <div class="pnd-fade pnd-nav-fade" aria-hidden="true"><span></span></div>
+<div class="pnd-fade pnd-fade-up pnd-nav-fade-bottom" aria-hidden="true">
+  <span></span>
+</div>
 
 <script is:inline>
   (() => {
@@ -248,48 +252,65 @@ import DiffBadges from "./DiffBadges.astro";
     const FADE_RAMP = 20;
 
     /**
-     * Drives one band from one scroll position. `chrome.css` takes the band's
-     * height, its tint and its opacity from this number, so at 0 there is no
-     * band and nothing under the header is touched.
+     * Drives a scroll container's bands. `chrome.css` takes each band's height,
+     * its tint and its opacity from its number, so at 0 there is no band and
+     * nothing is laid over the content.
      *
      * Read once up front as well as on scroll: the page can load part-way down
      * at an anchor, and Starlight restores the rail's scroll position on
      * navigation.
      *
      * @param {EventTarget} source
-     * @param {() => number} scrollTop
-     * @param {string} property
+     * @param {Record<string, () => number>} readings Px remaining, per property.
+     * @returns {() => void} Recomputes, for when the content changes size.
      */
-    const trackFade = (source, scrollTop, property) => {
+    const trackFade = (source, readings) => {
       let frame = 0;
 
       const write = () => {
         frame = 0;
-        root.style.setProperty(
-          property,
-          String(Math.min(scrollTop() / FADE_RAMP, 1)),
-        );
+        for (const [property, distance] of Object.entries(readings)) {
+          root.style.setProperty(
+            property,
+            String(Math.min(distance() / FADE_RAMP, 1)),
+          );
+        }
       };
 
       // Scroll fires faster than the display refreshes, and each write
-      // invalidates the band's height.
-      const onScroll = () => {
+      // invalidates a band's height.
+      const schedule = () => {
         frame ||= requestAnimationFrame(write);
       };
 
       write();
-      source.addEventListener("scroll", onScroll, { passive: true });
+      source.addEventListener("scroll", schedule, { passive: true });
+
+      return schedule;
     };
 
     const watchScrollFades = () => {
       const pane = document.querySelector(".sidebar-pane");
 
       if (pane) {
-        // The rail scrolls independently of the page, so it reads its own top.
-        trackFade(pane, () => pane.scrollTop, "--pnd-nav-progress");
+        // The rail scrolls independently of the page, so it reads its own
+        // position: what has gone above the fold, and what is left below it.
+        const refresh = trackFade(pane, {
+          "--pnd-nav-progress": () => pane.scrollTop,
+          "--pnd-nav-end-progress": () =>
+            pane.scrollHeight - pane.scrollTop - pane.clientHeight,
+        });
+
+        // Opening a group changes how much is left below the fold without
+        // scrolling anything, so the foot band has to be recomputed then too.
+        const content = pane.querySelector(".sidebar-content");
+
+        if (content) {
+          new ResizeObserver(refresh).observe(content);
+        }
       }
 
-      trackFade(window, () => window.scrollY, "--pnd-content-progress");
+      trackFade(window, { "--pnd-content-progress": () => window.scrollY });
     };
 
     const onReady = () => {
