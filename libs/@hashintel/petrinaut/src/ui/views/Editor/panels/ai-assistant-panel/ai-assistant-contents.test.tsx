@@ -44,6 +44,10 @@ vi.mock("react-markdown", async (importOriginal) => {
 });
 
 const noop = () => {};
+const initialClipboardDescriptor = Object.getOwnPropertyDescriptor(
+  navigator,
+  "clipboard",
+);
 
 // The voice ribbon asks for a 2D context on mount. jsdom has no canvas, and
 // answering with `null` takes the same branch a browser without one would,
@@ -64,14 +68,28 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   vi.useRealTimers();
+  if (initialClipboardDescriptor === undefined) {
+    Reflect.deleteProperty(navigator, "clipboard");
+  } else {
+    Object.defineProperty(navigator, "clipboard", initialClipboardDescriptor);
+  }
 });
 
 describe("AiAssistantContents", () => {
   test("shows assistant errors as toasts instead of transcript messages", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
     render(
       <NotificationsProvider>
         <AiAssistantContents
-          error={new Error("Failed to fetch")}
+          error={
+            new Error(
+              'Elicitor failed.\nCaused by: {"field":"answer","reason":"Required"}',
+            )
+          }
           input=""
           messages={[]}
           onClose={noop}
@@ -84,18 +102,39 @@ describe("AiAssistantContents", () => {
     );
 
     const toast = await waitFor(() => {
-      const element = document.querySelector(
+      const element = document.querySelector<HTMLElement>(
         '[data-scope="toast"][data-part="root"]',
       );
       expect(element).not.toBeNull();
       return element!;
     });
-    expect(toast.textContent).toBe("Failed to fetch");
+    expect(
+      toast.querySelector('[data-scope="toast"][data-part="title"]')
+        ?.textContent,
+    ).toBe("AI assistant error");
+    expect(
+      toast.querySelector('[data-scope="toast"][data-part="description"]')
+        ?.textContent,
+    ).toBe(
+      'Elicitor failed.\nCaused by: {"field":"answer","reason":"Required"}',
+    );
+    fireEvent.click(
+      within(toast).getByRole("button", { name: "Copy details" }),
+    );
+    expect(writeText).toHaveBeenCalledWith(
+      'Elicitor failed.\nCaused by: {"field":"answer","reason":"Required"}',
+    );
     expect(
       within(screen.getByTestId("ai-transcript")).queryByText(
-        "Failed to fetch",
+        "AI assistant error",
       ),
     ).toBeNull();
+    fireEvent.click(
+      within(toast).getByRole("button", { name: "Close notification" }),
+    );
+    await waitFor(() =>
+      expect(toast.getAttribute("data-state")).toBe("closed"),
+    );
   });
 
   test("keeps one Voice mode slot mounted above the composer when the panel closes", () => {
@@ -145,7 +184,7 @@ describe("AiAssistantContents", () => {
     expect(voiceModeUnmounts).toBe(0);
   });
 
-  test("swaps the composer for the dock while a session runs, and defers its spoken turns", () => {
+  test("shows spoken turns live and collapses an active session without unmounting the panel", () => {
     const store = createVoiceSessionStore();
     const actions = {
       end: vi.fn(),
@@ -178,6 +217,7 @@ describe("AiAssistantContents", () => {
           onStop={noop}
           onSubmit={noop}
           status="ready"
+          voiceMode={<div>Host Voice controls</div>}
         />
       </VoiceSessionContext.Provider>
     );
@@ -213,29 +253,44 @@ describe("AiAssistantContents", () => {
       ] as PetrinautAiMessage[]),
     );
 
-    expect(screen.queryByText("Spoken request")).toBeNull();
-    expect(screen.queryByText("Spoken reply")).toBeNull();
-    expect(screen.getByText("Typed aside")).not.toBeNull();
-
-    // The dock's transcription action writes the held turns into the chat
-    // mid-session, and holds them back again when it is turned off.
-    fireEvent.click(
-      within(dock).getByRole("button", { name: "Show transcription in chat" }),
-    );
     expect(screen.getByText("Spoken request")).not.toBeNull();
     expect(screen.getByText("Spoken reply")).not.toBeNull();
-    expect(screen.queryByText("Voice session · 1 turn")).toBeNull();
+    expect(screen.getByText("Typed aside")).not.toBeNull();
+
+    const transcript = screen.getByTestId("ai-transcript");
+    const voiceMode = screen.getByTestId("ai-voice-mode");
+    const header = screen
+      .getByRole("button", { name: "Close AI assistant" })
+      .closest("div")!;
 
     fireEvent.click(
-      within(dock).getByRole("button", { name: "Hide transcription in chat" }),
+      within(dock).getByRole("button", { name: "Collapse voice session" }),
     );
-    expect(screen.queryByText("Spoken request")).toBeNull();
+
+    expect(screen.getByTestId("ai-transcript")).toBe(transcript);
+    expect(screen.getByTestId("ai-voice-mode")).toBe(voiceMode);
+    expect(
+      screen
+        .getByRole("button", { name: "Close AI assistant", hidden: true })
+        .closest("div"),
+    ).toBe(header);
+    expect(transcript.className).toContain("d_none");
+    expect(voiceMode.className).toContain("d_none");
+    expect(header.className).toContain("d_none");
+
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "Expand voice session" }),
+    );
+
+    expect(transcript.className).not.toContain("d_none");
+    expect(voiceMode.className).not.toContain("d_none");
+    expect(header.className).not.toContain("d_none");
+    expect(screen.getByText("Spoken request")).not.toBeNull();
 
     act(() => store.setState(null));
 
     expect(screen.getByText("Spoken request")).not.toBeNull();
     expect(screen.getByText("Spoken reply")).not.toBeNull();
-    expect(screen.getByText("Voice session · 1 turn")).not.toBeNull();
     expect(screen.queryByRole("region", { name: "Voice session" })).toBeNull();
     expect(
       screen.getByRole("textbox", { name: "Message AI assistant" }),
@@ -383,15 +438,16 @@ describe("AiAssistantContents", () => {
     );
 
     const toast = await waitFor(() => {
-      const element = document.querySelector(
+      const element = document.querySelector<HTMLElement>(
         '[data-scope="toast"][data-part="root"]',
       );
       expect(element).not.toBeNull();
       return element!;
     });
-    expect(toast.textContent).toBe(
-      "Microphone unavailable. Check your browser permissions.",
-    );
+    expect(
+      toast.querySelector('[data-scope="toast"][data-part="title"]')
+        ?.textContent,
+    ).toBe("Microphone unavailable. Check your browser permissions.");
   });
 
   test("does not repeat a voice error toast until the session recovers", () => {
@@ -1674,7 +1730,7 @@ describe("AiAssistantContents", () => {
     expect(screen.getByRole("button", { name: /2 changes/u })).not.toBeNull();
   });
 
-  test("labels failed tool calls as errored", () => {
+  test("shows failed tool-call errors inline", () => {
     const messages: PetrinautAiMessage[] = [
       {
         id: "assistant-1",
@@ -1705,9 +1761,11 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: /deleteItemsByIds errored/u }),
-    ).not.toBeNull();
+    const tool = screen.getByRole("button", {
+      name: /Validation failed.*deleteItemsByIds/u,
+    });
+    expect(tool).not.toBeNull();
+    expect(tool.getAttribute("title")).toBeNull();
   });
 
   test("expands deleted item summaries", () => {

@@ -18,7 +18,6 @@ import {
 import { aiFooterMinHeight } from "./footer-height";
 import { MicrophoneIcon } from "./voice-dock/microphone-icon";
 import { VoicePlaybackMenu } from "./voice-dock/playback-menu";
-import { TranscriptionIcon } from "./voice-dock/transcription-icon";
 
 import type { VoiceSessionActions } from "../../../../../../react/voice-session/store";
 import type { PetrinautAiVoiceSessionPhase } from "../../../../../types/ai-assistant-composer-control";
@@ -108,37 +107,34 @@ export type VoiceDockProps = {
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
   canTakeTurn: boolean;
+  collapsed: boolean;
   /** Rendered instead of the live indicator when the caller supplies one. */
   indicator?: ReactNode;
   microphoneMuted: boolean;
   notice: string | null;
-  onTranscriptionToggle: () => void;
+  onCollapsedToggle: () => void;
   phase: PetrinautAiVoiceSessionPhase;
-  /** Whether spoken turns are currently written into the conversation live. */
-  transcriptionShown: boolean;
 };
 
 /**
  * The live Voice surface inside the assistant panel: one ribbon and the
- * session's controls, standing in for the composer while a session runs. Words
- * belong to the conversation above, which the transcription action shows or
- * holds back until the session ends.
+ * session's controls, standing in for the composer while a session runs.
  */
 export const VoiceDock = ({
   actions,
   canReadFullResponse,
   canRepeatQuestion,
   canTakeTurn,
+  collapsed,
   indicator,
   microphoneMuted,
   notice,
-  onTranscriptionToggle,
+  onCollapsedToggle,
   phase,
-  transcriptionShown,
 }: VoiceDockProps) => {
-  const transcriptionLabel = transcriptionShown
-    ? "Hide transcription in chat"
-    : "Show transcription in chat";
+  const collapseLabel = collapsed
+    ? voiceSessionActionLabels.expand
+    : voiceSessionActionLabels.collapse;
   const microphoneLabel = microphoneMuted
     ? voiceSessionActionLabels.unmute
     : voiceSessionActionLabels.mute;
@@ -155,12 +151,12 @@ export const VoiceDock = ({
         {actions !== null && (
           <>
             <Button
-              aria-label={transcriptionLabel}
-              onClick={onTranscriptionToggle}
-              prefix={<TranscriptionIcon />}
-              pressed={transcriptionShown}
+              aria-expanded={!collapsed}
+              aria-label={collapseLabel}
+              iconName={collapsed ? "chevronUp" : "chevronDown"}
+              onClick={onCollapsedToggle}
               size="sm"
-              tooltip={transcriptionLabel}
+              tooltip={collapseLabel}
               type="button"
               variant="ghost"
             />
@@ -256,11 +252,11 @@ export const VoiceDock = ({
 
 /** Reads the session straight from the store so the panel re-renders less. */
 export const LiveVoiceDock = ({
-  onTranscriptionToggle,
-  transcriptionShown,
+  collapsed,
+  onCollapsedToggle,
 }: {
-  onTranscriptionToggle: () => void;
-  transcriptionShown: boolean;
+  collapsed: boolean;
+  onCollapsedToggle: () => void;
 }) => {
   const actions = useVoiceSessionActions();
   const canReadFullResponse = useVoiceSessionCanReadFullResponse();
@@ -280,11 +276,11 @@ export const LiveVoiceDock = ({
       canReadFullResponse={canReadFullResponse}
       canRepeatQuestion={canRepeatQuestion}
       canTakeTurn={canTakeTurn}
+      collapsed={collapsed}
       microphoneMuted={microphoneMuted}
       notice={notice}
-      onTranscriptionToggle={onTranscriptionToggle}
+      onCollapsedToggle={onCollapsedToggle}
       phase={phase}
-      transcriptionShown={transcriptionShown}
     />
   );
 };

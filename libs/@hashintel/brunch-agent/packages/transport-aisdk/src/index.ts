@@ -2,6 +2,7 @@ import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { getToolName, isToolUIPart } from "ai";
 
 import { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
+import { serializeErrorText } from "./error-text";
 import { createFlueUiStream } from "./ui-stream";
 
 import type { AgentSendResult, DeliveredMessage, FlueClient } from "@flue/sdk";
@@ -222,7 +223,7 @@ const streamFailureChunk = (
       error instanceof FlueExecutionError &&
       error.failure === "terminal_event_missing"
         ? "The chat stream ended before the turn settled."
-        : "The chat turn failed.",
+        : serializeErrorText(error),
   };
 };
 

@@ -22,7 +22,7 @@ While a response is streaming you can:
 The application embedding Petrinaut may place an additional control beside the message box. For example, a host can offer another way to enter finalized text. Text submitted by that control behaves like text sent with the keyboard: it joins the same conversation and, when an inline question is waiting for an answer, completes that question rather than starting an unrelated message. A host can explicitly submit a separate message instead when the text is a correction or other follow-up that must not answer the pending question.
 If the host offers voice input, only a finalized transcript captured while Voice owns the input turn can be submitted. Voice waits while an existing response finishes or yields through the host's handoff control.
 
-If an assistant request fails, Petrinaut shows the error in a brief toast rather than adding it to the conversation. Retry from the composer when the assistant is ready.
+If an assistant request fails, Petrinaut shows the complete error in a persistent toast rather than adding it to the conversation. Long errors wrap, diagnostic details can be copied, and the toast stays open until you close it. Retry from the composer when the assistant is ready.
 
 Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio. Voice markers attached to client-tool results survive that history. A direct spoken user message remains in the transcript after reopening, but its **Voice** chip may not be restored by the current Brunch host.
 
@@ -46,12 +46,10 @@ flicker above the line. While the assistant speaks the ribbon takes on a restrai
 motion instead, colour crossfading as the turn changes hands, so which side holds it is readable at a
 glance. It flattens to near a line whenever nobody holds the turn.
 
-The conversation itself stays still. Spoken turns are written to it as they happen, because that is
-what runs the tools that edit the net, but they stay hidden until the session ends rather than
-scrolling the transcript mid-sentence. **Show transcription in chat** lets them through as they land
-instead; turning it off holds them back again, and it starts off with each session. Two things are
-never held back either way: anything you typed, and any inline question waiting for your answer. When
-the session ends, the held turns appear together under a **Voice session · N turns** divider. Only
+Spoken turns appear in the conversation as soon as their finalized text arrives, so the transcript
+stays current while the session runs and tools that edit the net remain visible. Select **Collapse
+voice session** to reduce the panel to the Voice dock alone; this hides the AI header, transcript, and
+host Voice region without ending the session. Select **Expand voice session** to restore them. Only
 finalized answers and canonical Brunch text become chat history; provisional transcription and
 Realtime audio are ephemeral. Finalized spoken user messages carry a small **Voice** chip in front of
 the words themselves, and the exact inline answer completed by speech carries the same chip, so Voice
@@ -66,8 +64,9 @@ there is no required done-speaking action. Duplicate, empty, failed, or unavaila
 not submitted; the dock asks you to try again. An overlong answer instead asks for a shorter response.
 Provisional words remain display-only until the provider completes their transcript.
 
-Every session control lives in the dock: **Show transcription in chat** and **Voice playback
-options** on the left, and the available handoff, microphone, recovery, and end actions on the right.
+Every session control lives in the dock: **Collapse voice session** / **Expand voice session** and
+**Voice playback options** on the left, and the available handoff, microphone, recovery, and end
+actions on the right.
 **Read full response** becomes available after the matching response and speech have both finished
 and replays every exact retained canonical segment in order. **Repeat question** uses the same
 availability gates and replays only exact question text explicitly marked by Brunch. It stays
@@ -88,8 +87,8 @@ ready. **Clear AI chat** is unavailable while a Voice
 session is active.
 
 If voice cannot continue, the status reads **Voice interrupted** and the actionable error arrives as
-a toast that names the microphone, connection, or Voice failure in one sentence, followed by any
-diagnostic reference in parentheses. **Reconnect voice mode** replaces the microphone action until
+a persistent toast that names the microphone, connection, or Voice failure in one sentence, followed
+by any diagnostic reference in parentheses. **Reconnect voice mode** replaces the microphone action until
 the session recovers. For microphone permission or device errors, allow access or connect/select a
 microphone before reconnecting. For an interrupted request, network error, or timeout, check the
 connection and reconnect. If the preview is unavailable, continue with the text composer. An invalid
@@ -102,7 +101,7 @@ When no interview is active and the host permits clearing, **Clear AI chat** via
 
 ## What the assistant can do
 
-The assistant has tools for inspecting and modifying the current net. You'll see one card per tool call inline in the conversation:
+The assistant has tools for inspecting and modifying the current net. You'll see one card per tool call inline in the conversation. A failed tool card leads with its complete error instead of hiding it behind a hover tooltip:
 
 - **Read tools** (neutral, expandable) –– for checking the current net state and active Petrinaut extensions at any point, for compilation errors, and for reading the user guide.
 - **Mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive mutations group under a collapsible "N changes" header.
