@@ -1,12 +1,23 @@
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
+import type { AgentSendResult, FlueConversationSettlement } from "@flue/sdk";
+import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
+import type {
+  PetrinautAiComposerSubmitTextResult,
+  PetrinautAiVoiceModeContext,
+} from "@hashintel/petrinaut/ui";
 
-type ChatStatus = "ready" | "submitted" | "streaming" | "error";
+export type VoiceSubmissionSettlement = Pick<
+  FlueConversationSettlement,
+  "outcome" | "submissionId"
+>;
 
 interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
-  readonly status: ChatStatus;
+  /** Flue's settlement index: the only witness that a turn ended short of a reply. */
+  readonly settlements?: readonly VoiceSubmissionSettlement[];
+  readonly status: PetrinautAiVoiceModeContext["status"];
 }
 
 interface RealtimeBridgeSession {
@@ -14,18 +25,37 @@ interface RealtimeBridgeSession {
     callId: string,
     segments: CanonicalSpeechSegment[],
   ): void;
+  completeFunctionCallWithoutResponse(
+    callId: string,
+    outcome: Exclude<VoiceSubmissionSettlement["outcome"], "completed">,
+  ): void;
   speakCanonical(segments: CanonicalSpeechSegment[]): void;
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
 }
 
-interface SubmitInterviewAnswerInput {
+type SubmitVoiceInput = Parameters<
+  PetrinautAiVoiceModeContext["submitVoiceInput"]
+>[0];
+type FlueChatAdmission = Parameters<
+  NonNullable<FlueChatTransportOptions["onAdmission"]>
+>[0];
+export type RealtimeBrunchAdmissionTarget = Pick<
+  FlueChatAdmission,
+  "kind" | "messageId"
+>;
+
+type SubmitInterviewAnswerInput = Pick<SubmitVoiceInput, "text"> & {
+  readonly admissionTarget: RealtimeBrunchAdmissionTarget;
   readonly id: string;
-  readonly text: string;
-}
+  readonly onAdmission: (submissionId: AgentSendResult["submissionId"]) => void;
+  readonly signal: AbortSignal;
+};
 
 type SubmitInterviewAnswerResult =
-  | { readonly kind: "interactive-tool"; readonly toolCallId: string }
-  | { readonly kind: "message"; readonly messageId: string };
+  | Extract<PetrinautAiComposerSubmitTextResult, { kind: "interactive-tool" }>
+  | (Extract<PetrinautAiComposerSubmitTextResult, { kind: "message" }> & {
+      readonly submissionId?: AgentSendResult["submissionId"];
+    });
 
 interface RealtimeBrunchBridgeDependencies {
   readonly session: RealtimeBridgeSession;
@@ -35,12 +65,16 @@ interface RealtimeBrunchBridgeDependencies {
 }
 
 interface ActiveSubmission {
+  readonly abortController: AbortController;
   readonly baselineSegmentIds: ReadonlySet<string>;
   readonly callId: string;
   readonly epoch: number;
   readonly pendingQuestionId: string | null;
+  readonly pendingQuestionMessageId: string | null;
   correlated: boolean;
+  firstTextEmitted: boolean;
   sawBusyChatStatus: boolean;
+  submissionId: AgentSendResult["submissionId"] | null;
 }
 
 interface ArgumentStream {
@@ -67,8 +101,29 @@ export type RealtimeBrunchBridgeEvent =
     }
   | {
       readonly callId: string;
+      readonly submissionId: AgentSendResult["submissionId"];
+      readonly type: "submission-admitted";
+    }
+  | {
+      readonly callId: string;
       readonly segments: CanonicalSpeechSegment[];
       readonly type: "canonical-response-ready";
+    }
+  | {
+      readonly callId: string;
+      readonly type: "canonical-text-ready";
+    }
+  | {
+      readonly callId: string;
+      readonly type: "submission-settled";
+    }
+  | {
+      readonly callId: string;
+      readonly outcome: Exclude<
+        VoiceSubmissionSettlement["outcome"],
+        "completed"
+      >;
+      readonly type: "submission-stopped";
     }
   | {
       readonly code: RealtimeBridgeErrorCode;
@@ -146,6 +201,7 @@ export class RealtimeBrunchBridge {
 
   public start(connectionEpoch: number): void {
     ++this.#generation;
+    this.#activeSubmission?.abortController.abort();
     this.#activeEpoch = connectionEpoch;
     this.#activeSubmission = null;
     this.#argumentDeltas.clear();
@@ -168,6 +224,7 @@ export class RealtimeBrunchBridge {
 
   public stop(): void {
     ++this.#generation;
+    this.#activeSubmission?.abortController.abort();
     this.#activeEpoch = null;
     this.#activeSubmission = null;
     this.#argumentDeltas.clear();
@@ -224,6 +281,7 @@ export class RealtimeBrunchBridge {
     code: RealtimeBridgeErrorCode = "interview-correlation",
   ): void {
     ++this.#generation;
+    this.#activeSubmission?.abortController.abort();
     this.#activeSubmission = null;
     this.#argumentDeltas.clear();
     this.#emit({ code, message, type: "error" });
@@ -315,14 +373,18 @@ export class RealtimeBrunchBridge {
 
     const generation = this.#generation;
     this.#activeSubmission = {
+      abortController: new AbortController(),
       baselineSegmentIds: new Set(
         this.#chat.canonicalSegments.map(({ id }) => id),
       ),
       callId: event.callId,
       correlated: false,
       epoch: event.connectionEpoch,
+      firstTextEmitted: false,
       pendingQuestionId: question?.partId ?? null,
+      pendingQuestionMessageId: question?.messageId ?? null,
       sawBusyChatStatus: false,
+      submissionId: null,
     };
     this.#emit({ answer, callId: event.callId, type: "submission-started" });
     void this.#submit(event, answer, generation);
@@ -353,8 +415,45 @@ export class RealtimeBrunchBridge {
     generation: number,
   ): Promise<void> {
     try {
+      const activeAtSubmission = this.#activeSubmission;
+      if (!activeAtSubmission) return;
+      const voiceMessageId = createRealtimeSubmissionId(
+        event.connectionEpoch,
+        event.callId,
+      );
       const result = await this.#submitInterviewAnswer({
-        id: createRealtimeSubmissionId(event.connectionEpoch, event.callId),
+        admissionTarget:
+          activeAtSubmission.pendingQuestionMessageId === null
+            ? { kind: "user", messageId: voiceMessageId }
+            : {
+                kind: "client-tool-result",
+                messageId: activeAtSubmission.pendingQuestionMessageId,
+              },
+        id: voiceMessageId,
+        onAdmission: (submissionId) => {
+          const active = this.#activeSubmission;
+          if (
+            generation !== this.#generation ||
+            !active ||
+            active.callId !== event.callId ||
+            active.epoch !== event.connectionEpoch
+          ) {
+            return;
+          }
+          if (active.submissionId !== null) {
+            if (active.submissionId !== submissionId) {
+              this.#fail(INVALID_BRIDGE_EVENT);
+            }
+            return;
+          }
+          active.submissionId = submissionId;
+          this.#emit({
+            callId: event.callId,
+            submissionId,
+            type: "submission-admitted",
+          });
+        },
+        signal: activeAtSubmission.abortController.signal,
         text: answer,
       });
       const active = this.#activeSubmission;
@@ -375,6 +474,17 @@ export class RealtimeBrunchBridge {
         this.#fail(INVALID_BRIDGE_EVENT);
         return;
       }
+      const resultSubmissionId =
+        result.kind === "message" ? (result.submissionId ?? null) : null;
+      if (
+        active.submissionId !== null &&
+        resultSubmissionId !== null &&
+        active.submissionId !== resultSubmissionId
+      ) {
+        this.#fail(INVALID_BRIDGE_EVENT);
+        return;
+      }
+      active.submissionId ??= resultSubmissionId;
       active.correlated = true;
       this.#emit({
         answer,
@@ -394,20 +504,34 @@ export class RealtimeBrunchBridge {
 
   #completeCorrelatedSubmission(): void {
     const active = this.#activeSubmission;
-    if (
-      !active?.correlated ||
-      !active.sawBusyChatStatus ||
-      this.#chat.status !== "ready"
-    ) {
+    if (!active?.correlated || !active.sawBusyChatStatus) {
       return;
     }
+    // A reply may be written by the admitted submission itself or by a
+    // client-tool continuation projected onto the same message, and an ask
+    // follow-up writes into the message that asked; so match membership and
+    // exclude only what was already there when this answer was submitted.
     const responseSegments = this.#chat.canonicalSegments.filter(
-      ({ id }) => !active.baselineSegmentIds.has(id),
+      (segment) =>
+        !active.baselineSegmentIds.has(segment.id) &&
+        (active.submissionId === null ||
+          (segment.submissionIds?.includes(active.submissionId) ?? false)),
     );
+    if (responseSegments.length > 0 && !active.firstTextEmitted) {
+      // Completed canonical text can land while the turn is still streaming;
+      // record that instant separately from settlement.
+      active.firstTextEmitted = true;
+      this.#emit({ callId: active.callId, type: "canonical-text-ready" });
+    }
+    if (this.#chat.status !== "ready") {
+      return;
+    }
     if (responseSegments.length === 0) {
+      this.#completeStoppedSubmission(active);
       return;
     }
 
+    this.#emit({ callId: active.callId, type: "submission-settled" });
     try {
       this.#session.completeFunctionCall(active.callId, responseSegments);
     } catch {
@@ -422,6 +546,38 @@ export class RealtimeBrunchBridge {
       callId: active.callId,
       segments: responseSegments,
       type: "canonical-response-ready",
+    });
+  }
+
+  /**
+   * A turn that settled short of a reply leaves no canonical text behind. Only
+   * Flue's settlement index distinguishes it from a turn still in progress or
+   * a completed step whose client-tool follow-up the panel is about to send,
+   * so wait for that record and never treat silence alone as a stop.
+   */
+  #completeStoppedSubmission(active: ActiveSubmission): void {
+    if (active.submissionId === null) return;
+    const settlement = this.#chat.settlements?.find(
+      ({ submissionId }) => submissionId === active.submissionId,
+    );
+    if (settlement === undefined || settlement.outcome === "completed") {
+      return;
+    }
+    this.#emit({ callId: active.callId, type: "submission-settled" });
+    try {
+      this.#session.completeFunctionCallWithoutResponse(
+        active.callId,
+        settlement.outcome,
+      );
+    } catch {
+      this.#fail(INVALID_BRIDGE_EVENT);
+      return;
+    }
+    this.#activeSubmission = null;
+    this.#emit({
+      callId: active.callId,
+      outcome: settlement.outcome,
+      type: "submission-stopped",
     });
   }
 }

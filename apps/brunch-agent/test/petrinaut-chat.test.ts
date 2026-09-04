@@ -10,11 +10,10 @@ import type {
   PetrinautChatResult,
   PetrinautResumeResult,
 } from "./petrinaut-chat-result";
-import type { TransportInspectionEvent } from "@hashintel/brunch-agent-transport-aisdk";
 
 const testDirectory = import.meta.dirname;
 
-test("the committed /api/chat door streams a plain Flue agent through server and client tools", async () => {
+test("the browser transport streams the mounted Flue agent through server and client tools", async () => {
   const dbDirectory = await mkdtemp(join(tmpdir(), "brunch-chat-"));
   const dbPath = join(dbDirectory, "conversations.db");
 
@@ -26,15 +25,6 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     );
 
     expect(exitCode, stderr || stdout).toBe(0);
-    const inspectionLines = stdout
-      .split("\n")
-      .filter((line) => line.startsWith("TRANSPORT_AISDK "))
-      .map(
-        (line) =>
-          JSON.parse(
-            line.slice("TRANSPORT_AISDK ".length),
-          ) as TransportInspectionEvent,
-      );
     const resultLine = stdout
       .split("\n")
       .find((line) => line.startsWith("PETRINAUT_CHAT_RESULT "));
@@ -82,8 +72,6 @@ test("the committed /api/chat door streams a plain Flue agent through server and
       type: "finish",
       finishReason: "stop",
     });
-    expect(result.retriedStatus).toBe(200);
-    expect(result.retriedResumeStatus).toBe(200);
     expect(result.historyUserEntryCount).toBe(1);
     expect(result.historyClientToolResultCount).toBe(1);
 
@@ -91,7 +79,7 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     expect(result.historyUserText).toContain(
       "Run the FE-1435 transport probe.",
     );
-    expect(result.foreignHistoryMessages).toBe(0);
+    expect(result.legacyRouteStatus).toBe(404);
     expect(result.unauthenticatedHistoryStatus).toBe(401);
     expect(result.foreignAgentHistoryStatus).toBe(403);
     expect(result.transcript).toContain("Run the FE-1435 transport probe.");
@@ -142,41 +130,6 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     expect(result.captureUserText).toContain(
       "Run the FE-1435 transport probe.",
     );
-
-    expect(inspectionLines[0]).toMatchObject({
-      type: "request-start",
-      requestId: "request-mission-1",
-    });
-    expect(inspectionLines.some((event) => event.type === "resume-start")).toBe(
-      true,
-    );
-    expect(
-      inspectionLines.filter((event) => event.type === "request-finish"),
-    ).toEqual([
-      {
-        type: "request-finish",
-        requestId: "request-mission-1",
-        terminal: "completed",
-      },
-      {
-        type: "request-finish",
-        requestId: "request-mission-1-resume",
-        terminal: "completed",
-      },
-      {
-        type: "request-finish",
-        requestId: "request-mission-1-resume-retry",
-        terminal: "completed",
-      },
-      {
-        type: "request-finish",
-        requestId: "request-mission-1-retry",
-        terminal: "completed",
-      },
-    ]);
-    expect(
-      inspectionLines.filter((event) => event.type === "history-read"),
-    ).toHaveLength(3);
 
     const resumed = await runNodeScript(
       join(testDirectory, "petrinaut-chat.integration.ts"),

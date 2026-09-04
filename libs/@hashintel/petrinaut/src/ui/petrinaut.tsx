@@ -45,7 +45,11 @@ import type {
 
 export type PetrinautAiChatTransport = PetrinautAiTransport;
 
+export type PetrinautAiStopResult = "already-settled" | "stop-requested";
+
 export type PetrinautAiAssistant = {
+  /** Whether the panel may clear this conversation. Defaults to true. */
+  canClearMessages?: boolean;
   /** Optional host-owned identity; `useChat` generates one when omitted. */
   conversationId?: string;
   /** Host-owned dynamic tools that render inline in the AI conversation. */
@@ -53,6 +57,11 @@ export type PetrinautAiAssistant = {
   messages?: PetrinautAiMessage[];
   onClearMessages?: () => void;
   onMessages?: (messages: PetrinautAiMessage[]) => void;
+  /**
+   * Requests a host-owned durable stop. When omitted, Stop only cancels the
+   * panel's local response stream.
+   */
+  requestStop?: () => Promise<PetrinautAiStopResult>;
   /** Render a host-owned control inside the assistant composer. */
   renderComposerControl?: PetrinautAiComposerControl;
   /** Render one persistent, provider-neutral Voice mode. */

@@ -1,14 +1,117 @@
+import { createFlueChatTransport } from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
+import { brunchClientToolNames } from "./brunch-client-tools";
 
 import type {
   SweepCapture,
   SweepCompletionFailure,
   SweepCompletionReport,
 } from "../brunch-sweep-output";
+import type { AgentSendResult, FlueClient } from "@flue/sdk";
+import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
 import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type { UIMessageChunk } from "ai";
+
+export type BrunchPanelAdmission = Parameters<
+  NonNullable<FlueChatTransportOptions["onAdmission"]>
+>[0];
+export type BrunchPanelAdmissionTarget = Pick<
+  BrunchPanelAdmission,
+  "kind" | "messageId"
+>;
+
+export class BrunchPanelConversationTracker {
+  readonly #admissionSubscriptions = new Set<{
+    readonly listener: (admission: BrunchPanelAdmission) => void;
+    readonly target: BrunchPanelAdmissionTarget;
+  }>();
+  readonly #inFlightSubmissions = new Set<Promise<unknown>>();
+  readonly #inputSubmissions = new Map<
+    string,
+    AgentSendResult["submissionId"]
+  >();
+  readonly #responseSubmissions = new Map<
+    string,
+    AgentSendResult["submissionId"][]
+  >();
+
+  public recordAdmission(admission: BrunchPanelAdmission): void {
+    if (admission.kind === "user") {
+      this.#inputSubmissions.set(
+        admission.messageId,
+        admission.admission.submissionId,
+      );
+    }
+    for (const subscription of this.#admissionSubscriptions) {
+      if (
+        subscription.target.kind === admission.kind &&
+        subscription.target.messageId === admission.messageId
+      ) {
+        this.#admissionSubscriptions.delete(subscription);
+        subscription.listener(admission);
+      }
+    }
+  }
+
+  /**
+   * A client-tool continuation is projected onto the assistant message it
+   * resumes, so one message can be written by several submissions. Keep them
+   * all: Voice correlates a reply by membership, whichever side admitted the
+   * continuation.
+   */
+  public recordResponse(
+    messageId: string,
+    submissionId: AgentSendResult["submissionId"],
+  ): void {
+    const recorded = this.#responseSubmissions.get(messageId);
+    if (recorded === undefined) {
+      this.#responseSubmissions.set(messageId, [submissionId]);
+    } else if (!recorded.includes(submissionId)) {
+      recorded.push(submissionId);
+    }
+  }
+
+  /**
+   * Resolves once every submission currently between `send()` and its
+   * admission has been admitted or rejected, so a conversation-wide abort
+   * issued afterwards has a settled target rather than racing the admission.
+   */
+  public settleInFlightSubmissions(): Promise<void> {
+    return Promise.allSettled(this.#inFlightSubmissions).then(() => undefined);
+  }
+
+  public trackSubmission<T>(submission: Promise<T>): Promise<T> {
+    this.#inFlightSubmissions.add(submission);
+    const release = (): void => {
+      this.#inFlightSubmissions.delete(submission);
+    };
+    submission.then(release, release);
+    return submission;
+  }
+
+  public submissionForInput(
+    messageId: string,
+  ): AgentSendResult["submissionId"] | undefined {
+    return this.#inputSubmissions.get(messageId);
+  }
+
+  public submissionsForResponse(
+    messageId: string,
+  ): readonly AgentSendResult["submissionId"][] | undefined {
+    return this.#responseSubmissions.get(messageId);
+  }
+
+  public subscribeToAdmission(
+    target: BrunchPanelAdmissionTarget,
+    listener: (admission: BrunchPanelAdmission) => void,
+  ): () => void {
+    const subscription = { listener, target };
+    this.#admissionSubscriptions.add(subscription);
+    return () => this.#admissionSubscriptions.delete(subscription);
+  }
+}
 
 const formatFailure = (failure: SweepCompletionFailure): string => {
   const location =
@@ -126,26 +229,30 @@ const decorateBrunchStream = (
   );
 };
 
-/**
- * Pin Petrinaut's stock transport to one stable conversation id so reload,
- * client-tool follow-up, and the voice dock share Flue's conversation.
- */
+/** Adapt one mounted Flue conversation to Petrinaut's AI SDK rendering contract. */
 export const createBrunchPanelTransport = (
-  transport: PetrinautAiChatTransport,
-  conversationId: string,
-): PetrinautAiChatTransport => ({
-  reconnectToStream: async (options) => {
-    const stream = await transport.reconnectToStream({
-      ...options,
-      chatId: conversationId,
-    });
-    return stream === null ? null : decorateBrunchStream(stream);
+  clientPromise: Promise<FlueClient>,
+  tracker: BrunchPanelConversationTracker,
+  hooks?: {
+    readonly onAdmission?: (admission: AgentSendResult) => void;
   },
-  sendMessages: async (options) =>
-    decorateBrunchStream(
-      await transport.sendMessages({
-        ...options,
-        chatId: conversationId,
-      }),
+): PetrinautAiChatTransport => ({
+  reconnectToStream: async () => null,
+  sendMessages: (sendOptions) =>
+    tracker.trackSubmission(
+      (async () => {
+        const client = await clientPromise;
+        const transport = createFlueChatTransport({
+          client,
+          clientToolNames: brunchClientToolNames,
+          onAdmission: (event) => {
+            tracker.recordAdmission(event);
+            hooks?.onAdmission?.(event.admission);
+          },
+          onResponseMessage: ({ messageId, submissionId }) =>
+            tracker.recordResponse(messageId, submissionId),
+        });
+        return decorateBrunchStream(await transport.sendMessages(sendOptions));
+      })(),
     ),
 });

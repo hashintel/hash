@@ -1,13 +1,8 @@
-/** Project Flue live conversation chunks into AI SDK UI-message-stream chunks. */
-
-import { type ConversationStreamChunk } from "@flue/sdk";
-
-import { providerExecutedFor } from "./client-tools.ts";
-
+import type { AgentSendResult, ConversationStreamChunk } from "@flue/sdk";
 import type { UIMessageChunk } from "ai";
 
 export interface FlueUiStreamOptions {
-  readonly submissionId: string;
+  readonly submissionId: AgentSendResult["submissionId"];
   readonly clientToolNames: ReadonlySet<string>;
   readonly write: (chunk: UIMessageChunk) => void;
 }
@@ -109,9 +104,6 @@ export const createFlueUiStream = (
         case "conversation-reset":
         case "message-appended":
         case "stream-checkpoint":
-          // Observe/reconnect machinery, not assistant-message content. This
-          // projector emits one AI SDK assistant message for one Flue
-          // submission; these chunks are not parts of that message.
           return;
         case "message-delta": {
           if (!accepting || messageId === undefined) return;
@@ -133,13 +125,12 @@ export const createFlueUiStream = (
           finishPart();
           const isClientTool = options.clientToolNames.has(chunk.toolName);
           if (isClientTool) pendingClientToolCallIds.add(chunk.toolCallId);
-          const providerExecuted = providerExecutedFor(isClientTool);
           options.write({
             type: "tool-input-available",
             toolCallId: chunk.toolCallId,
             toolName: chunk.toolName,
             input: chunk.input,
-            ...(providerExecuted === undefined ? {} : { providerExecuted }),
+            ...(isClientTool ? {} : { providerExecuted: true }),
           });
           return;
         }

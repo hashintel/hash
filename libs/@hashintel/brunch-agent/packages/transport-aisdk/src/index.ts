@@ -1,34 +1,26 @@
-/**
- * AI SDK UI-message-stream transport for a Flue-backed chat.
- *
- * This package owns the HTTP door: principal, CORS, POST validation, and SSE
- * encoding. An application supplies the Flue turn. The transport never imports
- * Brunch core, a binding, or Flue.
- */
+import { FlueApiError, FlueExecutionError } from "@flue/sdk";
+import { getToolName, isToolUIPart } from "ai";
 
-import {
-  createUIMessageStream,
-  createUIMessageStreamResponse,
-  type UIMessageChunk,
-} from "ai";
-import * as v from "valibot";
+import { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
+import { createFlueUiStream } from "./ui-stream";
 
-import { BRUNCH_PRINCIPAL_HEADER } from "./headers";
+import type { AgentSendResult, DeliveredMessage, FlueClient } from "@flue/sdk";
+import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
-export { BRUNCH_PRINCIPAL_HEADER } from "./headers";
-
-export interface ConversationIdentity {
-  readonly conversationId: string;
-  readonly principalKey: string;
-}
-
-export interface ChatTurnInput extends ConversationIdentity {
-  readonly idempotencyKey: string;
-  readonly userMessage: {
-    readonly id: string;
-    readonly text: string;
-  };
-}
+export { BRUNCH_CONVERSATION_HEADER, BRUNCH_PRINCIPAL_HEADER } from "./headers";
+export { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
+export {
+  agentOwnershipHeaders,
+  flueConversationIdWeb,
+  identityPayload,
+} from "./identity";
+export type { ConversationIdentity } from "./identity";
+export {
+  snapshotToUiMessages,
+  type SnapshotToUiMessagesOptions,
+  type UiHistoryMessage,
+} from "./transcript";
+export { createFlueUiStream, type FlueUiStreamOptions } from "./ui-stream";
 
 export interface ClientToolResult {
   readonly toolCallId: string;
@@ -36,454 +28,258 @@ export interface ClientToolResult {
   readonly output: unknown;
 }
 
-export interface ChatResumeInput extends ConversationIdentity {
-  readonly assistantMessageId: string;
-  readonly idempotencyKey: string;
-  readonly toolResults: readonly ClientToolResult[];
+export interface FlueChatTransportOptions {
+  readonly client: FlueClient;
+  readonly clientToolNames: ReadonlySet<string>;
+  readonly onAdmission?: (event: {
+    readonly admission: AgentSendResult;
+    readonly kind: "client-tool-result" | "user";
+    readonly messageId: string;
+  }) => void;
+  readonly onResponseMessage?: (event: {
+    readonly messageId: string;
+    readonly submissionId: AgentSendResult["submissionId"];
+  }) => void;
 }
 
-export type ChatChunkWriter = (chunk: UIMessageChunk) => void;
-
-export type ChatTurnRunner = (
-  input: ChatTurnInput,
-  write: ChatChunkWriter,
-) => Promise<void>;
-
-export type ChatResumeRunner = (
-  input: ChatResumeInput,
-  write: ChatChunkWriter,
-) => Promise<void>;
-
-export type TransportInspectionEvent =
-  | {
-      readonly type: "request-start";
-      readonly requestId: string;
-      readonly conversationId: string;
-      readonly userMessageId: string;
-    }
-  | {
-      readonly type: "resume-start";
-      readonly requestId: string;
-      readonly conversationId: string;
-      readonly assistantMessageId: string;
-      readonly toolCallIds: readonly string[];
-    }
-  | {
-      readonly type: "history-read";
-      readonly requestId: string;
-      readonly conversationId: string;
-    }
-  | {
-      readonly type: "request-finish";
-      readonly requestId: string;
-      readonly terminal: "completed" | "failed";
-    };
-
-export interface AiSdkChatHandlerOptions {
-  readonly runTurn: ChatTurnRunner;
-  /**
-   * Client-tool return. Absent, a tool-result follow-up is refused. Present,
-   * completed client-tool parts on the referenced assistant message resume
-   * the same conversation.
-   */
-  readonly resumeTurn?: ChatResumeRunner;
-  /** Snapshot used to hydrate the panel from Flue history after reload. */
-  readonly loadHistory?: (
-    input: ConversationIdentity,
-  ) => Promise<{ readonly messages: readonly unknown[] }>;
-  readonly allowedOrigins?: readonly string[];
-  readonly inspect?: (event: TransportInspectionEvent) => void;
-}
-
-const panelPartSchema = v.looseObject({
-  type: v.optional(v.unknown()),
-  text: v.optional(v.unknown()),
-  toolName: v.optional(v.unknown()),
-  toolCallId: v.optional(v.unknown()),
-  state: v.optional(v.unknown()),
-  output: v.optional(v.unknown()),
-  providerExecuted: v.optional(v.unknown()),
-});
-
-const panelMessageSchema = v.looseObject({
-  id: v.optional(v.unknown()),
-  role: v.optional(v.unknown()),
-  parts: v.optional(v.array(panelPartSchema)),
-});
-
-const panelPostBodySchema = v.looseObject({
-  id: v.optional(v.unknown()),
-  messageId: v.optional(v.unknown()),
-  messages: v.optional(v.array(panelMessageSchema)),
-  trigger: v.optional(v.unknown()),
-});
-
-type PanelMessage = v.InferOutput<typeof panelMessageSchema>;
-type PanelPostBody = v.InferOutput<typeof panelPostBodySchema>;
-type PanelPart = NonNullable<PanelMessage["parts"]>[number];
-
-const transportRequestRefusals = {
-  invalidChatRequest: {
-    status: 400,
-    error: "invalid_chat_request",
-  },
-  invalidPrincipal: {
-    status: 400,
-    error: "invalid_principal",
-  },
-  toolResultFollowUpNotSupported: {
-    status: 422,
-    error: "tool_result_follow_up_not_supported",
-  },
-} as const;
-
-type TransportRequestRefusal =
-  (typeof transportRequestRefusals)[keyof typeof transportRequestRefusals];
-
-const jsonResponse = (
-  body: unknown,
-  status: number,
-  headers?: Headers,
-): Response => Response.json(body, { status, headers });
-
-const corsHeaders = (origin: string): Headers =>
-  new Headers({
-    "access-control-allow-origin": origin,
-    "access-control-allow-methods": "GET, POST, OPTIONS",
-    "access-control-allow-headers": `content-type, x-request-id, ${BRUNCH_PRINCIPAL_HEADER}`,
-    vary: "Origin",
-  });
-
-const withHeaders = (response: Response, headers: Headers): Response => {
-  for (const [name, value] of headers) response.headers.set(name, value);
-  return response;
-};
-
-const userTextFrom = (message: PanelMessage): string | undefined => {
-  if (!Array.isArray(message.parts)) return undefined;
-  const text = message.parts
-    .filter(
-      (part): part is { readonly type: "text"; readonly text: string } =>
-        typeof part === "object" &&
-        "type" in part &&
-        part.type === "text" &&
-        "text" in part &&
-        typeof part.text === "string",
-    )
-    .map((part) => part.text)
-    .join("");
-  return text.length > 0 ? text : undefined;
-};
-
-const toolNameFrom = (part: PanelPart): string | undefined => {
-  if (part.type === "dynamic-tool" && typeof part.toolName === "string") {
-    return part.toolName.length > 0 ? part.toolName : undefined;
-  }
-  if (typeof part.type === "string" && part.type.startsWith("tool-")) {
-    const toolName = part.type.slice("tool-".length);
-    return toolName.length > 0 ? toolName : undefined;
-  }
-  return undefined;
-};
-
-/** Panel parts the browser executed. Server tools set `providerExecuted: true`. */
-const isProviderExecutedPanelPart = (part: PanelPart): boolean =>
-  part.providerExecuted === true;
-
-const isCompletedClientToolPart = (part: PanelPart): boolean =>
-  part.state === "output-available" &&
-  !isProviderExecutedPanelPart(part) &&
-  typeof part.toolCallId === "string" &&
-  part.toolCallId.length > 0 &&
-  toolNameFrom(part) !== undefined;
-
-type ParsedTransportRequest =
-  | { readonly kind: "initial"; readonly value: ChatTurnInput }
-  | { readonly kind: "resume"; readonly value: ChatResumeInput }
-  | { readonly kind: "refused"; readonly refusal: TransportRequestRefusal };
-
-const parseResumeTurn = (
-  body: PanelPostBody,
-  principalKey: string,
-): ParsedTransportRequest => {
-  if (
-    typeof body.id !== "string" ||
-    body.id.length === 0 ||
-    typeof body.messageId !== "string" ||
-    body.messageId.length === 0 ||
-    body.trigger !== "submit-message" ||
-    !Array.isArray(body.messages)
-  ) {
-    return {
-      kind: "refused",
-      refusal: transportRequestRefusals.invalidChatRequest,
-    };
-  }
-
-  const assistantMessage = body.messages.find(
-    (candidate) =>
-      candidate.id === body.messageId && candidate.role === "assistant",
+const completedClientToolResults = (
+  messages: readonly UIMessage[],
+  assistantMessageId: string,
+  clientToolNames: ReadonlySet<string>,
+): readonly ClientToolResult[] => {
+  const assistantMessage = messages.find(
+    (message) =>
+      message.id === assistantMessageId && message.role === "assistant",
   );
-  const toolResults = (assistantMessage?.parts ?? [])
-    .filter(isCompletedClientToolPart)
-    .map((part) => ({
-      toolCallId: part.toolCallId as string,
-      toolName: toolNameFrom(part)!,
-      output: part.output,
-    }));
-  if (toolResults.length === 0) {
-    return {
-      kind: "refused",
-      refusal: transportRequestRefusals.toolResultFollowUpNotSupported,
-    };
+  if (assistantMessage === undefined) {
+    return [];
   }
-
-  return {
-    kind: "resume",
-    value: {
-      conversationId: body.id,
-      assistantMessageId: body.messageId,
-      idempotencyKey: `${body.id}:tools:${toolResults
-        .map((result) => result.toolCallId)
-        .join(",")}`,
-      principalKey,
-      toolResults,
-    },
-  };
+  return assistantMessage.parts.flatMap((part): ClientToolResult[] => {
+    if (!isToolUIPart(part)) return [];
+    const toolName = getToolName(part);
+    if (
+      !clientToolNames.has(toolName) ||
+      part.providerExecuted === true ||
+      part.state !== "output-available" ||
+      part.toolCallId.length === 0
+    ) {
+      return [];
+    }
+    return [
+      {
+        toolCallId: part.toolCallId,
+        toolName,
+        output: part.output,
+      },
+    ];
+  });
 };
 
-const parseInitialTurn = (
-  body: PanelPostBody,
-  principalKey: string,
-): ParsedTransportRequest => {
+const finalUserMessage = (
+  messages: readonly UIMessage[],
+): { readonly id: string; readonly text: string } | undefined => {
+  const message = messages.at(-1);
   if (
-    typeof body.id !== "string" ||
-    body.id.length === 0 ||
-    body.trigger !== "submit-message"
-  ) {
-    return {
-      kind: "refused",
-      refusal: transportRequestRefusals.invalidChatRequest,
-    };
-  }
-  if (!Array.isArray(body.messages)) {
-    return {
-      kind: "refused",
-      refusal: transportRequestRefusals.invalidChatRequest,
-    };
-  }
-
-  const message = body.messages.at(-1) as PanelMessage | undefined;
-  if (
-    message?.role !== "user" ||
-    typeof message.id !== "string" ||
+    message === undefined ||
+    message.role !== "user" ||
     message.id.length === 0 ||
     message.id === "petrinaut-diagnostics-context"
   ) {
-    return {
-      kind: "refused",
-      refusal: transportRequestRefusals.invalidChatRequest,
-    };
+    return undefined;
   }
-  const text = userTextFrom(message);
-  if (text === undefined) {
-    return {
-      kind: "refused",
-      refusal: transportRequestRefusals.invalidChatRequest,
-    };
-  }
-
-  return {
-    kind: "initial",
-    value: {
-      conversationId: body.id,
-      idempotencyKey: `${body.id}:${message.id}`,
-      principalKey,
-      userMessage: { id: message.id, text },
-    },
-  };
+  const text = message.parts
+    .filter((part) => part.type === "text")
+    .map((part) => part.text)
+    .join("");
+  return text.length > 0 ? { id: message.id, text } : undefined;
 };
 
-const readPrincipal = (request: Request): string | TransportRequestRefusal => {
-  const principalKey = request.headers.get(BRUNCH_PRINCIPAL_HEADER)?.trim();
+const isAbortError = (error: unknown): boolean =>
+  error instanceof Error && error.name === "AbortError";
+
+const admissionError = (error: unknown): Error => {
+  if (isAbortError(error)) {
+    return error as Error;
+  }
+  if (error instanceof FlueApiError) {
+    return new Error(
+      `Brunch rejected the message before admission (HTTP ${error.status}).`,
+      { cause: error },
+    );
+  }
+  return new Error(
+    "Brunch may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.",
+    { cause: error },
+  );
+};
+
+const streamFailureChunk = (
+  error: unknown,
+  signal: AbortSignal,
+): Extract<UIMessageChunk, { type: "abort" | "error" }> => {
   if (
-    principalKey === undefined ||
-    principalKey.length === 0 ||
-    principalKey.length > 256
+    signal.aborted ||
+    isAbortError(error) ||
+    (error instanceof FlueExecutionError && error.failure === "aborted")
   ) {
-    return transportRequestRefusals.invalidPrincipal;
+    return {
+      type: "abort",
+      reason:
+        error instanceof FlueExecutionError
+          ? "The chat turn was stopped."
+          : "The local chat stream was cancelled.",
+    };
   }
-  return principalKey;
+  return {
+    type: "error",
+    errorText:
+      error instanceof FlueExecutionError &&
+      error.failure === "terminal_event_missing"
+        ? "The chat stream ended before the turn settled."
+        : "The chat turn failed.",
+  };
 };
 
-export const createAiSdkChatHandler =
-  (options: AiSdkChatHandlerOptions) =>
-  async (request: Request): Promise<Response> => {
-    const origin = request.headers.get("origin");
-    const crossOriginHeaders =
-      origin !== null && options.allowedOrigins?.includes(origin) === true
-        ? corsHeaders(origin)
-        : undefined;
-    if (origin !== null && crossOriginHeaders === undefined) {
-      return jsonResponse({ error: "origin_not_allowed" }, 403);
-    }
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: crossOriginHeaders });
-    }
+const streamSubmission = (
+  options: FlueChatTransportOptions,
+  admission: AgentSendResult,
+  continuationMessageId: string | undefined,
+  abortSignal: AbortSignal | undefined,
+): ReadableStream<UIMessageChunk> => {
+  const localAbort = new AbortController();
+  const signal =
+    abortSignal === undefined
+      ? localAbort.signal
+      : AbortSignal.any([abortSignal, localAbort.signal]);
+  // Shared with `cancel()`: a consumer that cancels the stream closes its
+  // controller immediately, so the detached `wait()` settlement below must not
+  // write or close again afterwards.
+  let closed = false;
 
-    const principal = readPrincipal(request);
-    if (typeof principal !== "string") {
-      return jsonResponse(
-        { error: principal.error },
-        principal.status,
-        crossOriginHeaders,
-      );
-    }
-
-    if (request.method === "GET") {
-      const conversationId = new URL(request.url).searchParams
-        .get("id")
-        ?.trim();
-      if (conversationId === undefined || conversationId.length === 0) {
-        return jsonResponse(
-          { error: transportRequestRefusals.invalidChatRequest.error },
-          transportRequestRefusals.invalidChatRequest.status,
-          crossOriginHeaders,
-        );
-      }
-      if (options.loadHistory === undefined) {
-        return jsonResponse(
-          { error: "method_not_allowed" },
-          405,
-          crossOriginHeaders,
-        );
-      }
-      const requestId =
-        request.headers.get("x-request-id") || crypto.randomUUID();
-      options.inspect?.({
-        type: "history-read",
-        requestId,
-        conversationId,
-      });
-      const history = await options.loadHistory({
-        conversationId,
-        principalKey: principal,
-      });
-      return jsonResponse(history, 200, crossOriginHeaders);
-    }
-
-    if (request.method !== "POST") {
-      return jsonResponse(
-        { error: "method_not_allowed" },
-        405,
-        crossOriginHeaders,
-      );
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return jsonResponse(
-        { error: "invalid_chat_request" },
-        400,
-        crossOriginHeaders,
-      );
-    }
-    const validatedBody = v.safeParse(panelPostBodySchema, body);
-    if (!validatedBody.success) {
-      const refusal = transportRequestRefusals.invalidChatRequest;
-      return jsonResponse(
-        { error: refusal.error },
-        refusal.status,
-        crossOriginHeaders,
-      );
-    }
-    const postBody = validatedBody.output;
-    const parsed =
-      postBody.messageId !== undefined && options.resumeTurn !== undefined
-        ? parseResumeTurn(postBody, principal)
-        : postBody.messageId !== undefined
-          ? ({
-              kind: "refused",
-              refusal: transportRequestRefusals.toolResultFollowUpNotSupported,
-            } as const)
-          : parseInitialTurn(postBody, principal);
-    if (parsed.kind === "refused") {
-      return jsonResponse(
-        { error: parsed.refusal.error },
-        parsed.refusal.status,
-        crossOriginHeaders,
-      );
-    }
-
-    const requestId =
-      request.headers.get("x-request-id") || crypto.randomUUID();
-    const continuationMessageId =
-      parsed.kind === "resume" ? parsed.value.assistantMessageId : undefined;
-
-    if (parsed.kind === "resume") {
-      options.inspect?.({
-        type: "resume-start",
-        requestId,
-        conversationId: parsed.value.conversationId,
-        assistantMessageId: parsed.value.assistantMessageId,
-        toolCallIds: parsed.value.toolResults.map(
-          (result) => result.toolCallId,
-        ),
-      });
-    } else {
-      options.inspect?.({
-        type: "request-start",
-        requestId,
-        conversationId: parsed.value.conversationId,
-        userMessageId: parsed.value.userMessage.id,
-      });
-    }
-
-    const run =
-      parsed.kind === "resume"
-        ? (write: ChatChunkWriter) => options.resumeTurn!(parsed.value, write)
-        : (write: ChatChunkWriter) => options.runTurn(parsed.value, write);
-
-    let terminalEmitted = false;
-    const stream = createUIMessageStream({
-      execute: async ({ writer }) => {
-        try {
-          await run((chunk) => {
-            if (chunk.type === "start" && continuationMessageId !== undefined) {
-              writer.write({ ...chunk, messageId: continuationMessageId });
-            } else {
-              writer.write(chunk);
-            }
-            if (
-              chunk.type === "finish" ||
-              chunk.type === "error" ||
-              chunk.type === "abort"
-            ) {
-              terminalEmitted = true;
-            }
-          });
-          options.inspect?.({
-            type: "request-finish",
-            requestId,
-            terminal: "completed",
-          });
-        } catch (error) {
-          if (terminalEmitted) return;
-          options.inspect?.({
-            type: "request-finish",
-            requestId,
-            terminal: "failed",
-          });
-          throw error;
+  return new ReadableStream<UIMessageChunk>({
+    start(controller) {
+      let terminalEmitted = false;
+      const close = (): void => {
+        if (closed) return;
+        closed = true;
+        controller.close();
+      };
+      const write = (chunk: UIMessageChunk): void => {
+        if (closed) return;
+        const projected =
+          chunk.type === "start" && continuationMessageId !== undefined
+            ? { ...chunk, messageId: continuationMessageId }
+            : chunk;
+        controller.enqueue(projected);
+        if (
+          projected.type === "finish" ||
+          projected.type === "error" ||
+          projected.type === "abort"
+        ) {
+          terminalEmitted = true;
         }
-      },
-      onError: () => "The chat turn failed.",
-    });
+      };
+      const projector = createFlueUiStream({
+        submissionId: admission.submissionId,
+        clientToolNames: options.clientToolNames,
+        write,
+      });
 
-    const response = createUIMessageStreamResponse({ stream });
-    return crossOriginHeaders === undefined
-      ? response
-      : withHeaders(response, crossOriginHeaders);
-  };
+      void options.client
+        .wait(admission, {
+          signal,
+          onEvent: (event) => {
+            if (
+              event.type === "message-started" &&
+              event.submissionId === admission.submissionId
+            ) {
+              // Report the id the consumer sees: a client-tool continuation is
+              // projected onto the assistant message it resumes.
+              options.onResponseMessage?.({
+                messageId: continuationMessageId ?? event.messageId,
+                submissionId: admission.submissionId,
+              });
+            }
+            projector.accept(event);
+          },
+        })
+        .then(close)
+        .catch((error: unknown) => {
+          if (!terminalEmitted) {
+            write(streamFailureChunk(error, signal));
+          }
+          close();
+        });
+    },
+    cancel(reason) {
+      closed = true;
+      localAbort.abort(reason);
+    },
+  });
+};
+
+export const createFlueChatTransport = <
+  UiMessage extends UIMessage = UIMessage,
+>(
+  options: FlueChatTransportOptions,
+): ChatTransport<UiMessage> => ({
+  reconnectToStream: async () => null,
+  sendMessages: async ({ trigger, messageId, messages, abortSignal }) => {
+    if (trigger !== "submit-message") {
+      throw new Error("Regenerating a Flue conversation is not supported.");
+    }
+
+    const toolResults =
+      messageId === undefined
+        ? []
+        : completedClientToolResults(
+            messages,
+            messageId,
+            options.clientToolNames,
+          );
+    const userMessage =
+      messageId === undefined ? finalUserMessage(messages) : undefined;
+    const message: DeliveredMessage =
+      messageId === undefined
+        ? (() => {
+            if (userMessage === undefined) {
+              throw new Error("The submitted user message has no text.");
+            }
+            return { kind: "user", body: userMessage.text };
+          })()
+        : (() => {
+            if (toolResults.length === 0) {
+              throw new Error(
+                "The client-tool follow-up has no completed result.",
+              );
+            }
+            return {
+              kind: "signal",
+              type: CLIENT_TOOL_RESULT_SIGNAL,
+              tagName: CLIENT_TOOL_RESULT_SIGNAL,
+              body: JSON.stringify(toolResults),
+              attributes: {
+                toolCallIds: toolResults
+                  .map((result) => result.toolCallId)
+                  .join(","),
+              },
+            };
+          })();
+
+    let admission: AgentSendResult;
+    try {
+      admission = await options.client.send({
+        message,
+        signal: abortSignal,
+      });
+    } catch (error) {
+      throw admissionError(error);
+    }
+    options.onAdmission?.({
+      admission,
+      kind: messageId === undefined ? "user" : "client-tool-result",
+      messageId: messageId ?? userMessage!.id,
+    });
+    return streamSubmission(options, admission, messageId, abortSignal);
+  },
+});

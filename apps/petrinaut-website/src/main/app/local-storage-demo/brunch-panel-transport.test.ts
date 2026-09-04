@@ -1,34 +1,177 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
-import { createBrunchPanelTransport } from "./brunch-panel-transport";
+import {
+  BrunchPanelConversationTracker,
+  createBrunchPanelTransport,
+} from "./brunch-panel-transport";
 
-import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
+import type { AgentSendResult, FlueClient } from "@flue/sdk";
 
-test("pins send and reconnect to the stable conversation id", async () => {
-  const seenChatIds: string[] = [];
-  const sourceTransport: PetrinautAiChatTransport = {
-    reconnectToStream: async (options) => {
-      seenChatIds.push(options.chatId);
-      return null;
-    },
-    sendMessages: async (options) => {
-      seenChatIds.push(options.chatId);
-      return new ReadableStream({
-        start(controller) {
-          controller.close();
-        },
-      });
-    },
+test("delegates one typed message to the supplied Flue conversation", async () => {
+  const admission: AgentSendResult = {
+    streamUrl: "http://brunch.test/stream",
+    offset: "offset-1",
+    submissionId: "submission-1",
+    uid: "uid-1",
   };
-
-  const transport = createBrunchPanelTransport(
-    sourceTransport,
-    "conversation-stable",
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+    await options?.onEvent?.({
+      type: "message-started",
+      conversationId: "conversation-stable",
+      messageId: "assistant-1",
+      submissionId: admission.submissionId,
+      turnId: "turn-1",
+      position: { batch: 1, index: 0 },
+    });
+    await options?.onEvent?.({
+      type: "submission-settled",
+      conversationId: "conversation-stable",
+      submissionId: admission.submissionId,
+      outcome: "completed",
+      position: { batch: 1, index: 1 },
+    });
+  });
+  const client = {
+    send,
+    wait,
+  } as Pick<FlueClient, "send" | "wait"> as FlueClient;
+  const tracker = new BrunchPanelConversationTracker();
+  const admissionListener = vi.fn();
+  tracker.subscribeToAdmission(
+    { kind: "user", messageId: "user-1" },
+    admissionListener,
   );
-  await transport.sendMessages({ chatId: "generated-by-use-chat" } as never);
-  await transport.reconnectToStream({
-    chatId: "generated-by-use-chat",
-  } as never);
+  const onAdmission = vi.fn();
+  const transport = createBrunchPanelTransport(
+    Promise.resolve(client),
+    tracker,
+    { onAdmission },
+  );
+  const stream = await transport.sendMessages({
+    trigger: "submit-message",
+    chatId: "conversation-stable",
+    messageId: undefined,
+    messages: [
+      {
+        id: "user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Typed tracer." }],
+      },
+    ],
+    abortSignal: undefined,
+  });
+  expect(admissionListener).toHaveBeenCalledOnce();
+  expect(admissionListener).toHaveBeenCalledWith({
+    admission,
+    kind: "user",
+    messageId: "user-1",
+  });
+  await stream.pipeTo(new WritableStream());
 
-  expect(seenChatIds).toEqual(["conversation-stable", "conversation-stable"]);
+  expect(send).toHaveBeenCalledOnce();
+  expect(send).toHaveBeenCalledWith({
+    message: { kind: "user", body: "Typed tracer." },
+    signal: undefined,
+  });
+  expect(tracker.submissionForInput("user-1")).toBe("submission-1");
+  expect(tracker.submissionsForResponse("assistant-1")).toEqual([
+    "submission-1",
+  ]);
+  expect(onAdmission).toHaveBeenCalledOnce();
+  expect(onAdmission).toHaveBeenCalledWith(admission);
+});
+
+test("matches client-tool admissions once and supports unsubscribe", () => {
+  const admission: AgentSendResult = {
+    streamUrl: "http://brunch.test/stream",
+    offset: "offset-1",
+    submissionId: "submission-1",
+    uid: "uid-1",
+  };
+  const tracker = new BrunchPanelConversationTracker();
+  const matchingListener = vi.fn();
+  const unsubscribedListener = vi.fn();
+  tracker.subscribeToAdmission(
+    {
+      kind: "client-tool-result",
+      messageId: "assistant-question",
+    },
+    matchingListener,
+  );
+  const unsubscribe = tracker.subscribeToAdmission(
+    {
+      kind: "client-tool-result",
+      messageId: "assistant-question",
+    },
+    unsubscribedListener,
+  );
+  unsubscribe();
+
+  tracker.recordAdmission({
+    admission,
+    kind: "user",
+    messageId: "assistant-question",
+  });
+  tracker.recordAdmission({
+    admission,
+    kind: "client-tool-result",
+    messageId: "assistant-other",
+  });
+  expect(matchingListener).not.toHaveBeenCalled();
+
+  const matchedAdmission = {
+    ...admission,
+    submissionId: "submission-tool-result",
+  };
+  const event = {
+    admission: matchedAdmission,
+    kind: "client-tool-result" as const,
+    messageId: "assistant-question",
+  };
+  tracker.recordAdmission(event);
+  tracker.recordAdmission(event);
+
+  expect(matchingListener).toHaveBeenCalledOnce();
+  expect(matchingListener).toHaveBeenCalledWith(event);
+  expect(unsubscribedListener).not.toHaveBeenCalled();
+});
+
+test("records every submission that wrote a resumed assistant message", () => {
+  const tracker = new BrunchPanelConversationTracker();
+  tracker.recordResponse("assistant-1", "submission-1");
+  tracker.recordResponse("assistant-1", "submission-continuation");
+  tracker.recordResponse("assistant-1", "submission-continuation");
+
+  expect(tracker.submissionsForResponse("assistant-1")).toEqual([
+    "submission-1",
+    "submission-continuation",
+  ]);
+  expect(tracker.submissionsForResponse("assistant-2")).toBeUndefined();
+});
+
+test("settles in-flight submissions before a durable abort can target them", async () => {
+  const tracker = new BrunchPanelConversationTracker();
+  let admit: (() => void) | undefined;
+  void tracker.trackSubmission(
+    new Promise<void>((resolve) => {
+      admit = resolve;
+    }),
+  );
+  let settled = false;
+  void tracker.settleInFlightSubmissions().then(() => {
+    settled = true;
+  });
+
+  await Promise.resolve();
+  expect(settled).toBe(false);
+
+  admit?.();
+  await vi.waitFor(() => expect(settled).toBe(true));
+
+  const rejected = tracker.trackSubmission(
+    Promise.reject(new Error("rejected admission")),
+  );
+  await expect(rejected).rejects.toThrow("rejected admission");
+  await expect(tracker.settleInFlightSubmissions()).resolves.toBeUndefined();
 });

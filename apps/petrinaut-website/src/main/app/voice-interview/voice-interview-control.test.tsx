@@ -17,11 +17,13 @@ import {
   acknowledgeVoiceInterviewDisclosure,
   isVoiceInterviewDisclosureAcknowledged,
   loadOpenAIVoiceConfig,
+  submitVoiceInputWithAdmission,
   VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
   VoiceInterviewControl,
 } from "./voice-interview-control";
 import { VoiceTurnController } from "./voice-turn-controller";
 
+import type { AgentSendResult } from "@flue/sdk";
 import type {
   PetrinautAiVoiceModeContext,
   PetrinautAiVoiceModeControls,
@@ -180,6 +182,93 @@ afterEach(() => {
 });
 
 describe("voice interview control", () => {
+  test("keeps an interactive-tool submission pending until Flue admits its continuation", async () => {
+    const events: string[] = [];
+    let notifyAdmission:
+      | ((submissionId: AgentSendResult["submissionId"]) => void)
+      | undefined;
+    const unsubscribe = vi.fn();
+    const subscribeToAdmission = vi.fn(
+      (
+        _target: {
+          readonly kind: "client-tool-result" | "user";
+          readonly messageId: string;
+        },
+        listener: (submissionId: AgentSendResult["submissionId"]) => void,
+      ) => {
+        notifyAdmission = listener;
+        return unsubscribe;
+      },
+    );
+    const submitVoiceInput = vi.fn<
+      PetrinautAiVoiceModeContext["submitVoiceInput"]
+    >(async () => {
+      events.push("composer-result");
+      return {
+        kind: "interactive-tool",
+        toolCallId: "ask-current",
+      };
+    });
+    const resultPromise = submitVoiceInputWithAdmission({
+      input: {
+        admissionTarget: {
+          kind: "client-tool-result",
+          messageId: "assistant-question",
+        },
+        id: "voice-realtime:1:call-1",
+        onAdmission: () => events.push("admitted"),
+        signal: new AbortController().signal,
+        text: "Approved",
+      },
+      submitVoiceInput,
+      subscribeToAdmission,
+    });
+    let completed = false;
+    void resultPromise.then(() => {
+      completed = true;
+    });
+
+    await vi.waitFor(() => expect(submitVoiceInput).toHaveBeenCalledOnce());
+    expect(completed).toBe(false);
+    expect(unsubscribe).not.toHaveBeenCalled();
+
+    notifyAdmission?.("submission-1");
+
+    await expect(resultPromise).resolves.toEqual({
+      kind: "interactive-tool",
+      toolCallId: "ask-current",
+    });
+    expect(events).toEqual(["composer-result", "admitted"]);
+    expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  test("releases a pending admission subscription when the bridge cancels", async () => {
+    const abortController = new AbortController();
+    const unsubscribe = vi.fn();
+    const resultPromise = submitVoiceInputWithAdmission({
+      input: {
+        admissionTarget: {
+          kind: "client-tool-result",
+          messageId: "assistant-question",
+        },
+        id: "voice-realtime:1:call-1",
+        onAdmission: vi.fn(),
+        signal: abortController.signal,
+        text: "Approved",
+      },
+      submitVoiceInput: async () => ({
+        kind: "interactive-tool",
+        toolCallId: "ask-current",
+      }),
+      subscribeToAdmission: () => unsubscribe,
+    });
+
+    abortController.abort();
+
+    await expect(resultPromise).rejects.toMatchObject({ name: "AbortError" });
+    expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
   test("stores and reads the versioned disclosure acknowledgement", () => {
     const values = new Map<string, string>();
     const storage = {

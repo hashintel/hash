@@ -17,6 +17,7 @@ export type {
 export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,
+  PetrinautAiStopResult,
   PetrinautProps,
 } from "./petrinaut";
 export type {

@@ -5,7 +5,7 @@
 ## Cold-start reads
 
 - [FE-1575](https://linear.app/hash/issue/FE-1575/resume-one-brunch-workpiece-and-petrinaut-document-across-tabs) — tracker projection for this future branch mission; the eventual branch `MISSION.md` remains execution authority.
-- [`../../MISSION.md`](../../MISSION.md) — Mission 4 closure pointer and explicit absence of a full-run candidate.
+- [`../../MISSION.md`](../../MISSION.md) — live Mission 5 Voice authority on this branch; it supplies no Mission 6 execution authority and does not change Mission 4's explicit absence of a full-run candidate.
 - [`../../MISSION.next.md`](../../MISSION.next.md) — shared workpiece, projection, evidence, and product constraints.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) and [`../evidence/implementations/fe-1525-headless-runbook-pn.md`](../evidence/implementations/fe-1525-headless-runbook-pn.md) — accepted workpiece viability, hermetic callback route, and failed real-model nested-schema carrier.
 - [`../mission-archive/4-core-plugin-elicitation-proof-of-life.md`](../mission-archive/4-core-plugin-elicitation-proof-of-life.md) — accepted core/plugin architecture and exact proof exclusions.
@@ -113,7 +113,7 @@ This gate is the mission's completion bar: the demo script above must work for t
 - If a realistic prepared conversation/workpiece cannot support one meaningful mutation without richer typed structure, record the exact lookup, identity, or ambiguity strain before adding any schema.
 - If existing per-action provider schemas cannot carry the required nested mutation, reduce to the smallest meaningful supported action only if semantic correspondence survives; otherwise stop with the crisp provider/Flue schema blocker.
 - If coherent save cannot span existing workpiece/document stores, the least fixture-scoped commit marker may publish only after both writes; do not invent distributed transactions before a failure demonstrates the need.
-- If direct browser tool servicing needs a transport abstraction, extract only tool-call/result correlation from the existing AI SDK adapter; do not require the chat UI or duplicate Flue observation.
+- If direct browser tool servicing needs a transport abstraction, extract only tool-call/result correlation from the browser `ChatTransport` in `transport-aisdk` (recut Mission 5); do not require the chat UI or duplicate Flue observation.
 
 ## Accepted constraints and guarded invariants
 
