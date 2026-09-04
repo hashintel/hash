@@ -2,7 +2,7 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
-This draft is written at cut-level detail so that conversion into a live `MISSION.md` is a re-evaluation rather than a rewrite; the [cut conversion map](#cut-conversion-map) at the end names which section becomes which live address. It was recut on 2026-09-04 from the former "capture-backed review of an honest prebuilt pair" after two independent reviews of the provenance design; the reasoning is in the [decision log](../evidence/design/provenance-and-tooling-decision-log-2026-09-04.md) (sections C, F, G), the [mini spec](../evidence/design/provenance-by-lineage-mini-spec-2026-09-04.md), the [independent review](../evidence/design/provenance-by-lineage-independent-review-2026-09-04.md), and the [follow-up review](../evidence/design/provenance-by-lineage-follow-up-review-2026-09-04.md). Where this draft cites an entry such as G7, that entry is the surviving rationale.
+This draft is written at cut-level detail so that conversion into a live `MISSION.md` is a re-evaluation rather than a rewrite; the [cut conversion map](#cut-conversion-map) at the end names which section becomes which live address and how the two-step authority is represented. It was recut on 2026-09-04 from the former "capture-backed review of an honest prebuilt pair" after two independent reviews of the provenance design, then tightened the same day after a readiness review of the recut; the reasoning is in the [decision log](../evidence/design/provenance-and-tooling-decision-log-2026-09-04.md) (sections C, F, G, H), the [mini spec](../evidence/design/provenance-by-lineage-mini-spec-2026-09-04.md), the [independent review](../evidence/design/provenance-by-lineage-independent-review-2026-09-04.md), and the [follow-up review](../evidence/design/provenance-by-lineage-follow-up-review-2026-09-04.md). Where this draft cites an entry such as G7, that entry is the surviving rationale. The owner's standing qualification on the readiness review is recorded as H0: it may make this mission more rigorous, never narrower.
 
 ## Cold-start reads
 
@@ -10,7 +10,7 @@ Tracker: [FE-1573](https://linear.app/hash/issue/FE-1573/explain-one-prepared-pe
 
 A fresh builder must resolve these authorities and this terrain before implementing anything:
 
-- [`../../MISSION.md`](../../MISSION.md) — the current branch's live authority (Mission 6 at the time of writing). Mission 7 stacks on Mission 6's accepted archive and on Mission 5's landed browser Flue transport. Mission 6's constraint that construction tools stay out of ordinary conversations is amended by this cut, not silently.
+- [`../../MISSION.md`](../../MISSION.md) — the current branch's live authority (Mission 6 at the time of writing). Mission 7 stacks on Mission 6's accepted archive and on Mission 5's landed browser Flue transport; create the Mission 7 branch from the final Mission 6 close commit, not from a pre-close head. Mission 6's constraint that construction tools stay out of ordinary conversations is amended by this cut, not silently.
 - [`../../MISSION.next.md`](../../MISSION.next.md) — compact spine, FE-1476 product frame, cross-mission obligations, standing locks, the 2026-09-04 planning migration matrix, and later evidence admitted after this draft.
 - [`README.md`](README.md) — draft authority, lifecycle, and conversion rules.
 - The four design-evidence documents named above. Design evidence, not authority; every settled item becomes authority only when written into the cut `MISSION.md`.
@@ -19,7 +19,7 @@ A fresh builder must resolve these authorities and this terrain before implement
 - [`../mission-archive/4-core-plugin-elicitation-proof-of-life.md`](../mission-archive/4-core-plugin-elicitation-proof-of-life.md) — the accepted core/plugin/app split and interaction decisions this mission composes within.
 - [`../evidence/implementations/fe-1575-resumable-workpiece-petrinaut.md`](../evidence/implementations/fe-1575-resumable-workpiece-petrinaut.md) and the r2 outer witness beside it — Mission 6's viability proof of transport, least mutation, settled manifest, and two-tab resume, and its honest admissions: the prepared fixture's "Current Petrinaut correspondence" section was fixture-authored (A3), and the fenced-block workpiece source is a Mission 6 contract this mission replaces (A4). The Mission 6 fixture is not promoted into this mission's pair.
 - [`../evidence/implementations/mission-5-direct-voice-flue/README.md`](../evidence/implementations/mission-5-direct-voice-flue/README.md) — the browser Flue `ChatTransport` at `/agents/chat/:instanceId`, client-tool-result correlation, and admission timing this mission consumes.
-- [`../../packages/core/src/workpiece.ts`](../../packages/core/src/workpiece.ts) — the current resolver: tagged prepared signal or latest fenced `runbook-ir` block, identified by message id plus SHA-256. Replaced for model-produced revisions by `update_workpiece`; retained for the tagged prepared route.
+- [`../../packages/core/src/workpiece.ts`](../../packages/core/src/workpiece.ts) and [`apps/brunch-agent/src/conversation/workpiece.ts`](../../../../../apps/brunch-agent/src/conversation/workpiece.ts) — the current resolver: core selects the tagged prepared signal or the latest fenced `runbook-ir` block by source message id; the app computes the SHA-256. Replaced for model-produced revisions by `update_workpiece`, which moves hashing into core; the tagged prepared route is retained.
 - [`../../packages/core/src/flue.ts`](../../packages/core/src/flue.ts) and [`../../packages/core/src/client-tools.ts`](../../packages/core/src/client-tools.ts) — core owns no model-facing tool today and states the rule for adding one; the `ask` and `sweep` names here are orphans this mission retires.
 - [`../../packages/plugin-sdcpn/src/flue.ts`](../../packages/plugin-sdcpn/src/flue.ts), [`../../packages/plugin-sdcpn/src/tools/petrinaut-construction.ts`](../../packages/plugin-sdcpn/src/tools/petrinaut-construction.ts), and [`../../packages/plugin-sdcpn/test/construction-tools.test.ts`](../../packages/plugin-sdcpn/test/construction-tools.test.ts) — the tool factory with the falsified carrier (`v.looseObject({})` plus `rawTransform` and the JSON Schema pasted into the description), the headless-only and fixture-only mounting modes, and the six-tool and two-tool subsets this mission retires as product surfaces.
 - [`../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md), [`templates/workpiece.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md), [`references/pn-construction.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/references/pn-construction.md), and [`references/checks.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/references/checks.md) — current teaching: concepts, the fenced-block emission rule, and Construction notes. This mission adds construction posture and the settled-revision and basis discipline.
@@ -31,8 +31,8 @@ A fresh builder must resolve these authorities and this terrain before implement
 - [`../../../petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.tsx`](../../../petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.tsx) and [`../../../petrinaut/docs/ai-assistant.md`](../../../petrinaut/docs/ai-assistant.md) — the host execution boundary and the user guide that must change with any user-visible behaviour.
 - [`../specs/petrinaut-batched-construction-tools.md`](../specs/petrinaut-batched-construction-tools.md) — candidate `pn_read`/`pn_edit` input; observation O2 (the Mission 3 failure is a carrier failure, not a granularity failure) is load-bearing here; batching itself is Mission 9's decision unless this mission's scenario forces it.
 - [`../reference/architecture/flue-routing.md`](../reference/architecture/flue-routing.md) — per-conversation versus cross-conversation state, `usePersistentState`, signals, and the upgrade pins.
-- Installed Flue 2.0.3 reference under `node_modules/@flue/runtime/docs/reference/`: `agent-api.md` (tool `run` contract: a multi-tool batch ends the turn only when every result terminates; `ToolContext.toolCallId`), `agent-hooks-api.md` ("Rendering and the rules of hooks": hooks only at render, setters only in callbacks), and `guide/models.md` (compaction folds older history into a summary, default 8000 recent tokens verbatim). These settle G1, G2, and F2 and motivate the compaction probe.
-- Commit `157730cc5a214dd9c543e8d95c7193a219c48aef` on `ln/fe-1569-brunch-agent-deployment`, especially `docs/evidence/implementations/mission-8-deployment-handoff.md` — locally verified application contract; no remote deployment. This mission names local posture.
+- Installed Flue 2.0.3 documentation: `node_modules/@flue/runtime/docs/reference/agent-api.md` (tool `run` contract: a multi-tool batch ends the turn only when every result terminates; `ToolContext.toolCallId`), `node_modules/@flue/runtime/docs/reference/agent-hooks-api.md` ("Rendering and the rules of hooks": hooks only at render, setters only in callbacks), and `node_modules/@flue/runtime/docs/guide/models.md` (compaction folds older history into a summary, default 8000 recent tokens verbatim). These settle G1, G2, and F2 and motivate the compaction probe.
+- Commit `157730cc5a214dd9c543e8d95c7193a219c48aef` on `ln/fe-1569-brunch-agent-deployment`, read with `git show 157730cc5a214dd9c543e8d95c7193a219c48aef:libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-8-deployment-handoff.md` because the file does not exist in this checkout — locally verified application contract; no remote deployment. This mission names local posture.
 
 ## Visible product advance
 
@@ -50,10 +50,10 @@ A fresh builder must resolve these authorities and this terrain before implement
 
 Close the **construction-and-explanation stratum for one genuine conversation, one proving scenario, and one document incarnation**. Its objects and minimum seams:
 
-- **Settled workpiece revisions**: `update_workpiece` tool calls with revision id, SHA-256, and Markdown persisted in per-conversation state; the fenced-block route retired for model-produced revisions; the tagged prepared signal retained only for test-authored material.
+- **Settled workpiece revisions**: `update_workpiece` tool calls whose `revisionId` is the call's `ToolContext.toolCallId`, whose `sha256` is the content identity, and whose ordinal `revision` is display metadata only, with the Markdown persisted in per-conversation state (H6); the fenced-block route retired for model-produced revisions; the tagged prepared signal retained only for test-authored material.
 - **Declared basis** on every mutation request: `declared { revisionId, sha256, locators, rationale, scope }` or `absent { reason }`, operation-level unless an intended-effect mapping names elements (G7).
-- **Optional revision-time evidence relation** on `update_workpiece`: `evidence: [{ locator, messageIds, kind }]`, kind in elicited, inference, default, formalism-constraint, external, correction; carried forward unchanged passages inherit their relation (G3).
-- **Mutation transition records**: requested base hash, observed pre-apply hash, post hash, outcome, disjoint derived effects, diff accounting, one authoritative result per call, conflicting duplicates to unknown (G9).
+- **Optional revision-time evidence relation** on `update_workpiece`: `evidence: [{ locator, messageIds, kind }]`, kind in elicited, inference, default, formalism-constraint, external, correction; carried forward unchanged passages inherit their relation (G3). An `elicited` relation is refused unless every referenced id resolves to an authorized true-user message in the bound conversation, reusing the session-log resolver's non-user-evidence refusal as the model (H8).
+- **Mutation transition records**: requested base hash, observed pre-apply hash, post hash when a post-apply observation exists, outcome, disjoint derived effects, diff accounting; the first well-formed outcome is authoritative unless a later delivery conflicts, in which case the outcome becomes `unknown` and both deliveries remain as attempt history (G9, H7).
 - **Identity epochs**: ids never reused; delete and recreate opens a new epoch; origin, current state, change history, attempt history are distinct query semantics (G8).
 - **Passage identity policy** and its probe (G11).
 - **Document reconciliation**: one conversation bound to one document incarnation; every why answer reconciles against the live hash or labels its staleness; external import records without laundering (G4, G5, G10).
@@ -103,7 +103,7 @@ The four probes run alongside, each with its decision table:
 | Probe | Pass | Partial | Fail | Re-entry |
 | --- | --- | --- | --- | --- |
 | **Compaction.** Set `keepRecentTokens` low, run past threshold, read `history()`. Do folded `update_workpiece` inputs, mutation parts, and user lines survive? | Lineage reads from `history()` | Current revision from state; history claims limited to the uncompacted window and disclosed in every answer | Harden the existing session-log archive lane into an immutable lineage projection before any exact-line claim; no new log, no capture envelopes (G20) | Flue exposes a supported pre-compaction read |
-| **Fixture materialization.** Export or retain, relocate, reopen, authorize, and query the tracer conversation | Retained live store or supported relocation is the demo fixture route | Relocation works but identities must be re-bound; record the binding rule | Prepared-projection route only, honestly labelled; the why claim narrows to that projection | Flue adds a supported export or import surface |
+| **Fixture materialization.** Export or retain, relocate, reopen, authorize, and query the tracer conversation | Retained live store or supported relocation is the demo fixture route | Relocation works but identities must be re-bound; record the binding rule | The demo runs on the retained live store where the genuine conversation was produced; relocation is filed as an upstream requirement; the prepared-projection route is not used for the why claim (H5) | Flue adds a supported export or import surface |
 | **Passage identity** under the G11 policy, on the tracer workpiece, across rename, move, paraphrase, split, merge, deletion, reintroduction, duplicate headings | Locator scheme selected | Some edit classes refuse continuity; the refusals become part of the claim | Revision-local text only; no cross-revision "introduced by" | A cheaper anchor lifecycle appears in the template |
 | **Carrier repair** for one real nested mutation from the proving scenario's classes | Admit the scenario's classes | Flat classes only; nested classes refused with a named blocker | Crisp upstream Flue requirement (Standard Schema or supplied JSON Schema); no local schema copy | Flue accepts Standard Schema |
 
@@ -114,7 +114,23 @@ Two further measurements are taken in the tracer and gate the release, not the c
 | **Revision cadence and basis quality.** How often `update_workpiece` is called unprompted; how often basis is declared, relevant, and non-contradictory | Blame and basis have grain | Coarser ranges disclosed; skill wording and pane interaction adjusted before breadth | Explainability release withheld; construction stands on its own gates |
 | **Reviewer utility** under the blinded rubric | Utility gate passes | Coverage below threshold on named classes; claim scoped to passing classes | Explainability release withheld |
 
-Step A passes when every probe has a recorded outcome and the tracer produces no false attribution. The owner then decides whether to amend the authority into Step B, narrow it, or stop.
+Completion of Step A is not a pass. Every probe and measurement outcome is classified into exactly one of three eligibility classes, and the owner gate chooses only among the branches those classes allow (H5). Under the owner's standing qualification (H0), rework branches keep the consolidated construction-and-explanation shape; a terminal stop is reserved for outcomes that contradict that shape.
+
+| Outcome | Class | Allowed branch |
+| --- | --- | --- |
+| Tracer: deterministic answers or refusals, no false attribution; all probes Pass | Eligible for Step B amendment | Amend into Step B as drafted |
+| Compaction Partial or Fail | Eligible after named rework | Current revision from state; history claims disclosed to the uncompacted window, or the existing archive lane hardened; Step B proceeds with the disclosure |
+| Materialization Partial | Eligible after named rework | Record the identity re-binding rule; Step B proceeds |
+| Materialization Fail | Eligible after named rework | Demo runs on a retained live store; relocation pursued as an upstream requirement; the prepared-projection route is not used for the why claim |
+| Passage identity Partial or Fail | Eligible after named rework | Refusals for unsupported edit classes become part of the claim, or revision-local text with refused cross-revision claims; Step B proceeds |
+| Carrier Partial | Eligible after named rework | Construction proceeds on carried classes; nested classes refused with a named blocker and an upstream Flue requirement filed |
+| Carrier Fail | Eligible after named rework | Upstream Flue requirement filed; construction proceeds on flat classes while it is pursued; no local schema copy |
+| Cadence or basis Partial | Eligible after named rework | Skill wording and pane interaction revised once; tracer rerun; measured again |
+| Utility Partial | Eligible after named rework | Coverage threshold per class re-examined by the owner against the rubric; Step B proceeds on passing classes with the gap named |
+| Tracer produces any false attribution that the record cannot prevent | Terminal stop for this mission shape | Return to design; do not amend |
+| No route to a genuine reopened conversation at all | Terminal stop | Return to design |
+| Effects cannot be mechanically derived from pre and post state | Terminal stop | Return to design |
+| Basis remains circular or absent after the rework round | Terminal stop for the explainability half | Construction stands on its own gates; explainability returns to design |
 
 ### Step B — the visible advance on the proving scenario
 
@@ -163,7 +179,7 @@ This gate is the completion bar. For the proving scenario's net, close:
 - **Carrier and tools.** Scenario-selected classes admitted over the repaired carrier; each class cites the case requirement it discharges; provider-schema rejection distinct from canonical rejection; repair budget enforced and visibly exhausted (G15).
 - **Teaching.** Skill construction posture in place; measured cadence and basis quality recorded.
 - **Visible workpiece.** Pane with current revision, list, diff; chat marker; projection in app or transport, not the Petrinaut library.
-- **Subtraction.** `ask` and `sweep` client handling removed; six-tool and two-tool subsets retired as product surfaces once Mission 6 archives.
+- **Subtraction, by inventory (H10).** Keep: `ping`, `activate_skill`, `readPetrinautDoc`. Remove: the website's `brunch-ask-interactive-tool.tsx` and test, `brunch-ask-mapping.ts`, the ask entries in `brunch-client-tools.ts`, the sweep filter in `brunch-panel-transport.ts`, `brunch-sweep-output.ts`, and the ask and sweep references in `voice-interview/canonical-speech.ts` and `interview-coverage.ts` with their tests; the `ASK_TOOL_NAME` and `SWEEP_TOOL_NAME` exports and the suspended ask contract in core `client-tools.ts`. Decide by the compaction probe's branch: `apps/brunch-agent/src/capture/apply-sweep.ts` and the sweep types consumed by `binding-flue/src/history-reader.ts`, `binding-flue/src/index.ts`, `core/src/evidence/capture-store.ts`, and `core/src/index.ts`, which are removed if the archive lane is not hardened and retained as the archive lane otherwise. Archive: nothing further; the Mission 2 and 4 records already hold the designs. Six-tool and two-tool subsets retired as product surfaces once Mission 6 archives.
 - **Runtime migration matrix.** Old history with new code; new history with rolled-back code; conversations mixing fenced and tool revisions; mixed browser and server versions; Mission 6 fixture mode; retained evidence restoration; tool-manifest rollback; any dual-read bridge with an explicit removal gate (F15).
 - **Behavioural discriminator.** One executable check derived from the workpiece (resource reservation and release, reachability, token conservation, or one scenario outcome) passes on the constructed region and is carried unchanged to Missions 9 and 10 (F15).
 - **Stock coexistence, docs, telemetry.** Stock assistant unchanged when Brunch is absent or unselected; Petrinaut user guide updated for the pane and the why interaction with a screenshot prompt; no content-bearing telemetry.
@@ -177,25 +193,25 @@ Mission 9 inherits the seam listed in the ratchet. **Owner:** Mission 9. **Re-en
 | Browser Flue transport carries typed turns, history hydration, and correlated client-tool results | Existing Mission 5 evidence README and its 36-task Turbo run; Mission 6 focused tests for read, mutation, original call-id result, and continuation. Run `yarn exec turbo run test:unit --filter @apps/brunch-agent --filter @apps/petrinaut-website`. |
 | Prepared signal retry and append-only selection; fixture-only advertisement; mismatch refusal; manifest retention | Existing Mission 6 tests named in `fe-1575-resumable-workpiece-petrinaut.md`. These remain guards for the prepared route only. |
 | Construction tools currently expose the six-tool subset over the falsified carrier | Existing `plugin-sdcpn/test/construction-tools.test.ts`; `headless-petrinaut-client.test.ts`. Baseline to change, not success. |
-| Multi-tool batch termination and hook rules | Installed Flue 2.0.3 reference; pin with a focused test that `update_workpiece` is non-terminating and never co-batched, and that the setter is captured at render. **ORACLE GAP** until that test exists. |
-| `update_workpiece` settles, hashes, persists state, refuses empty or oversize input | **ORACLE GAP:** new core unit tests plus one production-agent integration through the Mission 5 transport. |
-| Mutation cites a settled revision; unknown or superseded citation refuses | **ORACLE GAP:** plugin unit tests plus the tracer. |
-| Transition record is independently verifiable; duplicates resolve to unknown | **ORACLE GAP:** website unit tests for pre-hash observation, effect derivation, diff accounting, duplicate handling; production-path integration. |
-| Identity epochs; no id reuse | **ORACLE GAP:** epoch ledger unit test plus the tracer's delete-and-recreate. |
-| Hand edit and external import are detected and disposed honestly | **ORACLE GAP:** the tracer's hand edit; reconciliation unit tests. |
-| Passage policy holds under semantic edits | **ORACLE GAP:** the passage probe's recorded outcomes on the tracer workpiece. |
-| Compaction posture | **ORACLE GAP:** the compaction probe's recorded outcome and its selected branch. |
-| Fixture route | **ORACLE GAP:** the materialization probe's recorded outcome; acceptance assertions run through the reopened why operation. |
-| Carrier carries one real nested mutation | **ORACLE GAP:** one budgeted paid call on the proving scenario's nested class with the exact schema artifact and raw arguments retained. |
-| Why answers are safe and useful | **ORACLE GAP:** safety assertions over the frozen inventory through the reopened why operation; blinded reviewer task with the fixed rubric. |
-| Constructed region is meaningful | **ORACLE GAP:** human semantic adjudication against the workpiece plus the behavioural discriminator. |
+| Multi-tool batch termination and hook rules | Prospective: `packages/core/test/update-workpiece.test.ts`, tests "declares a non-terminating result" and "captures the persistent-state setter at render and writes from run"; `packages/plugin-sdcpn/test/construction-tools.test.ts`, test "never mounts update_workpiece in a batch with a terminating construction tool". Command: `yarn workspace @hashintel/brunch-agent test:unit`, `yarn workspace @hashintel/brunch-agent-plugin-sdcpn test:unit`. |
+| `update_workpiece` settles, hashes, persists state, refuses empty or oversize input | Prospective: `packages/core/test/update-workpiece.test.ts`, tests "returns revisionId equal to toolCallId and sha256 of the Markdown", "persists Markdown with the pointer", "refuses empty Markdown", "refuses Markdown over the size ceiling"; `apps/brunch-agent/test/workpiece-revisions.integration.ts`, test "the built agent settles a revision over the mounted route". |
+| Mutation cites a settled revision; unknown or superseded citation refuses | Prospective: `packages/plugin-sdcpn/test/declared-basis.test.ts`, tests "accepts a basis citing the settled revision", "refuses a citation of an unknown revisionId", "refuses a superseded revision unless supersession is intended"; tracer artifact `docs/evidence/implementations/fe-1573-step-a/<run-id>/basis-citations.json`. |
+| Transition record is independently verifiable; duplicates resolve to unknown | Prospective: `apps/petrinaut-website/src/main/app/local-storage-demo/transition-record.test.ts`, tests "observes the pre-apply hash independently of the request", "derives disjoint created, updated, deleted, derived sets from pre and post definitions", "refuses a record whose effects do not account for the diff", "marks conflicting duplicate browser outcomes unknown and retains both deliveries"; `apps/brunch-agent/test/transition-records.integration.ts`. |
+| Identity epochs; no id reuse | Prospective: `packages/core/test/identity-epochs.test.ts`, tests "opens a new epoch on delete and recreate" and "refuses reuse of a retired id"; tracer artifact `<run-id>/epochs.json`. |
+| Hand edit and external import are detected and disposed honestly | Prospective: `apps/brunch-agent/test/reconciliation.test.ts`, tests "reports not attributable when the live hash has no recorded transition", "labels an answer as of the last reconciled state when the live hash is unavailable", "retains external dispositions after import until a recorded transition replaces them"; tracer artifact `<run-id>/hand-edit-result.md`. |
+| Passage policy holds under semantic edits | Prospective: `packages/core/test/passage-identity.test.ts`, one test per policy invariant (no reuse after deletion, split and merge lineage, paraphrase refusal, reintroduction as new identity, immutable revision-local span, duplicate headings and quotations, overbroad span fails); probe artifact `<run-id>/passage-identity-result.md` recording the branch. |
+| Compaction posture | Probe artifact `<run-id>/compaction-result.md`: `keepRecentTokens` used, messages folded, whether `history()` retained the folded `update_workpiece` inputs, mutation parts, and user lines, and the selected branch. |
+| Fixture route | Probe artifact `<run-id>/materialization-result.md`: export or retention method, relocation steps, reopened conversation and document identities, authorization check, and the why query run through the product operation; acceptance assertions in `apps/brunch-agent/test/reopened-why.integration.ts`. |
+| Carrier carries one real nested mutation | Probe artifact `<run-id>/carrier-result.md`: provider and model, generated schema, raw arguments, runtime result, repair count, latency, cost; `packages/plugin-sdcpn/test/schema-carrier.test.ts`, test "derives a Valibot schema structurally equal to the canonical JSON Schema for each admitted class". |
+| Why answers are safe and useful | Frozen inventory `<run-id>/inventory.json` with expected disposition per element; safety assertions in `apps/brunch-agent/test/why-safety.integration.ts`, one test per disposition class through the reopened operation; blinded utility adjudication recorded in `<run-id>/utility-adjudication.md` against the fixed rubric by a named reviewer. |
+| Constructed region is meaningful | Human semantic adjudication `<run-id>/semantic-adjudication.md` against the workpiece; behavioural discriminator test named at cut time under `evaluations/oracles/<scenario>/`. |
 | Stock assistant unchanged | Existing host-mode test and browser witness pattern from Mission 6; rerun at close. |
 | Product | A product manager runs the demo script on the proving scenario without an engineer. |
 
 ## Verification approach
 
 - **Inner.** Core: `update_workpiece` validation, hashing, state write, revision numbering; query semantics for origin, current state, change history, attempt history. Plugin: basis parsing and refusal, locator resolution, effect interpretation, template conformance, class admission by scenario rule with schemas structurally compared to canonical Zod. Website: pre-hash observation, effect derivation, diff accounting, duplicate resolution, external import. Binding and app: history acquisition, authorization, why composition. Passage policy invariants as unit tests.
-- **Middle.** The built production `ChatAgent` over the Mission 5 transport at `/agents/chat/:instanceId`: revise, cite, mutate, receive a transition record, resume, reconcile, and answer why, with duplicate delivery, stale base, unknown outcome, and hand edit injected. Run through root Turbo: `test:unit`, `lint:tsc`, `lint:eslint`, and `build` for `@apps/brunch-agent`, `@apps/petrinaut-website`, `@hashintel/petrinaut`, `@hashintel/brunch-agent`, `@hashintel/brunch-agent-plugin-sdcpn`, and `@hashintel/brunch-agent-transport-aisdk`.
+- **Middle.** The built production `ChatAgent` over the Mission 5 transport at `/agents/chat/:instanceId`: revise, cite, mutate, receive a transition record, resume, reconcile, and answer why, with duplicate delivery, stale base, unknown outcome, and hand edit injected. Run through root Turbo: `test:unit`, `lint:tsc`, `lint:eslint`, and `build` for `@apps/brunch-agent`, `@apps/petrinaut-website`, `@hashintel/petrinaut`, `@hashintel/brunch-agent`, `@hashintel/brunch-agent-plugin-sdcpn`, `@hashintel/brunch-agent-transport-aisdk`, and `@hashintel/brunch-agent-binding-flue`.
 - **Outer.** The adversarial tracer and the Step B conversations retained through `--brunch-evidence-dir`, reopened through the selected fixture route, and queried through the product why operation in the panel with `yarn dev:brunch` running and a real provider credential. Snapshots and projections are diagnostics only (G12).
 - **Semantic and behavioural.** Human adjudication of the constructed region against the workpiece; the behavioural discriminator; the blinded utility rubric.
 - **Product.** The demo script, last, after the readiness gate.
@@ -348,15 +364,36 @@ Stop and surface evidence if:
 
 ## Cut conversion map
 
-| Live `MISSION.md` address | Source in this draft |
+The authority is cut in two steps, and the document shape must make it impossible to read Step B as authorized before the owner gate (H3). At the first cut, this draft is split rather than consumed whole:
+
+- **Step A → live `MISSION.md`.** The initial authority contains only Step A: the adversarial tracer, the four probes, the two measurements, the outcome classification table, and the exact oracles for those leaves. Its Deferred section points at the Step B packet without restating it.
+- **Step B → this file, retitled "Draft Mission 7 — Step B amendment packet".** The Step B proof floor, the readiness gate, the Step B rows of the evidence table, and the construction body remain here under the non-authority warning, with a note that Step A's content has been consumed and lives only in `MISSION.md`. The spine's migration ledger records the split with a no-loss comparison.
+- **After the owner gate**, the amendment converts the packet into the live contract in its own commit, and this file is removed under the lifecycle rules.
+
+| Live `MISSION.md` address at the first cut | Source in this draft |
 | --- | --- |
-| Status | New at cut: branch, issue re-title, two-step authority note, Mission 6 constraint amendment |
-| Imperative | Visible product advance, with the release note, demo script, previously impossible, deployment posture (local), and completion |
-| Throughline | Boundary crossings and current throughline hypothesis, plus Expected touched paths |
-| Proof | Throughline proof floor (Step A with decision tables, Step B), Readiness gate after the new throughline, Candidate evidence and oracles, Verification approach |
+| Status | New at cut: branch from the final Mission 6 close commit, FE-1573 re-title, two-step authority note, Mission 6 constraint amendment, paid-evidence budget |
+| Imperative | Visible product advance, with the release note, demo script, previously impossible, deployment posture (local), and completion, stated as the mission's goal while the authority covers Step A only |
+| Throughline | Boundary crossings and current throughline hypothesis, plus the Step A rows of Expected touched paths |
+| Proof | Throughline proof floor Step A with its decision tables and outcome classification; the Step A rows of Candidate evidence and oracles; Verification approach for those leaves |
 | Constraints | Accepted constraints and guarded invariants, Cross-cutting obligations, Inputs and joins |
 | Fog-line | Fog-line, plus the open rows of the decision tables |
-| Stop or reorient | Stop or reorient |
-| Deferred | The Mission 9 and 10 handoffs in the Readiness ratchet, and the rejected alternatives with their re-entry conditions |
+| Stop or reorient | Stop or reorient, plus the terminal-stop rows of the outcome classification |
+| Deferred | A pointer to the Step B packet; the Mission 9 and 10 handoffs; the rejected alternatives with their re-entry conditions |
 
-Before cutting, re-read the four design-evidence documents and the two reviews' evidence lists, inspect the real boundary for each cold-start read, confirm the proving scenario with consumer discovery, obtain the FE-1573 re-title, and record the paid-evidence budget.
+### Pre-cut checklist (owner decisions, H2)
+
+Each item is recorded in the cut `MISSION.md` Status or Constraints before Step A runs:
+
+1. Mission 6 accepted, archived, and its close commit identified as the branch base (H1).
+2. Proving scenario selected from the six cases.
+3. Scenario-required Petrinaut operation classes, each citing the case requirement it discharges (3.8 of the spec is the candidate table).
+4. Consequential-element rule, frozen before any run.
+5. Behavioural discriminator derived from the workpiece.
+6. Utility coverage threshold, with per-class expectations.
+7. Acceptance of the one-conversation-one-document-incarnation binding for Mission 7.
+8. Provider model, maximum calls, and spend ceiling.
+9. FE-1573 title and description (re-titled 2026-09-04) confirmed against the cut.
+10. Chris and Yannis discovery performed, or explicitly dispositioned by the owner as not a pre-cut dependency.
+
+Before cutting, also re-read the four design-evidence documents and the three reviews' evidence lists, and inspect the real boundary for each cold-start read.
