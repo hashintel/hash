@@ -55,8 +55,8 @@
    * blurred but still visible. Matched heights hid the blur completely: its
    * strongest layers sit at the top, which is exactly where the tint is opaque.
    */
-  --pnd-content-fade-height: 30px;
-  --pnd-content-blur-height: 60px;
+  --pnd-content-fade-height: 60px;
+  --pnd-content-blur-height: 80px;
 }
 
 /*
@@ -739,33 +739,21 @@ dialog {
 }
 
 /*
- * Both layers are anchored under the header and run to a different depth, so
- * they overlap towards the top and thin out to one at the bottom. Each fades
- * out over its own lower half, so a layer ending is a soft edge rather than a
- * line across the content.
- *
- * The taller carries the weaker blur and reaches furthest into the content;
- * the shorter carries the stronger and stays up against the header.
+ * One layer, filling the band. `backdrop-filter` takes a single radius, so the
+ * ramp comes from the mask: full strength for the top half, then out to nothing
+ * by the bottom, which is what keeps the blur from ending on a line across the
+ * content.
  */
 .pnd-fade > span {
   position: absolute;
   inset-block-start: 0;
   inset-inline: 0;
   display: block;
-  -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent);
-  mask-image: linear-gradient(to bottom, #000 50%, transparent);
-}
-
-.pnd-fade > span:nth-child(1) {
   height: 100%;
   -webkit-backdrop-filter: blur(1px);
   backdrop-filter: blur(1px);
-}
-
-.pnd-fade > span:nth-child(2) {
-  height: 50%;
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent);
+  mask-image: linear-gradient(to bottom, #000 50%, transparent);
 }
 
 /*

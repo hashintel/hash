@@ -55,20 +55,13 @@ import DiffBadges from "./DiffBadges.astro";
   The band of blur under the header, over the content column only. Rendered
   here for the same reason as the resize handle: this component renders at the
   header's leading edge, and the element is positioned against the viewport
-  rather than laid out in the header. Three spans because the ramp is three
-  backdrop filters of increasing radius, each masked to a shorter band. See
-  `chrome.css`.
+  rather than laid out in the header. One span, carrying the blur that the
+  band's mask ramps out. See `chrome.css`.
 */}
-<div class="pnd-fade pnd-content-fade" aria-hidden="true">
-  <span></span>
-  <span></span>
-</div>
+<div class="pnd-fade pnd-content-fade" aria-hidden="true"><span></span></div>
 
 {/* The same band over the nav, grown out of how far the rail has scrolled. */}
-<div class="pnd-fade pnd-nav-fade" aria-hidden="true">
-  <span></span>
-  <span></span>
-</div>
+<div class="pnd-fade pnd-nav-fade" aria-hidden="true"><span></span></div>
 
 <script is:inline>
   (() => {

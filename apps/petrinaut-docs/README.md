@@ -132,22 +132,19 @@ whole effect off.
 
 Under the header, over the content column only, a band blurs and tints whatever
 scrolls beneath it, so text does not meet the header on a hard edge. It runs to
-two heights: the tint over 30px and the blur over 60px. Matching them hid the
-blur completely, because its strongest layers sit at the top, which is exactly
-where the tint is opaque; the stretch below the tint is where a reader actually
-sees content blurred.
+two heights: the tint over 60px and the blur over 80px. Matching them hid the
+blur completely, because the tint is opaque where the blur is strongest; the
+stretch below the tint is where a reader actually sees content blurred.
 
-`backdrop-filter` cannot ramp on its own, so the ramp is two layers, both
-anchored under the header and running to a different depth: 60px at 1px of blur
-and 30px at 2px. They overlap towards the header and thin out to one at the
-bottom, so the taller and weaker is the layer that meets unblurred content. Each
-fades out over its own lower half, so a layer ending reads as a soft edge rather
-than a line across the page.
+`backdrop-filter` takes a single radius, so the ramp comes from the mask rather
+than from the filter: one layer fills the band at 1px of blur, at full strength
+for its top half and out to nothing by its bottom, which is what keeps the blur
+from ending on a line across the page.
 
 The nav carries the same band, built from the same rules, and grows it out of
 its own scroll. The rail scrolls independently of the page, so the header script
 writes how far it has gone as `--pnd-nav-progress`, 0 to 1 over the first 20px,
-and both the band's height and its opacity come off that one number. Twenty is
+and the band's height, its tint and its opacity all come off that one number. Twenty is
 well under one row, so the band is there as soon as anything has gone up behind
 the header and the ramp only takes the hard edge off its arrival. At rest it
 has no height at all, which is what keeps it off the first row of an unscrolled
