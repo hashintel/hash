@@ -1,5 +1,5 @@
 import { useLocalStorage } from "@mantine/hooks";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   crewReservationSettledManifestStorageKey,
@@ -69,17 +69,8 @@ export const useCrewReservationSettlement = (input: {
   } = input;
   const [observedStatus, setObservedStatus] =
     useState<CrewReservationSettlementStatus>({ state: "preparing" });
-  const manifestRef = useRef(settledManifest);
-  const observationIdRef = useRef(0);
-  const queueRef = useRef(Promise.resolve());
 
   useEffect(() => {
-    manifestRef.current = settledManifest;
-  }, [settledManifest]);
-
-  useEffect(() => {
-    const observationId = observationIdRef.current + 1;
-    observationIdRef.current = observationId;
     if (
       !enabled ||
       historyError !== undefined ||
@@ -89,22 +80,19 @@ export const useCrewReservationSettlement = (input: {
       return;
     }
 
+    let cancelled = false;
     const definitionSnapshot = structuredClone(definition);
-    const historySnapshot = history;
-    queueRef.current = queueRef.current.then(async () => {
-      if (observationId !== observationIdRef.current) return;
+    const settle = async (): Promise<void> => {
       let result: CrewReservationSettlementResult;
       try {
         result = await settleCrewReservationManifest({
           definition: definitionSnapshot,
-          history: historySnapshot,
-          ...(manifestRef.current === null
-            ? {}
-            : { previous: manifestRef.current }),
+          history,
+          ...(settledManifest === null ? {} : { previous: settledManifest }),
           settledAt: new Date().toISOString(),
         });
       } catch (error) {
-        if (observationId === observationIdRef.current) {
+        if (!cancelled) {
           setObservedStatus({
             state: "refused",
             reason: "settlement-failed",
@@ -116,7 +104,7 @@ export const useCrewReservationSettlement = (input: {
         }
         return;
       }
-      if (observationId !== observationIdRef.current) return;
+      if (cancelled) return;
       if (result.status === "refused") {
         setObservedStatus({
           state: "refused",
@@ -128,12 +116,16 @@ export const useCrewReservationSettlement = (input: {
         result.manifest.document.sha256,
         definitionSnapshot,
       );
-      if (result.manifest.manifestId !== manifestRef.current?.manifestId) {
-        manifestRef.current = result.manifest;
+      if (result.manifest.manifestId !== settledManifest?.manifestId) {
         setSettledManifest(result.manifest);
       }
       setObservedStatus({ state: "settled" });
-    });
+    };
+    void settle();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     definition,
     enabled,
@@ -141,6 +133,7 @@ export const useCrewReservationSettlement = (input: {
     historyError,
     persistCoherentSnapshot,
     setSettledManifest,
+    settledManifest,
   ]);
 
   const status: CrewReservationSettlementStatus = !enabled
