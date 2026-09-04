@@ -111,14 +111,24 @@ it is yours:
   step 4 of [Creating an optimization](#creating-an-optimization)).
 - A **Parameters** band with one slider per optimized numeric parameter and a
   switch per optimized boolean parameter. While the study runs, **Follow
-  steps** is on: the controls move to each step's values as it is evaluated and
-  the status line reads **Following step N**. Move any control and following
-  stops; the point you picked computes in escalating batches (8, 25, then 100
-  runs) while the line reads **N of M runs — refining**. Turn **Follow steps**
-  back on to rejoin the step in flight.
+  steps** is on: the controls move to each step's values as it is evaluated,
+  disabled while they follow, and the status line reads **Following step N**.
+  Turn **Follow steps** off to take over early, or wait for the study to
+  finish; then move any control and the point you picked computes in
+  escalating batches (8, 25, then 100 runs) while the line reads **N of M
+  runs — refining**. Turn **Follow steps** back on to rejoin the step in
+  flight.
 - The **Surface** section whenever two or more numeric parameters are
-  optimized, without the Optimization surface setting. The ringed dot is the
-  Parameters band's position, and clicking or dragging the plot moves it.
+  optimized, without the Optimization surface setting. It draws only the
+  study's steps: each step is a dot at its parameters, the best emphasized,
+  pruned steps hollow, and the field is interpolated between them, so it fills
+  in as steps report — nothing is sampled behind the study. The ringed dot is
+  the step being evaluated, its running value streaming into the field as the
+  runs complete; the caption counts the steps placed and the best so far.
+  While the study runs with **Follow steps** on, the plot only displays. Once
+  the study is over, or **Follow steps** is off, the ringed dot is the point
+  the Parameters band holds: click or drag the plot to move it, and the
+  point's value enters the field as it refines.
 - A **Metrics** section with the objective metric's distribution over
   simulation time at that position: the step being evaluated while following,
   otherwise the point you picked. It streams again whenever the position
@@ -130,12 +140,13 @@ The surface is experimental and off by default. Turn on **Optimization
 surface** under Simulation in the [settings
 dialog](visual-settings.md#optimization-surface-experimental) to see it.
 
-A study with two or more optimized numeric parameters grows a **Surface**
-section between the best parameters and the step list: an Optuna-style contour
-of the objective over two parameters you pick. The study's own trials appear as rings (the best
-trial highlighted), and the filled contour comes from points **computed
-locally on your machine** — the study's model snapshot runs on a background
-worker, a few runs per point, and the plot fills in coarse shape first.
+A study run on the optimization service with two or more optimized numeric
+parameters grows a **Surface** section between the best parameters and the
+step list: an Optuna-style contour of the objective over two parameters you
+pick. The study's own trials appear as rings (the best trial highlighted), and
+the filled contour comes from points **computed locally on your machine** —
+the study's model snapshot runs on a background worker, a few runs per point,
+and the plot fills in coarse shape first.
 
 One slider per optimized parameter navigates the space; parameters not shown
 on the plot hold at their slider position, which starts at the best trial's
@@ -148,8 +159,9 @@ Log-scale domains slide in log space, and integer domains snap to their step.
 Local points always reflect the model as it was when the study launched, even
 if you have edited the net since.
 
-A study that runs in the browser shows the Surface without this setting
-whenever it has two or more optimized numeric parameters, and its sliders are
+A study that runs in the browser shows a different Surface without this
+setting whenever it has two or more optimized numeric parameters: it samples
+no grid of its own — the study's steps are its samples — and its controls are
 the drawer's **Parameters** band (see [Running in the
 browser](#running-in-the-browser)).
 
@@ -175,11 +187,15 @@ experiments.
   optimization it stays greyed out and the steps run on the CPU: the objective
   is an expression metric, which the GPU backend cannot compute.
 - While the study runs, the drawer follows it: the **Parameters** band moves
-  to each step's values and the **Metrics** section streams the objective
-  metric over that step's runs as they complete. Move a slider, flip a switch,
-  or click the surface to look at any other point at any time — its objective
-  computes in escalating batches on the same backend — and turn **Follow
-  steps** back on to rejoin the study.
+  to each step's values, the **Surface** gains a dot per step with the field
+  filling in around it and the ringed dot streaming the step in flight, and
+  the **Metrics** section streams the objective metric over that step's runs
+  as they complete. The sliders and the plot only display while **Follow
+  steps** is on; turn it off to take over early. Then, or once the study is
+  over, move a slider, flip a switch, or click or drag the surface to look at
+  any other point — its objective computes in escalating batches on the same
+  backend and enters the field — and turn **Follow steps** back on to rejoin
+  the study.
 - When a point cannot be computed — the objective metric does not compile,
   the backend declines the model, or some of its runs fail — the
   **Parameters** band says why under **Could not compute** and the **Metrics**
