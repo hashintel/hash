@@ -49,10 +49,9 @@ const settledHistory = (
   settlements: [{ submissionId: "prepare-submission", outcome: "completed" }],
 });
 
-const targetMutationMessages = (): readonly [
-  WorkpieceHistoryMessage,
-  WorkpieceHistoryMessage,
-] => [
+const targetMutationMessages = (
+  toolCallId = "target-arc-call",
+): readonly [WorkpieceHistoryMessage, WorkpieceHistoryMessage] => [
   {
     id: "target-mutation-request",
     role: "assistant",
@@ -61,7 +60,7 @@ const targetMutationMessages = (): readonly [
     parts: [
       {
         type: "dynamic-tool",
-        toolCallId: "target-arc-call",
+        toolCallId,
         toolName: "addArc",
         input: {
           transitionId: startFinalInspectionTransitionId,
@@ -85,7 +84,7 @@ const targetMutationMessages = (): readonly [
         type: "text",
         text: JSON.stringify([
           {
-            toolCallId: "target-arc-call",
+            toolCallId,
             toolName: "addArc",
             output: { applied: true },
           },
@@ -271,6 +270,22 @@ describe("crew-reservation settled manifest", () => {
             preparedMessage,
             ...targetMutationMessages(),
             targetMutationMessages()[1],
+            revisedMessage,
+          ],
+        },
+        settledAt: "2026-09-03T12:05:00.000Z",
+      }),
+    ).resolves.toMatchObject({ status: "settled" });
+
+    await expect(
+      settleCrewReservationManifest({
+        definition: revisedDefinition,
+        history: {
+          ...history,
+          messages: [
+            preparedMessage,
+            ...targetMutationMessages(),
+            ...targetMutationMessages("second-target-arc-call"),
             revisedMessage,
           ],
         },

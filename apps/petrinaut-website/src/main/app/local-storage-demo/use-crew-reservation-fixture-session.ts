@@ -1,6 +1,11 @@
 import { useEffect, useMemo } from "react";
 
 import {
+  getLatestNetDefinitionToolName,
+  normalizePetrinautAiToolInput,
+} from "@hashintel/petrinaut-core/ai";
+
+import {
   crewReservationConversationId,
   crewReservationFixtureClientToolNames,
 } from "./prepared-crew-reservation-fixture";
@@ -20,6 +25,16 @@ const clientToolNames: ReadonlySet<string> = new Set(
 export const crewReservationFixtureConfiguration = {
   clientToolNames,
   conversationId: crewReservationConversationId,
+  mapClientToolInput: ({
+    input,
+    toolName,
+  }: {
+    readonly input: unknown;
+    readonly toolName: string;
+  }) =>
+    toolName === "addArc" || toolName === getLatestNetDefinitionToolName
+      ? normalizePetrinautAiToolInput(toolName, input)
+      : input,
 } as const;
 
 export const useCrewReservationFixtureSession = (input: {
@@ -53,10 +68,11 @@ export const useCrewReservationFixtureSession = (input: {
     settledManifest,
     snapshotMissing,
   } = input;
-  const preparationStatus = usePrepareCrewReservationConversation(
+  const preparation = usePrepareCrewReservationConversation(
     clientPromise,
     enabled,
   );
+  const preparationStatus = preparation.status;
 
   useEffect(() => {
     if (
@@ -94,7 +110,7 @@ export const useCrewReservationFixtureSession = (input: {
     currentWorkpiece,
     preparationStatus,
     settlementStatus,
-    transportReady: !enabled || preparationStatus.state === "ready",
+    transportClientPromise: preparation.clientPromise,
     transportUnavailableReason:
       preparationStatus.state === "failed"
         ? preparationStatus.error

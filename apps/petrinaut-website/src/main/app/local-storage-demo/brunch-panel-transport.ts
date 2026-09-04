@@ -236,6 +236,10 @@ export const createBrunchPanelTransport = (
   options?: {
     /** Fixture-scoped client tools; defaults to the Petrinaut docs reader alone. */
     readonly clientToolNames?: ReadonlySet<string>;
+    readonly mapClientToolInput?: (input: {
+      readonly input: unknown;
+      readonly toolName: string;
+    }) => unknown;
     readonly onAdmission?: (admission: AgentSendResult) => void;
   },
 ): PetrinautAiChatTransport => ({
@@ -247,6 +251,9 @@ export const createBrunchPanelTransport = (
         const transport = createFlueChatTransport({
           client,
           clientToolNames: options?.clientToolNames ?? brunchClientToolNames,
+          ...(options?.mapClientToolInput === undefined
+            ? {}
+            : { mapClientToolInput: options.mapClientToolInput }),
           onAdmission: (event) => {
             tracker.recordAdmission(event);
             options?.onAdmission?.(event.admission);

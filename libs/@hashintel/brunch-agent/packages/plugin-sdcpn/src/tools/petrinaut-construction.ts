@@ -2,7 +2,10 @@ import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
 import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
-import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
+import {
+  normalizePetrinautAiToolInput,
+  petrinautAiTools,
+} from "@hashintel/petrinaut-core/ai";
 
 export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
   "getLatestNetDefinition",
@@ -52,15 +55,22 @@ const canonicalInputFor = (toolName: PetrinautConstructionToolName) => {
   return {
     description: [
       canonicalTool.description,
+      ...(toolName === "addArc"
+        ? [
+            "A finite numeric-string weight is normalized to a number before canonical validation.",
+          ]
+        : []),
       "Canonical Petrinaut input JSON Schema:",
       JSON.stringify(jsonSchema),
     ].join("\n"),
     schema: v.pipe(
       v.looseObject({}),
       v.rawTransform((context) => {
-        const parsed = canonicalTool.inputSchema.safeParse(
+        const normalizedInput = normalizePetrinautAiToolInput(
+          toolName,
           context.dataset.value,
         );
+        const parsed = canonicalTool.inputSchema.safeParse(normalizedInput);
         if (parsed.success) return parsed.data;
 
         for (const issue of parsed.error.issues) {

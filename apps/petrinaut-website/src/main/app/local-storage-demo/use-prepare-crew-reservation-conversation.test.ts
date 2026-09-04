@@ -22,10 +22,13 @@ test("reports preparation failure without rejecting the shared client", async ()
     usePrepareCrewReservationConversation(clientPromise, true),
   );
 
-  await waitFor(() => expect(result.current.state).toBe("failed"));
-  expect(result.current).toEqual({
+  await waitFor(() => expect(result.current.status.state).toBe("failed"));
+  expect(result.current.status).toEqual({
     state: "failed",
     error: "Provider authentication failed",
   });
   await expect(clientPromise).resolves.toBe(client);
+  await expect(result.current.clientPromise).rejects.toThrow(
+    "Provider authentication failed",
+  );
 });

@@ -615,6 +615,7 @@ export const LocalStorageDemoApp = ({
     flueClientPromise,
     conversationId ?? "",
     fixtureConfiguration?.clientToolNames,
+    fixtureConfiguration?.mapClientToolInput,
   );
   const brunchVoiceMode = useMemo(
     () =>
@@ -637,15 +638,22 @@ export const LocalStorageDemoApp = ({
     settledManifest,
     snapshotMissing: crewReservationBundle?.snapshotMissing ?? false,
   });
+  const transportClientPromise =
+    fixtureConfiguration === undefined
+      ? flueClientPromise
+      : crewReservationSession.transportClientPromise;
   const petrinautAiChatTransport = useMemo(() => {
-    if (flueClientPromise !== null && crewReservationSession.transportReady) {
+    if (transportClientPromise !== null) {
       return createBrunchPanelTransport(
-        flueClientPromise,
+        transportClientPromise,
         conversationTracker,
         {
           ...(fixtureConfiguration === undefined
             ? {}
-            : { clientToolNames: fixtureConfiguration.clientToolNames }),
+            : {
+                clientToolNames: fixtureConfiguration.clientToolNames,
+                mapClientToolInput: fixtureConfiguration.mapClientToolInput,
+              }),
           onAdmission: flueHistory.refresh,
         },
       );
@@ -657,11 +665,10 @@ export const LocalStorageDemoApp = ({
       : stockChatTransport;
   }, [
     conversationTracker,
-    crewReservationSession.transportReady,
     crewReservationSession.transportUnavailableReason,
     fixtureConfiguration,
-    flueClientPromise,
     flueHistory.refresh,
+    transportClientPromise,
   ]);
 
   const aiAssistant = useMemo(
