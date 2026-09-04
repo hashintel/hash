@@ -1,0 +1,18 @@
+{
+  "conversationId": "conv_01M1NQEXM3CAPPTXM33ZE1YSRG",
+  "offset": "0000000000000000_0000000000000123",
+  "manifestId": "a00f05964afc87b1ef34b50c96711232ac44c5b60eb6e8ce60a540af3b5dab49",
+  "documentSha256": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+  "workpieceSha256": "785135be03f8cbe9156b835f34d463bf7111fc109dd90dbe9db55955670c050e",
+  "preparedSourceCount": 1,
+  "addArcCallCount": 1,
+  "followUp": {
+    "submissionId": "sub_ik_8841d36f1e2e4ba9f39852be54d2e174",
+    "responseMessageId": "entry_01M1NQJG7GRPC479PRF826T6F3",
+    "settlement": {
+      "submissionId": "sub_ik_8841d36f1e2e4ba9f39852be54d2e174",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_8841d36f1e2e4ba9f39852be54d2e174"
+    }
+  }
+}
