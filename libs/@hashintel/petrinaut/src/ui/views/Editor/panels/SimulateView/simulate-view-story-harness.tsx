@@ -39,6 +39,7 @@ import {
   createOptimizationParameterDraft,
   type OptimizationParameterDraft,
 } from "./optimizations/optimization-parameter-row";
+import { randomOptimizationSeed } from "./optimizations/optimization-seed";
 import { SimulateView } from "./simulate-view";
 
 import type { ExperimentComputeBackend } from "../../../../../react/experiments/context";
@@ -321,6 +322,7 @@ export const buildAutoStudyInput = (
     direction: study.objective.direction,
     optimizationSteps: study.steps,
     seedsPerTrial: study.runsPerStep,
+    seed: randomOptimizationSeed(),
     dt: study.dt,
     maxTime: study.maxTime,
   });

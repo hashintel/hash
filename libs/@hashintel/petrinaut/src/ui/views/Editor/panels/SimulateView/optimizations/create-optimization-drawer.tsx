@@ -14,7 +14,6 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  PETRINAUT_DEFAULT_SEED,
   PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
@@ -30,6 +29,7 @@ import {
 import {
   isConnectedOptimization,
   PETRINAUT_OPTIMIZATION_MAX_PARALLELISM,
+  PETRINAUT_OPTIMIZATION_MAX_SEED,
 } from "@hashintel/petrinaut-core/optimization";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
@@ -61,6 +61,10 @@ import {
   type OptimizationParameterDraft,
   OptimizationParameterRow,
 } from "./optimization-parameter-row";
+import {
+  isValidOptimizationSeed,
+  randomOptimizationSeed,
+} from "./optimization-seed";
 
 import type {
   ExperimentComputeBackend,
@@ -380,6 +384,7 @@ function getConfigurationError({
   optimizationSteps,
   seedsPerTrial,
   parallelism,
+  seed,
   dt,
   maxTime,
 }: {
@@ -394,6 +399,7 @@ function getConfigurationError({
   optimizationSteps: number | null;
   seedsPerTrial: number | null;
   parallelism: number | null;
+  seed: number | null;
   dt: number | null;
   maxTime: number | null;
 }): string | null {
@@ -456,6 +462,9 @@ function getConfigurationError({
   ) {
     return `Parallel steps must be an integer between 1 and ${PETRINAUT_OPTIMIZATION_MAX_PARALLELISM}`;
   }
+  if (!isValidOptimizationSeed(seed)) {
+    return `Seed must be an integer between 0 and ${PETRINAUT_OPTIMIZATION_MAX_SEED.toLocaleString()}`;
+  }
   if (dt === null || !Number.isFinite(dt) || dt <= 0) {
     return "Time step must be a positive number";
   }
@@ -489,6 +498,7 @@ export function buildPetrinautOptimizationInput({
   direction,
   optimizationSteps,
   seedsPerTrial,
+  seed,
   dt,
   maxTime,
 }: {
@@ -501,6 +511,7 @@ export function buildPetrinautOptimizationInput({
   direction: Direction;
   optimizationSteps: number;
   seedsPerTrial: number;
+  seed: number;
   dt: number;
   maxTime: number;
 }): PetrinautOptimizationInput {
@@ -562,7 +573,7 @@ export function buildPetrinautOptimizationInput({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
-    execution: { seed: PETRINAUT_DEFAULT_SEED, dt, maxTime, seedsPerTrial },
+    execution: { seed, dt, maxTime, seedsPerTrial },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
 }
@@ -583,6 +594,7 @@ export function buildAdHocPetrinautOptimizationInput({
   direction,
   optimizationSteps,
   seedsPerTrial,
+  seed,
   dt,
   maxTime,
 }: {
@@ -595,6 +607,7 @@ export function buildAdHocPetrinautOptimizationInput({
   direction: Direction;
   optimizationSteps: number;
   seedsPerTrial: number;
+  seed: number;
   dt: number;
   maxTime: number;
 }): PetrinautOptimizationInput {
@@ -612,7 +625,7 @@ export function buildAdHocPetrinautOptimizationInput({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
-    execution: { seed: PETRINAUT_DEFAULT_SEED, dt, maxTime, seedsPerTrial },
+    execution: { seed, dt, maxTime, seedsPerTrial },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
 }
@@ -652,6 +665,7 @@ export const CreateOptimizationDrawer = ({
   const [seedsPerTrial, setSeedsPerTrial] = useState<number | null>(
     DEFAULT_SEEDS_PER_TRIAL,
   );
+  const [seed, setSeed] = useState<number | null>(randomOptimizationSeed);
   const [parallelism, setParallelism] = useState<number | null>(
     DEFAULT_PARALLELISM,
   );
@@ -762,6 +776,7 @@ export const CreateOptimizationDrawer = ({
     setOptimizationSteps(100);
     setSeedsPerTrial(DEFAULT_SEEDS_PER_TRIAL);
     setParallelism(DEFAULT_PARALLELISM);
+    setSeed(randomOptimizationSeed());
     setGpuRequested(false);
     setDt(DEFAULT_DT);
     setMaxTime(180);
@@ -794,6 +809,7 @@ export const CreateOptimizationDrawer = ({
             optimizationSteps,
             seedsPerTrial,
             parallelism,
+            seed,
             dt,
             maxTime,
           })
@@ -806,6 +822,7 @@ export const CreateOptimizationDrawer = ({
       optimizationSteps === null ||
       seedsPerTrial === null ||
       parallelism === null ||
+      !isValidOptimizationSeed(seed) ||
       dt === null ||
       maxTime === null
     ) {
@@ -877,6 +894,7 @@ export const CreateOptimizationDrawer = ({
             direction,
             optimizationSteps,
             seedsPerTrial,
+            seed,
             dt,
             maxTime,
           })
@@ -890,6 +908,7 @@ export const CreateOptimizationDrawer = ({
             direction,
             optimizationSteps,
             seedsPerTrial,
+            seed,
             dt,
             maxTime,
           });
@@ -978,6 +997,7 @@ export const CreateOptimizationDrawer = ({
           optimizationSteps,
           seedsPerTrial,
           parallelism,
+          seed,
           dt,
           maxTime,
         })
@@ -1180,6 +1200,20 @@ export const CreateOptimizationDrawer = ({
                       step="any"
                       value={maxTime}
                       onChange={setMaxTime}
+                    />
+                  </Form.Field>
+                  <Form.Field
+                    label="Seed"
+                    labelTooltip="Seeds the optimizer's proposals and the simulations' random draws. Keep it to reproduce a study; change it to explore a different set of steps."
+                    size="sm"
+                  >
+                    <NumberInput
+                      size="sm"
+                      min={0}
+                      max={PETRINAUT_OPTIMIZATION_MAX_SEED}
+                      step={1}
+                      value={seed}
+                      onChange={setSeed}
                     />
                   </Form.Field>
                 </Form.Row>
