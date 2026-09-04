@@ -1,0 +1,793 @@
+version: 1-prospective
+case: northbank-quay-dc2-thermal-operations
+source: evaluations/cases/data-centre-thermal-operations/situation-pack.md
+provenance:
+  authored_after_historical_runs: false
+  calibrated_against_historical_runs: false
+  frozen_before_prospective_runs: true
+use: prospective baseline and variant grading only
+warning: >-
+  This greenfield ledger is sourced only from the completed data-centre thermal-operations
+  situation pack. Freeze the case, prompts, model configuration, protocol, and this ledger before
+  prospective runs; grade transcript disclosure rather than undisclosed pack truth.
+importance_weights:
+  load-bearing: 3
+  useful: 2
+  incidental: 1
+
+calibration_rules:
+  transcript_precedence: >-
+    Grade what the simulated expert actually disclosed. Ledger truth may identify a distinction,
+    but it does not erase hedges, narrower examples, corrections, or nondisclosure in the transcript.
+  interviewer_proposals: >-
+    A value or interpretation appearing only in an interviewer question is not user evidence unless
+    the expert explicitly adopts it.
+  relevant_absences: >-
+    Entries whose epistemic_character is relevant-absence or another explicit unknown describe
+    relations the pack does not settle. Credit elicitation that locates and preserves the gap; do
+    not expect the expert or IR to fill it.
+  hard_stop: >-
+    When the expert ends elicitation, distinguish unanswered suitable questions from earlier missed
+    opportunities. Do not convert turn-budget truncation into an ordinary acquisition miss.
+  partial_disclosure: >-
+    A concrete example inside a ledger range is partial evidence, not simulator failure by itself.
+    Penalize only unsupported generalization beyond the disclosed example.
+
+facts:
+  - id: objective-thermal-margin
+    importance: load-bearing
+    epistemic_character: explicit-goal
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Keep rack inlet temperatures below the 30°C incident limit without running the plant colder than necessary.
+    expected_ir_homes: [purpose, goals, measures, validation]
+    traps:
+      [
+        optimizing only energy use,
+        substituting the 32°C throttle or 35°C shutdown threshold for the planning limit,
+      ]
+
+  - id: objective-air-target-tradeoff
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Compare room air-supply targets from 21°C to 24°C against cooling energy and thermal margin, with 22°C as normal.
+    expected_ir_homes: [purpose, goals, controls, scenarios, validation]
+    traps:
+      [
+        treating every target in the comparison range as operationally trouble-free,
+        inventing an energy curve,
+      ]
+
+  - id: air-target-energy-response-absence
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not quantify how cooling energy or PUE changes across the 21–24°C air-supply
+      targets, so the objective is established but its energy-response relationship is not.
+    expected_ir_homes: [goals, measures, unknowns, data-sources, validation]
+    traps:
+      [
+        inventing an energy-saving percentage for each target,
+        treating the permitted target range as an observed energy curve,
+      ]
+
+  - id: objective-cooling-redundancy
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Decide whether nominal N+1 chiller provision remains defensible at AI peaks or requires N+2 provision or a firm automatic load cap.
+    expected_ir_homes: [purpose, goals, scenarios, validation]
+    traps:
+      [
+        assuming nominal equipment count proves adequate redundancy,
+        choosing N+2 or a load cap before analysis,
+      ]
+
+  - id: objective-maintenance-window-risk
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Rank maintenance windows by the chance that a second fault causes a thermal excursion, including the full isolation-to-return interval.
+    expected_ir_homes: [purpose, goals, maintenance, failures, validation]
+    traps: [equating planned job duration with exposure duration]
+
+  - id: objective-live-incident-choice
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: During an incident, estimate time to the first 30°C rack inlet and likely hall and row, then compare restart, maintenance rollback, and workload-shed choices.
+    expected_ir_homes: [purpose, goals, incidents, scenarios, validation]
+    traps:
+      [
+        reporting only a site-average temperature,
+        treating facilities as authorised to execute every choice,
+      ]
+
+  - id: objective-ai-rack-expansion
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Test next quarter's proposed twelve additional AI racks, about 1.0 MW typical and 1.2 MW at peak, before promising capacity.
+    expected_ir_homes: [purpose, goals, demand, scenarios, validation]
+    traps:
+      [
+        treating the proposal as installed load,
+        dropping the distinction between typical and peak,
+      ]
+
+  - id: site-halls-racks-and-design-load
+    importance: load-bearing
+    epistemic_character: explicit-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The site has 156 racks and a 12.0 MW designed IT load: Hall 1 has 48 general-compute racks
+      and 2.7 MW, Hall 2 has 60 storage and compute racks and 3.6 MW, and Hall 3 has 48
+      liquid-ready AI racks and 5.7 MW.
+    expected_ir_homes: [boundary, participants-resources, quantities]
+    traps:
+      [
+        treating hall design allocations as the current incident load,
+        assuming all halls have the same workload or cooling behaviour,
+      ]
+
+  - id: utility-feeders-shared-boundary
+    importance: load-bearing
+    epistemic_character: explicit-topology-and-capacity
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Two 11 kV feeders enter from the same local substation; either can carry the site, but they
+      are not independent utility sources and the 18 MW import cap applies across both.
+    expected_ir_homes: [boundary, resources, flow, constraints, failures]
+    traps:
+      [
+        modeling the feeders as independent utility supplies,
+        applying an 18 MW cap to each feeder separately,
+      ]
+
+  - id: hall3-load-density-and-concentration
+    importance: load-bearing
+    epistemic_character: explicit-spatial-variation
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      IT draw becomes room heat to a close first approximation; Hall 3 ordinary AI racks run
+      around 70–85 kW while C7 and C8 contain 90–105 kW racks during a training peak.
+    expected_ir_homes: [quantities, workload, thermal-flow, spatial-variation]
+    traps:
+      [
+        distributing Hall 3 heat evenly by rack count,
+        treating the heat approximation as a complete row-response model,
+      ]
+
+  - id: thermal-threshold-ladder
+    importance: load-bearing
+    epistemic_character: explicit-policy-thresholds
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Normal rack inlets are 22–27°C; DCIM warns at 27°C, facilities declares an incident at
+      30°C, compute throttling is requested at 32°C, and emergency shutdown procedure starts at
+      35°C. Planning uses 30°C.
+    expected_ir_homes: [states, triggers, policies, measures]
+    traps:
+      [
+        collapsing warning,
+        incident,
+        throttle,
+        and shutdown into one event,
+        assuming throttling or shutdown is automatic,
+      ]
+
+  - id: ups-path-topology-and-capacity
+    importance: load-bearing
+    epistemic_character: explicit-topology-and-capacity
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Utility passes through the 11 kV switchboard into independent A and B UPS paths, each with
+      12 MW usable capacity; dual-corded IT is normally split roughly 50/50 and either path is
+      intended to hold the full IT load after transfer.
+    expected_ir_homes: [resources, flow, capacities, failures]
+    traps:
+      [
+        adding A and B capacities as simultaneously usable IT capacity after one-path failure,
+        treating the normal split as exact,
+      ]
+
+  - id: downstream-single-cord-survival
+    importance: load-bearing
+    epistemic_character: explicit-conditional-capacity
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Paired A/B PDUs and busways feed racks; each 1.6 MW PDU is operated below 1.28 MW, and a
+      rack survives on one cord only when the surviving PDU and busway have enough headroom.
+    expected_ir_homes: [resources, flow, capacities, failures, constraints]
+    traps:
+      [
+        assuming dual-corded racks always survive a path loss,
+        using the 1.6 MW nameplate as the operating limit,
+      ]
+
+  - id: generator-envelope-and-start-sequence
+    importance: load-bearing
+    epistemic_character: explicit-topology-and-timing
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Four 5 MVA / 4.5 MW diesels back the declared 13.5 MW critical envelope; three can carry it.
+      On utility loss, eight-minute UPS batteries bridge automatic generator starts of about
+      45–70 seconds, with the essential board normally on generation within 90 seconds.
+    expected_ir_homes: [resources, flow, capacities, time, failures]
+    traps:
+      [
+        treating battery duration as eight minutes under every future load,
+        confusing individual generator rating with the declared critical envelope,
+      ]
+
+  - id: generation-it-reduction-manual
+    importance: load-bearing
+    epistemic_character: tacit-policy-practice-gap
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked how generation loading is actually controlled, who acts, or whether the five-minute reduction is automatic
+    truth: >-
+      On generation, nonessential building load drops immediately and compute is expected to
+      reduce IT below 9.5 MW within five minutes, but no automated trip enforces this; someone
+      must call the compute duty manager. Cooling remains essential.
+    expected_ir_homes: [policies, activities, authority, time, failures]
+    traps:
+      [
+        modeling the IT reduction as an automatic five-minute transition,
+        shedding cooling as nonessential load,
+      ]
+
+  - id: dg3-current-unavailability
+    importance: load-bearing
+    epistemic_character: explicit-current-state
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      DG-3 is unavailable after a starter-motor fault at its 10:40 test; replacement is expected
+      tomorrow. The remaining three generators can carry the declared critical envelope but leave
+      no generator spare, while utility is currently healthy.
+    expected_ir_homes: [initial-state, resources, failures, capacities, time]
+    traps:
+      [
+        describing current generation as N+1,
+        treating expected replacement timing as guaranteed,
+      ]
+
+  - id: grid-and-generator-event-rates-absent
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Two grid interruptions in five years, including one delayed DG-2 first crank, do not provide
+      defensible grid-failure or generator-start failure rates.
+    expected_ir_homes: [unknowns, evidence, failures, data-needs]
+    traps:
+      [
+        fitting failure probabilities from two interruptions,
+        treating the delayed crank as a complete generator-start distribution,
+      ]
+
+  - id: chiller-ring-n-plus-one-topology
+    importance: load-bearing
+    epistemic_character: explicit-topology-and-capacity
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      CH-1 through CH-4 feed a common chilled-water ring; each is rated at 4.2 MW heat removal at
+      design conditions, and three are required for the 12 MW design IT load, making the count
+      nominally N+1.
+    expected_ir_homes: [resources, flow, capacities, failures]
+    traps:
+      [
+        treating a common ring as four independent cooling paths,
+        treating nominal N+1 as proof of current-condition redundancy,
+      ]
+
+  - id: warm-weather-chiller-working-capacity
+    importance: load-bearing
+    epistemic_character: qualified-operational-estimate
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      In today's warm, humid conditions, operators use about 3.8 MW per chiller as a working figure
+      from BMS trends rather than the 4.2 MW design-condition nameplate.
+    expected_ir_homes: [capacities, environment, assumptions, evidence]
+    traps:
+      [
+        hardening 3.8 MW into an exact measured capacity,
+        using 4.2 MW without weather qualification,
+      ]
+
+  - id: weather-capacity-curve-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: No validated chiller-capacity curve exists for every weather condition; the shift team's 3.8 MW figure comes from BMS trends.
+    expected_ir_homes: [unknowns, capacities, environment, data-sources]
+    traps:
+      [
+        interpolating a weather derating curve without an assumption mark,
+        presenting operator reckoning as validated engineering data,
+      ]
+
+  - id: chilled-water-pump-failover
+    importance: load-bearing
+    epistemic_character: explicit-topology-and-conditional-timing
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The ring normally runs five distribution pumps as four duty plus one standby; loss of a duty
+      pump starts the standby in 10–30 seconds if the common differential-pressure signal is healthy.
+    expected_ir_homes: [resources, flow, failures, triggers, time]
+    traps:
+      [
+        making standby start unconditional,
+        treating the common pressure signal as redundant,
+      ]
+
+  - id: hall3-crah-capacity-boundary
+    importance: load-bearing
+    epistemic_character: explicit-topology-and-limit
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Hall 3 has eight 1.0 MW CRAHs, normally six duty and two standby; enabling all eight improves
+      airflow but cannot compensate for warm supply water or insufficient chiller capacity.
+    expected_ir_homes: [resources, flow, capacities, constraints, failures]
+    traps:
+      [
+        treating eight enabled CRAHs as 8 MW of usable cooling regardless of water conditions,
+        modeling CRAH and chiller limits as interchangeable,
+      ]
+
+  - id: chilled-water-and-air-targets
+    importance: load-bearing
+    epistemic_character: explicit-control-policy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Normal chilled water is targeted at 7°C supply / 13°C return and room air supply at 22°C;
+      facilities may raise air supply to 24°C for energy savings when margin exists or lower it
+      during controlled recovery.
+    expected_ir_homes: [controls, policies, states, measures]
+    traps:
+      [
+        assuming setpoint changes guarantee achieved temperatures,
+        raising to 24°C without a margin condition,
+      ]
+
+  - id: hall2-low-setpoint-operability
+    importance: load-bearing
+    epistemic_character: tacit-practice-versus-written-range
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked whether the written setpoint range is usable end to end, about low-temperature exceptions, or about awkward operating behaviour
+    truth: >-
+      Below about 21.5°C, two Hall 2 CRAHs tend to hunt on their valves and trigger condensation
+      alarms, so the written 20–24°C permissible range is not genuinely usable end to end.
+    expected_ir_homes: [controls, policies, exceptions, conflicts, failures]
+    traps:
+      [
+        using 20°C as an uncomplicated control option,
+        upgrading “tend to” into deterministic failure,
+      ]
+
+  - id: c7-containment-door-practice
+    importance: load-bearing
+    epistemic_character: tacit-physical-practice
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked why C7 heats first, about local airflow exceptions, technician practices, or surprises hidden by hall totals
+    truth: >-
+      Hall 3 row C7's rear-containment door does not latch reliably; technicians wedge it during
+      GPU swaps and sometimes leave it open, helping explain why C7 is usually the first hot row.
+    expected_ir_homes:
+      [resources, spatial-variation, exceptions, situation-notes]
+    traps:
+      [
+        predicting rows from aggregate Hall 3 cooling alone,
+        treating the door as always open,
+      ]
+
+  - id: workload-placement-visibility-and-authority
+    importance: load-bearing
+    epistemic_character: explicit-authority-boundary
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The compute scheduler places jobs and facilities sees rack power only after placement, not
+      the customer queue beforehand; the compute duty manager owns workload placement.
+    expected_ir_homes: [boundary, participants, authority, triggers, data-flow]
+    traps:
+      [
+        giving facilities advance knowledge of exact placement,
+        making facilities the workload controller,
+      ]
+
+  - id: hall3-load-range-and-shed-dynamics
+    importance: load-bearing
+    epistemic_character: explicit-variation-and-timing
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Halls 1 and 2 are fairly steady while Hall 3 ranges from roughly 3.0 MW overnight to 5.2 MW
+      at AI peaks. Pausing and checkpointing a large run usually sheds load in 8–12 minutes;
+      moving and resuming takes 25–40 minutes when compatible GPUs are available.
+    expected_ir_homes: [workload, quantities, activities, time, scenarios]
+    traps:
+      [
+        modeling load shed as instantaneous,
+        applying Hall 3 variation to Halls 1 and 2,
+      ]
+
+  - id: aurora-load-capacity-and-authority
+    importance: load-bearing
+    epistemic_character: explicit-current-state-and-authority
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Aurora contributes about 1.4 MW in C7/C8. Only about 0.4 MW of compatible GPU capacity is
+      spare today, so a genuine move mostly means pausing; the compute duty manager can pause it,
+      while Asha may only recommend action to the incident commander.
+    expected_ir_homes:
+      [initial-state, workload, capacities, authority, activities]
+    traps:
+      [
+        modeling Aurora as fully movable today,
+        allowing Asha to pause it directly,
+      ]
+
+  - id: aurora-commercial-interruption-tension
+    importance: load-bearing
+    epistemic_character: tacit-social-constraint
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked what delays nominally available load shed, about unwritten approval constraints, or when Aurora may actually be interrupted
+    truth: >-
+      Commercial asked the duty team not to interrupt Aurora during its benchmark phase unless a
+      30°C crossing is credible or a second protective alarm fires. This is not a safety rule, but
+      it slows authorisation of the nominally available shed.
+    expected_ir_homes: [policies, authority, conflicts, time, situation-notes]
+    traps:
+      [
+        treating the commercial request as a safety interlock,
+        assuming the technical shed duration includes no approval delay,
+      ]
+
+  - id: preferred-cooling-change-window
+    importance: load-bearing
+    epistemic_character: explicit-practice
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The preferred cooling change window is Sunday 02:00–05:00, when forecast IT load is below
+      8.5 MW and outdoor wet-bulb is usually lower; risk assessment covers the entire
+      isolation-to-return interval because mechanical work can overrun.
+    expected_ir_homes: [maintenance, time, prerequisites, environment, policies]
+    traps:
+      [
+        making the window safe solely because work starts within it,
+        treating lower wet-bulb as guaranteed,
+      ]
+
+  - id: maintenance-outage-rule-and-authorities
+    importance: load-bearing
+    epistemic_character: explicit-policy-and-authority
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      A chiller outage should not be planned while another chiller, a common pump, either UPS path,
+      a utility feeder, or a generator is unavailable. Electrical switching requires two authorised
+      people; the mechanical supervisor controls valve isolation and reinstatement.
+    expected_ir_homes:
+      [maintenance, prerequisites, policies, authority, constraints]
+    traps:
+      [
+        omitting electrical and generator states from a cooling window decision,
+        assigning switching or reinstatement authority to Asha,
+      ]
+
+  - id: ch4-window-risk-changed-after-start
+    importance: load-bearing
+    epistemic_character: temporal-policy-tension
+    discoverability: tension-probe
+    expert_can_answer: true
+    reveal_when: asked how today's maintenance passed the written rule, whether conditions changed after isolation, or what a second fault does to an accepted window
+    truth: >-
+      CH-4 was isolated at 09:30 for urgent shaft-seal inspection after leakage worsened. The
+      window was accepted at 8.7 MW forecast IT load with all other plant available; Aurora then
+      ran long and DG-3 failed after work began, changing risk without proving the original
+      acceptance violated policy.
+    expected_ir_homes:
+      [initial-state, maintenance, time, conflicts, situation-notes]
+    traps:
+      [
+        "judging the 09:30 decision using later plant state",
+        assuming changed risk makes CH-4 immediately restartable,
+      ]
+
+  - id: ch4-stop-job-restart-semantics
+    importance: load-bearing
+    epistemic_character: tacit-maintenance-constraint
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked what rollback means physically, how quickly isolated plant can return, or whether stopping work restarts CH-4
+    truth: >-
+      Once CH-4's casing is open and oil heater disconnected, stopping the job does not mean
+      starting the chiller. Even without further repair, closure, valve alignment, checks, and
+      controlled restart take at least 75–90 minutes; only the mechanical supervisor may shorten
+      the work sequence, and they will not bypass checks.
+    expected_ir_homes: [maintenance, activities, time, authority, constraints]
+    traps:
+      [
+        modeling rollback as instantaneous,
+        allowing checks to be bypassed as an incident choice,
+      ]
+
+  - id: component-repair-duration-evidence
+    importance: useful
+    epistemic_character: qualitative-operational-history
+    discoverability: direct-if-asked
+    expert_can_answer: partially
+    truth: >-
+      Chiller nuisance trips have usually reset in 12–25 minutes; the few confirmed mechanical
+      faults took 4–9 hours. CRAH fan swaps take 2–6 hours and normally consume a spare rather than
+      hall capacity; UPS modules are commonly isolated for 2–4 hours.
+    expected_ir_homes: [failures, maintenance, time, evidence]
+    traps:
+      [
+        fitting repair distributions from recollection,
+        treating a CRAH fan swap as automatic hall-capacity loss,
+      ]
+
+  - id: cmms-failure-statistics-absent
+    importance: useful
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      CMMS work orders and broad downtime codes have not been cleaned into component failure and
+      repair figures; repeat alarms, aborted call-outs, and real failures are mixed together.
+    expected_ir_homes: [unknowns, data-sources, evidence, failures]
+    traps:
+      [
+        treating raw work-order counts as failures,
+        claiming no relevant records exist,
+      ]
+
+  - id: incident-cooling-and-electrical-state
+    importance: load-bearing
+    epistemic_character: explicit-current-state
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      At 13:52 CH-2 tripped on high condenser pressure while CH-4 was open for maintenance. CH-1
+      and CH-3 ramped to 97–99%, P-5 started, all Hall 3 CRAHs were enabled, and resets at 13:57
+      and 14:03 failed; at 14:06 utility and both UPS paths remained normal.
+    expected_ir_homes: [initial-state, incidents, resources, events, failures]
+    traps:
+      [
+        counting CH-2 or CH-4 as available cooling,
+        treating failed remote resets as proof of a mechanical fault,
+      ]
+
+  - id: incident-load-and-thermal-telemetry
+    importance: load-bearing
+    epistemic_character: explicit-current-measurements
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      At 14:06 IT load is 11.4 MW (Hall 1 2.7, Hall 2 3.6, Hall 3 5.1) and utility import is
+      16.7 MW. Chilled-water supply rose from 7.1°C to 9.3°C, return is 15.1°C, C7's hottest
+      reported inlet is 27.8°C rising recently at 0.08–0.14°C/min, and Hall 3 median is 25.6°C;
+      no rack has crossed 30°C.
+    expected_ir_homes: [initial-state, quantities, measures, trends, incidents]
+    traps:
+      [
+        extrapolating the recent rise linearly without qualification,
+        replacing C7's hotspot with the Hall 3 median,
+      ]
+
+  - id: ch2-inspection-branches-unresolved
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Until local inspection, CH-2 may be a bad pressure signal recoverable by inspection and reset
+      in 10–20 minutes, or real condenser-side trouble requiring 2–6 hours; no reliable probability
+      for either branch exists. If CH-4 is curtailed at 14:06, its earliest return window is about
+      15:21–15:36.
+    expected_ir_homes: [incidents, branches, time, unknowns, scenarios]
+    traps:
+      [
+        selecting either CH-2 branch as fact,
+        inventing branch probabilities,
+        using CH-4 as a near-immediate fallback,
+      ]
+
+  - id: c7-twenty-minute-belief-qualification
+    importance: load-bearing
+    epistemic_character: belief-with-contrary-context
+    discoverability: tension-probe
+    expert_can_answer: true
+    reveal_when: asked what supports the twenty-minute estimate, whether today's conditions match prior drills, or what could make the estimate wrong
+    truth: >-
+      Asha believes C7 has about twenty minutes before 30°C and that pausing Aurora will arrest the
+      rise, based on two load-shed drills at lower rack density; today's warmer water, open
+      containment door, and denser C7 load make those drills a weak comparison.
+    expected_ir_homes: [beliefs, evidence, conflicts, incidents, assumptions]
+    traps:
+      [
+        presenting twenty minutes as a validated forecast,
+        treating the two drills as representative of today's state,
+        guaranteeing that pausing Aurora arrests the rise,
+      ]
+
+  - id: ch2-fouling-belief-and-counterevidence
+    importance: load-bearing
+    epistemic_character: belief-with-counterevidence
+    discoverability: tension-probe
+    expert_can_answer: true
+    reveal_when: asked for alternative causes, evidence against fouling, or whether the alarm identifies the physical fault
+    truth: >-
+      Asha believes warm weather and the high-pressure alarm point to a fouled CH-2 condenser
+      strainer, but condenser-water differential pressure looked normal before the trip and the
+      pressure transmitter calibration is six weeks overdue; the cause remains unknown.
+    expected_ir_homes: [beliefs, evidence, conflicts, incidents, unknowns]
+    traps:
+      [
+        collapsing the belief into a diagnosed fault,
+        omitting either contrary indication,
+      ]
+
+  - id: telemetry-cadence-and-clock-skew
+    importance: useful
+    epistemic_character: explicit-data-property
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      DCIM stores rack inlet temperature and rack power each minute, UPS and PDU meters every five
+      seconds, and BMS chiller, pump, valve, and water points every 30 seconds; DCIM and BMS clocks
+      can differ by 40–90 seconds.
+    expected_ir_homes: [data-sources, time, evidence, validation]
+    traps:
+      [
+        aligning cross-system events without accounting for clock skew,
+        assuming every signal shares one-minute resolution,
+      ]
+
+  - id: hall3-meter-and-probe-uncertainty
+    importance: load-bearing
+    epistemic_character: explicit-measurement-uncertainty
+    discoverability: direct-if-asked
+    expert_can_answer: partially
+    truth: >-
+      Four Hall 3 racks use estimated rather than metered power and six have only one working inlet
+      probe. C7-14 read 1.3°C high at its last spot check; DCIM applies an offset, but whether that
+      offset remains correct during today's rise is unknown.
+    expected_ir_homes:
+      [data-sources, evidence, measurement-uncertainty, unknowns]
+    traps:
+      [
+        treating estimated power as metered,
+        either accepting or discarding C7-14's current value as certainly correct or wrong,
+      ]
+
+  - id: workload-to-rack-map-absent
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Workload placement logs exist, but cluster node names are not cleanly mapped to rack
+      positions; a capacity analyst reconciles them by spreadsheet after the fact.
+    expected_ir_homes: [unknowns, data-sources, data-flow, validation]
+    traps:
+      [
+        claiming no placement logs exist,
+        assuming real-time job-to-rack attribution is available,
+      ]
+
+  - id: historical-thermal-data-comparability
+    importance: useful
+    epistemic_character: explicit-evidence-limitation
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      About two years of minute data are reasonably complete, but Hall 3's cooling layout changed
+      six months ago, so older traces are not directly comparable.
+    expected_ir_homes: [data-sources, evidence, validation, unknowns]
+    traps:
+      [
+        pooling the full two-year history without a layout-change boundary,
+        claiming only six months of data exist,
+      ]
+
+  - id: row-thermal-response-unknown
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      The true heat-up and cool-down response for each row across combinations of water
+      temperature, airflow, and workload is not known.
+    expected_ir_homes: [unknowns, thermal-dynamics, scenarios, validation]
+    traps:
+      [
+        deriving a universal row response from the current short trend,
+        treating hall-average behaviour as row behaviour,
+      ]
+
+  - id: c7-hotspot-identity-unresolved
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: It is not known whether C7's hottest current reading is a real hotspot, residual sensor error, or both.
+    expected_ir_homes:
+      [unknowns, measurement-uncertainty, incidents, validation]
+    traps:
+      [
+        dismissing the reading because prior bias existed,
+        treating the reading as unquestionably physical,
+      ]
+
+  - id: future-placement-and-shed-approval-unknown
+    importance: load-bearing
+    epistemic_character: explicit-future-unknown
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Exact future workload placement and the time compute will take to approve a shed during a commercial benchmark are unknown.
+    expected_ir_homes: [unknowns, workload, authority, time, scenarios]
+    traps:
+      [
+        using physical pause duration as total decision-to-shed time,
+        assuming future AI load lands evenly or in today's rows,
+      ]
+
+  - id: expansion-redundancy-adequacy-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown-objective
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Whether N+1 cooling remains adequate after the twelve-rack AI expansion is unknown and is an analysis objective.
+    expected_ir_homes: [purpose, unknowns, scenarios, validation]
+    traps:
+      [
+        recording adequacy as established,
+        treating the requested analysis as evidence for either redundancy choice,
+      ]
+
+  - id: component-and-common-mode-rates-unknown
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Defensible failure likelihoods are absent for chillers, generators, UPS modules, PDUs, and
+      correlated common-header faults; the rare events are where records are thinnest.
+    expected_ir_homes: [unknowns, failures, evidence, scenarios, data-needs]
+    traps:
+      [
+        assuming component independence,
+        inventing rates from the few remembered events,
+        excluding common-header faults because no rate is available,
+      ]

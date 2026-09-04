@@ -1,0 +1,25 @@
+{
+  "status": "valid-floor-satisfying",
+  "technicallyValid": true,
+  "mechanicalChecks": {
+    "settledOutcome": "completed",
+    "runtimeOrTransportError": false,
+    "unresolvedClientToolSuspension": false,
+    "emptyElicitorResponse": false,
+    "personaRefusalSignal": false,
+    "openingMessageMatched": true,
+    "visibleUserSubmissions": 3,
+    "fixedProbeBudgetSatisfied": true
+  },
+  "personaStopReason": "Stopped after exactly three visible user submissions; all three settled successfully.",
+  "semanticClassification": {
+    "firstSubstantiveTurn": 2,
+    "item4a": "pass",
+    "item5a": "pass",
+    "item5b": "no-finding",
+    "item5c": "no-findings",
+    "item5dOpening": "pass"
+  },
+  "qualifiesForFloor": true,
+  "campaignConsequence": "Data Centre probe slot passes; proceed serially to S3 review."
+}

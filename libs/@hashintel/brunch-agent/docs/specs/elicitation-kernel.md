@@ -10,6 +10,7 @@ Contradiction adjudications are collected in [Appendix A](#appendix-a--adjudicat
 Amended 2026-08-24 by
 [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md): code-bearing projections emit
 deterministic scaffolds and obligations; executable realization is downstream agent work.
+Corrected by Mission 4 on 2026-09-01: the plugin unit now pairs a reusable domain typology with a target formalism; “never a domain” below continues to prohibit concrete domains, situations, and scenarios.
 
 ### Supersession map (2026-08-25)
 
@@ -21,7 +22,7 @@ carries the operating truth, this map names it; the section itself is not rewrit
 | §5 envelope, §8 sweep and supersession, §11.1 "own payload structure"                        | [ADR-0003](../adr/0003-three-register-ir.md): captures are register 1; the elicited model is register 2, derived by a pure fold and never stored; projections are register 3. Envelope semantics unchanged.                                                                                  |
 | §6.1 `project` for code-bearing targets; §14.1 invariants 3 and 8                           | [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md): the pure projection emits a scaffold, a typed code-obligation sidecar, and the loss report; executable realization is downstream application work.                                                                              |
 | §9.5 completion derived, never a gate                                                        | [`elicitation-completion.md`](elicitation-completion.md): the invariants of `evaluateCompletion(model, mustKnowRows)` over the plugin file's `Must know` table, under [ADR-0006](../adr/0006-plugins-per-target-formalism.md).                                                               |
-| §11.1 ElicitationPack (kernel cards, completion contract, clarification hints); §11.2 pack form | [ADR-0006](../adr/0006-plugins-per-target-formalism.md) and [`plugin-sdcpn/plugin.yaml`](../../packages/plugin-sdcpn/plugin.yaml): a plugin is one sectioned Markdown file per target formalism with fixed headings (`Purpose · Kinds · Must know · Patterns · Moves · Deliverable`); cards became kind-indexed `Patterns`, the completion contract became the `Must know` table, clarification hints became `Moves` steps. Principle v2 still governs the prose sections. `project`/`validate` remain plugin code ([`plugin-contract.md`](plugin-contract.md)). |
+| §11.1 ElicitationPack (kernel cards, completion contract, clarification hints); §11.2 pack form | [ADR-0006](../adr/0006-plugins-per-target-formalism.md), as corrected by Mission 4, and [`plugin-sdcpn/plugin.yaml`](../../packages/plugin-sdcpn/plugin.yaml): a plugin defines one reusable domain-typology / target-formalism pairing under fixed headings (`Purpose · Kinds · Must know · Patterns · Moves · Deliverable`); cards became kind-indexed `Patterns`, the completion contract became the `Must know` table, clarification hints became `Moves` steps. Principle v2 still governs the prose sections. `project`/`validate` remain plugin code ([`plugin-contract.md`](plugin-contract.md)). |
 | §11.5 generic strategy cards                                                                 | Unchanged in principle (guidance ownership follows vocabulary ownership); still named, not designed (FE-1406). Any harness-generic guidance would take the same `Patterns`/`Moves` shape.                                                                                                  |
 | §13 portfolio and hybrid order ("both packs authored before the pack interface freezes")     | [ADR-0006](../adr/0006-plugins-per-target-formalism.md): the interface is the heading contract and the three table grammars; the SDCPN file is authored, the Gherkin file is not; sequencing is owned by [STEERING](../control/STEERING.md). §13.1–13.3 target content is unchanged.       |
 
@@ -36,8 +37,7 @@ A standalone architecture that generalizes brunch's elicitor into **agentic inte
 pluggable elicitation targets**: a harness library on the Pi-family substrate (Flue first),
 deployable local and remote, in which an agent conducts a free-flowing interview, emits structured
 question affordances as conversation enhancements, and captures evidence-anchored structured
-meaning into a durable target-document through idempotent sweeps — for any target-domain a plugin
-defines.
+meaning into a durable target-document through idempotent sweeps — for any concrete domain under the reusable domain-typology / target-formalism pairing a plugin defines.
 
 The governing design principle (adopted from the challenges doc):
 
@@ -66,7 +66,7 @@ code. The system is fully decoupled from brunch's September MVP.
 ## 3. Vocabulary
 
 The canonical glossary is context [`CONTEXT.md`](../../CONTEXT.md) — shells (substrate / ui / harness
-/ plugin / binding), sessions and durability (target-domain / target-document / session / capture
+/ plugin / binding), sessions and durability (domain typology / domain / target formalism / target-document / session / capture
 store / re-entry briefing), and interaction terms (affordance / capture / sweep / settlement /
 interpretation render), now extended with the envelope vocabulary this spec relies on (capture
 envelope, evidence span, epistemic status, absence state, resolution record, supersession, pack,
@@ -243,7 +243,7 @@ transport fact to earn `explicit`; nothing else may claim it.
 invalid / unsupported / unmapped / low-confidence` plus factual attributes (origin, references,
   can-default). Issues close only explicitly; `conflicting` closes **only** via a resolution
   record (§8.5). Two producers, **namespaced to their producer** (harness envelope issues vs.
-  plugin issues under their plugin/target-domain namespace) — restating criteria-doc invariant 6:
+  plugin issues under their plugin namespace) — restating criteria-doc invariant 6:
   a target-originated requirement never silently becomes a semantic requirement.
 - An **advisory** is a **computed, ephemeral fact** — surfaced to the agent at trigger or read
   time, never stored in the capture store, never blocking (adjudicated, L6). Named advisories:
@@ -410,7 +410,7 @@ re-entry briefing, §9.3) and the agent judges whether to sweep before proceedin
 
 ### 9.1 Durable target-document, transient sessions, sweep as the only bridge
 
-- **Target-document** = one target-domain + its capture store + its session history. Its
+- **Target-document** = one concrete domain under one plugin's domain-typology / target-formalism pairing, plus its capture store and session history. Its
   authoritative state is **the capture store plus all session logs — never the render**.
   Projections, renders, and artifacts are strictly derived: cacheable, disposable. Session logs
   are durable truth too: discarding swept logs would dead-end every capture's evidence pointers.
@@ -593,7 +593,7 @@ from "accept this"; agenda as derived state, never stored.
 Some interviewing technique is target-independent. Socratic pressure on premises, contrastive
 cases that separate competing interpretations, stress-testing the weak points of an argument —
 these operate on vocabulary the **harness** owns (conflicts, alternatives, ambiguity, weak or
-missing evidence, absence clusters), not on any plugin's domain. By the same rule that governs
+missing evidence, absence clusters), not on any plugin's domain typology. By the same rule that governs
 schemas ("the shell that defines a capability owns its affordance schemas", §4), **guidance
 ownership follows vocabulary ownership**: cards that teach _what to notice in a domain_ are
 plugin pack content; cards that teach _how to work an interview situation the envelope can name_
@@ -607,7 +607,7 @@ cases where plausible interpretations diverge and have the person classify them,
 asking abstract questions), plus brunch's `elicitation_style: interrogate | disambiguate |
 propose` trichotomy, which the exchange-schema audit already classed generic. The assurance
 target is the worked example of the split: its technique decomposes into a generic
-stress-the-argument strategy card plus the plugin's domain cards (§13.2).
+stress-the-argument strategy card plus the plugin's domain-typology cards (§13.2).
 
 ## 12. Shipping shape
 
@@ -791,7 +791,7 @@ Milestone-one contract (one record type):
 4. **Corrections don't erase history.** Superseded captures remain inspectable and never active.
 5. **Retries are semantically idempotent.** A retried operation or re-swept range never creates a
    second user assertion (content-keyed capture identity).
-6. **Issues are namespaced to their producer.** A plugin/target-domain requirement never silently
+6. **Issues are namespaced to their producer.** A plugin-profile requirement never silently
    becomes a harness-level requirement; harness envelope issues are namespaced to the harness.
 7. **Plugin failures are atomic.** A failed operation leaves no partially applied deltas; sweeps
    apply whole or refuse whole.

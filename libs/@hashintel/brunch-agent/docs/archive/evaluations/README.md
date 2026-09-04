@@ -1,9 +1,5 @@
 # Retired evaluation instruments
 
-This directory holds concise human-readable retirement records for evaluation instruments that
-are no longer supported. A record names the replacement, the final evidence bundle, and the git
-revision containing removed executable source.
+This directory holds concise human-readable retirement records for evaluation instruments that are no longer supported. A record names the replacement or final disposition, the surviving adjudication, the content identity of removed material, and the historical Git revision containing the complete source and evidence.
 
-Do not copy runnable code here for compatibility. Delete obsolete runners and tests after their
-provenance has been recorded; immutable outputs remain under
-[`docs/evidence/evaluations/`](../../evidence/evaluations/).
+Do not copy runnable code here for compatibility. Delete obsolete runners and tests after their provenance has been recorded. Accepted or explicitly retained campaign outputs remain under [`docs/evidence/evaluations/`](../../evidence/evaluations/). An owner may retire raw outputs from an exploratory campaign only when no live consumer needs them, the decision-relevant adjudication survives, an ordered path/content hash ledger identifies every removed artifact, and a complete historical commit is recorded with a recovery procedure. Delete the raw campaign coherently rather than retaining an arbitrary subset, and never edit an observed artifact to make it smaller.

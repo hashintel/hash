@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "protocolId": "prospective-runbook-v3",
+  "runId": "prospective-runbook-v3-replication-1-2026-09-02T11-41-53-281Z-3b64f006",
+  "campaignFingerprint": "e93d1fd6b23a38b12201dee967c1b65e58b7c3d5724f57f1bedeb9413d9b76e1",
+  "comparisonTarget": {
+    "protocolId": "prospective-runbook-v1",
+    "outputNamespaceId": "vestera-prospective-baseline-v1",
+    "memberRunIds": [
+      "runbook-elicitation-2026-08-31T10-50-28-709Z-20a4817f",
+      "runbook-elicitation-2026-08-31T10-56-34-754Z-4b75737c"
+    ],
+    "qualityPopulation": "valid-workpieces",
+    "runtimeAccounting": "reported-separately"
+  },
+  "mode": "omniscient",
+  "graderPromptPath": "libs/@hashintel/brunch-agent/evaluations/protocols/ir-quality-ruler-v1/omniscient-grader.md",
+  "graderPromptSha256": "a0ab12ceb3fc26d314b3f674ed6728a6bf5a6a24d2325ed32336020a605d96e5",
+  "inputSha256": {
+    "libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/situation-pack.md": "4dbeb44a881c4675ec0ce7a5f068ea46ce1a4968a405b2dd692f92816d33e083",
+    "libs/@hashintel/brunch-agent/evaluations/oracles/vestera-scheduling/truth-ledger-v1-prospective.yaml": "6be9753bcbeb31a4bcb839be1acd4de4a15b1754af25d2cdd0b75fe63dd3d860",
+    "prospective-runbook-v3-replication-1-2026-09-02T11-41-53-281Z-3b64f006.transcript.md": "a5e7ed2e8defa4c94718f236438487b38886f5ba2237e0d498247dbf2d5f4d8b",
+    "prospective-runbook-v3-replication-1-2026-09-02T11-41-53-281Z-3b64f006.ir.md": "99e4e201cdb4959c114495049e68d7f4d18bdc5c41a5b1d958001b4027fbe355"
+  },
+  "requestSha256": "fd01c91eaefc5a717dfd24591b5fe24d883ce81ab7567916030ea77b32326975",
+  "requestedModel": "claude-sonnet-4-5",
+  "observedModel": "claude-sonnet-4-5-20250929",
+  "stopReason": "end_turn",
+  "usage": {
+    "input_tokens": 29204,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 5184,
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "reportPath": "/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-architecture-candidate-v3/prospective-runbook-v3-replication-1-2026-09-02T11-41-53-281Z-3b64f006.omniscient.md",
+  "reportSha256": "7e589b9ace9d1788d4d65599b7fdbf8dc91a388ce5d59b2925ea00a9ef0ff01e",
+  "completedAt": "2026-09-02T11:55:31.459Z",
+  "nonce": "3313d05a-6e55-441e-9ddc-7fabe90b6e15"
+}

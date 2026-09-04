@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { createHeadlessPetrinautClient } from "../src/headless-petrinaut-client";
+import { createHeadlessPetrinautClient } from "../src/evaluations/runbook/headless-petrinaut-client";
 
 describe("the headless Petrinaut client", () => {
   test("constructs a parser-accepted document through the bounded callbacks", async () => {

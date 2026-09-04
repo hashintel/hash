@@ -1,32 +1,12 @@
-# Spec: the plugin contract — one definition per target formalism
+# Spec: the plugin contract — one definition per domain-typology / target-formalism pairing
 
-Status: **provisional**, reshaped 2026-08-25 by
-[ADR-0006](../adr/0006-plugins-per-target-formalism.md) (a plugin is per formalism, never per
-domain) and amended the same day by
-[ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) (a plugin is data
-under harness-owned keys). Ratification condition (inherited from
-[ADR-0003](../adr/0003-three-register-ir.md)): a worked pass across at least three plugin
-targets on a real fold. Decided on: FE-1405 (registers), FE-1480 (ADR-0005 outputs), FE-1431
-(the key contract), and the 2026-08-25 design-convergence review. The normative exemplars are
-[`plugin-sdcpn/plugin.yaml`](../../packages/plugin-sdcpn/plugin.yaml) and
-[`plugin-gherkin/plugin.yaml`](../../packages/plugin-gherkin/plugin.yaml), co-authored against the
-same schema; where this document and the schema
-([`packages/core/schema/plugin.schema.json`](../../packages/core/schema/plugin.schema.json),
-derived from `PluginDefinitionSchema`) disagree about shape, the schema wins and this document is
-amended. The retired declarative draft is archived at
-[`plugin-contract-2026-08-25-declarative-draft.md`](../archive/specs/plugin-contract-2026-08-25-declarative-draft.md).
+Status: **provisional**, reshaped 2026-08-25 by [ADR-0006](../adr/0006-plugins-per-target-formalism.md), amended by [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md), and corrected by Mission 4 on 2026-09-01: a plugin pairs a reusable domain typology with a target formalism and is never keyed to a concrete domain, situation, or scenario. Ratification condition (inherited from [ADR-0003](../adr/0003-three-register-ir.md)): a worked pass across at least three plugin pairings on a real fold. Decided on: FE-1405 (registers), FE-1480 (ADR-0005 outputs), FE-1431 (the key contract), and the 2026-08-25 design-convergence review. The normative exemplars are [`plugin-sdcpn/plugin.yaml`](../../packages/plugin-sdcpn/plugin.yaml) and [`plugin-gherkin/plugin.yaml`](../../packages/plugin-gherkin/plugin.yaml), co-authored against the same schema; where this document and the schema ([`packages/core/schema/plugin.schema.json`](../../packages/core/schema/plugin.schema.json), derived from `PluginDefinitionSchema`) disagree about shape, the schema wins and this document is amended. The retired declarative draft is archived at [`plugin-contract-2026-08-25-declarative-draft.md`](../archive/specs/plugin-contract-2026-08-25-declarative-draft.md).
 
 ## What a plugin is
 
-A plugin is **per target formalism** — Gherkin, SDCPN — never per domain. It is one authored
-`plugin.yaml` whose keys are fixed by the harness, plus a small amount of code for `project` and
-`validate`. The harness reads the contract keys into the model vocabulary, the demand list, and
-the pattern index; it renders every other key into the interviewer's instructions interleaved
-with its own teaching — for each key, the harness's definition of the key, then the repertoire's
-default, then the plugin's cell. The end user never edits the file.
+A plugin defines one reusable **domain typology / target formalism pairing** — for example, software behavior / Gherkin or operational processes / SDCPN — never one concrete domain. It is one authored `plugin.yaml` whose keys are fixed by the harness, plus a small amount of code for `project` and `validate`. The harness reads the contract keys into the model vocabulary, demand list, and pattern index; it renders every other key into the interviewer's instructions interleaved with its own teaching — for each key, the harness's definition of the key, then the repertoire's default, then the plugin's cell. The end user never edits the file.
 
-The keys fall in four groups (ADR-0007 decision 2), under an identity block `plugin` (`id`,
-`version`, `formalism`, `jobs`, `purpose`):
+The keys fall in four groups (ADR-0007 decision 2), under an identity block `plugin` (`id`, `version`, `domain_typology`, `formalism`, `jobs`, `purpose`):
 
 | group       | keys                                                                                              | who fills it                                        |
 | ----------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
@@ -49,9 +29,7 @@ precision words. Such an item is rendered only when at least one plugin demand n
 word. This conditions generic teaching on the plugin contract without allowing a plugin to
 override the repertoire.
 
-Domain-neutrality rule: nothing in the definition may name a domain. A new case that seems to
-need a new row is a finding about the abstraction, decided by review, never content added to a
-plugin.
+Concrete-domain-neutrality rule: a definition may name and teach its reusable domain typology, but it may not name a particular organization, operation, situation, or scenario. A new concrete case that seems to need a new row is a finding about the abstraction, decided by review, never case content added to a plugin.
 
 ## Relation to the three registers
 
@@ -95,8 +73,7 @@ Rules the reader enforces beyond the schema:
 
 ## Version binding
 
-The identity block declares an immutable version string (`sdcpn/2026-08-25.2`,
-`gherkin/2026-08-25.1`). Every completion evaluation, projection output, and delivered report
+The identity block declares an immutable version string (currently `sdcpn/2026-09-01.1` and `gherkin/2026-09-01.1`). Every completion evaluation, projection output, and delivered report
 carries that version together with the target-document revision it read. A report for one plugin
 version is not comparable with a model folded under another; the caller retries rather than
 mixing them. The repertoire carries its own version (`repertoire/…`).
@@ -146,10 +123,9 @@ IR slot, fourth register, or plugin operation. `reconcile` remains optional.
 The primary seam is still the fold: `fold(definition, activeCaptures) → model`, golden-tested
 with hand-worked capture sets in and slot states out. Gates: the **definition read gate** (schema
 match with no unknown key; every `must_know` kind exists; the anchor is a counted row; runbooks
-belong to declared jobs), the **shipped-definition gate** (both plugins load, add no key, name no
-domain, and declare different anchors under the same schema), the **schema drift gate**
+belong to declared jobs), the **shipped-definition gate** (both plugins load, declare their domain typology, add no key, name no concrete domain, and declare different anchors under the same schema), the **schema drift gate**
 (`plugin.schema.json` equals the emitted view of the valibot schema), the **repertoire gate**
-(every key filled, every entry sourced, no formalism or domain word), the **render-order gate**
+(every key filled, every entry sourced, no domain-typology, formalism, or concrete-domain content), the **render-order gate**
 (preamble → contract → guidance keys in catalogue order → runbooks per declared job; definition
 before default before cell), and the **completion fixtures** of `evaluateCompletion` described in
 [`elicitation-completion.md`](elicitation-completion.md). Test-fit order stands: smallest honest

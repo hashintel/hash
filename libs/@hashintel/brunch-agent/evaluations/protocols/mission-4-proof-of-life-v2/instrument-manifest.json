@@ -1,0 +1,191 @@
+{
+  "version": 2,
+  "campaign": "mission-4-proof-of-life-v2",
+  "instrumentCommit": "95954b494308fbba384cc4ce169a813916f164f9",
+  "models": {
+    "elicitor": {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6"
+    },
+    "persona": {
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "thinking": "medium"
+    },
+    "adjudicator": {
+      "provider": "anthropic",
+      "model": "claude-opus-4-6",
+      "thinking": "high"
+    }
+  },
+  "host": "none",
+  "logicalCeiling": {
+    "conversationAttempts": 10,
+    "brunchSubmissions": 32,
+    "personaContinuations": 28,
+    "adjudications": 10
+  },
+  "spendGate": {
+    "currencyGate": "suspended-by-owner",
+    "authority": "libs/@hashintel/brunch-agent/docs/evidence/decisions/mission-4-proof-of-life-v2-budget-suspension-2026-09-03.md",
+    "knownRoundedV1PersonaAndAdjudicatorUsd": 0.636,
+    "v1SonnetUsd": null,
+    "usageReporting": "required"
+  },
+  "controlledPromptSha256": {
+    "S3": "ff5755c7ffced45741f791d1ec433386ee4052d301d0065dbff46dc8c36de729",
+    "S4": "64db8fd28e3b62b244ded0de703cc1609bcda9cb2387287efea4887764720635"
+  },
+  "probeObjectiveSha256": "27396ce3e6e5ed36aa21adbb00d93129af179535c3fb34accca459733dddaa13",
+  "verification": {
+    "command": "yarn exec turbo run build lint:tsc lint:eslint test:unit --filter '@hashintel/brunch-agent' --filter '@hashintel/brunch-agent-binding-flue' --filter '@hashintel/brunch-agent-transport-aisdk' --filter '@hashintel/brunch-agent-plugin-sdcpn' --filter '@hashintel/brunch-agent-plugin-gherkin' --filter '@hashintel/brunch-agent-plugin-dafny' --filter '@apps/brunch-agent'",
+    "tasks": {
+      "successful": 30,
+      "total": 30
+    },
+    "mission3EvidenceUnchangedFrom": "4c11c7a6c4e1df26c9d76cec30e32af8f013042d",
+    "universalGuidanceMatchesSourceAt": "ca57b45729260cc657f89b718fc505997a4e1b3c"
+  },
+  "files": [
+    {
+      "path": "apps/brunch-agent/.pi/extensions/brunch-persona-testing.ts",
+      "sha256": "f20f922e4d85ca7abd199dfc276d174f04b4c413d2b1f515a4ee6135a30272a6"
+    },
+    {
+      "path": "apps/brunch-agent/.pi/extensions/brunch-persona-testing/SYSTEM.md",
+      "sha256": "1a21e60de561161ef3d26ff72de42c2f7abbb1b05f5236f60ac03cfef06ace51"
+    },
+    {
+      "path": "apps/brunch-agent/src/agents/chat-agent/agent.ts",
+      "sha256": "e87ebbd611dd87f897c0ab15c704e6604bc032f99a96ee1a3bb827c03344300e"
+    },
+    {
+      "path": "apps/brunch-agent/src/agents/chat-agent/tools/ping.ts",
+      "sha256": "a6f50f65f1bb4f1b62a2bf5fa23b343b973dd007be720a33dfbf5cd4a0595744"
+    },
+    {
+      "path": "apps/brunch-agent/src/evaluations/persona/brunch-turn.ts",
+      "sha256": "669e1c40acde9dd903034725d850d8f99cb78376efa9d8a8879df7f2c0549e02"
+    },
+    {
+      "path": "apps/brunch-agent/src/evaluations/persona/client-tool-hosts.ts",
+      "sha256": "f7757866b58592c0933e091832b21337eb26225f9b4517180a68d07668839ed3"
+    },
+    {
+      "path": "apps/brunch-agent/src/evaluations/persona/proof-artifacts.ts",
+      "sha256": "4d3c4878b6941636343df69acfca95c9cd2ba145eaaa5763b00fa09198fb347e"
+    },
+    {
+      "path": "apps/brunch-agent/src/evaluations/persona/refresh-proof-manifest.ts",
+      "sha256": "eb43c845159c902c3c9b7d89de034151d76ea214fc8e9ea37b95fa8800dc4374"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/decisions/mission-4-proof-of-life-v2-preflight-2026-09-03.md",
+      "sha256": "4a0d33d4c6314fa4eb1080b046daed941ffd6e505e3a13964faff057733bfe88"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/decisions/mission-4-proof-of-life-v2-budget-suspension-2026-09-03.md",
+      "sha256": "6e7f5dd81b76a174c331d8543345b24d15788dc91b54e77bc5c9e08039d081db"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/evaluations/cases/data-centre-thermal-operations/opening-message.md",
+      "sha256": "bf46a637d029f34758c398f3d1f5ac70c2d10bfd169b05b23497215792a16ef8"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/evaluations/cases/data-centre-thermal-operations/situation-pack.md",
+      "sha256": "ab5f7f701265e4a01eea181c27327891c208b82ce75235cec0344f90fd2fe5ce"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/evaluations/cases/flue-skill-composition-side-quest-v3/scenarios.json",
+      "sha256": "1844df940b8de9d10d28e9537f966920aba581b36956a9ac26a3767824ca96cb"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/evaluations/cases/industrial-gas-vmi/opening-message.md",
+      "sha256": "75ac100dc0f16771feced90563f4c57a5c9e918bbd2cc6fd7af0cd5de7165659"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/evaluations/cases/industrial-gas-vmi/situation-pack.md",
+      "sha256": "07f36060ebbb1cccd2c20ccd2a44ae732b23d69b82e2b018c4b05e6844d6d55e"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/opening-message.md",
+      "sha256": "84ec5faa5fd46699c008b3b2aad49eb9988b8c2ab039c8e147fdb077d562ef54"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/situation-pack.md",
+      "sha256": "4dbeb44a881c4675ec0ce7a5f068ea46ce1a4968a405b2dd692f92816d33e083"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/evaluations/oracles/mission-4-activation-and-restraint-ruler-v2.md",
+      "sha256": "08a679e7b4f596653df6d8f4b31ee5aa05b095f4c49322fb0c8b0a8a8a725309"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/evaluations/protocols/mission-4-proof-of-life-v2/persona-probe-objective.md",
+      "sha256": "27396ce3e6e5ed36aa21adbb00d93129af179535c3fb34accca459733dddaa13"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/evaluations/protocols/mission-4-proof-of-life-v2/protocol.md",
+      "sha256": "ef81a6e30b2b69f7ac2888b49d51e42c5bb8bab86fc1031affca914382d0c8ee"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/src/prompts/SYSTEM.md",
+      "sha256": "82b035268c07cc8ee4736b5ffdd392c8f153793d2ca6b9ed57271c9b6146de10"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/src/skills/elicitation/SKILL.md",
+      "sha256": "68b7fa27c2ba8401a97272e63c17d0ad6c6fdb9b3c81d9aa02e7ec3120e0aacc"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/src/skills/elicitation/skill.ts",
+      "sha256": "5ab4a1cd714b6b819e51864d48ec2fe655fc6a335a73eb51c7126ebdd9c631f2"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/flue.ts",
+      "sha256": "f1ceb78f5e503032fa324f62cab0f44021bc2ebf6c46e098d56ea0cd492175ed"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/index.ts",
+      "sha256": "5feb06b4571f36e7a1998c0fff431bb6d6dfe6acfe62e95252ff32d0e5cabda6"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/prompts/APPEND_SYSTEM.md",
+      "sha256": "8826b85d32d6c24fbc8f678ec394600676ec61c4a0b83d0a9cfa16be87fc5d76"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/raw-imports.d.ts",
+      "sha256": "8ab4c314d9824d521f5d375c71353c42011be943091e05732f9b55f305133af5"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md",
+      "sha256": "ff0d9351bf6f130188c325d0fd158bd5b874b3eb18d3a4f195e8487dc811dde9"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/references/checks.md",
+      "sha256": "43dbc9adc9168ae9984321895fca441386ee3c44ab8691ba92baec0f7c43f400"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/references/pn-construction.md",
+      "sha256": "57edbdfebd733ed6c1d5eb02f81dc13e6d5b9c7357f00018c1d0f2b1b1a3f694"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/references/profile.md",
+      "sha256": "cf37161ee79cace2d96ee6d473e9751cab65cc050ebae79d94530a01705b2b8e"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/skill.ts",
+      "sha256": "201fbf3cb4655f9eaee23e07dc289e58f348e967df455195fdd35d4757371b73"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md",
+      "sha256": "6c26ed3808ccbb7133ea7c370779e63885dfdc342c6594f5cb3730b467e2b1da"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/petrinaut-construction.ts",
+      "sha256": "7a4a03b62267531ba65b0f27128d804ad7fc70acf333266910010cc999f19d40"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/read-petrinaut-doc.ts",
+      "sha256": "9e020d8bee5e6c9902b5e5b609abc5930d3e27647d0f4d0d4679f3e31097dfbb"
+    }
+  ]
+}

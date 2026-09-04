@@ -1,0 +1,623 @@
+version: 1-prospective
+case: industrial-gas-vmi-baseline
+source: evaluations/cases/industrial-gas-vmi/situation-pack.md
+provenance:
+  authored_after_historical_runs: false
+  calibrated_against_historical_runs: false
+  frozen_before_prospective_runs: true
+use: prospective baseline and variant grading only
+warning: >-
+  This greenfield ledger is sourced only from the industrial-gas VMI situation pack. It is an
+  evaluation oracle, not a target interview transcript, target net, or target IR. Use it only for
+  prospective runs whose case, prompts, model configuration, and protocol are frozen with it.
+importance_weights:
+  load-bearing: 3
+  useful: 2
+  incidental: 1
+
+calibration_rules:
+  transcript_precedence: >-
+    Grade what the simulated expert actually disclosed. Ledger truth may identify a distinction,
+    but it does not erase hedges, narrower examples, corrections, or nondisclosure in the transcript.
+  interviewer_proposals: >-
+    A value or interpretation appearing only in an interviewer question is not user evidence unless
+    the expert explicitly adopts it.
+  relevant_absences: >-
+    Entries whose epistemic_character is relevant-absence describe a relation the pack does not
+    settle. Credit elicitation that identifies the gap; do not expect the expert or IR to fill it.
+  hard_stop: >-
+    When the expert ends elicitation, distinguish unanswered suitable questions from earlier missed
+    opportunities. Do not convert turn-budget truncation into an ordinary acquisition miss.
+  partial_disclosure: >-
+    A concrete example inside a ledger range is partial evidence, not simulator failure by itself.
+    Penalize only unsupported generalization beyond the disclosed example.
+
+facts:
+  - id: objective-service-without-overfill
+    importance: load-bearing
+    epistemic_character: explicit-goal
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Keep customer tanks above zero without filling so aggressively that warm, nearly full tanks repeatedly vent product.
+    expected_ir_homes: [purpose, goals, validation]
+    traps:
+      [
+        optimizing only stockouts,
+        optimizing only product loss,
+        inventing a numerical trade-off,
+      ]
+
+  - id: objective-alder-replenishment-settings
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Compare reorder levels and load sizes, especially for fast-consuming Alder.
+    expected_ir_homes: [purpose, goals, policies, validation]
+    traps:
+      [treating the current 16-unit trigger and 12-unit load as already optimal]
+
+  - id: objective-dispatch-and-spot-hire
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Decide which waiting site gets a shared tanker first and when a premium spot hire is worthwhile.
+    expected_ir_homes: [purpose, goals, policies, validation]
+    traps:
+      [
+        reducing dispatch to first-in first-out,
+        treating spot hire as free capacity,
+      ]
+
+  - id: objective-outage-protection
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Determine how much protection is needed when Greyhaven is down and loads must originate farther away.
+    expected_ir_homes: [purpose, failures, scenarios, validation]
+    traps: [assuming the normal Greyhaven travel times during an outage]
+
+  - id: objective-alder-stockout-preference
+    importance: load-bearing
+    epistemic_character: belief-with-unquantified-tradeoff
+    discoverability: tension-probe
+    expert_can_answer: partially
+    truth: Imani believes an Alder stockout is much worse than a little vent loss but cannot provide a defensible exchange rate.
+    expected_ir_homes: [goals, measures, conflicts-or-qualification, unknowns]
+    traps:
+      [
+        presenting the preference as a measured cost ratio,
+        dropping the lack of an exchange rate,
+      ]
+
+  - id: vmi-ownership-and-order-boundary
+    importance: load-bearing
+    epistemic_character: explicit-boundary
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Northmere owns the liquid in customer tanks; customers consume and pay for it but do not place routine refill orders.
+    expected_ir_homes: [boundary, participants-resources, triggers]
+    traps: [modeling replenishment as customer purchase orders]
+
+  - id: planning-horizon-and-handover
+    importance: useful
+    epistemic_character: explicit-boundary
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Imani plans day-ahead bulk-gas runs from Greyhaven and hands remaining exceptions to the night dispatcher.
+    expected_ir_homes: [posture, boundary, time, participants-resources]
+    traps: [assuming Imani continuously dispatches every run through completion]
+
+  - id: telemetry-screen-contract
+    importance: load-bearing
+    epistemic_character: explicit-input
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: The telemetry screen refreshes every half-hour with liquid level, recent draw trend, pressure index, and alert state.
+    expected_ir_homes: [inputs, triggers, time, data-sources]
+    traps:
+      [
+        assuming continuous telemetry,
+        treating an alert as the whole dispatch decision,
+      ]
+
+  - id: vessel-drain-dynamics
+    importance: load-bearing
+    epistemic_character: explicit-physical-dynamics
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Tank liquid falls through customer consumption and continuous boil-off; warm weather raises boil-off and demand may exceed its usual rate.
+    expected_ir_homes: [activities, flow, quantities, scenarios]
+    traps: [using a fixed drain rate under every condition, omitting boil-off]
+
+  - id: zero-liquid-production-stop
+    importance: load-bearing
+    epistemic_character: explicit-consequence
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: At zero liquid the customer's gas-fed production stops, and supply resumes once product arrives.
+    expected_ir_homes: [goals, failures, flow, validation]
+    traps: [treating zero as a harmless inventory floor]
+
+  - id: customer-restart-and-downstream-cost
+    importance: load-bearing
+    epistemic_character: explicit-unknown
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Imani does not know the customer's full restart time or downstream cost after a stockout.
+    expected_ir_homes: [unknowns, losses, validation]
+    traps:
+      [
+        equating product arrival with full operational recovery,
+        inventing stockout cost,
+      ]
+
+  - id: delivery-headroom-and-overfill-effect
+    importance: load-bearing
+    epistemic_character: explicit-physical-constraint
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: A planned delivery requires matching empty space; delivering too early can accelerate pressure buildup, relief cycling, waste, and safety concern.
+    expected_ir_homes: [resources, flow, policies, failures]
+    traps:
+      [
+        allowing loads without headroom,
+        assuming earlier delivery is always safer,
+      ]
+
+  - id: pressure-relief-cycle-threshold
+    importance: load-bearing
+    epistemic_character: explicit-quantity
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: On the normalized pressure screen, a value of 8.0 causes the relief valve to cycle.
+    expected_ir_homes: [triggers, quantities, failures]
+    traps: [treating 8.0 as a physical pressure unit]
+
+  - id: relief-cycle-loss-conversion
+    importance: useful
+    epistemic_character: explicit-unknown-with-estimate
+    discoverability: tension-probe
+    expert_can_answer: partially
+    truth: The desk uses about 0.4 liquid-equivalent units lost per relief cycle, but Imani does not know its accuracy at each site.
+    expected_ir_homes: [quantities, losses, unknowns, data-sources]
+    traps: [treating 0.4 as a site-independent measurement]
+
+  - id: telemetry-level-accuracy-belief
+    importance: useful
+    epistemic_character: belief-with-qualification
+    discoverability: tension-probe
+    expert_can_answer: partially
+    truth: Imani believes telemetry level is usually within half a unit except just after delivery; maintenance owns the calibration records.
+    expected_ir_homes:
+      [inputs, assumptions, conflicts-or-qualification, data-sources]
+    traps:
+      [
+        recording half a unit as a guaranteed sensor tolerance,
+        omitting the post-delivery exception,
+      ]
+
+  - id: customer-product-taxonomy
+    importance: load-bearing
+    epistemic_character: explicit-taxonomy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Alder Components and Bracken Foods consume nitrogen, while Corven Glass consumes oxygen.
+    expected_ir_homes: [participants-resources, activities, flow]
+    traps: [treating all sites as interchangeable demand]
+
+  - id: alder-capacity-and-normal-start
+    importance: load-bearing
+    epistemic_character: explicit-quantities
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Alder's vessel holds 54 units and a normal shift starts around 42 units.
+    expected_ir_homes: [resources, quantities, initial-state]
+    traps: [treating 42 as a fixed initial level]
+
+  - id: alder-normal-drain
+    importance: load-bearing
+    epistemic_character: explicit-quantities
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Alder normally draws about 0.80 units per hour and boils off about 0.16, for a combined drain near 0.96 units per hour.
+    expected_ir_homes: [flow, quantities, time]
+    traps: [using 0.96 as a guaranteed rate during production pushes]
+
+  - id: alder-reorder-and-load
+    importance: load-bearing
+    epistemic_character: explicit-policy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: The desk opens an Alder refill at 16 units and normally sends 12 units.
+    expected_ir_homes: [triggers, policies, quantities]
+    traps:
+      [
+        conflating reorder level with delivered quantity,
+        treating current settings as optimal,
+      ]
+
+  - id: alder-release-and-open-load-limit
+    importance: load-bearing
+    epistemic_character: explicit-policy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: A 12-unit Alder load is released only with at least 12 units of displayed headroom, and no more than two Alder loads may be open.
+    expected_ir_homes: [policies, constraints, triggers, flow]
+    traps:
+      [
+        releasing against forecast headroom alone,
+        allowing unlimited open Alder loads,
+      ]
+
+  - id: alder-route-time
+    importance: load-bearing
+    epistemic_character: explicit-time-with-qualification
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Greyhaven to Alder is normally about six hours outbound, but delays have a long tail and six hours is only a planning centre.
+    expected_ir_homes: [time, flow, scenarios]
+    traps:
+      [making six hours deterministic, adding an unsupported delay distribution]
+
+  - id: bracken-route-and-fleet-occupation
+    importance: useful
+    epistemic_character: explicit-topology
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Bracken consumes nitrogen much more slowly than Alder; its outbound trip is about nine hours and a nitrogen tanker remains unavailable through delivery and a roughly four-hour return.
+    expected_ir_homes: [participants-resources, flow, time]
+    traps:
+      [
+        freeing a tanker at Bracken arrival,
+        inventing Bracken's numerical draw rate,
+      ]
+
+  - id: alder-over-bracken-practice
+    importance: load-bearing
+    epistemic_character: tacit-policy-practice-tension
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked about exceptions, unwritten priority, simultaneous waiting sites, or what surprises a new planner
+    truth: When Alder and Bracken both wait, Imani usually protects Alder first even if Bracken queued earlier; the guide says earliest risk first but defines no calculation.
+    expected_ir_homes: [policies, conflicts-or-qualification, situation-notes]
+    traps:
+      [
+        modeling strict FIFO,
+        presenting Alder-first as the written rule,
+        inventing the risk formula,
+      ]
+
+  - id: corven-demand-and-route
+    importance: load-bearing
+    epistemic_character: explicit-quantities
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Corven consumes oxygen at about 0.60 units per hour and is normally about 12 hours outbound from Greyhaven.
+    expected_ir_homes: [flow, quantities, time]
+    traps: [treating the draw or journey as guaranteed]
+
+  - id: product-tanker-compatibility
+    importance: load-bearing
+    epistemic_character: explicit-resource-constraint
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Oxygen and nitrogen loads require their compatible tankers; an idle oxygen tanker cannot rescue nitrogen work and nitrogen tankers cannot carry Corven's oxygen.
+    expected_ir_homes: [resources, constraints, flow]
+    traps: [pooling all three tankers as generic fleet capacity]
+
+  - id: tanker-service-conversion
+    importance: useful
+    epistemic_character: explicit-unknown
+    discoverability: tension-probe
+    expert_can_answer: false
+    truth: Imani does not know the cleaning, inspection, or recertification needed to change gas service; fleet compliance marks conversion unavailable to the desk.
+    expected_ir_homes: [constraints, unknowns, data-sources]
+    traps:
+      [assuming instantaneous conversion, inventing conversion requirements]
+
+  - id: owned-fleet-topology
+    importance: load-bearing
+    epistemic_character: explicit-resource-topology
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Greyhaven owns nitrogen tankers N-17 and N-24 and oxygen tanker O-08.
+    expected_ir_homes: [participants-resources, constraints]
+    traps:
+      [
+        changing tanker identities into fungible counts before preserving compatibility,
+      ]
+
+  - id: queue-ranking-factors
+    importance: load-bearing
+    epistemic_character: explicit-practice
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Waiting work is ranked by estimated hours to empty, product compatibility, customer consequence, and current tanker cargo rather than strict FIFO.
+    expected_ir_homes: [policies, triggers, flow]
+    traps: [inventing numerical weights, reducing ranking to alert order]
+
+  - id: written-spot-hire-rule
+    importance: load-bearing
+    epistemic_character: explicit-policy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: At three or more waiting loads with no compatible owned tanker idle, the desk calls an approved carrier and releases the hire when backlog clears, subject to gas availability.
+    expected_ir_homes: [policies, constraints, triggers, flow]
+    traps:
+      [
+        ignoring product availability,
+        keeping the hire indefinitely,
+        applying the threshold without the idle-tanker condition,
+      ]
+
+  - id: early-spot-enquiry-practice
+    importance: load-bearing
+    epistemic_character: tacit-policy-exception
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked about exceptions, unwritten practices, outage-and-alert combinations, or why waiting for the written threshold can fail
+    truth: Experienced planners may start calling at two waiting nitrogen loads when an Alder alert coincides with a confirmed plant outage; an enquiry commits no money.
+    expected_ir_homes: [policies, failures, situation-notes]
+    traps:
+      [
+        turning the exception into the written three-load rule,
+        treating an enquiry as a paid hire,
+      ]
+
+  - id: spot-hire-cost
+    importance: useful
+    epistemic_character: explicit-unknown
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Spot hire carries a premium, but Imani lacks a stable all-in price because fuel, waiting, and source-plant surcharges arrive separately.
+    expected_ir_homes: [unknowns, losses, data-sources, validation]
+    traps: [inventing a fixed spot-hire cost, treating the premium as zero]
+
+  - id: shared-nitrogen-bottleneck-belief
+    importance: load-bearing
+    epistemic_character: belief-with-counterexample
+    discoverability: tension-probe
+    expert_can_answer: true
+    truth: Imani believes the shared nitrogen fleet is the main bottleneck on quiet weeks, but during Corven peaks the single oxygen tanker can be equally constraining.
+    expected_ir_homes: [resources, conflicts-or-qualification, scenarios]
+    traps:
+      [
+        making nitrogen the universal bottleneck,
+        dropping the Corven qualification,
+      ]
+
+  - id: outage-drill-assumption
+    importance: useful
+    epistemic_character: explicit-planning-assumption
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Operations deliberately assumes one Greyhaven outage per roughly 90 operating hours for frequent disruption drills, not as a claim about real reliability.
+    expected_ir_homes: [assumptions, failures, scenarios]
+    traps: [reporting one per 90 hours as observed reliability]
+
+  - id: outage-restart-and-alternate-source
+    importance: load-bearing
+    epistemic_character: explicit-outage-response
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: A Greyhaven restart is planned at about 24 hours; while it is down, tankers load at Eastmere and journey times are almost doubled.
+    expected_ir_homes: [failures, time, boundary, flow]
+    traps: [treating 24 hours as guaranteed, retaining normal journey times]
+
+  - id: actual-outage-statistics
+    importance: load-bearing
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Imani does not know actual outage frequency or a reliable restart-time range; plant operations has the history and the desk receives only an estimated return time.
+    expected_ir_homes: [unknowns, data-sources, failures, time]
+    traps:
+      [
+        substituting the drill assumption for historical frequency,
+        fitting a restart distribution from the 24-hour plan,
+      ]
+
+  - id: outage-demand-trim-favour
+    importance: load-bearing
+    epistemic_character: tacit-contingent-practice
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked about outage exceptions, demand-side actions, unwritten controls, or what happens when an outage exceeds a shift
+    truth: If the outage estimate exceeds one shift, Imani asks Alder to trim draw for an hour or two; it is an uncontracted favour and production may refuse.
+    expected_ir_homes: [policies, failures, constraints, situation-notes]
+    traps:
+      [
+        modeling draw reduction as an automatic control,
+        treating cooperation as guaranteed,
+      ]
+
+  - id: incident-trigger-chronology
+    importance: load-bearing
+    epistemic_character: incident-evidence
+    discoverability: incident-probe
+    expert_can_answer: true
+    truth: On 14 July Greyhaven tripped at 04:50, and Alder crossed its reorder level at 15.9 units on the 05:30 telemetry refresh.
+    expected_ir_homes: [failures, triggers, time, situation-notes]
+    traps:
+      [
+        moving the alert to the trip time,
+        rounding 15.9 into a different policy trigger,
+      ]
+
+  - id: incident-fleet-state
+    importance: load-bearing
+    epistemic_character: incident-evidence
+    discoverability: incident-probe
+    expert_can_answer: true
+    truth: N-17 was committed to Bracken with about seven hours outbound plus roughly four hours return, N-24 had to divert empty to Eastmere, and O-08 was nitrogen-incompatible.
+    expected_ir_homes: [resources, flow, failures, time, situation-notes]
+    traps:
+      [
+        treating O-08 as available rescue capacity,
+        freeing N-17 before its return,
+      ]
+
+  - id: incident-cover-calculation
+    importance: useful
+    epistemic_character: incident-calculation
+    discoverability: incident-probe
+    expert_can_answer: true
+    truth: At the normal 0.96-unit hourly drain, Alder's 15.9 units represented about 16.5 hours to empty while the Eastmere run approached twice the usual six hours.
+    expected_ir_homes: [quantities, time, assumptions, situation-notes]
+    traps:
+      [
+        treating normal drain as the observed incident drain,
+        treating the doubled trip as exact,
+      ]
+
+  - id: incident-spot-threshold-delay
+    importance: load-bearing
+    epistemic_character: incident-policy-outcome
+    discoverability: incident-probe
+    expert_can_answer: true
+    truth: With only two nitrogen loads waiting, dispatch initially followed the three-load rule; when a third request arrived, the first qualified hire could no longer beat N-24.
+    expected_ir_homes: [policies, failures, flow, situation-notes]
+    traps:
+      - claiming no carrier was available at 05:30
+      - claiming the written rule required an earlier call
+
+  - id: incident-demand-mitigation
+    importance: load-bearing
+    epistemic_character: tacit-incident-practice
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked for a difficult example, near miss, hidden incident detail, demand exception, or what changed the outcome
+    truth: Alder was drawing above normal, and Imani's call led the shift lead to reduce nitrogen draw for about 70 minutes.
+    expected_ir_homes: [failures, flow, time, situation-notes]
+    traps:
+      [
+        using 0.96 units per hour as the whole incident,
+        generalizing 70 minutes into a standing control,
+      ]
+
+  - id: incident-arrival-and-nadir
+    importance: useful
+    epistemic_character: incident-outcome
+    discoverability: incident-probe
+    expert_can_answer: true
+    truth: N-24 arrived at 20:40 and Alder bottomed at about 1.4 units before transfer, so production did not stop.
+    expected_ir_homes: [time, quantities, failures, validation, situation-notes]
+    traps:
+      [
+        calling the event a stockout,
+        treating 1.4 as a guaranteed safety reserve,
+      ]
+
+  - id: incident-second-refill
+    importance: load-bearing
+    epistemic_character: incident-outcome
+    discoverability: incident-probe
+    expert_can_answer: true
+    truth: The delivered 12 units did not clear Alder's need, so a second refill remained open.
+    expected_ir_homes: [flow, policies, quantities, situation-notes]
+    traps: [assuming one standard load always closes an Alder need]
+
+  - id: incident-early-call-belief
+    importance: load-bearing
+    epistemic_character: belief-with-unchecked-evidence
+    discoverability: tension-probe
+    expert_can_answer: partially
+    truth: Imani believes calling the spot carrier at 05:30 would have provided safer cover but has not checked actual carrier response or cost records.
+    expected_ir_homes:
+      [assumptions, conflicts-or-qualification, data-sources, validation]
+    traps:
+      [
+        recording the counterfactual as proven,
+        claiming an early hire would have beaten N-24,
+      ]
+
+  - id: commercial-loss-tradeoff
+    importance: load-bearing
+    epistemic_character: explicit-unknown
+    discoverability: tension-probe
+    expert_can_answer: false
+    truth: No defensible monetary trade-off is known among customer stockout, vented product, and spot-hire cost.
+    expected_ir_homes: [unknowns, losses, goals, validation]
+    traps:
+      [
+        inventing objective-function weights,
+        treating qualitative priority as monetization,
+      ]
+
+  - id: stochastic-patterns
+    importance: load-bearing
+    epistemic_character: explicit-unknown
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Imani does not know the true statistical patterns of demand spikes, journey delays, plant outages, or restart times.
+    expected_ir_homes: [unknowns, data-sources, scenarios, validation]
+    traps: [fitting distributions from typical values or the single incident]
+
+  - id: site-thermal-and-vent-loss
+    importance: useful
+    epistemic_character: explicit-unknown
+    discoverability: tension-probe
+    expert_can_answer: false
+    truth: Exact vented mass by site and the effect of ambient temperature on each vessel's boil-off are unknown to Imani.
+    expected_ir_homes: [unknowns, losses, data-sources, physical-dynamics]
+    traps:
+      [
+        generalizing one boil-off value to every vessel,
+        inventing a temperature response,
+      ]
+
+  - id: alder-current-settings-optimality
+    importance: load-bearing
+    epistemic_character: explicit-unknown-objective
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Imani does not know whether Alder's current 16-unit reorder level and 12-unit load are the best settings.
+    expected_ir_homes: [purpose, assumptions, unknowns, validation]
+    traps: [treating practiced settings as validated optima]
+
+  - id: analysis-representation-information-wall
+    importance: incidental
+    epistemic_character: relevant-absence
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Imani does not know the analysis team's notation, implementation, answer keys, or required output structure.
+    expected_ir_homes: [boundary, omissions]
+    traps:
+      [
+        asking the expert to design the target net or IR schema,
+        treating missing internal notation as a domain gap,
+      ]
+
+  - id: bracken-replenishment-parameters
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not establish Bracken's vessel capacity, initial or current level, numerical
+      draw or boil-off rate, reorder level, normal load size, or open-load limit.
+    expected_ir_homes: [unknowns, quantities, policies, inputs]
+    traps:
+      [
+        copying Alder's parameters to Bracken,
+        inventing values from the phrase much more slowly,
+      ]
+
+  - id: corven-replenishment-parameters
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      The pack establishes Corven's product, approximate draw, journey, and tanker compatibility,
+      but not its vessel capacity, initial or current level, boil-off rate, reorder level, normal
+      load size, or open-load limit.
+    expected_ir_homes: [unknowns, quantities, policies, inputs]
+    traps:
+      [
+        copying Alder's parameters to Corven,
+        treating oxygen demand as a complete replenishment policy,
+      ]

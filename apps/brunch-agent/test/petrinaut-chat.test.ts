@@ -113,12 +113,13 @@ test("the committed /api/chat door streams a plain Flue agent through server and
       toolName: "read_skill_resource",
     });
     expect(JSON.stringify(result.readSkillResourceCall?.input ?? {})).toContain(
-      "elicitation.md",
+      "profile.md",
     );
     expect(result.interviewerToolNames).toContain("activate_skill");
     expect(result.interviewerToolNames).toContain("read_skill_resource");
     expect(result.interviewerToolNames).toContain("ping");
     expect(result.interviewerToolNames).toContain("readPetrinautDoc");
+    expect(result.interviewerToolNames).not.toContain("brunch_ask");
     expect(result.interviewerToolNames).not.toContain("sweep");
     expect(result.interviewerToolNames).not.toContain("brunch_sweep");
     expect(result.interviewerToolNames).not.toEqual(

@@ -11,12 +11,12 @@ import {
   type CaptureStoreCommand,
   type CaptureStoreSnapshot,
   type EvidenceSpan,
-} from "../src/capture-store";
+} from "../src/evidence/capture-store";
 import {
   archiveSessionLogRead,
   createEmptySessionLogArchive,
   type EvidenceQuote,
-} from "../src/session-log";
+} from "../src/evidence/session-log";
 
 const excerptsByEntry = new Map<number, Set<string>>();
 

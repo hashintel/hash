@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "protocolId": "prospective-runbook-v3",
+  "runId": "prospective-runbook-v3-replication-1-2026-09-02T11-41-53-281Z-3b64f006",
+  "campaignFingerprint": "e93d1fd6b23a38b12201dee967c1b65e58b7c3d5724f57f1bedeb9413d9b76e1",
+  "comparisonTarget": {
+    "protocolId": "prospective-runbook-v1",
+    "outputNamespaceId": "vestera-prospective-baseline-v1",
+    "memberRunIds": [
+      "runbook-elicitation-2026-08-31T10-50-28-709Z-20a4817f",
+      "runbook-elicitation-2026-08-31T10-56-34-754Z-4b75737c"
+    ],
+    "qualityPopulation": "valid-workpieces",
+    "runtimeAccounting": "reported-separately"
+  },
+  "mode": "cold",
+  "graderPromptPath": "libs/@hashintel/brunch-agent/evaluations/protocols/ir-quality-ruler-v1/cold-ir-reviewer.md",
+  "graderPromptSha256": "ddd2620f17c5311a4a186b5bc229ae3f916d811e4aeb35f215ed7502c31fc8f5",
+  "inputSha256": {
+    "libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/opening-message.md": "84ec5faa5fd46699c008b3b2aad49eb9988b8c2ab039c8e147fdb077d562ef54",
+    "prospective-runbook-v3-replication-1-2026-09-02T11-41-53-281Z-3b64f006.ir.md": "99e4e201cdb4959c114495049e68d7f4d18bdc5c41a5b1d958001b4027fbe355"
+  },
+  "requestSha256": "343059655cc2ec0a07c64190ed23ac9d2e0abc2fbe0f228e9725c8f52baf8db2",
+  "requestedModel": "claude-sonnet-4-5",
+  "observedModel": "claude-sonnet-4-5-20250929",
+  "stopReason": "refusal",
+  "usage": {
+    "input_tokens": 5054,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 505,
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "reportPath": "/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-architecture-candidate-v3/prospective-runbook-v3-replication-1-2026-09-02T11-41-53-281Z-3b64f006.cold.md",
+  "reportSha256": "bef461b282123fc39a10c7aa2f53c20517f837bb8b509199bd1913acbaa44993",
+  "completedAt": "2026-09-02T11:56:01.091Z",
+  "nonce": "fedb8c68-b6ad-43d3-836d-63bbc20753db"
+}

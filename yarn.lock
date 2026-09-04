@@ -434,13 +434,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@apps/brunch-agent@workspace:apps/brunch-agent"
   dependencies:
+    "@anthropic-ai/sdk": "npm:0.74.0"
     "@earendil-works/pi-ai": "npm:0.83.0"
+    "@earendil-works/pi-tui": "npm:0.84.3"
     "@flue/opentelemetry": "npm:2.0.3"
     "@flue/react": "npm:2.0.3"
     "@flue/runtime": "npm:2.0.3"
     "@flue/sdk": "npm:2.0.3"
     "@flue/vite": "npm:2.0.3"
+    "@hashintel/brunch-agent": "workspace:*"
     "@hashintel/brunch-agent-binding-flue": "workspace:*"
+    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*"
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
     "@opentelemetry/api": "npm:1.9.1"
@@ -454,6 +458,7 @@ __metadata:
     oxlint-tsgolint: "npm:0.22.1"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
+    typebox: "npm:1.3.7"
     valibot: "npm:1.4.2"
     vite: "npm:8.1.0"
     vitest: "npm:4.1.10"
@@ -5133,6 +5138,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@earendil-works/pi-tui@npm:0.84.3":
+  version: 0.84.3
+  resolution: "@earendil-works/pi-tui@npm:0.84.3"
+  dependencies:
+    get-east-asian-width: "npm:1.6.0"
+    marked: "npm:18.0.5"
+  checksum: 10c0/be2d5d5ba278a929c1ab7c77ce3a5b39607f2f4bf40bb7aeff5775c319ba38571d653ab3503b74468c4fe5d9ffb3b5b5c1d92e0592b07cd16b38dd9047735217
+  languageName: node
+  linkType: hard
+
 "@effect/cluster@npm:0.50.6":
   version: 0.50.6
   resolution: "@effect/cluster@npm:0.50.6"
@@ -7398,7 +7413,21 @@ __metadata:
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
-    valibot: "npm:1.4.2"
+    vite: "npm:8.1.0"
+    vitest: "npm:4.1.10"
+  languageName: unknown
+  linkType: soft
+
+"@hashintel/brunch-agent-plugin-dafny@workspace:libs/@hashintel/brunch-agent/packages/plugin-dafny":
+  version: 0.0.0-use.local
+  resolution: "@hashintel/brunch-agent-plugin-dafny@workspace:libs/@hashintel/brunch-agent/packages/plugin-dafny"
+  dependencies:
+    "@flue/runtime": "npm:2.0.3"
+    "@hashintel/brunch-agent": "workspace:*"
+    "@types/node": "npm:22.18.13"
+    "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
+    oxlint: "npm:1.63.0"
+    oxlint-tsgolint: "npm:0.22.1"
     vite: "npm:8.1.0"
     vitest: "npm:4.1.10"
   languageName: unknown
@@ -7408,22 +7437,24 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-plugin-gherkin@workspace:libs/@hashintel/brunch-agent/packages/plugin-gherkin"
   dependencies:
+    "@flue/runtime": "npm:2.0.3"
     "@hashintel/brunch-agent": "workspace:*"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
-    valibot: "npm:1.4.2"
     vite: "npm:8.1.0"
     vitest: "npm:4.1.10"
   languageName: unknown
   linkType: soft
 
-"@hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn":
+"@hashintel/brunch-agent-plugin-sdcpn@workspace:*, @hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn":
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn"
   dependencies:
+    "@flue/runtime": "npm:2.0.3"
     "@hashintel/brunch-agent": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:*"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     oxlint: "npm:1.63.0"
@@ -7454,16 +7485,15 @@ __metadata:
   resolution: "@hashintel/brunch-agent@workspace:libs/@hashintel/brunch-agent/packages/core"
   dependencies:
     "@anthropic-ai/sdk": "npm:0.74.0"
+    "@flue/runtime": "npm:2.0.3"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
-    "@valibot/to-json-schema": "npm:1.7.1"
     fast-check: "npm:4.9.0"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
     valibot: "npm:1.4.2"
     vite: "npm:8.1.0"
     vitest: "npm:4.1.10"
-    yaml: "npm:2.9.0"
   languageName: unknown
   linkType: soft
 
@@ -20113,7 +20143,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@valibot/to-json-schema@npm:1.7.1, @valibot/to-json-schema@npm:^1.3.0":
+"@valibot/to-json-schema@npm:^1.3.0":
   version: 1.7.1
   resolution: "@valibot/to-json-schema@npm:1.7.1"
   peerDependencies:
@@ -29307,10 +29337,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"get-east-asian-width@npm:^1.0.0, get-east-asian-width@npm:^1.3.1, get-east-asian-width@npm:^1.5.0":
-  version: 1.5.0
-  resolution: "get-east-asian-width@npm:1.5.0"
-  checksum: 10c0/bff8bbc8d81790b9477f7aa55b1806b9f082a8dc1359fff7bd8b96939622c86b729685afc2bfeb22def1fc6ef1e5228e4d87dd4e6da60bc43a5edfb03c4ee167
+"get-east-asian-width@npm:1.6.0, get-east-asian-width@npm:^1.0.0, get-east-asian-width@npm:^1.3.1, get-east-asian-width@npm:^1.5.0":
+  version: 1.6.0
+  resolution: "get-east-asian-width@npm:1.6.0"
+  checksum: 10c0/7e72e9550fd49ca5b246f9af6bb2afc129c96412845ff6556b3274fd44817a381702ca17028efe9866b261a3d44254cbf21e6c90cf05b4b61675630af776d431
   languageName: node
   linkType: hard
 
@@ -34399,6 +34429,15 @@ __metadata:
   bin:
     marked: bin/marked.js
   checksum: 10c0/57a47cb110f7b1a10f398b0a7236f9183aad2dcd5345ee73f2732b6387e585d04cef472bc655d2f84c542296be9728e179aebe3ed7f2f8666b8a0a9dae592876
+  languageName: node
+  linkType: hard
+
+"marked@npm:18.0.5":
+  version: 18.0.5
+  resolution: "marked@npm:18.0.5"
+  bin:
+    marked: bin/marked.js
+  checksum: 10c0/22763935a0a243c41851b010a086ea85a09951e379948b6aa629b6cecdcd66e3a5e8c4acac2f6b29c183c20609d3e5102495270207dfd5f4c46ddd773a4ddb9b
   languageName: node
   linkType: hard
 

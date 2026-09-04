@@ -5,12 +5,12 @@ import {
   createEmptyCaptureStoreSnapshot,
   type CaptureInputProposal,
   type EvidenceSpan,
-} from "../src/capture-store";
+} from "../src/evidence/capture-store";
 import {
   archiveSessionLogRead,
   createEmptySessionLogArchive,
   type EvidenceQuote,
-} from "../src/session-log";
+} from "../src/evidence/session-log";
 
 type UserCaptureInput = Extract<
   CaptureInputProposal,

@@ -1,0 +1,19 @@
+{
+  "status": "valid-no-substantive",
+  "technicallyValid": true,
+  "mechanicalChecks": {
+    "settledOutcome": "completed",
+    "runtimeOrTransportError": false,
+    "unresolvedClientToolSuspension": false,
+    "emptyElicitorResponse": false,
+    "personaRefusalSignal": false,
+    "openingMessageMatched": true
+  },
+  "visibleUserTurns": 1,
+  "personaStopReason": "Persona declared the first elicitor text Substantive and stopped after one visible user turn.",
+  "semanticClassification": "Orientation",
+  "substantiveTextObserved": false,
+  "qualifiesForFloor": false,
+  "replacementPermitted": false,
+  "campaignConsequence": "The sole permitted Vestera replacement is exhausted without reaching Substantive text; stop for owner adjudication."
+}

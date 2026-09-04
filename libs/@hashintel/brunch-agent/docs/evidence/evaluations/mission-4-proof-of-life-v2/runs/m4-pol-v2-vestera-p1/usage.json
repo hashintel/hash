@@ -1,0 +1,24 @@
+{
+  "currency": "USD",
+  "persona": {
+    "requestedModel": "openai/gpt-5.6-sol",
+    "reportedModel": "openai/gpt-5.6-sol",
+    "thinking": "medium",
+    "cost": 0.036,
+    "source": "Pi session usage display; rounded"
+  },
+  "elicitor": {
+    "requestedModel": "anthropic/claude-sonnet-4-6",
+    "reportedModel": null,
+    "cost": null,
+    "source": "Canonical Flue history does not expose provider model or usage"
+  },
+  "adjudicator": {
+    "requestedModel": "anthropic/claude-opus-4-6",
+    "reportedModel": "anthropic/claude-opus-4-6",
+    "thinking": "high",
+    "cost": 0.45,
+    "source": "Pi session usage display; rounded"
+  },
+  "knownRoundedTotal": 0.486
+}

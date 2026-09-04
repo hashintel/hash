@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "campaign": "mission-4-proof-of-life-v2",
+  "attemptId": "m4-pol-v2-data-centre-p1",
+  "slot": "data-centre-probe",
+  "runKind": "interactive-probe",
+  "case": "data-centre-thermal-operations",
+  "instrumentCommit": "95954b494308fbba384cc4ce169a813916f164f9",
+  "manifestCommit": "d9ca2fe1498f6484746b2abaaf18973e7abcbeaa",
+  "executionHead": "4be37e26a232798354d6e2314d0d3e1418aac959",
+  "models": {
+    "elicitor": { "provider": "anthropic", "requested": "claude-sonnet-4-6" },
+    "persona": {
+      "provider": "openai",
+      "requested": "gpt-5.6-sol",
+      "thinking": "medium"
+    },
+    "adjudicator": {
+      "provider": "anthropic",
+      "requested": "claude-opus-4-6",
+      "thinking": "high"
+    }
+  },
+  "clientToolHost": "none",
+  "turnBudget": {
+    "visibleUserSubmissions": 3,
+    "normalStop": "after the third submission settles"
+  },
+  "startedAt": "2026-09-03T09:15:39.743913+00:00"
+}

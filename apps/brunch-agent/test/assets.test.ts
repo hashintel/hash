@@ -25,7 +25,7 @@ import { pathToFileURL } from "node:url";
 import { Hono } from "hono";
 import { afterAll, describe, expect, test } from "vitest";
 
-import { assetHandler } from "../src/assets";
+import { assetHandler } from "../src/http/assets";
 
 const uiRoot = mkdtempSync(join(tmpdir(), "brunch-assets-"));
 const BINARY_BYTES = Uint8Array.from({ length: 256 }, (_, i) => i);

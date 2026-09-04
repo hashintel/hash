@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "campaign": "mission-4-proof-of-life-v2",
+  "attemptId": "m4-pol-v2-vestera-p1",
+  "slot": "vestera-probe",
+  "runKind": "interactive-probe",
+  "case": "vestera-scheduling",
+  "instrumentCommit": "95954b494308fbba384cc4ce169a813916f164f9",
+  "manifestCommit": "d9ca2fe1498f6484746b2abaaf18973e7abcbeaa",
+  "executionHead": "4841bdab59e29fba59f920ae9e88bff29baa785b",
+  "models": {
+    "elicitor": {
+      "provider": "anthropic",
+      "requested": "claude-sonnet-4-6"
+    },
+    "persona": {
+      "provider": "openai",
+      "requested": "gpt-5.6-sol",
+      "thinking": "medium"
+    },
+    "adjudicator": {
+      "provider": "anthropic",
+      "requested": "claude-opus-4-6",
+      "thinking": "high"
+    }
+  },
+  "clientToolHost": "none",
+  "turnBudget": {
+    "visibleUserSubmissions": 3,
+    "normalStop": "after the third submission settles"
+  },
+  "startedAt": "2026-09-03T09:08:33.162611+00:00"
+}

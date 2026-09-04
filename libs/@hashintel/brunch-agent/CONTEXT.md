@@ -1,200 +1,173 @@
 # Brunch — domain language
 
-Vocabulary for the brunch elicitation system: an architecture generalizing agentic interviewing
-against pluggable elicitation targets.
+Vocabulary for Brunch, an elicitation system in which a universal core and formalism-specific plugins compose one model-facing agent that interviews a person, maintains a recoverable account of what they know, and constructs a target representation from it.
 
-## Shells
+## Language
 
-**Substrate** — the agent framework the system is built on (Flue), including deploy target,
-storage-port implementation, artifact delivery, and model/provider.
-_Avoid_: harness (for Flue), platform, host.
+### Package authority
 
-**UI** — whatever affords user interaction: rendering, input, reply transport. Not bound to
-GUI/TUI; a chat channel qualifies.
-_Avoid_: host, frontend, client.
+**Core**:
+The universal authority: context-, domain-, editor-, and formalism-independent elicitation semantics, the always-on prompt, the `elicitation` capability, and the evidence contracts. Owns nothing that names a formalism or a concrete situation.
+_Avoid_: harness, kernel
 
-**Harness** — the generic capability layer: mechanism and orchestration (the conversation loop,
-the `ask` API, capture envelope, issue queue, sweep bookkeeping). Injected into plugins as a
-narrow context; never owned by them.
-_Avoid_: kernel, core (as a prose shell name; the package path `packages/core` is exempt).
+**Plugin**:
+A contribution bundle pairing one **domain typology** with one **target formalism**: the prompts, skills, tools, and mounting it has earned, and nothing for symmetry. It names concepts from its typology, never facts or nouns from a concrete **domain**.
+_Avoid_: extension, pack, formalism-only plugin, symmetric inventory
 
-**Plugin** — the innermost shell: target-defining policy, one per **target formalism** and never
-per domain. Authored as cells under harness-owned **keys**; receives capabilities by injection;
-mechanism stays in the harness.
-_Avoid_: extension, pack (a pack is a unit within a plugin).
+**App**:
+The directive-marked registration and host-composition point that selects core and plugin contributions, carries transport and client-tool results, and owns deployment diagnostics. It owns no modelling semantics.
+_Avoid_: host, shell, server (as a shell name)
 
-**Binding** — the substrate-facing adapter implementing the harness's named substrate-capability
-list (tool registration, instruction assembly, persistent state, affordance emission,
-suspend-for-reply, private model call) in one substrate's dialect. One per substrate; the harness
-imports no substrate, a binding imports both.
-_Avoid_: adapter, integration, wrapper.
+**Binding**:
+The substrate-facing adapter that implements core's evidence mechanics in one substrate's dialect. Core imports no substrate; a binding imports both.
+_Avoid_: adapter, integration, wrapper
 
-## Sessions and durability
+**Transport**:
+The wire projection between a **UI** and the agent: ingress validation and reply encoding, never a binding or substrate import.
 
-**Target formalism** — the artifact family a plugin projects into (Gherkin, SDCPN, assurance
-arguments, BPMN); the unit a plugin is written for.
-_Avoid_: target-domain; bare "target" where family vs instance is ambiguous.
+**Substrate**:
+The agent runtime the system is built on (Flue), including its skill packaging, tool registration, persistence, and model provider.
+_Avoid_: harness (for Flue), platform, host
 
-**Domain** — the operational system the expert knows and the model describes (a packaging line, a
-truck fleet). Unknown before the conversation; discovered during it; never a plugin unit, key,
-row, or noun in a plugin definition.
-_Avoid_: target-domain, use case.
+**UI**:
+Whatever affords user interaction: rendering, input, and reply capture. A chat panel qualifies.
+_Avoid_: frontend, client, host
 
-**Target-document** — the durable unit sessions attach to: one target formalism, its capture
-store, and its session history. Its authoritative state is the capture store plus session logs,
-never the rendered artifact (renders are derived and disposable). Endures independently of any
-session; completion is a derived status, not a write gate.
-_Avoid_: spec, workpiece, case, target-output.
+### Model-facing primitives
 
-**Session** — one substrate conversation: the full log of entries (user, agent, tool calls,
-injected state). Per-session state is exactly the evidence log, the swept high-water mark, and the
-pending-affordance slot. Sessions go quiet rather than close; any session is resumable.
-_Avoid_: sitting, conversation (as a distinct concept).
+**Prompt**:
+Always-present content carrying identity and the invariants that must bind for the whole mounted lifetime of a contribution. Core returns the universal prompt; a plugin may add a compact **append**.
+_Avoid_: system prompt fragment, instructions (as a unit name)
 
-**Capture store** — the durable, session-independent truth of a target-document: captures,
-issues, events. Written only by atomic sweep application; statuses and projections derive from it
-at read time.
+**Append**:
+A plugin's optional always-on prompt contribution: scoped specialization and pre-activation guardrails, earned only by invariants that apply across all of its skills. Never a second persona and never skill procedure.
 
-**Re-entry briefing** — the state message injected when a session resumes after the world moved:
-computed facts only (unswept tail, world-moved delta, open issues, pending affordance). Authored
-on behalf of the user in the transcript, distinguished from true user entries in the data model,
-and never citable as capture evidence.
-_Avoid_: sync message, forced re-sweep.
+**Skill**:
+Reusable procedure and judgment for a recognizable job or capability, disclosed progressively: one catalog line, then instructions on activation, then resources on demand. A skill may direct activation of another skill.
+_Avoid_: runbook, loader, workflow
 
-## Interaction
+**Capability skill**:
+A skill whose method is meaningful independently of any job, such as `elicitation`. Core's contributions are capability skills.
 
-**Affordance** — a structured interactive element (question form, choice strip, questionnaire)
-emitted into the stream as a rendered enhancement. Not a state machine; its payload is session
-evidence like any other entry.
-_Avoid_: exchange, exchange pair, terminal.
+**Job skill**:
+A skill that accomplishes one recognizable user outcome, such as `sdcpn-modelling`, owning its workpiece, target review and revision, construction, checks, and tool orchestration, and activating capability skills when it needs them. A plugin contributes the smallest set of job skills its real jobs earn.
+_Avoid_: task skill, lifecycle skill, one-skill-per-plugin
 
-**Capture** — extraction of structured evidence (envelope plus plugin-typed payload) from session
-entries. Produced by sweeps, never written directly during conversation.
-_Avoid_: extraction, harvest.
+**Resource**:
+A supporting file packaged inside a skill and read only when its branch requires it. A **reference** carries detailed teaching; a **template** carries a recording shape.
+_Avoid_: include, transclusion
 
-**Sweep** — an idempotent pass over a settled range of session entries that produces captures;
-re-sweeping never double-captures. (`apply-sweep` in the capture store names only the atomic
-storage half.)
+**Tool contract**:
+The semantics and constraints of one executable operation: inputs, locally expressible preconditions, outputs and failures, and exactly what evidence a result establishes. Ownership follows semantic capability, not where execution happens.
+_Avoid_: function, action
 
-**Settlement** — the agent-judged event marking a range of conversation ready to sweep. Always
-range-level.
-_Avoid_: exchange completion.
+**Disclosure state**:
+How far a contribution has reached the model: always present, catalogued, activated, resource-read, or callable. Independent of package authority and of primitive type.
 
-**Interpretation render** — the harness-owned affordance showing current captured state. The
-harness frames envelope semantics; the plugin's renderer supplies the content view, with a
-plain-JSON default.
+### Elicitation
 
-## Envelope and packs
+**Elicitation**:
+Acquiring and improving an epistemically responsible account from a person through adaptive conversation: recognizing cues, choosing the next probe, handling correction and contextual variation, preserving authorship and uncertainty, and judging when evidence suffices. Excludes target review, target mutation, construction, and tool execution.
+_Avoid_: interviewing (as the whole), intake, questionnaire
 
-**Intermediate representation (IR)** — the elicited conceptual model a target-document
-accumulates, the middle of three registers: typed **assertions** (active captures) fold, by a
-pure plugin-declared fold, into the **model** (node instances with slot states), which
-**projections** consume without rereading the transcript. A derivation, recomputable from active
-captures, never a persistence surface. Defining a plugin's IR means writing its kind and
-must-know tables.
-_Avoid_: knowledge store, domain model (as a stored unit), staging area.
+**Domain typology**:
+The reusable subject-matter concepts and recurring situations a plugin uses to recognize and investigate what may matter, such as operational processes or software behavior. Paired with a **target formalism**; never contains facts from a concrete **domain**.
+_Avoid_: domain, target-domain, use case, scenario
 
-**Runbook IR** — Mission 3's structurally typed Markdown workpiece: filled during elicitation and
-consumed during PN construction, with explicit unknowns, assumptions, conflicts, omissions, and
-losses. It is an experiment in an intermediate representation, not yet the typed three-register
-**IR** above: it is not folded from captures, does not require kinds/slots/grades, and is not a new
-persistence surface.
+**Target formalism**:
+The artifact family a plugin constructs into, such as SDCPN or Gherkin. The representational half of a plugin's pairing, not the plugin itself.
+_Avoid_: target-domain, bare "target" where family and instance are ambiguous
 
-**Capture envelope** — the domain-free wrapper around an opaque plugin payload: harness-minted id,
-evidence spans, epistemic status, confidence, value-xor-absence, alternatives grouping, one
-`supersedes` link. The hourglass waist. Status (`active | superseded | retracted`) derives at read
-time.
+**Domain**:
+The concrete system or situation the person knows and the model describes. Unknown before the conversation and discovered during it; its facts populate the **workpiece**, never a plugin.
+_Avoid_: domain typology, use case
 
-**Evidence span** — a capture's provenance: a **quoted excerpt** (primary, model-facing citation)
-plus a **pointer** (session id + entry range). Anchors only on true user and user-affordance
-entries.
+**Register**:
+One of five semantic addresses classifying what elicitation guidance does: Directives, Recognition, Operations, Coverage, Verification. Registers are not phases, question order, skills, schemas, or file topology.
 
-**Epistemic status** — `explicit | inferred | tentative | defaulted | external-lookup`: how a
-capture's content relates to what the user said. Distinct from confidence; excluded from capture
-identity; one per capture.
+**Workpiece**:
+The recoverable, domain-primary, cold-readable account the agent maintains during elicitation and revision and consumes during construction. Each operational claim has one authoritative home, with its evidence and epistemic treatment beside it.
+_Avoid_: runbook IR, IR, intermediate representation, target-document, spec, requirements graph
 
-**Grade** — how narrow a slot value's interpretation space is. Per-slot; distinct from confidence
-(`firm | hedged | speculative`).
+**Epistemic annotation**:
+A distinction attached to a workpiece claim where it carries information: expert evidence, working account, agent inference, assumed, unknown, not yet asked, declined, deferred, conflict, correction, contextual coexistence, omitted, loss. Optional labels, not mandatory fields or a closed type system.
+_Avoid_: slot, grade, typed claim
 
-**Basis** — the provenance carrier for non-user-grounded captures (`declared-default` or
-`documented-transformation`), required exactly when epistemic status is `defaulted` /
-`external-lookup`; structurally exclusive with evidence spans.
+**Correction**:
+A later account that replaces an earlier one, leaving one active claim with enough history to explain the change. Distinguished from **contextual coexistence** before any reconciliation.
 
-**Absence state** — a first-class capture value where an answer would be: `unknown-to-user |
-not-yet-decided | not-applicable | explicitly-absent | declined | deferred`. Never null.
+**Contextual coexistence**:
+Differing accounts that each hold under a selecting condition such as person, time, mode, direction, or policy regime. Both remain active beside their conditions; never averaged.
+_Avoid_: conflict (when the selector is known)
 
-**Supersession** — explicit correction, single-hop over active heads only: the creation-time
-`supersedes` link (sweep-time) and the resolution record (issue-time). Superseded captures stay
-visible.
+**Unknown**:
+Asked, and the person does not know. Distinguished from **not yet asked**, which is relevant and identified but not yet addressed. Absence alone establishes neither.
 
-**Resolution record** — the capture-store event that alone closes a `conflicting` issue (and, with
-no successor, expresses retraction). Must cite the true user's utterance.
+**Construction**:
+Selecting and recording a target representation from the current workpiece through mounted tools. Construction may infer a representation from recorded meaning; it may not invent operational facts. Losses it opens are construction findings, not new evidence.
+_Avoid_: generation, realization, projection (reserved for future automatic traceable projection)
 
-**Issue** — typed, stored backpressure: `missing | ambiguous | conflicting | invalid |
-unsupported | unmapped | low-confidence`. Produced by plugin ops (payload level) or the harness
-(envelope level). Closes only explicitly.
+**Construct-only execution**:
+The runtime branch in which the workpiece is the complete input and no interview occurs; a consequential gap is reported as a re-entry question, never asked or invented.
 
-**Advisory** — a computed, ephemeral, non-blocking fact surfaced to the agent. Never stored; never
-gates anything.
+**Evidence level**:
+One of three non-collapsible claims about a constructed artifact: tool-schema acceptance, agent-reviewed structural correspondence, and behavioral execution or stronger analysis. Report every level reached; none implies the next.
 
-**Pack** — a unit within a plugin: **ProjectionPack** (`project` + `validate`, optional
-`reconcile`, annotated shapes, typed loss reports). The guidance-and-runbook cells replaced the
-retired ElicitationPack.
+### Evidence and capture
 
-**Demand row** — one row of a plugin's must-know table: a slot on a kind, its required precision,
-whether "not applicable" is accepted, and why the model needs it. Kind-level only.
+**Session**:
+One substrate conversation: the full log of user, agent, tool, and injected entries. Sessions go quiet rather than close.
+_Avoid_: sitting, conversation (as a distinct concept)
 
-**Pattern** — a discretionary, kind-indexed heuristic under a plugin's `patterns` key: a machine
-trigger (declared kind, optionally one unsatisfied demanded slot), `when` text, and an `ask`
-question. Never names a domain.
+**Capture**:
+Mechanically extracted source evidence from a settled range of session entries: an immutable, quote-anchored, domain-opaque envelope. Produced only by a sweep and never written during conversation.
+_Avoid_: extraction, harvest, typed claim
 
-**Runbook** — the structurally typed, human-readable definition for eliciting and constructing
-one **target formalism**. It pairs universal repertoire teaching with formalism-specific purpose,
-investigation typologies, guidance, an IR template, transformation knowledge, completion, and
-checks in a nested Markdown hierarchy. `kickoff`, `trajectory`, and `close` are lifecycle regions
-inside the runbook, not its whole definition; the existing YAML field named `runbooks` keeps that
-narrower code-level meaning. Structural headings do not require captures or IR contents to use
-closed semantic types. Mission 3 delivers the first runbook through one Flue skill and disclosed
-resources; that packaging is not part of the term's definition.
+**Capture envelope**:
+The domain-free wrapper around an opaque payload: minted id, evidence spans, epistemic status, confidence, value or absence, and one supersedes link. Status derives at read time.
 
-**Key** — one fixed, harness-owned heading of the YAML plugin/repertoire precursor: the harness
-defines, teaches, and ships a default; a plugin specialises it in a cell. Four groups: contract
-data, guidance, runbook, machinery. Rendered key → harness default → plugin cell. Mission 3 mines
-this authoring structure as evidence; it does not restore the renderer as the runbook architecture.
+**Evidence span**:
+A capture's provenance: a quoted excerpt plus a pointer to the session entry range. Anchors only on true user entries.
 
-**Repertoire** — generally applicable elicitation concepts, directives, procedures, judgment
-activations, caveats, and failure knowledge: how an expert-knowledge interview goes well regardless
-of target formalism. The current YAML is the harness's evidence-admitted filling of guidance and
-lifecycle keys behind core's guarded `./prompts` subpath. A rendered runbook may incorporate this
-teaching without using that runtime.
+**Capture store**:
+The durable, session-independent record of captures, issues, and events, written only by atomic sweep application.
+_Avoid_: knowledge store, database (as a concept)
 
-**Mechanism type** — how a guidance key works on the interviewer: a **license** permits what the
-model would hedge on; a **technique** is a form of question or move; an **attention** key names
-what to notice; an **anchor** is a judgment to check against. Each guidance key has exactly one.
+**Sweep**:
+A harness-owned, idempotent pass over a settled entry range that produces captures; re-sweeping never double-captures. The interviewer neither receives nor schedules it.
 
-**Posture** — the interaction stance `kickoff` produces from the expert's appetite, time, intended
-use, and tolerance for proposed assumptions. Varies the trajectory; continuously re-read; never
-stored. Not a state machine.
+### Suspended concepts
 
-**PluginContext** — the narrow injected context through which a plugin receives harness
-capabilities. Its entire world at runtime; the four operations stay pure.
+**Affordance**:
+A structured interactive element such as a question form or choice strip emitted into the stream, whose reply is session evidence. Suspended; re-enters only with a complete vertical path from model invocation to rendered reply.
+_Avoid_: exchange, terminal
 
-**Storage port** — the harness-defined contract for the capture store (atomic sweep application,
-envelope invariants as store-level refusals), implemented by the binding. Plugins are
-storage-blind. In code its type is `CaptureStore` (`packages/core/src/capture-store.ts`).
+**Structured question**:
+A core-owned operation for single-select, multi-select, or questionnaire forms, rendered by a **UI** without acquiring semantic ownership. Suspended re-entry candidate.
 
-## Simulation and evaluation
+**Settlement**:
+The agent-judged event marking a range ready to sweep. Suspended with the interviewer-scheduled sweep.
+_Avoid_: exchange completion
 
-**Situation pack** — the interviewee-side bundle defining a user-to-be-simulated: situation,
-scenario, persona. Private to whoever plays the user; never authored from or shaped to mirror the
-IR.
-_Avoid_: fact pack, persona pack.
+**Observer**:
+A hypothetical background consolidation mechanism over captured evidence. Absent by default; re-enters only under observed foreground revision strain.
+_Avoid_: fold, background agent
 
-**Answer key** — the modeller-side list of facts the reference net needs. Sits on the
-elicitor-team side of the wall; never part of the situation pack.
+### Evaluation
 
-**Walking skeleton** — a build proving a transport or integration end-to-end on the real substrate
-with stubbed internals.
+**Situation pack**:
+The interviewee-side bundle defining a simulated person: situation, scenario, persona. Private to whoever plays the user and never shaped to mirror the workpiece.
+_Avoid_: fact pack, persona pack
 
-**Logic-prototype** — a prototype locking down mechanism semantics in isolation, without the full
-host substrate.
+**Answer key**:
+The modeller-side list of facts a reference model needs. Stays on the evaluation side, never inside interviewer or interviewee inputs.
+
+**Control**:
+The immutable comparison population: Mission 3's frozen prospective campaign and its exact source revision. Never written to, relocated, or aggregated with later runs.
+_Avoid_: baseline (when it would be modified or extended)
+
+**Frozen instrument**:
+The exact committed prompts, skills, resources, built bundle, case, ruler, and protocol whose hashes fix a campaign. Changing one byte is a new instrument.
+
+**Campaign**:
+A versioned protocol run of the frozen instrument through the production agent, retaining raw traces, manifests, and invalid members separately from graded workpieces.

@@ -1,0 +1,616 @@
+version: 1-prospective
+case: calder-ridge-carriers-truck-fleet-maintenance
+source: evaluations/cases/truck-fleet-maintenance/situation-pack.md
+provenance:
+  authored_after_historical_runs: false
+  calibrated_against_historical_runs: false
+  frozen_before_prospective_runs: true
+use: prospective baseline and variant grading only
+warning: >-
+  This greenfield ledger was authored only from the completed situation pack. It was not informed
+  by or calibrated against historical runs and is frozen before prospective runs.
+importance_weights:
+  load-bearing: 3
+  useful: 2
+  incidental: 1
+
+calibration_rules:
+  transcript_precedence: >-
+    Grade what the simulated expert actually disclosed. Ledger truth may identify a distinction,
+    but it does not erase hedges, narrower examples, corrections, or nondisclosure in the transcript.
+  interviewer_proposals: >-
+    A value or interpretation appearing only in an interviewer question is not user evidence unless
+    the expert explicitly adopts it.
+  relevant_absences: >-
+    Entries whose epistemic_character is relevant-absence describe a relation the pack does not
+    settle. Credit elicitation that identifies the gap; do not expect the expert or IR to fill it.
+  hard_stop: >-
+    When the expert ends elicitation, distinguish unanswered suitable questions from earlier missed
+    opportunities. Do not convert turn-budget truncation into an ordinary acquisition miss.
+  partial_disclosure: >-
+    A concrete example inside a ledger range is partial evidence, not simulator failure by itself.
+    Penalize only unsupported generalization beyond the disclosed example.
+
+facts:
+  - id: objective-weekly-service-schedule
+    importance: load-bearing
+    epistemic_character: explicit-goal
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Decide which pilot trucks to service this week, on which day, and in what order.
+    expected_ir_homes: [purpose, goals, validation]
+    traps: [reducing the objective to ranking trucks by dashboard score]
+
+  - id: objective-risk-tradeoff
+    importance: load-bearing
+    epistemic_character: explicit-preference
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Compare the delivery risk and breakdown risk of plausible weekly schedules.
+    expected_ir_homes: [goals, measures, validation]
+    traps:
+      [reducing the comparison to dashboard-score order, omitting delivery risk]
+
+  - id: objective-route-reassignment
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Determine when route reassignment is sufficient and when a truck must come off the road.
+    expected_ir_homes: [purpose, policies, validation]
+    traps: [hard-coding a rule that the work is meant to test]
+
+  - id: objective-highest-score-policy
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Test whether highest-score-first remains a good weekly policy once delivery, driver, parts, and workshop constraints are included.
+    expected_ir_homes: [purpose, policies, validation]
+    traps: [assuming the current heuristic is optimal]
+
+  - id: objective-recovery-capacity-argument
+    importance: useful
+    epistemic_character: tacit-goal
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked what evidence Nora needs, what loses on busy days, or what hidden outcome the work should support
+    truth: Nora wants evidence for keeping recovery capacity free on mountain days.
+    expected_ir_homes: [purpose, goals, situation-notes]
+    traps: [presenting reserved recovery capacity as an agreed policy]
+
+  - id: pilot-fleet-scope
+    importance: load-bearing
+    epistemic_character: explicit-taxonomy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: The pilot comprises CR-12, CR-19, CR-27, CR-34, CR-41, CR-53, CR-68, and CR-72.
+    expected_ir_homes: [boundary, participants-resources]
+    traps: [generalizing pilot conclusions to the rest of the fleet]
+
+  - id: objective-maintenance-timing
+    importance: load-bearing
+    epistemic_character: explicit-preference
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Avoid roadside failure without servicing healthy trucks early and wasting workshop time or usable component life.
+    expected_ir_homes: [goals, measures, validation]
+    traps:
+      [
+        treating early service as costless,
+        maximizing workshop utilization regardless of truck condition,
+      ]
+
+  - id: planning-cadence-and-horizon
+    importance: load-bearing
+    epistemic_character: explicit-boundary
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Nora needs a weekly schedule but currently makes a day-ahead plan around 16:00 and revises it after load or breakdown disruptions.
+    expected_ir_homes: [boundary, time, triggers]
+    traps:
+      [modelling only a static weekly plan, modelling only day-ahead dispatch]
+
+  - id: executable-schedule-integration-absence
+    importance: useful
+    epistemic_character: explicit-system-absence
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: The dashboard supplies risk scores but neither produces an optimized weekly schedule nor automatically reserves workshop slots.
+    expected_ir_homes: [boundary, gaps, losses]
+    traps: [assuming a dashboard alert creates a maintenance booking]
+
+  - id: risk-score-semantics
+    importance: load-bearing
+    epistemic_character: explicit-measure-semantics
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: The dashboard reports separate 0–100 seven-day failure-risk scores for brakes, engine, and tyres, with higher values worse and 80 shown in red.
+    expected_ir_homes: [inputs, measures, time]
+    traps:
+      [
+        combining the component scores without support,
+        calling the scores probabilities,
+      ]
+
+  - id: risk-score-calibration-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Nora does not know the score calibration, a score's failure probability, or whether different component scores are directly comparable.
+    expected_ir_homes: [unknowns, measures, validation]
+    traps:
+      [
+        interpreting 80 as an 80 percent chance,
+        comparing score magnitudes across components as calibrated risk,
+      ]
+
+  - id: red-line-belief-qualification
+    importance: load-bearing
+    epistemic_character: belief-with-qualification
+    discoverability: tension-probe
+    expert_can_answer: true
+    truth: Nora calls 80 the pull-it-now line, but it is a strong warning rather than a written no-dispatch rule.
+    expected_ir_homes: [policies, conflicts-or-qualification, situation-notes]
+    traps:
+      [
+        hardening Nora's phrase into a formal dispatch ban,
+        omitting that she has made short-flat-run exceptions,
+      ]
+
+  - id: highest-component-concern
+    importance: load-bearing
+    epistemic_character: explicit-practice
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Nora bases concern on the highest-risk component rather than letting low readings on other components offset it.
+    expected_ir_homes: [policies, measures]
+    traps: [averaging the three component scores]
+
+  - id: monday-risk-snapshot
+    importance: load-bearing
+    epistemic_character: explicit-initial-state
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      At Monday 06:00 the brake/engine/tyre scores are CR-12 82/38/41, CR-19 44/77/36,
+      CR-27 63/40/71, CR-34 58/52/49, CR-41 37/46/30, CR-53 31/46/35, CR-68 22/28/26,
+      and CR-72 65/34/39.
+    expected_ir_homes: [initial-state, inputs, quantities]
+    traps:
+      [
+        treating the snapshot as stationary for the whole week,
+        changing values to fit the red threshold,
+      ]
+
+  - id: monday-truck-planning-state
+    importance: load-bearing
+    epistemic_character: explicit-initial-state
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      At Monday 06:00 CR-12 is at the depot and normally first choice for Tuesday's mountain
+      contract; CR-19 is assigned to Wednesday's loaded motorway contract; CR-27 is working urban
+      board loads; CR-34 returns from a mountain run Monday afternoon; CR-41 is available for
+      motorway or urban work; CR-53 is back after last month's roadside repair; CR-68 is recently
+      serviced and available; and CR-72 is at the depot after an urban night run with its driver's
+      hours nearly used.
+    expected_ir_homes: [initial-state, resources, demand, time]
+    traps:
+      [
+        ranking trucks from risk scores without their assignments and availability,
+        assigning CR-12 elsewhere without preserving the Tuesday mountain conflict,
+        treating CR-72 as immediately dispatchable,
+      ]
+
+  - id: score-change-behaviour
+    importance: useful
+    epistemic_character: qualitative-dynamics
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Scores usually change gradually but can jump after a fault code or severe trip.
+    expected_ir_homes: [activities, time, failures]
+    traps: [inventing a deterministic score-update equation]
+
+  - id: motorway-route-wear
+    importance: useful
+    epistemic_character: explicit-route-effect
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: A motorway run is about 420 km and mainly flat; long loaded runs stress engines while brake use is lower.
+    expected_ir_homes: [activities, flow, measures]
+    traps: [treating motorway work as uniformly low wear]
+
+  - id: urban-route-wear
+    importance: useful
+    epistemic_character: explicit-route-effect
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: An urban run is about 180 km; stop-start driving raises brake wear and kerbs and rough streets are hard on tyres.
+    expected_ir_homes: [activities, flow, measures]
+    traps: [representing urban work with engine wear alone]
+
+  - id: mountain-route-wear
+    importance: load-bearing
+    epistemic_character: explicit-route-effect
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: A mountain run is about 260 km and brake deterioration on descents is roughly 2.5 times the flat baseline.
+    expected_ir_homes: [activities, flow, measures]
+    traps:
+      [
+        applying the multiplier to every component,
+        treating the rough multiplier as exact,
+      ]
+
+  - id: trip-severity-multipliers-unknown
+    importance: useful
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Nora lacks measured multipliers for weather and road roughness; telematics history may support later analysis.
+    expected_ir_homes: [unknowns, data-sources, measures]
+    traps:
+      [
+        inventing weather multipliers,
+        treating route class as a complete explanation of wear,
+      ]
+
+  - id: mountain-brake-belief-counterexamples
+    importance: useful
+    epistemic_character: belief-with-counterexamples
+    discoverability: tension-probe
+    expert_can_answer: true
+    truth: Nora believes the mountain is always the brake killer, but recalls engine-dominant motorway and tyre-dominant urban counterexamples.
+    expected_ir_homes: [conflicts-or-qualification, measures, situation-notes]
+    traps:
+      [
+        preserving only the slogan,
+        generalizing either counterexample to all trips,
+      ]
+
+  - id: committed-weekly-jobs
+    importance: load-bearing
+    epistemic_character: explicit-demand
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: The pilot must cover an early-Tuesday mountain contract, a Wednesday loaded motorway contract, and at least one urban round most weekdays.
+    expected_ir_homes: [triggers, demand, time]
+    traps: [treating every future job as freight-board demand]
+
+  - id: freight-board-acceptance-window
+    importance: load-bearing
+    epistemic_character: explicit-time-constraint
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Calder Ridge has 10 hours to accept and collect a posted freight-board load before it goes to a competitor.
+    expected_ir_homes: [triggers, time, policies]
+    traps:
+      [
+        measuring the window from collection to delivery,
+        assuming every posted load is accepted,
+      ]
+
+  - id: freight-board-arrivals-unknown
+    importance: useful
+    epistemic_character: explicit-unknown
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Exact freight-board arrival times are unknown at the start of the week.
+    expected_ir_homes: [unknowns, triggers, scenarios]
+    traps: [inventing a measured arrival distribution]
+
+  - id: delivery-window
+    importance: load-bearing
+    epistemic_character: explicit-time-constraint
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: After collection, a load's delivery window is roughly 2.2 times its normal driving time.
+    expected_ir_homes: [time, goals, constraints]
+    traps:
+      [
+        starting the delivery window when the load is posted,
+        treating the factor as exact,
+      ]
+
+  - id: late-delivery-penalty
+    importance: useful
+    epistemic_character: explicit-loss
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Delivery outside the window costs about 30 percent of the load's revenue.
+    expected_ir_homes: [losses, goals, measures]
+    traps:
+      [
+        treating the amount as exact,
+        applying it to a load that fails and cannot complete,
+      ]
+
+  - id: roadside-load-loss
+    importance: load-bearing
+    epistemic_character: explicit-loss
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: If a truck fails mid-route and cannot complete, Calder Ridge loses the load and pays recovery costs.
+    expected_ir_homes: [failures, losses, goals]
+    traps: [substituting the late-delivery penalty for total load loss]
+
+  - id: harrowell-priority
+    importance: load-bearing
+    epistemic_character: tacit-practiced-priority
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked which work gets protected, how equal-revenue jobs differ, or what happens when commitments conflict
+    truth: Harrowell Foods' mountain contract is protected before spot-market work even when immediate revenue is similar.
+    expected_ir_homes: [goals, policies, validation]
+    traps:
+      [
+        treating all loads as revenue-equivalent,
+        inventing a numeric Harrowell weight,
+      ]
+
+  - id: commercial-tradeoff-weights-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: No agreed single monetary weights exist for lateness, refused loads, customer damage, early replacement, or roadside failure; finance only has separate line items.
+    expected_ir_homes: [unknowns, losses, validation]
+    traps:
+      [
+        forcing a single measured objective function,
+        treating finance line items as agreed tradeoff weights,
+      ]
+
+  - id: driver-hours-and-rest
+    importance: load-bearing
+    epistemic_character: explicit-policy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Dispatch blocks a truck-driver pairing at 9 driving hours until the driver has rested 11 hours at the depot.
+    expected_ir_homes: [resources, time, policies]
+    traps:
+      [
+        attaching the rest state to the truck alone,
+        allowing immediate redispatch of the same pairing,
+      ]
+
+  - id: cr72-driver-pairing-state
+    importance: useful
+    epistemic_character: explicit-initial-state
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: CR-72 can be physically available Monday while its night-driver pairing is unavailable because the driver has reached the hours limit.
+    expected_ir_homes: [initial-state, resources, time]
+    traps: [treating truck availability as sufficient dispatch capacity]
+
+  - id: driver-roster-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Nora cannot provide reliable driver absence or swap rates; the transport manager owns the roster.
+    expected_ir_homes: [unknowns, data-sources, resources]
+    traps: [assuming unlimited rested-driver substitution]
+
+  - id: spare-truck-driver-tension
+    importance: load-bearing
+    epistemic_character: tacit-practice
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked how dispatch verifies cover, what spare truck means in practice, or why a physically available unit cannot cover a run
+    truth: Nora checks for a legal rested driver as well as a spare truck before promising that another unit can cover a run.
+    expected_ir_homes: [policies, resources, situation-notes]
+    traps: [equating a spare unit with dispatchable cover]
+
+  - id: workshop-bay-capacity
+    importance: load-bearing
+    epistemic_character: explicit-resource-constraint
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: The depot workshop has two service bays.
+    expected_ir_homes: [resources, constraints]
+    traps: [treating two bays as two independently feasible jobs]
+
+  - id: technician-skill-matrix
+    importance: load-bearing
+    epistemic_character: explicit-resource-constraint
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Priya handles most engine and electrical work, while Milo handles most brake and tyre work and is the certified recovery operator.
+    expected_ir_homes: [resources, policies]
+    traps: [treating technicians as interchangeable]
+
+  - id: recovery-skill-contention
+    importance: load-bearing
+    epistemic_character: explicit-resource-contention
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: When Milo takes the sole recovery vehicle, brake and tyre work waits even if a bay is empty.
+    expected_ir_homes: [resources, flow, situation-notes]
+    traps:
+      [
+        modelling recovery vehicle and Milo as independent resources,
+        using empty bays as proof that service can start,
+      ]
+
+  - id: monday-parts-stock
+    importance: load-bearing
+    epistemic_character: explicit-initial-state
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Monday pilot stock contains one brake kit, one matched steer-tyre set, and one engine sensor/actuator pack; routine fluids and filters are unconstrained.
+    expected_ir_homes: [initial-state, resources, quantities]
+    traps:
+      [
+        treating all parts as unconstrained,
+        splitting the matched tyre set without support,
+      ]
+
+  - id: planned-service-duration
+    importance: load-bearing
+    epistemic_character: explicit-duration
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: A straightforward planned service takes about 5 hours when the truck, suitable technician, bay, and part are ready.
+    expected_ir_homes: [activities, time, prerequisites]
+    traps:
+      [
+        using 5 hours without its readiness conditions,
+        treating the rough duration as deterministic,
+      ]
+
+  - id: planned-service-restoration
+    importance: useful
+    epistemic_character: explicit-state-transition
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Planned service makes the truck fully fit for the components attended.
+    expected_ir_homes: [activities, flow, measures]
+    traps:
+      [
+        resetting unattended components,
+        treating planned service as whole-truck replacement,
+      ]
+
+  - id: roadside-service-flow
+    importance: load-bearing
+    epistemic_character: explicit-failure-flow
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: A roadside truck must be recovered and towed before a roughly 12-workshop-hour depot repair.
+    expected_ir_homes: [failures, activities, flow, time]
+    traps:
+      [
+        starting depot repair at roadside failure,
+        using the planned-service duration,
+      ]
+
+  - id: roadside-restoration-extent-unknown
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: The pack says roadside repair restores only part of lost condition but does not quantify the resulting component state.
+    expected_ir_homes: [unknowns, measures, assumptions]
+    traps:
+      [
+        resetting the attended component to fully fit,
+        inventing a partial-restoration percentage,
+      ]
+
+  - id: planned-roadside-resource-contention
+    importance: load-bearing
+    epistemic_character: explicit-resource-contention
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Planned and roadside work compete for the same bays, technicians, and parts, including parts reserved for later planned jobs.
+    expected_ir_homes: [resources, flow, failures]
+    traps: [giving roadside work a separate workshop or parts pool]
+
+  - id: parts-lead-time-unknown
+    importance: useful
+    epistemic_character: explicit-unknown
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Parts usually arrive next day but specialized items may take several days, and Nora has no reliable delay profile by part.
+    expected_ir_homes: [unknowns, time, scenarios]
+    traps: [turning the qualitative statement into a fitted distribution]
+
+  - id: two-bay-belief-qualification
+    importance: load-bearing
+    epistemic_character: belief-with-qualification
+    discoverability: tension-probe
+    expert_can_answer: true
+    truth: Nora's belief that two planned trucks can run together holds only when Priya and Milo can work independently and both parts are available.
+    expected_ir_homes: [resources, conflicts-or-qualification, situation-notes]
+    traps:
+      [
+        equating bay count with simultaneous-job capacity,
+        omitting recovery and cross-skill interference,
+      ]
+
+  - id: cr53-incident-trigger-and-outcome
+    importance: useful
+    epistemic_character: concrete-incident
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: CR-53 entered a loaded mountain run with brake score 74, seized a caliper on the second descent, and could not complete the load.
+    expected_ir_homes: [failures, scenarios, validation]
+    traps:
+      [
+        changing the pre-run score to a red value,
+        claiming the dashboard predicted the seizure,
+      ]
+
+  - id: cr53-incident-workshop-cascade
+    importance: useful
+    epistemic_character: concrete-incident
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: CR-53's recovery and repair consumed Milo, a bay, and the only brake kit, displacing CR-27's tyre job for two days.
+    expected_ir_homes: [failures, resources, flow, validation]
+    traps:
+      [
+        treating the incident as isolated to CR-53,
+        omitting the deferred planned job,
+      ]
+
+  - id: incident-recording-absence
+    importance: useful
+    epistemic_character: explicit-recording-absence
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: The incident invoice omits dispatcher time, deferred service, and board loads declined while CR-53 was unavailable.
+    expected_ir_homes: [losses, gaps, data-sources]
+    traps: [treating invoice totals as complete incident cost]
+
+  - id: incident-score-predictiveness-unknown
+    importance: useful
+    epistemic_character: explicit-unknown
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Nora does not know whether the dashboard should have predicted the seizure or whether score 74 was badly calibrated.
+    expected_ir_homes: [unknowns, validation, measures]
+    traps: [using the incident as proof that 74 predicts brake failure]
+
+  - id: harrowell-brake-threshold
+    importance: load-bearing
+    epistemic_character: tacit-unwritten-rule
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked how the CR-53 incident changed dispatch, what exceptions govern Harrowell, or which truck Nora would refuse for the mountain run
+    truth: Nora will not put a truck with brake score above 70 on Harrowell's mountain run.
+    expected_ir_homes: [policies, constraints, situation-notes]
+    traps:
+      [
+        applying the rule to every route or customer,
+        calling it a written dispatch-system rule,
+      ]
+
+  - id: route-reassignment-criteria-absence
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: The pack does not establish general criteria for when reassignment is sufficient versus when a truck must be removed from service.
+    expected_ir_homes: [unknowns, policies, validation]
+    traps:
+      [
+        promoting the Harrowell brake rule into a complete fleet-wide criterion,
+        inventing component-specific cutoffs,
+      ]
+
+  - id: disruption-duration-distributions-unknown
+    importance: useful
+    epistemic_character: explicit-unknown
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: Nora cannot provide reliable best, typical, and worst failure, tow, repair, or parts-replenishment times.
+    expected_ir_homes: [unknowns, time, data-sources]
+    traps:
+      [
+        fitting distributions from the CR-53 incident,
+        treating the incident's four-hour recovery absence as universal,
+      ]

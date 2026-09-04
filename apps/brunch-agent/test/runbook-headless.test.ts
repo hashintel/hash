@@ -8,7 +8,7 @@ import { runNodeScript } from "./run-node-script";
 
 const testDirectory = import.meta.dirname;
 
-test("the built ChatAgent constructs a validated net from the saved IR", async () => {
+test("the built ChatAgent reports only the construct-only evidence it reaches", async () => {
   const dbDirectory = await mkdtemp(join(tmpdir(), "brunch-runbook-"));
   try {
     const { exitCode, stdout, stderr } = await runNodeScript(
@@ -29,9 +29,12 @@ test("the built ChatAgent constructs a validated net from the saved IR", async (
       placeCount: number;
       transitionCount: number;
       toolNames: string[];
+      activatedSkillNames: string[];
       resourceFilesRead: string[];
       validationRejections: string[];
       emittedFreeFormPnJson: boolean;
+      emittedUpdatedWorkpiece: boolean;
+      evidenceLevelHonest: boolean;
       userMessages: number;
       wroteCaptureStore: boolean;
     };
@@ -54,17 +57,19 @@ test("the built ChatAgent constructs a validated net from the saved IR", async (
     expect(result.toolNames).not.toContain("sweep");
     expect(result.toolNames).not.toContain("brunch_sweep");
     expect(result.toolNames).not.toContain("brunch_ask");
+    expect(result.activatedSkillNames).toEqual(["sdcpn-modelling"]);
+    expect(result.activatedSkillNames).not.toContain("elicitation");
     expect(result.resourceFilesRead).toEqual([
-      "elicitation.md",
-      "ir-template.md",
-      "pn-construction.md",
-      "checks.md",
+      "references/pn-construction.md",
+      "references/checks.md",
     ]);
     expect(result.validationRejections).toHaveLength(1);
     expect(result.validationRejections[0]).toContain(
       "expected number to be >0",
     );
     expect(result.emittedFreeFormPnJson).toBe(false);
+    expect(result.emittedUpdatedWorkpiece).toBe(true);
+    expect(result.evidenceLevelHonest).toBe(true);
     expect(result.userMessages).toBe(1);
     expect(result.wroteCaptureStore).toBe(false);
   } finally {

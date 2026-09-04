@@ -15,8 +15,7 @@ harness around that text.
 **Retirement (2026-08-28).** This is a retained historical instrument, not a supported path for
 new evaluation runs. The current prospective path is
 [`../prospective-runbook-v1/`](../prospective-runbook-v1/); its evidence is graded with
-[`../ir-quality-ruler-v1/`](../ir-quality-ruler-v1/). The runner and hermetic tests remain only
-until a separately scoped removal verifies no remaining operational dependency.
+[`../ir-quality-ruler-v1/`](../ir-quality-ruler-v1/). The unsupported runners and their hermetic timing test were removed after verifying that no current command or protocol depended on them. The exact executed sources remain reconstructible at commit `b59b323bf1b26eee9a2345a8412ca466f5d6e851`.
 
 ## Conditions
 
@@ -50,7 +49,7 @@ are tiered: freely given, _(tacit)_ (surfaces only under reaching questions), _(
 (honest perspective error), _(doesn't know)_ (genuine absences the interviewer should record
 rather than fill).
 
-## Mechanics ([run.ts](run.ts) for conditions 1, 2, and 4; [harness-run.ts](harness-run.ts) for 5)
+## Mechanics (historical runners at commit `b59b323bf1b26eee9a2345a8412ca466f5d6e851`)
 
 - Alternating API calls; each side sees only its own history. The interviewer never sees the
   situation pack; the expert never sees the v0 prompt.

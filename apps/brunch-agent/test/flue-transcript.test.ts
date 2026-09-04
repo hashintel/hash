@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import {
   formatFlueTranscript,
   snapshotToUiMessages,
-} from "../src/flue-transcript.ts";
+} from "../src/conversation/transcript.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
