@@ -2,33 +2,12 @@
 
 import { createHash } from "node:crypto";
 
-import {
-  createPreparedWorkpieceDelivery,
-  latestRunbookIrBlock,
-  PREPARED_WORKPIECE_AUTHORSHIP,
-  PREPARED_WORKPIECE_CLAIM_BOUNDARY,
-  PREPARED_WORKPIECE_INITIAL_DATA_MODE,
-  PREPARED_WORKPIECE_SIGNAL_TAG,
-  PREPARED_WORKPIECE_SIGNAL_TYPE,
-  RUNBOOK_IR_FENCE,
-  selectRunbookWorkpiece,
-} from "@hashintel/brunch-agent/workpiece";
+import { selectRunbookWorkpiece } from "@hashintel/brunch-agent/workpiece";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
 const sha256 = (value: string): string =>
   createHash("sha256").update(value).digest("hex");
-
-export {
-  createPreparedWorkpieceDelivery,
-  latestRunbookIrBlock,
-  PREPARED_WORKPIECE_AUTHORSHIP,
-  PREPARED_WORKPIECE_CLAIM_BOUNDARY,
-  PREPARED_WORKPIECE_INITIAL_DATA_MODE,
-  PREPARED_WORKPIECE_SIGNAL_TAG,
-  PREPARED_WORKPIECE_SIGNAL_TYPE,
-  RUNBOOK_IR_FENCE,
-};
 
 export interface RecoveredRunbookWorkpiece {
   readonly authorship: "model-produced" | "test-authored";

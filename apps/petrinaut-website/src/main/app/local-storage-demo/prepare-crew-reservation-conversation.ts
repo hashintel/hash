@@ -1,30 +1,22 @@
 import {
-  PREPARED_WORKPIECE_INITIAL_DATA_MODE,
+  preparedWorkpieceInitialDataMode,
   selectRunbookWorkpiece,
-  type WorkpieceHistory,
 } from "@hashintel/brunch-agent/workpiece";
 
 import {
-  CREW_RESERVATION_FIXTURE_ID,
+  crewReservationFixtureId,
   preparedCrewReservationDelivery,
 } from "./prepared-crew-reservation-fixture";
 
+import type { CrewReservationHistory } from "./crew-reservation-history";
 import type { AgentSendResult } from "@flue/sdk";
 
-export type PreparedCrewReservationHistory = WorkpieceHistory & {
-  readonly offset: string;
-  readonly settlements: readonly {
-    readonly outcome: string;
-    readonly submissionId: string;
-  }[];
-};
-
 export interface PreparedFixtureConversationClient {
-  readonly history: () => Promise<PreparedCrewReservationHistory>;
+  readonly history: () => Promise<CrewReservationHistory>;
   readonly send: (input: {
     readonly idempotencyKey: string;
     readonly initialData: {
-      readonly mode: typeof PREPARED_WORKPIECE_INITIAL_DATA_MODE;
+      readonly mode: typeof preparedWorkpieceInitialDataMode;
     };
     readonly message: typeof preparedCrewReservationDelivery.message;
     readonly uid: null;
@@ -39,8 +31,8 @@ const isNotFound = (error: unknown): boolean =>
   error.status === 404;
 
 const assertPreparedFixtureHistory = (
-  history: PreparedCrewReservationHistory,
-): PreparedCrewReservationHistory => {
+  history: CrewReservationHistory,
+): CrewReservationHistory => {
   const currentWorkpiece = selectRunbookWorkpiece(history);
   if (
     currentWorkpiece?.sourceKind !== "prepared-signal" &&
@@ -56,8 +48,7 @@ const assertPreparedFixtureHistory = (
       preparedCrewReservationDelivery.message.tagName,
   );
   if (
-    preparedSource?.signal?.attributes?.fixtureId !==
-    CREW_RESERVATION_FIXTURE_ID
+    preparedSource?.signal?.attributes?.fixtureId !== crewReservationFixtureId
   ) {
     throw new Error(
       "The prepared fixture conversation belongs to a different fixture.",
@@ -73,7 +64,7 @@ const assertPreparedFixtureHistory = (
  */
 export const prepareCrewReservationConversation = async (
   client: PreparedFixtureConversationClient,
-): Promise<PreparedCrewReservationHistory> => {
+): Promise<CrewReservationHistory> => {
   try {
     return assertPreparedFixtureHistory(await client.history());
   } catch (error) {
@@ -82,7 +73,7 @@ export const prepareCrewReservationConversation = async (
 
   const admission = await client.send({
     uid: null,
-    initialData: { mode: PREPARED_WORKPIECE_INITIAL_DATA_MODE },
+    initialData: { mode: preparedWorkpieceInitialDataMode },
     ...preparedCrewReservationDelivery,
   });
   await client.wait(admission);

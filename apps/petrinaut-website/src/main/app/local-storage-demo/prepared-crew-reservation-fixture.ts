@@ -6,19 +6,19 @@ import {
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
-export const CREW_RESERVATION_FIXTURE_ID = "crew-reservation-v1";
-export const CREW_RESERVATION_DOCUMENT_ID =
+export const crewReservationFixtureId = "crew-reservation-v1";
+export const crewReservationDocumentId =
   "mission-6-crew-reservation-document-v1";
-export const CREW_RESERVATION_CONVERSATION_ID =
+export const crewReservationConversationId =
   "mission-6-crew-reservation-conversation-v1";
-export const CREW_RESERVATION_FIXTURE_QUERY = "brunch-fixture";
-export const CREW_RESERVATION_CLIENT_TOOL_NAMES = [
+export const crewReservationFixtureQuery = "brunch-fixture";
+export const crewReservationFixtureClientToolNames = [
   getLatestNetDefinitionToolName,
   "addArc",
 ] as const satisfies readonly PetrinautAiToolName[];
 
-export const DISPATCH_CREW_PLACE_ID = "dispatch-crew-available";
-export const START_FINAL_INSPECTION_TRANSITION_ID = "start-final-inspection";
+export const dispatchCrewPlaceId = "dispatch-crew-available";
+export const startFinalInspectionTransitionId = "start-final-inspection";
 
 export const preparedCrewReservationWorkpiece = [
   "Fixture authorship: test-authored preparation for Mission 6.",
@@ -51,7 +51,7 @@ export const preparedCrewReservationWorkpiece = [
 
 export const preparedCrewReservationDelivery = createPreparedWorkpieceDelivery({
   body: preparedCrewReservationWorkpiece,
-  fixtureId: CREW_RESERVATION_FIXTURE_ID,
+  fixtureId: crewReservationFixtureId,
   revision: 0,
 });
 
@@ -85,7 +85,7 @@ export const preparedCrewReservationNet: SDCPN = {
       y: 100,
     },
     {
-      id: DISPATCH_CREW_PLACE_ID,
+      id: dispatchCrewPlaceId,
       name: "Dispatch crew available",
       colorId: null,
       dynamicsEnabled: false,
@@ -96,7 +96,7 @@ export const preparedCrewReservationNet: SDCPN = {
   ],
   transitions: [
     {
-      id: START_FINAL_INSPECTION_TRANSITION_ID,
+      id: startFinalInspectionTransitionId,
       name: "Start final inspection",
       inputArcs: [
         {
@@ -133,7 +133,7 @@ export const preparedCrewReservationNet: SDCPN = {
           weight: 1,
         },
         {
-          placeId: DISPATCH_CREW_PLACE_ID,
+          placeId: dispatchCrewPlaceId,
           weight: 1,
         },
       ],
@@ -150,5 +150,5 @@ export const preparedCrewReservationNet: SDCPN = {
 };
 
 export const isCrewReservationFixtureSelected = (search: string): boolean =>
-  new URLSearchParams(search).get(CREW_RESERVATION_FIXTURE_QUERY) ===
-  CREW_RESERVATION_FIXTURE_ID;
+  new URLSearchParams(search).get(crewReservationFixtureQuery) ===
+  crewReservationFixtureId;

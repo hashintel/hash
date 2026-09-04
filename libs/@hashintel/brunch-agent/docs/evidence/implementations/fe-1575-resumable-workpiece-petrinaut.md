@@ -50,8 +50,10 @@ Consequently:
 - the visible fixture status refused settlement as `history-unavailable`
   instead of blessing the prepared document alone.
 
-This is the Mission 6 carrier blocker required by the stop rule, not a passing
-two-tab witness. No success screenshot was retained.
+This is an authentication/environment blocker on the outer witness, not
+evidence that the selected provider-visible schema or Flue carrier cannot
+faithfully carry the mutation. It is not a passing two-tab witness. No success
+screenshot was retained.
 
 ## Remaining external checks
 

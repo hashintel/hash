@@ -2,21 +2,11 @@
 
 import { basename } from "node:path";
 
-import {
-  latestRunbookIrBlock,
-  recoverRunbookWorkpiece,
-  RUNBOOK_IR_FENCE,
-  type RecoveredRunbookWorkpiece,
-} from "../../conversation/workpiece.ts";
+import { runbookIrFence } from "@hashintel/brunch-agent/workpiece";
+
+import { recoverRunbookWorkpiece } from "../../conversation/workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
-
-export {
-  latestRunbookIrBlock,
-  recoverRunbookWorkpiece,
-  RUNBOOK_IR_FENCE,
-  type RecoveredRunbookWorkpiece,
-};
 
 export const recoverRunbookIr = (
   snapshot: FlueConversationSnapshot,
@@ -123,7 +113,7 @@ export const ordinaryElicitationViolationsFrom = (
         }
         if (
           firstWorkpiecePosition === undefined &&
-          part.text.includes(`\`\`\`${RUNBOOK_IR_FENCE}`)
+          part.text.includes(`\`\`\`${runbookIrFence}`)
         ) {
           firstWorkpiecePosition = position;
         }
