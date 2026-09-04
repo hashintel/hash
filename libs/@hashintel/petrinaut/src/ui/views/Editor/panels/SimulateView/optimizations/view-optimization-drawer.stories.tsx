@@ -135,6 +135,7 @@ const FakeConnectedStudy = ({
     createOptimization: () => Promise.resolve(optimization.id),
     cancelOptimization: () => {},
     removeOptimization: () => {},
+    extendOptimization: () => Promise.resolve(),
     setOptimizationNavigation: (_optimizationId, patch) =>
       setChosen({ ...navigation, ...patch }),
     retryOptimization: () => Promise.resolve(null),
@@ -196,6 +197,7 @@ const RemoteStudy = () => {
     createOptimization: () => Promise.resolve(optimization.id),
     cancelOptimization: () => {},
     removeOptimization: () => {},
+    extendOptimization: () => Promise.resolve(),
     setOptimizationNavigation: () => {},
     retryOptimization: () => Promise.resolve(null),
   };

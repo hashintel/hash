@@ -98,6 +98,7 @@ const stream = (
   runTarget: null,
   computing: false,
   error: null,
+  note: null,
   ...overrides,
 });
 
@@ -148,6 +149,24 @@ describe("describeSelection", () => {
       describeSelection(stream({ computing: true, runsCompleted: 8 })),
     ).toBe("8 runs — computing");
     expect(describeSelection(stream({ runsCompleted: 100 }))).toBe("100 runs");
+  });
+
+  it("shows the note a ladder stopped with instead of the bare run count", () => {
+    expect(
+      describeSelection(
+        stream({ runsCompleted: 8, note: "8 runs · cannot beat the best" }),
+      ),
+    ).toBe("8 runs · cannot beat the best");
+    expect(
+      describeSelection(
+        stream({
+          runsCompleted: 8,
+          runTarget: 25,
+          computing: true,
+          note: "stale",
+        }),
+      ),
+    ).toBe("8 of 25 runs — refining");
   });
 
   it("names the failure when the point could not compute", () => {

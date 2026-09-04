@@ -26,7 +26,9 @@ import type {
 } from "../../../../../../react/experiments/context";
 import type { SweepCellSnapshot } from "../../../../../../react/experiments/sweep-session";
 import type {
+  OptimizationBatchStatus,
   OptimizationBest,
+  OptimizationInFlightStep,
   OptimizationNavigation,
   OptimizationRecord,
   OptimizationSelectionStream,
@@ -257,6 +259,11 @@ export function makeOptimizationRecord(options: {
   /** Set for a connected study; a remote study has neither. */
   navigation?: OptimizationNavigation | null;
   selection?: OptimizationSelectionStream | null;
+  /** Whether the study can be continued; a settled connected study by default. */
+  resumable?: boolean;
+  parallelism?: number;
+  activity?: readonly OptimizationBatchStatus[];
+  inFlight?: readonly OptimizationInFlightStep[];
 }): OptimizationRecord {
   const {
     input,
@@ -267,6 +274,11 @@ export function makeOptimizationRecord(options: {
     computeBackendFallbackReason = null,
     navigation = null,
     selection = null,
+    resumable = navigation !== null &&
+      (status === "complete" || status === "cancelled"),
+    parallelism = 1,
+    activity = [],
+    inFlight = [],
   } = options;
   return {
     id: "optimization-story-1",
@@ -286,11 +298,15 @@ export function makeOptimizationRecord(options: {
     failedTrials: trials.filter((trial) => trial.state === "failed").length,
     trials,
     best,
+    resumable,
+    parallelism,
     computeBackend,
     computeBackendFallbackReason,
     axes: buildOptimizationSurfaceAxes(input),
     navigation,
     selection,
+    activity,
+    inFlight,
   };
 }
 
@@ -404,6 +420,8 @@ export function makeSelectionStream(options: {
   progress?: number;
   /** Why the point could not compute; the stream then stops at `runsCompleted`. */
   error?: string | null;
+  /** Why the ladder stopped short, e.g. "8 runs · cannot beat the best". */
+  note?: string | null;
 }): OptimizationSelectionStream {
   const {
     input,
@@ -415,6 +433,7 @@ export function makeSelectionStream(options: {
     frameCount,
     progress,
     error = null,
+    note = null,
   } = options;
   const axes = buildOptimizationSurfaceAxes(input);
   const booleanIdentifiers = optimizationBooleanIdentifiers(input);
@@ -443,6 +462,7 @@ export function makeSelectionStream(options: {
     runTarget,
     computing,
     error,
+    note,
   };
 }
 

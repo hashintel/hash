@@ -3,6 +3,8 @@ import { createContext } from "react";
 import type { PetrinautOptimization } from "@hashintel/petrinaut-core";
 import type {
   PetrinautConnectedOptimization,
+  PetrinautConnectedOptimizationCapability,
+  PetrinautConnectedRunOptions,
   PetrinautOptimizationChannel,
   PetrinautOptimizationSource,
 } from "@hashintel/petrinaut-core/optimization";
@@ -18,6 +20,8 @@ export const PetrinautOptimizationContext =
 
 export type {
   PetrinautConnectedOptimization,
+  PetrinautConnectedOptimizationCapability,
+  PetrinautConnectedRunOptions,
   PetrinautOptimization,
   PetrinautOptimizationChannel,
   PetrinautOptimizationSource,

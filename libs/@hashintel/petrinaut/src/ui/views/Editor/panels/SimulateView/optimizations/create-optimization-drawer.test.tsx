@@ -226,6 +226,8 @@ const connectedSource: PetrinautConnectedOptimization = {
       yield { type: "started", requestedTrials: 1, seq: 1 };
     },
     cancelOptimizationRun: () => Promise.resolve(),
+    extendOptimizationRun: () => Promise.resolve(),
+    releaseOptimizationRun: () => Promise.resolve(),
     dispose: () => {},
   }),
 };
@@ -275,6 +277,7 @@ const TestProviders = ({
     createOptimization,
     cancelOptimization: () => {},
     removeOptimization: () => {},
+    extendOptimization: () => Promise.resolve(),
     setOptimizationNavigation: () => {},
     retryOptimization: () => Promise.resolve(null),
   };
@@ -567,7 +570,9 @@ describe("CreateOptimizationDrawer", () => {
     });
     expect(createOptimization.mock.calls[0]![1]).toEqual({
       computeBackend: "cpu",
+      parallelism: 1,
     });
+    expect(screen.queryByLabelText("Parallel steps")).toBeNull();
   });
 
   it("sends runs per step as the manifest's seeds per trial", async () => {
@@ -1009,6 +1014,49 @@ describe("CreateOptimizationDrawer backend choice", () => {
     // metric, which the GPU backend cannot compute.
     expect(createOptimization.mock.calls[0]![1]).toEqual({
       computeBackend: "cpu",
+      parallelism: 1,
+    });
+  });
+
+  it("offers parallel steps to a connected optimizer and passes the count as a creation option", async () => {
+    const createOptimization = vi.fn(
+      async (
+        _input: PetrinautOptimizationInput,
+        _options?: CreateOptimizationOptions,
+      ) => "optimization-parallel",
+    );
+    const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
+    openConfiguration({
+      connectedSource: true,
+      languageClient: makeSuccessfulLanguageClient(),
+      createOptimization,
+    });
+
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}${savedMetric!.id}` },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
+    fireEvent.change(screen.getByLabelText("Parallel steps"), {
+      target: { value: "5" },
+    });
+    expect(
+      screen.getByText("Parallel steps must be an integer between 1 and 4"),
+    ).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Parallel steps"), {
+      target: { value: "3" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Run/ }));
+
+    await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
+    expect(createOptimization.mock.calls[0]![1]).toEqual({
+      computeBackend: "cpu",
+      parallelism: 3,
     });
   });
 });

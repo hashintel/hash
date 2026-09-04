@@ -14,6 +14,7 @@ import {
 import {
   isConnectedOptimization,
   type PetrinautConnectedOptimization,
+  type PetrinautConnectedOptimizationCapability,
 } from "@hashintel/petrinaut-core/optimization";
 
 import {
@@ -316,11 +317,15 @@ const createOptimizationRecord = (
   failedTrials: 0,
   trials: [],
   best: null,
+  resumable: false,
+  parallelism: 1,
   computeBackend: "cpu",
   computeBackendFallbackReason: null,
   axes: buildOptimizationSurfaceAxes(input),
   navigation: null,
   selection: null,
+  activity: [],
+  inFlight: [],
   ...overrides,
 });
 
@@ -330,7 +335,7 @@ const createOptimizationRecord = (
  */
 type OptimizationConnection = {
   source: PetrinautConnectedOptimization;
-  capability: PetrinautOptimization;
+  capability: PetrinautConnectedOptimizationCapability;
   dispose: () => void;
 };
 
@@ -439,8 +444,9 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
   const settleStudy = (
     optimizationId: string,
     outcome: ConnectedStudyOutcome,
+    best?: OptimizationBest | null,
   ) => {
-    studiesRef.current.get(optimizationId)?.settle(outcome);
+    studiesRef.current.get(optimizationId)?.settle(outcome, best);
   };
 
   const disposeStudy = (optimizationId: string) => {
@@ -448,11 +454,26 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     studiesRef.current.delete(optimizationId);
   };
 
+  /**
+   * Whether a settled record can run more steps: a connected study whose
+   * local machinery is still here. The machinery goes when the study is
+   * removed or its connection is disposed, and with it the kept sampler.
+   */
+  const resumableAfterSettling = (
+    optimizationId: string,
+    current: OptimizationRecord,
+  ): boolean =>
+    current.navigation !== null && studiesRef.current.has(optimizationId);
+
   const markOptimizationCancelled = useCallback(
     (optimizationId: string) => {
       patchOptimization(optimizationId, (current) => ({
         ...current,
         status: "cancelled",
+        // The segment's terminal event, not this mark, makes a connected
+        // study resumable: a stop lands here while its steps in flight are
+        // still being pruned, and the core refuses to extend it until then.
+        resumable: false,
         error: null,
         errorCategory: null,
         errorDiagnostics: null,
@@ -472,6 +493,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       patchOptimization(optimizationId, (current) => ({
         ...current,
         status: "error",
+        resumable: false,
         connectionState: null,
         // A classified transport failure yields a safe, actionable message
         // and correlation ids; anything else keeps its message.
@@ -508,6 +530,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
             ...current,
             ...extra,
             status: "running",
+            resumable: false,
             requestedTrials: event.requestedTrials,
           }));
           break;
@@ -515,7 +538,9 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
           patchOptimization(optimizationId, (current) => ({
             ...current,
             ...extra,
-            status: "running",
+            // A stopped study's pruned steps still report; they do not
+            // revive it.
+            status: current.status === "cancelled" ? "cancelled" : "running",
             completedTrials:
               current.completedTrials + (event.state === "complete" ? 1 : 0),
             prunedTrials:
@@ -525,12 +550,14 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
             trials: [...current.trials, event],
             best: event.best ?? computeRunningBest(current, event),
           }));
+          studiesRef.current.get(optimizationId)?.trialReported(event);
           break;
         case "complete":
           patchOptimization(optimizationId, (current) => ({
             ...current,
             ...extra,
             status: "complete",
+            resumable: resumableAfterSettling(optimizationId, current),
             connectionState: null,
             // The complete event's requested-trial count is the true total,
             // but its completed/pruned/failed counts only cover the frames
@@ -540,7 +567,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
             requestedTrials: event.requestedTrials,
             best: event.best ?? current.best,
           }));
-          settleStudy(optimizationId, "complete");
+          settleStudy(optimizationId, "complete", event.best);
           break;
         case "error":
           patchOptimization(optimizationId, (current) => ({
@@ -557,11 +584,16 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
             ...(event.code === PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE
               ? {
                   status: "cancelled" as const,
+                  resumable: resumableAfterSettling(optimizationId, current),
                   error: null,
                   errorCategory: null,
                   errorDiagnostics: null,
                 }
-              : { status: "error" as const, error: event.message }),
+              : {
+                  status: "error" as const,
+                  resumable: false,
+                  error: event.message,
+                }),
           }));
           settleStudy(
             optimizationId,
@@ -606,6 +638,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       attach,
       cancel,
       abortController,
+      cursor = 0,
       dropRecordOnNotFound = false,
     }: {
       optimizationId: string;
@@ -613,6 +646,8 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       attach: PetrinautOptimization["attachOptimizationRun"];
       cancel: PetrinautOptimization["cancelOptimizationRun"];
       abortController: AbortController;
+      /** The record's last applied `seq`, when it already holds earlier events. */
+      cursor?: number;
       /**
        * Silently drop the record when the very first attachment 404s — used
        * when re-attaching to a stored run that may have expired server-side.
@@ -623,7 +658,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       // Read through a call so the abort flag is re-checked after each await
       // (a plain property read would be control-flow-narrowed to `false`).
       const isCancelled = () => signal.aborted;
-      let lastSeq = 0;
+      let lastSeq = cursor;
       let sawTerminalEvent = false;
       let consecutiveFailures = 0;
       let receivedAnyEvent = false;
@@ -863,10 +898,15 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       const input = petrinautOptimizationInputSchema.parse(rawInput);
       const optimizationId = crypto.randomUUID();
       const abortController = new AbortController();
-      const connected = connectionRef.current?.capability === capability;
+      const connection =
+        connectionRef.current?.capability === capability
+          ? connectionRef.current
+          : null;
+      const connected = connection !== null;
       const computeBackend = connected
         ? (options?.computeBackend ?? "cpu")
         : "cpu";
+      const parallelism = connected ? (options?.parallelism ?? 1) : 1;
       const study = connected
         ? createConnectedStudy({
             optimizationId,
@@ -891,6 +931,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       setOptimizations((current) => [
         createOptimizationRecord(optimizationId, input, {
           computeBackend,
+          parallelism,
           navigation: study?.initialNavigation ?? null,
         }),
         ...current,
@@ -900,9 +941,14 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       const consumeRun = async () => {
         let runId: string;
         try {
-          ({ runId } = await capability.createOptimizationRun(input, {
-            signal: abortController.signal,
-          }));
+          ({ runId } = await (connection
+            ? connection.capability.createOptimizationRun(input, {
+                signal: abortController.signal,
+                parallelism,
+              })
+            : capability.createOptimizationRun(input, {
+                signal: abortController.signal,
+              })));
         } catch (error) {
           const classified = classifyError(error);
           if (
@@ -951,8 +997,13 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       };
 
       void consumeRun().finally(() => {
-        abortControllersRef.current.delete(optimizationId);
-        runIdsRef.current.delete(optimizationId);
+        // A continuation may have taken the entries over by now.
+        if (
+          abortControllersRef.current.get(optimizationId) === abortController
+        ) {
+          abortControllersRef.current.delete(optimizationId);
+          runIdsRef.current.delete(optimizationId);
+        }
       });
 
       return optimizationId;
@@ -1053,14 +1104,26 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     optimizationId,
   ) => {
     const runId = resolveRunId(optimizationId);
+    const connected = studiesRef.current.has(optimizationId);
     if (runId !== undefined) {
-      runIdsRef.current.delete(optimizationId);
       removeStoredActiveRun(runId);
       // Stop the detached run server-side; aborting the local attachment
       // below only drops this tab's connection to it.
       void resolveCapability()
         ?.cancelOptimizationRun(runId)
         .catch(() => undefined);
+    }
+    if (connected) {
+      // The study's segment ends with a terminal event once its steps in
+      // flight are pruned. The attachment stays to apply it, so the record's
+      // cursor covers the whole segment and a continuation resumes right
+      // after it; the status settles here without waiting, and the terminal
+      // event offers the continuation.
+      markOptimizationCancelled(optimizationId);
+      return;
+    }
+    if (runId !== undefined) {
+      runIdsRef.current.delete(optimizationId);
     }
     abortControllersRef.current.get(optimizationId)?.abort();
     abortControllersRef.current.delete(optimizationId);
@@ -1074,15 +1137,83 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     if (runId !== undefined) {
       runIdsRef.current.delete(optimizationId);
       removeStoredActiveRun(runId);
-      void resolveCapability()
-        ?.cancelOptimizationRun(runId)
-        .catch(() => undefined);
+      const connection = connectionRef.current;
+      // A connected study keeps its sampler until it is released; a remote
+      // run is stopped server-side.
+      void (
+        connection && studiesRef.current.has(optimizationId)
+          ? connection.capability.releaseOptimizationRun(runId)
+          : (resolveCapability()?.cancelOptimizationRun(runId) ??
+            Promise.resolve())
+      ).catch(() => undefined);
     }
     abortControllersRef.current.get(optimizationId)?.abort();
     abortControllersRef.current.delete(optimizationId);
     disposeStudy(optimizationId);
     dropOptimizationRecord(optimizationId);
   };
+
+  const extendOptimization: OptimizationsContextValue["extendOptimization"] =
+    async (optimizationId, trials) => {
+      const existing = optimizations.find(
+        (optimization) => optimization.id === optimizationId,
+      );
+      const connection = connectionRef.current;
+      const study = studiesRef.current.get(optimizationId);
+      if (
+        !existing?.resumable ||
+        existing.runId === null ||
+        !connection ||
+        !study
+      ) {
+        throw new Error("This optimization cannot be continued");
+      }
+      const { runId } = existing;
+      try {
+        await connection.capability.extendOptimizationRun(runId, trials, {
+          parallelism: existing.parallelism,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        patchOptimization(optimizationId, (current) => ({
+          ...current,
+          error: message,
+        }));
+        throw error;
+      }
+      const abortController = new AbortController();
+      abortControllersRef.current.set(optimizationId, abortController);
+      runIdsRef.current.set(optimizationId, runId);
+      study.resume();
+      patchOptimization(optimizationId, (current) => ({
+        ...current,
+        status: "running",
+        resumable: false,
+        error: null,
+        errorCategory: null,
+        errorDiagnostics: null,
+        connectionState: "streaming",
+      }));
+      void runAttachLoop({
+        optimizationId,
+        runId,
+        attach: connection.capability.attachOptimizationRun.bind(
+          connection.capability,
+        ),
+        cancel: connection.capability.cancelOptimizationRun.bind(
+          connection.capability,
+        ),
+        abortController,
+        cursor: existing.lastSeq,
+      }).finally(() => {
+        if (
+          abortControllersRef.current.get(optimizationId) === abortController
+        ) {
+          abortControllersRef.current.delete(optimizationId);
+          runIdsRef.current.delete(optimizationId);
+        }
+      });
+    };
 
   const setOptimizationNavigation: OptimizationsContextValue["setOptimizationNavigation"] =
     (optimizationId, patch) => {
@@ -1099,6 +1230,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       }
       return createOptimization(existing.input, {
         computeBackend: existing.computeBackend,
+        parallelism: existing.parallelism,
       });
     };
 
@@ -1115,6 +1247,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     createOptimization,
     cancelOptimization,
     removeOptimization,
+    extendOptimization,
     setOptimizationNavigation,
     retryOptimization,
   };

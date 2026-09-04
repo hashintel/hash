@@ -63,6 +63,8 @@ export {
 export { PetrinautOptimizationContext } from "./optimization-context";
 export type {
   PetrinautConnectedOptimization,
+  PetrinautConnectedOptimizationCapability,
+  PetrinautConnectedRunOptions,
   PetrinautOptimization,
   PetrinautOptimizationChannel,
   PetrinautOptimizationSource,

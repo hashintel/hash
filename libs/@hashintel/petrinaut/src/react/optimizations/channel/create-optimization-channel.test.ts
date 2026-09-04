@@ -76,7 +76,9 @@ describe("createOptimizationChannel", () => {
       0,
       { infected_ratio: 0.05 },
       fake.runs[0]!.run,
+      3,
     );
+    expect(fake.runs[0]?.request.queueKey).toBe("run-1:trial:0");
 
     const result = completedRunResult({
       metricId,

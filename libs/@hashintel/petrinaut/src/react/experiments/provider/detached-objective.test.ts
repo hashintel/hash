@@ -14,6 +14,7 @@ import type { LanguageClientContextValue } from "../../lsp/context";
 import type { DetachedObjectiveRunRequest } from "../context";
 import type { experimentBackendRegistrations } from "./create-experiment";
 import type {
+  AbortSignalLike,
   MonteCarloExperiment,
   MonteCarloExperimentEvent,
   MonteCarloExperimentMetrics,
@@ -102,7 +103,20 @@ type FakeHandle = {
   emit: (event: MonteCarloExperimentEvent) => void;
 };
 
-const createFakeHandle = (): FakeHandle => {
+/**
+ * A handle shaped like the worker pool's: a cancel is answered by the shards
+ * a tick later, and a handle whose instantiation signal fires drops its shard
+ * listeners at once, so a cancel after that is never answered.
+ */
+const createFakeHandle = (signal?: AbortSignalLike): FakeHandle => {
+  let tornDown = false;
+  signal?.addEventListener(
+    "abort",
+    () => {
+      tornDown = true;
+    },
+    { once: true },
+  );
   const status = createWritableStore<MonteCarloExperimentState>("Ready");
   const progress = createWritableStore<MonteCarloWorkerProgress | null>(null);
   const metrics = createWritableStore<MonteCarloExperimentMetrics>({
@@ -133,7 +147,11 @@ const createFakeHandle = (): FakeHandle => {
     },
     start: vi.fn(),
     cancel: vi.fn(() => {
-      emit({ type: "cancelled", progress: progress.get() });
+      queueMicrotask(() => {
+        if (!tornDown) {
+          emit({ type: "cancelled", progress: progress.get() });
+        }
+      });
     }),
     dispose: vi.fn(),
   };
@@ -170,8 +188,8 @@ const createFakeBackend = (
           ? {
               eligible: true,
               notes: [],
-              instantiate: () => {
-                const fake = createFakeHandle();
+              instantiate: (instantiateOptions) => {
+                const fake = createFakeHandle(instantiateOptions?.signal);
                 handles.push(fake);
                 return Promise.resolve({ ok: true, handle: fake.handle });
               },
@@ -469,6 +487,56 @@ describe("createDetachedObjectiveSampler().run", () => {
     expect(registrations).toHaveBeenCalledWith(
       expect.objectContaining({ computeBackend: "cpu", shardCount: 2 }),
     );
+  });
+
+  it("lets a cancelled batch settle and release the queue to the next batch of the same study", async () => {
+    const cpu = createFakeBackend(WORKER_POOL_BACKEND_ID);
+    const { sampler } = createSampler({ cpu });
+
+    const first = sampler.run(runRequest());
+    await vi.waitFor(() => expect(cpu.handles).toHaveLength(1));
+    const second = sampler.run(runRequest({ seed: 8, runSeeds: [8, 9, 10] }));
+    first.cancel();
+
+    await expect(first.completion).resolves.toEqual({
+      ok: false,
+      cancelled: true,
+      reason: "cancelled",
+    });
+    await vi.waitFor(() =>
+      expect(cpu.handles[1]?.handle.start).toHaveBeenCalledOnce(),
+    );
+    completeWith(cpu.handles[1]!, 0.4);
+    await expect(second.completion).resolves.toMatchObject({
+      ok: true,
+      metricFrames: [frameOf(0.4)],
+    });
+  });
+
+  it("runs batches with distinct queue keys side by side while compiling their study once", async () => {
+    const cpu = createFakeBackend(WORKER_POOL_BACKEND_ID);
+    const { sampler, registrations } = createSampler({ cpu });
+
+    const firstTrial = sampler.run(runRequest({ queueKey: "study:trial:0" }));
+    const secondTrial = sampler.run(
+      runRequest({ queueKey: "study:trial:1", seed: 8, runSeeds: [8, 9, 10] }),
+    );
+    await vi.waitFor(() => {
+      expect(cpu.handles).toHaveLength(2);
+      for (const { handle } of cpu.handles) {
+        expect(handle.start).toHaveBeenCalledOnce();
+      }
+    });
+
+    completeWith(cpu.handles[1]!, 0.2);
+    completeWith(cpu.handles[0]!, 0.1);
+    await expect(secondTrial.completion).resolves.toMatchObject({
+      metricFrames: [frameOf(0.2)],
+    });
+    await expect(firstTrial.completion).resolves.toMatchObject({
+      metricFrames: [frameOf(0.1)],
+    });
+    expect(registrations).toHaveBeenCalledOnce();
   });
 
   it("queues one study's runs in order and runs studies side by side", async () => {

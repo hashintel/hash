@@ -125,6 +125,8 @@ const renderDrawer = (
   options: {
     enableOptimizationSurface?: boolean;
     setOptimizationNavigation?: OptimizationsContextValue["setOptimizationNavigation"];
+    cancelOptimization?: OptimizationsContextValue["cancelOptimization"];
+    extendOptimization?: OptimizationsContextValue["extendOptimization"];
   } = {},
 ) => {
   const value: OptimizationsContextValue = {
@@ -133,8 +135,9 @@ const renderDrawer = (
     selectedOptimization: optimization,
     setSelectedOptimizationId: () => {},
     createOptimization: () => Promise.resolve(optimization.id),
-    cancelOptimization: () => {},
+    cancelOptimization: options.cancelOptimization ?? (() => {}),
     removeOptimization: () => {},
+    extendOptimization: options.extendOptimization ?? (() => Promise.resolve()),
     setOptimizationNavigation: options.setOptimizationNavigation ?? (() => {}),
     retryOptimization: () => Promise.resolve(null),
   };
@@ -319,6 +322,72 @@ describe("ViewOptimizationDrawer for a connected study", () => {
 
     expect(screen.getByText("GPU")).toBeTruthy();
     expect(screen.queryByText("CPU")).toBeNull();
+  });
+
+  it("offers Stop while running, then Stopped with a Continue control that asks for more steps", () => {
+    const cancelOptimization = vi.fn();
+    const extendOptimization = vi.fn(() => Promise.resolve());
+    const { unmount } = renderDrawer(connected, { cancelOptimization });
+
+    expect(screen.queryByRole("button", { name: /Cancel/ })).toBeNull();
+    expect(screen.getByText("Running")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Stop/ }));
+    expect(cancelOptimization).toHaveBeenCalledWith(connected.id);
+    expect(screen.queryByLabelText("Steps to continue with")).toBeNull();
+    unmount();
+
+    const stopped = makeOptimizationRecord({
+      input,
+      trials: trials.slice(0, 3),
+      best: trials[2]!.best,
+      status: "cancelled",
+      navigation: { ...navigation, followTrials: false },
+      selection: makeSelectionStream({ input, navigation, runsCompleted: 8 }),
+    });
+    renderDrawer(stopped, { extendOptimization });
+
+    expect(screen.getByText("Stopped")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Stop/ })).toBeNull();
+    const steps = screen.getByLabelText("Steps to continue with");
+    expect(steps).toHaveProperty("value", String(input.study.trials));
+    fireEvent.change(steps, { target: { value: "4" } });
+    fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
+    expect(extendOptimization).toHaveBeenCalledWith(stopped.id, 4);
+  });
+
+  it("keeps Cancel and Cancelled for a remote study, which cannot be continued", () => {
+    const { unmount } = renderDrawer(
+      makeOptimizationRecord({ input, trials, best, status: "running" }),
+    );
+    expect(screen.getByRole("button", { name: /Cancel/ })).toBeTruthy();
+    unmount();
+
+    renderDrawer(
+      makeOptimizationRecord({ input, trials, best, status: "cancelled" }),
+    );
+    expect(screen.getByText("Cancelled")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Continue/ })).toBeNull();
+  });
+
+  it("shows the followed step's runs under the steps bar and lists the batches computing", () => {
+    renderDrawer({
+      ...connected,
+      activity: [
+        {
+          id: "step-3",
+          kind: "step",
+          label: "Step 3",
+          runCount: 1,
+          completedRuns: 0,
+        },
+      ],
+    });
+
+    expect(screen.getByText("Steps · 3 / 30")).toBeTruthy();
+    expect(screen.getByText("Step 3 · 1 / 1 runs")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /1 computing/ }));
+    expect(screen.getByText("Step 3")).toBeTruthy();
+    expect(screen.getByText("0 / 1 runs")).toBeTruthy();
   });
 
   it("hides the follow switch once the study is over", () => {

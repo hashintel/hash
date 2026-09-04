@@ -231,8 +231,8 @@ export type ExperimentsContextValue = {
   /**
    * Streams one batch of a study's objective at one parameter point on the
    * requested backend: the in-browser optimizer's trials and the study
-   * drawer's selected-point refinement. Batches queue per `cacheKey` so a
-   * study's trials stay ordered; different studies run side by side. The
+   * drawer's selected-point refinement. Batches queue per `queueKey` (the
+   * `cacheKey` by default); different keys run side by side. The
    * returned run never rejects — refusal, failure and cancellation all
    * settle `completion` with a failed outcome naming the reason.
    */
@@ -265,6 +265,12 @@ export type DetachedObjectiveRunRequest = DetachedObjectiveRequest & {
    * seeds from `seed`.
    */
   runSeeds?: readonly number[];
+  /**
+   * Runs sharing a queue key run one at a time, in order; runs with
+   * different keys overlap. Defaults to `cacheKey`, so a study's batches
+   * queue unless the caller gives each its own key.
+   */
+  queueKey?: string;
   computeBackend: ExperimentComputeBackend;
   signal?: AbortSignal;
 };

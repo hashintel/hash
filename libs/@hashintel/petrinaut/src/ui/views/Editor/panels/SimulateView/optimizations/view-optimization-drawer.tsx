@@ -4,6 +4,7 @@ import { Button, Drawer, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
+  followedTrial,
   isOptimizationActive,
   type OptimizationNavigation,
   type OptimizationRecord,
@@ -13,11 +14,21 @@ import { optimizationBooleanIdentifiers } from "../../../../../../react/optimiza
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { Section, SectionList } from "../../../../../components/section";
 import { Table, type TableColumn } from "../../../../../components/table";
+import {
+  ComputeActivity,
+  type ComputeActivityBar,
+  type ComputeActivityBatch,
+} from "../shared/compute-activity";
 import { ComputeBackendBadge } from "../shared/compute-backend-badge";
+import { describeOptimizationStatus } from "./optimization-status";
 import {
   NavigatedOptimizationSurface,
   OptimizationSurface,
 } from "./optimization-surface";
+import {
+  ContinueControl,
+  remainingOptimizationSteps,
+} from "./view-optimization-drawer/continue-control";
 import { OptimizationMetrics } from "./view-optimization-drawer/optimization-metrics";
 import { OptimizationNavigator } from "./view-optimization-drawer/optimization-navigator";
 
@@ -53,18 +64,8 @@ const statValueStyle = css({
   whiteSpace: "nowrap",
 });
 
-const progressBarStyle = css({
-  height: "[6px]",
-  width: "full",
-  backgroundColor: "neutral.s30",
-  borderRadius: "full",
-  overflow: "hidden",
+const activityStyle = css({
   marginTop: "4",
-});
-
-const progressFillStyle = css({
-  height: "full",
-  backgroundColor: "neutral.s120",
 });
 
 const errorStyle = css({
@@ -206,9 +207,56 @@ function formatScalar(value: number | boolean): string {
   return typeof value === "boolean" ? String(value) : formatNumber(value);
 }
 
-function formatStatus(status: OptimizationRecord["status"]): string {
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
+const finishedStepCount = (optimization: OptimizationRecord): number =>
+  optimization.completedTrials +
+  optimization.prunedTrials +
+  optimization.failedTrials;
+
+/** The summary's main bar: steps finished over steps requested. */
+const stepsBar = (optimization: OptimizationRecord): ComputeActivityBar => {
+  const finished = finishedStepCount(optimization);
+  return {
+    percent:
+      optimization.requestedTrials > 0
+        ? Math.min(100, (finished / optimization.requestedTrials) * 100)
+        : 0,
+    label: `Steps · ${finished} / ${optimization.requestedTrials}`,
+  };
+};
+
+/**
+ * The thinner bar beneath: the followed step's runs over the runs each step
+ * gets, while a step is being followed.
+ */
+const followedStepBar = (
+  optimization: OptimizationRecord,
+): ComputeActivityBar | null => {
+  const { selection } = optimization;
+  if (selection === null || !selection.computing) {
+    return null;
+  }
+  const trial = followedTrial(selection.key);
+  if (trial === null) {
+    return null;
+  }
+  const runsPerStep = optimization.input.execution.seedsPerTrial ?? 1;
+  return {
+    percent: Math.min(100, (selection.runsCompleted / runsPerStep) * 100),
+    label: `Step ${trial + 1} · ${selection.runsCompleted} / ${runsPerStep} runs`,
+  };
+};
+
+/** The study's batches as the activity list shows them; steps are the priority work. */
+const activityBatches = (
+  optimization: OptimizationRecord,
+): ComputeActivityBatch[] =>
+  optimization.activity.map((batch) => ({
+    id: batch.id,
+    label: batch.label,
+    tone: batch.kind === "step" ? "priority" : "background",
+    runCount: batch.runCount,
+    completedRuns: batch.completedRuns,
+  }));
 
 type StepState = OptimizationRecord["trials"][number]["state"];
 
@@ -275,14 +323,7 @@ const OptimizationSummary = ({
 }: {
   optimization: OptimizationRecord;
 }) => {
-  const finishedSteps =
-    optimization.completedTrials +
-    optimization.prunedTrials +
-    optimization.failedTrials;
-  const progressPercent =
-    optimization.requestedTrials > 0
-      ? Math.min(100, (finishedSteps / optimization.requestedTrials) * 100)
-      : 0;
+  const finishedSteps = finishedStepCount(optimization);
   const scenario = optimization.input.model.definition.scenarios?.find(
     (candidate) => candidate.id === optimization.input.scenario.id,
   );
@@ -297,7 +338,7 @@ const OptimizationSummary = ({
         <div className={statStyle}>
           <span className={statLabelStyle}>Status</span>
           <span className={statValueStyle}>
-            {formatStatus(optimization.status)}
+            {describeOptimizationStatus(optimization)}
             {optimization.connectionState === "reconnecting"
               ? " (reconnecting…)"
               : ""}
@@ -323,6 +364,9 @@ const OptimizationSummary = ({
           <span className={statValueStyle}>
             {finishedSteps} / {optimization.requestedTrials}
             {seedsPerTrial > 1 ? ` · ${seedsPerTrial} runs each` : ""}
+            {optimization.parallelism > 1
+              ? ` · ${optimization.parallelism} at once`
+              : ""}
           </span>
         </div>
         <div className={statStyle}>
@@ -340,10 +384,11 @@ const OptimizationSummary = ({
           </span>
         </div>
       </div>
-      <div className={progressBarStyle}>
-        <div
-          className={progressFillStyle}
-          style={{ width: `${progressPercent}%` }}
+      <div className={activityStyle}>
+        <ComputeActivity
+          bar={stepsBar(optimization)}
+          secondaryBar={followedStepBar(optimization)}
+          batches={activityBatches(optimization)}
         />
       </div>
       {optimization.navigation !== null &&
@@ -568,14 +613,19 @@ export const ViewOptimizationDrawer = ({
   onClose: () => void;
   optimization: OptimizationRecord | undefined;
 }) => {
-  const { cancelOptimization, removeOptimization, retryOptimization } =
-    use(OptimizationsContext);
+  const {
+    cancelOptimization,
+    removeOptimization,
+    extendOptimization,
+    retryOptimization,
+  } = use(OptimizationsContext);
 
   if (!open || !optimization) {
     return null;
   }
 
   const active = isOptimizationActive(optimization);
+  const connected = optimization.navigation !== null;
 
   return (
     <Drawer
@@ -625,8 +675,24 @@ export const ViewOptimizationDrawer = ({
                 prefix={<Icon name="stop" size="sm" />}
                 onClick={() => cancelOptimization(optimization.id)}
               >
-                Cancel
+                {connected ? "Stop" : "Cancel"}
               </Button>
+            ) : null}
+            {optimization.resumable ? (
+              <ContinueControl
+                // Reset with the segment, so the count starts fresh after
+                // each continuation.
+                key={optimization.requestedTrials}
+                defaultSteps={optimization.input.study.trials}
+                remainingSteps={remainingOptimizationSteps(
+                  optimization.requestedTrials,
+                )}
+                onContinue={(steps) =>
+                  extendOptimization(optimization.id, steps).catch(
+                    () => undefined,
+                  )
+                }
+              />
             ) : null}
             {optimization.status === "error" ? (
               <Button

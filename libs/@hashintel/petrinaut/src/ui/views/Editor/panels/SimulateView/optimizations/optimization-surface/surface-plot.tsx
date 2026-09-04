@@ -30,6 +30,7 @@ import { surfacePositions } from "../../shared/surface-sampling";
 
 import type {
   OptimizationBest,
+  OptimizationInFlightStep,
   OptimizationNavigation,
   OptimizationRecord,
   OptimizationSelectionStream,
@@ -129,6 +130,44 @@ export const trialSurfaceField = ({
   return { values, markers };
 };
 
+/**
+ * The steps being evaluated, projected onto the shown axes: each is a ring
+ * where the optimizer is looking, and one with a running objective is a
+ * sample of the field too, so the surface fills in as its runs complete.
+ */
+export const inFlightSurfaceField = ({
+  inFlight,
+  xAxis,
+  yAxis,
+}: {
+  inFlight: readonly OptimizationInFlightStep[];
+  xAxis: OptimizationSurfaceAxis;
+  yAxis: OptimizationSurfaceAxis;
+}): TrialSurfaceField => {
+  const values = new Map<string, number>();
+  const markers: ContourSurfaceMarker[] = [];
+  for (const step of inFlight) {
+    const xValue = step.parameters[xAxis.identifier];
+    const yValue = step.parameters[yAxis.identifier];
+    if (typeof xValue !== "number" || typeof yValue !== "number") {
+      continue;
+    }
+    const x = surfaceGridCoordinate(
+      xAxis,
+      optimizationAxisPositionFor(xAxis, xValue),
+    );
+    const y = surfaceGridCoordinate(
+      yAxis,
+      optimizationAxisPositionFor(yAxis, yValue),
+    );
+    if (step.objective !== null) {
+      values.set(contourSurfaceKey(x, y), step.objective);
+    }
+    markers.push({ x, y, kind: "point" });
+  }
+  return { values, markers };
+};
+
 /** The objective's running value on a selection stream; null before it has one. */
 const selectionSurfaceValue = (
   selection: OptimizationSelectionStream | null,
@@ -187,6 +226,14 @@ export const withNavigatedSample = (
         ...values,
         [contourSurfaceKey(sample.x, sample.y), sample.value],
       ]);
+
+/** Fields laid over one another; a later field's value wins at a shared point. */
+export const mergeSurfaceFields = (
+  ...fields: readonly TrialSurfaceField[]
+): TrialSurfaceField => ({
+  values: new Map(fields.flatMap((field) => [...field.values])),
+  markers: fields.flatMap((field) => field.markers),
+});
 
 /**
  * Whether the plot navigates. While the study runs and the navigation follows
