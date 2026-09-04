@@ -24,6 +24,7 @@ import {
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { ResizeHandle } from "../../../../resize/resize-handle";
 import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
+import { voiceSetupLabels } from "../../components/voice-session-labels";
 import { aiFooterMinHeight } from "./ai-assistant-contents/footer-height";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
@@ -36,7 +37,7 @@ import {
   AiAssistantToolList,
   type OnInteractiveToolSubmit,
 } from "./ai-assistant-contents/tool-list";
-import { LiveVoiceDock } from "./ai-assistant-contents/voice-dock";
+import { LiveVoiceDock, VoiceDock } from "./ai-assistant-contents/voice-dock";
 import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
 import type { PetrinautAiInputMode } from "../../../../types/ai-assistant-composer-control";
@@ -72,11 +73,13 @@ export type AiAssistantContentsProps = {
   onSendPrompt?: (prompt: string) => void;
   onStop: () => void;
   onSubmit: () => void;
+  onVoiceDockCollapsedChange?: (collapsed: boolean) => void;
   promptChips?: PromptChip[];
   rightOffset?: number;
   status: AiAssistantStatus;
   stopped?: boolean;
   voiceHandoffPending?: boolean;
+  voiceDockCollapsed?: boolean;
   voiceMode?: ReactNode;
   voiceModeAvailable?: boolean;
 };
@@ -131,7 +134,7 @@ const shellStyle = cva({
       open: true,
       css: {
         top: "[auto]",
-        height: `[${aiFooterMinHeight + 16}px]`,
+        height: "auto",
       },
     },
   ],
@@ -515,11 +518,13 @@ export const AiAssistantContents = ({
   onSendPrompt,
   onStop,
   onSubmit,
+  onVoiceDockCollapsedChange,
   promptChips,
   rightOffset = 0,
   status,
   stopped = false,
   voiceHandoffPending = false,
+  voiceDockCollapsed = false,
   voiceMode,
   voiceModeAvailable = false,
 }: AiAssistantContentsProps) => {
@@ -582,8 +587,8 @@ export const AiAssistantContents = ({
             variant: "solid",
           };
 
-  const [voiceDockCollapsed, setVoiceDockCollapsed] = useState(false);
-  const isVoiceDockCollapsed = isVoiceSessionLive && voiceDockCollapsed;
+  const isVoiceDockCollapsed =
+    voiceDockCollapsed && (isVoiceSessionLive || inputMode === "voice");
 
   const [assistantWidth, setAssistantWidth] = useState(defaultAssistantWidth);
 
@@ -808,7 +813,7 @@ export const AiAssistantContents = ({
         {voiceMode && (
           <div
             className={`${voiceModeStyle} ${panelContentStyle({
-              visible: isOpen && !isVoiceDockCollapsed,
+              visible: isOpen && (!isVoiceDockCollapsed || !isVoiceSessionLive),
             })}`}
             data-testid="ai-voice-mode"
           >
@@ -821,96 +826,118 @@ export const AiAssistantContents = ({
             <LiveVoiceDock
               collapsed={isVoiceDockCollapsed}
               onCollapsedToggle={() =>
-                setVoiceDockCollapsed(!isVoiceDockCollapsed)
+                onVoiceDockCollapsedChange?.(!isVoiceDockCollapsed)
               }
             />
           </div>
         ) : (
-          <div
-            className={`${composerWrapStyle} ${panelContentStyle({
-              visible: isOpen,
-            })}`}
-          >
-            {showChips && (
-              <PromptChips
-                chips={promptChips}
-                disabled={isBusy}
-                onDismiss={() => setChipsDismissed(true)}
-                onSelect={(prompt) => onSendPrompt(prompt)}
-              />
-            )}
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                const submitter = (event.nativeEvent as SubmitEvent).submitter;
-                if (
-                  canSubmit &&
-                  submitter?.hasAttribute("data-ai-assistant-submit")
-                ) {
-                  onSubmit();
-                }
-              }}
-            >
-              <div className={composerStyle}>
-                <textarea
-                  ref={inputRef}
-                  className={composerTextareaStyle}
-                  rows={1}
-                  value={input}
-                  onChange={(event) => onInputChange(event.currentTarget.value)}
-                  onKeyDown={(event) => {
-                    // Enter sends; Shift+Enter inserts a newline (the textarea's
-                    // native behaviour, so we just let it through). The
-                    // `isComposing` guard stops an IME confirmation keystroke
-                    // from sending a half-finished message.
-                    if (
-                      event.key === "Enter" &&
-                      !event.shiftKey &&
-                      !event.nativeEvent.isComposing
-                    ) {
-                      event.preventDefault();
-                      if (canSubmit) {
-                        onSubmit();
-                      }
-                    }
-                  }}
-                  placeholder={
-                    messages.length === 0
-                      ? "Describe the process you want to create"
-                      : "Continue iterating..."
-                  }
-                  aria-label="Message AI assistant"
-                  disabled={voiceHandoffPending}
-                />
-                {composerControl}
-                <Button
-                  aria-label={composerAction.label}
-                  data-ai-assistant-submit={
-                    composerAction.isSubmit || undefined
-                  }
-                  disabled={composerAction.disabled}
-                  onClick={composerAction.onClick}
-                  prefix={
-                    <span
-                      className={composerActionGlyphStyle}
-                      key={composerAction.glyph}
-                    >
-                      {composerAction.glyph === "voice" ? (
-                        <AiVoiceModeIcon size={16} />
-                      ) : (
-                        <Icon name={composerAction.glyph} size="sm" />
-                      )}
-                    </span>
-                  }
-                  size="sm"
-                  tone={composerAction.tone}
-                  tooltip={composerAction.label}
-                  type={composerAction.type}
-                  variant={composerAction.variant}
+          <>
+            {isVoiceDockCollapsed && (
+              <div className={panelContentStyle({ visible: isOpen })}>
+                <VoiceDock
+                  actions={null}
+                  canReadFullResponse={false}
+                  canRepeatQuestion={false}
+                  canTakeTurn={false}
+                  collapsed
+                  indicator={<AiVoiceModeIcon size={16} />}
+                  microphoneMuted={false}
+                  notice={voiceSetupLabels.status}
+                  onCollapsedToggle={() => onVoiceDockCollapsedChange?.(false)}
+                  phase="connecting"
+                  purpose="setup"
                 />
               </div>
-            </form>
-          </div>
+            )}
+            <div
+              className={`${composerWrapStyle} ${panelContentStyle({
+                visible: isOpen && !isVoiceDockCollapsed,
+              })}`}
+            >
+              {showChips && (
+                <PromptChips
+                  chips={promptChips}
+                  disabled={isBusy}
+                  onDismiss={() => setChipsDismissed(true)}
+                  onSelect={(prompt) => onSendPrompt(prompt)}
+                />
+              )}
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const submitter = (event.nativeEvent as SubmitEvent)
+                    .submitter;
+                  if (
+                    canSubmit &&
+                    submitter?.hasAttribute("data-ai-assistant-submit")
+                  ) {
+                    onSubmit();
+                  }
+                }}
+              >
+                <div className={composerStyle}>
+                  <textarea
+                    ref={inputRef}
+                    className={composerTextareaStyle}
+                    rows={1}
+                    value={input}
+                    onChange={(event) =>
+                      onInputChange(event.currentTarget.value)
+                    }
+                    onKeyDown={(event) => {
+                      // Enter sends; Shift+Enter inserts a newline (the textarea's
+                      // native behaviour, so we just let it through). The
+                      // `isComposing` guard stops an IME confirmation keystroke
+                      // from sending a half-finished message.
+                      if (
+                        event.key === "Enter" &&
+                        !event.shiftKey &&
+                        !event.nativeEvent.isComposing
+                      ) {
+                        event.preventDefault();
+                        if (canSubmit) {
+                          onSubmit();
+                        }
+                      }
+                    }}
+                    placeholder={
+                      messages.length === 0
+                        ? "Describe the process you want to create"
+                        : "Continue iterating..."
+                    }
+                    aria-label="Message AI assistant"
+                    disabled={voiceHandoffPending}
+                  />
+                  {composerControl}
+                  <Button
+                    aria-label={composerAction.label}
+                    data-ai-assistant-submit={
+                      composerAction.isSubmit || undefined
+                    }
+                    disabled={composerAction.disabled}
+                    onClick={composerAction.onClick}
+                    prefix={
+                      <span
+                        className={composerActionGlyphStyle}
+                        key={composerAction.glyph}
+                      >
+                        {composerAction.glyph === "voice" ? (
+                          <AiVoiceModeIcon size={16} />
+                        ) : (
+                          <Icon name={composerAction.glyph} size="sm" />
+                        )}
+                      </span>
+                    }
+                    size="sm"
+                    tone={composerAction.tone}
+                    tooltip={composerAction.label}
+                    type={composerAction.type}
+                    variant={composerAction.variant}
+                  />
+                </div>
+              </form>
+            </div>
+          </>
         )}
       </div>
     </aside>

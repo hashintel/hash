@@ -245,6 +245,7 @@ const HostVoiceSlotPreview = () => (
 
 const Frame = ({
   error,
+  initialVoiceDockCollapsed = false,
   inputMode = "text",
   messages,
   status = "ready",
@@ -254,6 +255,7 @@ const Frame = ({
   voiceSession,
 }: {
   error?: Error;
+  initialVoiceDockCollapsed?: boolean;
   inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
   status?: "submitted" | "streaming" | "ready" | "error";
@@ -263,6 +265,9 @@ const Frame = ({
   voiceSession?: PetrinautAiVoiceSessionState;
 }) => {
   const [input, setInput] = useState("");
+  const [voiceDockCollapsed, setVoiceDockCollapsed] = useState(
+    initialVoiceDockCollapsed,
+  );
   // Stands in for the host, which reports session state rather than rendering
   // the live surfaces itself.
   const [voiceSessionStore] = useState(() => {
@@ -292,8 +297,10 @@ const Frame = ({
           onInputModeChange={() => {}}
           onStop={() => {}}
           onSubmit={() => setInput("")}
+          onVoiceDockCollapsedChange={setVoiceDockCollapsed}
           status={status}
           stopped={stopped}
+          voiceDockCollapsed={voiceDockCollapsed}
           voiceMode={voiceMode}
           voiceModeAvailable={voiceModeAvailable}
         />
@@ -323,6 +330,18 @@ export const EmptyWithVoiceAvailable: Story = {
 export const VoiceModeAwaitingConsent: Story = {
   render: () => (
     <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceMode={<HostVoiceSlotPreview />}
+      voiceModeAvailable
+    />
+  ),
+};
+
+export const VoiceModeAwaitingConsentCompact: Story = {
+  render: () => (
+    <Frame
+      initialVoiceDockCollapsed
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
       voiceMode={<HostVoiceSlotPreview />}

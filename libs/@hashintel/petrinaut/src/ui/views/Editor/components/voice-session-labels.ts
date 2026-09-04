@@ -39,3 +39,10 @@ export const voiceSessionActionLabels = {
   takeTurn: "Your turn",
   unmute: "Unmute microphone",
 } as const;
+
+export const voiceSetupLabels = {
+  collapse: "Collapse voice setup",
+  expand: "Expand voice setup",
+  region: "Voice setup",
+  status: "Voice setup",
+} as const;

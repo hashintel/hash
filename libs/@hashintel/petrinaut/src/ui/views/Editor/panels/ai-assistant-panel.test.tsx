@@ -7,6 +7,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
   waitFor,
 } from "@testing-library/react";
 import { useEffect } from "react";
@@ -1387,6 +1388,10 @@ describe("AiAssistantPanel composer submissions", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
     expect(screen.getByText("Voice mode voice")).not.toBeNull();
+    expect(screen.queryByRole("region", { name: "Voice setup" })).toBeNull();
+    expect(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+    ).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Voice mode voice" }));
 
     expect(
@@ -1398,7 +1403,7 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(sendMessages).not.toHaveBeenCalled();
   });
 
-  test("defers and consumes an initial Voice mode once, then falls back to text", () => {
+  test("opens initial Voice setup compact once, then falls back to text", () => {
     let latestInputMode = "text";
     const onInitialInteractionModeConsumed = vi.fn();
     const aiAssistant: PetrinautAiAssistant = {
@@ -1429,6 +1434,27 @@ describe("AiAssistantPanel composer submissions", () => {
 
     expect(latestInputMode).toBe("voice");
     expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
+    expect(screen.getByText("Voice mode")).not.toBeNull();
+    const composer = screen.getByRole("textbox", {
+      hidden: true,
+      name: "Message AI assistant",
+    });
+    const composerWrap = composer.closest("form")?.parentElement;
+    expect(composerWrap?.className).toContain("d_none");
+
+    const setupDock = screen.getByRole("region", { name: "Voice setup" });
+    fireEvent.click(
+      within(setupDock).getByRole("button", { name: "Expand voice setup" }),
+    );
+
+    expect(screen.queryByRole("region", { name: "Voice setup" })).toBeNull();
+    expect(composerWrap?.className).not.toContain("d_none");
+    expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
+      composer,
+    );
+    expect(
+      screen.getByRole("button", { name: "Close AI assistant" }),
+    ).not.toBeNull();
 
     const unavailableAssistant: PetrinautAiAssistant = {
       transport: aiAssistant.transport,

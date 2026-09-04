@@ -61,7 +61,7 @@ evidence exists.
 The 2026-09-04 corrective verification covers the current 72-file successor
 diff against #9528 head `eecbe99e201f`: the four focused race cases pass 4/4
 tests, the filtered production admission-outcome cases pass 3/3 tests, and the
-complete seven-workspace Turbo run passes 39/39 tasks and 1,121/1,121 tests,
+complete seven-workspace Turbo run passes 39/39 tasks and 1,122/1,122 tests,
 including 282/282 website tests and the Brunch core package. Architecture
 validation passes with 68 layers, 337 edges, 690 files, 69 generated pages, and
 38 authored pages. `git diff --check` passes, and the root formatter accepts all
