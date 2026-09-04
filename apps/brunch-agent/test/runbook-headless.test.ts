@@ -64,9 +64,7 @@ test("the built ChatAgent reports only the construct-only evidence it reaches", 
       "references/checks.md",
     ]);
     expect(result.validationRejections).toHaveLength(1);
-    expect(result.validationRejections[0]).toContain(
-      "expected number to be >0",
-    );
+    expect(result.validationRejections[0]).toContain("weight: must be > 0");
     expect(result.emittedFreeFormPnJson).toBe(false);
     expect(result.emittedUpdatedWorkpiece).toBe(true);
     expect(result.evidenceLevelHonest).toBe(true);
