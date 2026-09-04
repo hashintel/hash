@@ -7,7 +7,7 @@ import {
 } from "react";
 
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
-import { Button } from "@hashintel/ds-components";
+import { Button, Checkbox } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
@@ -205,37 +205,96 @@ export const loadOpenAIVoiceConfig = async (
   }
 };
 
-const disclosureStyle = css({
-  display: "flex",
+const VoiceModeIcon = () => (
+  <svg
+    aria-hidden="true"
+    fill="none"
+    height="16"
+    viewBox="0 0 20 20"
+    width="16"
+  >
+    <path
+      d="M3 8.5v3M6.5 5.5v9M10 3v14M13.5 6v8M17 8.5v3"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeWidth="1.8"
+    />
+  </svg>
+);
+
+const disclosureFrameStyle = css({
   width: "full",
-  flexDirection: "column",
-  gap: "2",
-  paddingX: "2",
-  paddingY: "2",
+  padding: "2",
   borderTopWidth: "thin",
   borderTopStyle: "solid",
   borderTopColor: "neutral.a20",
+  backgroundColor: "neutral.bg.subtle",
   color: "neutral.s100",
+  _focus: { outline: "none" },
+});
+
+const disclosureCardStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  padding: "3",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a20",
+  borderRadius: "xl",
+  backgroundColor: "neutral.s00",
+  boxShadow:
+    "[0px 0px 0px 1px rgba(0,0,0,0.03), 0px 8px 16px -12px rgba(0,0,0,0.18)]",
+});
+
+const disclosureHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+});
+
+const disclosureIconStyle = css({
+  display: "inline-flex",
+  width: "7",
+  height: "7",
+  flexShrink: "0",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "lg",
+  backgroundColor: "blue.a20",
+  color: "blue.s90",
 });
 
 const disclosureTitleStyle = css({
   display: "flex",
+  minWidth: "[0]",
   flexDirection: "column",
-  gap: "1",
+  gap: "0.5",
+});
+
+const disclosureHeadingStyle = css({
   fontSize: "sm",
   fontWeight: "semibold",
+  lineHeight: "tight",
 });
 
 const disclosureSubtitleStyle = css({
   color: "neutral.s80",
   fontSize: "xs",
-  fontWeight: "normal",
 });
 
 const disclosureCopyStyle = css({
   color: "neutral.s90",
   fontSize: "xs",
   lineHeight: "relaxed",
+});
+
+const disclosureConsentStyle = css({
+  width: "full",
+  padding: "2",
+  borderRadius: "lg",
+  backgroundColor: "neutral.a10",
+  color: "neutral.s100",
 });
 
 const disclosureActionsStyle = css({
@@ -245,13 +304,22 @@ const disclosureActionsStyle = css({
   gap: "2",
 });
 
+const disclosureStatusStyle = css({
+  minHeight: "[18px]",
+  color: "neutral.s80",
+  fontSize: "xs",
+  lineHeight: "relaxed",
+});
+
 const VoiceInterviewDisclosure = ({
+  checkingMicrophone,
   consented,
   microphoneCheck,
   onCheckMicrophone,
   onConsentChange,
   onStart,
 }: {
+  readonly checkingMicrophone: boolean;
   readonly consented: boolean;
   readonly microphoneCheck: string;
   readonly onCheckMicrophone: () => void;
@@ -267,40 +335,65 @@ const VoiceInterviewDisclosure = ({
   return (
     <section
       aria-label="Voice mode consent"
-      className={disclosureStyle}
+      className={disclosureFrameStyle}
       ref={disclosureRef}
       tabIndex={-1}
     >
-      <div className={disclosureTitleStyle}>
-        <strong>Voice mode</strong>
-        <span className={disclosureSubtitleStyle}>
-          Talk through your process with AI
-        </span>
-      </div>
-      <p className={disclosureCopyStyle}>
-        OpenAI processes live audio and speaks the interviewer’s words.
-        Petrinaut keeps finalized answers in this conversation, not the audio.
-      </p>
-      <label className={disclosureCopyStyle}>
-        <input
-          checked={consented}
-          type="checkbox"
-          onChange={(event) => onConsentChange(event.currentTarget.checked)}
-        />{" "}
-        I understand how speech and transcripts are handled.
-      </label>
-      {microphoneCheck && (
-        <p aria-live="polite" className={disclosureCopyStyle}>
-          {microphoneCheck}
+      <div className={disclosureCardStyle}>
+        <div className={disclosureHeaderStyle}>
+          <span className={disclosureIconStyle}>
+            <VoiceModeIcon />
+          </span>
+          <div className={disclosureTitleStyle}>
+            <strong className={disclosureHeadingStyle}>
+              Start a voice conversation
+            </strong>
+            <span className={disclosureSubtitleStyle}>
+              Talk through your process with AI
+            </span>
+          </div>
+        </div>
+        <p className={disclosureCopyStyle}>
+          OpenAI processes live audio and speaks the interviewer’s words.
+          Petrinaut saves finalized answers—not audio.
         </p>
-      )}
-      <div className={disclosureActionsStyle}>
-        <Button disabled={!consented} type="button" onClick={onStart}>
-          Start voice mode
-        </Button>
-        <Button type="button" variant="subtle" onClick={onCheckMicrophone}>
-          Check microphone
-        </Button>
+        <Checkbox
+          className={disclosureConsentStyle}
+          label="I understand how voice data is handled."
+          onChange={onConsentChange}
+          size="xs"
+          tone="brand"
+          value={consented}
+        />
+        <div className={disclosureActionsStyle}>
+          <Button
+            disabled={!consented}
+            onClick={onStart}
+            size="xs"
+            tone="brand"
+            type="button"
+          >
+            Start voice
+          </Button>
+          <Button
+            aria-describedby="voice-microphone-check-status"
+            loading={checkingMicrophone}
+            onClick={onCheckMicrophone}
+            size="xs"
+            type="button"
+            variant="subtle"
+          >
+            Test microphone
+          </Button>
+        </div>
+        <div
+          aria-atomic="true"
+          aria-live="polite"
+          className={disclosureStatusStyle}
+          id="voice-microphone-check-status"
+        >
+          {microphoneCheck}
+        </div>
       </div>
     </section>
   );
@@ -405,6 +498,7 @@ const AvailableVoiceInterviewControl = ({
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [consented, setConsented] = useState(false);
   const [microphoneCheck, setMicrophoneCheck] = useState("");
+  const [checkingMicrophone, setCheckingMicrophone] = useState(false);
   const handledVoiceSelectionRef = useRef(false);
   const {
     inputMode,
@@ -534,19 +628,28 @@ const AvailableVoiceInterviewControl = ({
 
     return (
       <VoiceInterviewDisclosure
+        checkingMicrophone={checkingMicrophone}
         consented={consented}
         microphoneCheck={microphoneCheck}
         onCheckMicrophone={() => {
-          setMicrophoneCheck("Checking microphone…");
-          void navigator.mediaDevices.getUserMedia({ audio: true }).then(
-            (stream) => {
-              for (const track of stream.getTracks()) {
-                track.stop();
-              }
-              setMicrophoneCheck("Microphone ready.");
-            },
-            () => setMicrophoneCheck("Microphone access was not available."),
-          );
+          if (checkingMicrophone) {
+            return;
+          }
+          setCheckingMicrophone(true);
+          setMicrophoneCheck("");
+          void navigator.mediaDevices
+            .getUserMedia({ audio: true })
+            .then(
+              (stream) => {
+                for (const track of stream.getTracks()) {
+                  track.stop();
+                }
+                setMicrophoneCheck("Microphone ready.");
+              },
+              () =>
+                setMicrophoneCheck("Microphone access was not available."),
+            )
+            .finally(() => setCheckingMicrophone(false));
         }}
         onConsentChange={setConsented}
         onStart={() => {

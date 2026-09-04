@@ -371,7 +371,7 @@ describe("voice interview control", () => {
     await expect(loadOpenAIVoiceConfig(fetch)).resolves.toBeNull();
   });
 
-  test("keeps the first-use disclosure inline without a text-handoff action", () => {
+  test("keeps the first-use disclosure inline without a text-handoff action", async () => {
     render(<VoiceInterviewHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
@@ -379,16 +379,33 @@ describe("voice interview control", () => {
     const disclosure = screen.getByRole("region", {
       name: "Voice mode consent",
     });
-    expect(disclosure).not.toBeNull();
-    expect(within(disclosure).getByText("Voice mode")).not.toBeNull();
     expect(
-      screen.getByText("OpenAI processes live audio", { exact: false }),
+      within(disclosure).getByText("Start a voice conversation"),
     ).not.toBeNull();
     expect(
-      screen
-        .getByRole("button", { name: "Start voice mode" })
-        .hasAttribute("disabled"),
-    ).toBe(true);
+      within(disclosure).getByText(
+        "OpenAI processes live audio and speaks the interviewer’s words. Petrinaut saves finalized answers—not audio.",
+      ),
+    ).not.toBeNull();
+
+    const consent = within(disclosure).getByRole("checkbox", {
+      name: "I understand how voice data is handled.",
+    });
+    const start = within(disclosure).getByRole("button", {
+      name: "Start voice",
+    });
+    expect(start.hasAttribute("disabled")).toBe(true);
+    fireEvent.click(consent);
+    await waitFor(() =>
+      expect(
+        within(disclosure)
+          .getByRole("button", { name: "Start voice" })
+          .hasAttribute("disabled"),
+      ).toBe(false),
+    );
+    expect(
+      within(disclosure).getByRole("button", { name: "Test microphone" }),
+    ).not.toBeNull();
     expect(
       screen.queryByRole("button", { name: "Use text instead" }),
     ).toBeNull();
@@ -408,7 +425,14 @@ describe("voice interview control", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
     fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("button", { name: "Start voice" })
+          .hasAttribute("disabled"),
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start voice" }));
 
     expect(await screen.findByText("Session: error")).not.toBeNull();
     expect(screen.getByText("Voice active")).not.toBeNull();
@@ -422,6 +446,31 @@ describe("voice interview control", () => {
     expect(screen.getByText("Text mode")).not.toBeNull();
     expect(screen.getByText("Panel closed")).not.toBeNull();
     expect(screen.getByText("Session: error")).not.toBeNull();
+  });
+
+  test("keeps one microphone check pending and reports its result", async () => {
+    let resolveCheck: ((stream: MediaStream) => void) | undefined;
+    const getUserMedia = vi.fn(
+      () =>
+        new Promise<MediaStream>((resolve) => {
+          resolveCheck = resolve;
+        }),
+    );
+    vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+    render(<VoiceInterviewHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+    const check = screen.getByRole("button", { name: "Test microphone" });
+    fireEvent.click(check);
+    fireEvent.click(check);
+
+    expect(getUserMedia).toHaveBeenCalledOnce();
+    expect(check.getAttribute("aria-busy")).toBe("true");
+
+    resolveCheck?.({ getTracks: () => [] } as unknown as MediaStream);
+
+    expect(await screen.findByText("Microphone ready.")).not.toBeNull();
+    await waitFor(() => expect(check.getAttribute("aria-busy")).toBe("false"));
   });
 
   test("starts directly after acknowledgement and ends through the registered control", async () => {
@@ -553,18 +602,25 @@ describe("voice interview control", () => {
     expect(screen.getByText("Panel closed")).not.toBeNull();
   });
 
-  test("records acknowledgement only when the interview starts", () => {
+  test("records acknowledgement only when the interview starts", async () => {
     stubUnavailableMicrophone();
     render(<VoiceInterviewHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
-    fireEvent.click(screen.getByRole("button", { name: "Check microphone" }));
+    fireEvent.click(screen.getByRole("button", { name: "Test microphone" }));
     expect(
       window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
     ).toBeNull();
 
     fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("button", { name: "Start voice" })
+          .hasAttribute("disabled"),
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start voice" }));
     expect(
       window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
     ).toBe("acknowledged");
