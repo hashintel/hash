@@ -6,7 +6,10 @@ import {
   DEFAULT_PROPERTIES_PANEL_WIDTH,
 } from "./panel-defaults";
 
-import type { CanvasViewport } from "./canvas-viewport-context";
+import type {
+  CanvasViewport,
+  SavedCanvasViewport,
+} from "./canvas-viewport-context";
 import type {
   BottomPanelTab,
   CursorMode,
@@ -93,7 +96,7 @@ export type UserSettings = {
   enableOptimizationSurface: boolean;
   subViewPanels: SubViewPanelsSettings;
   /** Where each document's canvas was last left, keyed by document id. */
-  canvasViewports: Record<string, CanvasViewport>;
+  canvasViewports: Record<string, SavedCanvasViewport>;
 };
 
 export type UserSettingsActions = {

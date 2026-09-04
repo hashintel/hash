@@ -114,15 +114,19 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, enableParameterSweeps: value })),
     setEnableOptimizationSurface: (value: boolean) =>
       setState((prev) => ({ ...prev, enableOptimizationSurface: value })),
-    setCanvasViewport: (petriNetId: string, viewport: CanvasViewport) =>
+    setCanvasViewport: (petriNetId: string, viewport: CanvasViewport) => {
+      // Stamped out here: an updater runs more than once and has to be pure.
+      const savedAt = Date.now();
       setState((prev) => ({
         ...prev,
         canvasViewports: rememberCanvasViewport(
           prev.canvasViewports,
           petriNetId,
           viewport,
+          savedAt,
         ),
-      })),
+      }));
+    },
     updateSubViewSection: (
       containerName: string,
       sectionId: string,
