@@ -17,51 +17,51 @@ Focused tests cover:
 - rejected and duplicate/no-op canonical browser mutations;
 - exact prepared and revised document structure;
 - history, workpiece, mutation-result, and document mismatch refusal; and
-- retention of the prior runtime manifest while partial state remains visible.
+- content-addressed selection of the prior coherent document revision while a
+  partial mirrored value remains inspectable.
 
 The affected Brunch, transport, plugin, Petrinaut, and website builds, type
-checks, and lint checks passed on 2026-09-03. The app-wide lint checks retain
+checks, and lint checks passed on 2026-09-04. The app-wide lint checks retain
 pre-existing warning-only findings; no persona suite was run.
 
-## Live browser attempt and blocker
+## Live two-tab browser witness
 
-The local `yarn dev:brunch` stack served the mounted agent at
-`/agents/chat/:instanceId` and the Petrinaut fixture at:
+The successful 2026-09-04 witness is retained in
+[fe-1575-outer-browser-witness-2026-09-04](fe-1575-outer-browser-witness-2026-09-04/witness.md).
+It used the local `yarn dev:brunch` stack, one clean Playwright browser
+context, the mounted `/agents/chat/:instanceId` route, a real configured
+provider credential, and the stable fixture URL:
 
 ```text
 http://127.0.0.1:4915/?brunch-fixture=crew-reservation-v1
 ```
 
-The browser opened the non-empty prepared document and created canonical Flue
-conversation `conv_01M1KZ1Z32SJ0800V94ZE59ENR`. Snapshot offset
-`0000000000000000_0000000000000006` contained exactly one tagged
-`prepared-fixture` dispatch record under submission
-`sub_ik_b224f8e328e14cfa803c63d06376e5e9`, preserving the test-authored Markdown
-body and claim-boundary attributes.
+The clean run created canonical conversation
+`conv_01M1NQEXM3CAPPTXM33ZE1YSRG` and exactly one tagged prepared source. Tab A
+advanced from settled revision zero with the target arc absent to revision 1
+with a model-produced workpiece and the target arc present. It retained one
+`addArc` call and one correlated successful result,
+`toolu_01KLHzRE7gbPbFfPaXe3RTry`. Mechanical comparison found exactly one
+semantic document change: a standard weight-1 input arc from
+`dispatch-crew-available` to `start-final-inspection`.
 
-That submission settled as `failed` because the configured Anthropic
-credential returned HTTP 401 `authentication_error: invalid x-api-key`.
-Consequently:
+Tab B reopened the same manifest, workpiece hash, document hash, and canonical
+conversation. It submitted a non-mutating follow-up and received completed
+correlated response `entry_01M1NQJG7GRPC479PRF826T6F3` without another prepared
+source or `addArc` call. The post-Tab-A and Tab-B definitions and manifests
+have identical hashes.
 
-- no model-behavior claim was made;
-- no typed confirmation, client-tool mutation, or Tab B continuation was
-  attempted;
-- the runtime settled manifest remained `null`; and
-- the visible fixture status refused settlement as `history-unavailable`
-  instead of blessing the prepared document alone.
+The provider serialized the arc weight as `"1"`. The witnessed implementation
+normalizes that finite numeric string before canonical server and browser
+validation; the raw Flue snapshot retains the supplied representation while
+the canonical Petrinaut definition contains numeric weight `1`. The earlier
+HTTP 401 remains historical authentication/environment evidence only, not a
+carrier/schema conclusion.
 
-This is an authentication/environment blocker on the outer witness, not
-evidence that the selected provider-visible schema or Flue carrier cannot
-faithfully carry the mutation. It is not a passing two-tab witness. No success
-screenshot was retained.
+## Remaining human checks
 
-## Remaining external checks
-
-After a valid provider credential is supplied, rerun the demo script to retain
-the successful before/after Flue snapshots, canonical definitions, runtime
-manifest, call/result IDs, and Tab A/Tab B screenshots. Cold-reader semantic
-adjudication and the product-manager demo remain separate human-harness checks;
-they were not replaced with persona testing here.
+Cold-reader semantic adjudication and the product-manager demo remain separate
+human gates. They have not been replaced with persona or agent testing.
 
 ### Cold-reader handoff
 

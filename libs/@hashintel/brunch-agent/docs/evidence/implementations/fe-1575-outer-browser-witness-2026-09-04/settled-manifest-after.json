@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "fixtureId": "crew-reservation-v1",
+  "revision": 1,
+  "settledAt": "2026-09-04T08:10:58.162Z",
+  "conversation": {
+    "logicalId": "mission-6-crew-reservation-conversation-v1",
+    "canonicalId": "conv_01M1NQEXM3CAPPTXM33ZE1YSRG",
+    "offset": "0000000000000000_0000000000000108"
+  },
+  "latestWorkpiece": {
+    "authorship": "model-produced",
+    "contentSha256": "785135be03f8cbe9156b835f34d463bf7111fc109dd90dbe9db55955670c050e",
+    "sourceKind": "assistant",
+    "sourceMessageId": "entry_01M1NQGRAKWG69MWYMPYTCFXCZ",
+    "sourceMessageSha256": "5c5645d0f63c9792ece099228cbc021e117853108a1501c0cc230334eb2a6af8",
+    "sourceSubmissionId": "sub_ik_6dbc187e4e72793b7539c02387d04715"
+  },
+  "document": {
+    "id": "mission-6-crew-reservation-document-v1",
+    "sha256": "3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37",
+    "targetArc": "present"
+  },
+  "manifestId": "a00f05964afc87b1ef34b50c96711232ac44c5b60eb6e8ce60a540af3b5dab49"
+}
