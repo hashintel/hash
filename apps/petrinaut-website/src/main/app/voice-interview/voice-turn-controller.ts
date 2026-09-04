@@ -104,6 +104,12 @@ interface ChatUpdate {
   readonly status: PetrinautAiVoiceModeContext["status"];
 }
 
+interface PendingSubmissionSettlement {
+  readonly deliveryId: string;
+  readonly promise: Promise<void>;
+  readonly resolve: () => void;
+}
+
 type SnapshotListener = (snapshot: VoiceTurnSnapshot) => void;
 
 const initialSnapshot: VoiceTurnSnapshot = {
@@ -149,6 +155,7 @@ export class VoiceTurnController {
   #lastResponseSegments: CanonicalSpeechSegment[] = [];
   #outputCancellationPromise: Promise<void> | null = null;
   #pauseRequested = false;
+  #pendingSubmissionSettlement: PendingSubmissionSettlement | null = null;
   readonly #recordedLatencyEvents = new Set<string>();
   #snapshot = initialSnapshot;
   #submittingQuestionId: string | null = null;
@@ -215,6 +222,7 @@ export class VoiceTurnController {
     this.#inputTurnPending = false;
     this.#outputCancellationPromise = null;
     this.#pauseRequested = false;
+    this.#completeSubmissionSettlement();
     this.#bridgeStarted = false;
     this.#activeSpeechOutputEnded = false;
     this.#activeSpeechResponseId = null;
@@ -272,6 +280,7 @@ export class VoiceTurnController {
     this.#recordedLatencyEvents.clear();
     this.#submittingQuestionId = null;
     this.#takingTurnPromise = null;
+    this.#completeSubmissionSettlement();
     this.#pauseRequested = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
@@ -322,7 +331,7 @@ export class VoiceTurnController {
     this.#inputStateOnResume = this.#snapshot.input;
     this.#pauseRequested = true;
     const output = this.#snapshot.output === "idle" ? "idle" : "interrupted";
-    void this.#cancelOutput();
+    this.cancelPendingSpeech();
     this.#session.setMicrophoneEnabled(false);
     this.#update({
       input: "paused",
@@ -414,6 +423,11 @@ export class VoiceTurnController {
     this.#update({ input, microphoneEnabled: true });
   }
 
+  public cancelPendingSpeech(): void {
+    this.#bridge.cancelPendingSpeech();
+    void this.#cancelOutput();
+  }
+
   public async submitCorrection(correction: string): Promise<boolean> {
     const correctedText = correction.trim();
     const previousText = this.#snapshot.lastCommittedText;
@@ -475,8 +489,12 @@ export class VoiceTurnController {
     this.#transcriptKey = null;
     this.#update({ output: "cancelling", partialText: "" });
 
-    const takingTurnPromise = this.#session
-      .cancelOutput()
+    const submissionSettlement =
+      this.#pendingSubmissionSettlement?.promise ?? Promise.resolve();
+    const takingTurnPromise = Promise.all([
+      this.#session.cancelOutput(),
+      submissionSettlement,
+    ])
       .then(() => {
         if (
           generation !== this.#generation ||
@@ -530,10 +548,12 @@ export class VoiceTurnController {
   #handleBridgeEvent(event: RealtimeBrunchBridgeEvent): void {
     if (this.#snapshot.connection !== "connected") return;
     if (event.type === "error") {
+      this.#completeSubmissionSettlement();
       this.#setError(event.message, event.code);
       return;
     }
     if (event.type === "submission-started") {
+      this.#beginSubmissionSettlement(event.deliveryId);
       const paused = this.#snapshot.input === "paused";
       if (paused) {
         this.#inputStateOnResume = "submitting";
@@ -584,10 +604,12 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "submission-settled") {
+      this.#completeSubmissionSettlement(event.deliveryId);
       this.#recordLatency("submission-settled", event.deliveryId);
       return;
     }
     if (event.type === "submission-stopped") {
+      this.#completeSubmissionSettlement(event.deliveryId);
       // Brunch was stopped before it replied: nothing to speak, and the
       // interviewer is free to listen again.
       const pausedWhileStopped = this.#snapshot.input === "paused";
@@ -600,6 +622,7 @@ export class VoiceTurnController {
       });
       return;
     }
+    this.#completeSubmissionSettlement(event.deliveryId);
     this.#lastResponseQuestion = event.questionSegment ?? null;
     this.#lastResponseSegments = [...event.segments];
     const responseEnd = event.segments.at(-1);
@@ -779,6 +802,7 @@ export class VoiceTurnController {
     this.#outputCancellationPromise = null;
     this.#recordedLatencyEvents.clear();
     this.#takingTurnPromise = null;
+    this.#completeSubmissionSettlement();
     this.#bridgeStarted = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
@@ -819,6 +843,27 @@ export class VoiceTurnController {
       },
     );
     return cancellationPromise;
+  }
+
+  #beginSubmissionSettlement(deliveryId: string): void {
+    this.#completeSubmissionSettlement();
+    let resolve = () => {};
+    const promise = new Promise<void>((resolvePromise) => {
+      resolve = resolvePromise;
+    });
+    this.#pendingSubmissionSettlement = { deliveryId, promise, resolve };
+  }
+
+  #completeSubmissionSettlement(deliveryId?: string): void {
+    const pending = this.#pendingSubmissionSettlement;
+    if (
+      pending === null ||
+      (deliveryId !== undefined && deliveryId !== pending.deliveryId)
+    ) {
+      return;
+    }
+    this.#pendingSubmissionSettlement = null;
+    pending.resolve();
   }
 
   #clearSettledSpeech(): void {

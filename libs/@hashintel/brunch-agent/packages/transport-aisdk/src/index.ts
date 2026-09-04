@@ -5,7 +5,12 @@ import { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
 import { serializeErrorText } from "./error-text";
 import { createFlueUiStream } from "./ui-stream";
 
-import type { AgentSendResult, DeliveredMessage, FlueClient } from "@flue/sdk";
+import type {
+  AgentSendResult,
+  ConversationStreamChunk,
+  DeliveredMessage,
+  FlueClient,
+} from "@flue/sdk";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
 export { BRUNCH_CONVERSATION_HEADER, BRUNCH_PRINCIPAL_HEADER } from "./headers";
@@ -30,6 +35,25 @@ export interface ClientToolResult {
   readonly source?: "voice";
 }
 
+export interface FlueChatResponseMessageEvent {
+  readonly messageId: string;
+  readonly submissionId: AgentSendResult["submissionId"];
+}
+
+export interface FlueChatResponseMessageStartedEvent extends FlueChatResponseMessageEvent {
+  readonly position: Extract<
+    ConversationStreamChunk,
+    { type: "message-started" }
+  >["position"];
+}
+
+export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseMessageEvent {
+  readonly position: Extract<
+    ConversationStreamChunk,
+    { type: "message-completed" }
+  >["position"];
+}
+
 export interface FlueChatTransportOptions {
   readonly client: FlueClient;
   readonly clientToolNames: ReadonlySet<string>;
@@ -39,10 +63,12 @@ export interface FlueChatTransportOptions {
     readonly kind: "client-tool-result" | "user";
     readonly messageId: string;
   }) => void;
-  readonly onResponseMessage?: (event: {
-    readonly messageId: string;
-    readonly submissionId: AgentSendResult["submissionId"];
-  }) => void;
+  readonly onResponseMessage?: (
+    event: FlueChatResponseMessageStartedEvent,
+  ) => void;
+  readonly onResponseMessageCompleted?: (
+    event: FlueChatResponseMessageCompletedEvent,
+  ) => void;
 }
 
 export type FlueChatAdmissionFailure =
@@ -246,6 +272,12 @@ const streamSubmission = (
   return new ReadableStream<UIMessageChunk>({
     start(controller) {
       let terminalEmitted = false;
+      let responseMessage:
+        | {
+            readonly effectiveId: string;
+            readonly flueId: string;
+          }
+        | undefined;
       const close = (): void => {
         if (closed) return;
         closed = true;
@@ -283,12 +315,27 @@ const streamSubmission = (
             ) {
               // Report the id the consumer sees: a client-tool continuation is
               // projected onto the assistant message it resumes.
+              responseMessage = {
+                effectiveId: continuationMessageId ?? event.messageId,
+                flueId: event.messageId,
+              };
               options.onResponseMessage?.({
-                messageId: continuationMessageId ?? event.messageId,
+                messageId: responseMessage.effectiveId,
+                position: event.position,
                 submissionId: admission.submissionId,
               });
             }
             projector.accept(event);
+            if (
+              event.type === "message-completed" &&
+              event.messageId === responseMessage?.flueId
+            ) {
+              options.onResponseMessageCompleted?.({
+                messageId: responseMessage.effectiveId,
+                position: event.position,
+                submissionId: admission.submissionId,
+              });
+            }
           },
         })
         .then(close)

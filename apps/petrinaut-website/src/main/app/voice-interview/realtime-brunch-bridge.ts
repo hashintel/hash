@@ -8,6 +8,8 @@ import type {
 import type { AgentSendResult, FlueConversationSettlement } from "@flue/sdk";
 import type {
   FlueChatAdmissionFailure,
+  FlueChatResponseMessageCompletedEvent,
+  FlueChatResponseMessageStartedEvent,
   FlueChatTransportOptions,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import type {
@@ -65,9 +67,14 @@ interface RealtimeBrunchBridgeDependencies {
   ) => Promise<SubmitInterviewAnswerResult>;
 }
 
+interface CompletedResponseMessage extends FlueChatResponseMessageCompletedEvent {
+  consumed: boolean;
+}
+
 interface ActiveSubmission {
   readonly abortController: AbortController;
   readonly baselineSegmentIds: ReadonlySet<string>;
+  readonly completedResponseMessages: CompletedResponseMessage[];
   readonly deliveryId: string;
   correlated: boolean;
   firstTextEmitted: boolean;
@@ -172,6 +179,13 @@ const transcriptKeyId = (key: OpenAIRealtimeTranscriptKey): string =>
 const normalizeTranscript = (transcript: string): string =>
   transcript.trim().replace(/\s+/gu, " ");
 
+const positionPrecedes = (
+  first: FlueChatResponseMessageCompletedEvent["position"],
+  second: FlueChatResponseMessageStartedEvent["position"],
+): boolean =>
+  first.batch < second.batch ||
+  (first.batch === second.batch && first.index < second.index);
+
 const admissionErrorCode = (
   failure: FlueChatAdmissionFailure,
 ): RealtimeAdmissionErrorCode => {
@@ -229,6 +243,45 @@ export class RealtimeBrunchBridge {
 
   public completeTurnHandoff(): void {
     this.#outputActive = false;
+  }
+
+  public notifyResponseMessageCompleted(
+    event: FlueChatResponseMessageCompletedEvent,
+  ): void {
+    const active = this.#activeSubmission;
+    if (
+      active === null ||
+      active.completedResponseMessages.some(
+        ({ position }) =>
+          position.batch === event.position.batch &&
+          position.index === event.position.index,
+      )
+    ) {
+      return;
+    }
+    active.completedResponseMessages.push({
+      ...event,
+      consumed: false,
+    });
+    this.#completeCorrelatedSubmission();
+  }
+
+  public notifyResponseMessageStarted(
+    event: FlueChatResponseMessageStartedEvent,
+  ): void {
+    const active = this.#activeSubmission;
+    if (active === null) {
+      return;
+    }
+    for (const completion of active.completedResponseMessages) {
+      if (
+        !completion.consumed &&
+        completion.messageId === event.messageId &&
+        positionPrecedes(completion.position, event.position)
+      ) {
+        completion.consumed = true;
+      }
+    }
   }
 
   public start(connectionEpoch: number): void {
@@ -411,6 +464,7 @@ export class RealtimeBrunchBridge {
       baselineSegmentIds: new Set(
         this.#chat.canonicalSegments.map(({ id }) => id),
       ),
+      completedResponseMessages: [],
       correlated: false,
       deliveryId,
       firstTextEmitted: false,
@@ -521,6 +575,57 @@ export class RealtimeBrunchBridge {
         type: "canonical-text-ready",
       });
     }
+    const stoppedSettlement =
+      active.submissionId === null
+        ? undefined
+        : this.#chat.settlements?.find(
+            ({ submissionId }) => submissionId === active.submissionId,
+          );
+    if (stoppedSettlement && stoppedSettlement.outcome !== "completed") {
+      if (this.#chat.status === "ready") {
+        this.#completeStoppedSubmission(active);
+      }
+      return;
+    }
+    const completionMatchesSegment = (
+      completion: CompletedResponseMessage,
+      segment: CanonicalSpeechSegment,
+    ): boolean =>
+      completion.messageId === segment.messageId &&
+      (segment.submissionIds?.includes(completion.submissionId) ?? false);
+    const pendingCompletions = active.completedResponseMessages.filter(
+      ({ consumed }) => !consumed,
+    );
+    const eligibleCompletions = pendingCompletions.filter((completion) =>
+      responseSegments.some(
+        (segment) =>
+          !this.#seenSegmentIds.has(segment.id) &&
+          completionMatchesSegment(completion, segment),
+      ),
+    );
+    const completedSegments = responseSegments.filter(
+      (segment) =>
+        !this.#seenSegmentIds.has(segment.id) &&
+        eligibleCompletions.some((completion) =>
+          completionMatchesSegment(completion, segment),
+        ),
+    );
+    if (!active.speechCancelled) {
+      if (completedSegments.length > 0) {
+        try {
+          this.#session.speakCanonical(completedSegments);
+          for (const segment of completedSegments) {
+            this.#seenSegmentIds.add(segment.id);
+          }
+        } catch {
+          this.#fail(INVALID_BRIDGE_EVENT);
+          return;
+        }
+      }
+    }
+    for (const completion of eligibleCompletions) {
+      completion.consumed = true;
+    }
     if (this.#chat.status !== "ready") {
       return;
     }
@@ -534,11 +639,16 @@ export class RealtimeBrunchBridge {
       type: "submission-settled",
     });
     if (!active.speechCancelled) {
-      try {
-        this.#session.speakCanonical(responseSegments);
-      } catch {
-        this.#fail(INVALID_BRIDGE_EVENT);
-        return;
+      const unscheduledSegments = responseSegments.filter(
+        ({ id }) => !this.#seenSegmentIds.has(id),
+      );
+      if (unscheduledSegments.length > 0) {
+        try {
+          this.#session.speakCanonical(unscheduledSegments);
+        } catch {
+          this.#fail(INVALID_BRIDGE_EVENT);
+          return;
+        }
       }
     }
     for (const segment of responseSegments) {

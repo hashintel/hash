@@ -14,7 +14,11 @@ import type {
   SweepCompletionReport,
 } from "../brunch-sweep-output";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
-import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
+import type {
+  FlueChatResponseMessageCompletedEvent,
+  FlueChatResponseMessageStartedEvent,
+  FlueChatTransportOptions,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type { UIMessageChunk } from "ai";
 
@@ -44,6 +48,13 @@ export class BrunchPanelConversationTracker {
     string,
     AgentSendResult["submissionId"][]
   >();
+  readonly #responseMessageStartedListeners = new Set<
+    (event: FlueChatResponseMessageStartedEvent) => void
+  >();
+  readonly #responseMessageCompletedListeners = new Set<
+    (event: FlueChatResponseMessageCompletedEvent) => void
+  >();
+  readonly #stopRequestedListeners = new Set<() => void>();
 
   public recordAdmission(admission: BrunchPanelAdmission): void {
     if (admission.kind === "user") {
@@ -69,15 +80,29 @@ export class BrunchPanelConversationTracker {
    * all: Voice correlates a reply by membership, whichever side admitted the
    * continuation.
    */
-  public recordResponse(
-    messageId: string,
-    submissionId: AgentSendResult["submissionId"],
-  ): void {
-    const recorded = this.#responseSubmissions.get(messageId);
+  public recordResponse(event: FlueChatResponseMessageStartedEvent): void {
+    const recorded = this.#responseSubmissions.get(event.messageId);
     if (recorded === undefined) {
-      this.#responseSubmissions.set(messageId, [submissionId]);
-    } else if (!recorded.includes(submissionId)) {
-      recorded.push(submissionId);
+      this.#responseSubmissions.set(event.messageId, [event.submissionId]);
+    } else if (!recorded.includes(event.submissionId)) {
+      recorded.push(event.submissionId);
+    }
+    for (const listener of this.#responseMessageStartedListeners) {
+      listener(event);
+    }
+  }
+
+  public recordResponseMessageCompleted(
+    event: FlueChatResponseMessageCompletedEvent,
+  ): void {
+    for (const listener of this.#responseMessageCompletedListeners) {
+      listener(event);
+    }
+  }
+
+  public recordStopRequested(): void {
+    for (const listener of this.#stopRequestedListeners) {
+      listener();
     }
   }
 
@@ -142,6 +167,25 @@ export class BrunchPanelConversationTracker {
     const subscription = { listener, target };
     this.#admissionFailureSubscriptions.add(subscription);
     return () => this.#admissionFailureSubscriptions.delete(subscription);
+  }
+
+  public subscribeToResponseMessageCompleted(
+    listener: (event: FlueChatResponseMessageCompletedEvent) => void,
+  ): () => void {
+    this.#responseMessageCompletedListeners.add(listener);
+    return () => this.#responseMessageCompletedListeners.delete(listener);
+  }
+
+  public subscribeToResponseMessageStarted(
+    listener: (event: FlueChatResponseMessageStartedEvent) => void,
+  ): () => void {
+    this.#responseMessageStartedListeners.add(listener);
+    return () => this.#responseMessageStartedListeners.delete(listener);
+  }
+
+  public subscribeToStopRequested(listener: () => void): () => void {
+    this.#stopRequestedListeners.add(listener);
+    return () => this.#stopRequestedListeners.delete(listener);
   }
 }
 
@@ -282,8 +326,9 @@ export const createBrunchPanelTransport = (
             tracker.recordAdmission(event);
             hooks?.onAdmission?.(event.admission);
           },
-          onResponseMessage: ({ messageId, submissionId }) =>
-            tracker.recordResponse(messageId, submissionId),
+          onResponseMessage: (event) => tracker.recordResponse(event),
+          onResponseMessageCompleted: (event) =>
+            tracker.recordResponseMessageCompleted(event),
         });
         try {
           return decorateBrunchStream(
