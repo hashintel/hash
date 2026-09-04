@@ -10,12 +10,13 @@ import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../local-storage-demo/brunch-panel-transport";
-import { selectCanonicalSpeechSegments } from "./canonical-speech";
+import { selectCanonicalSpeech } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { submitVoiceInputWithAdmission } from "./voice-interview-control";
 import { VoiceTurnController } from "./voice-turn-controller";
 
+import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type { RealtimeBrunchBridgeEvent } from "./realtime-brunch-bridge";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
@@ -75,6 +76,13 @@ const initialMessages = [
     id: "initial-question-message",
     parts: [
       {
+        data: {
+          question: "What happens after approval?",
+          toolCallId: "tool-initial-question",
+        },
+        type: "data-brunch-question",
+      },
+      {
         state: "done",
         text: "What happens after approval?",
         type: "text",
@@ -94,6 +102,13 @@ const responseMessages = [
   {
     id: "next-question-message",
     parts: [
+      {
+        data: {
+          question: canonicalQuestion,
+          toolCallId: "tool-next-question",
+        },
+        type: "data-brunch-question",
+      },
       {
         state: "done",
         text: canonicalQuestion,
@@ -362,10 +377,12 @@ describe("controlled voice preview", () => {
     expect(controller.getSnapshot().partialText).toBe(
       "Speech started before output",
     );
-    const initialSegments = selectCanonicalSpeechSegments(initialMessages);
+    const initialSelection = selectCanonicalSpeech(initialMessages);
+    const initialSegments = initialSelection.segments;
     controller.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: initialSegments,
+      questionSegment: initialSelection.questionSegment,
       status: "ready",
     });
     dataChannel.receive({
@@ -485,16 +502,19 @@ describe("controlled voice preview", () => {
       status: "streaming",
     });
     const initialSegmentIds = new Set(initialSegments.map(({ id }) => id));
-    const correlatedSegments = selectCanonicalSpeechSegments(
-      responseMessages,
-    ).map((segment) =>
+    const responseSelection = selectCanonicalSpeech(responseMessages);
+    const correlateResponse = (segment: CanonicalSpeechSegment) =>
       initialSegmentIds.has(segment.id)
         ? segment
-        : { ...segment, submissionId: admission.submissionId },
-    );
+        : { ...segment, submissionId: admission.submissionId };
+    const correlatedSegments =
+      responseSelection.segments.map(correlateResponse);
     controller.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: correlatedSegments,
+      questionSegment: responseSelection.questionSegment
+        ? correlateResponse(responseSelection.questionSegment)
+        : undefined,
       status: "ready",
     });
 
@@ -536,6 +556,47 @@ describe("controlled voice preview", () => {
       output: "speaking",
     });
     expect(track.enabled).toBe(false);
+
+    dataChannel.receive({
+      response_id: "response-canonical-reply",
+      type: "output_audio_buffer.stopped",
+    });
+    dataChannel.receive({
+      response: {
+        id: "response-canonical-reply",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+    expect(controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
+      output: "idle",
+    });
+
+    controller.repeatQuestion();
+
+    const replayCreate = sentEvents(dataChannel).findLast(
+      ({ type }) => type === "response.create",
+    );
+    expect(replayCreate).toMatchObject({
+      response: {
+        input: [
+          {
+            content: [
+              {
+                text: JSON.stringify({ response_text: [canonicalQuestion] }),
+                type: "input_text",
+              },
+            ],
+            role: "system",
+            type: "message",
+          },
+        ],
+      },
+      type: "response.create",
+    });
 
     const remoteTrack = { kind: "audio", stop: vi.fn() };
     const remoteStream = {

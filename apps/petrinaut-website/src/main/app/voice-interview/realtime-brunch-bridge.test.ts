@@ -375,9 +375,19 @@ describe("RealtimeBrunchBridge", () => {
       "Speak this canonical response.",
       "submission-voice-1",
     );
+    const correlatedQuestion: CanonicalSpeechSegment = {
+      ...segment(
+        "correlated-question",
+        "Which operator confirms the batch?",
+        "submission-voice-1",
+      ),
+      messageId: correlated.messageId,
+      source: "assistant-question",
+    };
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [unrelated, correlated],
+      questionSegment: correlatedQuestion,
       status: "ready",
     });
 
@@ -394,6 +404,7 @@ describe("RealtimeBrunchBridge", () => {
     ]);
     expect(harness.events.at(-1)).toEqual({
       deliveryId,
+      questionSegment: correlatedQuestion,
       segments: [correlated],
       type: "canonical-response-ready",
     });

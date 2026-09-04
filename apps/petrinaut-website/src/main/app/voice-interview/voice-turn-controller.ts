@@ -99,6 +99,7 @@ interface VoiceTurnControllerDependencies {
 interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
+  readonly questionSegment?: CanonicalSpeechSegment;
   readonly settlements?: readonly VoiceSubmissionSettlement[];
   readonly status: PetrinautAiVoiceModeContext["status"];
 }
@@ -125,10 +126,6 @@ const initialSnapshot: VoiceTurnSnapshot = {
   partialText: "",
 };
 
-const latestQuestion = (
-  segments: CanonicalSpeechSegment[],
-): CanonicalSpeechSegment | undefined => segments.at(-1);
-
 export class VoiceTurnController {
   readonly #bridge: RealtimeBridge;
   readonly #listeners = new Set<SnapshotListener>();
@@ -148,6 +145,7 @@ export class VoiceTurnController {
   #inputStateOnResume: Exclude<VoiceInputState, "paused"> | null = null;
   #inputTurnPending = false;
   #latencyCorrelationId: string | null = null;
+  #lastResponseQuestion: CanonicalSpeechSegment | null = null;
   #lastResponseSegments: CanonicalSpeechSegment[] = [];
   #outputCancellationPromise: Promise<void> | null = null;
   #pauseRequested = false;
@@ -268,6 +266,7 @@ export class VoiceTurnController {
     this.#inputStateOnResume = null;
     this.#inputTurnPending = false;
     this.#latencyCorrelationId = null;
+    this.#lastResponseQuestion = null;
     this.#lastResponseSegments = [];
     this.#outputCancellationPromise = null;
     this.#recordedLatencyEvents.clear();
@@ -453,6 +452,13 @@ export class VoiceTurnController {
     this.#session.speakCanonical([...this.#lastResponseSegments]);
   }
 
+  public repeatQuestion(): void {
+    if (!this.#snapshot.canRepeatQuestion || !this.#lastResponseQuestion)
+      return;
+    this.#update({ output: "waiting-for-tool" });
+    this.#session.speakCanonical([this.#lastResponseQuestion]);
+  }
+
   /**
    * Hands the turn to the user only after provider cancellation has cleared
    * input and output and the active response has reached a terminal state.
@@ -509,7 +515,7 @@ export class VoiceTurnController {
   }
 
   public updateChat(update: ChatUpdate): void {
-    const question = latestQuestion(update.canonicalSegments);
+    const question = update.questionSegment;
     if (question && question.id !== this.#currentQuestionId) {
       this.#currentQuestionId = question.id;
       this.#update({ currentQuestion: question.text });
@@ -581,8 +587,9 @@ export class VoiceTurnController {
       this.#recordLatency("submission-settled", event.deliveryId);
       return;
     }
+    this.#lastResponseQuestion = event.questionSegment ?? null;
     this.#lastResponseSegments = [...event.segments];
-    const question = event.segments.at(-1);
+    const responseEnd = event.segments.at(-1);
     if (event.speechCancelled) {
       const paused = this.#snapshot.input === "paused";
       if (paused) {
@@ -592,7 +599,7 @@ export class VoiceTurnController {
         input: paused ? "paused" : "listening",
         output: "interrupted",
       });
-      if (question) this.#recordLatency("answer-ready", question.id);
+      if (responseEnd) this.#recordLatency("answer-ready", responseEnd.id);
       return;
     }
     if (event.type === "submission-stopped") {
@@ -617,7 +624,7 @@ export class VoiceTurnController {
       input: paused ? "paused" : "listening",
       output: paused ? "interrupted" : "waiting-for-tool",
     });
-    if (question) this.#recordLatency("answer-ready", question.id);
+    if (responseEnd) this.#recordLatency("answer-ready", responseEnd.id);
   }
 
   #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
@@ -883,7 +890,7 @@ export class VoiceTurnController {
     this.#snapshot = {
       ...snapshot,
       canReadFullResponse: canReplay && this.#lastResponseSegments.length > 0,
-      canRepeatQuestion: false,
+      canRepeatQuestion: canReplay && this.#lastResponseQuestion !== null,
       canTakeTurn: this.#canTakeTurn(snapshot),
       canReviseLastAnswer: this.#canReviseLastAnswer(snapshot),
     };

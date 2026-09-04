@@ -80,6 +80,14 @@ const question = (
   text,
 });
 
+const markedQuestion = (
+  id: string,
+  text = "What happens after approval?",
+): CanonicalSpeechSegment => ({
+  ...question(id, text),
+  source: "assistant-question",
+});
+
 describe("VoiceTurnController", () => {
   test("records the content-free Voice lifecycle once in causal order", async () => {
     const harness = createHarness();
@@ -187,6 +195,7 @@ describe("VoiceTurnController", () => {
     harness.controller.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [question("ask-1")],
+      questionSegment: markedQuestion("ask-1"),
       status: "ready",
     });
 
@@ -235,6 +244,7 @@ describe("VoiceTurnController", () => {
     harness.controller.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [question("ask-late-transcript")],
+      questionSegment: markedQuestion("ask-late-transcript"),
       status: "ready",
     });
     await harness.controller.start();
@@ -310,6 +320,7 @@ describe("VoiceTurnController", () => {
     harness.controller.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [question("ask-request")],
+      questionSegment: markedQuestion("ask-request"),
       status: "ready",
     });
     await harness.controller.start();
@@ -397,6 +408,7 @@ describe("VoiceTurnController", () => {
     harness.controller.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [question("ask-handoff")],
+      questionSegment: markedQuestion("ask-handoff"),
       status: "ready",
     });
     await harness.controller.start();
@@ -465,6 +477,7 @@ describe("VoiceTurnController", () => {
     harness.controller.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [question("ask-handoff")],
+      questionSegment: markedQuestion("ask-handoff"),
       status: "ready",
     });
     await harness.controller.start();
@@ -548,6 +561,57 @@ describe("VoiceTurnController", () => {
     expect(harness.session.speakCanonical).toHaveBeenCalledWith([
       context,
       nextQuestion,
+    ]);
+  });
+
+  test("repeats only the exact Brunch-marked question after replay settles", async () => {
+    const harness = createHarness();
+    const context = question("context", "Approval is required before release.");
+    const finalProse = question(
+      "response-prose",
+      "The approver is recorded. I can explain the escalation path.",
+    );
+    const markedQuestion: CanonicalSpeechSegment = {
+      ...question("marked-question", "Who approves release?"),
+      messageId: finalProse.messageId,
+      source: "assistant-question",
+    };
+    await harness.controller.start();
+
+    harness.emitBridge({
+      deliveryId: "voice-1",
+      questionSegment: markedQuestion,
+      segments: [context, finalProse],
+      type: "canonical-response-ready",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      speechRequestId: "speech-source",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      type: "output-stopped",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      status: "completed",
+      type: "response-terminal",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
+    });
+
+    harness.controller.repeatQuestion();
+
+    expect(harness.session.speakCanonical).toHaveBeenCalledOnce();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([
+      markedQuestion,
     ]);
   });
 
@@ -734,6 +798,7 @@ describe("VoiceTurnController", () => {
     harness.controller.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [question("ask-1")],
+      questionSegment: markedQuestion("ask-1"),
       status: "ready",
     });
     await harness.controller.start();
@@ -746,6 +811,7 @@ describe("VoiceTurnController", () => {
     harness.controller.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [question("ask-2", "Who acts next?")],
+      questionSegment: markedQuestion("ask-2", "Who acts next?"),
       status: "ready",
     });
     harness.emitBridge({
@@ -1157,6 +1223,10 @@ describe("VoiceTurnController", () => {
       canonicalSegments: [
         question("ask-reconnect", "What happens after approval?"),
       ],
+      questionSegment: markedQuestion(
+        "ask-reconnect",
+        "What happens after approval?",
+      ),
       status: "ready",
     });
     await harness.controller.start();
@@ -1183,6 +1253,10 @@ describe("VoiceTurnController", () => {
       canonicalSegments: [
         question("ask-failed-delivery", "What happens after approval?"),
       ],
+      questionSegment: markedQuestion(
+        "ask-failed-delivery",
+        "What happens after approval?",
+      ),
       status: "ready",
     });
     await harness.controller.start();
