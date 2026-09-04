@@ -261,7 +261,7 @@ pub(crate) fn digest_file(path: impl AsRef<camino::Utf8Path>) -> io::Result<Sha2
         accumulator: crate::integrity::Sha256::new(),
         writer: io::sink(),
     };
-    io::copy(&mut std::fs::File::open(path)?, &mut writer)?;
+    io::copy(&mut std::fs::File::open_buffered(path)?, &mut writer)?;
 
     Ok(writer.accumulator.finalize())
 }
