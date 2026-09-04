@@ -16,7 +16,6 @@ import {
   type ExampleSlug,
   type ModelFileExampleSlug,
 } from "./catalog-metadata";
-import { normalizeExampleDefinition } from "./normalize-example";
 
 export {
   exampleCatalog,
@@ -88,8 +87,8 @@ const loadModelFile = async (slug: ModelFileExampleSlug): Promise<SDCPN> => {
     throw new Error(parsed.error);
   }
 
-  const { title: _title, ...rawDefinition } = parsed.sdcpn;
-  return normalizeExampleDefinition(slug, rawDefinition);
+  const { title: _title, ...definition } = parsed.sdcpn;
+  return definition;
 };
 
 const loadDefinition = async (entry: ExampleCatalogEntry): Promise<SDCPN> => {
