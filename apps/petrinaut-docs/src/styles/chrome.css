@@ -57,8 +57,8 @@
    * blurred but still visible. Matched heights hid the blur completely: its
    * strongest layers sit at the top, which is exactly where the tint is opaque.
    */
-  --pnd-fade-tint-height: 60px;
-  --pnd-fade-blur-height: 80px;
+  --pnd-fade-tint-height: 45px;
+  --pnd-fade-blur-height: 60px;
 }
 
 /*
@@ -800,10 +800,7 @@ dialog {
    * its own scroll from nothing. At 0 there is no band at all: nothing under
    * the header is touched until the reader has scrolled something under it.
    */
-  height: calc(
-    var(--pnd-fade-blur-height) * var(--pnd-fade-extent, 1) *
-      var(--pnd-fade-progress, 0)
-  );
+  height: calc(var(--pnd-fade-blur-height) * var(--pnd-fade-progress, 0));
   opacity: var(--pnd-fade-progress, 0);
   pointer-events: none;
 }
@@ -850,10 +847,7 @@ dialog {
   position: absolute;
   inset-block-start: 0;
   inset-inline: 0;
-  height: calc(
-    var(--pnd-fade-tint-height) * var(--pnd-fade-extent, 1) *
-      var(--pnd-fade-progress, 0)
-  );
+  height: calc(var(--pnd-fade-tint-height) * var(--pnd-fade-progress, 0));
   background: linear-gradient(to bottom, var(--sl-color-bg), transparent);
 }
 
@@ -896,10 +890,6 @@ dialog {
 @media (min-width: 50rem) {
   :root[data-has-sidebar] .pnd-nav-fade,
   :root[data-has-sidebar] .pnd-nav-fade-bottom {
-    /* Three quarters of the content band's: the rail is a narrower column of
-       shorter rows, and the full extent swamps it. */
-    --pnd-fade-extent: 0.75;
-
     display: block;
     inset-inline-start: 0;
     width: var(--pnd-sidebar-width);

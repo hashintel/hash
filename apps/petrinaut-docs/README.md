@@ -141,7 +141,7 @@ whole effect off.
 
 Under the header, over the content column only, a band blurs and tints whatever
 scrolls beneath it, so text does not meet the header on a hard edge. It runs to
-two heights: the tint over 60px and the blur over 80px. Matching them hid the
+two heights: the tint over 45px and the blur over 60px. Matching them hid the
 blur completely, because the tint is opaque where the blur is strongest; the
 stretch below the tint is where a reader actually sees content blurred.
 
@@ -158,11 +158,8 @@ anything has gone up behind the header and the ramp only takes the hard edge off
 its arrival. Nothing eases it: the value already tracks the scroll frame by
 frame, and a transition on top would only make a band lag the rows it covers.
 
-The nav's bands run to three quarters of the content band's heights, 60px of
-blur over a 45px tint: the rail is a narrower column of shorter rows, and the
-full extent swamps it. It reads its own `scrollTop` rather than the window's,
-since the rail scrolls independently of the page, and carries a second band at
-its foot,
+The nav reads its own `scrollTop` rather than the window's, since the rail
+scrolls independently of the page, and carries a second band at its foot,
 mirrored: box, layer, mask and tint all run upwards from the bottom edge. That
 one is driven by what is left below the fold rather than by what has gone above
 it, so a rail short enough to need no scrolling never shows one and the band
