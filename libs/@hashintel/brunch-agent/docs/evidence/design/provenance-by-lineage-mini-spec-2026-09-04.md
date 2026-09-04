@@ -1,135 +1,170 @@
-# Provenance by lineage — mini spec for review, 2026-09-04
+# Provenance by lineage with declared basis — mini spec, 2026-09-04 (revised)
 
-> Design evidence, not execution authority. This document projects the [decision log of 2026-09-04](provenance-and-tooling-decision-log-2026-09-04.md) into one reviewable statement of intent, design, and consequences for the Brunch mission spine. It is written for an independent reviewer who has not seen the originating conversation. Entry references such as C4 point into the log. Nothing here may be implemented until it is re-evaluated and cut into a live `MISSION.md`; the intended vehicle is the Mission 7 cut.
+> Design evidence, not execution authority. This document projects the [decision log of 2026-09-04](provenance-and-tooling-decision-log-2026-09-04.md), including its post-review dispositions (F1 to F16), into one reviewable statement of intent, design, and consequences for the Brunch mission spine. It was revised the same day after the [independent review](provenance-by-lineage-independent-review-2026-09-04.md); the revision corrects the turn topology, the hook pattern, and the claim strength, adds the declared basis, the mutation transition record, and the operation protocol, consolidates the construction and explanation missions, and enumerates the scenario-derived tool subset. Nothing here may be implemented until it is re-evaluated and cut into a live `MISSION.md`.
 
 ## 1. Intent
 
-Brunch must be able to say, for any consequential element of a Petri net it helped build, where that element came from: the workpiece passage that motivated it, the revision that introduced the passage, and the conversation turns behind that revision, or an honest refusal. It must do this without a comprehensive typed domain model, without a second conversation log, and without anyone hand-authoring links.
+Brunch must be able to say, for any consequential element of a Petri net it helped build, what it rests on: the workpiece passage the constructor declared as its basis, the revision that carried that passage, the conversation context behind that revision, and who did what, or an honest refusal. It must do this without a comprehensive typed domain model, without a second conversation log, and without anyone hand-authoring links after the fact.
 
-Two earlier approaches failed in opposite directions. A comprehensive typed intermediate representation tried to make provenance a property of the domain model; the typology receded as it grew and the model worked worse with it. The structural Markdown workpiece that replaced it is legible and cheap but has no seam to either the conversation or the net, and provenance was deferred as "later" without the tension being named in the planning record (B3).
+Two earlier approaches failed in opposite directions. A comprehensive typed intermediate representation tried to make provenance a property of the domain model; the typology receded as it grew and the model worked worse with it. The structural Markdown workpiece that replaced it is legible and cheap but has no seam to either the conversation or the net, and provenance was deferred without the tension being named in the planning record.
 
-The resolving observation: provenance is not a domain fact. It is who changed what, in response to what, when. Three actors know a link at the moment it is created, and each moment is already recorded in Flue's append-only canonical log once the artifacts they produce are tool calls (C1).
+The resolving observation, as corrected by review: provenance has two parts. **Lineage** is who changed what, in response to what, when; it is recoverable from Flue's append-only log once workpiece revisions and net mutations are tool calls. **Basis** is why an element exists; it is not in the log unless the actor who knows declares it at the moment they know. The design therefore combines recovered lineage with a declared basis, and says plainly which of the two any given answer rests on (F5).
 
-## 2. The lineage model
+## 2. The lineage model, as the log actually records it
 
 ```text
-turn N: user says X                                  (user message, turnId T)
-  └─ assistant response                              (assistant message, turnId T)
-       ├─ text
-       ├─ tool call  update_workpiece { markdown }   revision R, identity = call id
-       ├─ tool result { revision, sha256 }
-       ├─ tool call  addArc { ... }                  net mutation, same turnId
-       └─ tool result { ..., documentSha256 }        net revision, same turnId
-  state_write  workpiece = { callId, sha256, revision }   same batch, same durability
+submission S1   user message                        (submissionId S1, no turnId)
+                assistant turn T1                   (turnId T1)
+                  ├─ update_workpiece {markdown}     revision R, identity = callId
+                  ├─ tool result {revision, sha256}
+                  └─ addArc {…, basis}               request; server output = awaiting client
+                state_write workpiece = {callId, sha256, revision, markdown}
+submission S2   system dispatch  client-tool-result  [{toolCallId, output}]   (may repeat earlier ids)
+                assistant turn T2                   continuation
 ```
 
-Resolution walks backwards from an element and is a point at every hop but the last:
+Correlation is by `toolCallId` plus submission order; a shared turn id between the request and the browser result does not exist (F1). The lineage reader deduplicates cumulative result signals by call id.
+
+Resolution walks from an element:
 
 ```text
 element id
-  → mutation call that created it, and calls that changed it     point(s)
-  → latest update_workpiece at or before that call                point
-  → the passage in that revision                                  point
-  → blame: the revision that introduced the passage               point
-  → user turns between that revision and the previous one        RANGE
-        └─ narrowed to one line where the passage quotes the expert verbatim
+  → mutation transition records naming it            (created, changed, deleted; F7)
+  → the declared basis on the creating request        passage locator(s) + rationale (F5)
+       ├─ present: the passage in the revision current at that request
+       └─ absent:  the revision current at that request, and a temporal range, marked as such
+  → the conversation context behind that revision      turns between it and the previous revision
+       └─ verbatim quote where the passage quotes; reported as string occurrence, not endorsement
+  → actors reported separately: workpiece author, evidence actor, requesting principal, mutation actor
 ```
 
-The honest why answer is therefore: one creating call, one workpiece passage, one introducing revision, and then either a quoted line or a short turn range (C2). The range is where workpiece cadence is coarser than turn cadence. Elements changed several times report introducing and last-changing calls separately. Every hop is a lookup in the canonical log; nothing is stored elsewhere and nothing is inferred.
-
-What the model does: it calls the tools and interprets structured ranges in prose. What it may not do: author a link, reread the transcript as provenance, or explain an element the tools mark unsupported (C3).
+What the model does: it calls the tools and interprets structured results in prose. What it may not do: author a basis after the fact, reread the transcript as provenance, or explain an element the tools mark unsupported or not attributable (C3, F7).
 
 ## 3. Mechanisms
 
-### 3.1 `update_workpiece` (core, server-side) — C4
+### 3.1 `update_workpiece` (core, server-side) — C4, F2, F10
 
 | Aspect | Decision |
 | --- | --- |
 | Input | one Markdown string, the full current workpiece |
-| Run | validate non-empty and well-formed; SHA-256; `usePersistentState('workpiece', { callId, sha256, revision })`; return `{ revision, sha256 }` |
-| Durability | `durable: true`, so an interrupted call replays rather than settling unknown |
-| Ownership | core owns the tool because the mechanism is formalism-independent; plugins own the template |
+| Hook pattern | `usePersistentState('workpiece', …)` called at render; its setter captured in the tool closure; called from `run`, which receives `toolCallId` |
+| State value | `{ callId, sha256, revision, markdown }`, written with the updater form so the revision number composes; the Markdown is in state so the agent always has its current workpiece at render regardless of compaction |
+| Validation | core checks non-empty and size; template conformance is plugin participation |
+| Durability | `durable: true` protects the server tool attempt only |
+| Ownership | core owns the tool; plugins own the template |
 | Replaces | the fenced `runbook-ir` block in assistant text; the prepared-signal route stays for test-authored revision zero |
 
-Why a tool rather than a fenced block: the revision identity is a call id instead of a regex over prose; the tool can refuse a truncated document; the next render reads the current pointer without the model echoing it; mutations and revisions share `turnId`; the UI can project the part into its own pane. Costs acknowledged: the full document still crosses the wire each revision, and a model may call a tool less readily than it emits text. A structured-patch input is the later absorber for token cost; cadence must be measured for either shape (B6).
+Costs acknowledged: the full document crosses the wire each revision and is written twice, as tool input and as state; a structured-patch input is the later absorber. A model may call a tool less readily than it emits text; cadence is unmeasured either way (B6).
 
-### 3.2 `query_workpiece` (core) and `locate_elements` (plugin-sdcpn) — C5
+### 3.2 Declared basis on mutation requests — F5
 
-`query_workpiece` takes a revision pointer or a passage locator and returns the turn ranges behind it with the user text, plus verbatim-quote matches where the passage quotes. `locate_elements` takes element ids and returns, per id, the mutation calls with their turn ids and document hashes, and the workpiece revision current at each. The split follows knowledge: core knows revisions and history; only the plugin knows which calls are mutations and where ids sit in inputs. Names are provisional.
+Every construction request carries `basis`: one or more passage locators into the workpiece revision current at the request, plus a one-line rationale. The plugin strips `basis` before forwarding the canonical input to Petrinaut, so Petrinaut's contract is unchanged, and the full request with basis is retained in the log as the tool-call input. The skill teaches that a mutation without a basis is a mutation the model must justify in Construction notes or not make. Passage locator form is decided by the probe in 3.7.
 
-### 3.3 Net revision identity through the client-tool result — C6
+### 3.3 Mutation transition record and operation protocol — F7, F8
 
-The browser returns the post-mutation document SHA-256 inside each client-tool result. Mission 6 already computes this hash for its settled manifest. A document hash that no tool result explains is reported as "changed outside the conversation." Petrinaut's schema is not extended: elements are strict objects with no metadata slot and the file wrapper carries only `title` and a generator (B7). A file-level provenance pointer in `meta` is deferred until Mission 11 has a consumer for a self-describing export.
+The browser returns, per call: document identity, expected base hash, outcome (applied, no-op, failed, stale, unknown), confirmed post hash, and affected element ids or retained pre and post definitions. One authoritative result per call; a duplicate rule for repeated signals. The workpiece update and the browser mutation are separate boundaries, so the protocol is:
 
-### 3.4 The visible workpiece — C7
+```text
+requested(callId, documentId, baseHash, workpieceRevision, basis)
+  → outcome(applied | no-op | failed | stale | unknown, postHash, effects)
+  → reconciled | incomplete | unknown
+```
 
-The chat rendering projects `update_workpiece` parts out of assistant messages and leaves a one-line "workpiece updated" marker. A pane in the Petrinaut Brunch panel shows the current revision, the revision list, and a diff between any two, all derived from Flue history through the Mission 5 transport. The why answer renders into the same pane because it resolves to a passage the reviewer must see. This projection lives in the app or transport layer, not in the Petrinaut library. The pane is the surface every later provenance and revision mission assumes and none has built; it is also the product-manager-visible advance in its own right.
+A document transition no record explains is "not attributable from recorded transitions"; provenance for the affected state is refused until an explicit external revision is imported. No Petrinaut schema change is needed; the wrapper has no provenance slot and none is added (F3).
 
-### 3.5 Schema carrier repair — B9, C11
+### 3.4 Lookups and their executable boundary — C5, F9
 
-Precondition for admitting any tool beyond the flat ones. Flue accepts Valibot schemas only and rejects other Standard Schema vendors; the construction factory therefore declares an empty loose object and pastes Petrinaut's JSON Schema into the description. Fix by a mechanical JSON Schema to Valibot interpreter covering the subset Petrinaut uses (objects, strings, numbers, enums, arrays, nullable, optional, unions), or by upstream Flue Standard Schema support. The local interpreter is derived rather than hand-copied and is reversible if upstream support arrives.
+Core owns revision and query semantics. Plugin-sdcpn owns mutation names, inputs, outputs, and effect interpretation. Binding and app own authorized acquisition of Flue history through the in-process fetch pattern the capture sweep already uses, and compose the model-facing tool. Whether the model sees one composed why tool or two follows interaction quality. Retrieved conversation text is untrusted evidence returned in the smallest range needed (F11).
 
-### 3.6 Tool admission and teaching — C10, C12
+### 3.5 The visible workpiece — C7
 
-Petrinaut's canonical mutation, query, and command tools are admitted to ordinary SDCPN conversations, mechanically from Petrinaut's AI tool bundle, and scoped down only from observed misbehaviour. The inherited six-tool subset is retired as a product surface. The skill gains construction posture: read the definition first, mutate in small steps, check compilation errors, record decisions in Construction notes, call `update_workpiece` before and after construction. Parity with the stock modeller remains a non-goal; the change is the direction of the default.
+Chat projects `update_workpiece` parts out of assistant messages and leaves a one-line marker. A pane in the Petrinaut Brunch panel shows the current revision, the revision list, and a diff, derived from Flue history through the Mission 5 transport. The why answer renders into the same pane. This projection lives in the app or transport layer, not the Petrinaut library. It is the surface every later mission assumes and a product-manager-visible advance in its own right.
 
-### 3.7 Subtraction — C8, C9
+### 3.6 Schema carrier repair — B9, C11
 
-Retired from code under Mission 7 authority: the `ask` and `sweep` names in core, the suspended ask contract, the website ask interactive tool and test, the sweep filter and output module in the panel transport, and the two Voice references. The capture store and sweep are not consumed by Mission 7; the store re-enters only if answer-time verification strains under compaction or ownership.
+Precondition for admitting any nested tool. Flue accepts Valibot only and rejects other Standard Schema vendors; the construction factory declares an empty loose object with the JSON Schema pasted into the description. Fix by a mechanical JSON Schema to Valibot interpreter for the subset Petrinaut uses, or upstream Flue Standard Schema support. Prove one real nested call before broad admission.
+
+### 3.7 Passage identity — F6
+
+A prerequisite, not fog. Candidates: heading path, Markdown anchor, companion manifest. The probe covers rename, move, paraphrase, split, merge, deletion, and reintroduction on one real workpiece. If no scheme survives, the first claim is revision-local text with no cross-revision "introduced by."
+
+### 3.8 Scenario-derived tool admission — F13
+
+The inherited six-tool subset is retired. The admitted subset is generated mechanically from Petrinaut's AI tool bundle by the document entity classes the six persona cases exercise, surveyed on 2026-09-04:
+
+| Entity class | Case evidence | Admitted operations |
+| --- | --- | --- |
+| places, transitions, arcs | every case | add, update, remove; arc weight and type |
+| scenarios (initial state) | every case | add, update, remove |
+| types and type elements | most cases name colours or token attributes | add, update, remove, move element |
+| parameters | industrial gas | add, update, remove |
+| metrics | vestera | add, update, remove |
+| differential equations | data-centre thermal, pharma cold chain | add, update, remove |
+| queries and commands | all | `getLatestNetDefinition`, `getNetCompilationErrors`, `applyAutoLayout`, `setNetTitle` |
+| excluded for now | only vestera hints at hierarchy | subnets, component instances, position updates |
+
+Expansion is by observed need with the case named. Admission in ordinary SDCPN conversation is the default; parity with the stock modeller is still not the goal.
+
+### 3.9 Teaching and subtraction — C9, C12
+
+The skill gains construction posture: read the definition first, mutate in small steps with a declared basis, check compilation errors, record decisions in Construction notes, call `update_workpiece` before and after construction. The `ask` and `sweep` client handling is retired from code. The capture store is not consumed; it re-enters only if the compaction probe shows `history()` loses records (F4).
 
 ## 4. Tool inventory after this design
 
 | Tool | Owner | Executes | Status |
 | --- | --- | --- | --- |
-| `ping` | app | server | keep, diagnostic |
-| `activate_skill` | Flue | server | keep |
-| `readPetrinautDoc` | plugin-sdcpn | browser | keep |
-| Petrinaut canonical bundle | plugin-sdcpn, derived | browser | admit to ordinary conversation after 3.5 |
+| `ping`, `activate_skill`, `readPetrinautDoc` | app, Flue, plugin | server, server, browser | keep |
+| scenario-derived Petrinaut subset (3.8) | plugin-sdcpn, derived | browser | admit after carrier repair |
 | `update_workpiece` | core | server | new |
-| `query_workpiece` | core | server | new |
-| `locate_elements` | plugin-sdcpn | server | new |
+| why lookup (one or two model-facing tools) | composed at app from core and plugin | server | new |
 | `ask`, `sweep` client handling | core, website | browser | retire |
-| six-tool and two-tool subsets | plugin-sdcpn | browser | retire as product surfaces; Mission 6 fixture mode stays until Mission 6 archives |
+| six-tool and two-tool subsets | plugin-sdcpn | browser | retire once Mission 6 archives |
 
-## 5. Real honest fixtures — D1 to D5
+## 5. Real honest fixtures — D1 to D5, F14, F15
 
-The provenance pair is a real conversation with a real revisioned workpiece and a real constructed net, produced by persona interviews against the production agent. The Mission 6 prepared fixture remains a viability proof and is not promoted (A3).
+The provenance pair is a real conversation with a real revisioned workpiece and a real constructed net, produced by persona interviews against the production agent. The Mission 6 prepared fixture stays a viability proof.
 
 ```text
-persona run (Pi harness, production ChatAgent, real-headless host)
-  → Flue store holds the genuine conversation, revisions, mutations
-  → harness retains snapshot.json + projections per settled read
-  → grade coverage against the hidden oracle ledger afterwards
-  → ??? → live fixture the demo opens                       (D3, open)
+probe: one tiny genuine conversation → export or retain → relocate → reopen → authorize → query   (F14, first)
+then: persona runs (Pi harness, production ChatAgent, real-headless host), several cases in parallel
+      → Flue store holds conversation, revisions, mutations with basis, transition records
+      → harness retains snapshot.json + projections per settled read
+      → frozen element inventory and consequential rule; frozen behavioural discriminator
+      → grade coverage against the hidden oracle ledger afterwards
 ```
 
-Settled: run several cases in parallel; six cases exist. Recommended: a turn cap larger than the 6–10 used so far as budget, early stop when Brunch itself declares construction handoff or delivery, ledger coverage as the post-hoc grade rather than the stop rule (D4); runs go to construction so the fixture contains lineage, which sequences the carrier fix and tool admission before the construction campaign, with an earlier elicitation-only campaign to measure revision cadence (D5).
+Stop rule: a turn cap as budget, early stop when Brunch declares construction handoff, ledger coverage as the post-hoc grade (D4). Runs go to construction so the fixture contains lineage and basis (D5).
 
-Open: how a retained genuine conversation becomes a live fixture in a fresh store. Keeping the dev store as shipped data, restoring genuine records through Flue's storage adapter, and replaying the snapshot as prepared signals each have a named cost in D3; the first probe is whether Flue 2.0.3 tolerates export and restore at its storage boundary.
+## 6. Mission topology — F12
 
-## 6. What this changes in the mission spine
+Construction and explanation ship in one mission. Its body: carrier repair, orphan retirement, `update_workpiece`, the workpiece pane, scenario-derived tool admission and teaching, declared basis and transition records, the persona programme to construction, and the why route over real lineage. Its first act is the adversarial tracer: one genuine conversation, two distinguishable passages, two mutations, one no-op or failed mutation, one correction, one hand edit, with deterministic answers or explicit refusals before any breadth. The following mission takes projection breadth, repeat and changed-input behaviour, and readiness closure. Reviewer revision follows. Local posture is named; remote durability goes to a scheduled Mission 8 or an explicit pre-handoff release gate, and "locally run," "locally verified image," and "remote replacement-safe" stay distinct claims (F15).
 
-1. **Name the tension.** The spine states provenance-by-lineage as the current hypothesis, the typed IR and hand-authored derivation as rejected with reasons, revision cadence as the named strain, and the visible workpiece as the precondition (E1).
-2. **Re-cut Mission 7.** Body: carrier fix, orphan retirement, `update_workpiece`, workpiece pane, tool admission and teaching, persona programme to construction. Last step: the why route over real lineage. Release note narrowed to the honest framing (C13). Local posture; remote durability to Mission 8 (C14). Capture-store chain and Mission 2 inherited closure dropped (E2).
-3. **Adjust Missions 9 and 10.** They inherit the seam from lineage: revision id equals call id, passage identity per the probe in C15, stable element ids, document hash per C6. They no longer assume a derivation fixture or a prebuilt pair (E3).
-4. **Mission 6 close report.** Record the fixture-rigging admission, the carried fenced-block-to-tool change, and the credential cause of the blocked witness (E4).
-5. **Authority.** Every settled item is an owner decision expressed in conversation. It becomes authority only when written into the cut Mission 7 `MISSION.md`, with Mission 6's construction-tool constraint amended there and not in the Mission 6 tie-off (E5).
+Release wording, narrowed (C13, F5): "Ask why about any element and see the passage the constructor declared as its basis, the conversation context behind it, and who did what, or an explicit refusal." Actor identity and causal wording strengthen only as the records do.
 
-## 7. Fog-line
+## 7. Consequences for the planning record
 
-- Revision cadence: whether the model calls `update_workpiece` often enough for blame to have grain; unmeasured (B6).
-- Passage identity: heading path, Markdown anchor, or companion manifest; decided by the probe in C15.
-- Carrier repair route: local interpreter versus upstream Flue support (3.5).
-- Fixture materialization from a genuine conversation (D3).
-- Token cost of full-document emission on long interviews, and when a structured patch earns its place.
-- Which canonical tools misbehave at the provider boundary once the carrier carries fields; only observed failure scopes admission down.
-- Whether the why answer over a real pair is useful to a reviewer, not merely correct; a human judges, per the Mission 7 draft's existing risk row.
+1. **Name the tension** in the spine: lineage plus declared basis as the hypothesis; typed IR and hand-authored derivation rejected with reasons; revision cadence, compaction survival, and passage identity as the named strains; the visible workpiece as the precondition.
+2. **Re-cut the mission drafts**: one consolidated construction-and-explanation mission replaces the current Mission 7 and the construction half of Mission 9; the remainder of Mission 9 becomes breadth and repeat behaviour; Mission 10 inherits basis, transition records, and passage identity rather than a derivation fixture.
+3. **Mission 6 close report**: fixture-rigging admission, the carried fenced-block-to-tool change, the credential cause of the blocked witness.
+4. **Migration matrix** with a removal gate for any dual-read bridge (F15).
+5. **Consumer discovery** with Chris and Yannis before the construction region is chosen (F15).
+6. **Authority**: every settled item becomes authority only when written into the cut `MISSION.md`, with Mission 6's construction-tool constraint amended there.
 
-## 8. Questions for the independent reviewer
+## 8. Fog-line and probes, in order
 
-1. Is provenance-by-lineage a sufficient answer to the stated intent, or does it smuggle an assumption the log did not check?
-2. Is the tool split in 3.2 the right ownership boundary, or should one tool serve both lookups?
-3. Is returning the document hash in the client-tool result an adequate join between net and workpiece revisions, given hand edits in Petrinaut?
-4. Does anything in sections 3 and 4 reintroduce a mechanism the spine's rejected-mechanisms list has already refused?
-5. Is the persona programme's stop rule and fixture-materialization plan honest about what a "real" fixture is?
-6. Which settled items should be re-opened before they enter the Mission 7 authority, and why?
+1. Compaction: whether `history()` keeps folded messages; set `keepRecentTokens` low, run past threshold, read history (F4).
+2. Fixture materialization: export, relocate, reopen, authorize, query one tiny genuine conversation (F14).
+3. Passage identity under semantic edits (F6).
+4. Carrier repair for one real nested mutation from the 3.8 subset.
+5. Revision cadence: whether the model calls `update_workpiece` often enough for revisions to have grain (B6).
+6. Basis quality: whether the constructor declares a usable basis unprompted, and how often it is absent.
+7. Whether the why answer over a real pair is useful to a reviewer, judged by a human.
+8. Token cost of full-document emission, and when a structured patch earns its place.
+
+## 9. Questions for the next reviewer
+
+1. Does the declared basis reintroduce any rejected mechanism, or does it stay a thin creation-time relation?
+2. Is the transition record the minimum that makes "not attributable" decidable?
+3. Does the consolidated mission have one coherent visible advance, or does it still have too many independent failure fronts after the adversarial tracer?
+4. Is the scenario-derived subset honestly derived from the cases, and is anything in it unearned?
+5. Which probes, if negative, should stop the cut rather than reshape it?
