@@ -114,6 +114,7 @@ test("admits one user message and projects a finite per-turn stream", async () =
 
   expect(send).toHaveBeenCalledOnce();
   expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:user-1",
     message: { kind: "user", body: "Run the transport tracer." },
     signal: undefined,
   });
@@ -158,6 +159,7 @@ test("admits one client-tool result signal and resumes its assistant id", async 
   );
 
   expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk-tool:assistant-original:tool-1",
     message: {
       kind: "signal",
       type: "client-tool-result",

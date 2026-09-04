@@ -570,29 +570,6 @@ describe("OpenAIRealtimeSession", () => {
     ]);
   });
 
-  test("closes a stopped function call without requesting speech", async () => {
-    const harness = createHarness();
-    await harness.session.connect();
-    const channel = harness.channels[0]!;
-    const sentBefore = sentEvents(channel).length;
-
-    harness.session.completeFunctionCallWithoutResponse(
-      "call-stopped",
-      "aborted",
-    );
-
-    expect(sentEvents(channel).slice(sentBefore)).toEqual([
-      {
-        type: "conversation.item.create",
-        item: {
-          type: "function_call_output",
-          call_id: "call-stopped",
-          output: JSON.stringify({ response_text: [], outcome: "aborted" }),
-        },
-      },
-    ]);
-  });
-
   test("preserves exact canonical whitespace while rejecting blank speech", async () => {
     const harness = createHarness();
     await harness.session.connect();

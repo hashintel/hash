@@ -24,7 +24,7 @@ const segment = (
   messageId: `message-${id}`,
   partId: id,
   source: "assistant-text",
-  ...(submissionId === undefined ? {} : { submissionId }),
+  ...(submissionId === undefined ? {} : { submissionIds: [submissionId] }),
   text,
 });
 
@@ -56,7 +56,6 @@ const failedTranscript = (
 const createHarness = () => {
   let listener: ((event: OpenAIRealtimeSessionEvent) => void) | undefined;
   const session = {
-    completeFunctionCall: vi.fn(),
     speakCanonical: vi.fn(),
     subscribe: vi.fn((next: (event: OpenAIRealtimeSessionEvent) => void) => {
       listener = next;
@@ -120,7 +119,6 @@ describe("RealtimeBrunchBridge", () => {
 
     expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
     expect(harness.session.speakCanonical).not.toHaveBeenCalled();
-    expect(harness.session.completeFunctionCall).not.toHaveBeenCalled();
     expect(harness.events).toEqual([]);
   });
 
@@ -393,7 +391,6 @@ describe("RealtimeBrunchBridge", () => {
 
     const deliveryId = createRealtimeSubmissionId(transcriptKey(7));
     expect(harness.session.speakCanonical).toHaveBeenCalledWith([correlated]);
-    expect(harness.session.completeFunctionCall).not.toHaveBeenCalled();
     expect(harness.events.map(({ type }) => type)).toEqual([
       "submission-started",
       "submission-admitted",

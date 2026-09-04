@@ -587,6 +587,19 @@ export class VoiceTurnController {
       this.#recordLatency("submission-settled", event.deliveryId);
       return;
     }
+    if (event.type === "submission-stopped") {
+      // Brunch was stopped before it replied: nothing to speak, and the
+      // interviewer is free to listen again.
+      const pausedWhileStopped = this.#snapshot.input === "paused";
+      if (pausedWhileStopped) {
+        this.#inputStateOnResume = "listening";
+      }
+      this.#update({
+        input: pausedWhileStopped ? "paused" : "listening",
+        output: "idle",
+      });
+      return;
+    }
     this.#lastResponseQuestion = event.questionSegment ?? null;
     this.#lastResponseSegments = [...event.segments];
     const responseEnd = event.segments.at(-1);
@@ -600,19 +613,6 @@ export class VoiceTurnController {
         output: "interrupted",
       });
       if (responseEnd) this.#recordLatency("answer-ready", responseEnd.id);
-      return;
-    }
-    if (event.type === "submission-stopped") {
-      // Brunch was stopped before it replied: nothing to speak, and the
-      // interviewer is free to listen again.
-      const pausedWhileStopped = this.#snapshot.input === "paused";
-      if (pausedWhileStopped) {
-        this.#inputStateOnResume = "listening";
-      }
-      this.#update({
-        input: pausedWhileStopped ? "paused" : "listening",
-        output: "idle",
-      });
       return;
     }
     const paused = this.#snapshot.input === "paused";
