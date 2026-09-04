@@ -14,6 +14,11 @@ import { BottomBarCollapseContext } from "./collapse-context";
  * browser maintains `:hover` and `:focus-within` itself, where mirroring them
  * into React can strand the bar open — a control that unmounts while focused
  * fires no blur.
+ *
+ * A menu opened from the bar renders in a portal outside it, taking the
+ * pointer and the focus with it, so the third selector holds the bar open
+ * while a control inside it reports one. The same pattern keeps the sidebar's
+ * row actions up; see `filterable-list-sub-view`.
  */
 const groupStyle = cva({
   base: {
@@ -34,7 +39,7 @@ const groupStyle = cva({
         // folding is not a response to anything and eases in. The selector
         // stays on one line: Panda writes the key into the class name, and a
         // wrapped one stops matching the rule it generated.
-        '[data-bottom-bar]:hover &, [data-bottom-bar]:focus-within &, [data-bottom-bar][data-holding="true"] &':
+        '[data-bottom-bar]:hover &, [data-bottom-bar]:focus-within &, [data-bottom-bar]:has([data-state="open"]) &':
           {
             gridTemplateColumns: "[1fr]",
             opacity: "[1]",

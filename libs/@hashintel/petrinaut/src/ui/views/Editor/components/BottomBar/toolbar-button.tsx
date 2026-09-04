@@ -64,6 +64,12 @@ interface ToolbarButtonProps {
   onDragStart?: (event: React.DragEvent) => void;
   /** Forwarded to the underlying `<button>` (e.g. to anchor a popover) */
   ref?: Ref<HTMLButtonElement>;
+  /**
+   * Anything else reaches the `<button>`. A control that opens a popover marks
+   * itself `data-state="open"` through this, which is what the bar watches to
+   * stay unfolded while the popover it anchors is up.
+   */
+  [dataAttribute: `data-${string}`]: unknown;
 }
 
 /**
@@ -81,6 +87,7 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   draggable = false,
   onDragStart,
   ref,
+  ...rest
 }) => {
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if ((event.key === "Enter" || event.key === " ") && onClick) {
@@ -104,6 +111,7 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
         draggable={draggable}
         onDragStart={onDragStart}
         tabIndex={0}
+        {...rest}
       >
         {children}
       </button>

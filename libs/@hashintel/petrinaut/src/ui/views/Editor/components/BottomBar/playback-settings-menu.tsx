@@ -185,6 +185,7 @@ export const PlaybackSettingsMenu = () => {
     <>
       <ToolbarButton
         ref={triggerRef}
+        data-state={open ? "open" : "closed"}
         tooltip="Playback settings"
         ariaLabel="Playback settings"
         ariaExpanded={open}

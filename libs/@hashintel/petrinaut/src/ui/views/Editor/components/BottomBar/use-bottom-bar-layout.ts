@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { useElementSize } from "../../../../../react/hooks/use-element-size";
 import { VIEWPORT_CONTROLS_CLEARANCE } from "../../../../constants/ui";
@@ -16,15 +16,11 @@ export interface BottomBarLayout {
   readonly liftY: number;
   /** True while the bar has room only for its essential controls. */
   readonly isCollapsed: boolean;
-  /** True while a click inside the bar holds the hidden controls out. */
-  readonly isHolding: boolean;
   /** Reports what one collapsible group takes up. See the collapse context. */
   readonly reportGroupWidth: (
     id: string,
     width: CollapsibleGroupWidth | null,
   ) => void;
-  /** Holds the hidden controls out until a click lands outside the bar. */
-  readonly hold: () => void;
 }
 
 /**
@@ -35,10 +31,9 @@ export interface BottomBarLayout {
  * clamps, and each collapsible group reports both what it takes when shown and
  * what it is currently hiding, so the decision never chases itself.
  *
- * Whether the hidden controls are on screen is not decided here: hover and
- * keyboard focus reveal them in CSS, which cannot go stale the way mirrored
- * state does. Only the click-hold needs JavaScript, because the menu a click
- * opens renders outside the bar.
+ * Whether the hidden controls are on screen is not decided here at all: hover,
+ * keyboard focus and an open menu reveal them in CSS, which cannot go stale
+ * the way mirrored state does.
  */
 export const useBottomBarLayout = (
   /** Spans the canvas; the bar is centred in it and measured against it. */
@@ -88,28 +83,6 @@ export const useBottomBarLayout = (
     [],
   );
 
-  const [isHolding, setIsHolding] = useState(false);
-
-  // The menu a control opens renders outside the bar, so the pointer leaving
-  // for the menu would collapse the bar out from under the click that opened
-  // it. A click inside holds the controls out until one lands elsewhere.
-  useEffect(() => {
-    if (!isHolding) {
-      return;
-    }
-
-    const release = (event: PointerEvent) => {
-      const bar = barRef.current;
-      if (bar && event.target instanceof Node && bar.contains(event.target)) {
-        return;
-      }
-      setIsHolding(false);
-    };
-
-    document.addEventListener("pointerdown", release);
-    return () => document.removeEventListener("pointerdown", release);
-  }, [barRef, isHolding]);
-
   const insets = useCanvasInsets();
   const bounds = {
     containerWidth,
@@ -132,7 +105,7 @@ export const useBottomBarLayout = (
   // What the bar would take with every control shown. Its two terms move
   // together while a group folds, so the sum holds still throughout.
   const expandedWidth = barWidth + hiddenWidth;
-  const isCollapsed = !isHolding && !fitsWithinBounds(bounds, expandedWidth);
+  const isCollapsed = !fitsWithinBounds(bounds, expandedWidth);
 
   // While a panel animates, the bar's own transition carries it there, and an
   // offset taken from a width that is itself animating would restart that
@@ -147,8 +120,6 @@ export const useBottomBarLayout = (
     offsetX: getBottomBarOffset(bounds, isAnimating ? settledWidth : barWidth),
     liftY: insets.bottom,
     isCollapsed,
-    isHolding,
     reportGroupWidth,
-    hold: () => setIsHolding(true),
   };
 };
