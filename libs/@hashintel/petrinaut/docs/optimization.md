@@ -49,7 +49,11 @@ parameter behind the scenes.
    the GPU backend cannot compute (see
    [Compute backend](experiments.md#compute-backend-experimental)), so the
    steps run on the CPU. The in-browser optimizer also offers **Parallel
-   steps** (1 to 4, default `1`): how many steps it evaluates at once.
+   steps** (1 to 4, default `1`): how many steps it evaluates at once. The
+   **Seed** field starts at a fresh random value each time the form opens; it
+   seeds both the optimizer's proposals and the simulations' random draws, so
+   keep a seed to reproduce a study and change it to explore a different set
+   of steps.
 5. In **Parameters**, leave a parameter at its current **Value** or enable
    **Optimize** and enter its search range. At least one parameter must be
    optimized.
@@ -61,8 +65,10 @@ parameter behind the scenes.
      optimization objectives.
 7. Click **Run**.
 
-The metric is evaluated on the final frame of each run, and a step's objective
-is the mean over its runs. The current model is reduced to an immutable snapshot
+The optimizer draws its first steps at random, about a third of the requested
+steps and never fewer than 2 or more than 10, then proposes each further step
+from the results so far. The metric is evaluated on the final frame of each
+run, and a step's objective is the mean over its runs. The current model is reduced to an immutable snapshot
 containing the selected scenario and objective metric when the optimization
 starts. Later edits do not change an in-flight run.
 

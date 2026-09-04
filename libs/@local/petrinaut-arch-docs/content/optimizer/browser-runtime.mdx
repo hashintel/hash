@@ -165,7 +165,13 @@ walks a grid through `sampleDetachedObjective`
 ## Parity with the service
 
 Both drivers derive per-trial seeds with the same helper, and the sampler
-runs the same Optuna version with the same seed. On the CPU pool the request
+runs the same Optuna version with the same seed and the same number of
+startup trials: `create_study` in [optimizer-core](layer:optimizer-core) sets
+the TPE sampler's `n_startup_trials` to a third of the requested trials,
+between 2 and Optuna's default of 10, so a short study models its objective
+instead of spending every step on random draws. The create form gives each
+study a fresh random seed, so two studies over different models no longer
+share their random draws. On the CPU pool the request
 pins every run's seed (`runs: [{ seed }]`), so a trial's replicates run on the
 seeds the CLI runs and the trial reports the service's objective value. The
 parity in proposals depends on that: after its startup trials the TPE sampler
