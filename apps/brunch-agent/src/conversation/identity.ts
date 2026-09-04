@@ -16,9 +16,7 @@ export { LOCAL_UI_PRINCIPAL } from "./payload.ts";
 export type { ConversationIdentity };
 
 export const flueConversationId = (identity: ConversationIdentity): string =>
-  createHash("sha256")
-    .update(identityPayload(identity))
-    .digest("hex");
+  createHash("sha256").update(identityPayload(identity)).digest("hex");
 
 export const flueConversationIdFrom = (
   identity: ConversationIdentity,
