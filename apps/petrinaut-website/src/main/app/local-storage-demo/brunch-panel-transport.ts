@@ -312,6 +312,7 @@ export const createBrunchPanelTransport = (
   hooks?: {
     readonly clientToolNames?: FlueChatTransportOptions["clientToolNames"];
     readonly initialData?: FlueChatTransportOptions["initialData"];
+    readonly mapClientToolInput?: FlueChatTransportOptions["mapClientToolInput"];
     readonly onAdmission?: (admission: AgentSendResult) => void;
   },
 ): PetrinautAiChatTransport => ({
@@ -326,6 +327,9 @@ export const createBrunchPanelTransport = (
             hooks?.clientToolNames ?? new Set([readPetrinautDocToolName]),
           hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
           initialData: hooks?.initialData,
+          ...(hooks?.mapClientToolInput === undefined
+            ? {}
+            : { mapClientToolInput: hooks.mapClientToolInput }),
           onAdmission: (event) => {
             tracker.recordAdmission(event);
             hooks?.onAdmission?.(event.admission);

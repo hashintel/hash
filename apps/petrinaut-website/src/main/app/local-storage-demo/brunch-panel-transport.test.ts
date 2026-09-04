@@ -222,6 +222,92 @@ test("seeds scratch mode and admits construction calls as browser tools", async 
   ).not.toHaveProperty("providerExecuted");
 });
 
+test("passes host client-tool input mapping to the live transport", async () => {
+  const admission: AgentSendResult = {
+    streamUrl: "http://brunch.test/stream",
+    offset: "offset-mapped",
+    submissionId: "submission-mapped",
+    uid: "uid-mapped",
+  };
+  const events: readonly ConversationStreamChunk[] = [
+    {
+      type: "message-started",
+      conversationId: "conversation-mapped",
+      messageId: "assistant-mapped",
+      submissionId: admission.submissionId,
+      turnId: "turn-mapped",
+      position: { batch: 1, index: 0 },
+    },
+    {
+      type: "tool-input",
+      conversationId: "conversation-mapped",
+      messageId: "assistant-mapped",
+      toolCallId: "add-arc",
+      toolName: "addArc",
+      input: { weight: "1" },
+      position: { batch: 1, index: 1 },
+    },
+    {
+      type: "tool-output",
+      conversationId: "conversation-mapped",
+      toolCallId: "add-arc",
+      output: { awaiting: "client" },
+      position: { batch: 1, index: 2 },
+    },
+    {
+      type: "submission-settled",
+      conversationId: "conversation-mapped",
+      submissionId: admission.submissionId,
+      outcome: "completed",
+      position: { batch: 1, index: 3 },
+    },
+  ];
+  const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+    for (const event of events) {
+      // Preserve the canonical stream order.
+      await options?.onEvent?.(event);
+    }
+  });
+  const client = {
+    send: vi.fn<FlueClient["send"]>(async () => admission),
+    wait,
+  } as Pick<FlueClient, "send" | "wait"> as FlueClient;
+  const transport = createBrunchPanelTransport(
+    Promise.resolve(client),
+    new BrunchPanelConversationTracker(),
+    {
+      clientToolNames: new Set(["addArc"]),
+      mapClientToolInput: ({ input }) => ({
+        ...(input as object),
+        weight: 1,
+      }),
+    },
+  );
+
+  const stream = await transport.sendMessages({
+    trigger: "submit-message",
+    chatId: "conversation-mapped",
+    messageId: undefined,
+    messages: [
+      {
+        id: "user-mapped",
+        role: "user",
+        parts: [{ type: "text", text: "Add the confirmed arc." }],
+      },
+    ],
+    abortSignal: undefined,
+  });
+  const chunks: UIMessageChunk[] = [];
+  for await (const chunk of stream) chunks.push(chunk);
+
+  expect(chunks).toContainEqual({
+    type: "tool-input-available",
+    toolCallId: "add-arc",
+    toolName: "addArc",
+    input: { weight: 1 },
+  });
+});
+
 test("matches client-tool admissions once and supports unsubscribe", () => {
   const admission: AgentSendResult = {
     streamUrl: "http://brunch.test/stream",

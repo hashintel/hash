@@ -7,6 +7,10 @@ export interface FlueUiStreamOptions {
   readonly submissionId: AgentSendResult["submissionId"];
   readonly clientToolNames: ReadonlySet<string>;
   readonly hiddenToolNames?: ReadonlySet<string>;
+  readonly mapClientToolInput?: (input: {
+    readonly input: unknown;
+    readonly toolName: string;
+  }) => unknown;
   readonly write: (chunk: UIMessageChunk) => void;
 }
 
@@ -37,6 +41,14 @@ export const createFlueUiStream = (
   const hiddenToolCallIds = new Set<string>();
   const pendingClientToolInputs = new Map<string, ToolInputChunk>();
   const authorizedClientToolCallIds = new Set<string>();
+
+  const mappedClientToolInput = (chunk: ToolInputChunk): unknown =>
+    options.mapClientToolInput === undefined
+      ? chunk.input
+      : options.mapClientToolInput({
+          input: chunk.input,
+          toolName: chunk.toolName,
+        });
 
   const finishPart = (): void => {
     if (!streamingPart) return;
@@ -164,7 +176,7 @@ export const createFlueUiStream = (
               type: "tool-input-available",
               toolCallId: pendingClientToolInput.toolCallId,
               toolName: pendingClientToolInput.toolName,
-              input: pendingClientToolInput.input,
+              input: mappedClientToolInput(pendingClientToolInput),
             });
             return;
           }
@@ -188,7 +200,7 @@ export const createFlueUiStream = (
               type: "tool-input-available",
               toolCallId: pendingClientToolInput.toolCallId,
               toolName: pendingClientToolInput.toolName,
-              input: pendingClientToolInput.input,
+              input: mappedClientToolInput(pendingClientToolInput),
               providerExecuted: true,
             });
           }

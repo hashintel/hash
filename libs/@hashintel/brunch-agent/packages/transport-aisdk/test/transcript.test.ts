@@ -53,6 +53,36 @@ test("leaves an unfinished client tool available to run", () => {
   ]);
 });
 
+test("maps client-tool input before hydrating it", () => {
+  expect(
+    snapshotToUiMessages(snapshotWithPendingClientTool, {
+      ...projectionOptions,
+      mapClientToolInput: ({
+        input,
+      }: {
+        readonly input: unknown;
+        readonly toolName: string;
+      }) => ({
+        ...(input as object),
+        doc: "canonical-ai-assistant",
+      }),
+    }),
+  ).toEqual([
+    {
+      id: "assistant-1",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-readPetrinautDoc",
+          toolCallId: "tool-doc-1",
+          state: "input-available",
+          input: { doc: "canonical-ai-assistant" },
+        },
+      ],
+    },
+  ]);
+});
+
 test("hydrates a server-rejected client tool as provider-executed", () => {
   const snapshot: FlueConversationSnapshot = {
     ...snapshotWithPendingClientTool,

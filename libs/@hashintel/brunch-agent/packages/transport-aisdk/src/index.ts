@@ -60,6 +60,10 @@ export interface FlueChatTransportOptions {
   readonly clientToolNames: ReadonlySet<string>;
   readonly hiddenToolNames?: ReadonlySet<string>;
   readonly initialData?: AgentPromptOptions["initialData"];
+  readonly mapClientToolInput?: (input: {
+    readonly input: unknown;
+    readonly toolName: string;
+  }) => unknown;
   readonly onAdmission?: (event: {
     readonly admission: AgentSendResult;
     readonly kind: "client-tool-result" | "user";
@@ -304,6 +308,7 @@ const streamSubmission = (
         submissionId: admission.submissionId,
         clientToolNames: options.clientToolNames,
         hiddenToolNames: options.hiddenToolNames,
+        mapClientToolInput: options.mapClientToolInput,
         write,
       });
 

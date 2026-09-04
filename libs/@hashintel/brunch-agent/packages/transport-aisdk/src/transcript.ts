@@ -26,6 +26,10 @@ export type UiHistoryMessage = Omit<
 export interface SnapshotToUiMessagesOptions {
   readonly clientToolNames: ReadonlySet<string>;
   readonly hiddenToolNames?: ReadonlySet<string>;
+  readonly mapClientToolInput?: (input: {
+    readonly input: unknown;
+    readonly toolName: string;
+  }) => unknown;
 }
 
 const unhandledConversationPart = (part: never): never => {
@@ -86,17 +90,24 @@ const clientToolResultsFrom = (
 
 const toolPartFrom = (
   part: Extract<FlueConversationPart, { type: "dynamic-tool" }>,
-  clientToolNames: ReadonlySet<string>,
+  options: SnapshotToUiMessagesOptions,
   clientResults: ReadonlyMap<string, ClientToolResult>,
 ): UiMessagePart => {
-  const isClientTool = clientToolNames.has(part.toolName);
+  const isClientTool = options.clientToolNames.has(part.toolName);
   const hasClientOutput = clientResults.has(part.toolCallId);
+  const input =
+    isClientTool && options.mapClientToolInput !== undefined
+      ? options.mapClientToolInput({
+          input: part.input,
+          toolName: part.toolName,
+        })
+      : part.input;
   if (part.state === "output-error") {
     return {
       type: `tool-${part.toolName}`,
       toolCallId: part.toolCallId,
       state: "output-error",
-      input: part.input,
+      input,
       errorText: part.errorText,
       providerExecuted: true,
     };
@@ -106,7 +117,7 @@ const toolPartFrom = (
       type: `tool-${part.toolName}`,
       toolCallId: part.toolCallId,
       state: "input-available",
-      input: part.input,
+      input,
     };
   }
   const output = isClientTool
@@ -119,7 +130,7 @@ const toolPartFrom = (
       type: `tool-${part.toolName}`,
       toolCallId: part.toolCallId,
       state: "output-available",
-      input: part.input,
+      input,
       output,
       ...(isClientTool ? {} : { providerExecuted: true }),
     };
@@ -128,7 +139,7 @@ const toolPartFrom = (
     type: `tool-${part.toolName}`,
     toolCallId: part.toolCallId,
     state: "input-available",
-    input: part.input,
+    input,
     ...(isClientTool ? {} : { providerExecuted: true }),
   };
 };
@@ -150,7 +161,7 @@ const partsFrom = (
     }
     if (part.type === "dynamic-tool") {
       if (options.hiddenToolNames?.has(part.toolName) === true) continue;
-      parts.push(toolPartFrom(part, options.clientToolNames, clientResults));
+      parts.push(toolPartFrom(part, options, clientResults));
       continue;
     }
     if (part.type === "file") {

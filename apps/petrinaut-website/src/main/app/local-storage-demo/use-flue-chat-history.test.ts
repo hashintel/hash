@@ -132,6 +132,103 @@ test("projects a pending live-net read as a browser client tool", async () => {
   ]);
 });
 
+test("uses the host-supplied client-tool catalog during hydration", async () => {
+  const harness = createObservationHarness({
+    conversation: {
+      conversationId: "conversation-1",
+      settlements: [],
+      messages: [
+        {
+          id: "assistant-net-read",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "tool-net-1",
+              toolName: "getLatestNetDefinition",
+              state: "output-available",
+              input: {},
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+      ],
+    },
+    offset: "offset-net-read",
+    phase: "live",
+    error: undefined,
+  });
+  const { result } = renderHook(() =>
+    useFlueChatHistory(
+      harness.clientPromise,
+      "conversation-1",
+      new Set<string>(),
+    ),
+  );
+
+  await waitFor(() => expect(result.current.ready).toBe(true));
+  expect(result.current.messages?.[0]?.parts).toStrictEqual([
+    {
+      type: "tool-getLatestNetDefinition",
+      toolCallId: "tool-net-1",
+      state: "output-available",
+      input: {},
+      output: { awaiting: "client" },
+      providerExecuted: true,
+    },
+  ]);
+});
+
+test("maps hydrated client-tool input through the host seam", async () => {
+  const harness = createObservationHarness({
+    conversation: {
+      conversationId: "conversation-1",
+      settlements: [],
+      messages: [
+        {
+          id: "assistant-arc",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "tool-arc-1",
+              toolName: "addArc",
+              state: "output-available",
+              input: { weight: "1" },
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+      ],
+    },
+    offset: "offset-arc",
+    phase: "live",
+    error: undefined,
+  });
+  const { result } = renderHook(() =>
+    useFlueChatHistory(
+      harness.clientPromise,
+      "conversation-1",
+      new Set(["addArc"]),
+      ({ input }) => ({ ...(input as object), weight: 1 }),
+    ),
+  );
+
+  await waitFor(() => expect(result.current.ready).toBe(true));
+  expect(result.current.messages?.[0]?.parts).toStrictEqual([
+    {
+      type: "tool-addArc",
+      toolCallId: "tool-arc-1",
+      state: "input-available",
+      input: { weight: 1 },
+    },
+  ]);
+});
+
 test("exposes the canonical settlement index for Voice correlation", async () => {
   const harness = createObservationHarness({
     conversation: {

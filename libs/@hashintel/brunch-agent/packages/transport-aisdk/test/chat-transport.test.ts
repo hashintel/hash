@@ -157,6 +157,68 @@ test("seeds a newly created conversation with configured initial data", async ()
   });
 });
 
+test("maps host client-tool input in the live transport stream", async () => {
+  const events: readonly ConversationStreamChunk[] = [
+    {
+      type: "message-started",
+      conversationId: "conversation-1",
+      messageId: "assistant-1",
+      submissionId: admission.submissionId,
+      turnId: "turn-1",
+      position: position(0),
+    },
+    {
+      type: "tool-input",
+      conversationId: "conversation-1",
+      messageId: "assistant-1",
+      toolCallId: "arc-1",
+      toolName: "addArc",
+      input: { weight: "1" },
+      position: position(1),
+    },
+    {
+      type: "tool-output",
+      conversationId: "conversation-1",
+      toolCallId: "arc-1",
+      output: { awaiting: "client" },
+      position: position(2),
+    },
+    {
+      type: "submission-settled",
+      conversationId: "conversation-1",
+      submissionId: admission.submissionId,
+      outcome: "completed",
+      position: position(3),
+    },
+  ];
+  const { client } = clientWith(events);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["addArc"]),
+    mapClientToolInput: ({ input }) => ({
+      ...(input as object),
+      weight: 1,
+    }),
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions([
+      {
+        id: "user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Add the confirmed arc." }],
+      },
+    ]),
+  );
+
+  expect(await readChunks(stream)).toContainEqual({
+    type: "tool-input-available",
+    toolCallId: "arc-1",
+    toolName: "addArc",
+    input: { weight: 1 },
+  });
+});
+
 test("admits one client-tool result signal and resumes its assistant id", async () => {
   const { client, send } = clientWith(completedEvents);
   const transport = createFlueChatTransport({

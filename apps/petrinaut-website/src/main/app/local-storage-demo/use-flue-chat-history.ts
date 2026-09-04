@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  snapshotToUiMessages,
+  type SnapshotToUiMessagesOptions,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
 
 import { brunchClientToolNames } from "./brunch-client-tools";
@@ -19,17 +22,22 @@ const noSettlements: readonly FlueConversationSettlement[] = [];
 
 const projectPetrinautMessages = (
   conversation: FlueConversationState,
+  clientToolNames: ReadonlySet<string>,
+  mapClientToolInput: SnapshotToUiMessagesOptions["mapClientToolInput"],
 ): PetrinautAiMessage[] =>
   // The host owns this narrowing: its configured client-tool catalog is the
   // same catalog Petrinaut's message type exposes.
   snapshotToUiMessages(conversation, {
-    clientToolNames: brunchClientToolNames,
+    clientToolNames,
     hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
+    ...(mapClientToolInput === undefined ? {} : { mapClientToolInput }),
   }) as PetrinautAiMessage[];
 
 export const useFlueChatHistory = (
   clientPromise: Promise<FlueClient> | null,
   conversationId: string,
+  clientToolNames: ReadonlySet<string> = brunchClientToolNames,
+  mapClientToolInput?: SnapshotToUiMessagesOptions["mapClientToolInput"],
 ): {
   readonly error: Error | undefined;
   readonly latestSettlement: FlueConversationSettlement | undefined;
@@ -108,7 +116,11 @@ export const useFlueChatHistory = (
         ? absent
           ? []
           : undefined
-        : projectPetrinautMessages(conversation),
+        : projectPetrinautMessages(
+            conversation,
+            clientToolNames,
+            mapClientToolInput,
+          ),
     phase: snapshot?.phase,
     ready,
     refresh,
