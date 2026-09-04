@@ -8,7 +8,8 @@
 
 A fresh builder must read these durable sources before deepening this cluster:
 
-- [`../../MISSION.md`](../../MISSION.md) — live Mission 5 Voice authority on this branch. Mission 4 is closed; later accepted mission archives and an owner-authorized Mission 11 cut become inherited authority before this draft can execute.
+- [`../../MISSION.md`](../../MISSION.md) — the current branch's live authority. Mission 4 is closed; later accepted mission archives and an owner-authorized Mission 11 cut become inherited authority before this draft can execute.
+- [`7-explainable-construction.md`](7-explainable-construction.md) and [`9-traceable-projection.md`](9-traceable-projection.md) — the 2026-09-04 recut predecessors. Mission 11 consumes their genuine conversation, settled revisions, declared basis, transition records, and the why operation; it does not inherit a capture store or derivation fixture, because neither exists.
 - [`../../MISSION.next.md`](../../MISSION.next.md) and [`README.md`](README.md) — shared frame, standing locks, draft authority, and lifecycle.
 - [`10-bounded-reviewer-revision.md`](10-bounded-reviewer-revision.md) and the eventual accepted Missions 7, 9, and 10 close evidence — inherited real-path artifacts and proof. Draft promises are not join evidence.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) — accepted workpiece leg, falsified real-model construction, and the parser-valid-empty warning.
@@ -83,7 +84,7 @@ One selected complete SDCPN and the known semantic artifact floor:
 - carry the accepted scenario and parameters with honest assumptions, omissions, losses, and limits; and
 - let them begin the one agreed optimisation experiment at the accepted boundary.
 
-This proves one accepted handoff and is also the completion bar, since the consumer's acceptance is the readiness decision. It does not prove a generic export package, optimizer integration, result model, repeated-experiment protocol, public release, or broad scenario portfolio.
+This proves one working handoff throughline. It is not the completion bar. Mission 11 has three distinct gates, corrected on 2026-09-04 after the [follow-up review](../evidence/design/provenance-by-lineage-follow-up-review-2026-09-04.md) item 23: (1) consumer contract acceptance of the six decisions and one fixture, which is the precondition for cutting; (2) the working handoff throughline above, which is the first internal milestone; and (3) post-throughline readiness closure sufficient for Chris and Yannis to begin the agreed experiment without reconstruction, which is completion. Artifact receipt or consumer enthusiasm is not an executable witnessed experiment start. The floor does not prove a generic export package, optimizer integration, result model, repeated-experiment protocol, public release, or broad scenario portfolio.
 
 ## Readiness ratchet
 
@@ -91,8 +92,8 @@ This proves one accepted handoff and is also the completion bar, since the consu
 
 Mission 11 consumes rather than repairs:
 
-- Mission 7's durable capture-backed provenance and visible why behavior;
-- Mission 9's meaningful automatic projection, stable identities/derivations, and closed projection stratum for the selected region;
+- Mission 7's genuine constructed region with settled revisions, declared basis, verifiable transition records, identity epochs, and the why operation past its safety and utility gates;
+- Mission 9's repeat, changed-input, and retirement behaviour and closed breadth stratum for the extended region;
 - Mission 10's accepted reviewer-authority classes, retained evidence, semantic revision, scoped patch/refusal, and stable unrelated behavior; and
 - an actual deployment threshold sufficient for the consumers to use the path, with each claimed identity, durability, telemetry, access, and recovery property observed rather than inferred from the local image.
 
@@ -100,9 +101,9 @@ If inherited closure is missing, return the defect to its owning mission. Missio
 
 ### Readiness gate after the new throughline
 
-The lateral obligations are intentionally not enumerated beyond the six consumer decisions. Once the first accepted handoff works, enumerate only the package, transfer, execution, result, credibility, repeatability, access, or retention obligations that the actual boundary exposes. Close those required to trust and begin the selected experiment. Carry broader obligations only with a named successor, re-entry gate, and oracle.
+The lateral obligations are intentionally not enumerated beyond the six consumer decisions. Once the handoff throughline works, enumerate the package, transfer, execution, result, credibility, repeatability, access, and retention obligations that the actual boundary exposes, and close those required for the consumers to begin the selected experiment without reconstruction. That closure is gate three and the completion bar; the throughline alone is not. Carry broader obligations only with a named successor, re-entry gate, and oracle.
 
-Until consumer acceptance, any more detailed readiness list would plan past the fog-line.
+Until consumer acceptance, any more detailed readiness list would plan past the fog-line. Lightweight, non-binding consumer discovery is nevertheless owed earlier, per the 2026-09-04 dispositions (decision log F15): before Mission 9 selects its extended region, record with Chris and Yannis one candidate optimisation question, the minimum scenario and parameter semantics it needs, the expected execution boundary, required outputs, and minimum credibility checks, so the proving cases exercise semantics the consumers will actually need and so file-level provenance can be judged load-bearing or not before Mission 11. Discovery informs selection; it does not authorize implementation here.
 
 ## Candidate evidence and oracles
 
@@ -121,8 +122,9 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 
 ## Inputs and joins
 
-- Selected upstream source: frozen workpiece, exact source Flue conversation, instrument manifest, and adjudication chosen by Mission 7 or a predecessor addendum; Mission 4 itself closed without a full-run candidate.
-- Missions 7, 9, and 10: accepted bounded workpiece/net/evidence/derivation chain, revision and patch-locality evidence, and the witnessed real path Mission 11 must broaden.
+- Selected upstream source: the genuine conversation, settled workpiece revisions, and adjudication accepted by Mission 7; Mission 4 itself closed without a full-run candidate and the Mission 6 prepared fixture is not promoted.
+- Missions 7, 9, and 10: accepted conversation, settled revisions, declared basis, transition records, identity epochs, repeat and change behaviour, revision and patch-locality evidence, and the witnessed real path Mission 11 must broaden.
+- Early consumer discovery: the non-binding record of one candidate question, minimum semantics, execution boundary, outputs, and credibility checks gathered before Mission 9's region selection.
 - Mission 8 actual contract: locally verified application artifact plus still-open infrastructure handoff; no remote deployment is assumed.
 - Chris/Yannis: written acceptance of the six consumer decisions and one fixture.
 - Petrinaut: current serialization, scenario, optimization, and host capabilities are inspected as existing terrain and used only where the consumer contract accepts them.
