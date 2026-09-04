@@ -26,6 +26,22 @@ SAMPLERS: dict[SamplerName, type[BaseSampler]] = {
     "random": RandomSampler,
 }
 
+# Optuna's own default; larger studies keep it.
+OPTUNA_TPE_STARTUP_TRIALS = 10
+
+
+def tpe_startup_trials(trials: int) -> int:
+    """How many trials the TPE sampler draws at random before it models the objective.
+
+    Optuna starts every TPE study with 10 random trials, which is most or all
+    of a short Petrinaut study, so such a study never proposes anything from
+    its results. A third of the requested trials, at least 2 and at most
+    Optuna's default, leaves the sampler enough history to model while giving
+    a 6-step study 4 modelled steps.
+    """
+    return max(2, min(OPTUNA_TPE_STARTUP_TRIALS, trials // 3))
+
+
 _STATE_NAMES = {
     TrialState.COMPLETE: "complete",
     TrialState.PRUNED: "pruned",
@@ -41,15 +57,21 @@ def create_study(
 ) -> optuna.Study:
     """An in-memory study whose sampler is seeded with the description's seed unless `seed` is given.
 
-    With `constant_liar`, the TPE sampler counts trials still running as
-    pending points, so trials asked while others are in flight spread out
-    instead of landing on the same candidate; Optuna flags the argument as
-    experimental with an `ExperimentalWarning`. The random sampler has no
-    history to account for and ignores the flag.
+    A TPE sampler draws `tpe_startup_trials(description.trials)` trials at
+    random before modelling unless `n_startup_trials` is given. With
+    `constant_liar`, the TPE sampler counts trials still running as pending
+    points, so trials asked while others are in flight spread out instead of
+    landing on the same candidate; Optuna flags the argument as experimental
+    with an `ExperimentalWarning`. The random sampler has no history to
+    account for and ignores both.
     """
     sampler_options.setdefault("seed", description.seed)
-    if constant_liar and description.sampler == "tpe":
-        sampler_options["constant_liar"] = True
+    if description.sampler == "tpe":
+        sampler_options.setdefault(
+            "n_startup_trials", tpe_startup_trials(description.trials)
+        )
+        if constant_liar:
+            sampler_options["constant_liar"] = True
     sampler = SAMPLERS[description.sampler](**sampler_options)
     return optuna.create_study(direction=description.direction, sampler=sampler)
 
