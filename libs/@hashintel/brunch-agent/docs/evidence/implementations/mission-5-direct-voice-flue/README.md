@@ -2,7 +2,7 @@
 
 ## Readiness status
 
-Automated contract evidence passed on 2026-09-03. The real human Voice witness required by proof leaf 8 has not been run, so this record does not claim Mission 5 product acceptance.
+Automated contract evidence passed on 2026-09-03. A real human Voice witness was attempted on 2026-09-04. It passed typed and Voice admission, exact-once visible Voice input, spoken canonical output, barge-in, and explicit durable Stop, but failed faithful reopen. This record therefore does not claim Mission 5 product acceptance.
 
 The implementation under test is:
 
@@ -71,3 +71,17 @@ Retain these sanitized artifacts here:
 6. `manifest.sha256` — hashes for the retained witness artifacts.
 
 The witness must type one turn, speak one finalized answer, confirm exactly one visible user message, compare canonical text with the exact TTS request input, interrupt playback, durably stop one unsettled turn, and reopen without resubmission or audio replay. Do not retain transcript text, audio, credentials, SDP, prompts, tool payloads, or provider response bodies in ordinary telemetry.
+
+## Human witness attempt — 2026-09-04
+
+The local `yarn dev:brunch` pair ran against source commit `2d4e81f3a4` with the required Voice configuration available. The human observed:
+
+- one typed turn completed through the Brunch panel;
+- one finalized spoken answer produced exactly one visible user message;
+- Brunch's visible response also played aloud, and speaking over it stopped playback without removing the visible response;
+- the transcript was initially hidden behind a small **Show transcript** control;
+- **Exit voice mode** stopped the audio session but did not durably stop an admitted Brunch submission; the partial spoken input was submitted and the response completed as text;
+- using the chat composer's actual Stop control durably stopped the unsettled response and displayed **Response stopped** before reload; and
+- after closing the panel, reloading, and reopening the same conversation, all message content returned, but typed/Voice provenance was absent and the stopped assistant entry appeared as ordinary truncated content. The global stopped status remained visible.
+
+The reopen gate failed because the transcript did not return exactly as left. Absence of duplicate submission and audio replay was not fully adjudicated after this failure, and the required content-free event, route, snapshot, settlement, and hash artifacts were not retained. The owner chose not to expand Mission 5 with immediate product remediation. Mission 6 owns preserving per-message typed/Voice provenance and stopped-turn presentation across its second-tab resume proof; its cut should also account for the observed discoverability gap between transcript reveal, local Voice exit, and durable conversation Stop.
