@@ -228,14 +228,6 @@ export const normalizePetrinautAiToolInput = (
     const weight = Number(normalized.weight);
     if (Number.isFinite(weight)) normalized = { ...normalized, weight };
   }
-  if (typeof normalized.endpoint === "string") {
-    try {
-      const endpoint: unknown = JSON.parse(normalized.endpoint);
-      if (isRecord(endpoint)) normalized = { ...normalized, endpoint };
-    } catch {
-      // Canonical validation reports the original malformed endpoint.
-    }
-  }
   return normalized;
 };
 

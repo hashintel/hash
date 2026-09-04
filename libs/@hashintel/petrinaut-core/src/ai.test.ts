@@ -47,19 +47,15 @@ describe("Petrinaut AI core exports", () => {
     expect(petrinautAiTools).toHaveProperty("applyAutoLayout");
   });
 
-  test("normalizes structured addArc values from text-oriented providers", () => {
+  test("normalizes an addArc weight serialized as text", () => {
     expect(
       normalizePetrinautAiToolInput("addArc", {
         transitionId: "transition",
         arcDirection: "input",
         weight: "1",
         type: "standard",
-        endpoint: '{"kind":"place","placeId":"place"}',
       }),
-    ).toMatchObject({
-      weight: 1,
-      endpoint: { kind: "place", placeId: "place" },
-    });
+    ).toMatchObject({ weight: 1 });
   });
 
   test("latest net definition tool documents extension settings", () => {

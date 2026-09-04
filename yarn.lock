@@ -933,6 +933,7 @@ __metadata:
     "@hashintel/petrinaut-core": "workspace:*"
     "@local/petrinaut-optimizer-client": "workspace:*"
     "@mantine/hooks": "npm:8.3.5"
+    "@noble/hashes": "npm:2.0.1"
     "@pandacss/dev": "npm:1.11.1"
     "@sentry/react": "npm:10.64.0"
     "@tanstack/react-router": "npm:1.170.31"

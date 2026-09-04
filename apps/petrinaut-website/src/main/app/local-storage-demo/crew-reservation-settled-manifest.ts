@@ -1,3 +1,6 @@
+import { sha256 as sha256Bytes } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
+
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import { selectRunbookWorkpiece } from "@hashintel/brunch-agent/workpiece";
 import { isSDCPNEqual, type SDCPN } from "@hashintel/petrinaut-core";
@@ -130,17 +133,8 @@ const hasOneCorrelatedTargetMutation = (
   return correlatedTargetCallIds.size === 1;
 };
 
-const sha256 = async (value: string): Promise<Sha256Digest> => {
-  const digest = await globalThis.crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(value),
-  );
-  return asSha256Digest(
-    [...new Uint8Array(digest)]
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join(""),
-  );
-};
+export const sha256Digest = (value: string): Sha256Digest =>
+  asSha256Digest(bytesToHex(sha256Bytes(new TextEncoder().encode(value))));
 
 export const hasCrewReservationTargetArc = (definition: SDCPN): boolean => {
   const transition = definition.transitions.find(
@@ -214,14 +208,13 @@ export const settleCrewReservationManifest = async (input: {
     };
   }
 
-  const [contentSha256, documentSha256, sourceMessageSha256] =
-    await Promise.all([
-      sha256(workpiece.content),
-      sha256(JSON.stringify(input.definition)),
-      sha256(JSON.stringify(workpiece.sourceMessage)),
-    ]);
+  const contentSha256 = sha256Digest(workpiece.content);
+  const documentSha256 = sha256Digest(JSON.stringify(input.definition));
+  const sourceMessageSha256 = sha256Digest(
+    JSON.stringify(workpiece.sourceMessage),
+  );
   if (workpiece.authorship === "test-authored") {
-    const preparedDocumentSha256 = await sha256(
+    const preparedDocumentSha256 = sha256Digest(
       JSON.stringify(preparedCrewReservationNet),
     );
     if (
@@ -276,7 +269,7 @@ export const settleCrewReservationManifest = async (input: {
     status: "settled",
     manifest: {
       ...withoutId,
-      manifestId: asManifestId(await sha256(JSON.stringify(withoutId))),
+      manifestId: asManifestId(sha256Digest(JSON.stringify(withoutId))),
     },
   };
 };
