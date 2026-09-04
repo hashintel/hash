@@ -40,16 +40,26 @@ const faux = fauxProvider({
 });
 setProvider(faux.provider);
 faux.setResponses([
-  fauxAssistantMessage(
-    [
-      fauxToolCall(
-        "activate_skill",
-        { name: "sdcpn-modelling" },
-        { id: "activate-sdcpn" },
-      ),
-    ],
-    { stopReason: "toolUse" },
-  ),
+  (context: unknown) => {
+    const modelRequest = JSON.stringify(context);
+    const groundingInstruction =
+      "Before answering any request about this net, the current net, or the existing net—including before beginning an interview—call `getLatestNetDefinition`.";
+    if (!modelRequest.includes(groundingInstruction)) {
+      throw new Error(
+        `model request omitted grounding instruction: ${groundingInstruction}`,
+      );
+    }
+    return fauxAssistantMessage(
+      [
+        fauxToolCall(
+          "activate_skill",
+          { name: "sdcpn-modelling" },
+          { id: "activate-sdcpn" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    );
+  },
   fauxAssistantMessage(
     [fauxToolCall("getLatestNetDefinition", {}, { id: "read-empty-scratch" })],
     { stopReason: "toolUse" },
