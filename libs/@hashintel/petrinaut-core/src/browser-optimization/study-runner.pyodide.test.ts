@@ -235,46 +235,44 @@ describe("createOptimizerStudyRunner", () => {
     "continues a study on the same sampler history, numbering onwards",
     async ({ skip }) => {
       skipWhenOffline(skip);
-      const whole = recorder();
-      await runner.start({
-        runId: "whole",
-        description: withTrials(16),
-        parallelism: 1,
-        callbacks: whole.callbacks,
-      });
+      const split = async (runId: string) => {
+        const first = recorder();
+        await runner.start({
+          runId,
+          description: withTrials(8),
+          parallelism: 1,
+          callbacks: first.callbacks,
+        });
+        const second = recorder();
+        const summary = await runner.extend({
+          runId,
+          trials: 8,
+          parallelism: 1,
+          callbacks: second.callbacks,
+        });
+        return { first, second, summary };
+      };
+      const study = await split("split");
+      const again = await split("split-again");
 
-      const first = recorder();
-      await runner.start({
-        runId: "split",
-        description: withTrials(8),
-        parallelism: 1,
-        callbacks: first.callbacks,
-      });
-      const second = recorder();
-      const summary = await runner.extend({
-        runId: "split",
-        trials: 8,
-        parallelism: 1,
-        callbacks: second.callbacks,
-      });
-
-      // TPE leaves its random start-up after 10 trials, so equal sequences
-      // prove the extension sampled from the first segment's history.
-      expect([...first.evaluated, ...second.evaluated]).toEqual(
-        whole.evaluated,
+      // A seeded restart repeats the first segment exactly, so a second
+      // segment that differs from the first proves the extension sampled
+      // from the history the first segment left instead of restarting.
+      expect(again.first.evaluated).toEqual(study.first.evaluated);
+      expect(again.second.evaluated).toEqual(study.second.evaluated);
+      expect(study.second.evaluated).not.toEqual(study.first.evaluated);
+      expect(study.first.started).toEqual([8]);
+      expect(study.second.started).toEqual([16]);
+      expect(study.second.trialNumbers).toEqual([8, 9, 10, 11, 12, 13, 14, 15]);
+      expect(study.second.trials.map((event) => event.trial)).toEqual(
+        study.second.trialNumbers,
       );
-      expect(first.started).toEqual([8]);
-      expect(second.started).toEqual([16]);
-      expect(second.trialNumbers).toEqual([8, 9, 10, 11, 12, 13, 14, 15]);
-      expect(second.trials.map((event) => event.trial)).toEqual(
-        second.trialNumbers,
-      );
-      expect(summary).toMatchObject({
+      expect(study.summary).toMatchObject({
         requestedTrials: 16,
         completedTrials: 16,
         prunedTrials: 0,
       });
-      expect(summary.best).toEqual(whole.trials.at(-1)?.best);
+      expect(study.summary.best).toEqual(study.second.trials.at(-1)?.best);
     },
     loadTimeout,
   );
