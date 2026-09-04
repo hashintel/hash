@@ -294,3 +294,50 @@ test("folds a client-tool continuation into the assistant message it resumed", (
     },
   ]);
 });
+
+test("hides a question-marker tool while retaining its durable data", () => {
+  const question = "Which line should run this order?";
+  const snapshot: FlueConversationSnapshot = {
+    v: 1,
+    conversationId: "conversation-1",
+    offset: "0",
+    messages: [
+      {
+        id: "assistant-question",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolCallId: "tool-question-1",
+            toolName: "brunch_mark_question",
+            state: "output-available",
+            input: { question },
+            output: { marked: true },
+          },
+          {
+            type: "data-brunch-question",
+            data: { question, toolCallId: "tool-question-1" },
+          },
+          { type: "text", text: question, state: "done" },
+        ],
+      },
+    ],
+    settlements: [],
+  };
+
+  expect(snapshotToUiMessages(snapshot, projectionOptions)).toEqual([
+    {
+      id: "assistant-question",
+      role: "assistant",
+      parts: [
+        {
+          type: "data-brunch-question",
+          data: { question, toolCallId: "tool-question-1" },
+        },
+        { type: "text", text: question, state: "done" },
+      ],
+    },
+  ]);
+});

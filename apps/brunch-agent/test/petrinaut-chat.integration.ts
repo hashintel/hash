@@ -18,6 +18,10 @@ import {
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { ELICITATION_SKILL_NAME } from "@hashintel/brunch-agent/flue";
+import {
+  BRUNCH_QUESTION_DATA_NAME,
+  BRUNCH_QUESTION_TOOL_NAME,
+} from "@hashintel/brunch-agent/question-marker";
 
 import { PING_TOOL_NAME } from "../src/agents/chat-agent/tools/ping.ts";
 import { applyCaptureSweep } from "../src/capture/apply-sweep.ts";
@@ -43,6 +47,7 @@ const ACTIVATE_SKILL_TOOL_NAME = "activate_skill";
 const CHAT_MODEL_ID = "claude-haiku-4-5";
 const RUNBOOK_SKILL_NAME = "sdcpn-modelling";
 const READ_SKILL_RESOURCE_TOOL_NAME = "read_skill_resource";
+const question = "Which documentation page should we inspect next?";
 
 const principalKey = "principal-mission-1";
 const conversationId = "conversation-mission-1";
@@ -79,6 +84,35 @@ const userTextFromHistory = (
     .map((part) => part.text)
     .join("");
 
+const questionMarkerFromHistory = (
+  messages: ReturnType<typeof snapshotToUiMessages>,
+): unknown => {
+  const marker = messages
+    .flatMap((message) => message.parts)
+    .find(
+      (part) =>
+        part.type === `data-${BRUNCH_QUESTION_DATA_NAME}` && "data" in part,
+    );
+  return marker !== undefined && "data" in marker ? marker.data : undefined;
+};
+
+const questionMarkerFromChunks = (
+  chunks: readonly UIMessageChunk[],
+): unknown => {
+  const marker = chunks.find(
+    (chunk) =>
+      chunk.type === `data-${BRUNCH_QUESTION_DATA_NAME}` && "data" in chunk,
+  );
+  return marker !== undefined && "data" in marker ? marker.data : undefined;
+};
+
+const questionToolVisibleInHistory = (
+  messages: ReturnType<typeof snapshotToUiMessages>,
+): boolean =>
+  messages
+    .flatMap((message) => message.parts)
+    .some((part) => part.type === `tool-${BRUNCH_QUESTION_TOOL_NAME}`);
+
 const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: CHAT_MODEL_ID, reasoning: true }],
@@ -98,19 +132,24 @@ try {
   const panelTransport = createFlueChatTransport({
     client: historyClient,
     clientToolNames,
+    hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
   });
   const projectHistory = (
     snapshot: Awaited<ReturnType<typeof historyClient.history>>,
   ) =>
     snapshotToUiMessages(snapshot, {
       clientToolNames,
+      hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
     });
 
   if (process.env.BRUNCH_RESUME_PHASE === "1") {
     const snapshot = await historyClient.history();
+    const historyMessages = projectHistory(snapshot);
     const result: PetrinautResumeResult = {
       historyGetStatus: 200,
-      historyUserText: userTextFromHistory(projectHistory(snapshot)),
+      historyUserText: userTextFromHistory(historyMessages),
+      questionMarkerHistory: questionMarkerFromHistory(historyMessages),
+      questionToolVisibleHistory: questionToolVisibleInHistory(historyMessages),
       transcript: formatFlueTranscript(snapshot),
     };
     process.stdout.write(`PETRINAUT_RESUME_RESULT ${JSON.stringify(result)}\n`);
@@ -196,9 +235,19 @@ try {
         ],
         { stopReason: "toolUse" },
       ),
+      fauxAssistantMessage(
+        [
+          fauxToolCall(
+            BRUNCH_QUESTION_TOOL_NAME,
+            { question },
+            { id: "tool-question-1" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
       fauxAssistantMessage([
         fauxText(
-          "The guide says the assistant can read its own documentation pages.",
+          `The guide says the assistant can read its own documentation pages. ${question}`,
         ),
       ]),
       fauxAssistantMessage([
@@ -400,6 +449,14 @@ try {
         .map((chunk) => chunk.delta)
         .join(""),
       resumedFinish: resumedChunks.at(-1),
+      questionMarkerLive: questionMarkerFromChunks(resumedChunks),
+      questionMarkerHistory: questionMarkerFromHistory(historyMessages),
+      questionToolVisibleLive: resumedChunks.some(
+        (chunk) =>
+          chunk.type === "tool-input-available" &&
+          chunk.toolName === BRUNCH_QUESTION_TOOL_NAME,
+      ),
+      questionToolVisibleHistory: questionToolVisibleInHistory(historyMessages),
       historyUserEntryCount: userEntryIds.length,
       historyClientToolResultCount: clientToolResultCount,
       historyGetStatus: 200,
