@@ -288,7 +288,7 @@ test.skip("user can configure a one-off inference, and the settings are persiste
  *   page triggers automatic inference — see
  *   https://github.com/microsoft/playwright/issues/15684#issuecomment-1892644655
  */
-test("user can enable automatic inference, and the settings are persisted", async ({
+test.skip("user can enable automatic inference, and the settings are persisted", async ({
   page,
   extensionId,
 }) => {
