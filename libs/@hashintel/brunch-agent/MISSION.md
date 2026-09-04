@@ -10,6 +10,15 @@ is a bounded parallel implementation intended to reconcile later with
 FE-1575 / Mission 6; it must not copy Mission 6's fixture identity, coherent
 bundle, or evidence architecture.
 
+Partial behavior donor [#9523](https://github.com/hashintel/hash/pull/9523) is
+pinned at `f4476e62bbb4509ad19a4ced62a8d8fa00d16826`. Adopt only its live-net
+read before a scratch-project interview or construction turn and its
+classification of that read as a browser client tool through live transport
+and hydrated history projection. Reimplement those behaviors against this
+branch's shared Flue route and SDCPN plugin. Reject the donor's older app-local
+agent topology and its broader grounding for interviews against non-empty
+nets. This branch neither supersedes #9523 nor authorizes its retirement.
+
 ## Imperative
 
 Let a person describe a small process through the existing typed or Voice
