@@ -87,12 +87,15 @@ describe("analyzeCompilation", () => {
     ).toHaveLength(2);
   });
 
-  it("accepts every bundled example except the one multi-place consumer", () => {
+  it("accepts every bundled example except the identity-keyed nets", () => {
     // With derived capacities, calibrated histogram windows, forwarded
-    // kernel tokens, and the tiling-aware state gate, the only example the
-    // GPU still declines is Production Machines — its \`Start Repair\`
+    // kernel tokens, and the tiling-aware state gate, the GPU declines only
+    // the three status-view examples. Their tokens carry a \`uuid\` or
+    // \`string\` identity key so Kanban cards read as machines, tickets, and
+    // deployments, and WebGPU integers are 32-bit, so those attributes
+    // cannot be represented. (Production Machines' \`Start Repair\` also
     // consumes typed tokens from two places, a cross-product enumeration
-    // the shader does not scan yet (the weight > 2 family).
+    // the shader does not scan yet, but eligibility declines it first.)
     // Deliberately exhaustive over the examples namespace: adding an example
     // MUST extend this matrix, so its GPU verdict is a decision, not an
     // accident.
@@ -106,7 +109,8 @@ describe("analyzeCompilation", () => {
     );
     expect(readiness).toStrictEqual({
       productionMachines: false,
-      deploymentPipelineSDCPN: true,
+      deploymentPipelineSDCPN: false,
+      ticketProcessingSDCPN: false,
       probabilisticSatellitesSDCPN: true,
       sirModel: true,
       cafeQueue: true,
@@ -115,12 +119,18 @@ describe("analyzeCompilation", () => {
       supplyChainProfit: true,
       vaccinationCampaign: true,
     });
-    const production = analyze(
-      allExamples.productionMachines.petriNetDefinition,
-    );
-    expect(production.shaderFailure).toMatch(
-      /consumes typed tokens from 2 places/,
-    );
+    for (const example of [
+      allExamples.productionMachines,
+      allExamples.deploymentPipelineSDCPN,
+      allExamples.ticketProcessingSDCPN,
+    ]) {
+      const report = analyze(example.petriNetDefinition);
+      expect(report.eligibilityReasons.length).toBeGreaterThan(0);
+      for (const reason of report.eligibilityReasons) {
+        expect(reason.code).toBe("unsupported-attribute-type");
+        expect(reason.message).toMatch(/`(uuid|string)` attribute/);
+      }
+    }
   });
 
   it("reports the satellites example GPU-ready with derived capacities", () => {
@@ -281,8 +291,9 @@ describe("analyzeCompilation", () => {
     // the readiness matrix: a metric added to an example fails here until its
     // GPU verdict is recorded. Every translatable metric on a GPU-ready net is
     // `gpu-ready`; the two `.concat` averages are `cpu-only` with their own
-    // reason; Production Machines' other metrics are `cpu-only` because the
-    // net's shader fails, which is a different sentence.
+    // reason; the other metrics of the identity-keyed nets (Production
+    // Machines, Deployment Pipeline, Ticket Processing) are `not-attempted`
+    // because eligibility refuses those nets before emission.
     const statuses = Object.fromEntries(
       Object.entries(allExamples).map(([name, example]) => {
         const definition = (example as { petriNetDefinition: SDCPN })
@@ -301,19 +312,23 @@ describe("analyzeCompilation", () => {
     );
     expect(statuses).toStrictEqual({
       productionMachines: {
-        metric__good_products: "cpu-only",
-        metric__defective_products: "cpu-only",
-        metric__yield: "cpu-only",
-        metric__machines_down: "cpu-only",
+        metric__good_products: "not-attempted",
+        metric__defective_products: "not-attempted",
+        metric__yield: "not-attempted",
+        metric__machines_down: "not-attempted",
         metric__average_machine_damage: "cpu-only",
       },
       deploymentPipelineSDCPN: {
-        metric__successful_deployments: "gpu-ready",
-        metric__failed_deployments: "gpu-ready",
-        metric__release_queue_length: "gpu-ready",
-        metric__active_incidents: "gpu-ready",
-        metric__deployment_gate_blocked: "gpu-ready",
-        metric__failure_share: "gpu-ready",
+        metric__successful_deployments: "not-attempted",
+        metric__failed_deployments: "not-attempted",
+        metric__release_queue_length: "not-attempted",
+        metric__active_incidents: "not-attempted",
+        metric__deployment_gate_blocked: "not-attempted",
+        metric__failure_share: "not-attempted",
+      },
+      ticketProcessingSDCPN: {
+        metric__open_tickets: "not-attempted",
+        metric__done_tickets: "not-attempted",
       },
       probabilisticSatellitesSDCPN: {
         metric__satellites_in_orbit: "gpu-ready",
@@ -356,7 +371,9 @@ describe("analyzeCompilation", () => {
       if (row.itemId === "metric__average_machine_damage") {
         expect(row.detail).toMatch(/Cannot be translated to WGSL: .*concat/);
       } else {
-        expect(row.detail, row.itemId).toBe(production.shaderFailure);
+        expect(row.detail, row.itemId).toMatch(
+          /refused before shader emission/i,
+        );
       }
       expect(row.hirNodeCount).toBeGreaterThan(0);
     }
