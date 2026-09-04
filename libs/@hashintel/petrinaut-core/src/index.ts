@@ -439,6 +439,29 @@ export type {
   ScenarioLoweringInput,
 } from "./hir/scenario";
 export {
+  CONSTRAINT_SPACES,
+  CONSTRAINT_SURFACES,
+  constraintListSchema,
+  constraintSchema,
+  constraintSpaceSchema,
+  constraintsInSpace,
+  parameterConstraintSchema,
+  stateConstraintSchema,
+} from "./constraint/constraint";
+export type {
+  Constraint,
+  ConstraintSpace,
+  ParameterConstraint,
+  StateConstraint,
+} from "./constraint/constraint";
+// Type-only: lowering itself stays in ./hir (worker/Node).
+export type {
+  ConstraintSource,
+  LowerConstraintContext,
+  LowerConstraintResult,
+} from "./constraint/lower";
+export { hirFunctionSchema } from "./hir/hir-schema";
+export {
   AD_HOC_DEFAULT_OPTIMIZE,
   AD_HOC_DEFAULT_COUNT_OPTIMIZE,
   adHocOptimizationBindings,

@@ -30,6 +30,7 @@ import {
   buildScenarioExpressionContext,
   compileHirArtifacts,
   formatTypeScriptExpression,
+  lowerConstraint,
   lowerScenarioToHir,
 } from "../../hir";
 import { getHirDiagnosticsForItem } from "../lib/check-hir";
@@ -589,6 +590,12 @@ workerRuntime.onMessage((data) => {
       case "sdcpn/formatExpression": {
         const { id } = data;
         respond(id, formatTypeScriptExpression(data.params.code));
+        break;
+      }
+
+      case "sdcpn/lowerConstraint": {
+        const { id } = data;
+        respond(id, lowerConstraint(data.params.source, data.params.context));
         break;
       }
 

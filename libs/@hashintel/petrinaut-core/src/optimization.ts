@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { constraintListSchema } from "./constraint/constraint";
 import { parseSDCPNFile } from "./file-format/parse-sdcpn-file";
 import { sdcpnSchema } from "./file-format/types";
 
@@ -120,6 +121,14 @@ export const petrinautOptimizationParameterBindingSchema = z
   ])
   .meta({ description: "The per-study treatment of one scenario parameter." });
 
+function addIssue(
+  context: z.core.$RefinementCtx<unknown>,
+  path: PropertyKey[],
+  message: string,
+): void {
+  context.addIssue({ code: "custom", path, message });
+}
+
 export const petrinautOptimizationObjectiveSchema = z
   .strictObject({
     metricId: z.string().min(1),
@@ -185,14 +194,6 @@ const optimizationScenarioSchema = z
       "The sole scenario and the exhaustive, transient treatment of its parameters.",
   });
 
-function addIssue(
-  context: z.core.$RefinementCtx<unknown>,
-  path: PropertyKey[],
-  message: string,
-): void {
-  context.addIssue({ code: "custom", path, message });
-}
-
 function validateScenarioParameterDefault(
   parameter: {
     identifier: string;
@@ -238,6 +239,10 @@ export const petrinautOptimizationManifestSchema = z
     model: optimizationModelSchema,
     scenario: optimizationScenarioSchema,
     objective: petrinautOptimizationObjectiveSchema,
+    constraints: constraintListSchema.optional().meta({
+      description:
+        'Optional boolean conditions over the parameter space (`space: "parameters"`) and the simulation state (`space: "state"`). Absent means unconstrained; nothing enforces them yet.',
+    }),
     execution: petrinautOptimizationExecutionSchema,
     study: petrinautOptimizationStudySchema,
   })
@@ -521,10 +526,14 @@ export const petrinautOptimizationDescribeResultSchema = z
           "Study settings with the execution seed. `seedsPerTrial` is reported once the CLI runs seeded replicates; absent means 1.",
       }),
     parameters: z.array(petrinautOptimizationDescribeParameterSchema),
+    constraints: constraintListSchema.optional().meta({
+      description:
+        "The manifest's constraints, passed through verbatim so protocol clients (the Python binding) can evaluate their HIR. Absent means unconstrained.",
+    }),
   })
   .meta({
     description:
-      "The `optimization.describe` result: direction, study settings, and the parameters that are not fixed.",
+      "The `optimization.describe` result: direction, study settings, the parameters that are not fixed, and the study's constraints.",
   });
 
 export const petrinautOptimizationReplicateSchema = z

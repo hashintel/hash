@@ -4,6 +4,9 @@ import type {
   AdHocSynthesisContext,
   CompileHirArtifactsOptions,
   CompletionList,
+  ConstraintSource,
+  LowerConstraintContext,
+  LowerConstraintResult,
   Diagnostic,
   DocumentUri,
   HirCompileResult,
@@ -73,6 +76,14 @@ export interface LanguageClientContextValue {
    * code does not lower — keep the user's text in that case.
    */
   requestFormatExpression: (code: string) => Promise<string | null>;
+  /**
+   * Lower one constraint's source to HIR (in the language worker) and check
+   * it produces a boolean.
+   */
+  requestConstraint: (
+    source: ConstraintSource,
+    context: LowerConstraintContext,
+  ) => Promise<LowerConstraintResult>;
   /** Initialize a temporary scenario editing session. */
   initializeScenarioSession: (params: ScenarioSessionParams) => void;
   /** Update a scenario editing session. */
@@ -121,6 +132,18 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
       placeExpressions: {},
     }),
   requestFormatExpression: () => Promise.resolve(null),
+  requestConstraint: () =>
+    Promise.resolve({
+      ok: false as const,
+      diagnostics: [
+        {
+          code: "hir:no-language-client",
+          message: "No language client is wired; constraints cannot compile.",
+          severity: "error" as const,
+          span: { start: 0, length: 0 },
+        },
+      ],
+    }),
   initializeScenarioSession: () => {},
   updateScenarioSession: () => {},
   killScenarioSession: () => {},

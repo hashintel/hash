@@ -6,6 +6,11 @@ import {
   type LspWorkerFactory,
 } from "./transport";
 
+import type {
+  ConstraintSource,
+  LowerConstraintContext,
+  LowerConstraintResult,
+} from "../constraint/lower";
 import type { PetrinautExtensionSettings } from "../extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
 import type { HirCompileResult, ScenarioHir } from "../hir";
@@ -128,6 +133,17 @@ export interface LanguageClient {
    * callers keep the user's text untouched in that case.
    */
   requestFormatExpression(this: void, code: string): Promise<string | null>;
+
+  /**
+   * Lowers one constraint's TypeScript source to HIR (in the worker) and
+   * checks it produces a boolean. The result is the constraint ready to
+   * carry, e.g. in an optimization manifest.
+   */
+  requestConstraint(
+    this: void,
+    source: ConstraintSource,
+    context: LowerConstraintContext,
+  ): Promise<LowerConstraintResult>;
 
   /**
    * Tear down the transport. Pending requests reject with "Worker terminated".
@@ -385,6 +401,12 @@ export function createLanguageClient(
     },
     requestFormatExpression(code) {
       return sendRequest<string | null>("sdcpn/formatExpression", { code });
+    },
+    requestConstraint(source, context) {
+      return sendRequest<LowerConstraintResult>("sdcpn/lowerConstraint", {
+        source,
+        context,
+      });
     },
 
     dispose() {

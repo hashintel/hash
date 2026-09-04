@@ -1,3 +1,7 @@
+import type {
+  ConstraintSource,
+  LowerConstraintContext,
+} from "../../constraint/lower";
 /**
  * LSP-inspired protocol types for the language server WebWorker.
  *
@@ -193,6 +197,15 @@ type ClientRequest =
       params: {
         /** A single scenario-expression to re-print canonically. */
         code: string;
+      };
+    }
+  | {
+      jsonrpc: "2.0";
+      id: number;
+      method: "sdcpn/lowerConstraint";
+      params: {
+        source: ConstraintSource;
+        context: LowerConstraintContext;
       };
     };
 

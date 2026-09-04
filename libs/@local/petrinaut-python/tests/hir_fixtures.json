@@ -1,0 +1,683 @@
+{
+  "ordering": {
+    "code": "scenario.min_load < scenario.max_load",
+    "space": "parameters",
+    "hir": {
+      "hirVersion": 1,
+      "surface": "scenario-expression",
+      "params": [],
+      "body": {
+        "kind": "binary",
+        "op": "<",
+        "left": {
+          "kind": "scenarioRef",
+          "name": "min_load",
+          "id": 0,
+          "span": {
+            "start": 0,
+            "length": 17
+          }
+        },
+        "right": {
+          "kind": "scenarioRef",
+          "name": "max_load",
+          "id": 1,
+          "span": {
+            "start": 20,
+            "length": 17
+          }
+        },
+        "id": 2,
+        "span": {
+          "start": 0,
+          "length": 37
+        }
+      },
+      "span": {
+        "start": 0,
+        "length": 37
+      }
+    }
+  },
+  "compound": {
+    "code": "scenario.min_load < scenario.max_load && (parameters.rate > 0 || scenario.turbo)",
+    "space": "parameters",
+    "hir": {
+      "hirVersion": 1,
+      "surface": "scenario-expression",
+      "params": [],
+      "body": {
+        "kind": "binary",
+        "op": "&&",
+        "left": {
+          "kind": "binary",
+          "op": "<",
+          "left": {
+            "kind": "scenarioRef",
+            "name": "min_load",
+            "id": 0,
+            "span": {
+              "start": 0,
+              "length": 17
+            }
+          },
+          "right": {
+            "kind": "scenarioRef",
+            "name": "max_load",
+            "id": 1,
+            "span": {
+              "start": 20,
+              "length": 17
+            }
+          },
+          "id": 2,
+          "span": {
+            "start": 0,
+            "length": 37
+          }
+        },
+        "right": {
+          "kind": "binary",
+          "op": "||",
+          "left": {
+            "kind": "binary",
+            "op": ">",
+            "left": {
+              "kind": "paramRef",
+              "name": "rate",
+              "id": 3,
+              "span": {
+                "start": 42,
+                "length": 15
+              }
+            },
+            "right": {
+              "kind": "numberLit",
+              "value": 0,
+              "raw": "0",
+              "id": 4,
+              "span": {
+                "start": 60,
+                "length": 1
+              }
+            },
+            "id": 5,
+            "span": {
+              "start": 42,
+              "length": 19
+            }
+          },
+          "right": {
+            "kind": "scenarioRef",
+            "name": "turbo",
+            "id": 6,
+            "span": {
+              "start": 65,
+              "length": 14
+            }
+          },
+          "id": 7,
+          "span": {
+            "start": 42,
+            "length": 37
+          }
+        },
+        "id": 8,
+        "span": {
+          "start": 0,
+          "length": 80
+        }
+      },
+      "span": {
+        "start": 0,
+        "length": 80
+      }
+    }
+  },
+  "math": {
+    "code": "Math.round(Math.abs(scenario.min_load - scenario.max_load)) >= 2",
+    "space": "parameters",
+    "hir": {
+      "hirVersion": 1,
+      "surface": "scenario-expression",
+      "params": [],
+      "body": {
+        "kind": "binary",
+        "op": ">=",
+        "left": {
+          "kind": "mathCall",
+          "fn": "round",
+          "args": [
+            {
+              "kind": "mathCall",
+              "fn": "abs",
+              "args": [
+                {
+                  "kind": "binary",
+                  "op": "-",
+                  "left": {
+                    "kind": "scenarioRef",
+                    "name": "min_load",
+                    "id": 0,
+                    "span": {
+                      "start": 20,
+                      "length": 17
+                    }
+                  },
+                  "right": {
+                    "kind": "scenarioRef",
+                    "name": "max_load",
+                    "id": 1,
+                    "span": {
+                      "start": 40,
+                      "length": 17
+                    }
+                  },
+                  "id": 2,
+                  "span": {
+                    "start": 20,
+                    "length": 37
+                  }
+                }
+              ],
+              "id": 3,
+              "span": {
+                "start": 11,
+                "length": 47
+              }
+            }
+          ],
+          "id": 4,
+          "span": {
+            "start": 0,
+            "length": 59
+          }
+        },
+        "right": {
+          "kind": "numberLit",
+          "value": 2,
+          "raw": "2",
+          "id": 5,
+          "span": {
+            "start": 63,
+            "length": 1
+          }
+        },
+        "id": 6,
+        "span": {
+          "start": 0,
+          "length": 64
+        }
+      },
+      "span": {
+        "start": 0,
+        "length": 64
+      }
+    }
+  },
+  "ternary": {
+    "code": "scenario.turbo ? scenario.max_load <= 10 : scenario.max_load <= 6",
+    "space": "parameters",
+    "hir": {
+      "hirVersion": 1,
+      "surface": "scenario-expression",
+      "params": [],
+      "body": {
+        "kind": "cond",
+        "condition": {
+          "kind": "scenarioRef",
+          "name": "turbo",
+          "id": 0,
+          "span": {
+            "start": 0,
+            "length": 14
+          }
+        },
+        "thenBranch": {
+          "kind": "binary",
+          "op": "<=",
+          "left": {
+            "kind": "scenarioRef",
+            "name": "max_load",
+            "id": 1,
+            "span": {
+              "start": 17,
+              "length": 17
+            }
+          },
+          "right": {
+            "kind": "numberLit",
+            "value": 10,
+            "raw": "10",
+            "id": 2,
+            "span": {
+              "start": 38,
+              "length": 2
+            }
+          },
+          "id": 3,
+          "span": {
+            "start": 17,
+            "length": 23
+          }
+        },
+        "elseBranch": {
+          "kind": "binary",
+          "op": "<=",
+          "left": {
+            "kind": "scenarioRef",
+            "name": "max_load",
+            "id": 4,
+            "span": {
+              "start": 43,
+              "length": 17
+            }
+          },
+          "right": {
+            "kind": "numberLit",
+            "value": 6,
+            "raw": "6",
+            "id": 5,
+            "span": {
+              "start": 64,
+              "length": 1
+            }
+          },
+          "id": 6,
+          "span": {
+            "start": 43,
+            "length": 22
+          }
+        },
+        "id": 7,
+        "span": {
+          "start": 0,
+          "length": 65
+        }
+      },
+      "span": {
+        "start": 0,
+        "length": 65
+      }
+    }
+  },
+  "strictEquality": {
+    "code": "scenario.min_load == 1",
+    "space": "parameters",
+    "hir": {
+      "hirVersion": 1,
+      "surface": "scenario-expression",
+      "params": [],
+      "body": {
+        "kind": "binary",
+        "op": "==",
+        "left": {
+          "kind": "scenarioRef",
+          "name": "min_load",
+          "id": 0,
+          "span": {
+            "start": 0,
+            "length": 17
+          }
+        },
+        "right": {
+          "kind": "numberLit",
+          "value": 1,
+          "raw": "1",
+          "id": 1,
+          "span": {
+            "start": 21,
+            "length": 1
+          }
+        },
+        "id": 2,
+        "span": {
+          "start": 0,
+          "length": 22
+        }
+      },
+      "span": {
+        "start": 0,
+        "length": 22
+      }
+    }
+  },
+  "stateBound": {
+    "code": "return state.places.Queue.count <= 10;",
+    "space": "state",
+    "hir": {
+      "hirVersion": 1,
+      "surface": "metric",
+      "params": [
+        {
+          "name": "state",
+          "span": {
+            "start": 0,
+            "length": 0
+          }
+        }
+      ],
+      "body": {
+        "kind": "binary",
+        "op": "<=",
+        "left": {
+          "kind": "fieldAccess",
+          "target": {
+            "kind": "fieldAccess",
+            "target": {
+              "kind": "fieldAccess",
+              "target": {
+                "kind": "localRef",
+                "name": "state",
+                "id": 0,
+                "span": {
+                  "start": 7,
+                  "length": 5
+                }
+              },
+              "field": "places",
+              "fieldSpan": {
+                "start": 13,
+                "length": 6
+              },
+              "id": 1,
+              "span": {
+                "start": 7,
+                "length": 12
+              }
+            },
+            "field": "Queue",
+            "fieldSpan": {
+              "start": 20,
+              "length": 5
+            },
+            "id": 2,
+            "span": {
+              "start": 7,
+              "length": 18
+            }
+          },
+          "field": "count",
+          "fieldSpan": {
+            "start": 26,
+            "length": 5
+          },
+          "id": 3,
+          "span": {
+            "start": 7,
+            "length": 24
+          }
+        },
+        "right": {
+          "kind": "numberLit",
+          "value": 10,
+          "raw": "10",
+          "id": 4,
+          "span": {
+            "start": 35,
+            "length": 2
+          }
+        },
+        "id": 5,
+        "span": {
+          "start": 7,
+          "length": 30
+        }
+      },
+      "span": {
+        "start": 0,
+        "length": 38
+      }
+    }
+  },
+  "stateBlock": {
+    "code": "const total = state.places.Queue.tokens.reduce((acc, token) => acc + 1, 0);\nreturn total <= 5 && state.places.Queue.count >= 0;",
+    "space": "state",
+    "hir": {
+      "hirVersion": 1,
+      "surface": "metric",
+      "params": [
+        {
+          "name": "state",
+          "span": {
+            "start": 0,
+            "length": 0
+          }
+        }
+      ],
+      "body": {
+        "kind": "let",
+        "bindings": [
+          {
+            "name": "total",
+            "nameSpan": {
+              "start": 6,
+              "length": 5
+            },
+            "value": {
+              "kind": "arrayReduce",
+              "target": {
+                "kind": "fieldAccess",
+                "target": {
+                  "kind": "fieldAccess",
+                  "target": {
+                    "kind": "fieldAccess",
+                    "target": {
+                      "kind": "localRef",
+                      "name": "state",
+                      "id": 0,
+                      "span": {
+                        "start": 14,
+                        "length": 5
+                      }
+                    },
+                    "field": "places",
+                    "fieldSpan": {
+                      "start": 20,
+                      "length": 6
+                    },
+                    "id": 1,
+                    "span": {
+                      "start": 14,
+                      "length": 12
+                    }
+                  },
+                  "field": "Queue",
+                  "fieldSpan": {
+                    "start": 27,
+                    "length": 5
+                  },
+                  "id": 2,
+                  "span": {
+                    "start": 14,
+                    "length": 18
+                  }
+                },
+                "field": "tokens",
+                "fieldSpan": {
+                  "start": 33,
+                  "length": 6
+                },
+                "id": 3,
+                "span": {
+                  "start": 14,
+                  "length": 25
+                }
+              },
+              "accParam": {
+                "name": "acc",
+                "span": {
+                  "start": 48,
+                  "length": 3
+                }
+              },
+              "param": {
+                "name": "token",
+                "span": {
+                  "start": 53,
+                  "length": 5
+                }
+              },
+              "body": {
+                "kind": "binary",
+                "op": "+",
+                "left": {
+                  "kind": "localRef",
+                  "name": "acc",
+                  "id": 5,
+                  "span": {
+                    "start": 63,
+                    "length": 3
+                  }
+                },
+                "right": {
+                  "kind": "numberLit",
+                  "value": 1,
+                  "raw": "1",
+                  "id": 6,
+                  "span": {
+                    "start": 69,
+                    "length": 1
+                  }
+                },
+                "id": 7,
+                "span": {
+                  "start": 63,
+                  "length": 7
+                }
+              },
+              "initial": {
+                "kind": "numberLit",
+                "value": 0,
+                "raw": "0",
+                "id": 4,
+                "span": {
+                  "start": 72,
+                  "length": 1
+                }
+              },
+              "id": 8,
+              "span": {
+                "start": 14,
+                "length": 60
+              }
+            }
+          }
+        ],
+        "body": {
+          "kind": "binary",
+          "op": "&&",
+          "left": {
+            "kind": "binary",
+            "op": "<=",
+            "left": {
+              "kind": "localRef",
+              "name": "total",
+              "id": 9,
+              "span": {
+                "start": 83,
+                "length": 5
+              }
+            },
+            "right": {
+              "kind": "numberLit",
+              "value": 5,
+              "raw": "5",
+              "id": 10,
+              "span": {
+                "start": 92,
+                "length": 1
+              }
+            },
+            "id": 11,
+            "span": {
+              "start": 83,
+              "length": 10
+            }
+          },
+          "right": {
+            "kind": "binary",
+            "op": ">=",
+            "left": {
+              "kind": "fieldAccess",
+              "target": {
+                "kind": "fieldAccess",
+                "target": {
+                  "kind": "fieldAccess",
+                  "target": {
+                    "kind": "localRef",
+                    "name": "state",
+                    "id": 12,
+                    "span": {
+                      "start": 97,
+                      "length": 5
+                    }
+                  },
+                  "field": "places",
+                  "fieldSpan": {
+                    "start": 103,
+                    "length": 6
+                  },
+                  "id": 13,
+                  "span": {
+                    "start": 97,
+                    "length": 12
+                  }
+                },
+                "field": "Queue",
+                "fieldSpan": {
+                  "start": 110,
+                  "length": 5
+                },
+                "id": 14,
+                "span": {
+                  "start": 97,
+                  "length": 18
+                }
+              },
+              "field": "count",
+              "fieldSpan": {
+                "start": 116,
+                "length": 5
+              },
+              "id": 15,
+              "span": {
+                "start": 97,
+                "length": 24
+              }
+            },
+            "right": {
+              "kind": "numberLit",
+              "value": 0,
+              "raw": "0",
+              "id": 16,
+              "span": {
+                "start": 125,
+                "length": 1
+              }
+            },
+            "id": 17,
+            "span": {
+              "start": 97,
+              "length": 29
+            }
+          },
+          "id": 18,
+          "span": {
+            "start": 83,
+            "length": 43
+          }
+        },
+        "id": 19,
+        "span": {
+          "start": 0,
+          "length": 127
+        }
+      },
+      "span": {
+        "start": 0,
+        "length": 127
+      }
+    }
+  }
+}
