@@ -1,0 +1,21 @@
+{
+  "sameCanonicalConversation": true,
+  "sameManifestId": true,
+  "sameDocumentHash": true,
+  "sameWorkpieceHash": true,
+  "preparedSourceCountAfter": 1,
+  "preparedSourceCountTabB": 1,
+  "addArcCallCountAfter": 1,
+  "addArcCallCountTabB": 1,
+  "newMessageIds": [
+    "entry_direct_c3ViX2lrX2IyZjk2ZmQ2MmI4MGE2ZGNmOTgwMzI5YWQ2MWY3MGU5",
+    "entry_01M1NV73Z110CY393GEB8T02SH"
+  ],
+  "newSettlements": [
+    {
+      "submissionId": "sub_ik_b2f96fd62b80a6dcf980329ad61f70e9",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_b2f96fd62b80a6dcf980329ad61f70e9"
+    }
+  ]
+}

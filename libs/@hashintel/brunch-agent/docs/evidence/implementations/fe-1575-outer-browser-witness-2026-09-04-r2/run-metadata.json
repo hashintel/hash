@@ -1,0 +1,8 @@
+{
+  "implementationCommit": "8ef9cd967d",
+  "prompt": "Confirmed: final inspection uses the single dispatch crew and sign-off releases it; timing, failure, and recovery remain unknown. Read the live Petrinaut definition, add the missing standard weight-1 input arc from Dispatch crew available to Start final inspection, verify it, and emit the full revised runbook-ir workpiece. In that revised workpiece, identify the revision itself as model-produced from test-authored revision zero; do not call the revised workpiece test-authored.",
+  "followup": "From the resumed workpiece, list the unresolved timing, failure, and recovery questions. Do not change the Petrinaut net.",
+  "beforeOffset": "0000000000000000_0000000000000032",
+  "afterOffset": "0000000000000000_0000000000000092",
+  "tabBOffset": "0000000000000000_0000000000000110"
+}
