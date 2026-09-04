@@ -5,7 +5,7 @@ use std::{fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
 
-use super::{GenerationId, GenerationRoot, METADATA_FILE, document_digest};
+use super::{GenerationId, GenerationRoot, METADATA_FILE};
 use crate::{
     file::{repository::FileName, salt::SaltRepository},
     integrity::Sha256Digest,
@@ -57,23 +57,6 @@ impl Error for OpenError {
     }
 }
 
-/// A published generation opened for reading.
-///
-/// The accessors give the generation's identity, the directory, and the parsed metadata document.
-///
-/// Opening verifies the document against the generation id. The directory's name is the SHA-256 of
-/// `metadata.json`. A value of this type therefore names bytes that hash to its id.
-/// [`path_of`](Self::path_of) locates artifact files and their format modules open them. Opening
-/// the generation checks the document alone. The serving open checks the per-file hashes the
-/// document records as it opens each file, through
-/// [`RepositoryFile::verify`](crate::file::repository::RepositoryFile::verify).
-#[derive(Debug, Clone)]
-pub(crate) struct Generation {
-    id: GenerationId,
-    path: Utf8PathBuf,
-    repository: SaltRepository,
-}
-
 impl GenerationRoot {
     /// Opens and verifies the published generation `id`.
     ///
@@ -98,7 +81,7 @@ impl GenerationRoot {
             Err(error) => return Err(OpenError::Io(error)),
         };
 
-        let actual = document_digest(&document);
+        let actual = Sha256Digest::of(&document);
         if actual != id.digest() {
             return Err(OpenError::Identity { id, actual });
         }
@@ -111,6 +94,23 @@ impl GenerationRoot {
             repository,
         })
     }
+}
+
+/// A published generation opened for reading.
+///
+/// The accessors give the generation's identity, the directory, and the parsed metadata document.
+///
+/// Opening verifies the document against the generation id. The directory's name is the SHA-256 of
+/// `metadata.json`. A value of this type therefore names bytes that hash to its id.
+/// [`path_of`](Self::path_of) locates artifact files and their format modules open them. Opening
+/// the generation checks the document alone. The serving open checks the per-file hashes the
+/// document records as it opens each file, through
+/// [`RepositoryFile::verify`](crate::file::repository::RepositoryFile::verify).
+#[derive(Debug, Clone)]
+pub(crate) struct Generation {
+    id: GenerationId,
+    path: Utf8PathBuf,
+    repository: SaltRepository,
 }
 
 impl Generation {

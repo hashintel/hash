@@ -31,7 +31,7 @@ use super::{
     repository::{Artifact, Binding, FileName},
     salt::SaltRepository,
 };
-use crate::integrity::{ParseHexError, Sha256, Sha256Digest, Update as _};
+use crate::integrity::{ParseHexError, Sha256Digest};
 
 mod open;
 #[cfg(test)]
@@ -521,7 +521,7 @@ impl StagedGeneration {
         }
 
         let document = serde_json::to_vec_pretty(repository).map_err(SealError::Document)?;
-        let id = GenerationId(document_digest(&document));
+        let id = GenerationId(Sha256Digest::of(&document));
 
         let destination = self.root.join(id.to_string());
         if destination.exists() {
@@ -566,15 +566,6 @@ impl Drop for StagedGeneration {
         // staging path is then a no-op.
         drop(fs::remove_dir_all(&self.path));
     }
-}
-
-/// Digests a metadata document.
-///
-/// The bytes' SHA-256 is the identity of the generation publishing them.
-pub(crate) fn document_digest(bytes: &[u8]) -> Sha256Digest {
-    let mut hasher = Sha256::new();
-    hasher.update(bytes);
-    hasher.finalize()
 }
 
 /// A published generation's identity and directory.
