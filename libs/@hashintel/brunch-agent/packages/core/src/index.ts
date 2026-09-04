@@ -46,6 +46,7 @@ export {
   BRUNCH_QUESTION_TOOL_NAME,
   BrunchQuestionDataSchema,
   BrunchQuestionInputSchema,
+  parseBrunchQuestionData,
   type BrunchQuestionData,
 } from "./question-marker";
 export {
