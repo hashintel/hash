@@ -13,6 +13,8 @@ export {
 export type {
   OptimizationScalar,
   PetrinautConnectedOptimization,
+  PetrinautConnectedOptimizationCapability,
+  PetrinautConnectedRunOptions,
   PetrinautOptimizationChannel,
   PetrinautOptimizationSource,
   PetrinautOptimizationTrialOutcome,

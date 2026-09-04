@@ -6,17 +6,25 @@ type WithoutSeq<TEvent> = TEvent extends unknown ? Omit<TEvent, "seq"> : never;
 /** An optimization event before the log stamps its sequence number. */
 export type OptimizationRunLogEvent = WithoutSeq<PetrinautOptimizationEvent>;
 
+/**
+ * One run's events, in segments: each segment begins with `started` and ends
+ * with a terminal `complete`/`error`, and a study kept in memory may begin
+ * another segment when it is extended.
+ */
 export type OptimizationRunLog = {
   readonly events: readonly PetrinautOptimizationEvent[];
-  /** True once a terminal `complete`/`error` event was appended. */
-  readonly closed: boolean;
-  /** Stamps the next dense `seq` (from 1) and stores the event. Throws once closed. */
+  /** True while the latest event is terminal, so a replay past it ends at once. */
+  readonly settled: boolean;
+  /**
+   * Stamps the next dense `seq` (from 1) and stores the event. Once settled,
+   * only a `started` event may follow.
+   */
   append(event: OptimizationRunLogEvent): PetrinautOptimizationEvent;
   subscribe(listener: (event: PetrinautOptimizationEvent) => void): () => void;
   /**
    * Yields the stored events with `seq` greater than `cursor`, then tails live
-   * events until the terminal one. Aborting the signal ends the iteration with
-   * an `AbortError`.
+   * events, and ends at the first terminal event after the cursor. Aborting
+   * the signal ends the iteration with an `AbortError`.
    */
   replay(options?: {
     cursor?: number;
@@ -36,7 +44,11 @@ const createAbortError = (): Error => {
 export const createOptimizationRunLog = (): OptimizationRunLog => {
   const events: PetrinautOptimizationEvent[] = [];
   const listeners = new Set<(event: PetrinautOptimizationEvent) => void>();
-  let closed = false;
+
+  const isSettled = (): boolean => {
+    const latest = events.at(-1);
+    return latest !== undefined && isTerminalEvent(latest);
+  };
 
   const subscribe = (
     listener: (event: PetrinautOptimizationEvent) => void,
@@ -66,18 +78,17 @@ export const createOptimizationRunLog = (): OptimizationRunLog => {
     get events() {
       return events;
     },
-    get closed() {
-      return closed;
+    get settled() {
+      return isSettled();
     },
     append(event) {
-      if (closed) {
-        throw new Error("optimization run log is closed");
+      if (isSettled() && event.type !== "started") {
+        throw new Error(
+          "a settled optimization run log accepts only a started event",
+        );
       }
       const stamped = { ...event, seq: events.length + 1 };
       events.push(stamped);
-      if (isTerminalEvent(stamped)) {
-        closed = true;
-      }
       for (const listener of listeners) {
         listener(stamped);
       }
@@ -102,7 +113,7 @@ export const createOptimizationRunLog = (): OptimizationRunLog => {
           }
           continue;
         }
-        if (closed) {
+        if (isSettled()) {
           return;
         }
         await waitForNextEvent(signal);

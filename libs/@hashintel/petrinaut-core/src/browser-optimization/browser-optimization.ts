@@ -9,6 +9,8 @@ import {
   deriveOptimizationTrialSeeds,
   describeOptimization,
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
+  PETRINAUT_OPTIMIZATION_MAX_PARALLELISM,
+  PETRINAUT_OPTIMIZATION_MAX_TRIALS,
   petrinautOptimizationManifestSchema,
   resolveTrialScenarioParameterValues,
 } from "../optimization";
@@ -28,10 +30,10 @@ import {
   type OptimizationRunLogEvent,
 } from "./run-log";
 
-import type { AbortSignalLike } from "../environment";
+import type { AbortControllerLike, AbortSignalLike } from "../environment";
 import type {
   PetrinautConnectedOptimization,
-  PetrinautOptimization,
+  PetrinautConnectedOptimizationCapability,
   PetrinautOptimizationChannel,
   PetrinautOptimizationDescribeResult,
   PetrinautOptimizationEvent,
@@ -41,7 +43,10 @@ import type {
 } from "../optimization";
 import type {
   OptimizerEvaluateMessage,
+  OptimizerExtendMessage,
+  OptimizerStartMessage,
   OptimizerToMainMessage,
+  OptimizerToWorkerMessage,
 } from "./messages";
 
 export type CreateBrowserOptimizationOptions = {
@@ -49,7 +54,17 @@ export type CreateBrowserOptimizationOptions = {
   createWorker?: () => OptimizerWorkerLike;
 };
 
-type RunStatus = "queued" | "starting" | "running" | "finished";
+/**
+ * `queued` and `starting` wait for the worker to take the run's segment,
+ * `running` has it posted, `finished-resumable` ended a segment with the
+ * study kept in the worker, and `finished` has no study to return to.
+ */
+type RunStatus =
+  | "queued"
+  | "starting"
+  | "running"
+  | "finished-resumable"
+  | "finished";
 
 type RunRecord = {
   readonly runId: string;
@@ -57,9 +72,11 @@ type RunRecord = {
   readonly description: PetrinautOptimizationDescribeResult;
   readonly seeds: readonly number[];
   readonly log: OptimizationRunLog;
-  readonly signal: AbortSignalLike;
-  readonly abort: () => void;
   status: RunStatus;
+  /** The segment the worker runs when it takes this run. */
+  command: OptimizerStartMessage | OptimizerExtendMessage;
+  /** Aborted when the segment is cancelled; the next segment gets a fresh one. */
+  controller: AbortControllerLike;
 };
 
 type WorkerSession = {
@@ -97,6 +114,13 @@ const isAbortError = (error: unknown): boolean =>
   "name" in error &&
   error.name === "AbortError";
 
+const isSettled = (run: RunRecord): boolean =>
+  run.status === "finished" || run.status === "finished-resumable";
+
+/** Trials the study was told an outcome for, which is where the next segment counts from. */
+const toldTrials = (log: OptimizationRunLog): number =>
+  log.events.filter((event) => event.type === "trial").length;
+
 const invalidManifestError = (
   issues: readonly { path: PropertyKey[]; message: string }[],
 ): Error =>
@@ -116,6 +140,53 @@ const unknownRunError = (runId: string): Error =>
     httpStatus: 404,
   });
 
+const disposedError = (): Error =>
+  new Error("The in-browser optimizer was disposed");
+
+const creationAbortedError = (): Error => {
+  const error = new Error("optimization run creation aborted");
+  error.name = "AbortError";
+  return error;
+};
+
+const notResumableError = (run: RunRecord): Error =>
+  new Error(
+    run.status === "finished"
+      ? `Optimization run "${run.runId}" has no study to extend: it was released or failed`
+      : `Optimization run "${run.runId}" is still running`,
+  );
+
+const validParallelism = (value: number | undefined): number => {
+  if (value === undefined) {
+    return 1;
+  }
+  if (
+    !Number.isInteger(value) ||
+    value < 1 ||
+    value > PETRINAUT_OPTIMIZATION_MAX_PARALLELISM
+  ) {
+    throw new Error(
+      `Optimization parallelism must be an integer between 1 and ${PETRINAUT_OPTIMIZATION_MAX_PARALLELISM}`,
+    );
+  }
+  return value;
+};
+
+const requestedTotal = (told: number, trials: number): number => {
+  if (!Number.isInteger(trials) || trials < 1) {
+    throw new Error(
+      "An optimization extends by a positive whole number of trials",
+    );
+  }
+  const total = told + trials;
+  if (total > PETRINAUT_OPTIMIZATION_MAX_TRIALS) {
+    throw new Error(
+      `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_TRIALS.toLocaleString()} trials in total; ${told.toLocaleString()} already ran`,
+    );
+  }
+  return total;
+};
+
 async function* attachToLog(
   log: OptimizationRunLog,
   options: {
@@ -132,7 +203,7 @@ const connectBrowserOptimization = (options: {
   channel: PetrinautOptimizationChannel;
   pyodide: OptimizerPyodideConfig;
   createWorker: () => OptimizerWorkerLike;
-}): PetrinautOptimization & { dispose(this: void): void } => {
+}): PetrinautConnectedOptimizationCapability => {
   const { channel } = options;
   const runs = new Map<string, RunRecord>();
   const queue: RunRecord[] = [];
@@ -145,6 +216,10 @@ const connectBrowserOptimization = (options: {
     return run && run.status === "running" ? run : null;
   };
 
+  const post = (message: OptimizerToWorkerMessage): void => {
+    session?.worker.postMessage(message);
+  };
+
   const resetSession = (stale: WorkerSession): void => {
     if (session === stale) {
       session = null;
@@ -152,12 +227,17 @@ const connectBrowserOptimization = (options: {
     }
   };
 
-  const finish = (run: RunRecord, event: OptimizationRunLogEvent): void => {
-    if (run.status === "finished") {
+  /** Ends the run's segment with `event` and lets the queue move on. */
+  const finish = (
+    run: RunRecord,
+    event: OptimizationRunLogEvent,
+    status: "finished-resumable" | "finished",
+  ): void => {
+    if (isSettled(run)) {
       return;
     }
     // eslint-disable-next-line no-param-reassign -- the record's status is the session state this helper advances
-    run.status = "finished";
+    run.status = status;
     run.log.append(event);
     const queuedAt = queue.indexOf(run);
     if (queuedAt !== -1) {
@@ -174,18 +254,30 @@ const connectBrowserOptimization = (options: {
     requestId: number,
     outcome: PetrinautOptimizationTrialOutcome,
   ): void => {
-    session?.worker.postMessage({ type: "evaluated", requestId, outcome });
+    post({ type: "evaluated", requestId, outcome });
+  };
+
+  /** Stops the segment on the worker (when one is posted) and drops the study. */
+  const discardStudy = (run: RunRecord): void => {
+    run.controller.abort();
+    if (run.status === "running") {
+      post({ type: "cancel", runId: run.runId });
+    }
+    post({ type: "release", runId: run.runId });
   };
 
   const failTrialEvaluation = (run: RunRecord, error: unknown): void => {
-    run.abort();
-    session?.worker.postMessage({ type: "cancel", runId: run.runId });
-    finish(run, {
-      type: "error",
-      code: "trial_evaluation_failed",
-      message: errorMessage(error),
-      retryable: false,
-    });
+    discardStudy(run);
+    finish(
+      run,
+      {
+        type: "error",
+        code: "trial_evaluation_failed",
+        message: errorMessage(error),
+        retryable: false,
+      },
+      "finished",
+    );
   };
 
   const handleEvaluate = (message: OptimizerEvaluateMessage): void => {
@@ -193,6 +285,13 @@ const connectBrowserOptimization = (options: {
     if (!run) {
       return;
     }
+    const { controller } = run;
+    if (controller.signal.aborted) {
+      reply(message.requestId, { kind: "pruned", reason: "cancelled" });
+      return;
+    }
+    const segmentIsCurrent = (): boolean =>
+      run.controller === controller && run.status === "running";
     let request: PetrinautOptimizationTrialRequest;
     try {
       request = {
@@ -205,19 +304,19 @@ const connectBrowserOptimization = (options: {
           message.suggestedValues,
         ),
         seeds: run.seeds,
-        signal: run.signal,
+        signal: controller.signal,
       };
     } catch (error) {
       failTrialEvaluation(run, error);
       return;
     }
     const evaluated = (outcome: PetrinautOptimizationTrialOutcome): void => {
-      if (run.status === "running") {
+      if (segmentIsCurrent()) {
         reply(message.requestId, outcome);
       }
     };
     const evaluationFailed = (error: unknown): void => {
-      if (run.status !== "running") {
+      if (!segmentIsCurrent()) {
         return;
       }
       if (isAbortError(error)) {
@@ -238,8 +337,12 @@ const connectBrowserOptimization = (options: {
 
   const handleWorkerMessage = (message: OptimizerToMainMessage): void => {
     switch (message.type) {
+      // The session promise settles on `ready` and `init-error`; `started` and
+      // `released` acknowledge segments the log and run status already record.
       case "ready":
       case "init-error":
+      case "started":
+      case "released":
         return;
       case "evaluate":
         handleEvaluate(message);
@@ -261,33 +364,41 @@ const connectBrowserOptimization = (options: {
         const run = activeRunFor(message.runId);
         const { summary } = message;
         if (run) {
-          finish(run, {
-            type: "complete",
-            requestedTrials: summary.requestedTrials,
-            completedTrials: summary.completedTrials,
-            prunedTrials: summary.prunedTrials,
-            failedTrials: summary.failedTrials,
-            best: summary.best,
-          });
+          finish(
+            run,
+            {
+              type: "complete",
+              requestedTrials: summary.requestedTrials,
+              completedTrials: summary.completedTrials,
+              prunedTrials: summary.prunedTrials,
+              failedTrials: summary.failedTrials,
+              best: summary.best,
+            },
+            "finished-resumable",
+          );
         }
         return;
       }
       case "cancelled": {
         const run = activeRunFor(message.runId);
         if (run) {
-          finish(run, cancelledEvent);
+          finish(run, cancelledEvent, "finished-resumable");
         }
         return;
       }
       case "error": {
         const run = activeRunFor(message.runId);
         if (run) {
-          finish(run, {
-            type: "error",
-            code: "study_failed",
-            message: message.message,
-            retryable: false,
-          });
+          finish(
+            run,
+            {
+              type: "error",
+              code: "study_failed",
+              message: message.message,
+              retryable: false,
+            },
+            "finished",
+          );
         }
       }
     }
@@ -335,59 +446,82 @@ const connectBrowserOptimization = (options: {
     try {
       current = ensureSession();
     } catch (error) {
-      finish(run, unavailableEvent(error));
+      finish(run, unavailableEvent(error), "finished");
       return;
     }
     current.ready.then(
       () => {
         if (run.status === "starting" && session === current) {
           run.status = "running";
-          current.worker.postMessage({
-            type: "start",
-            runId: run.runId,
-            description: run.description,
-          });
+          current.worker.postMessage(run.command);
         }
       },
       (error: unknown) => {
         resetSession(current);
-        finish(run, unavailableEvent(error));
+        finish(run, unavailableEvent(error), "finished");
       },
     );
   };
 
+  const enqueue = (run: RunRecord, requestedTrials: number): void => {
+    run.log.append({ type: "started", requestedTrials });
+    queue.push(run);
+    startNext();
+  };
+
   return {
-    async createOptimizationRun(input) {
+    async createOptimizationRun(input, runOptions = {}) {
       if (disposed) {
-        throw new Error("The in-browser optimizer was disposed");
+        throw disposedError();
       }
+      if (runOptions.signal?.aborted) {
+        throw creationAbortedError();
+      }
+      const parallelism = validParallelism(runOptions.parallelism);
       const parsed = petrinautOptimizationManifestSchema.safeParse(input);
       if (!parsed.success) {
         throw invalidManifestError(parsed.error.issues);
       }
       const manifest = parsed.data;
-      const controller = createAbortController();
+      const runId = generateUuid();
+      const description = describeOptimization(manifest);
       const run: RunRecord = {
-        runId: generateUuid(),
+        runId,
         manifest,
-        description: describeOptimization(manifest),
+        description,
         seeds: deriveOptimizationTrialSeeds(
           manifest.execution.seed,
           manifest.execution.seedsPerTrial ?? 1,
         ),
         log: createOptimizationRunLog(),
-        signal: controller.signal,
-        abort: () => controller.abort(),
         status: "queued",
+        command: { type: "start", runId, description, parallelism },
+        controller: createAbortController(),
       };
-      runs.set(run.runId, run);
-      run.log.append({
-        type: "started",
-        requestedTrials: manifest.study.trials,
-      });
-      queue.push(run);
-      startNext();
-      return { runId: run.runId };
+      runs.set(runId, run);
+      enqueue(run, manifest.study.trials);
+      return { runId };
+    },
+    async extendOptimizationRun(runId, trials, extendOptions = {}) {
+      if (disposed) {
+        throw disposedError();
+      }
+      const run = runs.get(runId);
+      if (!run) {
+        throw unknownRunError(runId);
+      }
+      if (run.status !== "finished-resumable") {
+        throw notResumableError(run);
+      }
+      const parallelism =
+        extendOptions.parallelism === undefined
+          ? run.command.parallelism
+          : validParallelism(extendOptions.parallelism);
+      const total = requestedTotal(toldTrials(run.log), trials);
+      run.command = { type: "extend", runId, trials, parallelism };
+      run.controller = createAbortController();
+      run.status = "queued";
+      enqueue(run, total);
     },
     attachOptimizationRun(runId, attachOptions = {}) {
       const run = runs.get(runId);
@@ -398,24 +532,42 @@ const connectBrowserOptimization = (options: {
     },
     async cancelOptimizationRun(runId) {
       const run = runs.get(runId);
+      if (!run || isSettled(run)) {
+        return;
+      }
+      run.controller.abort();
+      if (run.status === "running") {
+        post({ type: "cancel", runId });
+        return;
+      }
+      // The segment never reached the worker: an extension leaves its study
+      // kept, a first run has no study at all.
+      finish(
+        run,
+        cancelledEvent,
+        run.command.type === "extend" ? "finished-resumable" : "finished",
+      );
+    },
+    async releaseOptimizationRun(runId) {
+      const run = runs.get(runId);
       if (!run || run.status === "finished") {
         return;
       }
-      run.abort();
-      if (run.status === "running") {
-        session?.worker.postMessage({ type: "cancel", runId });
-        return;
+      discardStudy(run);
+      if (isSettled(run)) {
+        run.status = "finished";
+      } else {
+        finish(run, cancelledEvent, "finished");
       }
-      finish(run, cancelledEvent);
     },
     dispose() {
       disposed = true;
       for (const run of runs.values()) {
-        if (run.status !== "finished") {
-          run.abort();
-          run.status = "finished";
+        if (!isSettled(run)) {
+          run.controller.abort();
           run.log.append(cancelledEvent);
         }
+        run.status = "finished";
       }
       queue.length = 0;
       active = null;

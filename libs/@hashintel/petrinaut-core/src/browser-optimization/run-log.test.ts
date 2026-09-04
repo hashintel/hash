@@ -36,18 +36,28 @@ const complete = {
 } as const;
 
 describe("createOptimizationRunLog", () => {
-  it("stamps dense sequence numbers from 1 and closes on a terminal event", () => {
+  it("stamps dense sequence numbers from 1 and settles on a terminal event", () => {
     const log = createOptimizationRunLog();
 
     expect(log.append({ type: "started", requestedTrials: 2 }).seq).toBe(1);
     expect(log.append(trial(0)).seq).toBe(2);
-    expect(log.closed).toBe(false);
+    expect(log.settled).toBe(false);
     expect(log.append(complete).seq).toBe(3);
-    expect(log.closed).toBe(true);
+    expect(log.settled).toBe(true);
     expect(log.events.map((event) => event.seq)).toEqual([1, 2, 3]);
     expect(() => log.append(trial(1))).toThrow(
-      "optimization run log is closed",
+      "a settled optimization run log accepts only a started event",
     );
+  });
+
+  it("begins a new segment with a started event after a terminal one", () => {
+    const log = createOptimizationRunLog();
+    log.append({ type: "started", requestedTrials: 2 });
+    log.append(complete);
+
+    expect(log.append({ type: "started", requestedTrials: 4 }).seq).toBe(3);
+    expect(log.settled).toBe(false);
+    expect(log.append(trial(2)).seq).toBe(4);
   });
 
   it("replays the stored events past the cursor, then tails until the terminal event", async () => {
@@ -67,7 +77,45 @@ describe("createOptimizationRunLog", () => {
     ]);
   });
 
-  it("ends at once when attached past the end of a closed log", async () => {
+  it("ends a replay at the first terminal event after the cursor", async () => {
+    const log = createOptimizationRunLog();
+    log.append({ type: "started", requestedTrials: 1 });
+    log.append(trial(0));
+    log.append(complete);
+    log.append({ type: "started", requestedTrials: 2 });
+    log.append(trial(1));
+    log.append({ ...complete, requestedTrials: 2 });
+
+    expect((await collect(log.replay())).map((event) => event.seq)).toEqual([
+      1, 2, 3,
+    ]);
+    expect(
+      (await collect(log.replay({ cursor: 3 }))).map((event) => event.seq),
+    ).toEqual([4, 5, 6]);
+    expect(
+      (await collect(log.replay({ cursor: 2 }))).map((event) => event.seq),
+    ).toEqual([3]);
+  });
+
+  it("tails a segment begun after the cursor until its terminal event", async () => {
+    const log = createOptimizationRunLog();
+    log.append({ type: "started", requestedTrials: 1 });
+    log.append(complete);
+    log.append({ type: "started", requestedTrials: 2 });
+
+    const replay = collect(log.replay({ cursor: 2 }));
+    await Promise.resolve();
+    log.append(trial(1));
+    log.append({ ...complete, requestedTrials: 2 });
+
+    expect((await replay).map((event) => [event.type, event.seq])).toEqual([
+      ["started", 3],
+      ["trial", 4],
+      ["complete", 5],
+    ]);
+  });
+
+  it("ends at once when attached past the end of a settled log", async () => {
     const log = createOptimizationRunLog();
     log.append({ type: "started", requestedTrials: 2 });
     log.append(complete);
