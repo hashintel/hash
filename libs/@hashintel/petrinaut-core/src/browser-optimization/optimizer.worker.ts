@@ -5,15 +5,22 @@ import type { PetrinautOptimizationTrialOutcome } from "../optimization";
 import type {
   OptimizerCancelMessage,
   OptimizerEvaluatedMessage,
+  OptimizerExtendMessage,
   OptimizerInitMessage,
+  OptimizerReleaseMessage,
   OptimizerStartMessage,
+  OptimizerStudySummary,
   OptimizerToMainMessage,
   OptimizerToWorkerMessage,
 } from "./messages";
 import type { LoadPyodide } from "./pyodide-like";
-import type { OptimizerStudyRunner } from "./study-runner";
+import type {
+  OptimizerStudyCallbacks,
+  OptimizerStudyRunner,
+} from "./study-runner";
 
-type ActiveRun = {
+/** A run's segment, from the message that posted it until its outcome is reported. */
+type ActiveSegment = {
   cancelled: boolean;
   pendingRequestIds: Set<number>;
 };
@@ -24,7 +31,7 @@ const workerRuntime = createWorkerThreadRuntime<
 >();
 
 let runner: OptimizerStudyRunner | null = null;
-const runs = new Map<string, ActiveRun>();
+const segments = new Map<string, ActiveSegment>();
 const pendingEvaluations = new Map<
   number,
   (outcome: PetrinautOptimizationTrialOutcome) => void
@@ -70,45 +77,57 @@ const handleInit = (message: OptimizerInitMessage): void => {
   );
 };
 
-const handleStart = (message: OptimizerStartMessage): void => {
-  const { runId } = message;
+const runnerFor = (runId: string): OptimizerStudyRunner | null => {
   if (!runner) {
     workerRuntime.postMessage({
       type: "error",
       runId,
       message: "The optimizer worker received a study before its runtime",
     });
-    return;
   }
-  const run: ActiveRun = { cancelled: false, pendingRequestIds: new Set() };
-  runs.set(runId, run);
-  runner
-    .run({
-      description: message.description,
-      evaluate: (trial, suggestedValues) =>
-        new Promise((resolve) => {
-          const requestId = nextRequestId;
-          nextRequestId += 1;
-          pendingEvaluations.set(requestId, resolve);
-          run.pendingRequestIds.add(requestId);
-          workerRuntime.postMessage({
-            type: "evaluate",
-            runId,
-            requestId,
-            trial,
-            suggestedValues,
-          });
-        }),
-      onTrial: (event) =>
-        workerRuntime.postMessage({ type: "trial", runId, event }),
-      isCancelled: () => run.cancelled,
-    })
+  return runner;
+};
+
+const beginSegment = (runId: string): OptimizerStudyCallbacks => {
+  const segment: ActiveSegment = {
+    cancelled: false,
+    pendingRequestIds: new Set(),
+  };
+  segments.set(runId, segment);
+  return {
+    onStarted: (requestedTrials) =>
+      workerRuntime.postMessage({ type: "started", runId, requestedTrials }),
+    evaluate: (trial, suggestedValues) =>
+      new Promise((resolve) => {
+        const requestId = nextRequestId;
+        nextRequestId += 1;
+        pendingEvaluations.set(requestId, resolve);
+        segment.pendingRequestIds.add(requestId);
+        workerRuntime.postMessage({
+          type: "evaluate",
+          runId,
+          requestId,
+          trial,
+          suggestedValues,
+        });
+      }),
+    onTrial: (event) =>
+      workerRuntime.postMessage({ type: "trial", runId, event }),
+    isCancelled: () => segment.cancelled,
+  };
+};
+
+const reportSegment = (
+  runId: string,
+  summary: Promise<OptimizerStudySummary>,
+): void => {
+  summary
     .then(
-      (summary) =>
+      (result) =>
         workerRuntime.postMessage(
-          summary.cancelled === true
+          result.cancelled === true
             ? { type: "cancelled", runId }
-            : { type: "complete", runId, summary },
+            : { type: "complete", runId, summary: result },
         ),
       (error: unknown) =>
         workerRuntime.postMessage({
@@ -118,8 +137,42 @@ const handleStart = (message: OptimizerStartMessage): void => {
         }),
     )
     .finally(() => {
-      runs.delete(runId);
+      segments.delete(runId);
     });
+};
+
+const handleStart = (message: OptimizerStartMessage): void => {
+  const { runId } = message;
+  const current = runnerFor(runId);
+  if (!current) {
+    return;
+  }
+  reportSegment(
+    runId,
+    current.start({
+      runId,
+      description: message.description,
+      parallelism: message.parallelism,
+      callbacks: beginSegment(runId),
+    }),
+  );
+};
+
+const handleExtend = (message: OptimizerExtendMessage): void => {
+  const { runId } = message;
+  const current = runnerFor(runId);
+  if (!current) {
+    return;
+  }
+  reportSegment(
+    runId,
+    current.extend({
+      runId,
+      trials: message.trials,
+      parallelism: message.parallelism,
+      callbacks: beginSegment(runId),
+    }),
+  );
 };
 
 const handleEvaluated = (message: OptimizerEvaluatedMessage): void => {
@@ -128,24 +181,42 @@ const handleEvaluated = (message: OptimizerEvaluatedMessage): void => {
     return;
   }
   pendingEvaluations.delete(message.requestId);
-  for (const run of runs.values()) {
-    run.pendingRequestIds.delete(message.requestId);
+  for (const segment of segments.values()) {
+    segment.pendingRequestIds.delete(message.requestId);
   }
   resolve(message.outcome);
 };
 
-const handleCancel = (message: OptimizerCancelMessage): void => {
-  const run = runs.get(message.runId);
-  if (!run) {
+const cancelSegment = (runId: string): void => {
+  const segment = segments.get(runId);
+  if (!segment) {
     return;
   }
-  run.cancelled = true;
-  for (const requestId of run.pendingRequestIds) {
+  segment.cancelled = true;
+  for (const requestId of segment.pendingRequestIds) {
     const resolve = pendingEvaluations.get(requestId);
     pendingEvaluations.delete(requestId);
     resolve?.({ kind: "pruned", reason: "cancelled" });
   }
-  run.pendingRequestIds.clear();
+  segment.pendingRequestIds.clear();
+};
+
+const handleCancel = (message: OptimizerCancelMessage): void => {
+  cancelSegment(message.runId);
+};
+
+const handleRelease = (message: OptimizerReleaseMessage): void => {
+  const { runId } = message;
+  cancelSegment(runId);
+  runner?.release(runId).then(
+    () => workerRuntime.postMessage({ type: "released", runId }),
+    (error: unknown) =>
+      workerRuntime.postMessage({
+        type: "error",
+        runId,
+        message: errorMessage(error),
+      }),
+  );
 };
 
 workerRuntime.onMessage((message) => {
@@ -156,11 +227,17 @@ workerRuntime.onMessage((message) => {
     case "start":
       handleStart(message);
       break;
+    case "extend":
+      handleExtend(message);
+      break;
     case "evaluated":
       handleEvaluated(message);
       break;
     case "cancel":
       handleCancel(message);
+      break;
+    case "release":
+      handleRelease(message);
       break;
   }
 });

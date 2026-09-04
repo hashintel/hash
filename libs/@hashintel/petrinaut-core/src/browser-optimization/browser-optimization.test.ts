@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { createAbortController } from "../environment";
 import { PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE } from "../optimization";
 import { createOptimizationManifestInput } from "../shared/optimization-manifest.fixtures";
 import { createBrowserOptimization } from "./browser-optimization";
@@ -208,6 +209,7 @@ describe("createBrowserOptimization", () => {
         direction: "maximize",
         study: { trials: 20, sampler: "tpe", seed: 42, seedsPerTrial: 1 },
       },
+      parallelism: 1,
     });
 
     context.worker.emit({
@@ -354,6 +356,88 @@ describe("createBrowserOptimization", () => {
       retryable: false,
       seq: 2,
     });
+  });
+
+  it("answers an evaluate posted after cancel with a cancelled outcome without running it", async () => {
+    const context = setUp();
+    const runId = await startRun(context);
+    await context.capability.cancelOptimizationRun(runId);
+
+    context.worker.emit({
+      type: "evaluate",
+      runId,
+      requestId: 1,
+      trial: 0,
+      suggestedValues: { rate: 0.5, count: 6, enabled: true },
+    });
+    await flush();
+
+    expect(context.evaluateTrial).not.toHaveBeenCalled();
+    expect(context.worker.sentOfType("evaluated")).toEqual([
+      {
+        type: "evaluated",
+        requestId: 1,
+        outcome: { kind: "pruned", reason: "cancelled" },
+      },
+    ]);
+  });
+
+  it("ignores an evaluation of a stopped segment that settles after the next segment started", async () => {
+    let rejectStale: (error: Error) => void = () => {};
+    const context = setUp({
+      evaluateTrial: async (request) => {
+        if (request.trial === 0) {
+          return new Promise((_resolve, reject) => {
+            rejectStale = reject;
+          });
+        }
+        return { kind: "objective", objective: 1 };
+      },
+    });
+    const runId = await startRun(context);
+    context.worker.emit({
+      type: "evaluate",
+      runId,
+      requestId: 1,
+      trial: 0,
+      suggestedValues: { rate: 0.5, count: 6, enabled: true },
+    });
+    await flush();
+    await context.capability.cancelOptimizationRun(runId);
+    context.worker.emit({ type: "cancelled", runId });
+    await context.capability.extendOptimizationRun(runId, 1);
+    await flush();
+    expect(context.worker.sentOfType("extend")).toHaveLength(1);
+
+    rejectStale(new Error("late failure"));
+    await flush();
+
+    expect(context.worker.sentOfType("evaluated")).toHaveLength(0);
+    expect(context.worker.sentOfType("cancel")).toEqual([
+      { type: "cancel", runId },
+    ]);
+    expect(context.worker.sentOfType("release")).toHaveLength(0);
+
+    context.worker.emit({
+      type: "evaluate",
+      runId,
+      requestId: 2,
+      trial: 1,
+      suggestedValues: { rate: 1, count: 4, enabled: false },
+    });
+    await flush();
+    expect(context.worker.sentOfType("evaluated")).toEqual([
+      {
+        type: "evaluated",
+        requestId: 2,
+        outcome: { kind: "objective", objective: 1 },
+      },
+    ]);
+    context.worker.emit({ type: "complete", runId, summary });
+    const events = await collectEvents(
+      context.capability.attachOptimizationRun(runId, { cursor: 2 }),
+    );
+    expect(events.map((event) => event.type)).toEqual(["started", "complete"]);
   });
 
   it("cancels a run that is still waiting for the runtime without starting it", async () => {
@@ -676,6 +760,329 @@ describe("createBrowserOptimization", () => {
         createOptimizationManifestInput(),
       ),
     ).rejects.toThrow("disposed");
+  });
+
+  it("extends a completed study with trials that continue the numbering", async () => {
+    const context = setUp();
+    const runId = await startRun(context);
+    context.worker.emit({ type: "trial", runId, event: completedTrial });
+    context.worker.emit({ type: "complete", runId, summary });
+    expect(
+      (
+        await collectEvents(context.capability.attachOptimizationRun(runId))
+      ).map((event) => event.type),
+    ).toEqual(["started", "trial", "complete"]);
+
+    await context.capability.extendOptimizationRun(runId, 5);
+    const tail = collectEvents(
+      context.capability.attachOptimizationRun(runId, { cursor: 3 }),
+    );
+    await flush();
+
+    expect(context.worker.sentOfType("extend")).toEqual([
+      { type: "extend", runId, trials: 5, parallelism: 1 },
+    ]);
+    context.worker.emit({ type: "started", runId, requestedTrials: 6 });
+    context.worker.emit({
+      type: "evaluate",
+      runId,
+      requestId: 2,
+      trial: 1,
+      suggestedValues: { rate: 1, count: 4, enabled: false },
+    });
+    await flush();
+    const request = context.evaluateTrial.mock.calls.at(-1)?.[0];
+    expect(request).toMatchObject({ runId, trial: 1 });
+    expect(request?.signal.aborted).toBe(false);
+    expect(context.worker.sentOfType("evaluated").at(-1)).toEqual({
+      type: "evaluated",
+      requestId: 2,
+      outcome: { kind: "objective", objective: 2 },
+    });
+
+    const secondTrial: OptimizerTrialPayload = {
+      trial: 1,
+      parameters: { rate: 1, count: 4, enabled: false },
+      objective: 2,
+      state: "complete",
+      best: {
+        trial: 1,
+        parameters: { rate: 1, count: 4, enabled: false },
+        objective: 2,
+      },
+    };
+    context.worker.emit({ type: "trial", runId, event: secondTrial });
+    context.worker.emit({
+      type: "complete",
+      runId,
+      summary: {
+        ...summary,
+        requestedTrials: 6,
+        completedTrials: 2,
+        best: secondTrial.best,
+      },
+    });
+
+    expect(await tail).toEqual([
+      { type: "started", requestedTrials: 6, seq: 4 },
+      {
+        type: "trial",
+        trial: 1,
+        parameters: secondTrial.parameters,
+        objective: 2,
+        state: "complete",
+        best: secondTrial.best,
+        seq: 5,
+      },
+      {
+        type: "complete",
+        requestedTrials: 6,
+        completedTrials: 2,
+        prunedTrials: 0,
+        failedTrials: 0,
+        best: secondTrial.best,
+        seq: 6,
+      },
+    ]);
+    expect(
+      (
+        await collectEvents(context.capability.attachOptimizationRun(runId))
+      ).map((event) => event.seq),
+    ).toEqual([1, 2, 3]);
+  });
+
+  it("extends a stopped study from the trials it was told, with a fresh signal", async () => {
+    const context = setUp();
+    const runId = await startRun(context);
+    context.worker.emit({ type: "trial", runId, event: completedTrial });
+    await context.capability.cancelOptimizationRun(runId);
+    context.worker.emit({ type: "cancelled", runId });
+
+    await context.capability.extendOptimizationRun(runId, 2);
+    await flush();
+
+    expect(context.worker.sentOfType("extend")).toEqual([
+      { type: "extend", runId, trials: 2, parallelism: 1 },
+    ]);
+    context.worker.emit({
+      type: "evaluate",
+      runId,
+      requestId: 2,
+      trial: 2,
+      suggestedValues: { rate: 1, count: 4, enabled: false },
+    });
+    await flush();
+    expect(context.evaluateTrial.mock.calls.at(-1)?.[0]?.signal.aborted).toBe(
+      false,
+    );
+    expect(context.worker.sentOfType("evaluated")).toHaveLength(1);
+
+    context.worker.emit({ type: "complete", runId, summary });
+    const events = await collectEvents(
+      context.capability.attachOptimizationRun(runId, { cursor: 3 }),
+    );
+    expect(events.map((event) => [event.type, event.seq])).toEqual([
+      ["started", 4],
+      ["complete", 5],
+    ]);
+    expect(events[0]).toMatchObject({ requestedTrials: 3 });
+  });
+
+  it("rejects extending a run that is running, unknown, released or failed, or past the caps", async () => {
+    const context = setUp();
+    const runId = await startRun(context);
+
+    await expect(
+      context.capability.extendOptimizationRun(runId, 1),
+    ).rejects.toThrow("is still running");
+    await expect(
+      context.capability.extendOptimizationRun("missing", 1),
+    ).rejects.toThrow(
+      expect.objectContaining({ category: "http", httpStatus: 404 }),
+    );
+
+    context.worker.emit({ type: "trial", runId, event: completedTrial });
+    context.worker.emit({ type: "complete", runId, summary });
+    await expect(
+      context.capability.extendOptimizationRun(runId, 0),
+    ).rejects.toThrow("positive whole number of trials");
+    await expect(
+      context.capability.extendOptimizationRun(runId, 1000),
+    ).rejects.toThrow(/at most .* trials in total; 1 already ran/);
+    await expect(
+      context.capability.extendOptimizationRun(runId, 2, { parallelism: 5 }),
+    ).rejects.toThrow("between 1 and 4");
+    expect(context.worker.sentOfType("extend")).toHaveLength(0);
+
+    await context.capability.extendOptimizationRun(runId, 999);
+    await flush();
+    expect(context.worker.sentOfType("extend")).toEqual([
+      { type: "extend", runId, trials: 999, parallelism: 1 },
+    ]);
+    context.worker.emit({ type: "complete", runId, summary });
+    const events = await collectEvents(
+      context.capability.attachOptimizationRun(runId, { cursor: 3 }),
+    );
+    expect(events[0]).toMatchObject({
+      type: "started",
+      requestedTrials: 1000,
+    });
+
+    await context.capability.releaseOptimizationRun(runId);
+    await context.capability.releaseOptimizationRun(runId);
+    expect(context.worker.sentOfType("release")).toEqual([
+      { type: "release", runId },
+    ]);
+    await expect(
+      context.capability.extendOptimizationRun(runId, 1),
+    ).rejects.toThrow("released or failed");
+
+    const failed = await startRun(context);
+    context.worker.emit({ type: "error", runId: failed, message: "boom" });
+    await expect(
+      context.capability.extendOptimizationRun(failed, 1),
+    ).rejects.toThrow("released or failed");
+  });
+
+  it("releasing a running study stops it and ends its stream", async () => {
+    const context = setUp();
+    const runId = await startRun(context);
+    context.worker.emit({
+      type: "evaluate",
+      runId,
+      requestId: 1,
+      trial: 0,
+      suggestedValues: { rate: 0.5, count: 6, enabled: true },
+    });
+
+    await context.capability.releaseOptimizationRun(runId);
+    await flush();
+
+    expect(context.worker.sentOfType("cancel")).toEqual([
+      { type: "cancel", runId },
+    ]);
+    expect(context.worker.sentOfType("release")).toEqual([
+      { type: "release", runId },
+    ]);
+    expect(context.worker.sentOfType("evaluated")).toHaveLength(0);
+    const events = await collectEvents(
+      context.capability.attachOptimizationRun(runId),
+    );
+    expect(events.at(-1)).toMatchObject({
+      type: "error",
+      code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
+      seq: 2,
+    });
+  });
+
+  it("stopping a queued extension keeps the study and lets the queue move on", async () => {
+    const context = setUp();
+    const first = await startRun(context);
+    context.worker.emit({ type: "trial", runId: first, event: completedTrial });
+    context.worker.emit({ type: "complete", runId: first, summary });
+    const { runId: second } = await context.capability.createOptimizationRun(
+      createOptimizationManifestInput(),
+    );
+    await flush();
+
+    await context.capability.extendOptimizationRun(first, 3);
+    expect(context.worker.sentOfType("extend")).toHaveLength(0);
+    await context.capability.cancelOptimizationRun(first);
+    expect(
+      (
+        await collectEvents(
+          context.capability.attachOptimizationRun(first, { cursor: 3 }),
+        )
+      ).map((event) => [event.type, event.seq]),
+    ).toEqual([
+      ["started", 4],
+      ["error", 5],
+    ]);
+
+    await context.capability.extendOptimizationRun(first, 2);
+    context.worker.emit({ type: "complete", runId: second, summary });
+    await flush();
+
+    expect(context.worker.sentOfType("extend")).toEqual([
+      { type: "extend", runId: first, trials: 2, parallelism: 1 },
+    ]);
+    context.worker.emit({ type: "complete", runId: first, summary });
+    const events = await collectEvents(
+      context.capability.attachOptimizationRun(first, { cursor: 5 }),
+    );
+    expect(events.map((event) => [event.type, event.seq])).toEqual([
+      ["started", 6],
+      ["complete", 7],
+    ]);
+    expect(events[0]).toMatchObject({ requestedTrials: 3 });
+  });
+
+  it("passes the parallelism to the worker and evaluates trials in flight together", async () => {
+    const context = setUp();
+    const { runId } = await context.capability.createOptimizationRun(
+      createOptimizationManifestInput(),
+      { parallelism: 3 },
+    );
+    context.worker.emit({ type: "ready" });
+    await flush();
+    expect(context.worker.sentOfType("start")[0]?.parallelism).toBe(3);
+
+    for (const [requestId, trial] of [
+      [1, 0],
+      [2, 1],
+    ] as const) {
+      context.worker.emit({
+        type: "evaluate",
+        runId,
+        requestId,
+        trial,
+        suggestedValues: { rate: 0.5, count: 6, enabled: true },
+      });
+    }
+    await flush();
+    expect(context.evaluateTrial).toHaveBeenCalledTimes(2);
+    expect(
+      context.worker.sentOfType("evaluated").map(({ requestId }) => requestId),
+    ).toEqual([1, 2]);
+
+    context.worker.emit({ type: "complete", runId, summary });
+    await context.capability.extendOptimizationRun(runId, 2);
+    await flush();
+    expect(context.worker.sentOfType("extend").at(-1)).toMatchObject({
+      trials: 2,
+      parallelism: 3,
+    });
+
+    context.worker.emit({ type: "complete", runId, summary });
+    await context.capability.extendOptimizationRun(runId, 1, {
+      parallelism: 1,
+    });
+    await flush();
+    expect(context.worker.sentOfType("extend").at(-1)).toMatchObject({
+      trials: 1,
+      parallelism: 1,
+    });
+
+    await expect(
+      context.capability.createOptimizationRun(
+        createOptimizationManifestInput(),
+        { parallelism: 0 },
+      ),
+    ).rejects.toThrow("between 1 and 4");
+  });
+
+  it("refuses to create a run for an already-aborted signal", async () => {
+    const context = setUp();
+    const controller = createAbortController();
+    controller.abort();
+
+    await expect(
+      context.capability.createOptimizationRun(
+        createOptimizationManifestInput(),
+        { signal: controller.signal },
+      ),
+    ).rejects.toThrow(expect.objectContaining({ name: "AbortError" }));
+    expect(context.workers).toHaveLength(0);
   });
 
   it("rejects an invalid manifest before allocating a run", async () => {
