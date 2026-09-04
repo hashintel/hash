@@ -214,6 +214,28 @@
       "blockMessage": "Skill is required to proceed",
       "skipConditions": {}
     },
+    "recording-petrinaut-demos": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Record a short screen capture of a Petrinaut flow and share it: the storyboard rules, the Playwright scenario format, the retina capture and H.264 encode, the pointer-and-keystroke overlay, and the GitHub API upload that turns the file into a link anyone on the repository can play. Use when a change needs a video or GIF of the UI, when asked for a screen recording, demo, capture or before/after pair, or when a screenshot cannot show the behaviour because it moves.",
+      "promptTriggers": {
+        "keywords": ["demo", "recording", "screencast", "video", "gif"],
+        "intentPatterns": [
+          "\\b(record|capture|film)\\b.*?\\b(demo|video|gif|flow|screen)\\b",
+          "\\b(demo|video|gif|screen recording)\\b.*?\\b(petrinaut|editor|ui)\\b",
+          "\\bbefore\\b.*?\\bafter\\b.*?\\b(video|recording|gif)\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
     "rust-coding-style": {
       "type": "domain",
       "enforcement": "suggest",
