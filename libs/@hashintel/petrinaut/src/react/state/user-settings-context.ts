@@ -7,6 +7,10 @@ import {
 } from "./panel-defaults";
 
 import type {
+  CanvasViewport,
+  SavedCanvasViewport,
+} from "./canvas-viewport-context";
+import type {
   BottomPanelTab,
   CursorMode,
   TimelineChartType,
@@ -91,6 +95,8 @@ export type UserSettings = {
    */
   enableOptimizationSurface: boolean;
   subViewPanels: SubViewPanelsSettings;
+  /** Where each document's canvas was last left, keyed by document id. */
+  canvasViewports: Record<string, SavedCanvasViewport>;
 };
 
 export type UserSettingsActions = {
@@ -123,6 +129,7 @@ export type UserSettingsActions = {
     sectionId: string,
     update: Partial<SubViewSectionSettings>,
   ) => void;
+  setCanvasViewport: (petriNetId: string, viewport: CanvasViewport) => void;
 };
 
 export type UserSettingsContextValue = UserSettings & UserSettingsActions;
@@ -153,6 +160,7 @@ export const defaultUserSettings: UserSettings = {
   enableParameterSweeps: false,
   enableOptimizationSurface: false,
   subViewPanels: {},
+  canvasViewports: {},
 };
 
 const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
@@ -182,6 +190,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setEnableParameterSweeps: () => {},
   setEnableOptimizationSurface: () => {},
   updateSubViewSection: () => {},
+  setCanvasViewport: () => {},
 };
 
 export const UserSettingsContext = createContext<UserSettingsContextValue>(

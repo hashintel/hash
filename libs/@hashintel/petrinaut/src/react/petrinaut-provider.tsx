@@ -24,6 +24,7 @@ import { PlaybackProvider } from "./playback/provider";
 import { SDCPNProvider } from "./sdcpn-provider";
 import { SimulationProvider } from "./simulation/provider";
 import { ActiveNetProvider } from "./state/active-net-provider";
+import { CanvasViewportProvider } from "./state/canvas-viewport-provider";
 import { EditorProvider } from "./state/editor-provider";
 import { UndoRedoContext } from "./state/undo-redo-context";
 import { UserSettingsProvider } from "./state/user-settings-provider";
@@ -89,24 +90,26 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
             {/* Above SimulationProvider: the simulation provider reads the
                 Ad-hoc scenarios setting to gate the inline definition. */}
             <UserSettingsProvider>
-              <SimulationProvider
-                key={instance.handle.id}
-                workerFactory={simulationWorkerFactory}
-              >
-                <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
-                  <OptimizationsProvider>
-                    <PlaybackProvider>
-                      <ActiveNetProvider>
-                        <EditorProvider>
-                          <ExecutionFrameProvider>
-                            {children}
-                          </ExecutionFrameProvider>
-                        </EditorProvider>
-                      </ActiveNetProvider>
-                    </PlaybackProvider>
-                  </OptimizationsProvider>
-                </ExperimentsProvider>
-              </SimulationProvider>
+              <CanvasViewportProvider>
+                <SimulationProvider
+                  key={instance.handle.id}
+                  workerFactory={simulationWorkerFactory}
+                >
+                  <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
+                    <OptimizationsProvider>
+                      <PlaybackProvider>
+                        <ActiveNetProvider>
+                          <EditorProvider>
+                            <ExecutionFrameProvider>
+                              {children}
+                            </ExecutionFrameProvider>
+                          </EditorProvider>
+                        </ActiveNetProvider>
+                      </PlaybackProvider>
+                    </OptimizationsProvider>
+                  </ExperimentsProvider>
+                </SimulationProvider>
+              </CanvasViewportProvider>
             </UserSettingsProvider>
           </NotificationsProvider>
         </LanguageClientProvider>

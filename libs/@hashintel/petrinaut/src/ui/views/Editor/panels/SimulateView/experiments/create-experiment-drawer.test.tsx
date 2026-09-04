@@ -146,6 +146,7 @@ const TestProviders = ({
     setShowCompilationOutput: () => {},
     setEnableParameterSweeps: () => {},
     setEnableOptimizationSurface: () => {},
+    setCanvasViewport: () => {},
     updateSubViewSection: () => {},
   };
 

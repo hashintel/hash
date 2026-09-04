@@ -8,12 +8,13 @@
 
 import { createContext, use } from "react";
 
+import type { CanvasViewport } from "../../../react/state/canvas-viewport-context";
 import type { ViewportAction } from "../../types/viewport-action";
 import type { CanvasPoint, CanvasScene } from "./canvas-scene";
 import type { Size } from "@hashintel/petrinaut-core";
 
-/** Screen = scene × zoom + (x, y), in canvas pixels. */
-export type CanvasViewport = { x: number; y: number; zoom: number };
+/** The viewport type is owned by the React layer, where it is persisted. */
+export type { CanvasViewport };
 
 export type CanvasController = {
   getViewport: () => CanvasViewport;
