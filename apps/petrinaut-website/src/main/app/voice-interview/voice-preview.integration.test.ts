@@ -104,6 +104,82 @@ const responseMessages = [
   },
 ] satisfies PetrinautAiMessage[];
 
+const createAdmissionOutcomeHarness = (
+  client: Pick<FlueClient, "abort" | "send">,
+) => {
+  const tracker = new BrunchPanelConversationTracker();
+  const transport = createBrunchPanelTransport(
+    Promise.resolve(client as FlueClient),
+    tracker,
+  );
+  let realtimeListener:
+    | ((event: OpenAIRealtimeSessionEvent) => void)
+    | undefined;
+  const bridge = new RealtimeBrunchBridge({
+    session: {
+      speakCanonical: vi.fn(),
+      subscribe: (listener) => {
+        realtimeListener = listener;
+        return () => {
+          realtimeListener = undefined;
+        };
+      },
+    },
+    submitInterviewAnswer: (input) =>
+      submitVoiceInputWithAdmission({
+        input,
+        resolveInputSubmission: (messageId) =>
+          tracker.submissionForInput(messageId),
+        submitVoiceInput: async ({ id, text }) => {
+          if (id === undefined) {
+            throw new Error("Voice message identity is required.");
+          }
+          void transport
+            .sendMessages({
+              abortSignal: input.signal,
+              chatId: "conversation-1",
+              messageId: undefined,
+              messages: [
+                {
+                  id,
+                  metadata: { source: "voice" },
+                  parts: [{ text, type: "text" }],
+                  role: "user",
+                },
+              ],
+              trigger: "submit-message",
+            })
+            .catch(() => undefined);
+          return { kind: "message", messageId: id };
+        },
+        subscribeToAdmission: (target, listener) =>
+          tracker.subscribeToAdmission(target, ({ admission }) =>
+            listener(admission.submissionId),
+          ),
+        subscribeToAdmissionFailure: (target, listener) =>
+          tracker.subscribeToAdmissionFailure(target, listener),
+      }),
+  });
+  const events: RealtimeBrunchBridgeEvent[] = [];
+  bridge.subscribe((event) => events.push(event));
+  bridge.updateChat({
+    canAcceptInterviewAnswer: true,
+    canonicalSegments: [],
+    status: "ready",
+  });
+  bridge.start(1);
+
+  return {
+    emitCompletedTranscript: (itemId: string) =>
+      realtimeListener?.({
+        key: { connectionEpoch: 1, contentIndex: 0, itemId },
+        text: spokenAnswer,
+        type: "completed",
+      }),
+    events,
+  };
+};
+
 describe("controlled voice preview", () => {
   test("bridges one completed transcript through Brunch and back to canonical half-duplex audio", async () => {
     const diagnostics: VoiceDiagnosticEvent[] = [];
@@ -662,80 +738,13 @@ describe("controlled voice preview", () => {
     const send = vi.fn<FlueClient["send"]>(async () => {
       throw new FlueApiError(500, "");
     });
-    const tracker = new BrunchPanelConversationTracker();
-    const transport = createBrunchPanelTransport(
-      Promise.resolve({ send } as Pick<FlueClient, "send"> as FlueClient),
-      tracker,
-    );
-    let realtimeListener:
-      | ((event: OpenAIRealtimeSessionEvent) => void)
-      | undefined;
-    const bridge = new RealtimeBrunchBridge({
-      session: {
-        speakCanonical: vi.fn(),
-        subscribe: (listener) => {
-          realtimeListener = listener;
-          return () => {
-            realtimeListener = undefined;
-          };
-        },
-      },
-      submitInterviewAnswer: (input) =>
-        submitVoiceInputWithAdmission({
-          input,
-          resolveInputSubmission: (messageId) =>
-            tracker.submissionForInput(messageId),
-          submitVoiceInput: async ({ id, text }) => {
-            if (id === undefined) {
-              throw new Error("Voice message identity is required.");
-            }
-            void transport
-              .sendMessages({
-                trigger: "submit-message",
-                chatId: "conversation-1",
-                messageId: undefined,
-                messages: [
-                  {
-                    id,
-                    role: "user",
-                    metadata: { source: "voice" },
-                    parts: [{ type: "text", text }],
-                  },
-                ],
-                abortSignal: input.signal,
-              })
-              .catch(() => undefined);
-            return { kind: "message", messageId: id };
-          },
-          subscribeToAdmission: (target, listener) =>
-            tracker.subscribeToAdmission(target, ({ admission }) =>
-              listener(admission.submissionId),
-            ),
-          subscribeToAdmissionFailure: (target, listener) =>
-            tracker.subscribeToAdmissionFailure(target, listener),
-        }),
-    });
-    const events: RealtimeBrunchBridgeEvent[] = [];
-    bridge.subscribe((event) => events.push(event));
-    bridge.updateChat({
-      canAcceptInterviewAnswer: true,
-      canonicalSegments: [],
-      status: "ready",
-    });
-    bridge.start(1);
+    const abort = vi.fn<FlueClient["abort"]>(async () => ({ aborted: true }));
+    const harness = createAdmissionOutcomeHarness({ abort, send });
 
-    realtimeListener?.({
-      key: {
-        connectionEpoch: 1,
-        contentIndex: 0,
-        itemId: "input-item-ambiguous",
-      },
-      text: spokenAnswer,
-      type: "completed",
-    });
+    harness.emitCompletedTranscript("input-item-ambiguous");
 
     await vi.waitFor(() =>
-      expect(events).toContainEqual({
+      expect(harness.events).toContainEqual({
         code: "admission-ambiguous",
         failure: { kind: "ambiguous" },
         message:
@@ -744,5 +753,60 @@ describe("controlled voice preview", () => {
       }),
     );
     expect(send).toHaveBeenCalledOnce();
+    expect(abort).not.toHaveBeenCalled();
+  });
+
+  test("preserves a conflicting submission through the production admission path", async () => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw new FlueApiError(409, {
+        error: {
+          details: "",
+          message: "The delivery key already names another payload.",
+          meta: { submissionId: "submission-existing" },
+          type: "submission_conflict",
+        },
+      });
+    });
+    const abort = vi.fn<FlueClient["abort"]>(async () => ({ aborted: true }));
+    const harness = createAdmissionOutcomeHarness({ abort, send });
+
+    harness.emitCompletedTranscript("input-item-conflict");
+
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual({
+        code: "admission-conflict",
+        failure: {
+          kind: "submission-conflict",
+          status: 409,
+          submissionId: "submission-existing",
+        },
+        message:
+          "The delivery key already belongs to admitted submission submission-existing; the changed payload was not admitted.",
+        type: "error",
+      }),
+    );
+    expect(send).toHaveBeenCalledOnce();
+    expect(abort).not.toHaveBeenCalled();
+  });
+
+  test("keeps local admission abort distinct from durable Flue abort", async () => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw new DOMException("Local admission cancelled", "AbortError");
+    });
+    const abort = vi.fn<FlueClient["abort"]>(async () => ({ aborted: true }));
+    const harness = createAdmissionOutcomeHarness({ abort, send });
+
+    harness.emitCompletedTranscript("input-item-aborted");
+
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual({
+        code: "admission-aborted",
+        failure: { kind: "aborted" },
+        message: "The local chat submission was cancelled.",
+        type: "error",
+      }),
+    );
+    expect(send).toHaveBeenCalledOnce();
+    expect(abort).not.toHaveBeenCalled();
   });
 });
