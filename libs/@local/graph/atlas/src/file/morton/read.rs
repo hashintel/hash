@@ -8,9 +8,12 @@ use zerocopy::{FromBytes as _, LE, U64};
 
 use super::{FencepostError, Fenceposts, FileHeader};
 use crate::{
-    file::region::{
-        PAGE,
-        header::{HeaderError, HeaderMap},
+    file::{
+        ArtifactFile,
+        region::{
+            PAGE,
+            header::{HeaderError, HeaderMap},
+        },
     },
     identity::BasePosition,
     morton::{Depth, MortonCell, MortonKey},
@@ -86,7 +89,9 @@ pub(crate) struct MortonFile {
     fenceposts: Fenceposts<BasePosition>,
 }
 
-impl MortonFile {
+impl ArtifactFile for MortonFile {
+    type Error = OpenMortonError;
+
     /// Opens and maps the morton file at `path`.
     ///
     /// # Errors
@@ -95,7 +100,7 @@ impl MortonFile {
     /// [`OpenMortonError::Fenceposts`] when the header's fenceposts break a structural rule, and
     /// [`OpenMortonError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]
-    pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenMortonError> {
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error> {
         let map = HeaderMap::<FileHeader>::open(path).map_err(OpenMortonError::Header)?;
         let header = map.header();
 
@@ -113,7 +118,9 @@ impl MortonFile {
 
         Ok(Self { map, fenceposts })
     }
+}
 
+impl MortonFile {
     /// Borrows the parsed header at the head of the mapping.
     #[inline]
     #[must_use]

@@ -41,7 +41,7 @@ use sha2::Sha256;
 use siphasher::sip::SipHasher24;
 use zeroize::Zeroizing;
 
-use crate::file::generation::GenerationId;
+use crate::{file::generation::GenerationId, identity::NodeRowId};
 
 /// The Feistel round count one codec applies.
 //
@@ -161,6 +161,14 @@ impl<'de, I> serde::Deserialize<'de> for EncodedRowId<I> {
     }
 }
 
+pub(crate) trait EncodableId: Id {
+    fn label() -> &'static [u8] {
+        core::any::type_name::<Self>().as_bytes()
+    }
+}
+
+impl EncodableId for NodeRowId {}
+
 /// The keyed mapping between one dense row domain and its wire ids.
 ///
 /// One codec serves one row domain of one generation. The underlying permutation bijects the `u32`
@@ -181,8 +189,12 @@ where
     ///
     /// The generation identity salts the extraction and `label` separates row domains under one
     /// generation. Equal arguments derive equal codecs.
-    pub(crate) fn derive(secret: &[u8; 32], generation: GenerationId, label: &[u8]) -> Self {
+    pub(crate) fn derive(secret: &[u8], generation: GenerationId) -> Self
+    where
+        I: EncodableId,
+    {
         let salt = generation.digest().to_bytes();
+        let label = I::label();
 
         let mut keys = Zeroizing::new([[0_u8; 16]; ROUNDS]);
         Hkdf::<Sha256>::new(Some(&salt), secret)
@@ -196,16 +208,7 @@ where
     }
 
     /// Encodes an internal row id of `universe` as its wire id.
-    ///
-    /// # Panics
-    ///
-    /// When `row` lies outside `universe`, a producer defect rather than input to reject.
-    pub(crate) fn encode(&self, row: I, universe: Universe<I>) -> EncodedRowId<I> {
-        assert!(
-            universe.contains(row),
-            "the codec encodes rows of the caller's universe",
-        );
-
+    pub(crate) fn encode(&self, row: I) -> EncodedRowId<I> {
         EncodedRowId::new_unchecked(self.permute(row.as_u32()))
     }
 

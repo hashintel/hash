@@ -1,8 +1,7 @@
-use error_stack::Report;
+use error_stack::{Report, ResultExt, TryReportTupleExt};
 
-use super::{encoding::Encoding, error::WorldError};
+use super::{OpenOptions, encoding::Encoding, error::WorldError};
 use crate::{
-    file::generation::Generation,
     identity::{BasePosition, Column, NodeRowId},
     postgres::id::ArchivedEntityId,
     salt::fit::prepare::identity::IdentityTableArchive,
@@ -17,15 +16,50 @@ pub struct NodeIndex {
 }
 
 impl NodeIndex {
-    pub(crate) fn open(generation: &Generation) -> Result<Self, Report<[WorldError]>> {
+    pub(crate) fn open(
+        options @ OpenOptions {
+            generation,
+            secret: _,
+        }: OpenOptions<'_>,
+    ) -> Result<Self, Report<[WorldError]>> {
         let files = &generation.repository().files;
 
-        let identity = files.node_identities.open(generation);
-        let encoding = Encoding::open(generation);
+        let identity = files
+            .node_identities
+            .open(generation)
+            .change_context(WorldError::Open {
+                file: files.node_identities.name(),
+            });
 
-        let lookup = files.wire_coordinates.open(generation);
-        let reverse = files.position_of_row.open(generation);
+        let lookup = files
+            .row_of_position
+            .open(generation)
+            .change_context(WorldError::Open {
+                file: files.row_of_position.name(),
+            });
 
-        todo!()
+        let reverse = files
+            .position_of_row
+            .open(generation)
+            .change_context(WorldError::Open {
+                file: files.position_of_row.name(),
+            });
+
+        let encoding =
+            lookup
+                .map_err(Report::expand)
+                .and_then(|column: Column<BasePosition, NodeRowId>| {
+                    Encoding::open(options, column.view()).map(|encoding| (encoding, column))
+                });
+
+        let (identity, (encoding, lookup), reverse) =
+            (identity, encoding, reverse).try_collect()?;
+
+        Ok(Self {
+            identity,
+            encoding,
+            lookup,
+            reverse,
+        })
     }
 }

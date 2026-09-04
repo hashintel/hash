@@ -307,14 +307,42 @@ pub(crate) trait Artifact {
     const NAME: FileName;
 }
 
+/// Opening the artifact a binding certifies failed.
+#[derive(Debug)]
 pub(crate) enum OpenBindingError<E> {
+    /// The verified file failed to open in the artifact's reader.
     Artifact(E),
+    /// The file failed verification against the binding's digest.
     Integrity(IntegrityVerificationError),
 }
 
 const impl<E> From<IntegrityVerificationError> for OpenBindingError<E> {
     fn from(error: IntegrityVerificationError) -> Self {
         Self::Integrity(error)
+    }
+}
+
+impl<E> fmt::Display for OpenBindingError<E>
+where
+    E: fmt::Display,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Artifact(error) => write!(fmt, "the verified file failed to open: {error}"),
+            Self::Integrity(error) => write!(fmt, "the file failed verification: {error}"),
+        }
+    }
+}
+
+impl<E> core::error::Error for OpenBindingError<E>
+where
+    E: core::error::Error + 'static,
+{
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match self {
+            Self::Artifact(error) => Some(error),
+            Self::Integrity(error) => Some(error),
+        }
     }
 }
 

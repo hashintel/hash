@@ -107,6 +107,10 @@ fn write_dims(fmt: &mut fmt::Formatter<'_>, dims: &[Dim]) -> fmt::Result {
 }
 
 impl fmt::Display for InvalidColumnError {
+    #[expect(
+        clippy::use_debug,
+        reason = "the variant names are the format's own element vocabulary"
+    )]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Variant { recorded, expected } => write!(

@@ -1,7 +1,7 @@
 use std::io;
 
 use self::{cache::Cache, layout::Layout, ontology::Ontology, topology::Topology};
-use super::schedule::BucketSchedule;
+use super::{schedule::BucketSchedule, secret::ServeSecret};
 use crate::file::generation::Generation;
 
 mod cache;
@@ -13,6 +13,11 @@ mod node_importance;
 mod node_index;
 mod ontology;
 mod topology;
+
+pub struct OpenOptions<'context> {
+    pub generation: &'context Generation,
+    pub secret: &'context ServeSecret,
+}
 
 pub struct World {
     generation: Generation,
