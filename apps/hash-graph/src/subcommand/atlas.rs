@@ -9,6 +9,8 @@ use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
 use hash_graph_store::filter::protection::PropertyProtectionFilterConfig;
+use hash_telemetry::Telemetry;
+use opentelemetry::metrics::Meter;
 use reqwest::Client;
 use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
@@ -104,9 +106,14 @@ pub enum AtlasCommand {
     },
 }
 
+struct AtlasTelemetry {
+    meter: Meter,
+}
+
 /// Runs the atlas server, shutting down when `shutdown` is cancelled.
-pub(crate) async fn run_atlas(
+async fn run_atlas(
     args: AtlasArgs,
+    telemetry: &AtlasTelemetry,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
     // Before running anything, make sure that the configuration is valid.
@@ -167,6 +174,7 @@ pub(crate) async fn run_atlas(
         None,
         service_secret.clone().into_unguarded().as_ref().to_owned(),
         &pool,
+        &telemetry.meter,
     ));
 
     // Every request answers under the scope of the actor it names.
@@ -220,7 +228,7 @@ fn print_verdict(verdict: &cli::FitVerdict) {
     clippy::exit,
     reason = "Force shutdown on double ctrl-c is intentional"
 )]
-pub async fn atlas(mut args: AtlasArgs) -> Result<(), Report<GraphError>> {
+pub async fn atlas(mut args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<GraphError>> {
     if let Some(AtlasCommand::Fit {
         args: fit_args,
         credential,
@@ -246,9 +254,15 @@ pub async fn atlas(mut args: AtlasArgs) -> Result<(), Report<GraphError>> {
             .change_context(GraphError);
     }
 
+    let telemetry = AtlasTelemetry {
+        meter: telemetry.meter("Graph Atlas API"),
+    };
+
     let lifecycle = ServerLifecycle::new();
     let shutdown = lifecycle.shutdown.clone();
-    lifecycle.spawn("Atlas", async move { run_atlas(args, shutdown).await });
+    lifecycle.spawn("Atlas", async move {
+        run_atlas(args, &telemetry, shutdown).await
+    });
 
     // Wait for shutdown signal or unexpected server exit
     let aborted = tokio::select! {

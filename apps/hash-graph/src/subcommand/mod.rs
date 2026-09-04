@@ -292,7 +292,7 @@ impl Subcommand {
                 worker_threads,
             ),
             Self::Atlas(args) => block_on(
-                async |_telemetry| atlas(*args).await,
+                async |telemetry| atlas(*args, telemetry).await,
                 "Atlas",
                 tracing_config,
                 worker_threads,
