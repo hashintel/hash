@@ -36,7 +36,9 @@ immediate transcript display plus a dock-only collapsed live-session view.
 Initial-CTA Voice entry defaults to that compact presentation; before a live
 session starts, the consent and microphone-permission card sits above a compact
 Voice setup dock, while composer-initiated Voice entry keeps the existing
-expanded presentation.
+expanded presentation. Ending Voice from a collapsed dock also closes the AI
+panel instead of restoring its expanded text composer; ending from an expanded
+dock retains the existing return-to-composer behavior.
 These are explicit exceptions to the parent-defect constraint below; they
 change no conversation authority, submission path, or Voice-turn semantics,
 and local playback cancellation remains separate from durable abort.
