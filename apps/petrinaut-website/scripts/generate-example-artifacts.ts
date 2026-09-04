@@ -7,6 +7,7 @@ import {
   parseSDCPNFile,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
+import * as coreExamples from "@hashintel/petrinaut-core/examples";
 import {
   compileHirArtifacts,
   lowerScenarioToHir,
@@ -14,8 +15,8 @@ import {
 } from "@hashintel/petrinaut-core/hir";
 
 import {
-  exampleSlugs,
-  type ExampleSlug,
+  exampleCatalog,
+  type ExampleCatalogEntry,
 } from "../src/examples/catalog-metadata.ts";
 import { normalizeExampleDefinition } from "../src/examples/normalize-example.ts";
 
@@ -24,7 +25,7 @@ const examplesDirectory = resolve(scriptDirectory, "../src/examples");
 const modelsDirectory = resolve(examplesDirectory, "models");
 const generatedDirectory = resolve(examplesDirectory, "generated");
 
-const parseDefinition = async (slug: ExampleSlug): Promise<SDCPN> => {
+const readModelFile = async (slug: string): Promise<SDCPN> => {
   const input = JSON.parse(
     await readFile(resolve(modelsDirectory, `${slug}.json`), "utf8"),
   ) as unknown;
@@ -36,8 +37,20 @@ const parseDefinition = async (slug: ExampleSlug): Promise<SDCPN> => {
   return normalizeExampleDefinition(slug, rawDefinition);
 };
 
-const generateRuntime = async (slug: ExampleSlug) => {
-  const definition = await parseDefinition(slug);
+const loadDefinition = (entry: ExampleCatalogEntry): Promise<SDCPN> => {
+  switch (entry.source.kind) {
+    case "model-file":
+      return readModelFile(entry.slug);
+    case "core-example":
+      return Promise.resolve(
+        coreExamples[entry.source.exportName].petriNetDefinition,
+      );
+  }
+};
+
+const generateRuntime = async (entry: ExampleCatalogEntry) => {
+  const { slug } = entry;
+  const definition = await loadDefinition(entry);
   const { artifacts, failures } = compileHirArtifacts(definition);
   if (failures.length > 0) {
     throw new Error(
@@ -79,8 +92,8 @@ const generateRuntime = async (slug: ExampleSlug) => {
 
 await mkdir(generatedDirectory, { recursive: true });
 
-for (const slug of exampleSlugs) {
-  const outputPath = resolve(generatedDirectory, `${slug}.json`);
-  await writeFile(outputPath, await generateRuntime(slug), "utf8");
+for (const entry of exampleCatalog) {
+  const outputPath = resolve(generatedDirectory, `${entry.slug}.json`);
+  await writeFile(outputPath, await generateRuntime(entry), "utf8");
   process.stdout.write(`generated ${outputPath}\n`);
 }

@@ -5,7 +5,13 @@ import {
   exampleSlugs,
   loadExample,
   loadExampleRuntime,
+  type ExampleCatalogEntry,
 } from "./catalog";
+
+const isCoreExample = (
+  entry: ExampleCatalogEntry,
+): entry is ExampleCatalogEntry & { source: { kind: "core-example" } } =>
+  entry.source.kind === "core-example";
 
 describe("example catalog", () => {
   it("has a catalog entry for every slug", () => {
@@ -38,6 +44,17 @@ describe("example catalog", () => {
           expect(bounds!.step).toBeGreaterThan(0);
         }
       }
+    },
+  );
+
+  it.each(exampleCatalog.filter(isCoreExample))(
+    "titles $slug after the core example it publishes",
+    async (entry) => {
+      // The oEmbed function reads titles from the import-free metadata, so
+      // the catalog repeats each core title; this keeps the copy honest.
+      const examples = await import("@hashintel/petrinaut-core/examples");
+
+      expect(examples[entry.source.exportName].title).toBe(entry.title);
     },
   );
 

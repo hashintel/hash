@@ -14,14 +14,52 @@ import {
 } from "@hashintel/petrinaut-core/selection";
 
 /**
+ * The editor's mode, its Simulate section, and the overlay it has open, spelled
+ * for a URL.
+ *
+ * Declared here rather than imported so this module stays free of the editor:
+ * the oEmbed server function speaks the same contract and must not bundle it.
+ * `navigation-search.ts` maps each of these onto the editor's own vocabulary
+ * with an exhaustive switch, so a rename on either side fails to compile.
+ */
+export const sharedModes = ["edit", "simulate", "actual", "notebook"] as const;
+
+export const sharedSimulateViews = [
+  "scenarios",
+  "metrics",
+  "experiments",
+  "optimizations",
+] as const;
+
+export const sharedOverlays = [
+  "viewport-settings",
+  "create-scenario",
+  "create-metric",
+  "create-experiment",
+  "create-optimization",
+] as const;
+
+export type SharedMode = (typeof sharedModes)[number];
+export type SharedSimulateView = (typeof sharedSimulateViews)[number];
+export type SharedOverlay = (typeof sharedOverlays)[number];
+
+/**
  * Search params understood by every example surface. A URL carries at most one
  * focused item: multi-selection is in-app state, not a shareable location.
+ *
+ * A field the URL leaves out means "whatever this page starts from", which for
+ * every page but `/brunch` is the editor's own default. That is what lets Back
+ * undo a mode change or close an overlay: the entry it returns to simply does
+ * not name the field.
  */
 export type SharedExampleSearch = {
   scenario?: string;
   subnet?: string;
   itemType?: SelectionItemType;
   itemId?: string;
+  mode?: SharedMode;
+  view?: SharedSimulateView;
+  overlay?: SharedOverlay;
 };
 
 /** The keys this contract owns. Anything else in a URL is foreign. */
@@ -30,6 +68,9 @@ const sharedSearchKeys = [
   "subnet",
   "itemType",
   "itemId",
+  "mode",
+  "view",
+  "overlay",
 ] as const satisfies readonly (keyof SharedExampleSearch)[];
 
 // `.catch(undefined)` is the contract's whole validation story: anything a URL
@@ -40,6 +81,13 @@ const optionalSelectionItemType = z
   .enum(selectionItemTypes)
   .optional()
   .catch(undefined);
+
+const optionalMode = z.enum(sharedModes).optional().catch(undefined);
+const optionalSimulateView = z
+  .enum(sharedSimulateViews)
+  .optional()
+  .catch(undefined);
+const optionalOverlay = z.enum(sharedOverlays).optional().catch(undefined);
 
 /** The focused item, when the URL names a complete one. */
 export const selectionFromInput = (
@@ -68,6 +116,9 @@ export const validateSharedExampleSearch = (
 ): SharedExampleSearch => ({
   scenario: optionalNonEmptyString.parse(input.scenario),
   subnet: optionalNonEmptyString.parse(input.subnet),
+  mode: optionalMode.parse(input.mode),
+  view: optionalSimulateView.parse(input.view),
+  overlay: optionalOverlay.parse(input.overlay),
   ...selectionToSearch(selectionFromInput(input)),
 });
 

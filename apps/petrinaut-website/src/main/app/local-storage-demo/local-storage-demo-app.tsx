@@ -27,6 +27,10 @@ import {
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
+import {
+  useSharedSearchNavigation,
+  withClearedSharedLocation,
+} from "../../../examples/use-shared-search-navigation";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { CommandPalette } from "../command-palette";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
@@ -47,6 +51,8 @@ import {
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
+
+import type { SharedExampleSearch } from "../../../examples/example-search";
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
@@ -183,10 +189,45 @@ const DemoCommands = ({
  * Switching files replaces the active handle instead of keeping handles alive
  * for background nets.
  */
-export const LocalStorageDemoApp = () => {
+export const LocalStorageDemoApp = ({
+  onSearchChange,
+  search,
+}: {
+  onSearchChange: (
+    search: SharedExampleSearch,
+    history: "push" | "replace",
+  ) => void;
+  search: SharedExampleSearch;
+}) => {
   const sentryFeedbackAction = useSentryFeedbackAction();
   const [openAIVoiceConfig, setOpenAIVoiceConfig] =
     useState<OpenAIVoiceConfig | null>();
+  /**
+   * History is left to the library's default on purpose. That default already
+   * replaces rather than pushes while an intent continues, so a drag-select
+   * records one entry instead of one per intermediate selection, and a discrete
+   * click is the only thing that pushes. Making selections replace as well
+   * removed every entry this page can produce, which left the first Back press
+   * leaving the site instead of retracing the net.
+   */
+  const navigation = useSharedSearchNavigation(search, onSearchChange);
+
+  /**
+   * The location belongs to the net that was open. Petrinaut resets its own
+   * location per document by keying on the handle id, but that only resets an
+   * uncontrolled location, so the host clears this one.
+   *
+   * Cleared through the controller rather than by writing an empty search: the
+   * shared projection is lossy, so a location the URL already renders as empty
+   * leaves the search prop unchanged and the in-memory selection would survive
+   * into the next net.
+   */
+  const clearSharedLocation = () => {
+    navigation.onNavigate(withClearedSharedLocation, {
+      history: "replace",
+      intent: { cause: "normalization", action: "selection" },
+    });
+  };
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
@@ -302,6 +343,7 @@ export const LocalStorageDemoApp = () => {
     });
     setActiveHandle(createActiveHandle(newNet));
     setCurrentNetId(newNet.id);
+    clearSharedLocation();
   };
 
   const loadPetriNet = (petriNetId: string) => {
@@ -330,6 +372,9 @@ export const LocalStorageDemoApp = () => {
     }
     setActiveHandle(createActiveHandle(netToLoad));
     setCurrentNetId(petriNetId);
+    if (petriNetId !== currentNetId) {
+      clearSharedLocation();
+    }
   };
 
   const setTitle = (title: string) => {
@@ -440,6 +485,7 @@ export const LocalStorageDemoApp = () => {
             existingNets={existingNets}
             createNewNet={createNewNet}
             loadPetriNet={loadPetriNet}
+            navigation={navigation}
             readonly={false}
             setTitle={setTitle}
             title={currentNet.title}
