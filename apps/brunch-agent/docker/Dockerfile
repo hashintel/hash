@@ -64,13 +64,15 @@ WORKDIR /repo/apps/brunch-agent
 COPY --from=builder /repo /repo
 
 RUN groupadd --system --gid 60000 hash && \
-    useradd --system --uid 60000 --gid hash --create-home brunch
+    useradd --system --uid 60000 --gid hash --create-home brunch && \
+    install --directory --owner brunch --group hash \
+    /repo/apps/brunch-agent/.data-wipe-me
 
 USER brunch:hash
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD ["node", "-e", "fetch('http://127.0.0.1:3000/health').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1))"]
+    CMD ["node", "-e", "fetch('http://127.0.0.1:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
 
 CMD ["node", "dist/server.mjs"]
