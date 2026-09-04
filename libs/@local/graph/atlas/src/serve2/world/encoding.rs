@@ -1,12 +1,10 @@
 use alloc::alloc::Global;
 
-use error_stack::Report;
-use hashql_core::id::{Id, IdSlice, IdVec};
+use hashql_core::id::{IdSlice, IdVec};
 
 use super::{
     super::codec::{RowCodec, Universe},
     OpenOptions,
-    error::WorldError,
 };
 use crate::{
     identity::BasePosition,
@@ -23,7 +21,7 @@ impl<I> Encoding<I> {
     pub(crate) fn open(
         OpenOptions { generation, secret }: OpenOptions<'_>,
         domain: &IdSlice<BasePosition, I>,
-    ) -> Result<Self, Report<[WorldError]>>
+    ) -> Self
     where
         I: EncodableId,
     {
@@ -33,10 +31,10 @@ impl<I> Encoding<I> {
         // The domain length is the same across domains, as the domain is bijective
         let universe = Universe::new(I::from_usize(domain.len()));
 
-        Ok(Self {
+        Self {
             codec,
             lookup,
             universe,
-        })
+        }
     }
 }

@@ -16,12 +16,16 @@ use crate::{
         array::SizedColumn,
         generation::METADATA_FILE,
         identity,
+        morton::read::MortonFile,
         quad::read::QuadFile,
         repository::{Artifact, FileName},
     },
     identity::{BasePosition, Column, EdgeRowId, ImportanceRank, NodeRowId, OntologyRowId},
     math::Vec2,
-    salt::fit::prepare::identity::IdentityTableArchive,
+    salt::{
+        adjacency::AdjacencyArchive, fit::prepare::identity::IdentityTableArchive,
+        postings::artifact::PostingsArchive,
+    },
 };
 
 /// Declares one artifact marker with its pinned file name.
@@ -129,7 +133,11 @@ impl WriteAs<PositionOfRow> for SizedColumn<NodeRowId, BasePosition> {}
 impl WriteAs<RowOfPosition> for SizedColumn<BasePosition, NodeRowId> {}
 
 impl OpenAs<Quad> for QuadFile {}
+impl OpenAs<Morton> for MortonFile {}
+impl OpenAs<Adjacency> for AdjacencyArchive {}
+impl OpenAs<Postings> for PostingsArchive {}
 impl OpenAs<WireCoordinates> for Column<BasePosition, Vec2> {}
+impl OpenAs<EdgeEndpoints> for Column<EdgeRowId, [NodeRowId; 2]> {}
 impl OpenAs<RankOfPosition> for Column<BasePosition, ImportanceRank> {}
 impl OpenAs<PositionOfRank> for Column<ImportanceRank, BasePosition> {}
 impl OpenAs<PositionOfRow> for Column<NodeRowId, BasePosition> {}

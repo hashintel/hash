@@ -173,20 +173,20 @@ impl Error for InvalidIdentityFile {}
 
 /// Opening a written identity table as its typed lookup surface failed.
 #[derive(Debug)]
-pub enum OpenIdentityTableArchiveError {
+pub(crate) enum OpenIdentityTableArchiveError {
     /// The identity file failed to open.
     Open(OpenIdentityError),
     /// The file violates the table's domain invariants.
     Invalid(InvalidIdentityFile),
 }
 
-impl From<InvalidIdentityFile> for OpenIdentityTableArchiveError {
+const impl From<InvalidIdentityFile> for OpenIdentityTableArchiveError {
     fn from(error: InvalidIdentityFile) -> Self {
         Self::Invalid(error)
     }
 }
 
-impl From<OpenIdentityError> for OpenIdentityTableArchiveError {
+const impl From<OpenIdentityError> for OpenIdentityTableArchiveError {
     fn from(error: OpenIdentityError) -> Self {
         Self::Open(error)
     }

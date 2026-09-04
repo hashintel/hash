@@ -1,13 +1,17 @@
 //! The writable builder, its matrix file, and the mapped reader that publish an adjacency.
 
 use core::ops::Range;
+use std::path::Path;
 
 use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
 
 use crate::{
-    file::sprs::{
-        IndexVariant, SprsIndex,
-        read::{SprsFile, SprsMatrixError},
+    file::{
+        ArtifactFile,
+        sprs::{
+            IndexVariant, SprsIndex,
+            read::{OpenSprsError, SprsFile, SprsMatrixError},
+        },
     },
     identity::{EdgeRowId, NodeRowId},
 };
@@ -75,6 +79,47 @@ impl core::error::Error for InvalidAdjacencyFile {
     }
 }
 
+/// Opening a published adjacency as its mapped reader failed.
+#[derive(Debug)]
+pub(crate) enum OpenAdjacencyArchiveError {
+    /// The sparse matrix file failed to open.
+    Open(OpenSprsError),
+    /// The file does not hold a valid adjacency.
+    Invalid(InvalidAdjacencyFile),
+}
+
+const impl From<OpenSprsError> for OpenAdjacencyArchiveError {
+    fn from(error: OpenSprsError) -> Self {
+        Self::Open(error)
+    }
+}
+
+const impl From<InvalidAdjacencyFile> for OpenAdjacencyArchiveError {
+    fn from(error: InvalidAdjacencyFile) -> Self {
+        Self::Invalid(error)
+    }
+}
+
+impl core::fmt::Display for OpenAdjacencyArchiveError {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Open(error) => write!(fmt, "the sparse matrix file failed to open: {error}"),
+            Self::Invalid(error) => {
+                write!(fmt, "the file does not hold a valid adjacency: {error}")
+            }
+        }
+    }
+}
+
+impl core::error::Error for OpenAdjacencyArchiveError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match self {
+            Self::Open(error) => Some(error),
+            Self::Invalid(error) => Some(error),
+        }
+    }
+}
+
 /// The index width an adjacency's edge row ids read at.
 #[derive(Debug, Copy, Clone)]
 enum Width {
@@ -96,6 +141,15 @@ pub(crate) struct AdjacencyArchive {
     width: Width,
     nodes: u64,
     edges: u64,
+}
+
+impl ArtifactFile for AdjacencyArchive {
+    type Error = OpenAdjacencyArchiveError;
+
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error> {
+        let file = SprsFile::open(path)?;
+        Self::new(file).map_err(From::from)
+    }
 }
 
 impl AdjacencyArchive {

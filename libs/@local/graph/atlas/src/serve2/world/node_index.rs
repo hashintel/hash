@@ -1,4 +1,4 @@
-use error_stack::{Report, ResultExt, TryReportTupleExt};
+use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 
 use super::{OpenOptions, encoding::Encoding, error::WorldError};
 use crate::{
@@ -45,12 +45,9 @@ impl NodeIndex {
                 file: files.position_of_row.name(),
             });
 
-        let encoding =
-            lookup
-                .map_err(Report::expand)
-                .and_then(|column: Column<BasePosition, NodeRowId>| {
-                    Encoding::open(options, column.view()).map(|encoding| (encoding, column))
-                });
+        let encoding = lookup.map(|column: Column<BasePosition, NodeRowId>| {
+            (Encoding::open(options, column.view()), column)
+        });
 
         let (identity, (encoding, lookup), reverse) =
             (identity, encoding, reverse).try_collect()?;

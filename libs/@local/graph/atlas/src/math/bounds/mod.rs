@@ -417,9 +417,34 @@ impl Bounds2 {
 
         mapped
     }
-}
 
-impl Bounds2 {
+    /// Maps this box onto `target`: the image of [`normalize_into`](Self::normalize_into).
+    ///
+    /// An axis with positive extent covers the target's whole axis, and a zero-extent axis maps to
+    /// the target's centre. When this box is the tight box of a point set, the result is the tight
+    /// box of that set normalized, read from the corners alone.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let world = Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
+    ///     .expect("corners are finite and ordered");
+    /// let frame = Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("the frame is valid");
+    ///
+    /// assert_eq!(world.image_in(frame), frame);
+    /// ```
+    #[must_use]
+    pub(crate) fn image_in(self, target: Self) -> Self {
+        let x = AxisMap::new(self.min.x(), self.max.x(), target.min.x(), target.max.x());
+        let y = AxisMap::new(self.min.y(), self.max.y(), target.min.y(), target.max.y());
+
+        // An affine map with non-negative scale keeps the corners ordered and finite.
+        Self {
+            min: Vec2::new(x.apply(self.min.x()), y.apply(self.min.y())),
+            max: Vec2::new(x.apply(self.max.x()), y.apply(self.max.y())),
+        }
+    }
+
     /// Quantizes a point onto the bounds' 32-bit-per-axis grid.
     ///
     /// Each axis maps affinely onto `[0, 2^32)` in `f64` (so every `f32` coordinate quantizes

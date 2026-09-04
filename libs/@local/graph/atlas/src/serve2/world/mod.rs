@@ -1,6 +1,10 @@
 use std::io;
 
-use self::{cache::Cache, layout::Layout, ontology::Ontology, topology::Topology};
+use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
+
+use self::{
+    cache::Cache, error::WorldError, layout::Layout, ontology::Ontology, topology::Topology,
+};
 use super::{schedule::BucketSchedule, secret::ServeSecret};
 use crate::file::generation::Generation;
 
@@ -14,7 +18,8 @@ mod node_index;
 mod ontology;
 mod topology;
 
-pub struct OpenOptions<'context> {
+#[derive(Clone, Copy)]
+pub(crate) struct OpenOptions<'context> {
     pub generation: &'context Generation,
     pub secret: &'context ServeSecret,
 }
@@ -32,6 +37,35 @@ pub struct World {
 }
 
 impl World {
+    pub(crate) fn open(
+        generation: Generation,
+        secret: &ServeSecret,
+    ) -> Result<Self, Report<[WorldError]>> {
+        let options = OpenOptions {
+            generation: &generation,
+            secret,
+        };
+
+        let schedule =
+            BucketSchedule::new(generation.repository().metadata.reproducibility.config.lod)
+                .change_context(WorldError::BucketSchedule);
+        let layout = Layout::open(options);
+        let topology = Topology::open(options);
+        let ontology = Ontology::open(options);
+
+        let (schedule, layout, topology, ontology) =
+            (schedule, layout, topology, ontology).try_collect()?;
+
+        Ok(Self {
+            generation,
+            schedule,
+            layout,
+            topology,
+            cache: Cache::new(),
+            ontology,
+        })
+    }
+
     pub async fn destroy(self) -> io::Result<()> {
         // removes the world's resources from memory AND removes the directory from the filesystem
         // because we memory map the files, it's not an issue, we don't need to unmap them

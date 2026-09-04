@@ -8,6 +8,8 @@
 //! `max_tile_depth + span ≤ 32` ([`LodConfig::deepest`]). Every depth the serve paths derive from
 //! it then exists by construction.
 
+use core::{error::Error, fmt};
+
 use crate::{
     math::Log2,
     morton::{Depth, Zoom},
@@ -21,12 +23,27 @@ const AXIS_BITS: u8 = 32;
 ///
 /// `max_tile_depth + span` lies beyond the 32 subdivisions a Morton key axis resolves, the
 /// inequality [`LodConfig::deepest`] checks, and the serving open refuses the generation.
-pub struct ScheduleError {
+#[derive(Debug)]
+pub(crate) struct ScheduleError {
     /// Cells per tile axis of the delivery cut.
     span: Log2,
     /// The deepest tile zoom the schedule names.
     max_tile_depth: Zoom,
 }
+
+impl fmt::Display for ScheduleError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            fmt,
+            "the recorded schedule needs {} + {} subdivisions where a Morton key axis resolves \
+             {AXIS_BITS}",
+            self.max_tile_depth.get(),
+            self.span.get(),
+        )
+    }
+}
+
+impl Error for ScheduleError {}
 
 /// A generation's recorded schedule, proven within the Morton key width.
 ///
