@@ -22,6 +22,13 @@ defines the accepted and rejected mechanics.
 
 The parent now prevents its once-per-conversation canonical hydration from overwriting a locally submitted turn. The real microphone, handoff, Stop, hard-reload, and same-origin witness is therefore executable but remains unproved until the human witness and retained artifact bundle are complete.
 
+On 2026-09-04, the owner directed PR #9531 to close one bounded launcher
+defect exposed while starting that witness. The Brunch panel config now retains
+Petrinaut's stock API plugin so `/api/voice/config` and
+`/api/voice/realtime-call` remain available beside the unchanged
+`/agents/chat/*` Flue proxy. This is an explicit exception to the parent-defect
+constraint below; it changes no conversation or Voice-turn semantics.
+
 Completed-transcript authority, half-duplex ownership, admission idempotency,
 the cancellation barrier, exact full-response replay, and exact marked-question
 replay have focused regression coverage, including the interval between a
@@ -142,6 +149,8 @@ This mission closes the Voice safety and UX-parity stratum on the parent's route
 ~ libs/@hashintel/brunch-agent/packages/transport-aisdk/           stable idempotency and canonical projection/provenance tests/code
 ~ libs/@hashintel/petrinaut/src/react/voice-session/                public Voice state required by the panel
 ~ libs/@hashintel/petrinaut/src/ui/views/Editor/panels/             Your turn, replay menu, durable provenance
+~ apps/brunch-agent/petrinaut-local.vite.config.ts                  retain Petrinaut Voice API handlers beside the Flue proxy
+~ apps/brunch-agent/test/local-dev-origins.test.ts                  real merged-config launcher regression
 ~ apps/petrinaut-website/README.md                                  operator behavior
 ~ libs/@hashintel/petrinaut/docs/ai-assistant.md                    end-user behavior
 ? .changeset/                                                       one patch changeset if published Petrinaut changes

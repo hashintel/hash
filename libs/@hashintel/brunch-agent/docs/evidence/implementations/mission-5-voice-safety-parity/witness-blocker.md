@@ -17,6 +17,17 @@ once-per-conversation hydration from replacing a locally visible assistant
 response with an older canonical snapshot, so hydration no longer blocks this
 witness. The remaining gate is the required human browser and microphone run.
 
+An owner-directed PR #9531 side quest also removed a local launcher blocker
+found at the real boundary on 2026-09-04. The Brunch-specific Vite config had
+removed Petrinaut's entire `petrinaut-api-dev` plugin, so
+`/api/voice/config` returned transformed module source instead of the handler's
+JSON. The launcher now retains the website API plugin while continuing to
+proxy only `/agents/chat/*` to Brunch. A config-level regression test loads the
+real merged config, and an isolated `yarn dev:brunch` panel process with an
+enabled non-secret test environment returned
+`{"available":true,"connectionTimeoutMs":15000}`. This proves local Voice API
+wiring only; it does not satisfy the human witness below.
+
 ## Re-entry gate
 
 Using the final source/build commit:
