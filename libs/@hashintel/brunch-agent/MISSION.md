@@ -15,7 +15,8 @@ Sections independent of canonical hydration may proceed. The hard-reload witness
 
 Completed-transcript authority, half-duplex ownership, admission idempotency,
 the cancellation barrier, and exact full-response replay have focused regression
-coverage. **Repeat question** remains blocked: canonical Brunch speech does not
+coverage, including the interval between a canonical speech request and output
+start. **Repeat question** remains blocked: canonical Brunch speech does not
 carry a deterministic question marker, so treating the final text segment as a
 question would replay ordinary prose under a false label. Proof item 5 is complete
 only for the supported client-tool-result path: Flue signals persist each
@@ -26,6 +27,16 @@ caller metadata nor the caller idempotency key. The discarded
 browser-correlation implementation would have violated the explicit
 second-durable-store stop condition. The real witness remains blocked by the
 parent hydration defect.
+
+The 2026-09-04 corrective verification covers the current 44-file successor
+diff against #9528: the four race suites pass 94/94 tests, the filtered
+production admission-outcome cases pass 3/3 tests, and the requested Turbo run
+passes 30/30 tasks, including 243/243 website tests. Architecture validation
+passes with 62 layers, 297 edges, 614 files, 63 generated pages, and 31 authored
+pages. `git diff --check` and formatting of all formatter-owned successor files
+pass. The root formatter remains red only outside this branch's diff: two
+parent-owned #9528 files and an unrelated untracked `.cursor` plan. The exact
+commands and dispositions are retained in the [donor matrix](docs/evidence/implementations/mission-5-voice-safety-parity/donor-behavior-matrix.md#corrective-verification).
 
 The pinned donor-behavior decision record is the [FE-1580 donor matrix](docs/evidence/implementations/mission-5-voice-safety-parity/donor-behavior-matrix.md). Donor PRs are read-only evidence at their named heads; semantic reimplementation is required, never merge or cherry-pick.
 
@@ -83,7 +94,7 @@ This mission closes the Voice safety and UX-parity stratum on the parent's route
 
 **Demo script:** run `yarn dev:brunch` and select the Brunch preview. Speak one answer and see exactly one matching user turn. While Brunch is speaking, confirm the microphone remains closed, choose **Your turn**, wait for the handoff, and speak again. Use the playback menu to read the full response exactly; **Repeat question** remains unavailable until Brunch provides a deterministic canonical question marker. Start another turn, press durable **Stop** before settlement, and see a stopped turn rather than a Voice error. After the parent hydration blocker is fixed, hard-reload the settled conversation and confirm the canonical turn remains without resubmission or replay; direct-user Voice-chip restoration additionally waits on the Flue projection seam.
 
-**Previously impossible:** model-generated function arguments rather than completed audio transcription could become the answer; assistant playback could create a false user turn; cancellation could reopen capture before the provider settled; replay controls and multi-origin client-tool Voice attribution were incomplete.
+**Previously impossible:** model-generated function arguments rather than completed audio transcription could become the answer; an accepted transcript could complete after canonical speech was requested but before output started; assistant playback could create a false user turn; cancellation could reopen capture before the provider settled; replay controls and multi-origin client-tool Voice attribution were incomplete.
 
 **Completion:** the implemented portions close when their tests and focused checks pass. **Repeat question** needs the Brunch-owned marker recorded below, and direct-user provenance needs the Flue re-entry seam recorded below. Mission acceptance additionally requires the real microphone, handoff, Stop, hard-reload, and same-origin route witness after the parent hydration fix. Mocked or server-only proof cannot substitute for that witness.
 
