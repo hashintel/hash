@@ -92,9 +92,17 @@ point refines wherever the navigation stands — except after a cancellation,
 which stops compute until the next move.
 
 The drawer's **Parameters** band edits `navigation` through
-`setOptimizationNavigation`; the **Surface** section reads its positions from
-the same field and commits picks the same way, while its contour fill still
-walks the grid through `sampleDetachedObjective`
+`setOptimizationNavigation`, its controls disabled while they follow a
+running study. The **Surface** section samples nothing of its own: the
+study's trials are the field (`trialSurfaceField` projects each trial with an
+objective onto the shown axes as a sample and a dot, pruned trials as hollow
+marks), and the selection stream's running objective enters the field at the
+navigation (`navigatedSurfaceSample`) — the step in flight until its event
+lands, the refined point afterwards — so the plot fills in as the study
+streams. `surfaceInteraction` keeps the plot display-only while a running
+study is followed and lets a click or drag commit `setOptimizationNavigation`
+once the study is terminal or following is off. Only a remote study's surface
+walks a grid through `sampleDetachedObjective`
 ([the sweep surface](doc:experiments/sweep-surface) covers that walk).
 
 ## What each side owns
