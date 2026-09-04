@@ -8,16 +8,17 @@
 
 A fresh builder must read these sources before cutting or implementing this cluster:
 
-- [`MISSION.md`](../../MISSION.md) — live Mission 5 Voice authority on this branch; it supplies no Mission 10 execution authority or workpiece candidate. Consume only the source/workpiece pair explicitly selected and promoted by Mission 7 or a predecessor addendum.
+- [`MISSION.md`](../../MISSION.md) — the current branch's live authority; it supplies no Mission 10 execution authority or workpiece candidate. Consume only the genuine conversation, settled workpiece revisions, and constructed region accepted by Missions 7 and 9.
+- [`7-explainable-construction.md`](7-explainable-construction.md) and [`../evidence/design/provenance-by-lineage-mini-spec-2026-09-04.md`](../evidence/design/provenance-by-lineage-mini-spec-2026-09-04.md) — the 2026-09-04 recut: settled-revision protocol, declared basis, transition records, identity epochs, passage identity policy, document reconciliation, and recorded roles replace the former capture-envelope and derivation-fixture seam this draft once assumed.
 - [`MISSION.next.md`](../../MISSION.next.md) — compact shared frame, standing locks, and current mission joins.
 - [`README.md`](README.md) — durable draft authority, lifecycle, conversion, and oracle-gap rules.
-- [`docs/mission-archive/2-mechanical-capture-sweep.md`](../mission-archive/2-mechanical-capture-sweep.md) — exact-evidence capture, idempotency, Flue-history authority, and model-free scheduling.
+- [`docs/mission-archive/2-mechanical-capture-sweep.md`](../mission-archive/2-mechanical-capture-sweep.md) — exact-evidence capture, idempotency, Flue-history authority, and model-free scheduling. Historical: capture envelopes and sweep semantics are rejected for provenance since 2026-09-04; reviewer evidence is retained as canonical Flue history and cited through the revision-time evidence relation.
 - [`docs/mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) — accepted workpiece leg and falsified provider-schema construction leg.
 - [`evaluations/oracles/ir-quality-ruler-v1.md`](../../evaluations/oracles/ir-quality-ruler-v1.md) and [`evaluations/protocols/ir-quality-ruler-v1/cold-ir-reviewer.md`](../../evaluations/protocols/ir-quality-ruler-v1/cold-ir-reviewer.md) — current conservation, grounding, conflict-collapse, and cold-reading criteria; neither is yet a successive-revision oracle.
 - [`docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`](../evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md) — healthy foreground-turn range, costly whole-workpiece synthesis, and observed correction handling.
 - [`packages/core/src/prompts/SYSTEM.md`](../../packages/core/src/prompts/SYSTEM.md), [`packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md), and [`packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md) — current foreground lifecycle and workpiece correction behavior.
 - [`apps/brunch-agent/test/petrinaut-chat.test.ts`](../../../../../apps/brunch-agent/test/petrinaut-chat.test.ts), [`apps/brunch-agent/test/headless-petrinaut-client.test.ts`](../../../../../apps/brunch-agent/test/headless-petrinaut-client.test.ts), and [`packages/plugin-sdcpn/src/tools/petrinaut-construction.ts`](../../packages/plugin-sdcpn/src/tools/petrinaut-construction.ts) — current real door, bounded mutation subset, and its limits.
-- [`7-capture-backed-review.md`](7-capture-backed-review.md) and [`9-traceable-projection.md`](9-traceable-projection.md) — provisional inherited artifacts, provenance seam, projection contract, and stable-identity obligations. Re-resolve these joins against accepted close evidence at cut time rather than assuming draft hypotheses landed.
+- [`9-traceable-projection.md`](9-traceable-projection.md) — repeat, changed-input, retirement, and impact-boundary semantics this draft inherits. Re-resolve these joins against accepted close evidence at cut time rather than assuming draft hypotheses landed.
 - Commit `157730cc5a214dd9c543e8d95c7193a219c48aef` on deployment branch `ln/fe-1569-brunch-agent-deployment`, especially `libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-8-deployment-handoff.md` — local application contract and the still-open infrastructure proof that any deployed durability claim must consume.
 
 ## Visible product advance
@@ -63,12 +64,11 @@ scenario declares reviewer authority + selected region + base revisions
 → reviewer enters the deployed Petrinaut assistant panel
 → host-supplied browser `ChatTransport` over `@flue/sdk` resumes the owning Flue conversation at the mounted route
 → foreground Brunch agent conducts 3–5 focused operational-language turns
-→ Flue history retains the canonical conversation
-→ harness-owned mechanical sweep durably captures the settled reviewer range
+→ Flue history retains the canonical reviewer turns under the compaction posture Mission 7 established
 → one bounded foreground phase-boundary synthesis reads:
-   prior workpiece revision + current derivation/region + newly captured evidence
+   prior settled workpiece revision + current region lineage (basis, transition records, epochs) + the reviewer's message ids
 → synthesis classifies correction | qualification | coexistence | conflict | refusal
-→ attributed next workpiece revision + semantic diff + impact declaration
+→ `update_workpiece` settles the attributed next revision, citing reviewer message ids through the revision-time evidence relation, with semantic diff + impact declaration
 → authority, base-revision, evidence, and impact gates admit or refuse commit
 → SDCPN plugin applies the bounded patch through Petrinaut-owned canonical mutations
 → Petrinaut validates the current net and selected behavior
@@ -82,11 +82,11 @@ The foreground phase-boundary synthesis is the default. It is one explicit seman
 One scenario-declared, consequential operational distinction must cross the real deployed path and produce:
 
 - 3–5 focused reviewer turns in operational vocabulary;
-- mechanically retained, attributed reviewer evidence;
+- reviewer evidence retained as canonical history and cited by message id in the next settled revision;
 - an inspectable prior/current workpiece pair and semantic diff;
 - the correct class disposition;
-- a bounded patch or explicit refusal;
-- updated element → derivation → workpiece revision → original and reviewer evidence provenance; and
+- a bounded patch or explicit refusal, every mutation citing the new settled revision with declared basis;
+- updated element → basis → settled revision → original and reviewer evidence, with the correction visible in change history and the original in origin; and
 - unchanged ids and behavior outside the declared impact, except where a visible, justified widening is accepted.
 
 The default tracer should be a correction because it proves canonical change. It must be selected so a mistaken overwrite, qualification, coexistence, and conflict treatment would be observably different. One successful correction is only throughline proof and the first internal milestone; it does not close the class stratum and it is not mission completion, which additionally requires the demo's visible refusal or qualification.
@@ -97,10 +97,10 @@ The default tracer should be a correction because it proves canonical change. It
 
 This cluster may start only after the prior missions have supplied and accepted:
 
-- Mission 7's honest prebuilt pair, durable exact-evidence provenance, broken-link behavior, and element/workpiece/evidence identity seam;
-- Mission 9's meaningful automatically projected live region, derivation coverage, canonical provider-visible mutation path, repeated-projection identity behavior, and explicit partial/unsupported failure;
-- the current workpiece revision and exact source Flue conversation selected at the prior handoff;
-- a deployment boundary that actually persists every state this path consumes across the replacement behavior it claims.
+- Mission 7's genuine conversation and constructed region with the settled-revision protocol, declared basis, independently verifiable transition records, identity epochs, passage identity policy, live-document reconciliation, recorded roles, compaction posture, fixture materialization route, and the safety and utility gates for why;
+- Mission 9's repeat idempotence, changed-input identity, retirement, concurrent-change refusal, impact-boundary semantics, and explicit partial or unsupported failure;
+- the current settled workpiece revision and the exact source Flue conversation selected at the prior handoff;
+- a deployment posture named honestly: local unless a Mission 8 successor has landed, with every persisted state this path consumes surviving the replacement behaviour actually claimed.
 
 Draft links are not evidence. If Mission 7 or Mission 9 ships a different representation, Mission 10 must consume that actual contract or return here for re-cutting.
 
@@ -134,19 +134,19 @@ Breadth beyond the named classes and accepted scenario portfolio remains unearne
 - **ORACLE GAP — successive semantic revision:** no current oracle compares prior workpiece + newly captured evidence against the next revision across all five classes. Before cut, freeze a reviewed fixture set and adjudication rubric that detects lost supported meaning, incorrect authority, unsupported strengthening, conflict collapse, and incorrect disposition.
 - **ORACLE GAP — patch locality and behavior:** no current oracle proves that a semantic revision changes the intended linked region while preserving unrelated ids and behavior. Before cut, define the selected region, explicit allowed impact set, before/after id inventory, semantic expectations, and—where discriminating—a Petrinaut simulation comparison.
 - **ORACLE GAP — outer path:** no current test or artifact witnesses the 3–5-turn scenario portfolio through a remotely deployed Petrinaut/Brunch path. Before claiming the visible advance, record a human witness against the accepted deployment, exact scenario/base revisions, transcript, workpiece diff, mutation trace, before/after net, and refusal output.
-- **ORACLE GAP — durable capture join:** the deployment handoff explicitly leaves the JSON capture store inactive and non-durable. Before this path consumes capture remotely, Mission 7 or this cut must identify and test the durable implementation across the claimed task-replacement boundary.
+- **ORACLE GAP — lineage retention across compaction and replacement:** reviewer evidence lives in canonical Flue history and is cited by message id. Before this path claims retained reviewer evidence, consume Mission 7's compaction-probe result (history read, disclosed uncompacted window, or hardened session-log archive lane) and test it across the replacement boundary actually claimed.
 
 ## Verification approach
 
 - **Inner mechanism:** deterministic tests for authority checks, base-revision refusal, exact evidence references, semantic-diff representation, class disposition, idempotent commit, impact calculation, and canonical mutation validation. Use the frozen class fixtures and revision oracle; parser success cannot substitute for semantic review.
-- **Middle integration/contract:** drive the production `ChatAgent`/AI SDK path from the selected Mission 9 artifact, perform the mechanical settled-range capture and foreground synthesis, apply the patch through the actual browser client-tool callbacks, and compare persisted before/after workpiece, derivation, and net artifacts. Exercise a stale-base attempt and one explicit refusal.
+- **Middle integration/contract:** drive the production `ChatAgent` through the Mission 5 browser transport on the accepted Mission 9 conversation, perform the foreground synthesis into a settled `update_workpiece` revision citing reviewer message ids, apply the patch through the actual browser client-tool callbacks with declared basis, and compare persisted before/after workpiece revisions, transition records, epochs, and net definitions. Exercise a stale-base attempt and one explicit refusal.
 - **Outer deployed/user-visible:** a named human witness performs each accepted peer class through the deployed panel, including the 3–5-turn correction tracer, and verifies visible attribution, semantic diff, changed region, stable unrelated ids/behavior, updated why answer, and comprehensible refusal/failure. The live mission owns this outer proof; it cannot be delegated to Mission 11.
 
 ## Inputs and joins
 
-- Upstream source exit: the frozen workpiece, exact source Flue conversation, instrument manifest, and evaluation/adjudication explicitly selected by Mission 7 or a predecessor addendum; Mission 4 itself supplies no full-run candidate.
-- Mission 7: prebuilt workpiece/net pair, current workpiece revision and references, capture evidence references, net-element ids, projection rationale, durability disposition, and the why interaction.
-- Mission 9: selected meaningful region, canonical mutation surface, derivation records, repeat-projection identity evidence, and accepted unsupported/partial behavior.
+- Upstream source exit: the genuine persona or human conversation, its settled workpiece revisions, and the adjudication accepted by Mission 7; Mission 4 itself supplies no full-run candidate and the Mission 6 prepared fixture is not promoted.
+- Mission 7: the constructed region, settled revisions, declared basis, transition records, identity epochs, passage policy, reconciliation, recorded roles, and the why operation with its gates.
+- Mission 9: the extended region, canonical mutation surface, repeat and changed-input identity evidence, retirement semantics, impact boundary, and accepted unsupported or partial behaviour.
 - Mission 8: consume the actual application contract—fail-closed Postgres Flue state, verified TLS, IAM/static-password paths, content-free OTel, restricted routes, liveness, singleton ownership policy—but do not imply it is deployed. The infrastructure handoff, real RDS/Anthropic/collector/replacement/rollback proof, and owner acceptance remain required before an outer deployed claim.
 - Mission 11: receives only an accepted final workpiece/net/evidence/derivation revision package and the six-beat real-path evidence; its consumer contract may not weaken Mission 10's revision-integrity closure.
 
@@ -157,17 +157,17 @@ Breadth beyond the named classes and accepted scenario portfolio remains unearne
 - **ASSUMPTION:** Mission 9's stable ids and derivation neighborhood are sufficient to calculate a bounded impact. **Impact if false:** local revision can cause unrelated churn or require broader context. **Cheapest validation:** dry-run the selected semantic change against the frozen Mission 9 before/after artifact and enumerate the minimal connected impact.
 - **RISK:** semantic diff reports textual edits while hiding a changed operational claim. **Impact:** a reviewer cannot understand what changed. **Cheapest validation:** cold human comparison against the class fixture's expected preserved/changed meaning.
 - **RISK:** compaction removes the recoverable workpiece or evidence needed by synthesis. **Impact:** stale or transcript-dependent revision. **Cheapest validation:** if the real path crosses compaction, reconstruct the same current revision and evidence references after that boundary; otherwise label the limitation and keep it outside the shipped durability claim.
-- **RISK:** the capture store remains task-local JSON while the service claims replacement durability. **Impact:** reviewer evidence may disappear after acceptance. **Cheapest validation:** inspect the consumed Mission 7/Mission 8 storage contract before cut and refuse remote revision until capture durability is observed.
+- **RISK:** reviewer evidence in canonical history is folded by compaction or lost at replacement while the service claims retained evidence. **Impact:** reviewer evidence may disappear after acceptance. **Cheapest validation:** inspect Mission 7's compaction-probe outcome and the consumed storage contract before cut and refuse the retained-evidence claim until retention is observed at the boundary claimed.
 
 ## Accepted constraints and guarded invariants
 
 - **STOP-THE-LINE — bounded authority:** canonical state changes only under the scenario's declared reviewer authority. Guard: authority fixture plus allowed/refused outer witness.
-- **STOP-THE-LINE — evidence retention:** original and reviewer evidence stay exact, attributed, immutable, and reachable; model prose is never presented as quotation. Guard: capture identity/excerpt assertions and provenance inspection.
+- **STOP-THE-LINE — evidence retention:** original and reviewer evidence stay exact, attributed by recorded role, immutable, and reachable by message id; model prose is never presented as quotation. Guard: verbatim-quote verification against canonical history and provenance inspection through the reopened why operation.
 - **STOP-THE-LINE — no recency overwrite:** prior supported meaning survives unless explicitly corrected, qualified, context-split, or retired under authority. Guard: successive-revision oracle across every accepted class.
 - **STOP-THE-LINE — patch locality:** unrelated ids and behavior remain stable, and necessary expansion is declared before commit. Guard: before/after id inventory, accepted impact set, and semantic/simulation check where applicable.
-- Flue history remains the canonical conversation log; the capture ledger is not a second transcript.
-- Mechanical capture remains domain-opaque and harness-owned. The foreground Markdown workpiece owns semantic synthesis.
-- The foreground model neither receives nor schedules a sweep tool. Ordinary turns do not block on extraction, fold, completion, or projection.
+- Flue history remains the canonical conversation log; no second transcript, capture ledger, or derivation store is admitted.
+- The foreground Markdown workpiece owns semantic synthesis; revisions settle only through `update_workpiece`.
+- The foreground model receives no sweep or extraction tool. Ordinary turns do not block on fold, completion, or projection.
 - Petrinaut owns canonical SDCPN schemas and mutations. Brunch imports or mechanically consumes them and does not copy field shapes.
 - Brunch remains a second assistant; preserve stock-assistant operation and distinct histories. Keep the panel on AI SDK `useChat` / `onToolCall`.
 - No comprehensive ontology, closed claim kinds, typed completion algebra, generic assertion fold, generalized runtime, TUI, second agent, or second server is earned.
@@ -196,7 +196,7 @@ libs/@hashintel/brunch-agent/
 └── docs/evidence/evaluations/                                      + observed revision campaign/adjudication
 apps/brunch-agent/
 ├── src/agents/chat-agent/                                          ~ compose only accepted capabilities
-├── src/capture/                                                    ~ settled-range durable join, not semantic fold
+├── src/capture/                                                    - retired unless the compaction probe hardened the session-log archive lane
 ├── src/conversation/                                               ? explicit phase-boundary operation if this is the earned home
 ├── src/http/                                                       ? only if the existing real door needs generic transport support
 └── test/                                                           ~ production-path revision, refusal, persistence, and locality coverage
@@ -218,7 +218,7 @@ No path is permission to edit before the cluster is cut. Prefer existing generic
 - The smallest linked neighborhood sufficient for synthesis and impact analysis.
 - What counts as unchanged behavior outside the region and when simulation is a useful discriminator.
 - How legitimate impact widening is previewed, authorized, and either committed or refused.
-- The exact durable storage/transaction boundary across captures, workpiece revision, derivation links, and net commit.
+- The exact durable storage and reconciliation boundary across settled workpiece revisions, transition records, epochs, and net commit; Mission 7's operation protocol is the starting point, not a transaction.
 - Whether the short path crosses Flue compaction; if not, which limitation must remain visible in the handoff.
 - Whether the chat answer alone makes prior/current meaning and patch impact inspectable or a generic linked detail surface is required.
 - Exact latency and usage ceilings must come from the accepted scenario and deployment budget, not invention.
@@ -242,7 +242,8 @@ No path is permission to edit before the cluster is cut. Prefer existing generic
 - **Observer/fold rejected by default:** no observer exists on the production path, and the current IR ruler has not tested successive observer revisions. The canonical promotion mechanics and extraction ladder live in [`MISSION.next.md`](../../MISSION.next.md#foreground-revision-and-observer-re-entry). Mission 10 is the decisive strain gate: re-entry is considered only after repeated consequential foreground blocking, loss of prior supported meaning, stale state, unrecoverability, or unavoidable unbounded-history dependence. An admitted observer still may not mutate the net, and its likely short-review barrier is a forced tail sweep/queue flush because the token threshold alone may never fire.
 - **Recency overwrite rejected:** newer testimony may correct, qualify, coexist with, or conflict with earlier testimony. Time order alone is not authority.
 - **Append-only journal rejected:** it preserves history but leaves excessive cold-reading and canonical-meaning burden; the observed workpiece intent is a maintained current account with retained revision history.
-- **One artifact rejected:** immutable captures and editable semantic workpiece revisions have different lifecycles.
+- **One artifact rejected:** immutable conversation evidence and editable semantic workpiece revisions have different lifecycles.
+- **Capture envelopes and derivation fixtures rejected for provenance (2026-09-04):** reviewer evidence is canonical history cited by message id through the revision-time evidence relation; element provenance is constructor-declared basis plus recorded transitions. See the [decision log](../evidence/design/provenance-and-tooling-decision-log-2026-09-04.md) entries F5, G3, G7, and G20.
 - **Deterministic typed fold rejected:** Condition 5's typed mapping plus in-loop model judgment caused minute-scale ordinary turns. Re-entry requires evidence that foreground synthesis cannot reliably preserve or classify meaning and that the narrower mechanism fixes the observed failure.
 - **Full regeneration rejected as a visible patch claim:** an implementation may reconsider broader context internally only if the applied diff remains bounded and unrelated identities/behavior are proven stable; otherwise it must report widening or refuse.
 - Mission 3 evidence establishes an accepted, cold-usable workpiece leg and one observed correction, but its construction leg failed 0-for-9 on nested provider-visible shape and produced a vacuous empty net. Mission 9 must retire that risk before this cluster treats patching as available.
