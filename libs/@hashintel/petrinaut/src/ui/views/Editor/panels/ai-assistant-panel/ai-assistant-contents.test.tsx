@@ -186,6 +186,7 @@ describe("AiAssistantContents", () => {
 
   test("shows spoken turns live and collapses an active session without unmounting the panel", () => {
     const store = createVoiceSessionStore();
+    const onCollapsedVoiceEnd = vi.fn();
     const actions = {
       end: vi.fn(),
       pause: vi.fn(),
@@ -242,6 +243,7 @@ describe("AiAssistantContents", () => {
             inputMode={inputMode}
             messages={messages}
             onClose={noop}
+            onCollapsedVoiceEnd={onCollapsedVoiceEnd}
             onInputChange={noop}
             onStop={noop}
             onSubmit={noop}
@@ -296,6 +298,13 @@ describe("AiAssistantContents", () => {
     expect(header.className).toContain("d_none");
 
     fireEvent.click(
+      within(dock).getByRole("button", { name: "End voice mode" }),
+    );
+
+    expect(actions.end).toHaveBeenCalledOnce();
+    expect(onCollapsedVoiceEnd).toHaveBeenCalledOnce();
+
+    fireEvent.click(
       within(dock).getByRole("button", { name: "Expand voice session" }),
     );
 
@@ -303,6 +312,13 @@ describe("AiAssistantContents", () => {
     expect(voiceMode.className).not.toContain("d_none");
     expect(header.className).not.toContain("d_none");
     expect(screen.getByText("Spoken request")).not.toBeNull();
+
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "End voice mode" }),
+    );
+
+    expect(actions.end).toHaveBeenCalledTimes(2);
+    expect(onCollapsedVoiceEnd).toHaveBeenCalledOnce();
 
     act(() => store.setState(null));
     rerender(<VoiceContents inputMode="text" messages={liveMessages} />);

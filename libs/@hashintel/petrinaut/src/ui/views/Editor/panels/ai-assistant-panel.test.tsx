@@ -1468,6 +1468,78 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
   });
 
+  test("ends collapsed Voice and closes the panel without pausing", async () => {
+    const events: string[] = [];
+    const endVoice = vi.fn(async () => {
+      events.push("end");
+    });
+    const pauseVoice = vi.fn(() => events.push("pause"));
+    const setAiAssistantOpen = vi.fn(() => events.push("close"));
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      const {
+        inputMode,
+        registerVoiceModeControls,
+        reportVoiceSessionState,
+        setVoiceActive,
+      } = context;
+
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: endVoice,
+            pause: pauseVoice,
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [registerVoiceModeControls],
+      );
+      useEffect(() => {
+        if (inputMode !== "voice") {
+          return;
+        }
+        setVoiceActive(true);
+        reportVoiceSessionState({
+          errorMessage: null,
+          microphoneLevel: 0,
+          microphoneMuted: false,
+          phase: "listening",
+        });
+      }, [inputMode, reportVoiceSessionState, setVoiceActive]);
+
+      return null;
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => <VoiceMode context={context} />,
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages: vi.fn(),
+        },
+      },
+      editorContext: {
+        ...editorContextValue,
+        setAiAssistantOpen,
+      },
+      initialInteractionMode: "voice",
+    });
+
+    const dock = await screen.findByRole("region", { name: "Voice session" });
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "End voice mode" }),
+    );
+
+    expect(events).toEqual(["end", "close"]);
+    expect(endVoice).toHaveBeenCalledOnce();
+    expect(pauseVoice).not.toHaveBeenCalled();
+    expect(setAiAssistantOpen).toHaveBeenCalledWith(false);
+  });
+
   test("accepts one voice input while generic chat is streaming and submits it after settlement", async () => {
     let firstStreamController:
       | ReadableStreamDefaultController<UIMessageChunk>

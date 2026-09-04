@@ -66,6 +66,7 @@ export type AiAssistantContentsProps = {
   messages: PetrinautAiMessage[];
   onClearMessages?: () => void;
   onClose: () => void;
+  onCollapsedVoiceEnd?: () => void;
   onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   onInputChange: (value: string) => void;
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
@@ -511,6 +512,7 @@ export const AiAssistantContents = ({
   messages,
   onClearMessages,
   onClose,
+  onCollapsedVoiceEnd,
   onInputModeChange,
   onInputChange,
   onInteractiveToolSubmit,
@@ -825,6 +827,7 @@ export const AiAssistantContents = ({
           <div className={panelContentStyle({ visible: isOpen })}>
             <LiveVoiceDock
               collapsed={isVoiceDockCollapsed}
+              onCollapsedEnd={onCollapsedVoiceEnd}
               onCollapsedToggle={() =>
                 onVoiceDockCollapsedChange?.(!isVoiceDockCollapsed)
               }
