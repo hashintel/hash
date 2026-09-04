@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -225,14 +225,10 @@ describe("local storage demo Brunch voice integration", () => {
     await expect(aiAssistant.requestStop?.()).resolves.toBe("stop-requested");
     expect(abort).toHaveBeenCalledOnce();
     expect(localPlaybackCancellation).not.toHaveBeenCalled();
-    await waitFor(() => {
-      const currentAssistant =
-        renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
-      const status = currentAssistant.renderComposerControl?.({} as never);
-      if (!status) throw new Error("Expected the Brunch status control.");
-      render(status);
-      expect(screen.getByText("Last Brunch response stopped.")).not.toBeNull();
-    });
+    expect(
+      (renderedPetrinaut.aiAssistant as PetrinautAiAssistant)
+        .renderComposerControl,
+    ).toBeUndefined();
 
     rendered.unmount();
     localPlaybackCancellation.mockRestore();
