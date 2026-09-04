@@ -25,6 +25,7 @@ export type UiHistoryMessage = Omit<
 
 export interface SnapshotToUiMessagesOptions {
   readonly clientToolNames: ReadonlySet<string>;
+  readonly hiddenToolNames?: ReadonlySet<string>;
 }
 
 const unhandledConversationPart = (part: never): never => {
@@ -148,6 +149,7 @@ const partsFrom = (
       continue;
     }
     if (part.type === "dynamic-tool") {
+      if (options.hiddenToolNames?.has(part.toolName) === true) continue;
       parts.push(toolPartFrom(part, options.clientToolNames, clientResults));
       continue;
     }

@@ -32,6 +32,7 @@ export interface ClientToolResult {
 export interface FlueChatTransportOptions {
   readonly client: FlueClient;
   readonly clientToolNames: ReadonlySet<string>;
+  readonly hiddenToolNames?: ReadonlySet<string>;
   readonly onAdmission?: (event: {
     readonly admission: AgentSendResult;
     readonly kind: "client-tool-result" | "user";
@@ -267,6 +268,7 @@ const streamSubmission = (
       const projector = createFlueUiStream({
         submissionId: admission.submissionId,
         clientToolNames: options.clientToolNames,
+        hiddenToolNames: options.hiddenToolNames,
         write,
       });
 

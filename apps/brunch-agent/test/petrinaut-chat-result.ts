@@ -21,6 +21,10 @@ export interface PetrinautChatResult {
   readonly resumedStatus: number;
   readonly resumedText: string;
   readonly resumedFinish: UIMessageChunk | undefined;
+  readonly questionMarkerLive: unknown;
+  readonly questionMarkerHistory: unknown;
+  readonly questionToolVisibleLive: boolean;
+  readonly questionToolVisibleHistory: boolean;
   readonly historyUserEntryCount: number;
   readonly historyClientToolResultCount: number;
   readonly historyGetStatus: number;
@@ -51,5 +55,7 @@ export interface PetrinautChatResult {
 export interface PetrinautResumeResult {
   readonly historyGetStatus: number;
   readonly historyUserText: string;
+  readonly questionMarkerHistory: unknown;
+  readonly questionToolVisibleHistory: boolean;
   readonly transcript: string;
 }
