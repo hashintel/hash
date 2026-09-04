@@ -1,6 +1,7 @@
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import { selectRunbookWorkpiece } from "@hashintel/brunch-agent/workpiece";
 import { isSDCPNEqual, type SDCPN } from "@hashintel/petrinaut-core";
+import { normalizePetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 
 import {
   crewReservationConversationId,
@@ -40,6 +41,9 @@ export const asFlueSubmissionId = (value: string): FlueSubmissionId =>
 export const asManifestId = (value: string): ManifestId => value as ManifestId;
 export const asSha256Digest = (value: string): Sha256Digest =>
   value as Sha256Digest;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
 
 export interface CrewReservationSettledManifest {
   readonly conversation: {
@@ -86,15 +90,17 @@ const targetMutationCallIds = (
   history: CrewReservationHistory,
 ): readonly string[] => {
   const { calls } = clientToolHistoryFrom(history.messages);
-  return calls.flatMap(({ input, toolCallId, toolName }) =>
-    toolName === "addArc" &&
-    input.transitionId === startFinalInspectionTransitionId &&
-    input.arcDirection === "input" &&
-    input.placeId === dispatchCrewPlaceId &&
-    input.weight === 1
+  return calls.flatMap(({ input, toolCallId, toolName }) => {
+    if (toolName !== "addArc") return [];
+    const normalizedInput = normalizePetrinautAiToolInput("addArc", input);
+    return isRecord(normalizedInput) &&
+      normalizedInput.transitionId === startFinalInspectionTransitionId &&
+      normalizedInput.arcDirection === "input" &&
+      normalizedInput.placeId === dispatchCrewPlaceId &&
+      normalizedInput.weight === 1
       ? [toolCallId]
-      : [],
-  );
+      : [];
+  });
 };
 
 const successfulMutationResultIds = (
@@ -115,13 +121,13 @@ const successfulMutationResultIds = (
 const hasOneCorrelatedTargetMutation = (
   history: CrewReservationHistory,
 ): boolean => {
-  const targetCallIds = targetMutationCallIds(history);
-  const successfulResultIds = successfulMutationResultIds(history);
-  return (
-    targetCallIds.length === 1 &&
-    successfulResultIds.length === 1 &&
-    targetCallIds[0] === successfulResultIds[0]
+  const successfulResultIds = new Set(successfulMutationResultIds(history));
+  const correlatedTargetCallIds = new Set(
+    targetMutationCallIds(history).filter((toolCallId) =>
+      successfulResultIds.has(toolCallId),
+    ),
   );
+  return correlatedTargetCallIds.size === 1;
 };
 
 const sha256 = async (value: string): Promise<Sha256Digest> => {

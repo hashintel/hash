@@ -87,6 +87,19 @@ describe("Petrinaut construction tools", () => {
     );
   });
 
+  test("normalizes a finite provider numeric-string arc weight", () => {
+    const addArc = toolByName("addArc");
+    const result = v.parse(addArc.input!, {
+      transitionId: "transition",
+      arcDirection: "input",
+      placeId: "place",
+      weight: "1",
+      type: "standard",
+    });
+
+    expect(result).toMatchObject({ weight: 1 });
+  });
+
   test("retains nested values in canonical validation paths", () => {
     const addType = toolByName("addType");
     const invalidElement = {

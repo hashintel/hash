@@ -4,6 +4,10 @@ import type { UIMessageChunk } from "ai";
 export interface FlueUiStreamOptions {
   readonly submissionId: AgentSendResult["submissionId"];
   readonly clientToolNames: ReadonlySet<string>;
+  readonly mapClientToolInput?: (input: {
+    readonly input: unknown;
+    readonly toolName: string;
+  }) => unknown;
   readonly write: (chunk: UIMessageChunk) => void;
 }
 
@@ -129,7 +133,13 @@ export const createFlueUiStream = (
             type: "tool-input-available",
             toolCallId: chunk.toolCallId,
             toolName: chunk.toolName,
-            input: chunk.input,
+            input:
+              isClientTool && options.mapClientToolInput !== undefined
+                ? options.mapClientToolInput({
+                    input: chunk.input,
+                    toolName: chunk.toolName,
+                  })
+                : chunk.input,
             ...(isClientTool ? {} : { providerExecuted: true }),
           });
           return;
