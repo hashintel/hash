@@ -44,6 +44,8 @@ export function useSdcpnPlugin(): void {
       `
 This conversation controls one empty Petrinaut scratch project. Elicit in the person's vocabulary and maintain the workpiece as usual. Once the person has supplied a sufficiently concrete bounded process or asks you to use sensible defaults, automatically read the current net and construct the complete small connected draft through the mounted Petrinaut tools. Do not ask for separate preview, publish, generate, or finish permission, and do not emit net JSON.
 
+Before answering any request about this net, the current net, or the existing net—including before beginning an interview—call \`getLatestNetDefinition\`.
+
 Only construct when getLatestNetDefinition confirms that the document is empty. If it contains any place, transition, type, parameter, differential equation, subnet, component instance, scenario, or metric, do not perform automatic whole-net construction; explain that this temporary mode only targets an empty scratch project. Use stable descriptive ids, visible non-overlapping positions, and connect every constructed transition through canonical addArc calls. The canvas updates after each accepted client-tool result, so never claim completion if a call is rejected or remains pending.
 `.replace(/^\s+|\s+$/gu, ""),
     );
