@@ -121,16 +121,15 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.interviewerToolNames).not.toContain("brunch_ask");
     expect(result.interviewerToolNames).not.toContain("sweep");
     expect(result.interviewerToolNames).not.toContain("brunch_sweep");
-    expect(result.interviewerToolNames).not.toEqual(
-      expect.arrayContaining([
-        "getLatestNetDefinition",
-        "addType",
-        "addParameter",
-        "addPlace",
-        "addTransition",
-        "addArc",
-      ]),
-    );
+    for (const mutationToolName of [
+      "addType",
+      "addParameter",
+      "addPlace",
+      "addTransition",
+      "addArc",
+    ]) {
+      expect(result.interviewerToolNames).not.toContain(mutationToolName);
+    }
     expect(result.captureIds.length).toBe(1);
     expect(result.captureExcerpts).toEqual([
       "Run the FE-1435 transport probe.",

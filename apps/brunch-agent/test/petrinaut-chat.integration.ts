@@ -173,17 +173,52 @@ try {
     };
 
     faux.setResponses([
-      fauxAssistantMessage(
-        [
-          fauxThinking("Load the modelling runbook skill."),
-          fauxToolCall(
-            ACTIVATE_SKILL_TOOL_NAME,
-            { name: RUNBOOK_SKILL_NAME },
-            { id: "tool-skill-1" },
-          ),
-        ],
-        { stopReason: "toolUse" },
-      ),
+      (context: unknown) => {
+        const modelRequest = JSON.stringify(context);
+        const groundingInstruction =
+          "Before answering any request about this net, the current net, or the existing net—including before beginning an interview—call `getLatestNetDefinition`.";
+        if (!modelRequest.includes(groundingInstruction)) {
+          throw new Error(
+            `ordinary model request omitted grounding instruction: ${groundingInstruction}`,
+          );
+        }
+        const canvasAvailabilityInstruction =
+          "Do not say the canvas is unavailable while you can call `getLatestNetDefinition`.";
+        if (!modelRequest.includes(canvasAvailabilityInstruction)) {
+          throw new Error(
+            `ordinary model request omitted canvas availability instruction: ${canvasAvailabilityInstruction}`,
+          );
+        }
+        if (!modelRequest.includes('"name":"getLatestNetDefinition"')) {
+          throw new Error(
+            "ordinary model request omitted getLatestNetDefinition",
+          );
+        }
+        for (const mutationToolName of [
+          "addType",
+          "addParameter",
+          "addPlace",
+          "addTransition",
+          "addArc",
+        ]) {
+          if (modelRequest.includes(`"name":"${mutationToolName}"`)) {
+            throw new Error(
+              `ordinary model request mounted mutation tool ${mutationToolName}`,
+            );
+          }
+        }
+        return fauxAssistantMessage(
+          [
+            fauxThinking("Load the modelling runbook skill."),
+            fauxToolCall(
+              ACTIVATE_SKILL_TOOL_NAME,
+              { name: RUNBOOK_SKILL_NAME },
+              { id: "tool-skill-1" },
+            ),
+          ],
+          { stopReason: "toolUse" },
+        );
+      },
       fauxAssistantMessage(
         [
           fauxThinking("The job skill routes universal judgment to core."),
