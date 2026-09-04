@@ -141,15 +141,19 @@ than from the filter: one layer fills the band at 1px of blur, at full strength
 for its top half and out to nothing by its bottom, which is what keeps the blur
 from ending on a line across the page.
 
-The nav carries the same band, built from the same rules, and grows it out of
-its own scroll. The rail scrolls independently of the page, so the header script
-writes how far it has gone as `--pnd-nav-progress`, 0 to 1 over the first 20px,
-and the band's height, its tint and its opacity all come off that one number. Twenty is
-well under one row, so the band is there as soon as anything has gone up behind
-the header and the ramp only takes the hard edge off its arrival. At rest it
-has no height at all, which is what keeps it off the first row of an unscrolled
-rail. Nothing eases it: the value already tracks the scroll frame by frame, and
-a transition on top would only make the band lag the rows it covers. The band is positioned against the viewport from
+Both bands grow out of scroll and neither exists before it. The header script
+writes progress from 0 to 1 over the first 20px, and a band's height, its tint
+and its opacity all come off that one number, so an unscrolled page has nothing
+laid over it at all. Twenty is well under one row, so a band is there as soon as
+anything has gone up behind the header and the ramp only takes the hard edge off
+its arrival. Nothing eases it: the value already tracks the scroll frame by
+frame, and a transition on top would only make a band lag the rows it covers.
+
+The nav reads its own `scrollTop` rather than the window's, since the rail
+scrolls independently of the page. The content band starts below
+`--sl-mobile-toc-height` as well as the header: between 50rem and 72rem
+Starlight moves the on-this-page column into a bar under the header, which the
+band would otherwise blur. The band is positioned against the viewport from
 `components.SiteTitle`, like the resize handle, and its right inset restates
 Starlight's own width for the on-this-page column since no variable holds it.
 

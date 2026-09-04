@@ -722,18 +722,26 @@ dialog {
   position: fixed;
   inset-block-start: var(--sl-nav-height);
   /*
-   * Both heights scale together, so a band can be grown from nothing by
-   * driving one number. The content band leaves it at 1; the nav band derives
-   * it from how far the rail has scrolled.
+   * Height, tint and opacity all come off one number, so a band grows out of
+   * its own scroll from nothing. At 0 there is no band at all: nothing under
+   * the header is touched until the reader has scrolled something under it.
    */
-  height: calc(var(--pnd-content-blur-height) * var(--pnd-fade-scale, 1));
-  opacity: var(--pnd-fade-opacity, 1);
+  height: calc(var(--pnd-content-blur-height) * var(--pnd-fade-progress, 0));
+  opacity: var(--pnd-fade-progress, 0);
   pointer-events: none;
 }
 
-/* Over the content column: from where the content starts to where the
-   on-this-page column does. */
+/*
+ * Over the content column: from where the content starts to where the
+ * on-this-page column does, and below whatever chrome sits above the content.
+ * Between 50rem and 72rem that is the header plus Starlight's mobile
+ * table-of-contents bar, which the band would otherwise blur;
+ * `--sl-mobile-toc-height` is 0 once the column moves to the side.
+ */
 .pnd-content-fade {
+  --pnd-fade-progress: var(--pnd-content-progress, 0);
+
+  inset-block-start: calc(var(--sl-nav-height) + var(--sl-mobile-toc-height));
   inset-inline-start: var(--sl-content-inline-start, 0px);
   inset-inline-end: 0;
 }
@@ -765,19 +773,17 @@ dialog {
   position: absolute;
   inset-block-start: 0;
   inset-inline: 0;
-  height: calc(var(--pnd-content-fade-height) * var(--pnd-fade-scale, 1));
+  height: calc(var(--pnd-content-fade-height) * var(--pnd-fade-progress, 0));
   background: linear-gradient(to bottom, var(--sl-color-bg), transparent);
 }
 
 /*
- * The nav is its own scroll container, so the band over it grows out of that
- * scroll rather than being switched on by it: the header script writes how far
- * the rail has gone as `--pnd-nav-progress`, 0 to 1, and both the band's height
- * and its opacity come off that one number. At rest it has no height at all,
- * which is what keeps it off the first row of an unscrolled rail.
+ * The nav is its own scroll container, so its band reads that scroll rather
+ * than the window's. Otherwise it behaves exactly like the content band: the
+ * header script writes progress from 0 to 1, and at rest there is no band.
  *
- * No transition: the value already tracks the scroll frame by frame, and
- * easing on top of that only makes the band lag behind the rows it covers.
+ * No transition on either: the value already tracks the scroll frame by frame,
+ * and easing on top of that only makes a band lag the rows it covers.
  */
 .pnd-nav-fade {
   display: none;
@@ -785,8 +791,7 @@ dialog {
 
 @media (min-width: 50rem) {
   :root[data-has-sidebar] .pnd-nav-fade {
-    --pnd-fade-scale: var(--pnd-nav-progress, 0);
-    --pnd-fade-opacity: var(--pnd-nav-progress, 0);
+    --pnd-fade-progress: var(--pnd-nav-progress, 0);
 
     display: block;
     inset-inline-start: 0;

@@ -241,33 +241,33 @@ import DiffBadges from "./DiffBadges.astro";
     };
 
 /**
-     * Rail scroll, in px, over which the band reaches its full height. Well
-     * under one row: the band is there as soon as anything has gone up behind
-     * the header, and the ramp only takes the hard edge off its arrival.
+     * Scroll, in px, over which a fade band reaches its full height. Well under
+     * one row of the rail: a band is there as soon as anything has gone up
+     * behind the header, and the ramp only takes the hard edge off its arrival.
      */
-    const NAV_FADE_RAMP = 20;
+    const FADE_RAMP = 20;
 
-    /*
-     * The rail scrolls independently of the page, so the band over it keys off
-     * that scroll rather than the window's, and grows with it: `chrome.css`
-     * takes both the height and the opacity from this one number. Starlight
-     * restores the rail's scroll position on navigation, so it is read once up
-     * front and not only on the first scroll event.
+    /**
+     * Drives one band from one scroll position. `chrome.css` takes the band's
+     * height, its tint and its opacity from this number, so at 0 there is no
+     * band and nothing under the header is touched.
+     *
+     * Read once up front as well as on scroll: the page can load part-way down
+     * at an anchor, and Starlight restores the rail's scroll position on
+     * navigation.
+     *
+     * @param {EventTarget} source
+     * @param {() => number} scrollTop
+     * @param {string} property
      */
-    const watchNavScroll = () => {
-      const pane = document.querySelector(".sidebar-pane");
-
-      if (!pane) {
-        return;
-      }
-
+    const trackFade = (source, scrollTop, property) => {
       let frame = 0;
 
       const write = () => {
         frame = 0;
         root.style.setProperty(
-          "--pnd-nav-progress",
-          String(Math.min(pane.scrollTop / NAV_FADE_RAMP, 1)),
+          property,
+          String(Math.min(scrollTop() / FADE_RAMP, 1)),
         );
       };
 
@@ -278,12 +278,23 @@ import DiffBadges from "./DiffBadges.astro";
       };
 
       write();
-      pane.addEventListener("scroll", onScroll, { passive: true });
+      source.addEventListener("scroll", onScroll, { passive: true });
+    };
+
+    const watchScrollFades = () => {
+      const pane = document.querySelector(".sidebar-pane");
+
+      if (pane) {
+        // The rail scrolls independently of the page, so it reads its own top.
+        trackFade(pane, () => pane.scrollTop, "--pnd-nav-progress");
+      }
+
+      trackFade(window, () => window.scrollY, "--pnd-content-progress");
     };
 
     const onReady = () => {
       markLabels();
-      watchNavScroll();
+      watchScrollFades();
       allowGroupAnimation();
     };
 
