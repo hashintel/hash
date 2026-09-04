@@ -95,12 +95,14 @@ delivery key so a replayed request converges on the existing admission instead
 of creating another turn. If admission cannot be confirmed, the UI reports the
 ambiguity and does not retry automatically. **Stop** requests a durable Brunch
 abort before the panel cancels its local response stream. Local playback
-cancellation remains separate and does not alter canonical history. Reopening
-the same net restores its observed Flue conversation without resubmitting a
-turn or replaying settled audio. Voice-origin client-tool results retain their
-markers through Flue history. Direct spoken user turns remain canonical text
-after reopening, but Flue 2.0.3 does not yet expose the caller delivery metadata
-needed to restore their Voice chip.
+cancellation remains separate and does not alter canonical history. Canonical
+Flue history is the source used when the same net is reopened. Automated
+projection coverage does not resubmit turns or replay settled audio, but the
+required real hard-reload witness remains blocked by the parent hydration fix,
+so reload parity is not yet claimed for this preview. Voice-origin client-tool
+results retain their markers in Flue history. Direct spoken user turns remain
+canonical text, but Flue 2.0.3 does not yet expose the caller delivery metadata
+needed to restore their Voice chip after reopening.
 
 An active session stays at the end of the transcript. Its compact divider shows
 a waveform and **Connecting**, **Listening**, **Speaking**, **Paused**, or a

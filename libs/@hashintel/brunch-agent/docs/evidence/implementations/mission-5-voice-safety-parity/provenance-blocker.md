@@ -33,7 +33,7 @@ representation of the existing path-B turn.
 Direct spoken user turns still render with a Voice chip while their AI SDK
 message metadata is live. Their canonical text and submission survive Flue
 hydration, but the Voice chip cannot be reconstructed after reopen. This portion
-of section 6 is blocked rather than reported as complete.
+of proof item 5 is blocked rather than reported as complete.
 
 Re-enter only when Flue projects caller metadata or the caller idempotency key
 onto the canonical direct-user message, or when the product owner explicitly
