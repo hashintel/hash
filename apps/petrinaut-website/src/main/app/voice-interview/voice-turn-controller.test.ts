@@ -730,18 +730,18 @@ describe("VoiceTurnController", () => {
 
     harness.emitBridge({
       answer: "Stop this one.",
-      callId: "call-1",
+      deliveryId: "voice-1",
       type: "submission-started",
     });
     harness.emitBridge({
       answer: "Stop this one.",
-      callId: "call-1",
+      deliveryId: "voice-1",
       type: "submission-accepted",
     });
     harness.advanceTime(40);
-    harness.emitBridge({ callId: "call-1", type: "submission-settled" });
+    harness.emitBridge({ deliveryId: "voice-1", type: "submission-settled" });
     harness.emitBridge({
-      callId: "call-1",
+      deliveryId: "voice-1",
       outcome: "aborted",
       type: "submission-stopped",
     });
@@ -752,7 +752,7 @@ describe("VoiceTurnController", () => {
       output: "idle",
     });
     expect(harness.latencyEvents).toContainEqual({
-      correlationId: "call-1",
+      correlationId: "voice-1",
       elapsedMs: 40,
       name: "submission-settled",
     });

@@ -31,6 +31,7 @@ const snapshotWithPendingClientTool: FlueConversationSnapshot = {
 
 const projectionOptions = {
   clientToolNames: new Set(["readPetrinautDoc"]),
+  hiddenToolNames: new Set(["brunch_mark_question"]),
 };
 
 test("leaves an unfinished client tool available to run", () => {

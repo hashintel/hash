@@ -506,7 +506,7 @@ describe("controlled voice preview", () => {
     const correlateResponse = (segment: CanonicalSpeechSegment) =>
       initialSegmentIds.has(segment.id)
         ? segment
-        : { ...segment, submissionId: admission.submissionId };
+        : { ...segment, submissionIds: [admission.submissionId] };
     const correlatedSegments =
       responseSelection.segments.map(correlateResponse);
     controller.updateChat({
