@@ -16,18 +16,40 @@ import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const noSettlements: readonly FlueConversationSettlement[] = [];
 
+/**
+ * The observed canonical conversation together with the durable-stream offset
+ * it was read at. Fixture consumers use the offset to tell a settled bundle
+ * from a stale one; they never interpret it.
+ */
+export type FlueHistorySnapshot = FlueConversationState & {
+  readonly offset: string;
+};
+
 const projectPetrinautMessages = (
   conversation: FlueConversationState,
+  clientToolNames: ReadonlySet<string>,
+  mapClientToolInput:
+    | ((input: {
+        readonly input: unknown;
+        readonly toolName: string;
+      }) => unknown)
+    | undefined,
 ): PetrinautAiMessage[] =>
   // The host owns this narrowing: its configured client-tool catalog is the
   // same catalog Petrinaut's message type exposes.
   snapshotToUiMessages(conversation, {
-    clientToolNames: brunchClientToolNames,
+    clientToolNames,
+    ...(mapClientToolInput === undefined ? {} : { mapClientToolInput }),
   }) as PetrinautAiMessage[];
 
 export const useFlueChatHistory = (
   clientPromise: Promise<FlueClient> | null,
   conversationId: string,
+  clientToolNames: ReadonlySet<string> = brunchClientToolNames,
+  mapClientToolInput?: (input: {
+    readonly input: unknown;
+    readonly toolName: string;
+  }) => unknown,
 ): {
   readonly error: Error | undefined;
   readonly latestSettlement: FlueConversationSettlement | undefined;
@@ -36,6 +58,7 @@ export const useFlueChatHistory = (
   readonly ready: boolean;
   readonly refresh: () => void;
   readonly settlements: readonly FlueConversationSettlement[];
+  readonly snapshot: FlueHistorySnapshot | undefined;
 } => {
   const observationRef = useRef<AgentConversationObservation | null>(null);
   const [observed, setObserved] = useState<{
@@ -93,23 +116,31 @@ export const useFlueChatHistory = (
     };
   }, [clientPromise, conversationId]);
 
-  const snapshot =
+  const observation =
     observed?.conversationId === conversationId ? observed.snapshot : undefined;
-  const conversation = snapshot?.conversation;
-  const absent = snapshot?.phase === "absent";
+  const conversation = observation?.conversation;
+  const absent = observation?.phase === "absent";
   const ready = absent || conversation !== undefined;
   return {
-    error: snapshot?.error,
+    error: observation?.error,
     latestSettlement: conversation?.settlements.at(-1),
     messages:
       conversation === undefined
         ? absent
           ? []
           : undefined
-        : projectPetrinautMessages(conversation),
-    phase: snapshot?.phase,
+        : projectPetrinautMessages(
+            conversation,
+            clientToolNames,
+            mapClientToolInput,
+          ),
+    phase: observation?.phase,
     ready,
     refresh,
     settlements: conversation?.settlements ?? noSettlements,
+    snapshot:
+      conversation === undefined || observation?.offset === undefined
+        ? undefined
+        : { ...conversation, offset: observation.offset },
   };
 };

@@ -2,7 +2,7 @@ import { FlueApiError } from "@flue/sdk";
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { useFlueChatHistory } from "./use-flue-chat-history";
@@ -206,4 +206,83 @@ test("closes the SDK observation on unmount", async () => {
   unmount();
 
   expect(harness.close).toHaveBeenCalledOnce();
+});
+
+test("projects fixture client-tool results from canonical signal history", async () => {
+  const harness = createObservationHarness({
+    conversation: {
+      conversationId: "conversation-1",
+      settlements: [],
+      messages: [
+        {
+          id: "assistant-1",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "addArc",
+              toolCallId: "arc-1",
+              state: "output-available",
+              input: { placeId: "crew" },
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+        {
+          id: "result-1",
+          role: "system",
+          purpose: "dispatch",
+          display: "diagnostic",
+          signal: { tagName: "client-tool-result" },
+          parts: [
+            {
+              type: "text",
+              text: JSON.stringify([
+                {
+                  toolCallId: "arc-1",
+                  toolName: "addArc",
+                  output: { applied: true },
+                },
+              ]),
+              state: "done",
+            },
+          ],
+        },
+      ],
+    },
+    offset: "offset-2",
+    phase: "live",
+    error: undefined,
+  });
+  const clientToolNames = new Set(["addArc"]);
+  const { result } = renderHook(() =>
+    useFlueChatHistory(
+      harness.clientPromise,
+      "conversation-1",
+      clientToolNames,
+    ),
+  );
+
+  await waitFor(() => expect(result.current.ready).toBe(true));
+  expect(result.current.messages?.[0]?.parts).toEqual([
+    {
+      type: "tool-addArc",
+      toolCallId: "arc-1",
+      state: "output-available",
+      input: { placeId: "crew" },
+      output: { applied: true },
+    },
+  ]);
+  expect(result.current.snapshot?.offset).toBe("offset-2");
+  expect(result.current.snapshot?.messages.map(({ id }) => id)).toEqual([
+    "assistant-1",
+    "result-1",
+  ]);
+
+  act(() => {
+    result.current.refresh();
+  });
+  expect(harness.refresh).toHaveBeenCalledTimes(1);
 });

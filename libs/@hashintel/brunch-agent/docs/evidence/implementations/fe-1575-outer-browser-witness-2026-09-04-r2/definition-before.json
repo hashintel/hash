@@ -1,0 +1,93 @@
+{
+  "places": [
+    {
+      "id": "batch-ready",
+      "name": "Batch ready",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 80,
+      "y": 100
+    },
+    {
+      "id": "under-final-inspection",
+      "name": "Under final inspection",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 420,
+      "y": 100
+    },
+    {
+      "id": "ready-for-dispatch",
+      "name": "Ready for dispatch",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 760,
+      "y": 100
+    },
+    {
+      "id": "dispatch-crew-available",
+      "name": "Dispatch crew available",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 420,
+      "y": 360
+    }
+  ],
+  "transitions": [
+    {
+      "id": "start-final-inspection",
+      "name": "Start final inspection",
+      "inputArcs": [
+        {
+          "placeId": "batch-ready",
+          "type": "standard",
+          "weight": 1
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "under-final-inspection",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 250,
+      "y": 100
+    },
+    {
+      "id": "sign-off",
+      "name": "Sign-off",
+      "inputArcs": [
+        {
+          "placeId": "under-final-inspection",
+          "type": "standard",
+          "weight": 1
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "ready-for-dispatch",
+          "weight": 1
+        },
+        {
+          "placeId": "dispatch-crew-available",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 590,
+      "y": 100
+    }
+  ],
+  "types": [],
+  "parameters": [],
+  "differentialEquations": []
+}

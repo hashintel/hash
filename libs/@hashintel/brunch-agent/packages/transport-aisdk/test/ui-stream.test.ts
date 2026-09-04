@@ -118,3 +118,37 @@ test("ignores observation catch-up chunks in a submission stream", () => {
     "finish",
   ]);
 });
+
+test("maps client-tool input before exposing it to the AI SDK", () => {
+  const written: UIMessageChunk[] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(["addArc"]),
+    mapClientToolInput: ({ input }) => ({ ...(input as object), weight: 1 }),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "call-1",
+    toolName: "addArc",
+    input: { weight: "1" },
+    position: position(1),
+  });
+
+  expect(written).toContainEqual({
+    type: "tool-input-available",
+    toolCallId: "call-1",
+    toolName: "addArc",
+    input: { weight: 1 },
+  });
+});

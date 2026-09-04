@@ -3,6 +3,7 @@ import { expect, test, vi } from "vitest";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
+  createUnavailableBrunchPanelTransport,
 } from "./brunch-panel-transport";
 
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
@@ -71,6 +72,7 @@ test("delegates one typed message to the supplied Flue conversation", async () =
 
   expect(send).toHaveBeenCalledOnce();
   expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:user:user-1",
     message: { kind: "user", body: "Typed tracer." },
     signal: undefined,
   });
@@ -174,4 +176,81 @@ test("settles in-flight submissions before a durable abort can target them", asy
   );
   await expect(rejected).rejects.toThrow("rejected admission");
   await expect(tracker.settleInFlightSubmissions()).resolves.toBeUndefined();
+});
+
+test("returns a fixture-scoped mutation result through the same Flue client", async () => {
+  const admission: AgentSendResult = {
+    streamUrl: "http://brunch.test/stream",
+    offset: "offset-2",
+    submissionId: "submission-2",
+    uid: "uid-2",
+  };
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async () => {});
+  const client = {
+    send,
+    wait,
+  } as Pick<FlueClient, "send" | "wait"> as FlueClient;
+  const transport = createBrunchPanelTransport(
+    Promise.resolve(client),
+    new BrunchPanelConversationTracker(),
+    { clientToolNames: new Set(["addArc"]) },
+  );
+  const stream = await transport.sendMessages({
+    trigger: "submit-message",
+    chatId: "conversation-stable",
+    messageId: "assistant-1",
+    messages: [
+      {
+        id: "assistant-1",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "addArc",
+            toolCallId: "add-arc-1",
+            state: "output-available",
+            input: {},
+            output: { applied: true },
+          },
+        ],
+      },
+    ],
+    abortSignal: undefined,
+  });
+  await stream.pipeTo(new WritableStream());
+
+  expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:client-tools:assistant-1:add-arc-1",
+    message: {
+      kind: "signal",
+      type: "client-tool-result",
+      tagName: "client-tool-result",
+      body: JSON.stringify([
+        {
+          toolCallId: "add-arc-1",
+          toolName: "addArc",
+          output: { applied: true },
+        },
+      ]),
+      attributes: { toolCallIds: "add-arc-1" },
+    },
+    signal: undefined,
+  });
+});
+
+test("refuses fixture traffic when the mounted Flue route is unavailable", async () => {
+  const transport = createUnavailableBrunchPanelTransport(
+    "Fixture route unavailable.",
+  );
+
+  await expect(
+    transport.sendMessages({
+      trigger: "submit-message",
+      chatId: "conversation-stable",
+      messageId: undefined,
+      messages: [],
+      abortSignal: undefined,
+    }),
+  ).rejects.toThrow("Fixture route unavailable.");
 });

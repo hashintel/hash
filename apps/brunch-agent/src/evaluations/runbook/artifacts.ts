@@ -2,55 +2,15 @@
 
 import { basename } from "node:path";
 
-import { sha256 } from "./campaign-integrity.ts";
+import { runbookIrFence } from "@hashintel/brunch-agent/workpiece";
 
-import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
+import { recoverRunbookWorkpiece } from "../../conversation/workpiece.ts";
 
-export const RUNBOOK_IR_FENCE = "runbook-ir";
-
-const runbookIrFencePattern = /```runbook-ir\s*\n([\s\S]*?)```/g;
-
-export const latestRunbookIrBlock = (text: string): string | undefined => {
-  const matches = [...text.matchAll(runbookIrFencePattern)];
-  const last = matches.at(-1)?.[1];
-  return last === undefined ? undefined : last.trim();
-};
+import type { FlueConversationSnapshot } from "@flue/sdk";
 
 export const recoverRunbookIr = (
   snapshot: FlueConversationSnapshot,
 ): string | undefined => recoverRunbookWorkpiece(snapshot)?.content;
-
-export interface RecoveredRunbookWorkpiece {
-  readonly content: string;
-  readonly sha256: string;
-  readonly sourceMessageId: string;
-  readonly sourceMessageSha256: string;
-}
-
-export const recoverRunbookWorkpiece = (
-  snapshot: FlueConversationSnapshot,
-): RecoveredRunbookWorkpiece | undefined => {
-  let recovered: RecoveredRunbookWorkpiece | undefined;
-  for (const message of snapshot.messages) {
-    if (message.purpose !== "assistant") continue;
-    const text = message.parts
-      .filter(
-        (part): part is Extract<FlueConversationPart, { type: "text" }> =>
-          part.type === "text",
-      )
-      .map((part) => part.text)
-      .join("\n");
-    const content = latestRunbookIrBlock(text);
-    if (content === undefined) continue;
-    recovered = {
-      content,
-      sha256: sha256(content),
-      sourceMessageId: message.id,
-      sourceMessageSha256: sha256(JSON.stringify(message)),
-    };
-  }
-  return recovered;
-};
 
 export const interviewerToolNamesFrom = (
   snapshot: FlueConversationSnapshot,
@@ -153,7 +113,7 @@ export const ordinaryElicitationViolationsFrom = (
         }
         if (
           firstWorkpiecePosition === undefined &&
-          part.text.includes(`\`\`\`${RUNBOOK_IR_FENCE}`)
+          part.text.includes(`\`\`\`${runbookIrFence}`)
         ) {
           firstWorkpiecePosition = position;
         }

@@ -7,6 +7,13 @@ import { createFlueUiStream } from "./ui-stream";
 import type { AgentSendResult, DeliveredMessage, FlueClient } from "@flue/sdk";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
+export {
+  clientToolHistoryFrom,
+  type ClientToolHistory,
+  type ClientToolHistoryCall,
+  type ClientToolHistoryMessage,
+  type ClientToolHistoryResult,
+} from "./client-tool-history";
 export { BRUNCH_CONVERSATION_HEADER, BRUNCH_PRINCIPAL_HEADER } from "./headers";
 export { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
 export {
@@ -31,6 +38,10 @@ export interface ClientToolResult {
 export interface FlueChatTransportOptions {
   readonly client: FlueClient;
   readonly clientToolNames: ReadonlySet<string>;
+  readonly mapClientToolInput?: (input: {
+    readonly input: unknown;
+    readonly toolName: string;
+  }) => unknown;
   readonly onAdmission?: (event: {
     readonly admission: AgentSendResult;
     readonly kind: "client-tool-result" | "user";
@@ -182,6 +193,7 @@ const streamSubmission = (
       const projector = createFlueUiStream({
         submissionId: admission.submissionId,
         clientToolNames: options.clientToolNames,
+        mapClientToolInput: options.mapClientToolInput,
         write,
       });
 
@@ -265,10 +277,18 @@ export const createFlueChatTransport = <
               },
             };
           })();
+    const idempotencyKey =
+      messageId === undefined
+        ? `ai-sdk:user:${userMessage!.id}`
+        : `ai-sdk:client-tools:${messageId}:${toolResults
+            .map(({ toolCallId }) => toolCallId)
+            .sort()
+            .join(",")}`;
 
     let admission: AgentSendResult;
     try {
       admission = await options.client.send({
+        idempotencyKey,
         message,
         signal: abortSignal,
       });

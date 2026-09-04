@@ -5,7 +5,7 @@
 
 import { createFlueClient, type FlueConversationSettlement } from "@flue/sdk";
 import { produce } from "immer";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   agentOwnershipHeaders,
@@ -50,9 +50,25 @@ import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
+  createUnavailableBrunchPanelTransport,
 } from "./brunch-panel-transport";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
+import {
+  crewReservationDocumentId,
+  isCrewReservationFixtureSelected,
+  preparedCrewReservationNet,
+} from "./prepared-crew-reservation-fixture";
+import {
+  PreparedFixtureBanner,
+  PreparedFixtureSelector,
+} from "./prepared-fixture-banner";
+import { resolveCrewReservationBundle } from "./resolve-crew-reservation-bundle";
+import {
+  crewReservationFixtureConfiguration,
+  useCrewReservationFixtureSession,
+} from "./use-crew-reservation-fixture-session";
+import { useCrewReservationSettledManifestStorage } from "./use-crew-reservation-settled-manifest";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import {
@@ -88,6 +104,13 @@ const createDefaultStoredSDCPN = (): SDCPNInLocalStorage => ({
   sdcpn: emptySDCPN,
   lastUpdated: new Date(0).toISOString(),
 });
+
+const preparedCrewReservationStoredSDCPN: SDCPNInLocalStorage = {
+  id: crewReservationDocumentId,
+  title: "Prepared final inspection and dispatch",
+  sdcpn: preparedCrewReservationNet,
+  lastUpdated: new Date(0).toISOString(),
+};
 
 /**
  * Creates the localStorage record for a newly created net, keeping the generated
@@ -201,7 +224,14 @@ const createConversationTrackerFor = (
 
 const getStoredSDCPNsForDisplay = (
   storedSDCPNs: Record<string, SDCPNInLocalStorage>,
+  crewReservationDocument: SDCPNInLocalStorage | undefined,
 ): Record<string, SDCPNInLocalStorage> => {
+  if (crewReservationDocument !== undefined) {
+    return {
+      ...storedSDCPNs,
+      [crewReservationDocument.id]: crewReservationDocument,
+    };
+  }
   if (Object.values(storedSDCPNs).length > 0) {
     return storedSDCPNs;
   }
@@ -351,7 +381,55 @@ export const LocalStorageDemoApp = ({
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
-  const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(storedSDCPNs);
+  const { settledManifest, setSettledManifest } =
+    useCrewReservationSettledManifestStorage();
+  const crewReservationFixtureSelected = isCrewReservationFixtureSelected(
+    window.location.search,
+  );
+  const crewReservationBundle = crewReservationFixtureSelected
+    ? resolveCrewReservationBundle({
+        fallbackDocument: preparedCrewReservationStoredSDCPN,
+        manifest: settledManifest,
+        storedDocument: storedSDCPNs[crewReservationDocumentId],
+      })
+    : undefined;
+  const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(
+    storedSDCPNs,
+    crewReservationBundle?.selectedDocument,
+  );
+
+  useEffect(() => {
+    if (
+      !crewReservationFixtureSelected ||
+      storedSDCPNs[crewReservationDocumentId] !== undefined
+    ) {
+      return;
+    }
+    setStoredSDCPNs((previous) => ({
+      ...previous,
+      [crewReservationDocumentId]: preparedCrewReservationStoredSDCPN,
+    }));
+  }, [crewReservationFixtureSelected, setStoredSDCPNs, storedSDCPNs]);
+
+  const persistCrewReservationSnapshot = useCallback(
+    (sha256: string, definition: SDCPN) => {
+      setStoredSDCPNs((previous) =>
+        produce(previous, (draft) => {
+          const document =
+            draft[crewReservationDocumentId] ??
+            preparedCrewReservationStoredSDCPN;
+          draft[crewReservationDocumentId] = {
+            ...document,
+            coherentSnapshots: {
+              ...document.coherentSnapshots,
+              [sha256]: structuredClone(definition),
+            },
+          };
+        }),
+      );
+    },
+    [setStoredSDCPNs],
+  );
 
   useEffect(() => {
     if (!brunchPreviewConfig.isBrunchConfigured) {
@@ -377,10 +455,13 @@ export const LocalStorageDemoApp = ({
       (a, b) =>
         new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime(),
     )[0] ?? null;
+  const initiallySelectedNet = crewReservationFixtureSelected
+    ? storedSDCPNsForDisplay[crewReservationDocumentId]
+    : mostRecentlyModifiedNet;
 
   // The net currently selected in the UI.
   const [currentNetId, setCurrentNetId] = useState<string | null>(
-    () => mostRecentlyModifiedNet?.id ?? null,
+    () => initiallySelectedNet?.id ?? null,
   );
 
   // Metadata and persisted SDCPN snapshot for the selected net.
@@ -390,9 +471,7 @@ export const LocalStorageDemoApp = ({
 
   // Live editable document handle for the selected net only.
   const [activeHandle, setActiveHandle] = useState<ActiveHandle | null>(() =>
-    mostRecentlyModifiedNet
-      ? createActiveHandle(mostRecentlyModifiedNet)
-      : null,
+    initiallySelectedNet ? createActiveHandle(initiallySelectedNet) : null,
   );
 
   useEffect(() => {
@@ -419,7 +498,9 @@ export const LocalStorageDemoApp = ({
     });
   }, [activeHandle, setStoredSDCPNs]);
 
-  const existingNets: MinimalNetMetadata[] = Object.values(storedSDCPNs)
+  const existingNets: MinimalNetMetadata[] = Object.values(
+    storedSDCPNsForDisplay,
+  )
     .map((net) => ({
       netId: net.id,
       title: net.title,
@@ -507,9 +588,17 @@ export const LocalStorageDemoApp = ({
     );
   };
 
-  const conversationId = currentNetId
-    ? getOrCreateBrunchConversationId(currentNetId)
-    : null;
+  const preparedFixtureIsCurrent =
+    crewReservationFixtureSelected &&
+    currentNetId === crewReservationDocumentId;
+  const fixtureConfiguration = preparedFixtureIsCurrent
+    ? crewReservationFixtureConfiguration
+    : undefined;
+  const conversationId =
+    currentNetId === null
+      ? null
+      : (fixtureConfiguration?.conversationId ??
+        getOrCreateBrunchConversationId(currentNetId));
   const flueClientPromise = useMemo(
     () =>
       brunchPreviewConfig.isBrunchConfigured && conversationId !== null
@@ -525,6 +614,8 @@ export const LocalStorageDemoApp = ({
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
+    fixtureConfiguration?.clientToolNames,
+    fixtureConfiguration?.mapClientToolInput,
   );
   const brunchVoiceMode = useMemo(
     () =>
@@ -535,15 +626,50 @@ export const LocalStorageDemoApp = ({
       ),
     [conversationTracker, flueHistory.settlements, openAIVoiceConfig],
   );
-  const petrinautAiChatTransport = useMemo(
-    () =>
-      flueClientPromise === null
-        ? stockChatTransport
-        : createBrunchPanelTransport(flueClientPromise, conversationTracker, {
-            onAdmission: flueHistory.refresh,
-          }),
-    [conversationTracker, flueClientPromise, flueHistory.refresh],
-  );
+  const crewReservationSession = useCrewReservationFixtureSession({
+    clientPromise: flueClientPromise,
+    definition: storedSDCPNs[crewReservationDocumentId]?.sdcpn,
+    enabled: fixtureConfiguration !== undefined,
+    history: flueHistory.snapshot,
+    historyError: flueHistory.error?.message,
+    persistCoherentSnapshot: persistCrewReservationSnapshot,
+    refreshHistory: flueHistory.refresh,
+    setSettledManifest,
+    settledManifest,
+    snapshotMissing: crewReservationBundle?.snapshotMissing ?? false,
+  });
+  const transportClientPromise =
+    fixtureConfiguration === undefined
+      ? flueClientPromise
+      : crewReservationSession.transportClientPromise;
+  const petrinautAiChatTransport = useMemo(() => {
+    if (transportClientPromise !== null) {
+      return createBrunchPanelTransport(
+        transportClientPromise,
+        conversationTracker,
+        {
+          ...(fixtureConfiguration === undefined
+            ? {}
+            : {
+                clientToolNames: fixtureConfiguration.clientToolNames,
+                mapClientToolInput: fixtureConfiguration.mapClientToolInput,
+              }),
+          onAdmission: flueHistory.refresh,
+        },
+      );
+    }
+    return fixtureConfiguration !== undefined
+      ? createUnavailableBrunchPanelTransport(
+          crewReservationSession.transportUnavailableReason,
+        )
+      : stockChatTransport;
+  }, [
+    conversationTracker,
+    crewReservationSession.transportUnavailableReason,
+    fixtureConfiguration,
+    flueHistory.refresh,
+    transportClientPromise,
+  ]);
 
   const aiAssistant = useMemo(
     () => ({
@@ -628,7 +754,21 @@ export const LocalStorageDemoApp = ({
   }
 
   return (
-    <div style={{ height: "100vh", width: "100vw" }}>
+    <div
+      style={{
+        height: "100vh",
+        position: "relative",
+        width: "100vw",
+      }}
+    >
+      {preparedFixtureIsCurrent && (
+        <PreparedFixtureBanner
+          currentWorkpiece={crewReservationSession.currentWorkpiece}
+          settledManifest={settledManifest}
+          settlementStatus={crewReservationSession.settlementStatus}
+        />
+      )}
+      {!preparedFixtureIsCurrent && <PreparedFixtureSelector />}
       <CommandRegistryProvider>
         <WalkthroughProvider steps={walkthroughSteps}>
           <Petrinaut

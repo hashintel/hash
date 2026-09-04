@@ -5,6 +5,7 @@ import {
   aiCommandActionInputSchemas,
   createPetrinautAiWritableCallbacks,
   getLatestNetDefinitionToolName,
+  normalizePetrinautAiToolInput,
   petrinautAiPrompt,
   petrinautAiToolInputSchemas,
   petrinautAiTools,
@@ -44,6 +45,17 @@ describe("Petrinaut AI core exports", () => {
       expect(petrinautAiTools).toHaveProperty(name);
     }
     expect(petrinautAiTools).toHaveProperty("applyAutoLayout");
+  });
+
+  test("normalizes an addArc weight serialized as text", () => {
+    expect(
+      normalizePetrinautAiToolInput("addArc", {
+        transitionId: "transition",
+        arcDirection: "input",
+        weight: "1",
+        type: "standard",
+      }),
+    ).toMatchObject({ weight: 1 });
   });
 
   test("latest net definition tool documents extension settings", () => {

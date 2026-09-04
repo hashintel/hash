@@ -9,7 +9,7 @@ import {
 
 import { isAwaitingClient } from "../../conversation/client-tools.ts";
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
-import { recoverRunbookWorkpiece } from "../runbook/artifacts.ts";
+import { recoverRunbookWorkpiece } from "../../conversation/workpiece.ts";
 
 interface ProofEventBase {
   readonly sequence: number;

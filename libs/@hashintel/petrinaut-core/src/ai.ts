@@ -210,6 +210,27 @@ export type PetrinautAiToolInput<Name extends PetrinautAiToolName> = z.input<
   (typeof petrinautAiTools)[Name]["inputSchema"]
 >;
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+/**
+ * Normalize the narrow structured values that text-oriented providers may
+ * serialize before applying the canonical Petrinaut tool schema.
+ */
+export const normalizePetrinautAiToolInput = (
+  toolName: PetrinautAiToolName,
+  input: unknown,
+): unknown => {
+  if (toolName !== "addArc" || !isRecord(input)) return input;
+  let normalized = input;
+
+  if (typeof normalized.weight === "string") {
+    const weight = Number(normalized.weight);
+    if (Number.isFinite(weight)) normalized = { ...normalized, weight };
+  }
+  return normalized;
+};
+
 /**
  * Writable tool callbacks exposed to the AI: every mutation, plus the subset
  * of commands registered in {@link aiCommandActionInputSchemas}. Read-only

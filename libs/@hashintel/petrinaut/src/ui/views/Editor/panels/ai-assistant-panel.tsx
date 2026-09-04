@@ -5,7 +5,6 @@ import { use, useCallback, useEffect, useRef, useState } from "react";
 import {
   aiCommandActionInputSchemas,
   type AiCommandActionName,
-  createPetrinautAiWritableCallbacks,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   mutationActionInputSchemas as petrinautAiMutationToolInputSchemas,
@@ -37,6 +36,7 @@ import {
   REVIEW_CHIPS,
   STARTER_CHIPS,
 } from "./ai-assistant-panel/ai-assistant-contents/prompt-chips";
+import { applyPetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
 import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
@@ -51,7 +51,6 @@ import {
   type AiToolCall,
   type AiToolTarget,
   summarizeApplyAutoLayout,
-  summarizePetrinautAiToolCall,
   toPetrinautAiToolOutput,
 } from "./ai-assistant-panel/tool-summaries";
 
@@ -254,25 +253,6 @@ const waitForDiagnosticsRefresh = async ({
 
     check();
   });
-};
-
-const applyPetrinautAiMutation = ({
-  aiToolCall,
-  instance,
-}: {
-  aiToolCall: Extract<AiToolCall, { toolName: PetrinautAiMutationToolName }>;
-  instance: Petrinaut;
-}): AiToolOutput => {
-  const definition = instance.definition.get();
-  const toolCallbacks = createPetrinautAiWritableCallbacks(instance);
-  const summary = summarizePetrinautAiToolCall(aiToolCall, { definition });
-  const callback = toolCallbacks[aiToolCall.toolName] as (
-    input: typeof aiToolCall.input,
-  ) => void;
-
-  callback(aiToolCall.input);
-
-  return toPetrinautAiToolOutput(summary);
 };
 
 const applyPetrinautAiCommand = async ({
