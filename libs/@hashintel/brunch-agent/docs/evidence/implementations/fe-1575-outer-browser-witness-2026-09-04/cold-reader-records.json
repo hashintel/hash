@@ -1,0 +1,39 @@
+{
+  "preparedRecord": {
+    "id": "entry_direct_c3ViX2lrX2YyNDkzOWJlYmI4NDFmZmUxNDY5YTdmM2E0YTA2OTE1",
+    "role": "system",
+    "purpose": "dispatch",
+    "display": "diagnostic",
+    "submissionId": "sub_ik_f24939bebb841ffe1469a7f3a4a06915",
+    "signal": {
+      "tagName": "prepared-fixture",
+      "attributes": {
+        "fixtureId": "crew-reservation-v1",
+        "authorship": "test-authored",
+        "claimBoundary": "prepared-not-model-produced"
+      }
+    },
+    "parts": [
+      {
+        "type": "text",
+        "text": "Fixture authorship: test-authored preparation for Mission 6.\nNon-claims: not a Mission 4 candidate, not model-produced evidence, not capture-backed provenance, and not proof of automatic full-net projection.\n\n```runbook-ir\n# Final inspection and dispatch workpiece\n\n## Purpose and posture\nMaintain the narrow batch path from final inspection to dispatch readiness and test one evidence-backed correction against the live Petrinaut document.\n\n## Operational account\n- A batch that is ready enters final inspection.\n- Final inspection reserves the sole available dispatch crew.\n- Sign-off releases that crew and makes the batch ready for dispatch.\n\n## Quantity and resource policy\nExactly one dispatch crew is available in this fixture. Starting final inspection consumes that one available crew; sign-off returns it.\n\n## Current Petrinaut correspondence\nThe prepared non-empty net contains the batch path and the crew return from sign-off. It deliberately lacks the standard weight-1 input arc from `Dispatch crew available` to `Start final inspection`.\n\n## Explicit unknowns\nInspection and sign-off timing, failure modes, and recovery behavior remain unresolved.\n\n## Claim boundary\nThis prepared revision is test-authored diagnostic material. It is not model-produced evidence and does not establish capture provenance, behavioral execution, or broad projection quality.\n```",
+        "state": "done"
+      }
+    ]
+  },
+  "revisedRecord": {
+    "id": "entry_01M1NQGRAKWG69MWYMPYTCFXCZ",
+    "role": "assistant",
+    "purpose": "assistant",
+    "display": "visible",
+    "submissionId": "sub_ik_6dbc187e4e72793b7539c02387d04715",
+    "turnId": "turn_01M1NQGQH38A3MMGGEWKN4VCDP",
+    "parts": [
+      {
+        "type": "text",
+        "text": "**Verification successful.** The `start-final-inspection` transition now contains the corrected input arcs:\n```json\n\"inputArcs\":[\n  {\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"},\n  {\"type\":\"standard\",\"placeId\":\"dispatch-crew-available\",\"weight\":1}\n]\n```\n\nThe resource constraint is now satisfied: firing `start-final-inspection` requires both a ready batch AND an available crew token. The `sign-off` transition releases that crew back to `dispatch-crew-available`.\n\n---\n\n## Revised workpiece (runbook-ir)\n\n```runbook-ir\n# Final inspection and dispatch workpiece — Revised\n\n## Purpose and posture\nModel the batch path from final inspection to dispatch readiness with explicit crew resource management. This revision adds the missing crew-consumption arc to enforce the resource constraint.\n\n## Operational account\n- A batch that is ready enters final inspection.\n- Starting final inspection requires both a ready batch AND the sole available dispatch crew.\n- Starting final inspection consumes that crew token.\n- Sign-off releases that crew and makes the batch ready for dispatch.\n\n## Quantity and resource policy\nExactly one dispatch crew is available. Starting final inspection consumes that one available crew; sign-off returns it. No transition fires without sufficient tokens in all input places.\n\n## Petrinaut correspondence\nThe net contains four places:\n- `batch-ready`: batches awaiting final inspection\n- `under-final-inspection`: batches currently in inspection\n- `ready-for-dispatch`: batches cleared for dispatch\n- `dispatch-crew-available`: crew availability (1 token when free)\n\nTransitions:\n- `start-final-inspection`: requires 1 token from batch-ready AND 1 token from dispatch-crew-available; produces 1 token to under-final-inspection\n- `sign-off`: requires 1 token from under-final-inspection; produces 1 token to ready-for-dispatch AND 1 token to dispatch-crew-available\n\nThe missing standard weight-1 input arc from `dispatch-crew-available` to `start-final-inspection` has been **added and verified** in the live Petrinaut definition.\n\n## Explicit unknowns\n- Inspection timing: duration, stochasticity, or determinism remain unresolved\n- Sign-off timing: duration, stochasticity, or determinism remain unresolved\n- Failure modes: whether inspection can fail, halt, or reject a batch\n- Recovery behavior: how failures or rejections affect batch state or crew availability\n\n## Claim boundary\nThis workpiece and the corrected net establish only:\n- The crew-consumption constraint at start of inspection\n- The crew-release at sign-off completion\n- Token flow from ready batch through inspection to dispatch readiness\n\nThis is test-authored diagnostic material for the narrow final-inspection–to-dispatch path. It does not establish capture provenance, behavioral execution, failure handling, full process projection, or integration with upstream or downstream operations.\n```\n\nThe correction is complete and verified in the live Petrinaut definition.",
+        "state": "done"
+      }
+    ]
+  }
+}
