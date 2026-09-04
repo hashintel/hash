@@ -26,37 +26,19 @@ pre-existing warning-only findings; no persona suite was run.
 
 ## Live two-tab browser witness
 
-The successful 2026-09-04 witness is retained in
-[fe-1575-outer-browser-witness-2026-09-04](fe-1575-outer-browser-witness-2026-09-04/witness.md).
-It used the local `yarn dev:brunch` stack, one clean Playwright browser
-context, the mounted `/agents/chat/:instanceId` route, a real configured
-provider credential, and the stable fixture URL:
+The corrected 2026-09-04 witness is retained in [fe-1575-outer-browser-witness-2026-09-04-r2](fe-1575-outer-browser-witness-2026-09-04-r2/witness.md). It used the production dev processes underlying `yarn dev:brunch`, one fresh Playwright browser context, the mounted `/agents/chat/:instanceId` route, a real configured provider credential, and the stable fixture URL:
 
 ```text
 http://127.0.0.1:4915/?brunch-fixture=crew-reservation-v1
 ```
 
-The clean run created canonical conversation
-`conv_01M1NQEXM3CAPPTXM33ZE1YSRG` and exactly one tagged prepared source. Tab A
-advanced from settled revision zero with the target arc absent to revision 1
-with a model-produced workpiece and the target arc present. It retained one
-`addArc` call and one correlated successful result,
-`toolu_01KLHzRE7gbPbFfPaXe3RTry`. Mechanical comparison found exactly one
-semantic document change: a standard weight-1 input arc from
-`dispatch-crew-available` to `start-final-inspection`.
+The clean run created canonical conversation `conv_01M1NV5WZETMYEGGMFXNYDSTRS` and exactly one tagged prepared source. Tab A advanced from settled revision zero with the target arc absent to revision 1 with a model-produced workpiece and the target arc present. It retained one `addArc` call and one unique correlated successful result, `toolu_01BQukCZTAhJ64VNE7oC1CWG`, materialized in two cumulative signal deliveries without applying a second arc. Mechanical comparison found exactly one semantic document change: a standard weight-1 input arc from `dispatch-crew-available` to `start-final-inspection`.
 
-Tab B reopened the same manifest, workpiece hash, document hash, and canonical
-conversation. It submitted a non-mutating follow-up and received completed
-correlated response `entry_01M1NQJG7GRPC479PRF826T6F3` without another prepared
-source or `addArc` call. The post-Tab-A and Tab-B definitions and manifests
-have identical hashes.
+Tab B reopened the same manifest, workpiece hash, document hash, and canonical conversation. It submitted a non-mutating follow-up and received completed correlated response `entry_01M1NV73Z110CY393GEB8T02SH` without another prepared source or `addArc` call. The post-Tab-A and Tab-B definitions and manifests have identical hashes.
 
-The provider serialized the arc weight as `"1"`. The witnessed implementation
-normalizes that finite numeric string before canonical server and browser
-validation; the raw Flue snapshot retains the supplied representation while
-the canonical Petrinaut definition contains numeric weight `1`. The earlier
-HTTP 401 remains historical authentication/environment evidence only, not a
-carrier/schema conclusion.
+The provider serialized the arc weight as `"1"`. The corrected correlation artifact retains that raw input and the post-normalization parsed input with numeric weight `1`; no broader nested input normalization remains. The selected assistant workpiece explicitly labels revision 1 as model-produced from test-authored revision zero and preserves the fixture's non-claims. The earlier HTTP 401 remains historical authentication/environment evidence only, not a carrier/schema conclusion.
+
+The first [2026-09-04 witness](fe-1575-outer-browser-witness-2026-09-04/witness.md) remains immutable historical evidence but is superseded for acceptance: its model-produced workpiece incorrectly called itself test-authored and its correlation artifact omitted the parsed canonical input.
 
 ## Remaining human checks
 

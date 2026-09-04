@@ -1,0 +1,84 @@
+{
+  "calls": [
+    {
+      "messageId": "entry_01M1NV6ARKVMJTM74GVBKS6VW4",
+      "submissionId": "sub_ik_a38b1133b7c7c65bf8f07814d23bcbcb",
+      "toolCallId": "toolu_01BQukCZTAhJ64VNE7oC1CWG",
+      "state": "output-available",
+      "rawInput": {
+        "transitionId": "start-final-inspection",
+        "arcDirection": "input",
+        "placeId": "dispatch-crew-available",
+        "weight": "1",
+        "type": "standard"
+      },
+      "parsedInput": {
+        "transitionId": "start-final-inspection",
+        "arcDirection": "input",
+        "placeId": "dispatch-crew-available",
+        "weight": 1,
+        "type": "standard"
+      }
+    }
+  ],
+  "resultDeliveries": [
+    {
+      "messageId": "entry_direct_c3ViX2lrX2FmOWNjY2IxZTk1NzI5ZjkyNDk0NDA2NTE0NTE3Y2Nl",
+      "submissionId": "sub_ik_af9cccb1e95729f92494406514517cce",
+      "result": {
+        "toolCallId": "toolu_01BQukCZTAhJ64VNE7oC1CWG",
+        "toolName": "addArc",
+        "output": {
+          "title": "Added input arc",
+          "detail": "Dispatch crew available <-> Start final inspection",
+          "target": {
+            "kind": "selection",
+            "item": {
+              "type": "arc",
+              "id": "$A_place:dispatch-crew-available___start-final-inspection"
+            }
+          },
+          "applied": true
+        }
+      }
+    },
+    {
+      "messageId": "entry_direct_c3ViX2lrX2Q3OTdiNGM2MDUzZTVkMGExNDRlYzE1NDdhMjJlMGNh",
+      "submissionId": "sub_ik_d797b4c6053e5d0a144ec1547a22e0ca",
+      "result": {
+        "toolCallId": "toolu_01BQukCZTAhJ64VNE7oC1CWG",
+        "toolName": "addArc",
+        "output": {
+          "title": "Added input arc",
+          "detail": "Dispatch crew available <-> Start final inspection",
+          "target": {
+            "kind": "selection",
+            "item": {
+              "type": "arc",
+              "id": "$A_place:dispatch-crew-available___start-final-inspection"
+            }
+          },
+          "applied": true
+        }
+      }
+    }
+  ],
+  "uniqueResults": [
+    {
+      "toolCallId": "toolu_01BQukCZTAhJ64VNE7oC1CWG",
+      "toolName": "addArc",
+      "output": {
+        "title": "Added input arc",
+        "detail": "Dispatch crew available <-> Start final inspection",
+        "target": {
+          "kind": "selection",
+          "item": {
+            "type": "arc",
+            "id": "$A_place:dispatch-crew-available___start-final-inspection"
+          }
+        },
+        "applied": true
+      }
+    }
+  ]
+}
