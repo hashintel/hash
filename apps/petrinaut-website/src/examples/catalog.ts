@@ -14,6 +14,7 @@ import {
   getExampleCatalogEntry,
   type ExampleCatalogEntry,
   type ExampleSlug,
+  type ModelFileExampleSlug,
 } from "./catalog-metadata";
 import { normalizeExampleDefinition } from "./normalize-example";
 
@@ -27,6 +28,7 @@ export type {
   ExampleCatalogEntry,
   ExampleSimulationParameterBounds,
   ExampleSlug,
+  ExampleSource,
 } from "./catalog-metadata";
 
 export type LoadedExample = Readonly<{
@@ -39,7 +41,10 @@ export type GeneratedExampleRuntime = Readonly<{
   scenarioHirById: Readonly<Record<string, ScenarioHir>>;
 }>;
 
-const modelLoaders: Record<ExampleSlug, () => Promise<{ default: unknown }>> = {
+const modelFileLoaders: Record<
+  ModelFileExampleSlug,
+  () => Promise<{ default: unknown }>
+> = {
   "gases-1-pn-consumption-trigger": () =>
     import("./models/gases-1-pn-consumption-trigger.json"),
   "gases-1-pn": () => import("./models/gases-1-pn.json"),
@@ -54,17 +59,49 @@ const modelLoaders: Record<ExampleSlug, () => Promise<{ default: unknown }>> = {
 
 const runtimeLoaders: Record<ExampleSlug, () => Promise<{ default: unknown }>> =
   {
+    "deployment-pipeline": () => import("./generated/deployment-pipeline.json"),
     "gases-1-pn-consumption-trigger": () =>
       import("./generated/gases-1-pn-consumption-trigger.json"),
     "gases-1-pn": () => import("./generated/gases-1-pn.json"),
     "gases-2-spn": () => import("./generated/gases-2-spn.json"),
     "gases-3-cpn": () => import("./generated/gases-3-cpn.json"),
     "gases-4-dcpn": () => import("./generated/gases-4-dcpn.json"),
+    "probabilistic-satellite-launcher": () =>
+      import("./generated/probabilistic-satellite-launcher.json"),
+    "production-with-machine-failure": () =>
+      import("./generated/production-with-machine-failure.json"),
     "semiconductor-fab-drift": () =>
       import("./generated/semiconductor-fab-drift.json"),
+    "sir-epidemic-model": () => import("./generated/sir-epidemic-model.json"),
+    "supply-chain-profit-model": () =>
+      import("./generated/supply-chain-profit-model.json"),
+    "supply-chain-with-disruption": () =>
+      import("./generated/supply-chain-with-disruption.json"),
     "truck-fleet-predictive-maintenance": () =>
       import("./generated/truck-fleet-predictive-maintenance.json"),
   };
+
+const loadModelFile = async (slug: ModelFileExampleSlug): Promise<SDCPN> => {
+  const module = await modelFileLoaders[slug]();
+  const parsed = parseSDCPNFile(module.default);
+  if (!parsed.ok) {
+    throw new Error(parsed.error);
+  }
+
+  const { title: _title, ...rawDefinition } = parsed.sdcpn;
+  return normalizeExampleDefinition(slug, rawDefinition);
+};
+
+const loadDefinition = async (entry: ExampleCatalogEntry): Promise<SDCPN> => {
+  switch (entry.source.kind) {
+    case "model-file":
+      return loadModelFile(entry.slug as ModelFileExampleSlug);
+    case "core-example": {
+      const examples = await import("@hashintel/petrinaut-core/examples");
+      return examples[entry.source.exportName].petriNetDefinition;
+    }
+  }
+};
 
 const loadedExamples = new Map<ExampleSlug, Promise<LoadedExample>>();
 const loadedRuntimes = new Map<ExampleSlug, Promise<GeneratedExampleRuntime>>();
@@ -77,18 +114,11 @@ export const loadExample = async (
     return existing;
   }
 
-  const loaded = modelLoaders[slug]().then((module) => {
-    const parsed = parseSDCPNFile(module.default);
-    if (!parsed.ok) {
-      throw new Error(parsed.error);
-    }
-
-    const { title: _title, ...rawDefinition } = parsed.sdcpn;
-    return {
-      catalog: getExampleCatalogEntry(slug)!,
-      definition: normalizeExampleDefinition(slug, rawDefinition),
-    };
-  });
+  const catalog = getExampleCatalogEntry(slug)!;
+  const loaded = loadDefinition(catalog).then((definition) => ({
+    catalog,
+    definition,
+  }));
   // A rejected import (a transient network failure, a stale chunk after a
   // redeploy) must not poison the cache: evict so the next navigation retries.
   loaded.catch(() => {
