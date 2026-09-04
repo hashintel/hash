@@ -64,7 +64,9 @@ jobs:
       # context is their own directory, so a git diff of `paths` is a complete
       # change signal. `ecs` lists the ECS task definitions to redeploy when the
       # image publishes; one app may drive several (e.g. `graph` → graph +
-      # graph-admin + type-fetcher).
+      # graph-admin + type-fetcher). ECR holds one architecture per repository
+      # (Inspector does not scan manifest lists); `ecr_arch` names it and
+      # defaults to arm64.
       - name: Determine changed packages
         id: packages
         env:
@@ -190,16 +192,19 @@ jobs:
               )]' <<<"$CATALOG")
           fi
 
-          # Build matrix: expand each affected entry to its arches. Skip amd64
-          # for services that don't publish to GHCR (ECR is arm64-only) and
-          # also on PR events (arch divergence in Rust/Node is rare;
-          # merge_group still validates amd64 before main).
+          # Build matrix: expand each affected entry to its arches. GHCR
+          # services build both arches for the multi-arch manifest; ECR-only
+          # services build just their ECR arch. On PR events amd64 is skipped
+          # where arm64 covers the build (arch divergence in Rust/Node is rare;
+          # merge_group still validates amd64 before main), but never for a
+          # service whose only arch it is.
           BUILD_MATRIX=$(jq -c --argjson skip_amd64 "$SKIP_AMD64" '
             [.[] as $e
-              | ({arch: "arm64"}, {arch: "amd64"})
-              | $e + .
-              | select(($e.push | index("ghcr")) or .arch == "arm64")
-              | select($skip_amd64 != true or .arch != "amd64")
+              | ($e.ecr_arch // "arm64") as $ecr_arch
+              | (if ($e.push | index("ghcr")) then ["arm64", "amd64"] else [$ecr_arch] end) as $arches
+              | $arches[]
+              | $e + {arch: ., ecr_arch: $ecr_arch}
+              | select($skip_amd64 != true or .arch != "amd64" or ($arches | length) == 1)
               | del(.package, .ecs, .paths)
             ] | { include: . }' <<<"$AFFECTED_CATALOG")
 
@@ -213,8 +218,8 @@ jobs:
             [.[] | .ecs[]] | { include: . }
           ' <<<"$AFFECTED_CATALOG")
 
-          # Staging matrix: services whose arm64 image is pushed to ECR and
-          # tagged :staging (one guard run per such service).
+          # Staging matrix: services whose image is pushed to ECR and tagged
+          # :staging (one guard run per such service).
           STAGING_MATRIX=$(jq -c '
             map(select(.push | index("ecr"))) | { service: [.[].service] }
           ' <<<"$AFFECTED_CATALOG")
@@ -342,6 +347,7 @@ jobs:
         env:
           PUSH_LIST: ${{ join(matrix.push, ' ') }}
           ARCH: ${{ matrix.arch }}
+          ECR_ARCH: ${{ matrix.ecr_arch }}
           REF: ${{ github.ref }}
           EVENT: ${{ github.event_name }}
           SERVICE: ${{ matrix.service }}
@@ -358,7 +364,7 @@ jobs:
           [[ "$REF" == refs/heads/main ]] && is_main=true
 
           push_ecr=false
-          if [[ " $PUSH_LIST " == *" ecr "* && "$ARCH" == arm64 && "$is_main" == true && "$is_push_event" == true ]]; then
+          if [[ " $PUSH_LIST " == *" ecr "* && "$ARCH" == "$ECR_ARCH" && "$is_main" == true && "$is_push_event" == true ]]; then
             push_ecr=true
           fi
           push_ghcr=false
@@ -378,8 +384,9 @@ jobs:
             echo "push_ghcr=$push_ghcr"
             echo "push=$push"
 
-            # ECR is single-arch (arm64), tag-based. Only immutable tags here
-            # (:sha / :run); the mutable :staging tag is set by the `stage` job.
+            # ECR is single-arch (the entry's ecr_arch), tag-based. Only
+            # immutable tags here (:sha / :run); the mutable :staging tag is
+            # set by the `stage` job.
             echo "ecr_tags<<EOF"
             if $push_ecr; then
               echo "$ecr_host/$ECR_REPO/$SERVICE:sha-$SHA"
@@ -472,7 +479,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
-      # ECR images are single-arch (arm64). Advance :staging onto this commit's
+      # ECR images are single-arch. Advance :staging onto this commit's
       # immutable sha tag only if it is newer than the one currently tagged.
       - name: Advance :staging if newer
         uses: $/.github/actions/tag-if-newer
