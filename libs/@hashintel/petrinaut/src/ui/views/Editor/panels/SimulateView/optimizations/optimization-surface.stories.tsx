@@ -1,17 +1,25 @@
 import { useEffect, useState } from "react";
 
 import { FakeExperimentsProvider } from "../experiments/experiments-story-fixtures";
-import { OptimizationSurface } from "./optimization-surface";
+import {
+  NavigatedOptimizationSurface,
+  OptimizationSurface,
+} from "./optimization-surface";
 import {
   makeOptimizationInput,
   makeOptimizationRecord,
+  makeSelectionStream,
+  makeSyntheticObjectiveSampler,
   makeTrials,
+  navigationAtTrial,
   optimizedBindingSets,
-  syntheticObjective,
+  useFakeStudyClock,
 } from "./optimizations-story-fixtures";
 
-import type { DetachedObjectiveRequest } from "../../../../../../react/experiments/context";
-import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
+import type {
+  OptimizationNavigation,
+  OptimizationRecord,
+} from "../../../../../../react/optimizations/context";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -22,43 +30,6 @@ const meta = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
-
-/**
- * The stories' local compute: the same synthetic objective the fake trials
- * used, returned as a single-bin distribution frame after `delayFor` the
- * batch — so the contour fills in progressively and the trial rings land on
- * it, at whatever pace the story simulates.
- */
-const makeSyntheticObjectiveSampler =
-  (delayFor: (runCount: number) => number) =>
-  (request: DetachedObjectiveRequest) => {
-    const objective = syntheticObjective(request.scenarioParameterValues);
-    const frame = {
-      metricId: request.metric.id,
-      label: request.metric.label,
-      outputType: "distribution" as const,
-      frameNumber: 365,
-      time: 365,
-      bins: [
-        [Math.round(objective * 100) / 100, request.runCount],
-      ] as (readonly [number, number])[],
-      value: null,
-      frameValue: null,
-      timeValue: null,
-      runSampleCount: request.runCount,
-      timeSampleCount: request.runCount,
-    };
-    return new Promise<{
-      runsCompleted: number;
-      metricFrames: [typeof frame];
-    }>((resolve) => {
-      setTimeout(
-        () =>
-          resolve({ runsCompleted: request.runCount, metricFrames: [frame] }),
-        delayFor(request.runCount),
-      );
-    });
-  };
 
 const sampleSyntheticObjective = makeSyntheticObjectiveSampler(() => 80);
 
@@ -218,4 +189,114 @@ export const ManyParameters: Story = {
       })}
     />
   ),
+};
+
+/**
+ * A connected study's surface computes nothing: its steps are the field's
+ * samples — a dot each, the best emphasized, pruned steps hollow — and the
+ * field is interpolated between them. The navigation lives in the drawer's
+ * navigator, so the plot has no sliders of its own; once the study is over,
+ * clicking the plot moves the navigation and the picked point's value enters
+ * the field from the selection stream.
+ */
+const ConnectedSurfaceStory = ({ stepCount }: { stepCount: number }) => {
+  const study = makeTrials(baseInput, stepCount);
+  const [navigation, setNavigation] = useState<OptimizationNavigation>(() =>
+    navigationAtTrial(baseInput, study.trials[study.best?.trial ?? 0]!, false),
+  );
+  const selection = makeSelectionStream({
+    input: baseInput,
+    navigation,
+    runsCompleted: 100,
+  });
+  const optimization = makeOptimizationRecord({
+    input: baseInput,
+    trials: study.trials,
+    best: study.best,
+    status: "complete",
+    navigation,
+    selection,
+  });
+
+  return (
+    <div style={{ width: 640 }}>
+      <NavigatedOptimizationSurface
+        optimization={optimization}
+        navigation={navigation}
+        selection={selection}
+        onNavigationChange={(patch) =>
+          setNavigation((previous) => ({ ...previous, ...patch }))
+        }
+      />
+    </div>
+  );
+};
+
+export const ConnectedTwoSteps: Story = {
+  name: "Connected study, two steps",
+  render: () => <ConnectedSurfaceStory stepCount={2} />,
+};
+
+export const ConnectedTwelveSteps: Story = {
+  name: "Connected study, twelve steps",
+  render: () => <ConnectedSurfaceStory stepCount={12} />,
+};
+
+/**
+ * A connected study mid-run, following its steps: one lands every 1.5 s, and
+ * the step in flight streams its running objective into the field at the
+ * ringed dot before its own dot lands. The plot only displays until the last
+ * step lands, then a click picks a point.
+ */
+const ConnectedMidRunStory = () => {
+  const study = makeTrials(baseInput, 12);
+  const { landed, progress } = useFakeStudyClock({
+    steps: study.trials.length,
+    ticksPerStep: 10,
+    tickMs: 150,
+  });
+  const trials = study.trials.slice(0, landed);
+  const inFlight = study.trials[landed];
+  const [chosen, setChosen] = useState<OptimizationNavigation>(() =>
+    navigationAtTrial(baseInput, study.trials[0]!, true),
+  );
+  // While following, the navigation is wherever the optimizer is evaluating;
+  // once every step has landed it holds at the last one.
+  const navigation = chosen.followTrials
+    ? navigationAtTrial(baseInput, inFlight ?? study.trials.at(-1)!, true)
+    : chosen;
+  const selection = inFlight
+    ? makeSelectionStream({
+        input: baseInput,
+        navigation,
+        followedTrial: inFlight.trial,
+        runsCompleted: 1,
+        computing: true,
+        progress,
+      })
+    : makeSelectionStream({ input: baseInput, navigation, runsCompleted: 100 });
+  const optimization = makeOptimizationRecord({
+    input: baseInput,
+    trials,
+    best: trials.at(-1)?.best ?? null,
+    status: inFlight ? "running" : "complete",
+    navigation,
+    selection,
+  });
+
+  return (
+    <div style={{ width: 640 }}>
+      <NavigatedOptimizationSurface
+        optimization={optimization}
+        navigation={navigation}
+        selection={selection}
+        onNavigationChange={(patch) => setChosen({ ...navigation, ...patch })}
+      />
+    </div>
+  );
+};
+
+export const ConnectedMidRun: Story = {
+  name: "Connected study mid-run, streaming a step",
+  render: () => <ConnectedMidRunStory />,
 };

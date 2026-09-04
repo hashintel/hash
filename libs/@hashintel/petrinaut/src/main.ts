@@ -12,7 +12,14 @@
 
 export type { ErrorTracker } from "./react/error-tracker-context";
 export { ErrorTrackerContext } from "./react/error-tracker-context";
-export type { PetrinautOptimization } from "./react/optimization-context";
+export type {
+  PetrinautConnectedOptimization,
+  PetrinautConnectedOptimizationCapability,
+  PetrinautConnectedRunOptions,
+  PetrinautOptimization,
+  PetrinautOptimizationChannel,
+  PetrinautOptimizationSource,
+} from "./react/optimization-context";
 export { PetrinautOptimizationContext } from "./react/optimization-context";
 
 export type { PetrinautSlots } from "./ui/types/petrinaut-slots";

@@ -129,7 +129,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "compilation-output":
     "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   examples:
-    "Walkthroughs of the built-in examples and the scenarios/metrics each ships with: SIR, Supply Chain with Disruption, Supply Chain Profit, Deployment Pipeline, Production with Machine Failure, Probabilistic Satellite Launcher, Café Queue, Drone Patrol.",
+    "Walkthroughs of the built-in examples and the scenarios/metrics each ships with: SIR, Vaccination Campaign, Supply Chain with Disruption, Supply Chain Profit, Deployment Pipeline, Production with Machine Failure, Probabilistic Satellite Launcher, Café Queue, Drone Patrol.",
 };
 
 const getLatestNetDefinitionToolInputSchema = z

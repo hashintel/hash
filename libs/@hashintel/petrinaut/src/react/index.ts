@@ -61,18 +61,29 @@ export {
   type NetManagement,
 } from "./net-management-context";
 export { PetrinautOptimizationContext } from "./optimization-context";
-export type { PetrinautOptimization } from "./optimization-context";
+export type {
+  PetrinautConnectedOptimization,
+  PetrinautConnectedOptimizationCapability,
+  PetrinautConnectedRunOptions,
+  PetrinautOptimization,
+  PetrinautOptimizationChannel,
+  PetrinautOptimizationSource,
+} from "./optimization-context";
 export {
   isOptimizationActive,
   OptimizationsContext,
 } from "./optimizations/context";
 export type {
+  CreateOptimizationOptions,
   OptimizationBest,
   OptimizationConnectionState,
+  OptimizationNavigation,
   OptimizationRecord,
+  OptimizationSelectionStream,
   OptimizationStatus,
   OptimizationsContextValue,
 } from "./optimizations/context";
+export { useOptimizationSource } from "./optimizations/use-optimization-source";
 export {
   ExperimentsActionsContext,
   ExperimentsContext,
@@ -80,6 +91,12 @@ export {
 } from "./experiments/context";
 export type {
   CreateExperimentInput,
+  DetachedObjectiveRequest,
+  DetachedObjectiveRun,
+  DetachedObjectiveRunOutcome,
+  DetachedObjectiveRunRequest,
+  DetachedObjectiveRunResult,
+  ExperimentComputeBackend,
   ExperimentRecord,
   ExperimentsActionsValue,
   ExperimentStatus,

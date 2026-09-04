@@ -90,6 +90,14 @@ export type UserSettings = {
    * study drawer runs no compute of its own.
    */
   enableOptimizationSurface: boolean;
+  /**
+   * Experimental: connect a host-supplied in-browser optimizer, which runs
+   * studies through the experiments backend and streams each step's metrics
+   * as it is evaluated. Off, a connected optimizer counts as none at all and
+   * the Optimizations surfaces stay hidden. A remote optimization capability
+   * is unaffected either way.
+   */
+  enableInBrowserOptimization: boolean;
   subViewPanels: SubViewPanelsSettings;
 };
 
@@ -118,6 +126,7 @@ export type UserSettingsActions = {
   setShowCompilationOutput: (value: boolean) => void;
   setEnableParameterSweeps: (value: boolean) => void;
   setEnableOptimizationSurface: (value: boolean) => void;
+  setEnableInBrowserOptimization: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -152,6 +161,7 @@ export const defaultUserSettings: UserSettings = {
   showCompilationOutput: false,
   enableParameterSweeps: false,
   enableOptimizationSurface: false,
+  enableInBrowserOptimization: false,
   subViewPanels: {},
 };
 
@@ -181,6 +191,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setShowCompilationOutput: () => {},
   setEnableParameterSweeps: () => {},
   setEnableOptimizationSurface: () => {},
+  setEnableInBrowserOptimization: () => {},
   updateSubViewSection: () => {},
 };
 

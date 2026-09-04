@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { Button, Drawer, Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Drawer, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
@@ -8,30 +8,11 @@ import {
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
 import { Section, SectionList } from "../../../../../components/section";
+import { ComputeBackendBadge } from "../shared/compute-backend-badge";
 import { SweepNavigator } from "./sweep-navigator";
 import { SweepSurface } from "./sweep-surface";
 import { ExperimentMetrics } from "./view-experiment-drawer/experiment-metrics";
 import { ExperimentSummary } from "./view-experiment-drawer/experiment-summary";
-
-// Local rather than the design system's `Badge`, whose `brand` scheme puts
-// #5EB1EF on a near-white #FBFDFF — about 2.3:1, below the 4.5:1 WCAG AA
-// needs for text this size.
-const backendBadgeStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  paddingX: "1.5",
-  paddingY: "[2px]",
-  borderRadius: "sm",
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s110",
-  backgroundColor: "neutral.s10",
-  "&[data-tone=active]": {
-    color: "blue.s100",
-    backgroundColor: "blue.s10",
-  },
-});
 
 // The drawer body is a column: the summary, the navigator, and the surface
 // hold still at the top, and the metric charts alone scroll below them.
@@ -54,44 +35,12 @@ const metricsScrollStyle = css({
   scrollbarWidth: "[thin]",
 });
 
-const describeComputeBackend = (experiment: ExperimentRecord): string => {
-  if (experiment.computeBackend === "webgpu") {
-    return "Stepped on the GPU through WebGPU. Distributions match the CPU backend statistically; individual trajectories differ (different random generators).";
-  }
-  if (experiment.computeBackendFallbackReason !== null) {
-    // The notification that carried this is gone by the time anyone wonders
-    // why the results are not GPU-backed.
-    return `The GPU backend was requested but could not run this net: ${experiment.computeBackendFallbackReason}`;
-  }
-  return "Stepped on the CPU, across worker threads.";
-};
-
 // Keeps its footprint when a run can no longer be cancelled, so Remove and
 // Close do not slide when a run finishes.
 const cancelSlotStyle = css({
   display: "inline-flex",
   "&[data-hidden=true]": { visibility: "hidden" },
 });
-
-const ComputeBackendBadge = ({
-  experiment,
-}: {
-  experiment: ExperimentRecord;
-}) => {
-  const isGpu = experiment.computeBackend === "webgpu";
-
-  return (
-    <Tooltip content={describeComputeBackend(experiment)} position="bottom-end">
-      <span
-        className={backendBadgeStyle}
-        data-tone={isGpu ? "active" : "neutral"}
-      >
-        {isGpu ? <Icon name="lightning" size="xs" /> : null}
-        {isGpu ? "GPU" : "CPU"}
-      </span>
-    </Tooltip>
-  );
-};
 
 export const ViewExperimentDrawer = ({
   open,
@@ -134,7 +83,7 @@ export const ViewExperimentDrawer = ({
             // In the header rather than the strip below, so which backend ran
             // stays visible when the section is collapsed.
             renderHeaderAction={() => (
-              <ComputeBackendBadge experiment={experiment} />
+              <ComputeBackendBadge backend={experiment} />
             )}
           >
             <ExperimentSummary experiment={experiment} />

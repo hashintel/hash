@@ -2,7 +2,7 @@
  * The drawer's summary: a strip of stats with a status dot, the compute
  * activity underneath, and the error text when the experiment failed.
  */
-import { type ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -10,76 +10,25 @@ import {
   type ExperimentRecord,
   getExperimentElapsedMs,
   isExperimentActive,
+  type SweepBatchStatus,
 } from "../../../../../../../react/experiments/context";
+import { experimentProgressPercent } from "../../../../shared/experiment-progress";
+import {
+  ComputeActivity,
+  type ComputeActivityBatch,
+} from "../../shared/compute-activity";
+import {
+  SummaryStat,
+  SummaryStatusDot,
+  type SummaryStatusTone,
+  SummaryStrip,
+} from "../../shared/summary-strip";
 import { formatDurationMs } from "../format-duration";
 import { formatNumber } from "../shared/format-number";
-import { ComputeActivity } from "./experiment-summary/compute-activity";
 
 const summaryStyle = css({
   marginTop: "-1",
   marginBottom: "3",
-});
-
-// Every stat carries its own leading hairline, and the strip shifts left by
-// exactly one divider-plus-gap so each row's first divider lands outside the
-// clipping wrapper — wrapped rows therefore start flush, not with a floating
-// rule (a sibling selector cannot see flex line breaks).
-const stripClipStyle = css({
-  overflow: "hidden",
-});
-
-const stripStyle = css({
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  rowGap: "2",
-  marginLeft: "[-17px]",
-});
-
-const statStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[1px]",
-  minWidth: "[0]",
-  paddingLeft: "4",
-  marginLeft: "[1px]",
-  borderLeftWidth: "[1px]",
-  borderLeftStyle: "solid",
-  borderLeftColor: "neutral.bd.subtle",
-  paddingRight: "4",
-});
-
-const statLabelStyle = css({
-  fontSize: "[10px]",
-  fontWeight: "medium",
-  letterSpacing: "[0.04em]",
-  textTransform: "uppercase",
-  color: "neutral.s70",
-});
-
-const statValueStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  fontVariantNumeric: "tabular-nums",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-// Inline-block inside the value span, so a long value still ellipsizes (a
-// flex value container turns its text into an item ellipsis cannot reach).
-const statusDotStyle = css({
-  display: "inline-block",
-  width: "[7px]",
-  height: "[7px]",
-  borderRadius: "full",
-  marginRight: "1.5",
-  verticalAlign: "[1px]",
-  backgroundColor: "neutral.s60",
-  "&[data-tone=active]": { backgroundColor: "blue.s100" },
-  "&[data-tone=done]": { backgroundColor: "green.s90" },
-  "&[data-tone=error]": { backgroundColor: "red.s100" },
 });
 
 const activityStyle = css({
@@ -94,7 +43,7 @@ const errorStyle = css({
 
 const STATUS_DISPLAY: Record<
   ExperimentRecord["status"],
-  { label: string; tone: "active" | "done" | "error" | "neutral" }
+  { label: string; tone: SummaryStatusTone }
 > = {
   initializing: { label: "Initializing", tone: "active" },
   running: { label: "Running", tone: "active" },
@@ -124,27 +73,6 @@ const useNow = (active: boolean): number => {
   return now;
 };
 
-const Stat = ({
-  label,
-  minChars,
-  children,
-}: {
-  label: string;
-  /** Reserve this many characters so a changing value never reflows the strip. */
-  minChars?: number;
-  children: ReactNode;
-}) => (
-  <div className={statStyle}>
-    <span className={statLabelStyle}>{label}</span>
-    <span
-      className={statValueStyle}
-      style={minChars === undefined ? undefined : { minWidth: `${minChars}ch` }}
-    >
-      {children}
-    </span>
-  </div>
-);
-
 /** Longest status label, so the strip never reflows as the status changes. */
 /**
  * Simulated time to show when no batch is publishing progress: an idle sweep
@@ -160,6 +88,38 @@ const STATUS_CHARS =
     ...Object.values(STATUS_DISPLAY).map((entry) => entry.label.length),
   ) + 2;
 
+/**
+ * "selection" is the navigator's own ladder — the priority work; "surface"
+ * is a contour chunk; "refine" is a single cell brought up to depth.
+ */
+const BATCH_KIND_META: Record<
+  SweepBatchStatus["kind"],
+  Pick<ComputeActivityBatch, "label" | "tone">
+> = {
+  selection: { label: "Selection", tone: "priority" },
+  surface: { label: "Surface", tone: "background" },
+  refine: { label: "Refine", tone: "background" },
+};
+
+/** The sweep's batches as the activity list shows them. */
+const activityBatches = (
+  sweepBatches: readonly SweepBatchStatus[],
+): ComputeActivityBatch[] =>
+  sweepBatches.map((batch) => ({
+    id: String(batch.id),
+    ...BATCH_KIND_META[batch.kind],
+    runCount: batch.runCount,
+    completedRuns: batch.completedRuns,
+  }));
+
+/** The bar under the stats: the selection's runs for a sweep, simulated time otherwise. */
+const activityBar = (experiment: ExperimentRecord) => ({
+  percent: experimentProgressPercent(experiment),
+  label: experiment.sweep
+    ? `Selection · ${experiment.sweep.runsSampled.toLocaleString("en-US")} / ${experiment.runCount.toLocaleString("en-US")} runs`
+    : `Time · ${(experiment.progress?.time ?? 0).toLocaleString("en-US")} / ${experiment.maxTime.toLocaleString("en-US")}`,
+});
+
 export const ExperimentSummary = ({
   experiment,
 }: {
@@ -172,54 +132,54 @@ export const ExperimentSummary = ({
 
   return (
     <div className={summaryStyle}>
-      <div className={stripClipStyle}>
-        <div className={stripStyle}>
-          <Stat label="Status" minChars={STATUS_CHARS}>
-            <span className={statusDotStyle} data-tone={status.tone} />
-            {status.label}
-          </Stat>
-          <Stat label="Scenario">{experiment.scenarioName ?? "Default"}</Stat>
-          <Stat
-            label="Runs"
-            minChars={
-              `${experiment.runCount} active, ${experiment.runCount} complete`
-                .length
-            }
-          >
-            {progress
-              ? `${progress.activeRuns} active, ${progress.completedRuns} complete`
-              : experiment.runCount}
-          </Stat>
-          <Stat label="Errors" minChars={String(experiment.runCount).length}>
-            {progress?.erroredRuns ?? 0}
-          </Stat>
-          <Stat
-            label="Time"
-            minChars={
-              `${formatNumber(experiment.maxTime)} / ${formatNumber(experiment.maxTime)}`
-                .length
-            }
-          >
-            {formatNumber(progress?.time ?? settledTime(experiment))} /{" "}
-            {formatNumber(experiment.maxTime)}
-          </Stat>
-          {/* Wall-clock, as distinct from the simulated time; dashed out
+      <SummaryStrip>
+        <SummaryStat label="Status" minChars={STATUS_CHARS}>
+          <SummaryStatusDot tone={status.tone} />
+          {status.label}
+        </SummaryStat>
+        <SummaryStat label="Scenario">
+          {experiment.scenarioName ?? "Default"}
+        </SummaryStat>
+        <SummaryStat
+          label="Runs"
+          minChars={
+            `${experiment.runCount} active, ${experiment.runCount} complete`
+              .length
+          }
+        >
+          {progress
+            ? `${progress.activeRuns} active, ${progress.completedRuns} complete`
+            : experiment.runCount}
+        </SummaryStat>
+        <SummaryStat
+          label="Errors"
+          minChars={String(experiment.runCount).length}
+        >
+          {progress?.erroredRuns ?? 0}
+        </SummaryStat>
+        <SummaryStat
+          label="Time"
+          minChars={
+            `${formatNumber(experiment.maxTime)} / ${formatNumber(experiment.maxTime)}`
+              .length
+          }
+        >
+          {formatNumber(progress?.time ?? settledTime(experiment))} /{" "}
+          {formatNumber(experiment.maxTime)}
+        </SummaryStat>
+        {/* Wall-clock, as distinct from the simulated time; dashed out
               when stepping never began. */}
-          <Stat
-            label={experiment.finishedAt === null ? "Elapsed" : "Duration"}
-            minChars={8}
-          >
-            {elapsedMs === null ? "—" : formatDurationMs(elapsedMs)}
-          </Stat>
-        </div>
-      </div>
+        <SummaryStat
+          label={experiment.finishedAt === null ? "Elapsed" : "Duration"}
+          minChars={8}
+        >
+          {elapsedMs === null ? "—" : formatDurationMs(elapsedMs)}
+        </SummaryStat>
+      </SummaryStrip>
       <div className={activityStyle}>
         <ComputeActivity
-          sweepBatches={experiment.sweepBatches}
-          sweep={experiment.sweep}
-          progress={experiment.progress}
-          runCount={experiment.runCount}
-          maxTime={experiment.maxTime}
+          bar={activityBar(experiment)}
+          batches={activityBatches(experiment.sweepBatches)}
         />
       </div>
       {experiment.error ? (

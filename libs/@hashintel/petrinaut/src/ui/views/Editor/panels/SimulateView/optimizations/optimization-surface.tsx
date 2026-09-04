@@ -1,62 +1,72 @@
 /**
  * The optimization surface: an Optuna-style filled contour of the study's
- * objective over two optimized parameters, computed locally.
+ * objective over two optimized parameters. The study's trials arrive with
+ * parameter and objective values and are projected onto the two shown axes.
  *
- * The study's trials arrive with parameter and objective values and are
- * drawn as markers projected onto the two shown axes. The interpolated fill
- * comes from points this view computes itself: it walks an X×Y sub-grid of
- * the shown parameters in quad-tree order, running the study's frozen model
- * with its objective metric on a background worker, holding every other
- * optimized parameter at its slider position (initially the best trial's
- * value). The selected point refines with escalating batches, and the
- * readout streams the objective's mean and median as runs accumulate.
+ * Two variants share the plot and differ in where the field comes from.
+ * `OptimizationSurface`, for a study run elsewhere, computes the fill itself:
+ * it walks an X×Y sub-grid of the shown parameters in quad-tree order,
+ * running the study's frozen model with its objective metric on a background
+ * worker, holding every other optimized parameter at its slider position, and
+ * refines the selected point with escalating batches. The trials sit on that
+ * fill as rings. `NavigatedOptimizationSurface`, for a study evaluated in this
+ * browser, computes nothing: the trials are the samples, the field is
+ * interpolated between them, and the point being evaluated — or, once the
+ * study is over, the point the navigation refines — streams its running value
+ * into the field as it lands. It follows the record's navigation and the
+ * provider's selection stream; the drawer's navigator holds the controls.
  */
-import { use, useEffect, useRef, useState } from "react";
+import { type ReactNode, use, useEffect, useRef, useState } from "react";
 
 import { Slider } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { createUserKeyedRecord, getOwn } from "@hashintel/petrinaut-core";
 
 import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import { distributionStats } from "../../../../../../react/experiments/distribution-stats";
-import {
-  EXPERIMENT_RUN_LADDER,
-  mergeMetricFramesAcrossCells,
-} from "../../../../../../react/experiments/parameter-grid";
+import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
 import { sweepCellObjective } from "../../../../../../react/experiments/sweep-cell-objective";
-import { sweepBatchSeed } from "../../../../../../react/experiments/sweep-session";
 import {
   buildOptimizationSurfaceAxes,
-  optimizationAxisMidpoint,
-  optimizationAxisPositionFor,
   optimizationAxisValueAt,
+  optimizationBooleanIdentifiers,
 } from "../../../../../../react/optimizations/surface-grid";
-import {
-  ContourSurface,
-  contourSurfaceKey,
-} from "../../../../../components/contour-surface";
 import { formatAxisValue } from "../shared/format-axis-value";
+import { describeSurfaceSampling } from "../shared/surface-frame";
 import {
-  SurfaceAxisControls,
-  SurfaceCaption,
-  SurfaceFrame,
-} from "../shared/surface-frame";
-import {
-  quadTreeLevels,
   SURFACE_CELL_RUNS,
   surfacePositions,
 } from "../shared/surface-sampling";
-import { useSurfaceWalk } from "../shared/use-surface-walk";
+import {
+  type OptimizationSurfaceView,
+  resolveSurfaceBooleans,
+  resolveSurfacePositions,
+  surfaceSliceKey,
+  surfaceWalkKey,
+} from "./optimization-surface/navigation-slice";
+import {
+  sampleStudyCell,
+  type StudyCellCache,
+} from "./optimization-surface/sample-study-cell";
+import {
+  describeSurfaceState,
+  inFlightSurfaceField,
+  mergeSurfaceFields,
+  navigatedSurfaceSample,
+  OptimizationSurfacePlot,
+  surfaceCellKeyAt,
+  surfaceInteraction,
+  trialSurfaceField,
+  withNavigatedSample,
+} from "./optimization-surface/surface-plot";
+import { useStudySurfaceWalk } from "./optimization-surface/use-study-surface-walk";
 
-import type { ExperimentsContextValue } from "../../../../../../react/experiments/context";
 import type { DistributionStats } from "../../../../../../react/experiments/distribution-stats";
-import type { SweepCellSnapshot } from "../../../../../../react/experiments/sweep-session";
-import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
-import type { OptimizationSurfaceAxis } from "../../../../../../react/optimizations/surface-grid";
 import type {
-  ContourSurfaceFraction,
-  ContourSurfaceMarker,
-} from "../../../../../components/contour-surface";
+  OptimizationNavigation,
+  OptimizationRecord,
+  OptimizationSelectionStream,
+} from "../../../../../../react/optimizations/context";
+import type { OptimizationSurfaceAxis } from "../../../../../../react/optimizations/surface-grid";
 
 /** Ladder cap for the selected point's local refinement. */
 const SELECTED_POINT_MAX_RUNS = 100;
@@ -97,111 +107,12 @@ const readoutStyle = css({
   fontVariantNumeric: "tabular-nums",
 });
 
-/**
- * Brings one cell up to at least `minRuns` locally computed runs, merging
- * batches into `cache`. A cell's entry is the promise of its deepest result,
- * so the walk and the selected point's refinement queue behind each other
- * instead of both sampling from the same run index.
- */
-const sampleStudyCell = async (options: {
-  sampleDetachedObjective: ExperimentsContextValue["sampleDetachedObjective"];
-  cache: Map<string, Promise<SweepCellSnapshot | null>>;
-  optimization: Pick<OptimizationRecord, "id" | "input">;
-  axes: readonly OptimizationSurfaceAxis[];
-  xAxisId: string;
-  yAxisId: string;
-  /** Slider position per off-surface axis, plus boolean fallbacks. */
-  slice: string;
-  xPosition: number;
-  yPosition: number;
-  minRuns: number;
-}): Promise<SweepCellSnapshot | null> => {
-  const {
-    sampleDetachedObjective,
-    cache,
-    optimization,
-    axes,
-    xAxisId,
-    yAxisId,
-    slice,
-    xPosition,
-    yPosition,
-    minRuns,
-  } = options;
-  const input = optimization.input;
-  const objectiveMetric = input.model.definition.metrics?.find(
-    (metric) => metric.id === input.objective.metricId,
-  );
-  if (!objectiveMetric) {
-    return null;
-  }
-
-  const sliceEntries = new Map(
-    slice
-      .split("|")
-      .filter((entry) => entry !== "")
-      .map((entry) => entry.split("=") as [string, string]),
-  );
-
-  const values = createUserKeyedRecord<number | boolean>();
-  for (const [identifier, binding] of Object.entries(
-    input.scenario.parameterBindings,
-  )) {
-    if (binding.kind === "fixed") {
-      values[identifier] = binding.value;
-    } else if (binding.domain.kind === "boolean") {
-      values[identifier] = sliceEntries.get(identifier) === "true";
-    }
-  }
-  for (const axis of axes) {
-    const position =
-      axis.identifier === xAxisId
-        ? xPosition
-        : axis.identifier === yAxisId
-          ? yPosition
-          : Number(sliceEntries.get(axis.identifier) ?? 0);
-    values[axis.identifier] = optimizationAxisValueAt(axis, position);
-  }
-
-  const key = `${slice}|x=${xPosition}|y=${yPosition}`;
-  const pending = cache.get(key);
-  const settled = (async (): Promise<SweepCellSnapshot | null> => {
-    const cached = await pending;
-    if (cached && cached.runsCompleted >= minRuns) {
-      return cached;
-    }
-    const from = cached?.runsCompleted ?? 0;
-    const snapshot = await sampleDetachedObjective({
-      cacheKey: optimization.id,
-      definition: input.model.definition,
-      scenarioId: input.scenario.id,
-      scenarioParameterValues: values,
-      metric: {
-        id: objectiveMetric.id,
-        label: objectiveMetric.name,
-        code: objectiveMetric.code,
-      },
-      seed: sweepBatchSeed(input.execution.seed, from),
-      runCount: minRuns - from,
-      dt: input.execution.dt,
-      maxTime: input.execution.maxTime,
-    });
-    if (!snapshot) {
-      return cached ?? null;
-    }
-    return {
-      runsCompleted: minRuns,
-      metricFrames: cached
-        ? mergeMetricFramesAcrossCells([
-            cached.metricFrames,
-            snapshot.metricFrames,
-          ])
-        : snapshot.metricFrames,
-    };
-  })();
-  cache.set(key, settled);
-  return await settled;
-};
+const initialView = (
+  axes: readonly OptimizationSurfaceAxis[],
+): OptimizationSurfaceView => ({
+  xAxisId: axes[0]?.identifier ?? "",
+  yAxisId: axes[1]?.identifier ?? "",
+});
 
 export const OptimizationSurface = ({
   optimization,
@@ -216,10 +127,10 @@ export const OptimizationSurface = ({
     (metric) => metric.id === metricId,
   );
 
-  const [xAxisId, setXAxisId] = useState(axes[0]?.identifier ?? "");
-  const [yAxisId, setYAxisId] = useState(axes[1]?.identifier ?? "");
-  const [positions, setPositions] = useState<Record<string, number>>({});
-  const [preview, setPreview] = useState<ContourSurfaceFraction | null>(null);
+  const [view, setView] = useState(() => initialView(axes));
+  const [chosenPositions, setChosenPositions] = useState<
+    Record<string, number>
+  >({});
   /**
    * The selected point's refinement so far, tagged with its walk: the current
    * point's stats, and every grid cell a selection has refined within this
@@ -230,93 +141,36 @@ export const OptimizationSurface = ({
     stats: DistributionStats | null;
     cells: ReadonlyMap<string, number>;
   } | null>(null);
-  /** Per position tuple, the promise of its deepest merged result. */
-  const cellCacheRef = useRef(
-    new Map<string, Promise<SweepCellSnapshot | null>>(),
+  const cellCacheRef = useRef<StudyCellCache>(new Map());
+
+  const positions = resolveSurfacePositions(
+    axes,
+    chosenPositions,
+    optimization.best,
   );
+  const booleans = resolveSurfaceBooleans(
+    optimizationBooleanIdentifiers(input),
+    {},
+    optimization.best,
+  );
+  const slice = surfaceSliceKey({ axes, view, positions, booleans });
+  const walkKey = surfaceWalkKey(optimization.id, view, slice);
+  const xSelected = positions[view.xAxisId] ?? 0;
+  const ySelected = positions[view.yAxisId] ?? 0;
+  const xAxis = axes.find((axis) => axis.identifier === view.xAxisId);
+  const yAxis = axes.find((axis) => axis.identifier === view.yAxisId);
 
-  const xAxis = axes.find((axis) => axis.identifier === xAxisId);
-  const yAxis = axes.find((axis) => axis.identifier === yAxisId);
-
-  /** Slider position per axis: explicit, else best trial, else midpoint. */
-  const positionOf = (axis: OptimizationSurfaceAxis): number => {
-    const explicit = getOwn(positions, axis.identifier);
-    if (explicit !== undefined) {
-      return explicit;
-    }
-    const best = optimization.best?.parameters[axis.identifier];
-    return typeof best === "number"
-      ? optimizationAxisPositionFor(axis, best)
-      : optimizationAxisMidpoint(axis);
-  };
-
-  // The off-surface coordinates: slider positions of the other axes, plus
-  // boolean bindings at the best trial's values. Part of the walk key, so a
-  // best-trial change that moves a boolean restarts the walk rather than
-  // mixing slices.
-  const booleanSlice = Object.entries(input.scenario.parameterBindings)
-    .filter(
-      (
-        entry,
-      ): entry is [string, { kind: "optimize"; domain: { kind: "boolean" } }] =>
-        entry[1].kind === "optimize" && entry[1].domain.kind === "boolean",
-    )
-    .map(([identifier]) => {
-      const best = optimization.best?.parameters[identifier];
-      return `${identifier}=${typeof best === "boolean" ? best : false}`;
-    });
-  const slice = [
-    ...axes
-      .filter(
-        (axis) => axis.identifier !== xAxisId && axis.identifier !== yAxisId,
-      )
-      .map((axis) => `${axis.identifier}=${positionOf(axis)}`),
-    ...booleanSlice,
-  ].join("|");
-  const walkKey = `${optimization.id}|${xAxisId}|${yAxisId}|${slice}`;
-
-  const xSelected = xAxis ? positionOf(xAxis) : 0;
-  const ySelected = yAxis ? positionOf(yAxis) : 0;
-
-  // The sampler is serialised, so one lane of single-cell chunks.
-  const walkValues = useSurfaceWalk<number>({
-    walkKey,
-    lanes: 1,
-    buildWalk: () => {
-      if (!xAxis || !yAxis || xAxis === yAxis) {
-        return null;
-      }
-      const xPositions = surfacePositions(xAxis);
-      const yPositions = surfacePositions(yAxis);
-      return {
-        chunks: quadTreeLevels(xPositions.length, yPositions.length)
-          .flat()
-          .map((cell) => [cell]),
-        sample: (chunk) =>
-          Promise.all(
-            chunk.map(async (cell) => {
-              const snapshot = await sampleStudyCell({
-                sampleDetachedObjective,
-                cache: cellCacheRef.current,
-                optimization,
-                axes,
-                xAxisId,
-                yAxisId,
-                slice,
-                xPosition: xPositions[cell.x]!,
-                yPosition: yPositions[cell.y]!,
-                minRuns: SURFACE_CELL_RUNS,
-              });
-              return snapshot
-                ? sweepCellObjective(snapshot.metricFrames, metricId)
-                : null;
-            }),
-          ),
-      };
-    },
+  const walkValues = useStudySurfaceWalk({
+    sampleDetachedObjective,
+    cellCache: cellCacheRef,
+    optimization,
+    axes,
+    view,
+    slice,
   });
 
   const optimizationId = optimization.id;
+  const { xAxisId, yAxisId } = view;
   // The selected point's refinement: escalating batches, streaming the
   // objective's mean/median into the readout and refreshing its grid cell.
   useEffect(() => {
@@ -332,10 +186,12 @@ export const OptimizationSurface = ({
     }
     let stale = false;
     const isStale = () => stale;
-    const xIndex = surfacePositions(walkXAxis).indexOf(xSelected);
-    const yIndex = surfacePositions(walkYAxis).indexOf(ySelected);
-    const cellKey =
-      xIndex === -1 || yIndex === -1 ? null : contourSurfaceKey(xIndex, yIndex);
+    const cellKey = surfaceCellKeyAt(
+      walkXAxis,
+      walkYAxis,
+      xSelected,
+      ySelected,
+    );
 
     const run = async () => {
       for (const target of EXPERIMENT_RUN_LADDER) {
@@ -387,77 +243,55 @@ export const OptimizationSurface = ({
     sampleDetachedObjective,
   ]);
 
-  const currentRefined = refined?.walkKey === walkKey ? refined : null;
-  // A selected point is usually also a grid cell: its refined value wins.
-  const cellValues =
-    currentRefined && currentRefined.cells.size > 0
-      ? new Map([...walkValues, ...currentRefined.cells])
-      : walkValues;
-
-  /** Completed trials projected onto the shown axes, as ring markers. */
-  const trialMarkers: ContourSurfaceMarker[] =
-    xAxis && yAxis
-      ? optimization.trials
-          .filter(
-            (trial) => trial.state === "complete" && trial.objective !== null,
-          )
-          .map((trial) => {
-            const xValue = trial.parameters[xAxis.identifier];
-            const yValue = trial.parameters[yAxis.identifier];
-            if (typeof xValue !== "number" || typeof yValue !== "number") {
-              return null;
-            }
-            return {
-              x:
-                (optimizationAxisPositionFor(xAxis, xValue) / xAxis.stepCount) *
-                (surfacePositions(xAxis).length - 1),
-              y:
-                (optimizationAxisPositionFor(yAxis, yValue) / yAxis.stepCount) *
-                (surfacePositions(yAxis).length - 1),
-              emphasis: optimization.best?.trial === trial.trial,
-            };
-          })
-          .filter((marker) => marker !== null)
-      : [];
-
   if (axes.length < 2 || !objectiveMetric) {
     return null;
   }
 
-  const handlePickFraction = (fraction: ContourSurfaceFraction) => {
-    if (!xAxis || !yAxis) {
-      return;
-    }
-    setPositions((previous) => ({
-      ...previous,
-      [xAxis.identifier]: Math.round(fraction.x * xAxis.stepCount),
-      [yAxis.identifier]: Math.round(fraction.y * yAxis.stepCount),
-    }));
-  };
-
-  /** The axis readout a plot fraction lands on. */
-  const readoutAt = (axis: OptimizationSurfaceAxis, fraction: number): string =>
-    `${axis.identifier} = ${formatAxisValue(
-      optimizationAxisValueAt(axis, Math.round(fraction * axis.stepCount)),
-    )}`;
-
+  const currentRefined = refined?.walkKey === walkKey ? refined : null;
+  const stats = currentRefined?.stats;
   const direction =
     input.objective.direction === "maximize" ? "Maximize" : "Minimize";
-  const stats = currentRefined?.stats;
+
+  // A refined point is usually also a grid cell: its deeper value wins.
+  const cellValues =
+    currentRefined && currentRefined.cells.size > 0
+      ? new Map([...walkValues, ...currentRefined.cells])
+      : walkValues;
+  const markers =
+    xAxis && yAxis
+      ? trialSurfaceField({
+          trials: optimization.trials,
+          best: optimization.best,
+          xAxis,
+          yAxis,
+          mark: "ring",
+        }).markers
+      : [];
   const totalCells =
     xAxis && yAxis
       ? surfacePositions(xAxis).length * surfacePositions(yAxis).length
       : 0;
 
   return (
-    <SurfaceFrame>
-      <SurfaceAxisControls
-        axes={axes}
-        xAxisId={xAxisId}
-        yAxisId={yAxisId}
-        onXAxisIdChange={setXAxisId}
-        onYAxisIdChange={setYAxisId}
-      />
+    <OptimizationSurfacePlot
+      axes={axes}
+      view={view}
+      onViewChange={setView}
+      positions={positions}
+      values={cellValues}
+      markers={markers}
+      sampleMarks="dot"
+      contentKey={`${view.xAxisId}|${view.yAxisId}`}
+      onPick={(picked) =>
+        setChosenPositions((previous) => ({ ...previous, ...picked }))
+      }
+      caption={describeSurfaceSampling({
+        sampledCount: cellValues.size,
+        totalCells,
+        runsPerCell: SURFACE_CELL_RUNS,
+        note: "rings are the study's trials (best highlighted), the ringed dot the current parameters",
+      })}
+    >
       {axes.map((axis) => (
         <div className={sliderRowStyle} key={axis.identifier}>
           <span className={sliderNameStyle} title={axis.identifier}>
@@ -468,16 +302,18 @@ export const OptimizationSurface = ({
             min={0}
             max={axis.stepCount}
             step={1}
-            value={positionOf(axis)}
+            value={positions[axis.identifier]}
             onChangeEnd={(position) =>
-              setPositions((previous) => ({
+              setChosenPositions((previous) => ({
                 ...previous,
                 [axis.identifier]: position,
               }))
             }
           />
           <span className={sliderValueStyle}>
-            {formatAxisValue(optimizationAxisValueAt(axis, positionOf(axis)))}
+            {formatAxisValue(
+              optimizationAxisValueAt(axis, positions[axis.identifier] ?? 0),
+            )}
           </span>
         </div>
       ))}
@@ -489,29 +325,96 @@ export const OptimizationSurface = ({
             )} median · ${stats.runs} runs`
           : "computing…"}
       </div>
-      {xAxis && yAxis ? (
-        <ContourSurface
-          nx={surfacePositions(xAxis).length}
-          ny={surfacePositions(yAxis).length}
-          contentKey={`${xAxisId}|${yAxisId}`}
-          values={cellValues}
-          markers={trialMarkers}
-          onPickFraction={handlePickFraction}
-          onPreviewFraction={setPreview}
-          aria-label="Optimization surface"
-        />
-      ) : null}
-      <SurfaceCaption
-        preview={
-          preview && xAxis && yAxis
-            ? { x: readoutAt(xAxis, preview.x), y: readoutAt(yAxis, preview.y) }
-            : null
-        }
-        sampledCount={cellValues.size}
-        totalCells={totalCells}
-        runsPerCell={SURFACE_CELL_RUNS}
-        note="rings are the study's trials (best highlighted)"
-      />
-    </SurfaceFrame>
+    </OptimizationSurfacePlot>
+  );
+};
+
+export const NavigatedOptimizationSurface = ({
+  optimization,
+  navigation,
+  selection,
+  onNavigationChange,
+  controls,
+}: {
+  optimization: OptimizationRecord;
+  navigation: OptimizationNavigation;
+  /** The provider's stream at the navigated point (or the followed step). */
+  selection: OptimizationSelectionStream | null;
+  onNavigationChange: (patch: Partial<OptimizationNavigation>) => void;
+  /** Further controls at the end of the axis row, e.g. a help tooltip. */
+  controls?: ReactNode;
+}) => {
+  const input = optimization.input;
+  const axes = optimization.axes;
+  const [view, setView] = useState(() => initialView(axes));
+
+  const positions = resolveSurfacePositions(
+    axes,
+    navigation.positions,
+    optimization.best,
+  );
+  const booleans = resolveSurfaceBooleans(
+    optimizationBooleanIdentifiers(input),
+    navigation.booleans,
+    optimization.best,
+  );
+  const xAxis = axes.find((axis) => axis.identifier === view.xAxisId);
+  const yAxis = axes.find((axis) => axis.identifier === view.yAxisId);
+
+  if (axes.length < 2 || !xAxis || !yAxis) {
+    return null;
+  }
+
+  const field = mergeSurfaceFields(
+    trialSurfaceField({
+      trials: optimization.trials,
+      best: optimization.best,
+      xAxis,
+      yAxis,
+      mark: "dot",
+    }),
+    inFlightSurfaceField({ inFlight: optimization.inFlight, xAxis, yAxis }),
+  );
+  const values = withNavigatedSample(
+    field.values,
+    navigatedSurfaceSample({
+      selection,
+      trials: optimization.trials,
+      metricId: input.objective.metricId,
+      xAxis,
+      yAxis,
+      positions,
+    }),
+  );
+  const interaction = surfaceInteraction(optimization, navigation);
+  const slice = surfaceSliceKey({ axes, view, positions, booleans });
+
+  return (
+    <OptimizationSurfacePlot
+      axes={axes}
+      view={view}
+      onViewChange={setView}
+      positions={positions}
+      values={values}
+      markers={field.markers}
+      sampleMarks="none"
+      contentKey={surfaceWalkKey(optimization.id, view, slice)}
+      onPick={
+        interaction === "navigable"
+          ? (picked) =>
+              onNavigationChange({
+                positions: { ...navigation.positions, ...picked },
+                followTrials: false,
+              })
+          : undefined
+      }
+      caption={describeSurfaceState({
+        trials: optimization.trials,
+        best: optimization.best,
+        interaction,
+        selection,
+      })}
+      controls={controls}
+    />
   );
 };

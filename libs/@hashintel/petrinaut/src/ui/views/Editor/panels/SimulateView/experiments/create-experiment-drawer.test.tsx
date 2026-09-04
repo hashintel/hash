@@ -146,6 +146,7 @@ const TestProviders = ({
     setShowCompilationOutput: () => {},
     setEnableParameterSweeps: () => {},
     setEnableOptimizationSurface: () => {},
+    setEnableInBrowserOptimization: () => {},
     updateSubViewSection: () => {},
   };
 
@@ -161,6 +162,16 @@ const TestProviders = ({
             setSweepSelection: () => {},
             sampleSurfaceCells: () => Promise.resolve(null),
             sampleDetachedObjective: () => Promise.resolve(null),
+            runDetachedObjective: () => ({
+              frames: { get: () => [], subscribe: () => () => {} },
+              progress: { get: () => null, subscribe: () => () => {} },
+              completion: Promise.resolve({
+                ok: false,
+                cancelled: false,
+                reason: "unused",
+              }),
+              cancel: () => {},
+            }),
           }}
         >
           <SDCPNContext value={sdcpnContextValue}>
