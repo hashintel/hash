@@ -32,6 +32,7 @@ const createHarness = () => {
   };
   const bridge = {
     cancelPendingSpeech: vi.fn(),
+    completeTurnHandoff: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
     subscribe: vi.fn((listener: (event: RealtimeBrunchBridgeEvent) => void) => {
@@ -362,6 +363,7 @@ describe("VoiceTurnController", () => {
     expect(harness.submitText).not.toHaveBeenCalled();
 
     await harness.controller.takeTurn();
+    expect(harness.bridge.completeTurnHandoff).toHaveBeenCalledOnce();
     harness.emitSession({
       connectionEpoch: 1,
       itemId: "item-after-handoff",

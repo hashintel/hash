@@ -225,6 +225,10 @@ export class RealtimeBrunchBridge {
     }
   }
 
+  public completeTurnHandoff(): void {
+    this.#outputActive = false;
+  }
+
   public start(connectionEpoch: number): void {
     ++this.#generation;
     this.#activeSubmission?.abortController.abort();

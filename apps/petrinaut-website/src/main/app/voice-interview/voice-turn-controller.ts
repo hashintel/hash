@@ -73,6 +73,7 @@ interface RealtimeSession {
 
 interface RealtimeBridge {
   cancelPendingSpeech(): void;
+  completeTurnHandoff(): void;
   start(connectionEpoch: number): void;
   stop(): void;
   subscribe(listener: (event: RealtimeBrunchBridgeEvent) => void): () => void;
@@ -481,6 +482,7 @@ export class VoiceTurnController {
         this.#activeSpeechOutputEnded = false;
         this.#activeSpeechResponseId = null;
         this.#activeSpeechResponseTerminal = false;
+        this.#bridge.completeTurnHandoff();
         this.#session.setMicrophoneEnabled(this.#snapshot.microphoneEnabled);
         this.#update({ output: "interrupted" });
       })
