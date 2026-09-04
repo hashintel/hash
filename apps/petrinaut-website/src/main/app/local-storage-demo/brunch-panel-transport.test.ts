@@ -6,7 +6,12 @@ import {
   createBrunchPanelTransport,
 } from "./brunch-panel-transport";
 
-import type { AgentSendResult, FlueClient } from "@flue/sdk";
+import type {
+  AgentSendResult,
+  ConversationStreamChunk,
+  FlueClient,
+} from "@flue/sdk";
+import type { UIMessageChunk } from "ai";
 
 test("delegates one typed message to the supplied Flue conversation", async () => {
   const admission: AgentSendResult = {
@@ -104,6 +109,110 @@ test("delegates one typed message to the supplied Flue conversation", async () =
   });
   expect(onAdmission).toHaveBeenCalledOnce();
   expect(onAdmission).toHaveBeenCalledWith(admission);
+});
+
+test("seeds scratch mode and admits construction calls as browser tools", async () => {
+  const admission: AgentSendResult = {
+    streamUrl: "http://brunch.test/stream",
+    offset: "offset-scratch",
+    submissionId: "submission-scratch",
+    uid: "uid-scratch",
+  };
+  const events: readonly ConversationStreamChunk[] = [
+    {
+      type: "message-started",
+      conversationId: "conversation-scratch",
+      messageId: "assistant-scratch",
+      submissionId: admission.submissionId,
+      turnId: "turn-scratch",
+      position: { batch: 1, index: 0 },
+    },
+    {
+      type: "tool-input",
+      conversationId: "conversation-scratch",
+      messageId: "assistant-scratch",
+      toolCallId: "add-place",
+      toolName: "addPlace",
+      input: {
+        id: "orders_waiting",
+        name: "OrdersWaiting",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 80,
+        y: 160,
+      },
+      position: { batch: 1, index: 1 },
+    },
+    {
+      type: "submission-settled",
+      conversationId: "conversation-scratch",
+      submissionId: admission.submissionId,
+      outcome: "completed",
+      position: { batch: 1, index: 2 },
+    },
+  ];
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+    for (const event of events) {
+      // Preserve the canonical stream order.
+      await options?.onEvent?.(event);
+    }
+  });
+  const client = {
+    send,
+    wait,
+  } as Pick<FlueClient, "send" | "wait"> as FlueClient;
+  const initialData = { mode: "scratch-project-construction" };
+  const transport = createBrunchPanelTransport(
+    Promise.resolve(client),
+    new BrunchPanelConversationTracker(),
+    {
+      clientToolNames: new Set(["addPlace"]),
+      initialData,
+    } as {
+      readonly clientToolNames: ReadonlySet<string>;
+      readonly initialData: unknown;
+    },
+  );
+
+  const stream = await transport.sendMessages({
+    trigger: "submit-message",
+    chatId: "conversation-scratch",
+    messageId: undefined,
+    messages: [
+      {
+        id: "user-scratch",
+        role: "user",
+        parts: [{ type: "text", text: "Model this process." }],
+      },
+    ],
+    abortSignal: undefined,
+  });
+  const chunks: UIMessageChunk[] = [];
+  for await (const chunk of stream) chunks.push(chunk);
+
+  expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:user-scratch",
+    initialData,
+    message: { kind: "user", body: "Model this process." },
+    signal: undefined,
+  });
+  expect(
+    chunks.find(
+      (chunk) =>
+        chunk.type === "tool-input-available" && chunk.toolName === "addPlace",
+    ),
+  ).toMatchObject({
+    type: "tool-input-available",
+    toolName: "addPlace",
+  });
+  expect(
+    chunks.find(
+      (chunk) =>
+        chunk.type === "tool-input-available" && chunk.toolName === "addPlace",
+    ),
+  ).not.toHaveProperty("providerExecuted");
 });
 
 test("matches client-tool admissions once and supports unsubscribe", () => {

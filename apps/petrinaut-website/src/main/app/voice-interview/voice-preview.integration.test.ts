@@ -695,6 +695,9 @@ describe("controlled voice preview", () => {
     const transport = createBrunchPanelTransport(
       Promise.resolve(client),
       tracker,
+      {
+        initialData: { mode: "scratch-project-construction" },
+      } as { readonly initialData: unknown },
     );
     let realtimeListener:
       | ((event: OpenAIRealtimeSessionEvent) => void)
@@ -782,6 +785,7 @@ describe("controlled voice preview", () => {
     const sendInput = send.mock.calls[0]?.[0];
     expect(sendInput).toMatchObject({
       idempotencyKey: "ai-sdk:voice-realtime:1:input-item-1:0",
+      initialData: { mode: "scratch-project-construction" },
       message: { kind: "user", body: spokenAnswer },
     });
     expect(sendInput?.signal).toBeInstanceOf(AbortSignal);

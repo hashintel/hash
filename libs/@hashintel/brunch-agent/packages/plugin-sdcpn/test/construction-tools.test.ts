@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
+import { sdcpnInitialDataSchema } from "../src/flue";
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   petrinautConstructionTools,
@@ -18,6 +19,14 @@ const toolByName = (toolName: string) => {
 };
 
 describe("Petrinaut construction tools", () => {
+  test("admits the interactive scratch-project construction mode", () => {
+    expect(
+      v.safeParse(sdcpnInitialDataSchema, {
+        mode: "scratch-project-construction",
+      }).success,
+    ).toBe(true);
+  });
+
   test("exposes exactly the bounded canonical subset", () => {
     expect(petrinautConstructionTools.map((tool) => tool.name)).toEqual([
       ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,

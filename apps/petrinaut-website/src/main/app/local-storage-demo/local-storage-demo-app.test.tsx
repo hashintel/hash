@@ -19,6 +19,7 @@ import {
 
 import type {
   AgentConversationObservationSnapshot,
+  AgentSendResult,
   FlueClient,
 } from "@flue/sdk";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
@@ -69,6 +70,25 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
   WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
   definePetrinautAiInteractiveTool: (definition: unknown) => definition,
 }));
+
+/**
+ * Node supplies its own `localStorage` global that shadows the jsdom one and
+ * carries no `setItem`, so the demo's storage hooks cannot read a seed from
+ * it. An in-memory store gives them one.
+ */
+const stubStorage = () => {
+  const entries = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    get length() {
+      return entries.size;
+    },
+    clear: () => entries.clear(),
+    getItem: (key: string) => entries.get(key) ?? null,
+    key: (index: number) => [...entries.keys()][index] ?? null,
+    removeItem: (key: string) => entries.delete(key),
+    setItem: (key: string, value: string) => entries.set(key, value),
+  } satisfies Storage);
+};
 
 describe("local storage demo Brunch voice integration", () => {
   test("does not install voice on the generic local chat fallback", () => {
@@ -193,6 +213,65 @@ describe("local storage demo Brunch voice integration", () => {
         ({ toolName }) => toolName === "brunch_ask",
       ),
     ).toBe(false);
+
+    rendered.unmount();
+    vi.unstubAllGlobals();
+  });
+
+  test("initializes an empty demo net as a scratch construction conversation", async () => {
+    stubStorage();
+    renderedPetrinaut.aiAssistant = null;
+    const admission: AgentSendResult = {
+      streamUrl: "http://brunch.test/stream",
+      offset: "offset-scratch",
+      submissionId: "submission-scratch",
+      uid: "uid-scratch",
+    };
+    const send = vi.fn<FlueClient["send"]>(async () => admission);
+    const wait = vi.fn<FlueClient["wait"]>(async () => undefined);
+    flueClientMock.current = {
+      send,
+      wait,
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({ phase: "absent" }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ available: false }),
+      ),
+    );
+
+    const rendered = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
+    const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
+
+    await aiAssistant.transport.sendMessages({
+      trigger: "submit-message",
+      chatId: aiAssistant.conversationId ?? "missing-conversation",
+      messageId: undefined,
+      messages: [
+        {
+          id: "user-scratch",
+          role: "user",
+          parts: [{ type: "text", text: "Model this process." }],
+        },
+      ],
+      abortSignal: undefined,
+    });
+
+    expect(send).toHaveBeenCalledWith({
+      idempotencyKey: "ai-sdk:user-scratch",
+      initialData: { mode: "scratch-project-construction" },
+      message: { kind: "user", body: "Model this process." },
+      signal: undefined,
+    });
 
     rendered.unmount();
     vi.unstubAllGlobals();
@@ -326,25 +405,6 @@ describe("local storage demo Brunch voice integration", () => {
     expect(abort).toHaveBeenCalledOnce();
   });
 });
-
-/**
- * Node supplies its own `localStorage` global that shadows the jsdom one and
- * carries no `setItem`, so the demo's storage hooks cannot read a seed from
- * it. An in-memory store gives them one.
- */
-const stubStorage = () => {
-  const entries = new Map<string, string>();
-  vi.stubGlobal("localStorage", {
-    get length() {
-      return entries.size;
-    },
-    clear: () => entries.clear(),
-    getItem: (key: string) => entries.get(key) ?? null,
-    key: (index: number) => [...entries.keys()][index] ?? null,
-    removeItem: (key: string) => entries.delete(key),
-    setItem: (key: string, value: string) => entries.set(key, value),
-  } satisfies Storage);
-};
 
 const seedStoredNet = () => {
   stubStorage();
