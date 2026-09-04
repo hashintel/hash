@@ -1,6 +1,7 @@
 {
   "package": "@apps/petrinaut-opt",
   "dependencies": [
+    "@local/petrinaut-optimizer-core",
     "@local/petrinaut-python"
   ],
   "tasks": {
