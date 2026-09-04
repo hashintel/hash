@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef } from "react";
+
 import { Form, TextArea, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -15,8 +17,11 @@ interface DescriptionTextAreaProps {
   tooltip?: string;
 }
 
+const minHeight = 64;
+const initialMaxHeight = 100;
+
 const textAreaStyle = css({
-  height: "[64px]",
+  minHeight: `[${minHeight}px]`,
 });
 
 /**
@@ -32,12 +37,29 @@ export const DescriptionTextArea: React.FC<DescriptionTextAreaProps> = ({
 }) => {
   const canonicalValue = sourceValue ?? "";
   const field = useDraftField({ sourceId, sourceValue: canonicalValue });
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const textArea = textAreaRef.current;
+    // The box around the textarea carries the resize handle, so its inline
+    // height is what a drag writes and what the initial fit sets.
+    const box = textArea?.parentElement;
+    if (!textArea || !box) {
+      return;
+    }
+    box.style.height = "";
+    const borderHeight = box.offsetHeight - box.clientHeight;
+    const contentHeight = textArea.scrollHeight + borderHeight;
+    box.style.height = `${Math.min(Math.max(contentHeight, minHeight), initialMaxHeight)}px`;
+  }, [sourceId]);
 
   return (
     <Tooltip content={tooltip ?? ""} disableTooltip={!tooltip}>
       <TextArea
+        inputRef={textAreaRef}
         className={textAreaStyle}
         size="sm"
+        rows={1}
         value={field.value}
         onChange={field.setValue}
         onBlur={() => {
