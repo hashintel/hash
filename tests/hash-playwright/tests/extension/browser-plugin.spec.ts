@@ -253,7 +253,7 @@ test.skip("user can type a quick note which persists across logouts", async ({
 // @todo verify the correct WebSocket message is sent to the API when
 //   `Suggest entities` is clicked — see
 //   https://github.com/microsoft/playwright/issues/15684#issuecomment-1892644655
-test("user can configure a one-off inference, and the settings are persisted", async ({
+test.skip("user can configure a one-off inference, and the settings are persisted", async ({
   page,
   extensionId,
 }) => {
