@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from "react";
+import { userEvent, within } from "storybook/test";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -343,6 +344,25 @@ export const VoiceSessionListening: Story = {
   ),
 };
 
+export const VoiceSessionCollapsed: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceMode={<HostVoiceSlotPreview />}
+      voiceModeAvailable
+      voiceSession={liveSession({ microphoneLevel: 0.6 })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", {
+        name: "Collapse voice session",
+      }),
+    );
+  },
+};
+
 export const VoiceSessionSpeaking: Story = {
   render: () => (
     <Frame
@@ -471,8 +491,8 @@ export const ToolError: Story = {
     <Frame
       messages={[
         {
-          ...toolCallMessage,
-          parts: toolCallMessage.parts.map((part) =>
+          ...singleToolCallMessage,
+          parts: singleToolCallMessage.parts.map((part) =>
             part.type.startsWith("tool-")
               ? {
                   ...part,

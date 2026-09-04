@@ -16,22 +16,28 @@ export const NotificationsProvider = ({
 }: {
   children: ReactNode;
 }) => {
-  function dismissNotification(id: string) {
+  const dismissNotification = (id: string) => {
     queueMicrotask(() => {
       notificationsToaster.dismiss(id);
     });
-  }
+  };
 
-  function addNotification({
+  const addNotification = ({
+    detail,
     durationMs,
     message,
     tone = "success",
-  }: AddNotificationInput) {
-    const id = `notification-${nextNotificationId++}`;
-    const effectiveDurationMs = durationMs ?? DEFAULT_NOTIFICATION_DURATION_MS;
+  }: AddNotificationInput) => {
+    const id = `notification-${nextNotificationId}`;
+    nextNotificationId += 1;
+    const effectiveDurationMs =
+      tone === "error"
+        ? Infinity
+        : (durationMs ?? DEFAULT_NOTIFICATION_DURATION_MS);
 
     queueMicrotask(() => {
       notificationsToaster.create({
+        description: detail,
         duration: effectiveDurationMs,
         id,
         title: message,
@@ -40,7 +46,7 @@ export const NotificationsProvider = ({
     });
 
     return id;
-  }
+  };
 
   useEffect(() => {
     return () => {

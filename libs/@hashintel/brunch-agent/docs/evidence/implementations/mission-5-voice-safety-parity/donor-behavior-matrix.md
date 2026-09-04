@@ -72,13 +72,13 @@ The owner selected half-duplex turn ownership on 2026-09-03: assistant output ow
 
 ## Corrective verification
 
-Fresh local checks on 2026-09-04 cover the 58-file successor diff against the
+Fresh local checks on 2026-09-04 cover the 72-file successor diff against the
 verified #9528 head `eecbe99e201fd8cb78d9b719e789b6abd373ed1b`. Graphite replayed one
 repeatedly touched integration-test conflict while restacking: the semantic
 resolution keeps the parent's required URL-navigation props and tests together
 with the successor's admission, dormant-ask, durable-Stop, and status-removal
 proof. No production-source conflict was resolved by choosing either side
-wholesale. The verified code head before this evidence-only update is
+wholesale. The earlier verified code head before this evidence-only update is
 `9938283a19ab20567ad6b4c96330ea392243c16f`:
 
 | Command | Result |
@@ -91,11 +91,10 @@ wholesale. The verified code head before this evidence-only update is
 | `mise exec -- yarn workspace @hashintel/petrinaut test:unit --run src/ui/views/Editor/panels/ai-assistant-panel.test.tsx` | Exit 0; 44/44 production host-registration and panel tests passed. |
 | `mise exec -- yarn workspace @apps/petrinaut-website test:unit src/main/app/voice-interview/canonical-speech.test.ts src/main/app/voice-interview/openai-realtime-session.test.ts src/main/app/voice-interview/voice-turn-controller.test.ts` | Exit 0; 79/79 exact replay, queue, terminal-gating, and turn-controller tests passed. |
 | `mise exec -- yarn exec turbo run lint:tsc lint:eslint test:unit build --filter @hashintel/brunch-agent` | Exit 0; 5/5 tasks passed, including 10/10 test files and 86/86 tests; the four question-marker mock lint failures are resolved with production-interface signatures. |
-| `mise exec -- yarn exec turbo run lint:tsc lint:eslint test:unit build --filter @apps/brunch-agent --filter @apps/petrinaut-website --filter @hashintel/petrinaut --filter @hashintel/brunch-agent --filter @hashintel/brunch-agent-binding-flue --filter @hashintel/brunch-agent-plugin-sdcpn --filter @hashintel/brunch-agent-transport-aisdk` | Exit 0; 39/39 tasks passed, including 16/16 Brunch app files with 79/79 tests, 10/10 Brunch core files with 86/86 tests, 3/3 transport files with 26/26 tests, 5/5 binding files with 18/18 tests, 2/2 plugin files with 8/8 tests, 72/72 Petrinaut files with 616/616 tests, and 31/31 website files with 279/279 tests. Website ESLint retains one non-failing warning at `voice-interview-control.tsx:493`; other inherited warnings remain outside this successor's corrective scope. |
-| `yarn workspace @local/petrinaut-arch-docs lint:arch-docs` | Exit 0; 68 layers, 337 edges, 692 files, 69 generated pages, and 38 authored pages. |
-| `git diff --name-only -z eecbe99e201fd8cb78d9b719e789b6abd373ed1b...HEAD \| xargs -0 yarn exec oxfmt --check` | Exit 0; all 52 formatter-owned files in the 58-file successor diff passed. The six unmatched documentation files are excluded by `oxfmt.config.ts` and pass repository whitespace validation. |
+| `mise exec -- yarn exec turbo run lint:tsc lint:eslint test:unit build --filter @apps/brunch-agent --filter @apps/petrinaut-website --filter @hashintel/petrinaut --filter @hashintel/brunch-agent --filter @hashintel/brunch-agent-binding-flue --filter @hashintel/brunch-agent-plugin-sdcpn --filter @hashintel/brunch-agent-transport-aisdk` | Exit 0; 39/39 tasks and 1,121/1,121 tests passed: 16/16 Brunch app files with 80/80 tests, 10/10 Brunch core files with 86/86 tests, 3/3 transport files with 32/32 tests, 5/5 binding files with 18/18 tests, 2/2 plugin files with 8/8 tests, 72/72 Petrinaut files with 615/615 tests, and 31/31 website files with 282/282 tests. Website ESLint retains one non-failing warning at `voice-interview-control.tsx:587`; other inherited warnings remain outside this successor's corrective scope. |
+| `yarn workspace @local/petrinaut-arch-docs lint:arch-docs` | Exit 0; 68 layers, 337 edges, 690 files, 69 generated pages, and 38 authored pages. |
+| `yarn lint:format` | Exit 0; all 5,527 matched repository files use the correct format. |
 | `git diff --check` | Exit 0. |
-| `yarn lint:format` | Exit 1 outside the successor diff only: unrelated untracked `.cursor/plans/fe-1574_mission_recut_6f23f7cd.plan.md`. It was not modified. |
 | In isolated detached worktree `/Users/kostandin/Projects/hashdev/worktrees/fe-1580-latency-baseline-9496`: `mise exec -- yarn exec turbo run build --filter '@apps/petrinaut-website^...'`, then `mise exec -- yarn workspace @apps/petrinaut-website test:unit src/main/app/voice-interview/canonical-speech.test.ts src/main/app/voice-interview/openai-realtime-session.test.ts src/main/app/voice-interview/realtime-brunch-bridge.test.ts src/main/app/voice-interview/voice-turn-controller.test.ts src/main/app/voice-interview/voice-preview.integration.test.ts` | Exit 0; dependency build passed 14/14 tasks, then all 5/5 donor Voice files and 108/108 tests passed at pinned #9496 head. The isolated donor and candidate panels return HTTP 200 on ports 4916 and 4915 respectively; real audible samples remain uncollected. |
 
 No production Voice source under `apps/petrinaut-website/src/main/app/voice-interview`

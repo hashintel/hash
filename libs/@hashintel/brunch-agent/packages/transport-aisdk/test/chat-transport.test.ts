@@ -196,12 +196,14 @@ test("starts with history-only reconnection", async () => {
 test.each([
   [
     "failed",
-    new FlueExecutionError({
-      target: "agent_submission",
-      targetId: admission.submissionId,
-      failure: "failed",
+    new Error("Elicitor tool failed.", {
+      cause: { field: "answer", reason: "Required" },
     }),
-    { type: "error", errorText: "The chat turn failed." },
+    {
+      type: "error",
+      errorText:
+        'Elicitor tool failed.\nCaused by: {"field":"answer","reason":"Required"}',
+    },
   ],
   [
     "aborted",

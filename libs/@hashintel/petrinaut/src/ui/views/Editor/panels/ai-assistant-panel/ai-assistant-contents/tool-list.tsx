@@ -596,7 +596,9 @@ const ToolItem = ({
   const href = tool.summary.href;
   const children = tool.summary.items ?? [];
   const expandable = children.length > 0;
-  const title = errored ? `${tool.toolName} errored` : tool.summary.title;
+  const title = errored
+    ? (tool.errorText ?? "Tool failed")
+    : tool.summary.title;
 
   if (href && !errored) {
     return (
@@ -638,7 +640,6 @@ const ToolItem = ({
           onSelectToolTarget?.(target);
         }
       }}
-      title={errored ? tool.errorText : undefined}
     >
       <span
         className={toolStatusStyle({
@@ -654,11 +655,15 @@ const ToolItem = ({
       </span>
       <span className={toolTextStyle}>
         <span>{title}</span>
-        {tool.summary.detail && (
+        {errored ? (
+          <span className={toolDetailStyle} data-testid="tool-detail">
+            {tool.toolName}
+          </span>
+        ) : tool.summary.detail ? (
           <span className={toolDetailStyle} data-testid="tool-detail">
             {tool.summary.detail}
           </span>
-        )}
+        ) : null}
       </span>
       {expandable && <Icon name="chevronUp" data-chevron size="sm" />}
     </button>

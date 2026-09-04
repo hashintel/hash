@@ -186,3 +186,71 @@ test("ignores observation catch-up chunks in a submission stream", () => {
     "finish",
   ]);
 });
+
+test.each([
+  {
+    error: new Error("Elicitor failed.", {
+      cause: "The requested field is required.",
+    }),
+    expected: "Elicitor failed.\nCaused by: The requested field is required.",
+    shape: "Error with cause",
+  },
+  {
+    error: "The elicitor rejected the answer.",
+    expected: "The elicitor rejected the answer.",
+    shape: "string",
+  },
+  {
+    error: { field: "answer", reason: "Required" },
+    expected: '{"field":"answer","reason":"Required"}',
+    shape: "plain object",
+  },
+  {
+    error: 503,
+    expected: "The chat turn failed.",
+    shape: "unsupported value",
+  },
+  {
+    error: "",
+    expected: "The chat turn failed.",
+    shape: "empty string",
+  },
+])("preserves a failed submission's $shape error", ({ error, expected }) => {
+  const written = project([
+    {
+      type: "submission-settled",
+      conversationId: "conversation-1",
+      submissionId: "submission-1",
+      outcome: "failed",
+      error,
+      position: position(0),
+    },
+  ]);
+
+  expect(written).toEqual([{ type: "error", errorText: expected }]);
+  expect(written).not.toContainEqual({
+    type: "error",
+    errorText: "[object Object]",
+  });
+});
+
+test("bounds cyclic failed-submission objects", () => {
+  const cyclicError: Record<string, unknown> = { reason: "Recursive failure" };
+  cyclicError.self = cyclicError;
+  cyclicError.payload = "x".repeat(20_000);
+
+  const written = project([
+    {
+      type: "submission-settled",
+      conversationId: "conversation-1",
+      submissionId: "submission-1",
+      outcome: "failed",
+      error: cyclicError,
+      position: position(0),
+    },
+  ]);
+
+  const failure = written.find((chunk) => chunk.type === "error");
+  expect(failure?.errorText).toContain('"self":"[Circular]"');
+  expect(failure?.errorText.length).toBeLessThanOrEqual(10_000);
+});

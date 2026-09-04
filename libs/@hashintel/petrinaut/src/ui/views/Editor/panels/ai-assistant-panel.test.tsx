@@ -16,6 +16,7 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   createJsonDocHandle,
   createPetrinaut,
+  getLatestNetDefinitionToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -31,7 +32,11 @@ import {
   type SDCPNContextValue,
 } from "../../../../react/state/sdcpn-context";
 import { definePetrinautAiInteractiveTool } from "../../../types/ai-interactive-tool";
-import { addMappedToolOutput, AiAssistantPanel } from "./ai-assistant-panel";
+import {
+  addMappedToolOutput,
+  AiAssistantPanel,
+  safelyAddToolOutput,
+} from "./ai-assistant-panel";
 
 import type { PetrinautAiAssistant } from "../../../petrinaut";
 import type {
@@ -2892,6 +2897,34 @@ describe("AiAssistantPanel composer submissions", () => {
       toolCallId: "voice-question",
     });
     expect(latestMessages[0]?.metadata).toBeUndefined();
+  });
+
+  test("reports browser tool-output rejections through the AI SDK error state", async () => {
+    const addToolOutput = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("The browser tool rejected its output."))
+      .mockResolvedValueOnce(undefined);
+
+    safelyAddToolOutput(
+      addToolOutput as Parameters<typeof safelyAddToolOutput>[0],
+      {
+        tool: getLatestNetDefinitionToolName,
+        toolCallId: "tool-browser-failure",
+        output: {
+          definition: emptySDCPN,
+          extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+          title: "Failure fixture",
+        },
+      },
+    );
+
+    await waitFor(() => expect(addToolOutput).toHaveBeenCalledTimes(2));
+    expect(addToolOutput).toHaveBeenLastCalledWith({
+      errorText: "The browser tool rejected its output.",
+      state: "output-error",
+      tool: getLatestNetDefinitionToolName,
+      toolCallId: "tool-browser-failure",
+    });
   });
 
   test("sends review chips as messages while an interactive tool is pending", async () => {

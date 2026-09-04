@@ -3,6 +3,7 @@ import { createContext } from "react";
 export type NotificationTone = "error" | "neutral" | "success";
 
 export type AddNotificationInput = {
+  detail?: string;
   message: string;
   tone?: NotificationTone;
   durationMs?: number;

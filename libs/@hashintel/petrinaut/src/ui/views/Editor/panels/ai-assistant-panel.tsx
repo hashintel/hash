@@ -155,7 +155,25 @@ const isPetrinautAiCommandToolName = (
   toolName: string,
 ): toolName is AiCommandActionName => toolName in aiCommandActionInputSchemas;
 
-const safelyAddToolOutput = (
+const browserToolErrorText = (error: unknown): string => {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+  if (typeof error === "string" && error.trim().length > 0) {
+    return error;
+  }
+  try {
+    const serialized: unknown = JSON.stringify(error);
+    if (typeof serialized === "string" && serialized.length > 0) {
+      return serialized;
+    }
+  } catch {
+    // Fall through to the stable fallback for cyclic values.
+  }
+  return "The browser tool failed.";
+};
+
+export const safelyAddToolOutput = (
   addToolOutput: ReturnType<
     typeof useChat<PetrinautAiMessage>
   >["addToolOutput"],
@@ -163,10 +181,16 @@ const safelyAddToolOutput = (
     ReturnType<typeof useChat<PetrinautAiMessage>>["addToolOutput"]
   >[0],
 ) => {
-  // Failures here surface in the UI as an errored tool call (with the
-  // error message on hover), so we just swallow the rejection to avoid an
-  // unhandled-promise warning.
-  void Promise.resolve(addToolOutput(params)).catch(() => {});
+  void Promise.resolve(addToolOutput(params)).catch((error: unknown) => {
+    void Promise.resolve(
+      addToolOutput({
+        errorText: browserToolErrorText(error),
+        state: "output-error",
+        tool: params.tool,
+        toolCallId: params.toolCallId,
+      }),
+    ).catch(() => {});
+  });
 };
 
 const addDynamicToolOutput = (

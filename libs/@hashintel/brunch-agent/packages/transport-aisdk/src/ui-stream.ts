@@ -1,3 +1,5 @@
+import { serializeErrorText } from "./error-text";
+
 import type { AgentSendResult, ConversationStreamChunk } from "@flue/sdk";
 import type { UIMessageChunk } from "ai";
 
@@ -88,7 +90,7 @@ export const createFlueUiStream = (
             case "failed":
               options.write({
                 type: "error",
-                errorText: "The chat turn failed.",
+                errorText: serializeErrorText(chunk.error),
               });
               break;
             case "aborted":
