@@ -31,6 +31,7 @@ use super::{
 use crate::{
     dataset::{Dataset, DatasetOrigin, PROJECTOR_DIMENSIONS, TemporalAxes},
     file::{
+        ArtifactFile as _,
         array::{ArrayFile, ColumnScalar as _},
         digest_file,
         generation::{Generation, ScratchDirectory, StagedGeneration},

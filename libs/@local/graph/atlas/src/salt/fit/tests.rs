@@ -26,6 +26,7 @@ use crate::{
     },
     device::Device,
     file::{
+        ArtifactFile as _,
         array::ArrayFile,
         attraction::read::AttractionFile,
         classifier::read::ClassifierFile,

@@ -23,7 +23,7 @@ use super::{
 use crate::{
     dataset::{Dataset, PROJECTOR_DIMENSIONS},
     file::{
-        array::ArrayFile, generation::Generation, identity::read::IdentityFile,
+        ArtifactFile as _, array::ArrayFile, generation::Generation, identity::read::IdentityFile,
         sprs::read::SprsFile,
     },
     identity::NodeRowId,

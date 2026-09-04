@@ -23,15 +23,20 @@
 //! [`Dataset::EdgeId`]: crate::dataset::Dataset::EdgeId
 
 use core::{error::Error, fmt, marker::PhantomData};
-use std::io;
+use std::{io, path::Path};
 
 use fst::Streamer as _;
 use hashql_core::id::{IdSlice, IdVec};
 use zerocopy::{FromBytes as _, TryFromBytes as _};
 
 use crate::{
-    file::identity::{
-        Key, KeyKind, Kind, PayloadSpan, Row, read::IdentityFile, write::write_regions,
+    file::{
+        ArtifactFile,
+        identity::{
+            Key, KeyKind, Kind, PayloadSpan, Row,
+            read::{IdentityFile, OpenIdentityError},
+            write::write_regions,
+        },
     },
     integrity::{Sha256, Sha256Digest, Writer},
 };
@@ -166,6 +171,50 @@ impl fmt::Display for InvalidIdentityFile {
 
 impl Error for InvalidIdentityFile {}
 
+/// Opening a written identity table as its typed lookup surface failed.
+#[derive(Debug)]
+pub enum OpenIdentityTableArchiveError {
+    /// The identity file failed to open.
+    Open(OpenIdentityError),
+    /// The file violates the table's domain invariants.
+    Invalid(InvalidIdentityFile),
+}
+
+impl From<InvalidIdentityFile> for OpenIdentityTableArchiveError {
+    fn from(error: InvalidIdentityFile) -> Self {
+        Self::Invalid(error)
+    }
+}
+
+impl From<OpenIdentityError> for OpenIdentityTableArchiveError {
+    fn from(error: OpenIdentityError) -> Self {
+        Self::Open(error)
+    }
+}
+
+impl fmt::Display for OpenIdentityTableArchiveError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Open(error) => write!(fmt, "the identity file failed to open: {error}"),
+            Self::Invalid(error) => {
+                write!(
+                    fmt,
+                    "the identity file violates the table's domain invariants: {error}"
+                )
+            }
+        }
+    }
+}
+
+impl Error for OpenIdentityTableArchiveError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Open(error) => Some(error),
+            Self::Invalid(error) => Some(error),
+        }
+    }
+}
+
 /// A written identity table reopened as its mapped lookup surface.
 ///
 /// Construction validates the domain invariants in one pass, so the lookups skip validation
@@ -178,6 +227,22 @@ pub(crate) struct IdentityTableArchive<K, R> {
     file: IdentityFile,
     id: PhantomData<K>,
     row: PhantomData<R>,
+}
+
+impl<K, R> ArtifactFile for IdentityTableArchive<K, R>
+where
+    K: Key,
+    R: Row,
+{
+    type Error = OpenIdentityTableArchiveError;
+
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        let file = IdentityFile::open(path)?;
+        Self::new(file).map_err(From::from)
+    }
 }
 
 impl<K, R> IdentityTableArchive<K, R>
@@ -334,6 +399,7 @@ mod tests {
             memory::{MemoryNodeId, MemoryOntologyId},
         },
         file::{
+            ArtifactFile as _,
             identity::{FileHeader, KeyKind, Kind, PaddedFileHeader, read::IdentityFile},
             region::write_region,
         },

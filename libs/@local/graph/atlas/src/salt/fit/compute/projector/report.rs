@@ -12,6 +12,7 @@ use super::{error::ProjectorError, inputs::PublishInputs};
 use crate::{
     device::{Inference, PhysicalDevice},
     file::{
+        ArtifactFile as _,
         array::{ArrayFile, ArrayVariant, Dim, SizedArrayWriter, SizedColumn},
         attraction::read::AttractionFile,
         generation::{ScratchDirectory, StagedGeneration},

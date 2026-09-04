@@ -6,7 +6,10 @@ use zerocopy::IntoBytes as _;
 use super::{Representations, SetupError};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    file::array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
+    file::{
+        ArtifactFile as _,
+        array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
+    },
 };
 
 /// A uniquely named file in the system temporary directory, removed on drop.

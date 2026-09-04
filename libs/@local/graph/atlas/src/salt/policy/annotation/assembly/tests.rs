@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 use super::{AssemblyConfig, AssemblyError, HoldoutClass, assemble};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    file::array::ArrayFile,
+    file::{ArtifactFile as _, array::ArrayFile},
     identity::CardRow,
     integrity::{Sha256, Update as _},
     math::BoxedVecN,

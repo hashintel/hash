@@ -12,10 +12,10 @@ use super::{
     stage::{Lod, LodConfig, LodError},
 };
 use crate::{
-    file::quad::Node,
+    file::{ArtifactFile as _, quad::Node},
     identity::{BasePosition, ImportanceRank, NodeRowId, OntologyRowId},
     math::{Bounds2, FinitePointField, Log2, Vec2},
-    morton::{Depth, MortonCell, MortonKey},
+    morton::{Depth, MortonCell, MortonKey, Zoom},
     postgres::id::ArchivedEntityId,
 };
 

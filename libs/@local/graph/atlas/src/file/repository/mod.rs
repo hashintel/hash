@@ -26,7 +26,7 @@ use std::path::Path;
 
 use camino::{Utf8Path, Utf8PathBuf};
 
-use super::generation::Generation;
+use super::{OpenAs, generation::Generation};
 use crate::integrity::Sha256Digest;
 
 #[cfg(test)]
@@ -307,6 +307,17 @@ pub(crate) trait Artifact {
     const NAME: FileName;
 }
 
+pub(crate) enum OpenBindingError<E> {
+    Artifact(E),
+    Integrity(IntegrityVerificationError),
+}
+
+const impl<E> From<IntegrityVerificationError> for OpenBindingError<E> {
+    fn from(error: IntegrityVerificationError) -> Self {
+        Self::Integrity(error)
+    }
+}
+
 /// A repository binding typed by the artifact it certifies.
 ///
 /// The value is the digest alone. The file name derives from `A`. Two artifacts' bindings are
@@ -358,6 +369,14 @@ where
             name: A::NAME,
             hash: self.hash,
         }
+    }
+
+    pub(crate) fn open<F>(&self, generation: &Generation) -> Result<F, OpenBindingError<F::Error>>
+    where
+        F: OpenAs<A>,
+    {
+        let path = self.file().verify(generation)?;
+        F::open(path).map_err(OpenBindingError::Artifact)
     }
 }
 

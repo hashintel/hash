@@ -12,6 +12,7 @@ use super::{
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{
+        ArtifactFile as _,
         generation::Generation,
         identity::{Key, read::IdentityFile},
         landmark::read::LandmarkFile,

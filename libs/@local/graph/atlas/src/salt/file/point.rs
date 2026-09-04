@@ -6,7 +6,10 @@ use std::path::Path;
 use hashql_core::id::{Id, IdSlice};
 
 use crate::{
-    file::array::{ArrayFile, OpenArrayError},
+    file::{
+        ArtifactFile as _,
+        array::{ArrayFile, OpenArrayError},
+    },
     math::{FinitePointField, NonFinitePoint, Vec2},
 };
 

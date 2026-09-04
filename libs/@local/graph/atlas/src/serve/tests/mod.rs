@@ -85,7 +85,7 @@ use crate::{
         auxiliary::Label, card::Card, memory::MemoryDataset,
     },
     file::{
-        WriteInto as _,
+        ArtifactFile as _, WriteInto as _,
         array::ArrayFile,
         digest_file,
         generation::{Generation, StagedGeneration},

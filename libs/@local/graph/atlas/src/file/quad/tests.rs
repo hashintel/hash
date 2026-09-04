@@ -15,7 +15,10 @@ use super::{
     write::write_regions,
 };
 use crate::{
-    file::region::{PAGE_BYTES, header::HeaderError, machine::Machine},
+    file::{
+        ArtifactFile as _,
+        region::{PAGE_BYTES, header::HeaderError, machine::Machine},
+    },
     morton::{Depth, MortonCell},
 };
 

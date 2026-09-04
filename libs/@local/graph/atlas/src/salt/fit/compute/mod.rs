@@ -35,6 +35,7 @@ use crate::{
     dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
     device::PhysicalDevice,
     file::{
+        ArtifactFile as _,
         generation::{Generation, PublishedGeneration, ScratchDirectory, StagedGeneration},
         identity::{Key, read::IdentityFile},
         repository::{Artifact as _, Binding, RepositoryVersion},

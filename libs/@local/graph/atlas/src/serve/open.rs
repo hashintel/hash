@@ -21,6 +21,7 @@ use super::{
 };
 use crate::{
     file::{
+        ArtifactFile as _,
         array::{ArrayFile, ColumnScalar},
         generation::{Generation, GenerationId, GenerationRoot, OpenError},
         identity::{Key, Row, read::IdentityFile},
@@ -449,7 +450,7 @@ where
     let array = ArrayFile::open(binding.file().verify(generation)?)
         .map_err(|error| OpenAtlasError::OpenArray { kind, error })?;
 
-    Column::new(array).ok_or(OpenAtlasError::Shape { kind })
+    Column::new(array).map_err(|_invalid| OpenAtlasError::Shape { kind })
 }
 
 /// Opens and validates one identity artifact, binding its failures to the domain it serves.

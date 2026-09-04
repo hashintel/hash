@@ -25,7 +25,7 @@ use super::{
 };
 use crate::{
     file::{
-        WriteInto as _,
+        ArtifactFile as _, WriteInto as _,
         array::{ArrayVariant, Dim, SizedArrayWriter},
         generation::{Generation, GenerationRoot},
         identity::{Row, read::IdentityFile},

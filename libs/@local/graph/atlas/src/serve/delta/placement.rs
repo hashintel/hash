@@ -39,7 +39,7 @@ use hashql_core::id::{Id as _, IdSlice};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     device::{Inference, PhysicalDevice},
-    file::{array::ArrayFile, generation::Generation},
+    file::{ArtifactFile as _, array::ArrayFile, generation::Generation},
     math::{AlignedVecN, Bounds2, MatrixN, NonNegative, Similarity, Vec2},
     salt::{
         fit::PlacementOptions,

@@ -9,9 +9,12 @@ use zerocopy::{FromBytes as _, LE, U64};
 
 use super::{FileHeader, Node};
 use crate::{
-    file::region::{
-        PAGE,
-        header::{HeaderError, HeaderMap},
+    file::{
+        ArtifactFile,
+        region::{
+            PAGE,
+            header::{HeaderError, HeaderMap},
+        },
     },
     morton::MortonCell,
 };
@@ -100,7 +103,9 @@ pub(crate) struct QuadFile {
     map: HeaderMap<FileHeader>,
 }
 
-impl QuadFile {
+impl ArtifactFile for QuadFile {
+    type Error = OpenQuadError;
+
     /// Opens and maps the quad file at `path`.
     ///
     /// # Errors
@@ -111,7 +116,7 @@ impl QuadFile {
     /// [`OpenQuadError::Posts`] when a type-set fencepost breaks a structural rule, and
     /// [`OpenQuadError::Child`] when a child index escapes the table or fails to point deeper.
     #[tracing::instrument(skip_all)]
-    pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenQuadError> {
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error> {
         let map = HeaderMap::<FileHeader>::open(path).map_err(OpenQuadError::Header)?;
         let header = map.header();
 
@@ -160,7 +165,9 @@ impl QuadFile {
 
         Ok(this)
     }
+}
 
+impl QuadFile {
     /// Borrows the parsed header at the head of the mapping.
     #[inline]
     #[must_use]

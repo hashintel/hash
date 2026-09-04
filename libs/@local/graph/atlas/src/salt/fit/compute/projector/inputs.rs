@@ -9,6 +9,7 @@ use super::super::{
 use crate::{
     dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
     file::{
+        ArtifactFile as _,
         generation::StagedGeneration,
         identity::{Key, read::IdentityFile},
         repository::Binding,
