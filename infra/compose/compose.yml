@@ -681,6 +681,9 @@ services:
       # Development default; production supplies its own 64-hex-character value
       # (openssl rand -hex 32), and the binary refuses to serve without one.
       HASH_GRAPH_ATLAS_SECRET: "${HASH_GRAPH_ATLAS_SECRET:-de70de70de70de70de70de70de70de70de70de70de70de70de70de70de70de70}"
+      # The API proxies browser calls here and appends the caller's address as X-Forwarded-For.
+      # Reading it keys the address limit per caller instead of on the API's own address.
+      HASH_GRAPH_CLIENT_IP_SOURCE: "x-forwarded-for"
       HASH_KRATOS_PUBLIC_URL: "http://kratos:4433"
       HASH_GRAPH_SERVICE_SECRET: "${HASH_GRAPH_SERVICE_SECRET:-hash-svc-local-dev-secret}"
       HASH_TEMPORAL_SERVER_HOST: "http://temporal"
