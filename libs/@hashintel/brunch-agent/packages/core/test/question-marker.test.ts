@@ -9,6 +9,7 @@ import {
   BRUNCH_QUESTION_TOOL_NAME,
   BrunchQuestionDataSchema,
   BrunchQuestionInputSchema,
+  parseBrunchQuestionData,
 } from "../src/question-marker";
 
 describe("the Brunch question marker", () => {
@@ -62,6 +63,17 @@ describe("the Brunch question marker", () => {
     { question: "What matters?", toolCallId: "   " },
   ])("rejects an incomplete marker: %j", (marker) => {
     expect(v.safeParse(BrunchQuestionDataSchema, marker).success).toBe(false);
+    expect(parseBrunchQuestionData(marker)).toBeUndefined();
+  });
+
+  test("parses exact question data at the client projection boundary", () => {
+    const marker = {
+      question: "  Which line should run this order?  ",
+      toolCallId: "tool-question-1",
+    };
+
+    expect(parseBrunchQuestionData(marker)).toEqual(marker);
+    expect(parseBrunchQuestionData(null)).toBeUndefined();
   });
 
   test("instructs the model to mark and then reproduce the exact question in ordinary prose", async () => {

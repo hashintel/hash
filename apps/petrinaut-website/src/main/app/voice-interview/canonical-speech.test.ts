@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   hashCanonicalSpeechText,
+  selectCanonicalSpeech,
   selectCanonicalSpeechSegments,
 } from "./canonical-speech";
 
@@ -128,6 +129,127 @@ describe("canonical speech selection", () => {
     ] satisfies PetrinautAiMessage[];
 
     expect(select(messages)).toEqual([]);
+  });
+
+  test("selects an exact marked question separately from full-response text", () => {
+    const question = "Which operator confirms the batch?";
+    const selection = selectCanonicalSpeech([
+      {
+        id: "assistant-question",
+        role: "assistant",
+        parts: [
+          {
+            type: "data-brunch-question",
+            data: { question, toolCallId: "tool-question-1" },
+          },
+          {
+            type: "text",
+            text: `The batch is ready. ${question} I can explain the choices.`,
+            state: "done",
+          },
+        ],
+      },
+    ]);
+
+    expect(selection.segments.map(({ text }) => text)).toEqual([
+      `The batch is ready. ${question} I can explain the choices.`,
+    ]);
+    expect(selection.questionSegment).toEqual({
+      contentHash: hashCanonicalSpeechText(question),
+      id: `canonical-speech:assistant-question:question%3Atool-question-1:${hashCanonicalSpeechText(question)}`,
+      messageId: "assistant-question",
+      partId: "question:tool-question-1",
+      source: "assistant-question",
+      text: question,
+    });
+  });
+
+  test.each([
+    {
+      name: "missing exact finalized prose",
+      parts: [
+        {
+          type: "data-brunch-question" as const,
+          data: {
+            question: "Which operator confirms the batch?",
+            toolCallId: "tool-question-1",
+          },
+        },
+        {
+          type: "text" as const,
+          text: "A different question appears in the response.",
+          state: "done" as const,
+        },
+      ],
+    },
+    {
+      name: "only provisional prose",
+      parts: [
+        {
+          type: "data-brunch-question" as const,
+          data: {
+            question: "Which operator confirms the batch?",
+            toolCallId: "tool-question-1",
+          },
+        },
+        {
+          type: "text" as const,
+          text: "Which operator confirms the batch?",
+          state: "streaming" as const,
+        },
+      ],
+    },
+    {
+      name: "blank marker identity",
+      parts: [
+        {
+          type: "data-brunch-question" as const,
+          data: {
+            question: "Which operator confirms the batch?",
+            toolCallId: "  ",
+          },
+        },
+        {
+          type: "text" as const,
+          text: "Which operator confirms the batch?",
+          state: "done" as const,
+        },
+      ],
+    },
+  ])("rejects a question marker with $name", ({ parts }) => {
+    expect(
+      selectCanonicalSpeech([
+        {
+          id: "assistant-invalid-question",
+          role: "assistant",
+          parts,
+        },
+      ]).questionSegment,
+    ).toBeUndefined();
+  });
+
+  test("does not correlate a marker to text from another assistant message", () => {
+    const question = "Which operator confirms the batch?";
+
+    expect(
+      selectCanonicalSpeech([
+        {
+          id: "assistant-marker",
+          role: "assistant",
+          parts: [
+            {
+              type: "data-brunch-question",
+              data: { question, toolCallId: "tool-question-1" },
+            },
+          ],
+        },
+        {
+          id: "assistant-text",
+          role: "assistant",
+          parts: [{ type: "text", text: question, state: "done" }],
+        },
+      ]).questionSegment,
+    ).toBeUndefined();
   });
 
   test("uses stable source identity plus an exact-text fingerprint", () => {

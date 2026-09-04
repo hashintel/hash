@@ -18,3 +18,11 @@ export const BrunchQuestionDataSchema = v.object({
 });
 
 export type BrunchQuestionData = v.InferOutput<typeof BrunchQuestionDataSchema>;
+
+export const parseBrunchQuestionData = (
+  value: unknown,
+): BrunchQuestionData | undefined => {
+  const result = v.safeParse(BrunchQuestionDataSchema, value);
+
+  return result.success ? result.output : undefined;
+};
