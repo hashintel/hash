@@ -23,7 +23,13 @@ from .description import (
     StudyDescription,
     parse_description,
 )
-from .pyodide_entry import run_browser_study, to_python
+from .pyodide_entry import (
+    StudyHandle,
+    create_browser_study,
+    release_browser_study,
+    run_browser_study,
+    to_python,
+)
 from .study import (
     SAMPLERS,
     Scalar,
@@ -31,6 +37,7 @@ from .study import (
     create_study,
     study_summary,
     suggest,
+    told_trials,
     trial_event,
 )
 
@@ -49,14 +56,18 @@ __all__ = [
     "SamplerName",
     "Scalar",
     "StudyDescription",
+    "StudyHandle",
     "best_summary",
+    "create_browser_study",
     "create_study",
     "objective_of",
     "parse_description",
+    "release_browser_study",
     "run_browser_study",
     "run_study",
     "study_summary",
     "suggest",
     "to_python",
+    "told_trials",
     "trial_event",
 ]

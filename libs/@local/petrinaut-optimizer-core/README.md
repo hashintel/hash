@@ -13,8 +13,12 @@ Two hosts import it:
 Both parse the CLI's `optimization.describe` result with `parse_description`,
 build the seeded study with `create_study`, and map parameters onto Optuna
 suggestions with `suggest`, so a study proposes the same values wherever it
-runs. `run_study` is the ask/tell driver; `run_browser_study` is the entry the
-worker calls, adapting JavaScript callbacks to it.
+runs. `run_study` is the ask/tell driver: it keeps up to `parallelism` trials
+in flight and continues a study it already ran, so a stopped or finished study
+can be asked for more trials on the same sampler history. The worker keeps a
+study in the `StudyHandle` that `create_browser_study` returns, runs segments
+of trials on it with `run_browser_study`, and frees it with
+`release_browser_study`.
 
 `runtime-lock.json` pins the Pyodide distribution and the wheel versions the
 browser installs. A test asserts the Optuna pin equals the version this
