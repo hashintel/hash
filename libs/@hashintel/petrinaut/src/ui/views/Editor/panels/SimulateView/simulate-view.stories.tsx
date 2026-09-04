@@ -1,15 +1,9 @@
-import { use, useRef } from "react";
-
-import { PortalContainerContext } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import {
   type AbortSignalLike,
-  DEFAULT_PETRINAUT_EXTENSIONS,
   type PetrinautOptimization,
   type PetrinautOptimizationEvent,
   type PetrinautOptimizationInput,
   type PetrinautOptimizationParameterBinding,
-  type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
   probabilisticSatellitesSDCPN,
@@ -21,20 +15,12 @@ import {
   type OptimizationScalar,
   type PetrinautConnectedOptimization,
   type PetrinautOptimizationChannel,
-  type PetrinautOptimizationSource,
   resolveTrialScenarioParameterValues,
 } from "@hashintel/petrinaut-core/optimization";
 
-import { ExperimentsProvider } from "../../../../../react/experiments/provider";
 import { LanguageClientProvider } from "../../../../../react/lsp/provider";
-import { NotificationsProvider } from "../../../../../react/notifications/provider";
-import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
-import { OptimizationsProvider } from "../../../../../react/optimizations/provider";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
-import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
-import { SimulationCreationDrawer } from "../../simulation-creation-drawer";
 import {
   FakeEditorProvider,
   FakeExperimentsProvider,
@@ -46,10 +32,12 @@ import {
   sirSdcpnContextValue,
 } from "./experiments/experiments-story-fixtures";
 import { SimulateView } from "./simulate-view";
+import {
+  RunnableSimulateViewStory,
+  SimulateViewStoryStage,
+} from "./simulate-view-story-harness";
 
-import type { SDCPNContextValue } from "../../../../../react/state/sdcpn-context";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { PropsWithChildren } from "react";
 
 const meta = {
   title: "Simulate / SimulateView",
@@ -60,72 +48,6 @@ const meta = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
-
-const rootStyle = css({
-  position: "relative",
-  width: "full",
-  height: "[100vh]",
-  overflow: "hidden",
-  backgroundColor: "neutral.s00",
-});
-
-// Covers the story, so presses fall through to it — but the portalled
-// surfaces themselves are this layer's children and have to stay clickable.
-const portalContainerStyle = css({
-  position: "absolute",
-  inset: "[0]",
-  zIndex: "modal",
-  pointerEvents: "none",
-  "& > *": {
-    pointerEvents: "auto",
-  },
-});
-
-type StoryExample = {
-  title: string;
-  petriNetDefinition: SDCPN;
-};
-
-const createSdcpnContextValue = ({
-  petriNetDefinition,
-  title,
-}: StoryExample): SDCPNContextValue => ({
-  createNewNet: () => {},
-  existingNets: [],
-  extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  loadPetriNet: () => {},
-  petriNetId: `${title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}-story-net`,
-  petriNetDefinition,
-  readonly: false,
-  setTitle: () => {},
-  title,
-  getItemType: (id) => {
-    if (petriNetDefinition.places.some((place) => place.id === id)) {
-      return "place";
-    }
-    if (
-      petriNetDefinition.transitions.some((transition) => transition.id === id)
-    ) {
-      return "transition";
-    }
-    if (petriNetDefinition.types.some((type) => type.id === id)) {
-      return "type";
-    }
-    if (
-      petriNetDefinition.differentialEquations.some(
-        (differentialEquation) => differentialEquation.id === id,
-      )
-    ) {
-      return "differentialEquation";
-    }
-    if (
-      petriNetDefinition.parameters.some((parameter) => parameter.id === id)
-    ) {
-      return "parameter";
-    }
-    return null;
-  },
-});
 
 const wait = (durationMs: number, signal?: AbortSignalLike) =>
   new Promise<void>((resolve) => {
@@ -376,106 +298,25 @@ const fakeConnectedOptimization: PetrinautConnectedOptimization = {
   }),
 };
 
-/** Turns the In-browser optimization setting on so a connected source shows. */
-const EnableInBrowserOptimization = ({ children }: PropsWithChildren) => {
-  const value = use(UserSettingsContext);
-  return (
-    <UserSettingsContext
-      value={{ ...value, enableInBrowserOptimization: true }}
-    >
-      {children}
-    </UserSettingsContext>
-  );
-};
-
 const SimulateViewStory = ({
   experiments,
 }: {
   experiments: Parameters<
     typeof FakeExperimentsProvider
   >[0]["initialExperiments"];
-}) => {
-  const portalContainerRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <PortalContainerContext value={portalContainerRef}>
-      <SDCPNContext value={sirSdcpnContextValue}>
-        <LanguageClientProvider>
-          <MonacoProvider>
-            <FakeEditorProvider>
-              <FakeExperimentsProvider initialExperiments={experiments}>
-                <div className={`${rootStyle} petrinaut-root`}>
-                  <div
-                    ref={portalContainerRef}
-                    className={portalContainerStyle}
-                  />
-                  <SimulateView />
-                  <SimulationCreationDrawer />
-                </div>
-              </FakeExperimentsProvider>
-            </FakeEditorProvider>
-          </MonacoProvider>
-        </LanguageClientProvider>
-      </SDCPNContext>
-    </PortalContainerContext>
-  );
-};
-
-const RunnableSimulateViewStory = ({
-  example,
-  initialSimulateViewMode = "experiments",
-  optimization = null,
-}: {
-  example: StoryExample;
-  initialSimulateViewMode?: Parameters<
-    typeof FakeEditorProvider
-  >[0]["initialSimulateViewMode"];
-  optimization?: PetrinautOptimizationSource | null;
-}) => {
-  const portalContainerRef = useRef<HTMLDivElement>(null);
-  const sdcpnContextValue = createSdcpnContextValue(example);
-
-  const story = (
-    <PortalContainerContext value={portalContainerRef}>
-      <SDCPNContext value={sdcpnContextValue}>
-        <LanguageClientProvider>
-          <MonacoProvider>
-            <NotificationsProvider>
-              <UserSettingsProvider>
-                <EnableInBrowserOptimization>
-                  <FakeEditorProvider
-                    initialSimulateViewMode={initialSimulateViewMode}
-                  >
-                    <ExperimentsProvider>
-                      <OptimizationsProvider>
-                        <div className={`${rootStyle} petrinaut-root`}>
-                          <div
-                            ref={portalContainerRef}
-                            className={portalContainerStyle}
-                          />
-                          <SimulateView />
-                          <SimulationCreationDrawer />
-                        </div>
-                      </OptimizationsProvider>
-                    </ExperimentsProvider>
-                  </FakeEditorProvider>
-                </EnableInBrowserOptimization>
-              </UserSettingsProvider>
-            </NotificationsProvider>
-          </MonacoProvider>
-        </LanguageClientProvider>
-      </SDCPNContext>
-    </PortalContainerContext>
-  );
-
-  return optimization ? (
-    <PetrinautOptimizationContext value={optimization}>
-      {story}
-    </PetrinautOptimizationContext>
-  ) : (
-    story
-  );
-};
+}) => (
+  <SDCPNContext value={sirSdcpnContextValue}>
+    <LanguageClientProvider>
+      <MonacoProvider>
+        <FakeEditorProvider>
+          <FakeExperimentsProvider initialExperiments={experiments}>
+            <SimulateViewStoryStage />
+          </FakeExperimentsProvider>
+        </FakeEditorProvider>
+      </MonacoProvider>
+    </LanguageClientProvider>
+  </SDCPNContext>
+);
 
 export const None: Story = {
   render: () => <SimulateViewStory experiments={[]} />,
@@ -597,8 +438,16 @@ export const RunSupplyChainOptimization: Story = {
   ),
 };
 
-export const RunSupplyChainOptimizationInBrowser: Story = {
-  name: "Run Supply Chain optimization in the browser",
+export const RunSupplyChainOptimizationSyntheticOptimizer: Story = {
+  name: "Run Supply Chain optimization (synthetic optimizer)",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A synthetic sampler suggests each step's parameters through the real connected channel, and the real experiments backend simulates them, so the drawer follows the steps as it would with the real optimizer. Fast, deterministic, no download. For the real Pyodide/Optuna optimizer see Simulate / Browser optimizer (real).",
+      },
+    },
+  },
   render: () => (
     <RunnableSimulateViewStory
       example={supplyChainProfit}
