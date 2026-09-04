@@ -246,11 +246,7 @@ describe("RealtimeBrunchBridge", () => {
     );
     expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
 
-    harness.emit({
-      connectionEpoch: 3,
-      responseId: "response-request",
-      type: "output-interrupted",
-    });
+    harness.bridge.completeTurnHandoff();
     harness.emit({
       connectionEpoch: 3,
       itemId: "item-after-handoff",
