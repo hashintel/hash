@@ -22,7 +22,7 @@ test("one documented root command starts the Brunch server and Petrinaut panel",
   };
 
   expect(rootPackage.scripts["dev:brunch"]).toBe(
-    "CARGO_TERM_PROGRESS_WHEN=never turbo run build --filter '@apps/petrinaut-website^...' && npm-run-all --parallel dev:brunch:server dev:brunch:panel",
+    "CARGO_TERM_PROGRESS_WHEN=never turbo run build --filter '@apps/brunch-agent^...' --filter '@apps/petrinaut-website^...' && npm-run-all --parallel dev:brunch:server dev:brunch:panel",
   );
   expect(rootPackage.scripts["dev:brunch:server"]).toBe(
     "yarn workspace @apps/brunch-agent dev",
