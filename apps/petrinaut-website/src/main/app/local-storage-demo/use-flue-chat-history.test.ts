@@ -129,6 +129,25 @@ test("represents an absent conversation as an empty canonical history", async ()
   expect(result.current.messages).toEqual([]);
 });
 
+test("replays a refresh requested before observation setup completes", async () => {
+  const harness = createObservationHarness({
+    conversation: undefined,
+    offset: undefined,
+    phase: "absent",
+    error: undefined,
+  });
+  const { result } = renderHook(() =>
+    useFlueChatHistory(harness.clientPromise, "conversation-1"),
+  );
+
+  act(() => {
+    result.current.refresh();
+  });
+  expect(harness.refresh).not.toHaveBeenCalled();
+
+  await waitFor(() => expect(harness.refresh).toHaveBeenCalledOnce());
+});
+
 test("retains canonical messages while the SDK reconnects", async () => {
   const conversation = {
     conversationId: "conversation-1",
