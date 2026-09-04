@@ -47,7 +47,7 @@ export const describeSelection = (
       ? `${selection.runsCompleted} runs — computing`
       : `${selection.runsCompleted} of ${selection.runTarget} runs — refining`;
   }
-  return `${selection.runsCompleted} runs`;
+  return selection.note ?? `${selection.runsCompleted} runs`;
 };
 
 /** The value distance to the neighbouring position, for readout precision. */

@@ -27,7 +27,10 @@ import {
   adHocOptimizationBindings,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
-import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
+import {
+  isConnectedOptimization,
+  PETRINAUT_OPTIMIZATION_MAX_PARALLELISM,
+} from "@hashintel/petrinaut-core/optimization";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
@@ -188,6 +191,7 @@ const directionOptions = [
 
 const OPTIMIZATION_SAMPLER = "tpe" as const;
 const DEFAULT_SEEDS_PER_TRIAL = 1;
+const DEFAULT_PARALLELISM = 1;
 const AD_HOC_SCENARIO_VALUE = "__adhoc__";
 const AD_HOC_SCENARIO_LABEL = "No scenario";
 const DEFAULT_DT = 0.1;
@@ -375,6 +379,7 @@ function getConfigurationError({
   direction,
   optimizationSteps,
   seedsPerTrial,
+  parallelism,
   dt,
   maxTime,
 }: {
@@ -388,6 +393,7 @@ function getConfigurationError({
   direction: Direction | null;
   optimizationSteps: number | null;
   seedsPerTrial: number | null;
+  parallelism: number | null;
   dt: number | null;
   maxTime: number | null;
 }): string | null {
@@ -441,6 +447,14 @@ function getConfigurationError({
     seedsPerTrial > PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL
   ) {
     return `Runs per step must be an integer between 1 and ${PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL.toLocaleString()}`;
+  }
+  if (
+    parallelism === null ||
+    !Number.isInteger(parallelism) ||
+    parallelism < 1 ||
+    parallelism > PETRINAUT_OPTIMIZATION_MAX_PARALLELISM
+  ) {
+    return `Parallel steps must be an integer between 1 and ${PETRINAUT_OPTIMIZATION_MAX_PARALLELISM}`;
   }
   if (dt === null || !Number.isFinite(dt) || dt <= 0) {
     return "Time step must be a positive number";
@@ -638,6 +652,9 @@ export const CreateOptimizationDrawer = ({
   const [seedsPerTrial, setSeedsPerTrial] = useState<number | null>(
     DEFAULT_SEEDS_PER_TRIAL,
   );
+  const [parallelism, setParallelism] = useState<number | null>(
+    DEFAULT_PARALLELISM,
+  );
   const [gpuRequested, setGpuRequested] = useState(false);
   const [dt, setDt] = useState<number | null>(DEFAULT_DT);
   const [maxTime, setMaxTime] = useState<number | null>(180);
@@ -744,6 +761,7 @@ export const CreateOptimizationDrawer = ({
     setDirection(null);
     setOptimizationSteps(100);
     setSeedsPerTrial(DEFAULT_SEEDS_PER_TRIAL);
+    setParallelism(DEFAULT_PARALLELISM);
     setGpuRequested(false);
     setDt(DEFAULT_DT);
     setMaxTime(180);
@@ -775,6 +793,7 @@ export const CreateOptimizationDrawer = ({
             direction,
             optimizationSteps,
             seedsPerTrial,
+            parallelism,
             dt,
             maxTime,
           })
@@ -786,6 +805,7 @@ export const CreateOptimizationDrawer = ({
       direction === null ||
       optimizationSteps === null ||
       seedsPerTrial === null ||
+      parallelism === null ||
       dt === null ||
       maxTime === null
     ) {
@@ -873,7 +893,7 @@ export const CreateOptimizationDrawer = ({
             dt,
             maxTime,
           });
-      await createOptimization(input, { computeBackend });
+      await createOptimization(input, { computeBackend, parallelism });
       resetState();
       resetMetricForm();
     } catch (submitError) {
@@ -957,6 +977,7 @@ export const CreateOptimizationDrawer = ({
           direction,
           optimizationSteps,
           seedsPerTrial,
+          parallelism,
           dt,
           maxTime,
         })
@@ -1106,6 +1127,27 @@ export const CreateOptimizationDrawer = ({
                         onChange={setSeedsPerTrial}
                       />
                     </Form.Field>,
+                    // Steps overlap only where this browser evaluates them;
+                    // a remote study's service decides its own pace.
+                    ...(backendSelectable
+                      ? [
+                          <Form.Field
+                            key="parallelism"
+                            label="Parallel steps"
+                            labelTooltip="Optimization steps evaluated at the same time. Above 1, the optimizer accounts for the steps still running when it picks the next values, so the proposals differ from a one-at-a-time study."
+                            size="sm"
+                          >
+                            <NumberInput
+                              size="sm"
+                              min={1}
+                              max={PETRINAUT_OPTIMIZATION_MAX_PARALLELISM}
+                              step={1}
+                              value={parallelism}
+                              onChange={setParallelism}
+                            />
+                          </Form.Field>,
+                        ]
+                      : []),
                     // Only offered where the choice exists: a connected source
                     // with WebGPU switched on in settings.
                     ...(backendSelectable && webGpuEnabled && webGpuAvailable

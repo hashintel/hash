@@ -49,6 +49,8 @@ import {
 } from "./optimization-surface/sample-study-cell";
 import {
   describeSurfaceState,
+  inFlightSurfaceField,
+  mergeSurfaceFields,
   navigatedSurfaceSample,
   OptimizationSurfacePlot,
   surfaceCellKeyAt,
@@ -360,13 +362,16 @@ export const NavigatedOptimizationSurface = ({
     return null;
   }
 
-  const field = trialSurfaceField({
-    trials: optimization.trials,
-    best: optimization.best,
-    xAxis,
-    yAxis,
-    mark: "dot",
-  });
+  const field = mergeSurfaceFields(
+    trialSurfaceField({
+      trials: optimization.trials,
+      best: optimization.best,
+      xAxis,
+      yAxis,
+      mark: "dot",
+    }),
+    inFlightSurfaceField({ inFlight: optimization.inFlight, xAxis, yAxis }),
+  );
   const values = withNavigatedSample(
     field.values,
     navigatedSurfaceSample({

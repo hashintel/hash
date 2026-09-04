@@ -10,10 +10,15 @@ import {
   type ExperimentRecord,
   getExperimentElapsedMs,
   isExperimentActive,
+  type SweepBatchStatus,
 } from "../../../../../../../react/experiments/context";
+import { experimentProgressPercent } from "../../../../shared/experiment-progress";
+import {
+  ComputeActivity,
+  type ComputeActivityBatch,
+} from "../../shared/compute-activity";
 import { formatDurationMs } from "../format-duration";
 import { formatNumber } from "../shared/format-number";
-import { ComputeActivity } from "./experiment-summary/compute-activity";
 
 const summaryStyle = css({
   marginTop: "-1",
@@ -160,6 +165,38 @@ const STATUS_CHARS =
     ...Object.values(STATUS_DISPLAY).map((entry) => entry.label.length),
   ) + 2;
 
+/**
+ * "selection" is the navigator's own ladder — the priority work; "surface"
+ * is a contour chunk; "refine" is a single cell brought up to depth.
+ */
+const BATCH_KIND_META: Record<
+  SweepBatchStatus["kind"],
+  Pick<ComputeActivityBatch, "label" | "tone">
+> = {
+  selection: { label: "Selection", tone: "priority" },
+  surface: { label: "Surface", tone: "background" },
+  refine: { label: "Refine", tone: "background" },
+};
+
+/** The sweep's batches as the activity list shows them. */
+const activityBatches = (
+  sweepBatches: readonly SweepBatchStatus[],
+): ComputeActivityBatch[] =>
+  sweepBatches.map((batch) => ({
+    id: String(batch.id),
+    ...BATCH_KIND_META[batch.kind],
+    runCount: batch.runCount,
+    completedRuns: batch.completedRuns,
+  }));
+
+/** The bar under the stats: the selection's runs for a sweep, simulated time otherwise. */
+const activityBar = (experiment: ExperimentRecord) => ({
+  percent: experimentProgressPercent(experiment),
+  label: experiment.sweep
+    ? `Selection · ${experiment.sweep.runsSampled.toLocaleString("en-US")} / ${experiment.runCount.toLocaleString("en-US")} runs`
+    : `Time · ${(experiment.progress?.time ?? 0).toLocaleString("en-US")} / ${experiment.maxTime.toLocaleString("en-US")}`,
+});
+
 export const ExperimentSummary = ({
   experiment,
 }: {
@@ -215,11 +252,8 @@ export const ExperimentSummary = ({
       </div>
       <div className={activityStyle}>
         <ComputeActivity
-          sweepBatches={experiment.sweepBatches}
-          sweep={experiment.sweep}
-          progress={experiment.progress}
-          runCount={experiment.runCount}
-          maxTime={experiment.maxTime}
+          bar={activityBar(experiment)}
+          batches={activityBatches(experiment.sweepBatches)}
         />
       </div>
       {experiment.error ? (

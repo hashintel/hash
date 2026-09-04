@@ -14,6 +14,7 @@ import {
   sirOptimizationMetric,
 } from "../sir-optimization-input.fixtures";
 import {
+  cannotBeatBestNote,
   createPointRefinement,
   type PointRefinementStudy,
 } from "./point-refinement";
@@ -35,19 +36,25 @@ const study: PointRefinementStudy = {
   dt: 1,
   maxTime: 180,
   computeBackend: "cpu",
+  direction: "minimize",
 };
 
-const target = (key: string, infectedRatio: number) => ({
+const target = (key: string, infectedRatio: number, isBest = false) => ({
   key,
   scenarioParameterValues: { population: 1_000, infected_ratio: infectedRatio },
+  isBest,
 });
 
-const setup = (maxRuns = 25) => {
+const setup = ({
+  maxRuns = 25,
+  best = null,
+}: { maxRuns?: number; best?: number | null } = {}) => {
   const fake = createFakeDetachedObjectiveRuns();
   const updates: OptimizationSelectionStream[] = [];
   const refinement = createPointRefinement({
     runDetachedObjective: fake.runDetachedObjective,
     study,
+    bestObjective: () => best,
     maxRuns,
     onUpdate: (update) => {
       updates.push(update);
@@ -62,6 +69,13 @@ const settled = async () => {
   });
 };
 
+/** Eight runs whose values sit `spread` either side of `mean`. */
+const spreadFrame = (mean: number, spread = 0.01) =>
+  distributionFrame(metricId, 180, [
+    [mean - spread, 4],
+    [mean + spread, 4],
+  ]);
+
 describe("createPointRefinement", () => {
   it("climbs the ladder from the point's first rung, seeding each batch from its first run index", async () => {
     const { fake, refinement, latest } = setup();
@@ -74,6 +88,7 @@ describe("createPointRefinement", () => {
       runTarget: 8,
       computing: true,
       error: null,
+      note: null,
     });
     expect(fake.runs[0]?.request).toMatchObject({
       cacheKey: "study",
@@ -95,6 +110,7 @@ describe("createPointRefinement", () => {
       runTarget: 25,
       computing: true,
       error: null,
+      note: null,
     });
     expect(fake.runs[1]?.request).toMatchObject({
       seed: deriveRunSeed(42, 8),
@@ -122,6 +138,7 @@ describe("createPointRefinement", () => {
       runsCompleted: 25,
       runTarget: null,
       computing: false,
+      note: null,
     });
     expect(fake.runs).toHaveLength(2);
   });
@@ -207,6 +224,7 @@ describe("createPointRefinement", () => {
       runTarget: null,
       computing: false,
       error: "cpu: unsupported net",
+      note: null,
     });
     expect(fake.runs).toHaveLength(1);
 
@@ -217,6 +235,7 @@ describe("createPointRefinement", () => {
       runTarget: 8,
       computing: true,
       error: null,
+      note: null,
     });
   });
 
@@ -233,7 +252,99 @@ describe("createPointRefinement", () => {
       runTarget: null,
       computing: false,
       error: null,
+      note: null,
     });
     expect(fake.runs).toHaveLength(1);
+  });
+
+  it("stops after the first rung, with a note, at a point that cannot beat the best", async () => {
+    // Minimizing, with a best of 0.1: a point around 0.3 is hopeless.
+    const { fake, refinement, latest } = setup({ best: 0.1 });
+
+    refinement.refine(target("a", 0.05));
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [spreadFrame(0.3)],
+        runsCompleted: 8,
+      }),
+    );
+    await settled();
+
+    expect(latest()).toMatchObject({
+      key: "a",
+      runsCompleted: 8,
+      runTarget: null,
+      computing: false,
+      error: null,
+      note: cannotBeatBestNote(8),
+    });
+    expect(latest()?.note).toBe("8 runs · cannot beat the best");
+    expect(fake.runs).toHaveLength(1);
+
+    // Returning to the point later changes nothing: the verdict stands.
+    refinement.refine(target("b", 0.01));
+    refinement.refine(target("a", 0.05));
+    expect(fake.runs).toHaveLength(2);
+    expect(latest()).toMatchObject({ key: "a", note: cannotBeatBestNote(8) });
+  });
+
+  it("keeps climbing at a point that might beat the best, and at the best trial's own point", async () => {
+    const { fake, refinement, latest } = setup({ best: 0.1 });
+
+    // Within reach: a mean of 0.11 whose eight runs spread 0.05 either side,
+    // so 2.5 standard errors reach below the best.
+    refinement.refine(target("a", 0.05));
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [spreadFrame(0.11, 0.05)],
+        runsCompleted: 8,
+      }),
+    );
+    await settled();
+    expect(latest()).toMatchObject({
+      runTarget: 25,
+      computing: true,
+      note: null,
+    });
+    expect(fake.runs).toHaveLength(2);
+
+    // The best trial's point: hopeless by its estimate, refined regardless.
+    refinement.refine(target("best", 0.02, true));
+    fake.runs[2]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [spreadFrame(0.3)],
+        runsCompleted: 8,
+      }),
+    );
+    await settled();
+    expect(latest()).toMatchObject({
+      key: "best",
+      runTarget: 25,
+      computing: true,
+      note: null,
+    });
+    expect(fake.runs).toHaveLength(4);
+  });
+
+  it("refines as before while the study has no best", async () => {
+    const { fake, refinement, latest } = setup();
+
+    refinement.refine(target("a", 0.05));
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [spreadFrame(0.3)],
+        runsCompleted: 8,
+      }),
+    );
+    await settled();
+    expect(latest()).toMatchObject({
+      runTarget: 25,
+      computing: true,
+      note: null,
+    });
   });
 });

@@ -69,9 +69,10 @@ export type DetachedObjectiveSampler = {
   /**
    * Streams one batch on the requested backend. The first run of a study on
    * a backend walks the registrations and keeps the winner for the study's
-   * later runs. Runs queue per `cacheKey`; studies run side by side. A batch
-   * that cannot run settles with the reason: the compile diagnostics, each
-   * backend's refusal, the terminal error, or the count of errored runs.
+   * later runs. Runs queue per `queueKey` (the `cacheKey` when unset);
+   * studies run side by side. A batch that cannot run settles with the
+   * reason: the compile diagnostics, each backend's refusal, the terminal
+   * error, or the count of errored runs.
    */
   run: (request: DetachedObjectiveRunRequest) => DetachedObjectiveRun;
   /** Cancels every run in flight and releases the backends runs chose. */
@@ -167,6 +168,8 @@ export const createDetachedObjectiveSampler = ({
 }): DetachedObjectiveSampler => {
   const compileCache = new Map<string, Promise<CompiledStudy>>();
   const chosenBackends = new Map<string, ChosenBackend>();
+  /** Walks in progress, so runs that overlap wait for one choice. */
+  const pendingChoices = new Map<string, Promise<ChosenBackend>>();
   const runQueues = new Map<string, Promise<void>>();
   const runsInFlight = new Set<AbortController>();
   let sampleBackend: ExperimentBackend | null = null;
@@ -273,42 +276,37 @@ export const createDetachedObjectiveSampler = ({
     }
   };
 
-  /**
-   * The handle for one run. The first run of a study on a requested backend
-   * walks the registrations and keeps the winner; later runs instantiate on
-   * it directly. Throws when the kept backend or every candidate refuses,
-   * naming each and why.
-   */
-  const acquireHandle = async (
+  /** A run's handle on the backend its study settled on. */
+  const instantiateOnChosen = async (
+    request: DetachedObjectiveRunRequest,
+    chosen: ChosenBackend,
+    signal: AbortSignal,
+  ): Promise<MonteCarloExperiment> => {
+    const experimentRequest = await buildRequest(request, {
+      includeHir: chosen.backend.needsHirTrees,
+      runSeeds:
+        chosen.backendId === WORKER_POOL_BACKEND_ID
+          ? request.runSeeds
+          : undefined,
+    });
+    try {
+      return await instantiateOnBackend(chosen.backend, experimentRequest, {
+        signal,
+      });
+    } catch (error) {
+      // A refusal reads as the walk's declines do: the backend, then why.
+      throw new Error(`${chosen.backendId}: ${errorMessage(error)}`);
+    }
+  };
+
+  /** Walks the registrations for a study's first run on a requested backend. */
+  const walkBackends = async (
     request: DetachedObjectiveRunRequest,
     signal: AbortSignal,
   ): Promise<{
     handle: MonteCarloExperiment;
     chosen: ChosenBackend;
   }> => {
-    const key = `${request.cacheKey}|${request.computeBackend}`;
-    const chosen = chosenBackends.get(key);
-    if (chosen) {
-      const experimentRequest = await buildRequest(request, {
-        includeHir: chosen.backend.needsHirTrees,
-        runSeeds:
-          chosen.backendId === WORKER_POOL_BACKEND_ID
-            ? request.runSeeds
-            : undefined,
-      });
-      try {
-        const handle = await instantiateOnBackend(
-          chosen.backend,
-          experimentRequest,
-          { signal },
-        );
-        return { handle, chosen };
-      } catch (error) {
-        // A refusal reads as the walk's declines do: the backend, then why.
-        throw new Error(`${chosen.backendId}: ${errorMessage(error)}`);
-      }
-    }
-
     // The walk reports a request it cannot build as the first candidate's
     // refusal; building it here first keeps a compile failure's diagnostics
     // as the reason. The compile is cached for the candidate that needs it.
@@ -344,7 +342,6 @@ export const createDetachedObjectiveSampler = ({
       backendId: selection.backendId as ExperimentComputeBackend,
       fallbackReason: selection.declined[0]?.reason ?? null,
     };
-    chosenBackends.set(key, won);
     if (
       pinSeedsOnWalk ||
       won.backendId !== WORKER_POOL_BACKEND_ID ||
@@ -366,6 +363,55 @@ export const createDetachedObjectiveSampler = ({
     return { handle, chosen: won };
   };
 
+  /**
+   * The handle for one run. The first run of a study on a requested backend
+   * walks the registrations and keeps the winner; later runs instantiate on
+   * it directly, and runs that begin while the walk is out wait for its
+   * choice. Throws when the kept backend or every candidate refuses, naming
+   * each and why.
+   */
+  const acquireHandle = async (
+    request: DetachedObjectiveRunRequest,
+    signal: AbortSignal,
+  ): Promise<{
+    handle: MonteCarloExperiment;
+    chosen: ChosenBackend;
+  }> => {
+    const key = `${request.cacheKey}|${request.computeBackend}`;
+    const chosen = chosenBackends.get(key);
+    if (chosen) {
+      return {
+        handle: await instantiateOnChosen(request, chosen, signal),
+        chosen,
+      };
+    }
+    const pending = pendingChoices.get(key);
+    if (pending) {
+      // A walk that failed leaves this run to walk for itself, so its own
+      // refusal, or its own cancellation, is what it reports.
+      const settled = await pending.catch(() => null);
+      if (settled) {
+        return {
+          handle: await instantiateOnChosen(request, settled, signal),
+          chosen: settled,
+        };
+      }
+    }
+    const walk = walkBackends(request, signal);
+    const choice = walk.then(({ chosen: won }) => won);
+    choice.catch(() => undefined);
+    pendingChoices.set(key, choice);
+    try {
+      const result = await walk;
+      chosenBackends.set(key, result.chosen);
+      return result;
+    } finally {
+      if (pendingChoices.get(key) === choice) {
+        pendingChoices.delete(key);
+      }
+    }
+  };
+
   const streamRun = async (
     request: DetachedObjectiveRunRequest,
     signal: AbortSignal,
@@ -375,6 +421,13 @@ export const createDetachedObjectiveSampler = ({
     let handle: MonteCarloExperiment | null = null;
     const cancelHandle = () => handle?.cancel();
     signal.addEventListener("abort", cancelHandle, { once: true });
+    // The backend keeps listening to the signal it was instantiated with and
+    // tears the handle down when it fires, before the shards can answer the
+    // cancel with the terminal event this run waits for. Instantiation gets a
+    // signal of its own that dies once the handle is ready.
+    const instantiation = new AbortController();
+    const abortInstantiation = () => instantiation.abort();
+    signal.addEventListener("abort", abortInstantiation, { once: true });
     // Read through a call so the abort flag is re-checked after the await (a
     // plain property read would be control-flow-narrowed to `false`).
     const isCancelled = () => signal.aborted;
@@ -382,7 +435,12 @@ export const createDetachedObjectiveSampler = ({
       if (isCancelled()) {
         return cancelledOutcome;
       }
-      const acquired = await acquireHandle(request, signal);
+      let acquired: Awaited<ReturnType<typeof acquireHandle>>;
+      try {
+        acquired = await acquireHandle(request, instantiation.signal);
+      } finally {
+        signal.removeEventListener("abort", abortInstantiation);
+      }
       if (isCancelled()) {
         acquired.handle.dispose();
         return cancelledOutcome;
@@ -449,7 +507,8 @@ export const createDetachedObjectiveSampler = ({
     }
     runsInFlight.add(controller);
 
-    const previous = runQueues.get(request.cacheKey) ?? Promise.resolve();
+    const queueKey = request.queueKey ?? request.cacheKey;
+    const previous = runQueues.get(queueKey) ?? Promise.resolve();
     const completion = previous.then(() =>
       streamRun(request, controller.signal, frames, progress),
     );
@@ -457,12 +516,12 @@ export const createDetachedObjectiveSampler = ({
       () => undefined,
       () => undefined,
     );
-    runQueues.set(request.cacheKey, settled);
+    runQueues.set(queueKey, settled);
     void settled.then(() => {
       runsInFlight.delete(controller);
       request.signal?.removeEventListener("abort", forwardAbort);
-      if (runQueues.get(request.cacheKey) === settled) {
-        runQueues.delete(request.cacheKey);
+      if (runQueues.get(queueKey) === settled) {
+        runQueues.delete(queueKey);
       }
     });
 

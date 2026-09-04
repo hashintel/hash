@@ -12,6 +12,8 @@ import {
 } from "../optimizations-story-fixtures";
 import {
   describeSurfaceState,
+  inFlightSurfaceField,
+  mergeSurfaceFields,
   navigatedSurfaceSample,
   OptimizationSurfacePlot,
   surfaceInteraction,
@@ -140,6 +142,7 @@ const stream = (
   runTarget: null,
   computing: true,
   error: null,
+  note: null,
   ...overrides,
 });
 
@@ -195,6 +198,46 @@ describe("trialSurfaceField", () => {
 
     expect(field.values.size).toBe(0);
     expect(field.markers).toHaveLength(0);
+  });
+});
+
+describe("inFlightSurfaceField", () => {
+  it("rings every step being evaluated and samples the field where one has a running value", () => {
+    const field = inFlightSurfaceField({
+      inFlight: [
+        {
+          trial: 3,
+          parameters: { production_rate: 225, selling_price: 40 },
+          objective: 2.5,
+        },
+        {
+          trial: 4,
+          parameters: { production_rate: 50, selling_price: 60 },
+          objective: null,
+        },
+      ],
+      xAxis,
+      yAxis,
+    });
+
+    expect([...field.values]).toEqual([[contourSurfaceKey(5, 5), 2.5]]);
+    expect(field.markers).toEqual([
+      { x: 5, y: 5, kind: "point" },
+      { x: 0, y: 10, kind: "point" },
+    ]);
+  });
+
+  it("merges beneath the trials' field, the later value winning at a shared point", () => {
+    const merged = mergeSurfaceFields(
+      { values: new Map([[contourSurfaceKey(5, 5), 4]]), markers: [] },
+      {
+        values: new Map([[contourSurfaceKey(5, 5), 2.5]]),
+        markers: [{ x: 5, y: 5, kind: "point" }],
+      },
+    );
+
+    expect(merged.values.get(contourSurfaceKey(5, 5))).toBe(2.5);
+    expect(merged.markers).toHaveLength(1);
   });
 });
 

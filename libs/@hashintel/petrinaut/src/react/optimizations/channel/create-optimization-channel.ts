@@ -28,6 +28,7 @@ export type OptimizationChannelStudy = {
     trial: number,
     values: Readonly<Record<string, OptimizationScalar>>,
     run: DetachedObjectiveRun,
+    runCount: number,
   ) => void;
   trialSettled: (trial: number, outcome: DetachedObjectiveRunOutcome) => void;
 };
@@ -41,10 +42,10 @@ const errorMessage = (error: unknown): string =>
 
 /**
  * The channel a connected optimizer evaluates its trials through. Each trial
- * becomes one detached objective run keyed by the optimizer's run id, so a
- * study's trials queue in order and compile once. The channel never throws:
- * whatever stops a trial reaches Optuna as a pruned trial carrying the
- * reason.
+ * becomes one detached objective run compiled once per optimizer run id and
+ * queued on its own, so trials the optimizer keeps in flight together
+ * overlap. The channel never throws: whatever stops a trial reaches Optuna
+ * as a pruned trial carrying the reason.
  */
 export const createOptimizationChannel = ({
   runDetachedObjective,
@@ -90,6 +91,9 @@ export const createOptimizationChannel = ({
       const study = resolveStudy(request.runId);
       run = runDetachedObjective({
         cacheKey: request.runId,
+        // Trials in flight at once each take a queue of their own; the
+        // compiled study is shared through the cache key.
+        queueKey: `${request.runId}:trial:${request.trial}`,
         definition: request.manifest.model.definition,
         scenarioId: request.manifest.scenario.id,
         scenarioParameterValues: request.scenarioParameterValues,
@@ -103,7 +107,12 @@ export const createOptimizationChannel = ({
         signal: controller.signal,
       });
       runsInFlight.add(run);
-      study?.trialStarted(request.trial, request.suggestedValues, run);
+      study?.trialStarted(
+        request.trial,
+        request.suggestedValues,
+        run,
+        request.seeds.length,
+      );
       outcome = await run.completion;
       study?.trialSettled(request.trial, outcome);
     } catch (error) {

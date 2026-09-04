@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   type PetrinautOptimization,
+  type PetrinautOptimizationEvent,
 } from "@hashintel/petrinaut-core";
 import {
   type PetrinautConnectedOptimization,
@@ -50,6 +51,13 @@ import type { PropsWithChildren } from "react";
 const input = sirOptimizationInput;
 const metricId = sirOptimizationMetric.id;
 const infectedRatioAxis = buildOptimizationSurfaceAxes(input)[0]!;
+
+/** An event before a fake log stamps its `seq`, each variant on its own. */
+type UnsequencedEvent = PetrinautOptimizationEvent extends infer Event
+  ? Event extends unknown
+    ? Omit<Event, "seq">
+    : never
+  : never;
 
 const CaptureContext = ({
   onValue,
@@ -122,6 +130,8 @@ const createQuietConnectedSource = () => {
           });
         },
         cancelOptimizationRun: () => Promise.resolve(),
+        extendOptimizationRun: () => Promise.resolve(),
+        releaseOptimizationRun: () => Promise.resolve(),
         dispose: () => {
           calls.dispose += 1;
         },
@@ -185,6 +195,8 @@ const createEvaluatingSource = (infectedRatios: readonly number[]) => {
           };
         },
         cancelOptimizationRun: () => Promise.resolve(),
+        extendOptimizationRun: () => Promise.resolve(),
+        releaseOptimizationRun: () => Promise.resolve(),
         dispose: () => {
           calls.dispose += 1;
         },
@@ -1443,5 +1455,407 @@ describe("OptimizationsProvider", () => {
       "infected_ratio=40",
     );
     expect(fake.runs[1]!.cancelled).toBe(false);
+  });
+});
+
+/**
+ * A connected source shaped like the in-browser optimizer's lifecycle: a run
+ * log in segments, each begun by `started` and ended by a terminal event,
+ * which a settled study continues with more trials; a stop ends the segment
+ * once the trial in flight has settled. Segment `n` evaluates
+ * `ratiosBySegment[n]`, one trial per value, through the channel.
+ */
+const createResumableSource = (
+  ratiosBySegment: readonly (readonly number[])[],
+  { rejectExtension }: { rejectExtension?: string } = {},
+) => {
+  const calls = { extend: [] as number[], release: [] as string[], cancel: 0 };
+  // The cancelled terminal is the worker's own message, sent once the pruned
+  // steps in flight have reported; a test decides when it arrives.
+  let closeStoppedSegment: () => void = () => {};
+  const source: PetrinautConnectedOptimization = {
+    kind: "connected",
+    connect: (channel) => {
+      const events: PetrinautOptimizationEvent[] = [];
+      const listeners = new Set<() => void>();
+      let controller = new AbortController();
+      let segment = 0;
+      let trial = 0;
+      let requested = 0;
+      let running = false;
+      let cancelled = false;
+      // Read through a call so the flag is re-checked after each await (a
+      // plain property read would be control-flow-narrowed to `false`).
+      const isCancelled = () => cancelled;
+      const append = (event: UnsequencedEvent) => {
+        events.push({
+          ...event,
+          seq: events.length + 1,
+        } as PetrinautOptimizationEvent);
+        for (const listener of listeners) {
+          listener();
+        }
+      };
+      const runSegment = async (ratios: readonly number[]) => {
+        running = true;
+        cancelled = false;
+        for (const ratio of ratios) {
+          if (isCancelled()) {
+            break;
+          }
+          const suggestedValues = { infected_ratio: ratio };
+          const outcome = await channel.evaluateTrial({
+            runId: "run-resumable",
+            trial,
+            manifest: input,
+            suggestedValues,
+            scenarioParameterValues: resolveTrialScenarioParameterValues(
+              input,
+              suggestedValues,
+            ),
+            seeds: [1, 2, 3],
+            signal: controller.signal,
+          });
+          append({
+            type: "trial",
+            trial,
+            parameters: suggestedValues,
+            objective: outcome.kind === "objective" ? outcome.objective : null,
+            state: outcome.kind === "objective" ? "complete" : "pruned",
+            best: null,
+          });
+          trial += 1;
+        }
+        if (isCancelled()) {
+          await new Promise<void>((resolve) => {
+            closeStoppedSegment = resolve;
+          });
+        }
+        running = false;
+        append(
+          isCancelled()
+            ? {
+                type: "error",
+                code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
+                message: "optimization cancelled",
+                retryable: false,
+              }
+            : {
+                type: "complete",
+                requestedTrials: requested,
+                completedTrials: trial,
+                prunedTrials: 0,
+                failedTrials: 0,
+                best: null,
+              },
+        );
+      };
+      return {
+        createOptimizationRun: () => {
+          const ratios = ratiosBySegment[0] ?? [];
+          requested = ratios.length;
+          append({ type: "started", requestedTrials: requested });
+          // The worker asks for its first evaluation a task after the run
+          // is created, once the provider knows the run id.
+          setTimeout(() => void runSegment(ratios), 0);
+          return Promise.resolve({ runId: "run-resumable" });
+        },
+        extendOptimizationRun: (_runId, trials) => {
+          if (rejectExtension !== undefined) {
+            return Promise.reject(new Error(rejectExtension));
+          }
+          if (running) {
+            return Promise.reject(new Error("still running"));
+          }
+          calls.extend.push(trials);
+          segment += 1;
+          requested += trials;
+          controller = new AbortController();
+          append({ type: "started", requestedTrials: requested });
+          const ratios = ratiosBySegment[segment] ?? [];
+          setTimeout(() => void runSegment(ratios), 0);
+          return Promise.resolve();
+        },
+        async *attachOptimizationRun(_runId, options) {
+          options?.onAttached?.();
+          let index = options?.cursor ?? 0;
+          for (;;) {
+            const event = events[index];
+            if (event) {
+              index += 1;
+              yield event;
+              if (event.type === "complete" || event.type === "error") {
+                return;
+              }
+              continue;
+            }
+            await new Promise<void>((resolve) => {
+              const wake = () => {
+                listeners.delete(wake);
+                resolve();
+              };
+              listeners.add(wake);
+              options?.signal?.addEventListener("abort", wake, { once: true });
+            });
+            if (options?.signal?.aborted) {
+              return;
+            }
+          }
+        },
+        cancelOptimizationRun: () => {
+          calls.cancel += 1;
+          cancelled = true;
+          controller.abort();
+          return Promise.resolve();
+        },
+        releaseOptimizationRun: (runId) => {
+          calls.release.push(runId);
+          return Promise.resolve();
+        },
+        dispose: () => {},
+      };
+    },
+  };
+  return { source, calls, closeStoppedSegment: () => closeStoppedSegment() };
+};
+
+describe("OptimizationsProvider lifecycle of a connected study", () => {
+  it("settles on the best, then continues from its cursor, following the new steps", async () => {
+    const { source, calls } = createResumableSource([[0.05], [0.02]]);
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input, {
+        parallelism: 2,
+      });
+    });
+    await waitFor(() => expect(fake.runs).toHaveLength(1));
+    expect(fake.runs[0]!.request.queueKey).toBe("run-resumable:trial:0");
+    await waitFor(() =>
+      expect(getValue().optimizations[0]).toMatchObject({
+        parallelism: 2,
+        resumable: false,
+        inFlight: [
+          { trial: 0, parameters: { infected_ratio: 0.05 }, objective: null },
+        ],
+        activity: [expect.objectContaining({ label: "Step 1", runCount: 3 })],
+      }),
+    );
+
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.25, 3]])],
+        runValues: [0.25, 0.25, 0.25],
+      }),
+    );
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("complete"),
+    );
+    // Following ended where the study did best, and that point refines.
+    const bestPosition = optimizationAxisPositionFor(infectedRatioAxis, 0.05);
+    expect(getValue().optimizations[0]).toMatchObject({
+      resumable: true,
+      requestedTrials: 1,
+      navigation: {
+        positions: { infected_ratio: bestPosition },
+        followTrials: false,
+      },
+      inFlight: [],
+    });
+    await waitFor(() => expect(fake.runs).toHaveLength(2));
+    expect(fake.runs[1]!.request).toMatchObject({
+      cacheKey: optimizationId,
+      scenarioParameterValues: {
+        infected_ratio: optimizationAxisValueAt(
+          infectedRatioAxis,
+          bestPosition,
+        ),
+      },
+    });
+
+    await act(async () => {
+      await getValue().extendOptimization(optimizationId, 1);
+    });
+    expect(calls.extend).toEqual([1]);
+    expect(fake.runs[1]!.cancelled).toBe(true);
+    await waitFor(() =>
+      expect(getValue().optimizations[0]).toMatchObject({
+        status: "running",
+        resumable: false,
+        requestedTrials: 2,
+        navigation: { followTrials: true },
+      }),
+    );
+    await waitFor(() => expect(fake.runs).toHaveLength(3));
+    expect(fake.runs[2]!.request.queueKey).toBe("run-resumable:trial:1");
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.selection?.key).toBe("trial:1"),
+    );
+
+    fake.runs[2]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.125, 3]])],
+        runValues: [0.125, 0.125, 0.125],
+      }),
+    );
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("complete"),
+    );
+    expect(getValue().optimizations[0]).toMatchObject({
+      resumable: true,
+      requestedTrials: 2,
+      completedTrials: 2,
+      trials: [
+        expect.objectContaining({ trial: 0 }),
+        expect.objectContaining({ trial: 1 }),
+      ],
+    });
+    expect(getValue().optimizations[0]?.best).toMatchObject({
+      trial: 1,
+      objective: 0.125,
+    });
+
+    act(() => getValue().removeOptimization(optimizationId));
+    expect(calls.release).toEqual(["run-resumable"]);
+    expect(getValue().optimizations).toHaveLength(0);
+  });
+
+  it("stops a study without dropping its attachment, so the segment's terminal event lands before a continuation", async () => {
+    const { source, calls, closeStoppedSegment } = createResumableSource([
+      [0.05, 0.02],
+      [0.01],
+    ]);
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input);
+    });
+    await waitFor(() => expect(fake.runs).toHaveLength(1));
+
+    act(() => getValue().cancelOptimization(optimizationId));
+    expect(calls.cancel).toBe(1);
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "cancelled",
+      resumable: false,
+    });
+    // The trial in flight is pruned as cancelled and reports before the
+    // worker acknowledges the stop.
+    await waitFor(() => expect(getValue().optimizations[0]?.lastSeq).toBe(2));
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "cancelled",
+      resumable: false,
+      prunedTrials: 1,
+    });
+    closeStoppedSegment();
+    await waitFor(() => expect(getValue().optimizations[0]?.lastSeq).toBe(3));
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "cancelled",
+      resumable: true,
+      prunedTrials: 1,
+    });
+
+    await act(async () => {
+      await getValue().extendOptimization(optimizationId, 1);
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]).toMatchObject({
+        status: "running",
+        requestedTrials: 3,
+        lastSeq: 4,
+      }),
+    );
+    // The stop settled the study on a point, which began refining (the
+    // second run); the continuation cancels that and runs the new trial.
+    await waitFor(() => expect(fake.runs).toHaveLength(3));
+    expect(fake.runs[1]!.request.cacheKey).toBe(optimizationId);
+    expect(fake.runs[1]!.cancelled).toBe(true);
+    // The stopped segment asked for its second trial never, so numbering
+    // continues from the pruned one.
+    expect(fake.runs[2]!.request).toMatchObject({
+      queueKey: "run-resumable:trial:1",
+      scenarioParameterValues: { infected_ratio: 0.01 },
+    });
+  });
+
+  it("puts a refused continuation on the record and leaves the study resumable", async () => {
+    const { source } = createResumableSource([[0.05]], {
+      rejectExtension: "An optimization may run at most 1,000 trials in total",
+    });
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input);
+    });
+    await waitFor(() => expect(fake.runs).toHaveLength(1));
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.25, 3]])],
+        runValues: [0.25, 0.25, 0.25],
+      }),
+    );
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.resumable).toBe(true),
+    );
+
+    await expect(
+      getValue().extendOptimization(optimizationId, 999),
+    ).rejects.toThrow("at most 1,000 trials");
+    // The refusal's state update landed outside an act scope; flush it.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "complete",
+      resumable: true,
+      error: "An optimization may run at most 1,000 trials in total",
+    });
+  });
+
+  it("never marks a remote run resumable", async () => {
+    const capability: PetrinautOptimization = {
+      createOptimizationRun: () => Promise.resolve({ runId: "run-remote-2" }),
+      async *attachOptimizationRun() {
+        yield {
+          type: "complete",
+          requestedTrials: 2,
+          completedTrials: 0,
+          prunedTrials: 0,
+          failedTrials: 0,
+          best: null,
+          seq: 1,
+        };
+      },
+      cancelOptimizationRun: () => Promise.resolve(),
+    };
+    const getValue = renderProvider(capability);
+
+    await act(async () => {
+      await getValue().createOptimization(input);
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("complete"),
+    );
+    expect(getValue().optimizations[0]?.resumable).toBe(false);
+    await expect(
+      getValue().extendOptimization(getValue().optimizations[0]!.id, 1),
+    ).rejects.toThrow("cannot be continued");
   });
 });

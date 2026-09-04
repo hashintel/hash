@@ -9,22 +9,8 @@ import {
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
+import { describeOptimizationStatus } from "./optimization-status";
 import { ViewOptimizationDrawer } from "./view-optimization-drawer";
-
-function formatStatus(status: OptimizationRecord["status"]): string {
-  switch (status) {
-    case "initializing":
-      return "Initializing";
-    case "running":
-      return "Running";
-    case "complete":
-      return "Complete";
-    case "error":
-      return "Error";
-    case "cancelled":
-      return "Cancelled";
-  }
-}
 
 const OptimizationStatusBadge = ({
   optimization,
@@ -51,7 +37,7 @@ const OptimizationStatusBadge = ({
             : undefined
       }
     >
-      {formatStatus(optimization.status)}
+      {describeOptimizationStatus(optimization)}
     </Chip>
   );
 };

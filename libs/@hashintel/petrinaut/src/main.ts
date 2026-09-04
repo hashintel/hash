@@ -14,6 +14,8 @@ export type { ErrorTracker } from "./react/error-tracker-context";
 export { ErrorTrackerContext } from "./react/error-tracker-context";
 export type {
   PetrinautConnectedOptimization,
+  PetrinautConnectedOptimizationCapability,
+  PetrinautConnectedRunOptions,
   PetrinautOptimization,
   PetrinautOptimizationChannel,
   PetrinautOptimizationSource,

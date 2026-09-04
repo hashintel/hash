@@ -57,7 +57,12 @@ const capability: PetrinautOptimization = {
 
 const connectedSource: PetrinautConnectedOptimization = {
   kind: "connected",
-  connect: () => ({ ...capability, dispose: () => {} }),
+  connect: () => ({
+    ...capability,
+    extendOptimizationRun: () => Promise.resolve(),
+    releaseOptimizationRun: () => Promise.resolve(),
+    dispose: () => {},
+  }),
 };
 
 /** Overrides the In-browser optimization setting below the default context. */

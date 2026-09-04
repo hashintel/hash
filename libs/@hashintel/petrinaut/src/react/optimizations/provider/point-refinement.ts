@@ -3,6 +3,10 @@ import {
   mergeMetricFramesAcrossCells,
 } from "../../experiments/parameter-grid";
 import { sweepBatchSeed } from "../../experiments/sweep-session";
+import {
+  estimateObjective,
+  shouldStopRefining,
+} from "./point-refinement/objective-estimate";
 
 import type {
   DetachedObjectiveRun,
@@ -12,6 +16,8 @@ import type {
 import type { SweepCellSnapshot } from "../../experiments/sweep-session";
 import type { OptimizationSelectionStream } from "../context";
 import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
+
+export { shouldStopRefining } from "./point-refinement/objective-estimate";
 
 /** The most runs the selected point is refined to. */
 export const POINT_REFINEMENT_MAX_RUNS = 100;
@@ -26,19 +32,26 @@ export type PointRefinementStudy = Pick<
   | "dt"
   | "maxTime"
   | "computeBackend"
-> & { seed: number };
+> & { seed: number; direction: "maximize" | "minimize" };
 
 export type PointRefinementTarget = {
   key: string;
   scenarioParameterValues: DetachedObjectiveRunRequest["scenarioParameterValues"];
+  /**
+   * The point is the best trial's: it climbs to the top rung whatever its
+   * estimate says, since it is the value the study reports.
+   */
+  isBest: boolean;
 };
 
 export type PointRefinement = {
   /**
    * Climbs the run ladder at `target`, streaming into `onUpdate`. A new key
    * cancels the batch in flight and resumes from the key's cached rungs; the
-   * key already refining, or saturated, changes nothing. A failed rung stops
+   * key already refining, or settled, changes nothing. A failed rung stops
    * the ladder and records the reason; refining the key again retries it.
+   * Between rungs, a point whose mean sits too far from the study's best to
+   * ever beat it stops with a note saying so.
    */
   refine(this: void, target: PointRefinementTarget): void;
   /** Cancels the batch in flight. Finished rungs stay cached. */
@@ -58,6 +71,10 @@ const mergeFrames = (
 ): readonly MonteCarloUserDefinedMetricFrame[] =>
   base.length === 0 ? streamed : mergeMetricFramesAcrossCells([base, streamed]);
 
+/** The note a ladder stops with when the point cannot beat the best. */
+export const cannotBeatBestNote = (runs: number): string =>
+  `${runs} runs · cannot beat the best`;
+
 /**
  * Refines one parameter point of a study, as the sweep session refines the
  * navigator's selection: cumulative batches up the run ladder, each batch
@@ -67,11 +84,14 @@ const mergeFrames = (
 export const createPointRefinement = ({
   runDetachedObjective,
   study,
+  bestObjective,
   maxRuns = POINT_REFINEMENT_MAX_RUNS,
   onUpdate,
 }: {
   runDetachedObjective: ExperimentsActionsValue["runDetachedObjective"];
   study: PointRefinementStudy;
+  /** The study's best objective so far, read before each rung. */
+  bestObjective: () => number | null;
   maxRuns?: number;
   onUpdate: (selection: OptimizationSelectionStream) => void;
 }): PointRefinement => {
@@ -81,6 +101,23 @@ export const createPointRefinement = ({
   const stop = () => {
     active?.cancel();
     active = null;
+  };
+
+  /** Whether a point's finished rungs already rule it out against the best. */
+  const cannotBeatBest = (snapshot: SweepCellSnapshot): boolean => {
+    if (snapshot.runsCompleted === 0) {
+      return false;
+    }
+    const estimate = estimateObjective(snapshot.metricFrames, study.metric.id);
+    return (
+      estimate !== null &&
+      shouldStopRefining({
+        direction: study.direction,
+        best: bestObjective(),
+        mean: estimate.mean,
+        standardError: estimate.standardError,
+      })
+    );
   };
 
   const refine = (target: PointRefinementTarget) => {
@@ -101,12 +138,11 @@ export const createPointRefinement = ({
       },
     };
 
-    const climb = async (): Promise<void> => {
-      let snapshot: SweepCellSnapshot = cache.get(target.key) ?? {
-        runsCompleted: 0,
-        metricFrames: [],
-      };
-      let runTarget = getNextRunTarget(snapshot.runsCompleted, maxRuns);
+    const publish = (
+      snapshot: SweepCellSnapshot,
+      runTarget: number | null,
+      note: string | null,
+    ) => {
       onUpdate({
         key: target.key,
         metricFrames: snapshot.metricFrames,
@@ -114,28 +150,46 @@ export const createPointRefinement = ({
         runTarget,
         computing: runTarget !== null,
         error: null,
+        note,
       });
+    };
 
-      while (runTarget !== null && !isCancelled()) {
+    const climb = async (): Promise<void> => {
+      let snapshot: SweepCellSnapshot = cache.get(target.key) ?? {
+        runsCompleted: 0,
+        metricFrames: [],
+      };
+
+      while (!isCancelled()) {
+        const runTarget = getNextRunTarget(snapshot.runsCompleted, maxRuns);
+        if (runTarget === null) {
+          publish(snapshot, null, null);
+          return;
+        }
+        if (!target.isBest && cannotBeatBest(snapshot)) {
+          publish(snapshot, null, cannotBeatBestNote(snapshot.runsCompleted));
+          return;
+        }
+        publish(snapshot, runTarget, null);
+
         const base = snapshot;
-        const rungTarget = runTarget;
         const run = runDetachedObjective({
           ...study,
           scenarioParameterValues: target.scenarioParameterValues,
           seed: sweepBatchSeed(study.seed, base.runsCompleted),
-          runCount: rungTarget - base.runsCompleted,
+          runCount: runTarget - base.runsCompleted,
         });
         inFlight = run;
         const offFrames = run.frames.subscribe((frames) => {
           if (!isCancelled()) {
-            onUpdate({
-              key: target.key,
-              metricFrames: mergeFrames(base.metricFrames, frames),
-              runsCompleted: base.runsCompleted,
-              runTarget: rungTarget,
-              computing: true,
-              error: null,
-            });
+            publish(
+              {
+                runsCompleted: base.runsCompleted,
+                metricFrames: mergeFrames(base.metricFrames, frames),
+              },
+              runTarget,
+              null,
+            );
           }
         });
         const outcome = await run.completion;
@@ -153,6 +207,7 @@ export const createPointRefinement = ({
             runTarget: null,
             computing: false,
             error: outcome.cancelled ? null : outcome.reason,
+            note: null,
           });
           return;
         }
@@ -161,15 +216,6 @@ export const createPointRefinement = ({
           metricFrames: mergeFrames(base.metricFrames, outcome.metricFrames),
         };
         cache.set(target.key, snapshot);
-        runTarget = getNextRunTarget(snapshot.runsCompleted, maxRuns);
-        onUpdate({
-          key: target.key,
-          metricFrames: snapshot.metricFrames,
-          runsCompleted: snapshot.runsCompleted,
-          runTarget,
-          computing: runTarget !== null,
-          error: null,
-        });
       }
     };
     void climb();
