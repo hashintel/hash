@@ -179,12 +179,14 @@ export const snapshotToUiMessages = (
   // message it resumes; the snapshot records that continuation as a separate
   // Flue message behind the `client-tool-result` dispatch, so fold it back.
   let resumableAssistant: UiHistoryMessage | undefined;
+  let awaitingClientResult = false;
   let continuationPending = false;
   for (const message of snapshot.messages) {
     if (
       message.purpose === "dispatch" &&
       message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL
     ) {
+      awaitingClientResult = false;
       continuationPending = resumableAssistant !== undefined;
       continue;
     }
@@ -194,12 +196,13 @@ export const snapshotToUiMessages = (
     const parts = partsFrom(message, options, clientOutputs);
     if (message.role === "user") {
       resumableAssistant = undefined;
+      awaitingClientResult = false;
       continuationPending = false;
     }
     if (parts.length === 0) continue;
     if (
       message.role === "assistant" &&
-      continuationPending &&
+      (awaitingClientResult || continuationPending) &&
       resumableAssistant !== undefined
     ) {
       resumableAssistant.parts.push(...parts);
@@ -214,6 +217,12 @@ export const snapshotToUiMessages = (
     messages.push(projected);
     if (message.role === "assistant") {
       resumableAssistant = projected;
+      awaitingClientResult = message.parts.some(
+        (part) =>
+          part.type === "dynamic-tool" &&
+          options.clientToolNames.has(part.toolName) &&
+          !clientOutputs.has(part.toolCallId),
+      );
     }
   }
   return messages;

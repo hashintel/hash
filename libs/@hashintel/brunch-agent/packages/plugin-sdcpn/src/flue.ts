@@ -1,4 +1,5 @@
 import {
+  useDelivery,
   useInitialData,
   useInstruction,
   useSkill,
@@ -6,7 +7,10 @@ import {
 } from "@flue/runtime";
 import * as v from "valibot";
 
-import { preparedWorkpieceInitialDataMode } from "@hashintel/brunch-agent/workpiece";
+import {
+  preparedWorkpieceInitialDataMode,
+  preparedWorkpieceSignalType,
+} from "@hashintel/brunch-agent/workpiece";
 
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
 import {
@@ -39,6 +43,7 @@ export type SdcpnInitialData = v.InferOutput<typeof sdcpnInitialDataSchema>;
 /** Mount the prompt material, skill, and conditional tools owned by the SDCPN plugin. */
 export function useSdcpnPlugin(): void {
   const initialData = useInitialData<SdcpnInitialData>();
+  const delivery = useDelivery();
 
   useInstruction(sdcpnAppend.trim());
   useSkill(sdcpnModellingSkill);
@@ -54,13 +59,18 @@ This is a construct-only headless conversation. Use only the supplied runbook IR
       useTool(constructionTool);
     }
   } else if (initialData?.mode === validatedFixtureMutationMode) {
+    const isPreparedFixtureInitialization =
+      delivery.kind === "signal" &&
+      delivery.type === preparedWorkpieceSignalType;
     useInstruction(
       `
-This is a visibly labelled prepared-fixture conversation. Treat its tagged prepared runbook-ir dispatch as test-authored revision zero, maintain the full Markdown workpiece in later responses, preserve explicit unknowns, and do not relabel prepared material as model-produced. Every later assistant-authored workpiece is model-produced: label that revision accordingly and do not copy revision zero's claim that the current revision is test-authored. Use only the mounted canonical Petrinaut read and least arc mutation when confirmed evidence calls for that change. Read the live document before mutating it, report rejected or no-op outcomes honestly, and do not construct unrelated net content.
+This is a visibly labelled prepared-fixture conversation. Treat its tagged prepared runbook-ir dispatch as test-authored revision zero, maintain the full Markdown workpiece in later responses, preserve explicit unknowns, and do not relabel prepared material as model-produced. The prepared dispatch only initializes the fixture: acknowledge it without emitting a workpiece or beginning construction, then wait for a later user message to supply confirmed evidence. After receiving that evidence, emit the full current workpiece in a fenced runbook-ir block before the first construction tool call and again before final delivery. Every later assistant-authored workpiece is model-produced: label that revision accordingly and do not copy revision zero's claim that the current revision is test-authored. Use only the mounted canonical Petrinaut read and least arc mutation when confirmed evidence calls for that change. Read the live document before mutating it, report rejected or no-op outcomes honestly, and do not construct unrelated net content.
 `.replace(/^\s+|\s+$/gu, ""),
     );
-    for (const fixtureTool of petrinautFixtureTools) {
-      useTool(fixtureTool);
+    if (!isPreparedFixtureInitialization) {
+      for (const fixtureTool of petrinautFixtureTools) {
+        useTool(fixtureTool);
+      }
     }
   }
 }

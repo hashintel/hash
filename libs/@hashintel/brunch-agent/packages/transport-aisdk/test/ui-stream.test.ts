@@ -152,3 +152,73 @@ test("maps client-tool input before exposing it to the AI SDK", () => {
     input: { weight: 1 },
   });
 });
+
+test("keeps a pending client tool in the final projected step", () => {
+  const written = project([
+    {
+      type: "message-started",
+      conversationId: "conversation-1",
+      messageId: "assistant-tool-call",
+      submissionId: "submission-1",
+      turnId: "turn-tool-call",
+      position: position(0),
+    },
+    {
+      type: "tool-input",
+      conversationId: "conversation-1",
+      messageId: "assistant-tool-call",
+      toolCallId: "call-1",
+      toolName: "readPetrinautDoc",
+      input: { doc: "ai-assistant" },
+      position: position(1),
+    },
+    {
+      type: "message-completed",
+      conversationId: "conversation-1",
+      messageId: "assistant-tool-call",
+      position: position(2),
+    },
+    {
+      type: "message-started",
+      conversationId: "conversation-1",
+      messageId: "assistant-waiting",
+      submissionId: "submission-1",
+      turnId: "turn-waiting",
+      position: position(3),
+    },
+    {
+      type: "message-delta",
+      conversationId: "conversation-1",
+      messageId: "assistant-waiting",
+      kind: "text",
+      delta: "Waiting for the browser.",
+      position: position(4),
+    },
+    {
+      type: "message-completed",
+      conversationId: "conversation-1",
+      messageId: "assistant-waiting",
+      position: position(5),
+    },
+    {
+      type: "submission-settled",
+      conversationId: "conversation-1",
+      submissionId: "submission-1",
+      outcome: "completed",
+      position: position(6),
+    },
+  ]);
+
+  expect(written).toEqual([
+    { type: "start", messageId: "assistant-tool-call" },
+    { type: "start-step" },
+    {
+      type: "tool-input-available",
+      toolCallId: "call-1",
+      toolName: "readPetrinautDoc",
+      input: { doc: "ai-assistant" },
+    },
+    { type: "finish-step" },
+    { type: "finish", finishReason: "tool-calls" },
+  ]);
+});
