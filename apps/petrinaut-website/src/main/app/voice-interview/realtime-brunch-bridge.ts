@@ -1,15 +1,22 @@
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
-import type { AgentSendResult } from "@flue/sdk";
+import type { AgentSendResult, FlueConversationSettlement } from "@flue/sdk";
 import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
 import type {
   PetrinautAiComposerSubmitTextResult,
   PetrinautAiVoiceModeContext,
 } from "@hashintel/petrinaut/ui";
 
+export type VoiceSubmissionSettlement = Pick<
+  FlueConversationSettlement,
+  "outcome" | "submissionId"
+>;
+
 interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
+  /** Flue's settlement index: the only witness that a turn ended short of a reply. */
+  readonly settlements?: readonly VoiceSubmissionSettlement[];
   readonly status: PetrinautAiVoiceModeContext["status"];
 }
 
@@ -17,6 +24,10 @@ interface RealtimeBridgeSession {
   completeFunctionCall(
     callId: string,
     segments: CanonicalSpeechSegment[],
+  ): void;
+  completeFunctionCallWithoutResponse(
+    callId: string,
+    outcome: Exclude<VoiceSubmissionSettlement["outcome"], "completed">,
   ): void;
   speakCanonical(segments: CanonicalSpeechSegment[]): void;
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
@@ -61,6 +72,7 @@ interface ActiveSubmission {
   readonly pendingQuestionId: string | null;
   readonly pendingQuestionMessageId: string | null;
   correlated: boolean;
+  firstTextEmitted: boolean;
   sawBusyChatStatus: boolean;
   submissionId: AgentSendResult["submissionId"] | null;
 }
@@ -104,6 +116,14 @@ export type RealtimeBrunchBridgeEvent =
   | {
       readonly callId: string;
       readonly type: "submission-settled";
+    }
+  | {
+      readonly callId: string;
+      readonly outcome: Exclude<
+        VoiceSubmissionSettlement["outcome"],
+        "completed"
+      >;
+      readonly type: "submission-stopped";
     }
   | {
       readonly code: RealtimeBridgeErrorCode;
@@ -360,6 +380,7 @@ export class RealtimeBrunchBridge {
       callId: event.callId,
       correlated: false,
       epoch: event.connectionEpoch,
+      firstTextEmitted: false,
       pendingQuestionId: question?.partId ?? null,
       pendingQuestionMessageId: question?.messageId ?? null,
       sawBusyChatStatus: false,
@@ -483,11 +504,7 @@ export class RealtimeBrunchBridge {
 
   #completeCorrelatedSubmission(): void {
     const active = this.#activeSubmission;
-    if (
-      !active?.correlated ||
-      !active.sawBusyChatStatus ||
-      this.#chat.status !== "ready"
-    ) {
+    if (!active?.correlated || !active.sawBusyChatStatus) {
       return;
     }
     const responseSegments = this.#chat.canonicalSegments.filter((segment) =>
@@ -495,11 +512,20 @@ export class RealtimeBrunchBridge {
         ? !active.baselineSegmentIds.has(segment.id)
         : segment.submissionId === active.submissionId,
     );
+    if (responseSegments.length > 0 && !active.firstTextEmitted) {
+      // Completed canonical text can land while the turn is still streaming;
+      // record that instant separately from settlement.
+      active.firstTextEmitted = true;
+      this.#emit({ callId: active.callId, type: "canonical-text-ready" });
+    }
+    if (this.#chat.status !== "ready") {
+      return;
+    }
     if (responseSegments.length === 0) {
+      this.#completeStoppedSubmission(active);
       return;
     }
 
-    this.#emit({ callId: active.callId, type: "canonical-text-ready" });
     this.#emit({ callId: active.callId, type: "submission-settled" });
     try {
       this.#session.completeFunctionCall(active.callId, responseSegments);
@@ -515,6 +541,38 @@ export class RealtimeBrunchBridge {
       callId: active.callId,
       segments: responseSegments,
       type: "canonical-response-ready",
+    });
+  }
+
+  /**
+   * A turn that settled short of a reply leaves no canonical text behind. Only
+   * Flue's settlement index distinguishes it from a turn still in progress or
+   * a completed step whose client-tool follow-up the panel is about to send,
+   * so wait for that record and never treat silence alone as a stop.
+   */
+  #completeStoppedSubmission(active: ActiveSubmission): void {
+    if (active.submissionId === null) return;
+    const settlement = this.#chat.settlements?.find(
+      ({ submissionId }) => submissionId === active.submissionId,
+    );
+    if (settlement === undefined || settlement.outcome === "completed") {
+      return;
+    }
+    this.#emit({ callId: active.callId, type: "submission-settled" });
+    try {
+      this.#session.completeFunctionCallWithoutResponse(
+        active.callId,
+        settlement.outcome,
+      );
+    } catch {
+      this.#fail(INVALID_BRIDGE_EVENT);
+      return;
+    }
+    this.#activeSubmission = null;
+    this.#emit({
+      callId: active.callId,
+      outcome: settlement.outcome,
+      type: "submission-stopped",
     });
   }
 }

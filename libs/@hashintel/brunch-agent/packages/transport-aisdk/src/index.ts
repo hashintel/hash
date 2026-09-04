@@ -151,11 +151,14 @@ const streamSubmission = (
     abortSignal === undefined
       ? localAbort.signal
       : AbortSignal.any([abortSignal, localAbort.signal]);
+  // Shared with `cancel()`: a consumer that cancels the stream closes its
+  // controller immediately, so the detached `wait()` settlement below must not
+  // write or close again afterwards.
+  let closed = false;
 
   return new ReadableStream<UIMessageChunk>({
     start(controller) {
       let terminalEmitted = false;
-      let closed = false;
       const close = (): void => {
         if (closed) return;
         closed = true;
@@ -190,8 +193,10 @@ const streamSubmission = (
               event.type === "message-started" &&
               event.submissionId === admission.submissionId
             ) {
+              // Report the id the consumer sees: a client-tool continuation is
+              // projected onto the assistant message it resumes.
               options.onResponseMessage?.({
-                messageId: event.messageId,
+                messageId: continuationMessageId ?? event.messageId,
                 submissionId: admission.submissionId,
               });
             }
@@ -207,6 +212,7 @@ const streamSubmission = (
         });
     },
     cancel(reason) {
+      closed = true;
       localAbort.abort(reason);
     },
   });

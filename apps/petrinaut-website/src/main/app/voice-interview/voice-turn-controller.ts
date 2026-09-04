@@ -5,6 +5,7 @@ import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type {
   RealtimeBridgeErrorCode,
   RealtimeBrunchBridgeEvent,
+  VoiceSubmissionSettlement,
 } from "./realtime-brunch-bridge";
 import type {
   PetrinautAiComposerControlContext,
@@ -89,6 +90,7 @@ interface VoiceTurnControllerDependencies {
 interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
+  readonly settlements?: readonly VoiceSubmissionSettlement[];
   readonly status: PetrinautAiVoiceModeContext["status"];
 }
 
@@ -436,6 +438,19 @@ export class VoiceTurnController {
     }
     if (event.type === "submission-settled") {
       this.#recordLatency("submission-settled", event.callId);
+      return;
+    }
+    if (event.type === "submission-stopped") {
+      // Brunch was stopped before it replied: nothing to speak, and the
+      // interviewer is free to listen again.
+      const pausedWhileStopped = this.#snapshot.input === "paused";
+      if (pausedWhileStopped) {
+        this.#inputStateOnResume = "listening";
+      }
+      this.#update({
+        input: pausedWhileStopped ? "paused" : "listening",
+        output: "idle",
+      });
       return;
     }
     const paused = this.#snapshot.input === "paused";

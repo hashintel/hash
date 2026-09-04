@@ -100,8 +100,17 @@ type QueuedVoiceInput = {
     PetrinautAiVoiceModeContext["submitVoiceInput"]
   >[0];
   readonly reject: (reason?: unknown) => void;
+  /** Detaches the input's abort listener once the queue no longer owns it. */
+  readonly release: () => void;
   readonly resolve: (result: PetrinautAiComposerSubmitTextResult) => void;
 };
+
+const voiceInputWithdrawn = (signal: AbortSignal | undefined): unknown =>
+  signal?.reason ??
+  new DOMException(
+    "The voice input was withdrawn before submission.",
+    "AbortError",
+  );
 
 const markVoiceToolOrigin = (
   messages: PetrinautAiMessage[],
@@ -503,6 +512,9 @@ export const AiAssistantPanel = ({
   );
 
   const stopRequestedRef = useRef(false);
+  // Advances on every composer submission so an asynchronous Stop can tell
+  // whether the turn it was pressed for is still the current one.
+  const submissionGenerationRef = useRef(0);
   const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
   const hydratedConversationIdRef = useRef<string | null>(null);
 
@@ -766,9 +778,23 @@ export const AiAssistantPanel = ({
     ) {
       return;
     }
+    // A turn submitted before the host's history arrived is already visible
+    // locally. A snapshot that predates it would erase that turn and latch, so
+    // wait for a snapshot that carries every locally streamed reply.
+    const canonicalMessageIds = new Set(
+      aiAssistant.messages.map((message) => message.id),
+    );
+    if (
+      messages.some(
+        (message) =>
+          message.role === "assistant" && !canonicalMessageIds.has(message.id),
+      )
+    ) {
+      return;
+    }
     hydratedConversationIdRef.current = conversationId;
     setMessages(aiAssistant.messages);
-  }, [aiAssistant.messages, conversationId, setMessages, status]);
+  }, [aiAssistant.messages, conversationId, messages, setMessages, status]);
 
   const composerSubmissionStateRef = useLatest({
     addToolOutput,
@@ -907,6 +933,7 @@ export const AiAssistantPanel = ({
         setStreamError(null);
         setStopped(false);
         stopRequestedRef.current = false;
+        submissionGenerationRef.current += 1;
         composerToolSubmissionsRef.current.add(mappedToolCall.toolCallId);
         try {
           await addMappedToolOutput({
@@ -941,6 +968,7 @@ export const AiAssistantPanel = ({
       setStreamError(null);
       setStopped(false);
       stopRequestedRef.current = false;
+      submissionGenerationRef.current += 1;
       await submitMessage({
         id: messageId,
         ...(source === "voice" ? { metadata: { source } } : {}),
@@ -977,11 +1005,28 @@ export const AiAssistantPanel = ({
         return submitText({ ...voiceInput, source: "voice" });
       }
 
+      const { signal } = voiceInput;
+      if (signal?.aborted) {
+        return Promise.reject(voiceInputWithdrawn(signal));
+      }
+
       setVoiceInputQueued(true);
       return new Promise((resolve, reject) => {
+        const withdraw = (): void => {
+          // Only the entry still holding this input may be withdrawn; a
+          // dequeued input has already been handed to the composer.
+          if (queuedVoiceInputRef.current?.input !== voiceInput) {
+            return;
+          }
+          queuedVoiceInputRef.current = null;
+          setVoiceInputQueued(false);
+          reject(voiceInputWithdrawn(signal));
+        };
+        signal?.addEventListener("abort", withdraw, { once: true });
         queuedVoiceInputRef.current = {
           input: voiceInput,
           reject,
+          release: () => signal?.removeEventListener("abort", withdraw),
           resolve,
         };
       });
@@ -997,6 +1042,7 @@ export const AiAssistantPanel = ({
     if (status === "error") {
       queuedVoiceInputRef.current = null;
       setVoiceInputQueued(false);
+      queued.release();
       queued.reject(new Error("Voice mode could not accept that input."));
       return;
     }
@@ -1006,6 +1052,7 @@ export const AiAssistantPanel = ({
 
     queuedVoiceInputRef.current = null;
     setVoiceInputQueued(false);
+    queued.release();
     void submitText({ ...queued.input, source: "voice" }).then(
       (result) => queued.resolve(result),
       (caught: unknown) => queued.reject(caught),
@@ -1014,9 +1061,9 @@ export const AiAssistantPanel = ({
 
   useEffect(
     () => () => {
-      queuedVoiceInputRef.current?.reject(
-        new Error("The voice conversation changed."),
-      );
+      const queued = queuedVoiceInputRef.current;
+      queued?.release();
+      queued?.reject(new Error("The voice conversation changed."));
       queuedVoiceInputRef.current = null;
       setVoiceInputQueued(false);
     },
@@ -1034,10 +1081,16 @@ export const AiAssistantPanel = ({
       return;
     }
 
+    const generation = submissionGenerationRef.current;
     stopRequestedRef.current = true;
     if (requestStop !== undefined) {
       try {
         const result = await requestStop();
+        if (submissionGenerationRef.current !== generation) {
+          // A newer turn started while the durable stop was in flight; that
+          // turn owns its own Stop and must not inherit this result.
+          return;
+        }
         if (result === "stop-requested") {
           await stopCurrentResponse();
         }

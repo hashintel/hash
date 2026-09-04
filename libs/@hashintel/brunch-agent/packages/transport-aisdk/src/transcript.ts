@@ -114,6 +114,7 @@ const toolPartFrom = (
     toolCallId: part.toolCallId,
     state: "input-available",
     input: part.input,
+    ...(isClientTool ? {} : { providerExecuted: true }),
   };
 };
 
@@ -163,13 +164,46 @@ export const snapshotToUiMessages = (
     CLIENT_TOOL_RESULT_SIGNAL,
   );
   const messages: UiHistoryMessage[] = [];
+  // The live stream projects a client-tool continuation onto the assistant
+  // message it resumes; the snapshot records that continuation as a separate
+  // Flue message behind the `client-tool-result` dispatch, so fold it back.
+  let resumableAssistant: UiHistoryMessage | undefined;
+  let continuationPending = false;
   for (const message of snapshot.messages) {
+    if (
+      message.purpose === "dispatch" &&
+      message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL
+    ) {
+      continuationPending = resumableAssistant !== undefined;
+      continue;
+    }
     if (message.display !== "visible") continue;
     if (message.purpose !== "user" && message.purpose !== "assistant") continue;
     if (message.role !== "user" && message.role !== "assistant") continue;
     const parts = partsFrom(message, options, clientOutputs);
+    if (message.role === "user") {
+      resumableAssistant = undefined;
+      continuationPending = false;
+    }
     if (parts.length === 0) continue;
-    messages.push({ id: message.id, role: message.role, parts });
+    if (
+      message.role === "assistant" &&
+      continuationPending &&
+      resumableAssistant !== undefined
+    ) {
+      resumableAssistant.parts.push(...parts);
+      continuationPending = false;
+      continue;
+    }
+    const projected: UiHistoryMessage = {
+      id: message.id,
+      role: message.role,
+      parts,
+    };
+    messages.push(projected);
+    if (message.role === "assistant") {
+      resumableAssistant = projected;
+    }
   }
   return messages;
 };

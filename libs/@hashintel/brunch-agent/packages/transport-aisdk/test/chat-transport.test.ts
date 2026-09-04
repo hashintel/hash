@@ -349,3 +349,81 @@ test("reports one admission and its correlated response message", async () => {
     submissionId: admission.submissionId,
   });
 });
+
+test("stays silent after the consumer cancels the per-turn stream", async () => {
+  let waitSignal: AbortSignal | undefined;
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(
+    async (_admission, options) =>
+      new Promise<void>((_resolve, reject) => {
+        waitSignal = options?.signal;
+        options?.signal?.addEventListener(
+          "abort",
+          () => reject(new DOMException("cancelled", "AbortError")),
+          { once: true },
+        );
+      }),
+  );
+  const transport = createFlueChatTransport({
+    client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+    clientToolNames: new Set(),
+  });
+  const stream = await transport.sendMessages(
+    sendOptions([
+      {
+        id: "user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Cancel from the reader." }],
+      },
+    ]),
+  );
+
+  const reader = stream.getReader();
+  await reader.cancel();
+  // Let the rejected `wait()` settle; an enqueue on the cancelled controller
+  // would surface here as an unhandled rejection.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(waitSignal?.aborted).toBe(true);
+  await expect(reader.closed).resolves.toBeUndefined();
+});
+
+test("reports a client-tool continuation against the resumed assistant id", async () => {
+  const { client } = clientWith(completedEvents);
+  const onResponseMessage =
+    vi.fn<NonNullable<FlueChatTransportOptions["onResponseMessage"]>>();
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["readPetrinautDoc"]),
+    onResponseMessage,
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions(
+      [
+        {
+          id: "assistant-original",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "readPetrinautDoc",
+              toolCallId: "tool-1",
+              state: "output-available",
+              input: { doc: "ai-assistant" },
+              output: "The guide.",
+            },
+          ],
+        },
+      ],
+      "assistant-original",
+    ),
+  );
+  await readChunks(stream);
+
+  expect(onResponseMessage).toHaveBeenCalledOnce();
+  expect(onResponseMessage).toHaveBeenCalledWith({
+    messageId: "assistant-original",
+    submissionId: admission.submissionId,
+  });
+});
