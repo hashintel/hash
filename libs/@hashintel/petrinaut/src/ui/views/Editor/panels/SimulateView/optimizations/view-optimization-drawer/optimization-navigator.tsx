@@ -1,14 +1,16 @@
 /**
- * The parameter navigator of a connected study: a slider per numeric
- * optimized parameter, a switch per boolean one, a "Follow steps" switch
- * while the study runs, and a status line for the compute at the navigated
- * point. Purely presentational: the navigation and the selection stream come
- * in as props, and the only output is `onNavigationChange`, whose patches
- * the owner forwards to the provider. Slider moves commit live — positions
- * are quantized, so a drag emits one change per step crossed and compute
- * follows the thumb. While a running study is followed, the optimizer places
- * the point and the controls only show it; the "Follow steps" switch is the
- * way to take over early, and once the study is over the controls are free.
+ * The parameter navigator of a connected study, in two parts the drawer
+ * places apart: `OptimizationNavigator` is the controls — a slider per
+ * numeric optimized parameter and a switch per boolean one — and
+ * `OptimizationNavigatorStatus` is the state line for the compute at the
+ * navigated point with the "Follow steps" switch while the study runs. Both
+ * are presentational: the navigation and the selection stream come in as
+ * props, and the only output is `onNavigationChange`, whose patches the owner
+ * forwards to the provider. Slider moves commit live — positions are
+ * quantized, so a drag emits one change per step crossed and compute follows
+ * the thumb. While a running study is followed, the optimizer places the
+ * point and the controls only show it; "Follow steps" is the way to take over
+ * early, and once the study is over the controls are free.
  */
 import { LoadingSpinner, Slider, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -57,10 +59,13 @@ const axisStepAt = (axis: OptimizationSurfaceAxis, position: number): number =>
       optimizationAxisValueAt(axis, Math.max(position - 1, 0)),
   ) / 2;
 
+// Two columns of controls when the band is wide enough for two readable
+// sliders, so several parameters cost one row per pair.
 const navigatorStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[6px]",
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
+  columnGap: "8",
+  rowGap: "[6px]",
 });
 
 const rowStyle = css({
@@ -73,7 +78,7 @@ const nameStyle = css({
   fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s120",
-  width: "[140px]",
+  width: "[120px]",
   flexShrink: 0,
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -90,7 +95,7 @@ const readoutStyle = css({
   fontSize: "xs",
   fontVariantNumeric: "tabular-nums",
   color: "neutral.s100",
-  width: "[128px]",
+  width: "[96px]",
   flexShrink: 0,
   textAlign: "right",
 });
@@ -98,9 +103,7 @@ const readoutStyle = css({
 const statusStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "[6px]",
-  // Aligns under the controls: the 140px name column plus the row gap.
-  paddingLeft: "[148px]",
+  gap: "2",
   fontSize: "xs",
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
@@ -120,16 +123,21 @@ const statusTextStyle = css({
 });
 
 const followStyle = css({
-  marginLeft: "auto",
+  marginLeft: "2",
   fontSize: "xs",
   color: "neutral.s100",
 });
+
+/** Whether a running study's steps place the point, leaving the controls to show it. */
+const isFollowing = (
+  navigation: Pick<OptimizationNavigation, "followTrials">,
+  running: boolean,
+): boolean => running && navigation.followTrials;
 
 export const OptimizationNavigator = ({
   axes,
   booleanParameters,
   navigation,
-  selection,
   running,
   onNavigationChange,
 }: {
@@ -137,12 +145,11 @@ export const OptimizationNavigator = ({
   /** Identifiers of the boolean optimized parameters. */
   booleanParameters: readonly string[];
   navigation: OptimizationNavigation;
-  selection: OptimizationSelectionStream | null;
   /** Whether the study still evaluates steps the navigation can follow. */
   running: boolean;
   onNavigationChange: (patch: Partial<OptimizationNavigation>) => void;
 }) => {
-  const following = running && navigation.followTrials;
+  const following = isFollowing(navigation, running);
 
   return (
     <div className={navigatorStyle}>
@@ -208,31 +215,45 @@ export const OptimizationNavigator = ({
           </div>
         );
       })}
-      <div className={statusStyle}>
-        <span
-          className={spinnerSlotStyle}
-          data-idle={!(selection?.computing ?? false)}
-        >
-          <LoadingSpinner size="xs" />
-        </span>
-        <span
-          className={statusTextStyle}
-          data-tone={
-            selection !== null && selection.error !== null ? "error" : undefined
-          }
-        >
-          {describeSelection(selection)}
-        </span>
-        {running ? (
-          <Toggle
-            className={followStyle}
-            size="sm"
-            labelOnText="Follow steps"
-            value={navigation.followTrials}
-            onChange={(followTrials) => onNavigationChange({ followTrials })}
-          />
-        ) : null}
-      </div>
     </div>
   );
 };
+
+export const OptimizationNavigatorStatus = ({
+  navigation,
+  selection,
+  running,
+  onNavigationChange,
+}: {
+  navigation: Pick<OptimizationNavigation, "followTrials">;
+  selection: OptimizationSelectionStream | null;
+  /** Whether the study still evaluates steps the navigation can follow. */
+  running: boolean;
+  onNavigationChange: (patch: Partial<OptimizationNavigation>) => void;
+}) => (
+  <div className={statusStyle}>
+    <span
+      className={spinnerSlotStyle}
+      data-idle={!(selection?.computing ?? false)}
+    >
+      <LoadingSpinner size="xs" />
+    </span>
+    <span
+      className={statusTextStyle}
+      data-tone={
+        selection !== null && selection.error !== null ? "error" : undefined
+      }
+    >
+      {describeSelection(selection)}
+    </span>
+    {running ? (
+      <Toggle
+        className={followStyle}
+        size="sm"
+        labelOnText="Follow steps"
+        value={navigation.followTrials}
+        onChange={(followTrials) => onNavigationChange({ followTrials })}
+      />
+    ) : null}
+  </div>
+);

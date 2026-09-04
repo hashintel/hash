@@ -13,6 +13,7 @@ import {
 import {
   describeSelection,
   OptimizationNavigator,
+  OptimizationNavigatorStatus,
 } from "./optimization-navigator";
 
 import type {
@@ -102,6 +103,37 @@ const stream = (
   ...overrides,
 });
 
+/** The drawer places the status line and the controls apart; both halves render here. */
+const Navigator = ({
+  booleanParameters,
+  navigation: value,
+  selection,
+  running,
+  onNavigationChange,
+}: {
+  booleanParameters: readonly string[];
+  navigation: OptimizationNavigation;
+  selection: OptimizationSelectionStream | null;
+  running: boolean;
+  onNavigationChange: (patch: Partial<OptimizationNavigation>) => void;
+}) => (
+  <>
+    <OptimizationNavigatorStatus
+      navigation={value}
+      selection={selection}
+      running={running}
+      onNavigationChange={onNavigationChange}
+    />
+    <OptimizationNavigator
+      axes={axes}
+      booleanParameters={booleanParameters}
+      navigation={value}
+      running={running}
+      onNavigationChange={onNavigationChange}
+    />
+  </>
+);
+
 const renderNavigator = (options: {
   running: boolean;
   followTrials?: boolean;
@@ -109,8 +141,7 @@ const renderNavigator = (options: {
   onNavigationChange?: (patch: Partial<OptimizationNavigation>) => void;
 }) =>
   render(
-    <OptimizationNavigator
-      axes={axes}
+    <Navigator
       booleanParameters={["express_shipping"]}
       navigation={{
         ...navigation,
@@ -234,8 +265,7 @@ describe("OptimizationNavigator", () => {
   it("offers the follow switch only while the study runs", () => {
     const onNavigationChange = vi.fn();
     const { unmount } = render(
-      <OptimizationNavigator
-        axes={axes}
+      <Navigator
         booleanParameters={[]}
         navigation={navigation}
         selection={stream({ key: "trial:0", computing: true })}

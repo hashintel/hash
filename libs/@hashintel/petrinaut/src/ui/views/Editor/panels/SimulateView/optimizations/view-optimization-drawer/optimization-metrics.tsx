@@ -1,15 +1,27 @@
 /**
  * The objective's chart for a connected study: one distribution timeline fed
  * the selection stream — the step being evaluated while following, the
- * navigated point's refinement otherwise. A point that could not compute
- * shows the empty shell; the navigator's status line carries the reason.
+ * navigated point's refinement otherwise — in a slot of fixed size beside the
+ * surface, so it has no size toggle. A point that could not compute shows the
+ * empty shell; the navigator's status line carries the reason.
  */
-import { MetricTiles } from "../../shared/metric-tiles";
+import { css } from "@hashintel/ds-helpers/css";
+
+import { ExperimentMetricTimeline } from "../../experiments/experiment-metric-timeline";
 
 import type {
   OptimizationRecord,
   OptimizationSelectionStream,
 } from "../../../../../../../react/optimizations/context";
+
+const paneStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  minWidth: "[0]",
+});
+
+/** Sized so the pane ends level with the surface beside it. */
+const PLOT_HEIGHT = 240;
 
 export const OptimizationMetrics = ({
   optimization,
@@ -27,22 +39,20 @@ export const OptimizationMetrics = ({
   }
 
   return (
-    <MetricTiles
-      tiles={[
-        {
-          id: metric.id,
-          label: metric.name,
-          frames:
-            selection === null || selection.error !== null
-              ? []
-              : selection.metricFrames,
-          outputType: "distribution",
-        },
-      ]}
-      timeDomain={[0, input.execution.maxTime]}
-      contentEpoch={selection?.key ?? ""}
-      // The objective is the only chart, so it takes the whole width.
-      defaultSize="large"
-    />
+    <div className={paneStyle}>
+      <ExperimentMetricTimeline
+        frames={
+          selection === null || selection.error !== null
+            ? []
+            : selection.metricFrames
+        }
+        label={metric.name}
+        expectedOutputType="distribution"
+        timeDomain={[0, input.execution.maxTime]}
+        contentEpoch={selection?.key ?? ""}
+        displaySize="large"
+        plotHeight={PLOT_HEIGHT}
+      />
+    </div>
   );
 };

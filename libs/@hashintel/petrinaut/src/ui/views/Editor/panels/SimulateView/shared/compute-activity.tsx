@@ -22,10 +22,10 @@ export type ComputeActivityBatch = {
   completedRuns: number;
 };
 
-/** A progress bar's fill and the label under it. */
+/** A progress bar's fill and the label under it; no label leaves the slot empty. */
 export type ComputeActivityBar = {
   percent: number;
-  label: string;
+  label?: string;
 };
 
 const barTrackStyle = css({
@@ -236,7 +236,9 @@ export const ComputeActivity = ({
       ) : null}
       <div className={metaRowStyle}>
         <span className={metaLabelsStyle}>
-          <span className={metaLabelStyle}>{bar.label}</span>
+          {bar.label === undefined ? null : (
+            <span className={metaLabelStyle}>{bar.label}</span>
+          )}
           {secondaryBar ? (
             <span className={secondaryLabelStyle}>{secondaryBar.label}</span>
           ) : null}
