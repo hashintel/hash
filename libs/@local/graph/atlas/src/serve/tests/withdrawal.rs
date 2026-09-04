@@ -702,7 +702,7 @@ async fn the_folded_scoped_root_publishes_the_folded_views_aggregates() {
     let (expected_visible, expected_deepest) = super::schedule::reference::Schedule::new(
         super::schedule::reference::rows(&atlas, &folded),
         FIXTURE_LOD.span.get(),
-        FIXTURE_LOD.max_tile_depth,
+        FIXTURE_LOD.max_tile_depth.get(),
         0,
     )
     .global();

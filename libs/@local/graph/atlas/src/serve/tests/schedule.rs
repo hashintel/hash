@@ -327,13 +327,13 @@ async fn restricted_delivery_agrees_with_the_scope_cascade_reference() {
             let schedule = reference::Schedule::new(
                 rows.clone(),
                 FIXTURE_LOD.span.get(),
-                FIXTURE_LOD.max_tile_depth,
+                FIXTURE_LOD.max_tile_depth.get(),
                 k,
             );
             let offset = CutOffset::new(k);
             let mut deltas: HashMap<(u8, u32, u32), Vec<u32>> = HashMap::new();
 
-            for z in 0..=FIXTURE_LOD.max_tile_depth {
+            for z in 0..=FIXTURE_LOD.max_tile_depth.get() {
                 let cells = 1_u32 << z;
                 for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
                     let cell = MortonCell::new(Depth::new(z).expect("zooms are depths"), x, y)
@@ -577,7 +577,7 @@ async fn scoped_edges_bound_the_view_cascade_delivery() {
             let schedule = reference::Schedule::new(
                 rows.clone(),
                 FIXTURE_LOD.span.get(),
-                FIXTURE_LOD.max_tile_depth,
+                FIXTURE_LOD.max_tile_depth.get(),
                 k,
             );
 
@@ -664,7 +664,7 @@ async fn scoped_locate_flies_to_the_view_cut_zoom() {
             let schedule = reference::Schedule::new(
                 rows.clone(),
                 FIXTURE_LOD.span.get(),
-                FIXTURE_LOD.max_tile_depth,
+                FIXTURE_LOD.max_tile_depth.get(),
                 k,
             );
             let bound = Bound::new(&atlas, &proof, CutOffset::new(k));
@@ -750,7 +750,7 @@ async fn an_all_row_scope_serves_the_restricted_contract() {
         let schedule = reference::Schedule::new(
             rows.clone(),
             FIXTURE_LOD.span.get(),
-            FIXTURE_LOD.max_tile_depth,
+            FIXTURE_LOD.max_tile_depth.get(),
             k,
         );
         let offset = CutOffset::new(k);
@@ -838,7 +838,7 @@ fn assert_saturated_scope_grid(
         .collect();
 
     {
-        for z in 0..=FIXTURE_LOD.max_tile_depth {
+        for z in 0..=FIXTURE_LOD.max_tile_depth.get() {
             let cells = 1_u32 << z;
             for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
                 let cell = MortonCell::new(Depth::new(z).expect("zooms are depths"), x, y)
@@ -955,7 +955,7 @@ async fn a_scoped_locate_cap_selects_among_authorised_partners() {
             let schedule = reference::Schedule::new(
                 rows.clone(),
                 FIXTURE_LOD.span.get(),
-                FIXTURE_LOD.max_tile_depth,
+                FIXTURE_LOD.max_tile_depth.get(),
                 k,
             );
             let bound = Bound::new(&atlas, &proof, CutOffset::new(k));

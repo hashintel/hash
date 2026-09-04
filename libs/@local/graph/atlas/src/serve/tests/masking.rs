@@ -72,7 +72,7 @@ async fn masked_root_serves_the_scope_cascades_rows_in_both_modes() {
     let schedule = super::schedule::reference::Schedule::new(
         super::schedule::reference::rows(&atlas, &proof),
         FIXTURE_LOD.span.get(),
-        FIXTURE_LOD.max_tile_depth,
+        FIXTURE_LOD.max_tile_depth.get(),
         0,
     );
     let root_cell = MortonCell::new(Depth::MIN, 0, 0).expect("the root cell exists");
@@ -649,11 +649,11 @@ fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hid
     let schedule = super::schedule::reference::Schedule::new(
         super::schedule::reference::rows(atlas, proof),
         FIXTURE_LOD.span.get(),
-        FIXTURE_LOD.max_tile_depth,
+        FIXTURE_LOD.max_tile_depth.get(),
         0,
     );
 
-    for z in 0..=FIXTURE_LOD.max_tile_depth {
+    for z in 0..=FIXTURE_LOD.max_tile_depth.get() {
         let cells = 1_u32 << z;
         for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
             let cell = MortonCell::new(Depth::new(z).expect("zooms are depths"), x, y)
@@ -1051,7 +1051,7 @@ async fn masked_root_publishes_the_visible_views_own_census() {
     let (expected_visible, expected_deepest) = super::schedule::reference::Schedule::new(
         super::schedule::reference::rows(&atlas, &proof),
         FIXTURE_LOD.span.get(),
-        FIXTURE_LOD.max_tile_depth,
+        FIXTURE_LOD.max_tile_depth.get(),
         0,
     )
     .global();

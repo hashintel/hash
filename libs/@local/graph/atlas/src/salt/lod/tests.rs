@@ -76,6 +76,10 @@ fn log2(value: u8) -> Log2 {
     Log2::new(value).expect("test spans lie below the shift width")
 }
 
+fn zoom(value: u8) -> Zoom {
+    Zoom::new(value).expect("test zooms lie within the key width")
+}
+
 #[test]
 fn rank_orders_by_importance_then_priority_then_tiebreak() {
     // Rows: importance dominates, priority splits the first tie, the
@@ -428,19 +432,19 @@ fn lod_config_carries_the_key_width_bound() {
     // The default schedule reaches the f32 resolution depth.
     let config = LodConfig::default();
     assert_eq!(config.span.get(), 6);
-    assert_eq!(config.max_tile_depth, 18);
+    assert_eq!(config.max_tile_depth, zoom(18));
     assert_eq!(config.deepest(), Some(depth(24)));
 
     // The inequality z_max + m ≤ 32 binds exactly at the key width.
     let at_width = LodConfig {
         span: log2(6),
-        max_tile_depth: 26,
+        max_tile_depth: zoom(26),
     };
     assert_eq!(at_width.deepest(), Some(depth(32)));
 
     let beyond = LodConfig {
         span: log2(6),
-        max_tile_depth: 27,
+        max_tile_depth: zoom(27),
     };
     assert_eq!(beyond.deepest(), None);
 
@@ -487,7 +491,7 @@ fn hand_stage() -> (Lod, LodConfig) {
     let ids = identities(4);
     let config = LodConfig {
         span: log2(1),
-        max_tile_depth: 1,
+        max_tile_depth: zoom(1),
     };
 
     let lod = Lod::build(
@@ -724,7 +728,7 @@ fn built_columns_uphold_the_contract_laws(
     let ids = identities(rows.len() as u128);
     let config = LodConfig {
         span: log2(span_log2),
-        max_tile_depth,
+        max_tile_depth: zoom(max_tile_depth),
     };
 
     let inputs = rank_inputs(&importance, &priority, &ids).expect("the fixture columns agree");
@@ -889,7 +893,7 @@ fn quad_build_gathers_types_through_the_base_order() {
     let ids = identities(4);
     let config = LodConfig {
         span: log2(1),
-        max_tile_depth: 1,
+        max_tile_depth: zoom(1),
     };
     let lod = Lod::build(
         finite(&coordinates),
@@ -937,14 +941,14 @@ fn quad_build_rejects_what_no_tree_covers() {
             &hand_types(),
             LodConfig {
                 span: log2(32),
-                max_tile_depth: 1,
+                max_tile_depth: zoom(1),
             },
         )
         .expect_err("a schedule beyond the key width must not build"),
         QuadError::Schedule {
             config: LodConfig {
                 span: log2(32),
-                max_tile_depth: 1,
+                max_tile_depth: zoom(1),
             },
         },
     );
@@ -964,7 +968,7 @@ fn quad_build_rejects_what_no_tree_covers() {
             &hand_types(),
             LodConfig {
                 span: log2(1),
-                max_tile_depth: 0,
+                max_tile_depth: zoom(0),
             },
         )
         .expect_err("a mismatched configuration must not build"),
@@ -1037,7 +1041,7 @@ fn quad_trees_uphold_the_contract_laws(
         .collect();
     let config = LodConfig {
         span: log2(span_log2),
-        max_tile_depth,
+        max_tile_depth: zoom(max_tile_depth),
     };
 
     let inputs = rank_inputs(&importance, &priority, &ids).expect("the fixture columns agree");

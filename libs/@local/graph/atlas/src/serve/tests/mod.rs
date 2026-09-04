@@ -97,7 +97,7 @@ use crate::{
     },
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, Bounds2, BoxedVecN, Log2, Vec2, VecN, positive},
-    morton::{Depth, MortonCell, MortonKey},
+    morton::{Depth, MortonCell, MortonKey, Zoom},
     progress::NoProgress,
     salt::{
         fit::{ClassifierInput, FitConfig, PlacementOptions, Supplies, fit},
@@ -118,7 +118,7 @@ const NODES: usize = 48;
 /// `span = 1`. The cut rule therefore reads `bucket = z + 1` and the root spans buckets `0..=1`.
 pub(crate) const FIXTURE_LOD: LodConfig = LodConfig {
     span: Log2::new(1).expect("1 lies below the shift width"),
-    max_tile_depth: 3,
+    max_tile_depth: Zoom::new(3).expect("3 lies within the key width"),
 };
 
 /// The tile payload's pinned slot indexes.
@@ -1109,7 +1109,7 @@ async fn serves_empty_and_deepest_cells() {
 
     // A valid coordinate with no quad node serves the honest empty
     // tile, byte for byte.
-    let empty_cell = (1..=FIXTURE_LOD.max_tile_depth)
+    let empty_cell = (1..=FIXTURE_LOD.max_tile_depth.get())
         .flat_map(|z| {
             let cells = 1_u32 << z;
             (0..cells).flat_map(move |x| {
@@ -1158,8 +1158,9 @@ async fn serves_empty_and_deepest_cells() {
 
     // At the deepest zoom a total tile delivers its cell's whole
     // population: the cut reaches the catch-all bucket.
-    let deep_cell = MortonKey::from_bits(morton.codes()[BasePosition::from_u32(0)].get())
-        .cell(Depth::new(FIXTURE_LOD.max_tile_depth).expect("the deepest tile depth is valid"));
+    let deep_cell = MortonKey::from_bits(morton.codes()[BasePosition::from_u32(0)].get()).cell(
+        Depth::new(FIXTURE_LOD.max_tile_depth.get()).expect("the deepest tile depth is valid"),
+    );
     let bytes = atlas
         .tile(
             &TileRequest {
@@ -1315,11 +1316,11 @@ fn open_edge_artifacts(generation: &Generation) -> EdgeArtifacts {
 ///
 /// The cut reaches the catch-all bucket. The grid therefore delivers the whole corpus.
 fn full_grid() -> Vec<TileCoordinate> {
-    let cells = 1_u32 << FIXTURE_LOD.max_tile_depth;
+    let cells = 1_u32 << FIXTURE_LOD.max_tile_depth.get();
     (0..cells)
         .flat_map(|x| {
             (0..cells).map(move |y| TileCoordinate {
-                z: FIXTURE_LOD.max_tile_depth,
+                z: FIXTURE_LOD.max_tile_depth.get(),
                 x,
                 y,
             })
@@ -1581,7 +1582,8 @@ async fn edges_exclude_partially_delivered_pairs() {
         .map(|position| position.as_u32())
         .collect();
 
-    let depth = Depth::new(FIXTURE_LOD.max_tile_depth).expect("the deepest tile depth is valid");
+    let depth =
+        Depth::new(FIXTURE_LOD.max_tile_depth.get()).expect("the deepest tile depth is valid");
     let cell_of_row = |row: u64| {
         let position = positions[usize::try_from(row).expect("fixture rows fit usize")];
         MortonKey::from_bits(codes[BasePosition::from_u32(position)].get()).cell(depth)

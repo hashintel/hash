@@ -564,7 +564,7 @@ impl WalkBench {
             position_of_key,
             key_order_of_position,
             span: config.span.get(),
-            max_zoom: config.max_tile_depth,
+            max_zoom: config.max_tile_depth.get(),
             visible,
         }
     }

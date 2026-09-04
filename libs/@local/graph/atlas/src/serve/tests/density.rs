@@ -195,7 +195,7 @@ async fn operator_proof_offers_the_policy_no_view() {
         )
         .expect("the band is ordered"),
         FIXTURE_LOD.span,
-        FIXTURE_LOD.max_tile_depth,
+        FIXTURE_LOD.max_tile_depth.get(),
     )
     .expect("the fixture schedule admits an offset");
 

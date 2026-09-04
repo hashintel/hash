@@ -203,7 +203,7 @@ fn widened(atlas: &Atlas, hidden: &[u32], slots: &[NodeRowId]) -> VisibilityProo
 /// The candidates sweep distinct quadrants of the wire square, so one of them lands apart from
 /// the fixture's handful of points and the tile witnesses the arrival alone.
 pub(super) fn vacant_cell(atlas: &Atlas) -> (Vec2, TileCoordinate) {
-    let depth = Depth::new(FIXTURE_LOD.max_tile_depth).expect("the fixture depth is a depth");
+    let depth = Depth::new(FIXTURE_LOD.max_tile_depth.get()).expect("the fixture depth is a depth");
 
     'candidates: for candidate in [
         Vec2::new(0.25, -0.5),
@@ -284,7 +284,7 @@ async fn scoped_tile_serves_placed_arrival_with_captured_display() {
 
     // d(z) at the deepest zoom is the catch-all, so the cut delivers buckets 0..=deepest and
     // the children mask reads zero. The arrival's run sits at its natural bucket.
-    let deepest = FIXTURE_LOD.max_tile_depth + FIXTURE_LOD.span.get();
+    let deepest = FIXTURE_LOD.max_tile_depth.get() + FIXTURE_LOD.span.get();
     let bucket = expected_bucket(&atlas, &proof, wire, deepest);
     let runs: Vec<u32> = (0..=deepest).map(|at| u32::from(at == bucket)).collect();
 
@@ -572,7 +572,7 @@ async fn corpus_tile_serves_placed_arrival_with_captured_display() {
     // The corpus catch-all is the deepest zoom's cut, so the total delivery covers buckets
     // 0..=deepest with the vacant cell contributing the arrival alone, and the deepest zoom's
     // child bitmask reads zero.
-    let deepest = FIXTURE_LOD.max_tile_depth + FIXTURE_LOD.span.get();
+    let deepest = FIXTURE_LOD.max_tile_depth.get() + FIXTURE_LOD.span.get();
     let bucket = expected_bucket(&atlas, &FULL, wire, deepest);
     let runs: Vec<u32> = (0..=deepest).map(|at| u32::from(at == bucket)).collect();
 
@@ -667,7 +667,7 @@ async fn corpus_saturated_and_folded_arrival_deliveries_agree() {
             delta: None,
         };
 
-        for z in 0..=FIXTURE_LOD.max_tile_depth {
+        for z in 0..=FIXTURE_LOD.max_tile_depth.get() {
             let cells = 1_u32 << z;
             for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
                 for mode in [Mode::Delta, Mode::Total] {
@@ -709,7 +709,7 @@ async fn corpus_saturated_and_folded_arrival_deliveries_agree() {
     // toward the visible aggregate exactly when its bucket lies on the root's cumulative
     // schedule, while the co-located arrival takes the catch-all and never does. The resolution
     // deepens to the deepest clamped arrival bucket.
-    let deepest = FIXTURE_LOD.max_tile_depth + FIXTURE_LOD.span.get();
+    let deepest = FIXTURE_LOD.max_tile_depth.get() + FIXTURE_LOD.span.get();
     let vacant_bucket = expected_bucket(&atlas, &FULL, vacant, deepest);
     assert_eq!(
         expected_bucket(&atlas, &FULL, co_located, deepest),
@@ -804,7 +804,7 @@ async fn ingress_withdrawal_subtracts_spliced_arrival_from_corpus_tiles() {
     let fitted_seed =
         u8::try_from(atlas.row_ids()[BasePosition::MIN].as_u32()).expect("fixture rows fit u8");
     let withdrawing_fitted = withdrawing(&atlas, &[fitted_seed]);
-    let depth = Depth::new(FIXTURE_LOD.max_tile_depth).expect("the fixture depth is a depth");
+    let depth = Depth::new(FIXTURE_LOD.max_tile_depth.get()).expect("the fixture depth is a depth");
     let shared_cell = coordinate_of(atlas.morton.code(BasePosition::MIN).cell(depth));
     let shared_tile = request(shared_cell.z, shared_cell.x, shared_cell.y, Mode::Total);
 
@@ -864,7 +864,7 @@ fn arrival_zoom_and_cell(
     proof: &VisibilityProof,
     wire: Vec2,
 ) -> (u8, TileCoordinate) {
-    let deepest = FIXTURE_LOD.max_tile_depth + FIXTURE_LOD.span.get();
+    let deepest = FIXTURE_LOD.max_tile_depth.get() + FIXTURE_LOD.span.get();
     let bucket = expected_bucket(atlas, proof, wire, deepest);
     let zoom = bucket.saturating_sub(FIXTURE_LOD.span.get());
     let [x, y] = WIRE_FRAME.quantize(wire);
@@ -1035,7 +1035,7 @@ async fn corpus_locate_clamps_arrival_zoom_into_catch_all() {
     let view = bound.view(&atlas);
 
     // Grid::deepest() is the corpus catch-all, and first_zoom subtracts the span.
-    let deepest = FIXTURE_LOD.max_tile_depth + FIXTURE_LOD.span.get();
+    let deepest = FIXTURE_LOD.max_tile_depth.get() + FIXTURE_LOD.span.get();
     let vacant_zoom =
         expected_bucket(&atlas, &FULL, vacant, deepest).saturating_sub(FIXTURE_LOD.span.get());
     let source = atlas
@@ -1049,7 +1049,8 @@ async fn corpus_locate_clamps_arrival_zoom_into_catch_all() {
         .resolve_source(&view, &entity_string_of(ARRIVAL_SEED + 1))
         .expect("the corpus view resolves the co-located arrival");
     assert_eq!(
-        saturated.zoom, FIXTURE_LOD.max_tile_depth,
+        saturated.zoom,
+        FIXTURE_LOD.max_tile_depth.get(),
         "the catch-all clamp inverts to the deepest served zoom"
     );
 

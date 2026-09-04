@@ -453,7 +453,7 @@ async fn arrival_endpoint_qualification() {
     let anchor_position = BasePosition::MIN;
     let anchor_row = atlas.row_ids()[anchor_position];
     let anchor_seed = u8::try_from(anchor_row.as_u32()).expect("fixture rows fit u8");
-    let depth = Depth::new(FIXTURE_LOD.max_tile_depth).expect("the fixture depth is a depth");
+    let depth = Depth::new(FIXTURE_LOD.max_tile_depth.get()).expect("the fixture depth is a depth");
     let anchor_tile = coordinate_of(atlas.morton.code(anchor_position).cell(depth));
 
     let snapshot = publishing(

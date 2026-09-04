@@ -33,7 +33,7 @@ use crate::{
     identity::{BasePosition, ImportanceRank, NodeRowId},
     integrity::{Sha256, Sha256Digest, Writer},
     math::{Bounds2, FinitePointField, Log2, Vec2},
-    morton::{Depth, MortonKey},
+    morton::{Depth, MortonKey, Zoom},
 };
 
 /// The fixed frame every wire coordinate lives in.
@@ -45,6 +45,8 @@ pub(crate) const WIRE_FRAME: Bounds2 = Bounds2::new(Vec2::new(-1.0, -1.0), Vec2:
 
 /// The default [`LodConfig::span`].
 const DEFAULT_SPAN: Log2 = Log2::new(6).expect("6 lies below the shift width");
+/// The default [`LodConfig::max_tile_depth`].
+const DEFAULT_ZOOM: Zoom = Zoom::new(18).expect("18 lies within the key width");
 
 /// Configuration of the level-of-detail schedule.
 ///
@@ -64,7 +66,7 @@ pub(crate) struct LodConfig {
     /// The deepest cascade grid sits at `max_tile_depth + span`, which the configured defaults put
     /// at depth 24 - the resolution where `f32` coordinates in the wire frame stop separating
     /// points.
-    pub max_tile_depth: u8 = 18,
+    pub max_tile_depth: Zoom = DEFAULT_ZOOM,
 }
 
 const impl Default for LodConfig {
@@ -83,7 +85,7 @@ impl LodConfig {
     /// buildable schedule.
     #[must_use]
     pub(crate) const fn deepest(self) -> Option<Depth> {
-        let Some(sum) = self.span.get().checked_add(self.max_tile_depth) else {
+        let Some(sum) = self.span.get().checked_add(self.max_tile_depth.get()) else {
             return None;
         };
 
@@ -101,7 +103,7 @@ pub(crate) enum LodError {
     /// Columns disagreeing among themselves cannot reach here: [`RankInputs`] admits only
     /// equal-length columns.
     Columns { coordinates: usize },
-    /// The coordinates hold no rows, so no world frame exists.
+    /// The coordinates hold no rows to fit a world frame from.
     Frame,
 }
 
@@ -111,7 +113,7 @@ impl core::fmt::Display for LodError {
             Self::Schedule { config } => write!(
                 fmt,
                 "the schedule needs {} + {} subdivisions where a 64-bit Morton key resolves {}",
-                config.max_tile_depth,
+                config.max_tile_depth.get(),
                 config.span.get(),
                 Depth::MAX.get(),
             ),
@@ -121,7 +123,7 @@ impl core::fmt::Display for LodError {
             ),
             Self::Frame => write!(
                 fmt,
-                "the coordinates hold no rows, so no world frame exists",
+                "the coordinates hold no rows to fit a world frame from",
             ),
         }
     }
@@ -197,9 +199,9 @@ impl Lod {
     /// holds the per-row rank columns and `seed` the generation's reproducibility seed.
     ///
     /// The build fits the world frame from the coordinates and normalizes each axis onto `[-1, 1]`
-    /// in `f64` with one final rounding, so the wire column is within `2^-23` of exact everywhere
-    /// and reproducible across targets. Keys quantize the normalized column, not the input, so wire
-    /// coordinates and tile cells can never disagree.
+    /// in `f64` with one final rounding. The wire column is within `2^-23` of exact everywhere and
+    /// reproducible across targets. Keys quantize the normalized column rather than the input, and
+    /// wire coordinates and tile cells can never disagree.
     ///
     /// # Errors
     ///
@@ -309,7 +311,7 @@ impl Lod {
     pub(crate) fn measurements(&self, config: LodConfig) -> LodMeasurements {
         let deepest = config
             .deepest()
-            .expect("the structure was built under this configuration");
+            .expect("the structure's build used this configuration");
 
         // Codes sort within every segment, so cell populations are consecutive equal-prefix groups.
         // One linear scan per measurement suffices.
@@ -341,8 +343,8 @@ impl Lod {
 
     /// Borrows one bucket's slice of the code column.
     ///
-    /// The returned slice re-bases at the segment, so its indices are bucket offsets rather than
-    /// base positions. The helpers scanning it consume values alone.
+    /// The returned slice re-bases at the segment. Its indices are bucket offsets rather than base
+    /// positions. The helpers scanning it consume values alone.
     fn segment_codes(&self, bucket: Depth) -> &[MortonKey] {
         &self.codes[self.fenceposts.segment(bucket)]
     }

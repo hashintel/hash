@@ -60,4 +60,24 @@ impl Log2 {
     }
 }
 
+impl serde::Serialize for Log2 {
+    /// Serializes as the plain exponent.
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u8(self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Log2 {
+    /// Deserializes a plain exponent, refusing values at or above the `u64` shift width.
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = u8::deserialize(deserializer)?;
+        Self::new(value).ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Unsigned(u64::from(value)),
+                &"an exponent below the u64 shift width",
+            )
+        })
+    }
+}
+
 unsafe_impl_try_from_bytes!(Log2[u8]);

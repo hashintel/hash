@@ -43,13 +43,13 @@ impl Grid {
         if config.deepest().is_none() {
             return Err(OpenAtlasError::Schedule {
                 span_log2: config.span.get(),
-                max_tile_depth: config.max_tile_depth,
+                max_tile_depth: config.max_tile_depth.get(),
             });
         }
 
         Ok(Self {
             span: config.span.get(),
-            max_tile_depth: config.max_tile_depth,
+            max_tile_depth: config.max_tile_depth.get(),
         })
     }
 

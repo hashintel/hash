@@ -69,7 +69,7 @@ fn hand_cascade_pins_the_first_occupant_law() {
     let schedule = ScopeSchedule::over(rows, Box::new_in([], MemoryUsageAllocator::global()));
     let grid = crate::serve::grid::Grid::new(crate::salt::lod::stage::LodConfig {
         span: crate::math::Log2::new(1).expect("1 lies below the shift width"),
-        max_tile_depth: 1,
+        max_tile_depth: crate::morton::Zoom::new(1).expect("1 lies within the key width"),
     })
     .expect("the hand grid is valid");
 
@@ -185,7 +185,7 @@ fn hand_cascade_places_arrivals_by_the_same_law() {
 
     let grid = crate::serve::grid::Grid::new(crate::salt::lod::stage::LodConfig {
         span: crate::math::Log2::new(1).expect("1 lies below the shift width"),
-        max_tile_depth: 1,
+        max_tile_depth: crate::morton::Zoom::new(1).expect("1 lies within the key width"),
     })
     .expect("the hand grid is valid");
     let overlay = ArrivalOverlay::empty();
@@ -237,7 +237,7 @@ fn empty_view_delivers_nothing() {
     let schedule = ScopeSchedule::over(Vec::new(), Box::new_in([], MemoryUsageAllocator::global()));
     let grid = crate::serve::grid::Grid::new(crate::salt::lod::stage::LodConfig {
         span: crate::math::Log2::new(1).expect("1 lies below the shift width"),
-        max_tile_depth: 1,
+        max_tile_depth: crate::morton::Zoom::new(1).expect("1 lies within the key width"),
     })
     .expect("the hand grid is valid");
     let overlay = ArrivalOverlay::empty();

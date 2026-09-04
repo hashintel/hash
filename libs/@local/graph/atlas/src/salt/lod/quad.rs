@@ -67,7 +67,7 @@ impl core::fmt::Display for QuadError {
             Self::Schedule { config } => write!(
                 fmt,
                 "the schedule needs {} + {} subdivisions where a 64-bit Morton key resolves {}",
-                config.max_tile_depth,
+                config.max_tile_depth.get(),
                 config.span.get(),
                 Depth::MAX.get(),
             ),

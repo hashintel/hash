@@ -99,6 +99,52 @@ impl Depth {
     }
 }
 
+/// A tile zoom level within the key width.
+///
+/// Zoom `z` addresses the tiles of the `2^z x 2^z` grid, the cells of [`Depth`] `z`. A distinct
+/// type from [`Depth`] keeps a tile's level and a key's subdivision depth out of each other's
+/// arithmetic.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct Zoom(u8);
+
+impl Zoom {
+    /// Validates a tile zoom level.
+    ///
+    /// Returns [`None`] above [`Depth::MAX`], the deepest grid a key addresses.
+    pub(crate) const fn new(zoom: u8) -> Option<Self> {
+        if zoom > Depth::MAX.get() {
+            return None;
+        }
+
+        Some(Self(zoom))
+    }
+
+    /// Returns the level.
+    pub(crate) const fn get(self) -> u8 {
+        self.0
+    }
+}
+
+impl serde::Serialize for Zoom {
+    /// Serializes as the plain level.
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u8(self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Zoom {
+    /// Deserializes a plain level, refusing values above [`Depth::MAX`].
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = u8::deserialize(deserializer)?;
+        Self::new(value).ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Unsigned(u64::from(value)),
+                &"a zoom level within the key width",
+            )
+        })
+    }
+}
+
 /// A Z-order key interleaving two 32-bit axes into one `u64`.
 ///
 /// `x` occupies the even bits and `y` the odd bits, starting at bit 0, so key order is Z-order
