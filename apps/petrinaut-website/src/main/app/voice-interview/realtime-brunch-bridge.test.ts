@@ -134,7 +134,7 @@ describe("RealtimeBrunchBridge", () => {
         "This canonical response was already delivered.",
         "assistant-text",
       ),
-      submissionId: "submission-settled",
+      submissionIds: ["submission-settled"],
     };
 
     harness.bridge.updateChat({
@@ -268,7 +268,7 @@ describe("RealtimeBrunchBridge", () => {
     const unrelated = segment("unrelated", "Do not select this.");
     const correlated = {
       ...segment("correlated", "Select this response."),
-      submissionId: "submission-early",
+      submissionIds: ["submission-early"],
     };
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: true,
@@ -322,7 +322,7 @@ describe("RealtimeBrunchBridge", () => {
     });
     const unrelated = {
       ...segment("unrelated", "Do not speak this response."),
-      submissionId: "submission-other",
+      submissionIds: ["submission-other"],
     };
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: true,
@@ -332,7 +332,7 @@ describe("RealtimeBrunchBridge", () => {
     expect(harness.session.completeFunctionCall).not.toHaveBeenCalled();
     const firstQuestion = {
       ...segment("ask-first", "What starts the battery charger workflow?"),
-      submissionId: "submission-voice-1",
+      submissionIds: ["submission-voice-1"],
     };
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: true,
@@ -636,7 +636,7 @@ describe("RealtimeBrunchBridge", () => {
     });
     const firstText = {
       ...segment("first", "First completed block.", "assistant-text"),
-      submissionId: "submission-text",
+      submissionIds: ["submission-text"],
     };
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: false,
@@ -729,6 +729,102 @@ describe("RealtimeBrunchBridge", () => {
       expect.arrayContaining(["submission-settled", "submission-stopped"]),
     );
     expect(harness.events.some(({ type }) => type === "error")).toBe(false);
+  });
+
+  test("speaks the folded continuation that answers a Voice brunch_ask follow-up", async () => {
+    const harness = createHarness();
+    const question = {
+      ...segment("ask-current", "Question"),
+      submissionIds: ["submission-question"],
+    };
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      status: "ready",
+    });
+    harness.bridge.start(7);
+    harness.emit(toolDone(7));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    harness.submitInterviewAnswer.mock.calls[0]?.[0].onAdmission(
+      "submission-answer",
+    );
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual(
+        expect.objectContaining({ type: "submission-accepted" }),
+      ),
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [question],
+      status: "streaming",
+    });
+
+    // The continuation is projected onto the message that asked, so that
+    // message is now written by both submissions.
+    const nextQuestion = {
+      ...segment("ask-next", "Next question"),
+      messageId: question.messageId,
+      submissionIds: ["submission-question", "submission-answer"],
+    };
+    const askedAgain = {
+      ...question,
+      submissionIds: nextQuestion.submissionIds,
+    };
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [askedAgain, nextQuestion],
+      status: "ready",
+    });
+
+    expect(harness.session.completeFunctionCall).toHaveBeenCalledWith(
+      "call-1",
+      [nextQuestion],
+    );
+  });
+
+  test("speaks a reply that arrives through a client-tool follow-up", async () => {
+    const harness = createHarness();
+    harness.submitInterviewAnswer.mockResolvedValueOnce({
+      kind: "message",
+      messageId: "message-kickoff",
+      submissionId: "submission-voice-1",
+    });
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      status: "ready",
+    });
+    harness.bridge.start(7);
+    harness.emit(toolDone(7, '{"answer":"Read the guide first."}'));
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual(
+        expect.objectContaining({ type: "submission-accepted" }),
+      ),
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "submitted",
+    });
+
+    // Brunch read a doc mid-turn; the panel's follow-up submission finished
+    // the same assistant message.
+    const reply = {
+      ...segment("reply", "The guide says hello.", "assistant-text"),
+      submissionIds: ["submission-voice-1", "submission-doc-follow-up"],
+    };
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [reply],
+      status: "ready",
+    });
+
+    expect(harness.session.completeFunctionCall).toHaveBeenCalledWith(
+      "call-1",
+      [reply],
+    );
   });
 
   test("speaks new canonical text turns without creating a Realtime tool result", () => {
