@@ -146,7 +146,7 @@ blur completely, because the tint is opaque where the blur is strongest; the
 stretch below the tint is where a reader actually sees content blurred.
 
 `backdrop-filter` takes a single radius, so the ramp comes from the mask rather
-than from the filter: one layer fills the band at 0.7px of blur, at full strength
+than from the filter: one layer fills the band at 0.5px of blur, at full strength
 for its top half and out to nothing by its bottom, which is what keeps the blur
 from ending on a line across the page.
 
@@ -158,8 +158,11 @@ anything has gone up behind the header and the ramp only takes the hard edge off
 its arrival. Nothing eases it: the value already tracks the scroll frame by
 frame, and a transition on top would only make a band lag the rows it covers.
 
-The nav reads its own `scrollTop` rather than the window's, since the rail
-scrolls independently of the page, and carries a second band at its foot,
+The nav's bands run to three quarters of the content band's heights, 60px of
+blur over a 45px tint: the rail is a narrower column of shorter rows, and the
+full extent swamps it. It reads its own `scrollTop` rather than the window's,
+since the rail scrolls independently of the page, and carries a second band at
+its foot,
 mirrored: box, layer, mask and tint all run upwards from the bottom edge. That
 one is driven by what is left below the fold rather than by what has gone above
 it, so a rail short enough to need no scrolling never shows one and the band
