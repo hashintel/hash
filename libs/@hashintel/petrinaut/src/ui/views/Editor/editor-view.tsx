@@ -22,6 +22,7 @@ import {
   sirModel,
   supplyChainWithDisruption,
   supplyChainProfit,
+  vaccinationCampaign,
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
@@ -433,6 +434,14 @@ export const EditorView = ({
                 text: "Supply Chain Profit",
                 onClick: () => {
                   createNewNet(supplyChainProfit);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-vaccination-campaign",
+                text: "Vaccination Campaign",
+                onClick: () => {
+                  createNewNet(vaccinationCampaign);
                   clearSelection();
                 },
               },
