@@ -46,10 +46,6 @@ const createSegment = (
   };
 };
 
-export const selectCanonicalSpeechSegments = (
-  messages: PetrinautAiMessage[],
-): CanonicalSpeechSegment[] => selectCanonicalSpeech(messages).segments;
-
 export interface CanonicalSpeechSelection {
   readonly questionSegment?: CanonicalSpeechSegment;
   readonly segments: CanonicalSpeechSegment[];
@@ -115,3 +111,7 @@ export const selectCanonicalSpeech = (
 
   return { questionSegment, segments };
 };
+
+export const selectCanonicalSpeechSegments = (
+  messages: PetrinautAiMessage[],
+): CanonicalSpeechSegment[] => selectCanonicalSpeech(messages).segments;
