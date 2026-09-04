@@ -1095,6 +1095,9 @@ export const AiAssistantPanel = ({
           await stopCurrentResponse();
         }
       } catch (caught) {
+        if (submissionGenerationRef.current !== generation) {
+          return;
+        }
         stopRequestedRef.current = false;
         setStreamError(
           caught instanceof Error ? caught : new Error(String(caught)),

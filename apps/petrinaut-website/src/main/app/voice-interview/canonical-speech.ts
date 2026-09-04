@@ -16,7 +16,11 @@ export interface CanonicalSpeechSegment {
   readonly messageId: string;
   readonly partId: string;
   readonly source: "assistant-text" | "brunch-ask";
-  readonly submissionId?: AgentSendResult["submissionId"];
+  /**
+   * Every Flue submission that wrote to this segment's message: the one that
+   * started it plus any client-tool continuation projected back onto it.
+   */
+  readonly submissionIds?: readonly AgentSendResult["submissionId"][];
   readonly text: string;
 }
 
