@@ -64,7 +64,8 @@ const dropdownArrowStyle = css({
   opacity: "[0.5]",
 });
 
-const CursorModeDropdown: React.FC<{
+/** Picks between the select and pan cursors, and returns to cursor mode. */
+export const CursorModeDropdown: React.FC<{
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
   cursorMode: CursorMode;
@@ -161,20 +162,18 @@ const ComponentDropdown: React.FC<{
   );
 };
 
-interface ToolbarModesProps {
+interface EditionToolsProps {
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
-  cursorMode: CursorMode;
-  onCursorModeChange: (mode: CursorMode) => void;
-  showEditTools?: boolean;
 }
 
-export const ToolbarModes: React.FC<ToolbarModesProps> = ({
+/**
+ * The tools that add nodes to the net. Nothing to offer on a read-only net,
+ * where every one of them is refused.
+ */
+export const EditionTools: React.FC<EditionToolsProps> = ({
   editionMode,
   onEditionModeChange,
-  cursorMode,
-  onCursorModeChange,
-  showEditTools = true,
 }) => {
   const isReadOnly = useIsReadOnly();
   const { activeSubnetId } = use(ActiveNetContext);
@@ -182,49 +181,43 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
   const { extensions } = use(SDCPNContext);
   const { enableNetComponents } = use(UserSettingsContext);
 
+  if (isReadOnly) {
+    return null;
+  }
+
   return (
     <>
-      <CursorModeDropdown
-        editionMode={editionMode}
-        onEditionModeChange={onEditionModeChange}
-        cursorMode={cursorMode}
-        onCursorModeChange={onCursorModeChange}
-      />
-      {showEditTools && !isReadOnly && (
-        <>
-          <ToolbarDivider />
-          <ToolbarButton
-            tooltip="Add Place (N)"
-            onClick={() => onEditionModeChange("add-place")}
-            isSelected={editionMode === "add-place"}
-            ariaLabel="Add place mode"
-            draggable
-            onDragStart={(event) => {
-              // eslint-disable-next-line no-param-reassign
-              event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("application/reactflow", "place");
-            }}
-          >
-            <Icon name="circlePlus" />
-          </ToolbarButton>
-          <ToolbarButton
-            tooltip="Add Transition (T)"
-            onClick={() => onEditionModeChange("add-transition")}
-            isSelected={editionMode === "add-transition"}
-            ariaLabel="Add transition mode"
-            draggable
-            onDragStart={(event) => {
-              // eslint-disable-next-line no-param-reassign
-              event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("application/reactflow", "transition");
-            }}
-          >
-            <Icon name="squarePlus" />
-          </ToolbarButton>
-          {isRootNet && extensions.subnets && enableNetComponents && (
-            <ComponentDropdown editionMode={editionMode} />
-          )}
-        </>
+      <ToolbarDivider />
+      <ToolbarButton
+        tooltip="Add Place (N)"
+        onClick={() => onEditionModeChange("add-place")}
+        isSelected={editionMode === "add-place"}
+        ariaLabel="Add place mode"
+        draggable
+        onDragStart={(event) => {
+          // eslint-disable-next-line no-param-reassign
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("application/reactflow", "place");
+        }}
+      >
+        <Icon name="circlePlus" />
+      </ToolbarButton>
+      <ToolbarButton
+        tooltip="Add Transition (T)"
+        onClick={() => onEditionModeChange("add-transition")}
+        isSelected={editionMode === "add-transition"}
+        ariaLabel="Add transition mode"
+        draggable
+        onDragStart={(event) => {
+          // eslint-disable-next-line no-param-reassign
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("application/reactflow", "transition");
+        }}
+      >
+        <Icon name="squarePlus" />
+      </ToolbarButton>
+      {isRootNet && extensions.subnets && enableNetComponents && (
+        <ComponentDropdown editionMode={editionMode} />
       )}
     </>
   );

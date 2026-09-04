@@ -6,12 +6,10 @@ import { cx, css, cva } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../react/navigation";
 import { EditorContext } from "../../../../react/state/editor-context";
-import { PANEL_MARGIN } from "../../../constants/ui";
+import { PANEL_MARGIN, VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
 import type { ViewportAction } from "../../../types/viewport-action";
-
-const BASE_OFFSET = 12;
 
 const containerStyle = css({
   position: "absolute",
@@ -57,10 +55,11 @@ export const ViewportControls: React.FC<{
 
   const isPropertiesPanelVisible = hasSelection;
   const rightOffset =
-    BASE_OFFSET +
+    VIEWPORT_CONTROLS_OFFSET +
     (isPropertiesPanelVisible ? propertiesPanelWidth + PANEL_MARGIN : 0);
   const bottomOffset =
-    BASE_OFFSET + (isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0);
+    VIEWPORT_CONTROLS_OFFSET +
+    (isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0);
 
   return (
     <div
