@@ -15,7 +15,8 @@ The implementation under test is:
 - `f1189523a8` — real Flue admission timing and production-path correlation evidence;
 - `a4ec9f28ce` — client-tool-result ordering that keeps the Voice submission pending until its real Flue admission and cancels stale admission waits;
 - `2a1bb35775` — durable Stop correlation and aligned live/history conversation projections; and
-- `eecbe99e20` — reply correlation across every submission that wrote a resumed assistant message.
+- `eecbe99e20` — reply correlation across every submission that wrote a resumed assistant message; and
+- `2d4e81f3a4` — preservation of Petrinaut's Voice API handlers in the Brunch local preview.
 
 ## Automated verification
 
@@ -50,7 +51,7 @@ The Voice integration holds the finite Flue response stream open and asserts tha
 
 ## Human witness still required
 
-Run `yarn dev:brunch` with `ANTHROPIC_API_KEY`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a dedicated `OPENAI_VOICE_API_KEY`, then perform this witness against source commit `eecbe99e20` or a descendant that changes evidence only:
+Run `yarn dev:brunch` with `ANTHROPIC_API_KEY`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a dedicated `OPENAI_VOICE_API_KEY`, then perform this witness against source commit `2d4e81f3a4` or a descendant that changes evidence only:
 
 1. Open one saved net, submit one typed panel turn, and confirm the network ledger contains conversation traffic only under `/agents/chat/:instanceId`.
 2. Start Voice mode, accept the disclosure if required, speak one finalized answer, and confirm exactly one corresponding visible user message.
