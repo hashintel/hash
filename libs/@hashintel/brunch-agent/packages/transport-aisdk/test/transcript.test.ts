@@ -53,6 +53,38 @@ test("leaves an unfinished client tool available to run", () => {
   ]);
 });
 
+test("hydrates a server-rejected client tool as provider-executed", () => {
+  const snapshot: FlueConversationSnapshot = {
+    ...snapshotWithPendingClientTool,
+    messages: [
+      {
+        ...snapshotWithPendingClientTool.messages[0]!,
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolCallId: "tool-doc-invalid",
+            toolName: "readPetrinautDoc",
+            state: "output-error",
+            input: { doc: 42 },
+            errorText: "Expected doc to be a string.",
+          },
+        ],
+      },
+    ],
+  };
+
+  expect(snapshotToUiMessages(snapshot, projectionOptions)[0]?.parts).toEqual([
+    {
+      type: "tool-readPetrinautDoc",
+      toolCallId: "tool-doc-invalid",
+      state: "output-error",
+      input: { doc: 42 },
+      errorText: "Expected doc to be a string.",
+      providerExecuted: true,
+    },
+  ]);
+});
+
 test("uses a recorded browser result even when it is null", () => {
   const snapshot: FlueConversationSnapshot = {
     ...snapshotWithPendingClientTool,

@@ -145,11 +145,18 @@ test("seeds scratch mode and admits construction calls as browser tools", async 
       position: { batch: 1, index: 1 },
     },
     {
+      type: "tool-output",
+      conversationId: "conversation-scratch",
+      toolCallId: "add-place",
+      output: { awaiting: "client" },
+      position: { batch: 1, index: 2 },
+    },
+    {
       type: "submission-settled",
       conversationId: "conversation-scratch",
       submissionId: admission.submissionId,
       outcome: "completed",
-      position: { batch: 1, index: 2 },
+      position: { batch: 1, index: 3 },
     },
   ];
   const send = vi.fn<FlueClient["send"]>(async () => admission);

@@ -1,3 +1,4 @@
+import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 import { describe, expect, test } from "vitest";
 
@@ -45,16 +46,86 @@ describe("Petrinaut construction tools", () => {
     }
   });
 
+  test("exposes canonical structural fields to the model provider", () => {
+    const addTypeSchema = toJsonSchema(toolByName("addType").input!, {
+      errorMode: "ignore",
+    });
+    const addTransitionSchema = toJsonSchema(
+      toolByName("addTransition").input!,
+      { errorMode: "ignore" },
+    );
+    const addPlaceSchema = toJsonSchema(toolByName("addPlace").input!, {
+      errorMode: "ignore",
+    });
+    const addArcSchema = toJsonSchema(toolByName("addArc").input!, {
+      errorMode: "ignore",
+    });
+
+    expect(addTypeSchema).toMatchObject({
+      type: "object",
+      properties: {
+        elements: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["elementId", "name", "type"],
+          },
+        },
+      },
+      required: ["id", "name", "iconSlug", "displayColor", "elements"],
+    });
+    expect(addTransitionSchema).toMatchObject({
+      type: "object",
+      properties: {
+        inputArcs: { type: "array" },
+        outputArcs: { type: "array" },
+        x: { type: "number" },
+        y: { type: "number" },
+      },
+      required: [
+        "id",
+        "name",
+        "inputArcs",
+        "outputArcs",
+        "lambdaType",
+        "lambdaCode",
+        "transitionKernelCode",
+        "x",
+        "y",
+      ],
+    });
+    expect(addPlaceSchema).toMatchObject({
+      properties: {
+        capacity: {
+          anyOf: [
+            {
+              type: "integer",
+              minimum: 0,
+              maximum: Number.MAX_SAFE_INTEGER,
+            },
+            { type: "null" },
+          ],
+        },
+      },
+    });
+    expect(addArcSchema).toMatchObject({
+      properties: {
+        arcDirection: { enum: ["input", "output"] },
+        weight: { type: "number", exclusiveMinimum: 0 },
+      },
+    });
+  });
+
   test("delegates accepted and rejected inputs to Petrinaut's Zod schemas", () => {
     const addArc = toolByName("addArc");
-    const invalidArc = {
+    const validArc = {
       transitionId: "transition",
-      arcDirection: "input",
+      arcDirection: "output",
       placeId: "place",
-      weight: 0,
+      weight: 1,
       targetSubnetId: null,
     };
-    const validArc = { ...invalidArc, weight: 1 };
+    const invalidArc = { ...validArc, type: "standard" };
 
     expect(v.safeParse(addArc.input!, invalidArc).success).toBe(
       petrinautAiTools.addArc.inputSchema.safeParse(invalidArc).success,
@@ -68,8 +139,8 @@ describe("Petrinaut construction tools", () => {
     const addType = toolByName("addType");
     const invalidElement = {
       elementId: "speed",
-      name: "speed",
-      type: "not-a-type",
+      name: "not valid",
+      type: "real",
     };
     const invalidType = {
       id: "vehicle",
@@ -84,7 +155,7 @@ describe("Petrinaut construction tools", () => {
     expect(result.issues[0].path).toMatchObject([
       { input: invalidType, key: "elements", value: invalidType.elements },
       { input: invalidType.elements, key: 0, value: invalidElement },
-      { input: invalidElement, key: "type", value: "not-a-type" },
+      { input: invalidElement, key: "name", value: "not valid" },
     ]);
   });
 });
