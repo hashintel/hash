@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 import optuna
+from optuna.exceptions import ExperimentalWarning
 from optuna.trial import TrialState
 
 from petrinaut_optimizer_core import (
@@ -11,6 +13,7 @@ from petrinaut_optimizer_core import (
     parse_description,
     study_summary,
     suggest,
+    told_trials,
     trial_event,
 )
 
@@ -72,6 +75,44 @@ def test_builds_the_sampler_and_direction_from_the_description(
 
     assert isinstance(study.sampler, optuna.samplers.TPESampler)
     assert study.direction is optuna.study.StudyDirection.MINIMIZE
+
+
+def test_constant_liar_reaches_only_the_tpe_sampler(
+    optimization_description: dict[str, Any],
+) -> None:
+    random_description = parse_description(optimization_description)
+    optimization_description["study"]["sampler"] = "tpe"
+    tpe_description = parse_description(optimization_description)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ExperimentalWarning)
+        random_study = create_study(random_description, constant_liar=True)
+        liar_study = create_study(tpe_description, constant_liar=True)
+    plain_study = create_study(tpe_description)
+
+    assert isinstance(random_study.sampler, optuna.samplers.RandomSampler)
+    assert liar_study.sampler._constant_liar is True
+    assert plain_study.sampler._constant_liar is False
+
+
+def test_told_trials_counts_the_trials_with_an_outcome(
+    optimization_description: dict[str, Any],
+) -> None:
+    description = parse_description(optimization_description)
+    study = create_study(description)
+
+    first = study.ask()
+    suggest(first, description.parameters)
+    study.tell(first, 1.5)
+    second = study.ask()
+    suggest(second, description.parameters)
+    study.tell(second, state=TrialState.PRUNED)
+    third = study.ask()
+    suggest(third, description.parameters)
+    study.tell(third, state=TrialState.FAIL)
+    suggest(study.ask(), description.parameters)
+
+    assert told_trials(study) == 2
 
 
 def test_trial_events_and_summary_track_best_and_states(
