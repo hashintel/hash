@@ -247,8 +247,12 @@ import DiffBadges from "./DiffBadges.astro";
       });
     };
 
-/** Rail scroll, in px, over which the band reaches its full height. */
-    const NAV_FADE_RAMP = 60;
+/**
+     * Rail scroll, in px, over which the band reaches its full height. Well
+     * under one row: the band is there as soon as anything has gone up behind
+     * the header, and the ramp only takes the hard edge off its arrival.
+     */
+    const NAV_FADE_RAMP = 20;
 
     /*
      * The rail scrolls independently of the page, so the band over it keys off

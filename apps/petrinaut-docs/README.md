@@ -146,8 +146,10 @@ than a line across the page.
 
 The nav carries the same band, built from the same rules, and grows it out of
 its own scroll. The rail scrolls independently of the page, so the header script
-writes how far it has gone as `--pnd-nav-progress`, 0 to 1 over the first 60px,
-and both the band's height and its opacity come off that one number. At rest it
+writes how far it has gone as `--pnd-nav-progress`, 0 to 1 over the first 20px,
+and both the band's height and its opacity come off that one number. Twenty is
+well under one row, so the band is there as soon as anything has gone up behind
+the header and the ramp only takes the hard edge off its arrival. At rest it
 has no height at all, which is what keeps it off the first row of an unscrolled
 rail. Nothing eases it: the value already tracks the scroll frame by frame, and
 a transition on top would only make the band lag the rows it covers. The band is positioned against the viewport from
