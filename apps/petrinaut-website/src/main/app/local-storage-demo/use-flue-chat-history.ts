@@ -66,11 +66,20 @@ export const useFlueChatHistory = (
     readonly snapshot: AgentConversationObservationSnapshot;
   }>();
 
-  const refresh = useCallback(() => observationRef.current?.refresh(), []);
+  const refreshRequestedRef = useRef(false);
+  const refresh = useCallback(() => {
+    const observation = observationRef.current;
+    if (observation === null) {
+      refreshRequestedRef.current = true;
+      return;
+    }
+    observation.refresh();
+  }, []);
 
   useEffect(() => {
     if (clientPromise === null || conversationId.length === 0) {
       observationRef.current = null;
+      refreshRequestedRef.current = false;
       return;
     }
     let cancelled = false;
@@ -82,6 +91,10 @@ export const useFlueChatHistory = (
         if (cancelled) return;
         observation = client.observe({ live: "sse" });
         observationRef.current = observation;
+        if (refreshRequestedRef.current) {
+          refreshRequestedRef.current = false;
+          observation.refresh();
+        }
         const publish = (): void => {
           if (!cancelled && observation !== undefined) {
             setObserved({

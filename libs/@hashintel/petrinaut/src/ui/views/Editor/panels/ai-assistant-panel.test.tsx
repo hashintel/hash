@@ -325,6 +325,80 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(sendMessages).not.toHaveBeenCalled();
   });
 
+  test("executes one automatic tool call recovered from host history", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      ({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks([
+            { type: "start-step" },
+            { type: "text-start", id: "resumed" },
+            {
+              type: "text-delta",
+              id: "resumed",
+              delta: "Live net received.",
+            },
+            { type: "text-end", id: "resumed" },
+          ]),
+        );
+      },
+    );
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages,
+    };
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: {
+        conversationId: "conversation-with-pending-tool",
+        messages: [],
+        transport,
+      },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    const pendingMessages: PetrinautAiMessage[] = [
+      {
+        id: "assistant-pending-net-read",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-getLatestNetDefinition",
+            state: "input-available",
+            toolCallId: "pending-net-read",
+            input: {},
+          },
+        ],
+      },
+    ];
+
+    rerenderPanel({
+      conversationId: "conversation-with-pending-tool",
+      messages: pendingMessages,
+      transport,
+    });
+
+    expect(await screen.findByText("Live net received.")).not.toBeNull();
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce());
+    const submittedTool = requestMessages[0]?.[0]?.parts[0];
+    expect(submittedTool).toMatchObject({
+      type: "tool-getLatestNetDefinition",
+      state: "output-available",
+      toolCallId: "pending-net-read",
+      output: {
+        title: "AI assistant panel test",
+        definition: nonEmptySDCPN,
+        extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+      },
+    });
+
+    rerenderPanel({
+      conversationId: "conversation-with-pending-tool",
+      messages: pendingMessages,
+      transport,
+    });
+    expect(sendMessages).toHaveBeenCalledOnce();
+  });
+
   test("invalidates registered Voice controls before typed submit while active publication is pending", async () => {
     const events: string[] = [];
     let finishVoiceEnd: (() => void) | undefined;
