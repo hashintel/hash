@@ -75,7 +75,9 @@ test("delegates one typed message to the supplied Flue conversation", async () =
     signal: undefined,
   });
   expect(tracker.submissionForInput("user-1")).toBe("submission-1");
-  expect(tracker.submissionForResponse("assistant-1")).toBe("submission-1");
+  expect(tracker.submissionsForResponse("assistant-1")).toEqual([
+    "submission-1",
+  ]);
   expect(onAdmission).toHaveBeenCalledOnce();
   expect(onAdmission).toHaveBeenCalledWith(admission);
 });
@@ -135,12 +137,17 @@ test("matches client-tool admissions once and supports unsubscribe", () => {
   expect(unsubscribedListener).not.toHaveBeenCalled();
 });
 
-test("keeps the originating submission for a resumed assistant message", () => {
+test("records every submission that wrote a resumed assistant message", () => {
   const tracker = new BrunchPanelConversationTracker();
   tracker.recordResponse("assistant-1", "submission-1");
   tracker.recordResponse("assistant-1", "submission-continuation");
+  tracker.recordResponse("assistant-1", "submission-continuation");
 
-  expect(tracker.submissionForResponse("assistant-1")).toBe("submission-1");
+  expect(tracker.submissionsForResponse("assistant-1")).toEqual([
+    "submission-1",
+    "submission-continuation",
+  ]);
+  expect(tracker.submissionsForResponse("assistant-2")).toBeUndefined();
 });
 
 test("settles in-flight submissions before a durable abort can target them", async () => {

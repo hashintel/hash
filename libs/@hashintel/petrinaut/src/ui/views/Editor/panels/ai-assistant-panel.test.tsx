@@ -1967,6 +1967,105 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(screen.queryByText("Response stopped")).toBeNull();
   });
 
+  test("does not surface a late durable Stop failure on a newer turn", async () => {
+    let firstStreamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    let secondStreamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const secondCancellation = vi.fn();
+    let requestCount = 0;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(
+        ({
+          abortSignal,
+        }: Parameters<PetrinautAiTransport["sendMessages"]>[0]) => {
+          requestCount += 1;
+          const isFirst = requestCount === 1;
+          return Promise.resolve(
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                if (isFirst) {
+                  firstStreamController = controller;
+                } else {
+                  secondStreamController = controller;
+                  abortSignal?.addEventListener("abort", secondCancellation);
+                }
+                const id = isFirst ? "first" : "second";
+                controller.enqueue({ type: "start-step" });
+                controller.enqueue({ type: "text-start", id });
+                controller.enqueue({
+                  type: "text-delta",
+                  id,
+                  delta: isFirst ? "First partial" : "Second turn",
+                });
+              },
+            }),
+          );
+        },
+      ),
+    };
+    let rejectStop: ((reason: Error) => void) | undefined;
+    const requestStop = vi.fn(
+      () =>
+        new Promise<"stop-requested">((_resolve, reject) => {
+          rejectStop = reject;
+        }),
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        renderComposerControl: ({ status: hostStatus, submitText }) => (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                void submitText({ text: "Second" });
+              }}
+            >
+              Send second
+            </button>
+            <span data-testid="host-status">{hostStatus}</span>
+          </>
+        ),
+        requestStop,
+        transport,
+      },
+      initialMessage: "First",
+    });
+    await screen.findByText("First partial");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
+    await act(async () => {
+      firstStreamController?.enqueue({ type: "text-end", id: "first" });
+      firstStreamController?.close();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("host-status").textContent).toBe("ready"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Send second" }));
+    await screen.findByText("Second turn");
+
+    await act(async () => {
+      rejectStop?.(new Error("Durable stop failed"));
+    });
+    expect(screen.getByTestId("host-status").textContent).toBe("streaming");
+    expect(secondCancellation).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Durable stop failed/u)).toBeNull();
+
+    await act(async () => {
+      secondStreamController?.enqueue({ type: "text-end", id: "second" });
+      secondStreamController?.close();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("host-status").textContent).toBe("ready"),
+    );
+    expect(screen.queryByText(/Durable stop failed/u)).toBeNull();
+  });
+
   test("withdraws a retained voice input when its signal aborts", async () => {
     let streamController:
       | ReadableStreamDefaultController<UIMessageChunk>

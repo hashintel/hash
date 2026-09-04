@@ -507,10 +507,15 @@ export class RealtimeBrunchBridge {
     if (!active?.correlated || !active.sawBusyChatStatus) {
       return;
     }
-    const responseSegments = this.#chat.canonicalSegments.filter((segment) =>
-      active.submissionId === null
-        ? !active.baselineSegmentIds.has(segment.id)
-        : segment.submissionId === active.submissionId,
+    // A reply may be written by the admitted submission itself or by a
+    // client-tool continuation projected onto the same message, and an ask
+    // follow-up writes into the message that asked; so match membership and
+    // exclude only what was already there when this answer was submitted.
+    const responseSegments = this.#chat.canonicalSegments.filter(
+      (segment) =>
+        !active.baselineSegmentIds.has(segment.id) &&
+        (active.submissionId === null ||
+          (segment.submissionIds?.includes(active.submissionId) ?? false)),
     );
     if (responseSegments.length > 0 && !active.firstTextEmitted) {
       // Completed canonical text can land while the turn is still streaming;

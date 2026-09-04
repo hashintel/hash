@@ -130,7 +130,7 @@ export const getBrunchVoiceMode = (
             tracker?.submissionForInput(messageId)
           }
           resolveResponseSubmission={(messageId) =>
-            tracker?.submissionForResponse(messageId)
+            tracker?.submissionsForResponse(messageId)
           }
           subscribeToAdmission={
             tracker === undefined

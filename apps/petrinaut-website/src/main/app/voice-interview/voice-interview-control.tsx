@@ -30,6 +30,9 @@ import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 type ResolveSubmission = (
   messageId: string,
 ) => AgentSendResult["submissionId"] | undefined;
+type ResolveSubmissions = (
+  messageId: string,
+) => readonly AgentSendResult["submissionId"][] | undefined;
 type SubscribeToAdmission = (
   target: RealtimeBrunchAdmissionTarget,
   listener: (submissionId: AgentSendResult["submissionId"]) => void,
@@ -307,7 +310,7 @@ const AvailableVoiceInterviewControl = ({
   config: OpenAIVoiceConfig;
   context: PetrinautAiVoiceModeContext;
   resolveInputSubmission?: ResolveSubmission;
-  resolveResponseSubmission?: ResolveSubmission;
+  resolveResponseSubmission?: ResolveSubmissions;
   settlements?: readonly VoiceSubmissionSettlement[];
   subscribeToAdmission?: SubscribeToAdmission;
 }) => {
@@ -394,10 +397,10 @@ const AvailableVoiceInterviewControl = ({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
       canonicalSegments: selectCanonicalSpeechSegments(context.messages).map(
         (segment) => {
-          const submissionId = resolveResponseSubmission?.(segment.messageId);
-          return submissionId === undefined
+          const submissionIds = resolveResponseSubmission?.(segment.messageId);
+          return submissionIds === undefined || submissionIds.length === 0
             ? segment
-            : { ...segment, submissionId };
+            : { ...segment, submissionIds };
         },
       ),
       settlements,
@@ -532,7 +535,7 @@ export const VoiceInterviewControl = ({
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
   readonly resolveInputSubmission?: ResolveSubmission;
-  readonly resolveResponseSubmission?: ResolveSubmission;
+  readonly resolveResponseSubmission?: ResolveSubmissions;
   readonly settlements?: readonly VoiceSubmissionSettlement[];
   readonly subscribeToAdmission?: SubscribeToAdmission;
 }) => (
