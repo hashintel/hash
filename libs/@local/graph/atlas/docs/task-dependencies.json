@@ -1,0 +1,35 @@
+{
+  "package": "@rust/hash-graph-atlas",
+  "dependencies": [
+    "@blockprotocol/type-system-rs",
+    "@rust/darwin-kperf-criterion",
+    "@rust/darwin-kperf-events",
+    "@rust/error-stack",
+    "@rust/hash-graph-authorization",
+    "@rust/hash-graph-embeddings",
+    "@rust/hash-graph-postgres-store",
+    "@rust/hash-graph-store",
+    "@rust/hash-graph-temporal-versioning",
+    "@rust/hash-graph-types",
+    "@rust/hash-middleware",
+    "@rust/hash-temporal-client",
+    "@rust/hashql-core"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "start": [
+      "@local/status#build"
+    ],
+    "test:integration": [
+      "@local/status#build"
+    ],
+    "test:miri": [],
+    "test:unit": [
+      "@local/status#build"
+    ]
+  }
+}
