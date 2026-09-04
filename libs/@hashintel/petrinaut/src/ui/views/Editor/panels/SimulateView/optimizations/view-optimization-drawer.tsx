@@ -498,7 +498,7 @@ const ConnectedStudySections = ({
       <BestParametersSection optimization={optimization} />
       <Section
         title="Parameters"
-        tooltip="The chart below shows the objective at this point. While the study runs the point follows each step as it is evaluated; move a control to look elsewhere, and compute follows."
+        tooltip="The chart below shows the objective at this point. While the study runs and Follow steps is on, the point follows each step as it is evaluated and the controls only show it; turn Follow steps off, or wait for the study to finish, to move them and look elsewhere."
         className={fixedSectionStyle}
         // Not collapsible: the navigator stays usable while the chart
         // below streams.
@@ -520,7 +520,7 @@ const ConnectedStudySections = ({
       {optimization.axes.length >= 2 ? (
         <Section
           title="Surface"
-          tooltip="The objective over two optimized parameters, computed locally — the study's own trials appear as rings and the ringed dot is the navigated point. Click or drag the plot to move it."
+          tooltip="The objective over two optimized parameters, drawn from the study's own steps: each step is a dot, the best emphasized, pruned steps hollow, and the field is interpolated between them. The ringed dot is the step being evaluated, filling in as it runs; once the study is over, or Follow steps is off, click or drag the plot to refine a point."
           collapsible
           defaultOpen
           className={fixedSectionStyle}

@@ -1,11 +1,14 @@
 /**
  * Fixtures for the optimization stories: a real study manifest over the
  * supply-chain example, deterministic fake trials, and the synthetic
- * objective both the trials and the stories' fake local compute share — so
- * trial rings land on the contour they would on a real study. For a
- * connected study, a navigation at a trial's point and the selection stream
- * the provider would publish there.
+ * objective the trials, the selection streams and the remote surface's fake
+ * local compute all share — so a step's mark lands on the contour a real
+ * study would give. For a connected study, a navigation at a trial's point,
+ * the selection stream the provider would publish there, and a clock that
+ * lands one step after another.
  */
+import { useEffect, useState } from "react";
+
 import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core";
 import { supplyChainProfit } from "@hashintel/petrinaut-core/examples";
 
@@ -393,6 +396,12 @@ export function makeSelectionStream(options: {
   runTarget?: number | null;
   computing?: boolean;
   frameCount?: number;
+  /**
+   * How far through the simulated time the frames have streamed, 0..1: the
+   * frames stop there, so the running objective reads part-way to its final
+   * value. Complete when omitted.
+   */
+  progress?: number;
   /** Why the point could not compute; the stream then stops at `runsCompleted`. */
   error?: string | null;
 }): OptimizationSelectionStream {
@@ -404,6 +413,7 @@ export function makeSelectionStream(options: {
     runTarget = null,
     computing = false,
     frameCount,
+    progress,
     error = null,
   } = options;
   const axes = buildOptimizationSurfaceAxes(input);
@@ -414,17 +424,21 @@ export function makeSelectionStream(options: {
     booleanIdentifiers,
     navigation,
   );
+  const frames = makeObjectiveFrames(
+    input,
+    values,
+    Math.max(1, runsCompleted),
+    frameCount,
+  );
   return {
     key:
       followedTrial === undefined
         ? optimizationNavigationKey(axes, booleanIdentifiers, navigation)
         : `trial:${followedTrial}`,
-    metricFrames: makeObjectiveFrames(
-      input,
-      values,
-      Math.max(1, runsCompleted),
-      frameCount,
-    ),
+    metricFrames:
+      progress === undefined
+        ? frames
+        : frames.slice(0, Math.max(1, Math.ceil(frames.length * progress))),
     runsCompleted,
     runTarget,
     computing,
@@ -433,10 +447,39 @@ export function makeSelectionStream(options: {
 }
 
 /**
- * The stories' local compute: the same synthetic objective the fake trials
- * used, returned as a single-bin distribution frame after `delayFor` the
- * batch — so a contour fills in progressively and the trial rings land on
- * it, at whatever pace the story simulates.
+ * The stories' clock for a study in flight: `landed` steps have reported and
+ * the next one is `progress` of the way through its runs. Advances every
+ * `tickMs`, `ticksPerStep` ticks per step, until all `steps` have landed.
+ */
+export function useFakeStudyClock({
+  steps,
+  ticksPerStep,
+  tickMs,
+}: {
+  steps: number;
+  ticksPerStep: number;
+  tickMs: number;
+}): { landed: number; progress: number } {
+  const [tick, setTick] = useState(0);
+  const total = steps * ticksPerStep;
+  useEffect(() => {
+    if (tick >= total) {
+      return;
+    }
+    const timer = setTimeout(() => setTick((previous) => previous + 1), tickMs);
+    return () => clearTimeout(timer);
+  }, [tick, tickMs, total]);
+  return {
+    landed: Math.min(steps, Math.floor(tick / ticksPerStep)),
+    progress: (tick % ticksPerStep) / ticksPerStep,
+  };
+}
+
+/**
+ * The remote surface stories' local compute: the same synthetic objective
+ * the fake trials used, returned as a single-bin distribution frame after
+ * `delayFor` the batch — so the walked contour fills in progressively and
+ * the trial rings land on it, at whatever pace the story simulates.
  */
 export const makeSyntheticObjectiveSampler =
   (delayFor: (runCount: number) => number) =>

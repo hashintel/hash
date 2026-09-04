@@ -1,11 +1,13 @@
 /**
  * The imperative paint of a contour plot: the filled field blitted as one
  * raster-resolution image, iso-lines on top, dots where samples exist, and
- * rings for external markers.
+ * markers for external points — amber rings or filled dots, a hollow grey ring
+ * for a point without a value, and the navigation mark.
  *
- * A restart (the caller clearing `values` for a new slice) keeps the previous
- * field up, dimmed, until the new samples can say something: two samples
- * interpolate to a near-uniform wash that says less than the old picture.
+ * A field needs three samples to say anything: below that, two samples
+ * interpolate to a near-uniform wash, so the plot shows only its dots and
+ * markers — or, after a restart (the caller clearing `values` for a new
+ * slice), the previous field dimmed until the new samples can replace it.
  */
 import {
   BLUES_STOPS,
@@ -31,17 +33,24 @@ export type ContourSurfaceMarker = {
   /** Draw larger and stronger — e.g. a study's best trial. */
   emphasis?: boolean;
   /**
+   * `point` is an amber ring over a field computed elsewhere; `dot` is the
+   * same point filled, for a plot whose markers are the field's own samples.
    * `navigation` marks where the viewer's controls sit rather than a data
-   * point: a dark ring with a centre dot, distinct from the amber data rings.
+   * point: a dark ring with a centre dot, distinct from the amber data marks.
+   * `muted` is a point that carries no value, such as a pruned trial: a faint
+   * grey ring.
    */
-  kind?: "point" | "navigation";
+  kind?: "point" | "dot" | "navigation" | "muted";
 };
+
+/** Whether the plot dots every sampled cell. */
+export type ContourSurfaceSampleMarks = "dot" | "none";
 
 /** Interpolation lattice points per grid cell. */
 const RASTER_SUBDIVISION = 8;
 
-/** Samples a fresh walk needs before its field replaces the ghost. */
-const GHOST_MIN_SAMPLES = 3;
+/** Samples a field needs before it is painted, or replaces the ghost. */
+const FIELD_MIN_SAMPLES = 3;
 
 const ISO_LINE_COUNT = 10;
 
@@ -135,6 +144,26 @@ const drawMarkers = (
       context.fill();
       continue;
     }
+    if (marker.kind === "muted") {
+      context.beginPath();
+      context.arc(x, y, 3.5, 0, Math.PI * 2);
+      context.strokeStyle = "rgba(100, 116, 139, 0.6)";
+      context.lineWidth = 1;
+      context.stroke();
+      continue;
+    }
+    if (marker.kind === "dot") {
+      context.beginPath();
+      context.arc(x, y, marker.emphasis ? 5.5 : 3.5, 0, Math.PI * 2);
+      context.fillStyle = marker.emphasis
+        ? "rgba(217, 119, 6, 0.95)"
+        : "rgba(217, 119, 6, 0.8)";
+      context.fill();
+      context.strokeStyle = "rgba(255, 255, 255, 0.9)";
+      context.lineWidth = marker.emphasis ? 1.5 : 1;
+      context.stroke();
+      continue;
+    }
     context.beginPath();
     context.arc(x, y, marker.emphasis ? 5 : 3.5, 0, Math.PI * 2);
     context.strokeStyle = marker.emphasis
@@ -222,7 +251,7 @@ const updateField = (
   };
   // The live field's canvas is reused across versions, so the ghost copies
   // it rather than aliasing it.
-  if (samples.length >= GHOST_MIN_SAMPLES) {
+  if (samples.length >= FIELD_MIN_SAMPLES) {
     const ghostImage = state.ghost?.image ?? document.createElement("canvas");
     ghostImage.width = image.width;
     ghostImage.height = image.height;
@@ -241,11 +270,22 @@ export const paintField = (options: {
   ny: number;
   values: ContourSurfaceValues;
   markers: readonly ContourSurfaceMarker[];
+  sampleMarks: ContourSurfaceSampleMarks;
   /** Identity of the plotted quantity; a change drops the ghost. */
   contentKey: string | undefined;
 }): void => {
-  const { canvas, state, width, height, nx, ny, values, markers, contentKey } =
-    options;
+  const {
+    canvas,
+    state,
+    width,
+    height,
+    nx,
+    ny,
+    values,
+    markers,
+    sampleMarks,
+    contentKey,
+  } = options;
   if (state.contentKey !== contentKey) {
     state.contentKey = contentKey;
     state.ghost = null;
@@ -276,13 +316,14 @@ export const paintField = (options: {
     height - (y / Math.max(ny - 1, 1)) * height,
   ];
 
-  if (samples.length < GHOST_MIN_SAMPLES && state.ghost !== null) {
+  if (samples.length >= FIELD_MIN_SAMPLES) {
+    drawField(context, updateField(state, samples, nx, ny), width, height);
+  } else if (state.ghost !== null) {
     context.globalAlpha = 0.45;
     drawField(context, state.ghost, width, height);
     context.globalAlpha = 1;
-    drawSamples(context, samples, toPixel);
-  } else if (samples.length > 0) {
-    drawField(context, updateField(state, samples, nx, ny), width, height);
+  }
+  if (sampleMarks === "dot") {
     drawSamples(context, samples, toPixel);
   }
 

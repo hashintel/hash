@@ -23,6 +23,7 @@ import {
 import { ContourSurface } from "../../../../../components/contour-surface";
 import { formatAxisValue } from "../shared/format-axis-value";
 import {
+  describeSurfaceSampling,
   SurfaceAxisControls,
   SurfaceCaption,
   SurfaceControlLabel,
@@ -240,9 +241,11 @@ export const SweepSurface = ({
             ? { x: readoutAt(xAxis, preview.x), y: readoutAt(yAxis, preview.y) }
             : null
         }
-        sampledCount={cellValues.size}
-        totalCells={totalCells}
-        runsPerCell={SURFACE_CELL_RUNS}
+        text={describeSurfaceSampling({
+          sampledCount: cellValues.size,
+          totalCells,
+          runsPerCell: SURFACE_CELL_RUNS,
+        })}
       />
     </SurfaceFrame>
   );

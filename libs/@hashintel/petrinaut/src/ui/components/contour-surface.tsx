@@ -1,13 +1,17 @@
 /**
  * A filled contour plot over a sparse grid of sampled values, Optuna-style:
  * inverse-distance-weighted interpolation, marching-squares iso-lines, a
- * Blues ramp, dots where data exists, and rings for external markers.
+ * Blues ramp, dots where data exists, and markers for external points — amber
+ * rings or filled dots, a hollow grey ring for a point without a value, and
+ * the navigation mark.
  *
  * Purely presentational: callers hand it grid-indexed values (`"x,y"` keys
- * into an `nx × ny` index space, y up) and receive picks back as fractions
- * of the plot area. The plot repaints as `values` stream in, one paint per
- * animation frame; a caller clearing `values` for a new slice keeps the
- * previous picture up, dimmed, until the new samples can replace it.
+ * into an `nx × ny` index space, y up — fractional coordinates included) and
+ * receive picks back as fractions of the plot area. The plot repaints as
+ * `values` stream in, one paint per animation frame; a caller clearing
+ * `values` for a new slice keeps the previous picture up, dimmed, until the
+ * new samples can replace it. Without `onPickFraction` the plot is
+ * display-only: no crosshair cursor, and a drag never arms.
  */
 import { useEffect, useRef } from "react";
 
@@ -16,6 +20,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useElementSize } from "../../react/hooks/use-element-size";
 import {
   type ContourSurfaceMarker,
+  type ContourSurfaceSampleMarks,
   type ContourSurfaceValues,
   createPaintState,
   paintField,
@@ -29,6 +34,7 @@ import {
 
 export type {
   ContourSurfaceMarker,
+  ContourSurfaceSampleMarks,
   ContourSurfaceValues,
 } from "./contour-surface/paint-field";
 export type { ContourSurfaceFraction } from "./contour-surface/use-surface-drag";
@@ -50,7 +56,7 @@ const frameStyle = css({
 const canvasStyle = css({
   display: "block",
   width: "[100%]",
-  cursor: "crosshair",
+  "&[data-interactive]": { cursor: "crosshair" },
   // Horizontal touch drags navigate; vertical swipes stay the browser's to
   // scroll the drawer (it fires pointercancel, which aborts the drag).
   touchAction: "pan-y",
@@ -62,6 +68,7 @@ export const ContourSurface = ({
   ny,
   values,
   markers = [],
+  sampleMarks = "dot",
   height = 280,
   contentKey,
   onPickFraction,
@@ -73,6 +80,11 @@ export const ContourSurface = ({
   ny: number;
   values: ContourSurfaceValues;
   markers?: readonly ContourSurfaceMarker[];
+  /**
+   * Whether every sampled cell gets a dot. `none` suits a plot whose samples
+   * are already drawn as markers.
+   */
+  sampleMarks?: ContourSurfaceSampleMarks;
   /** Plot height in pixels; the width follows the container. */
   height?: number;
   /**
@@ -115,11 +127,12 @@ export const ContourSurface = ({
         ny,
         values,
         markers,
+        sampleMarks,
         contentKey,
       });
     });
     return () => cancelAnimationFrame(frame);
-  }, [contentKey, height, markers, nx, ny, size, values]);
+  }, [contentKey, height, markers, nx, ny, sampleMarks, size, values]);
 
   return (
     <div ref={frameRef} className={frameStyle}>
@@ -128,6 +141,7 @@ export const ContourSurface = ({
         className={canvasStyle}
         style={{ height }}
         aria-label={ariaLabel}
+        data-interactive={onPickFraction ? "" : undefined}
         {...handlers}
       />
       {preview ? <DragCrosshair fraction={preview} /> : null}

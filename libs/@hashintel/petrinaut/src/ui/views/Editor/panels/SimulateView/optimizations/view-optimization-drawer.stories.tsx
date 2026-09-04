@@ -1,9 +1,10 @@
 /**
- * The study drawer against fake compute. For a connected study the
- * navigator follows each step while the study runs, then the surface, the
- * controls and the chart move together when the parameters are picked by
- * hand; the selection stream is faked from the synthetic objective and
- * refines in three batches after every move.
+ * The study drawer against fake records. For a connected study the navigator
+ * and the surface follow each step while the study runs — the step in flight
+ * streams its running objective into the surface before its dot lands — then
+ * the surface, the controls and the chart move together when the parameters
+ * are picked by hand; the selection stream is faked from the synthetic
+ * objective and refines in three batches after every move.
  */
 import { useEffect, useState } from "react";
 
@@ -11,18 +12,17 @@ import {
   type OptimizationNavigation,
   OptimizationsContext,
   type OptimizationsContextValue,
-  type OptimizationStatus,
 } from "../../../../../../react/optimizations/context";
 import { FakeExperimentsProvider } from "../experiments/experiments-story-fixtures";
 import {
   makeOptimizationInput,
   makeOptimizationRecord,
   makeSelectionStream,
-  makeSyntheticObjectiveSampler,
   makeTrials,
   navigationAtTrial,
   navigationKey,
   optimizedBindingSets,
+  useFakeStudyClock,
 } from "./optimizations-story-fixtures";
 import { ViewOptimizationDrawer } from "./view-optimization-drawer";
 
@@ -48,33 +48,29 @@ const FakeConnectedStudy = ({
   fallbackReason = null,
   refinementError = null,
 }: {
-  /** Streams one step every 1.2 s and follows them; else shows the complete study. */
+  /** Lands one step every 1.2 s and follows the next; else shows the complete study. */
   running: boolean;
   fallbackReason?: string | null;
   /** Set to have every navigated point fail with this reason instead of refining. */
   refinementError?: string | null;
 }) => {
-  const [shown, setShown] = useState(running ? 1 : allTrials.trials.length);
-  useEffect(() => {
-    if (!running || shown >= allTrials.trials.length) {
-      return;
-    }
-    const timer = setTimeout(() => setShown((previous) => previous + 1), 1_200);
-    return () => clearTimeout(timer);
-  }, [running, shown]);
-  const trials = allTrials.trials.slice(0, shown);
-  const latest = trials.at(-1)!;
-  const studyRunning = running && shown < allTrials.trials.length;
-  const status: OptimizationStatus = studyRunning ? "running" : "complete";
+  const clock = useFakeStudyClock({
+    steps: running ? allTrials.trials.length : 0,
+    ticksPerStep: 8,
+    tickMs: 150,
+  });
+  const landed = running ? clock.landed : allTrials.trials.length;
+  const trials = allTrials.trials.slice(0, landed);
+  const inFlight = running ? allTrials.trials[landed] : undefined;
 
   const [chosen, setChosen] = useState<OptimizationNavigation>(() =>
-    navigationAtTrial(input, latest, true),
+    navigationAtTrial(input, allTrials.trials[0]!, true),
   );
-  // While following, the navigation is wherever the latest step is.
-  const navigation =
-    chosen.followTrials && studyRunning
-      ? navigationAtTrial(input, latest, true)
-      : chosen;
+  // While following, the navigation is wherever the optimizer is evaluating;
+  // once every step has landed it holds at the last one.
+  const navigation = chosen.followTrials
+    ? navigationAtTrial(input, inFlight ?? allTrials.trials.at(-1)!, true)
+    : chosen;
   const key = navigationKey(input, navigation);
 
   const [refinement, setRefinement] = useState({ key, rung: 0 });
@@ -95,36 +91,37 @@ const FakeConnectedStudy = ({
     return () => clearTimeout(timer);
   }, [key, refinement.rung]);
 
-  const following = navigation.followTrials && studyRunning;
   const rung = refinement.key === key ? refinement.rung : 0;
-  const selection = following
-    ? makeSelectionStream({
-        input,
-        navigation,
-        followedTrial: latest.trial,
-        runsCompleted: 1,
-        computing: true,
-      })
-    : refinementError !== null
+  const selection =
+    inFlight && navigation.followTrials
       ? makeSelectionStream({
           input,
           navigation,
-          runsCompleted: 0,
-          error: refinementError,
+          followedTrial: inFlight.trial,
+          runsCompleted: 1,
+          computing: true,
+          progress: clock.progress,
         })
-      : makeSelectionStream({
-          input,
-          navigation,
-          runsCompleted: REFINEMENT_LADDER[rung]!,
-          runTarget: REFINEMENT_LADDER[rung + 1] ?? null,
-          computing: rung < REFINEMENT_LADDER.length - 1,
-        });
+      : refinementError !== null
+        ? makeSelectionStream({
+            input,
+            navigation,
+            runsCompleted: 0,
+            error: refinementError,
+          })
+        : makeSelectionStream({
+            input,
+            navigation,
+            runsCompleted: REFINEMENT_LADDER[rung]!,
+            runTarget: REFINEMENT_LADDER[rung + 1] ?? null,
+            computing: rung < REFINEMENT_LADDER.length - 1,
+          });
 
   const optimization = makeOptimizationRecord({
     input,
     trials,
-    best: latest.best,
-    status,
+    best: trials.at(-1)?.best ?? null,
+    status: inFlight ? "running" : "complete",
     computeBackendFallbackReason: fallbackReason,
     navigation,
     selection,
@@ -145,18 +142,11 @@ const FakeConnectedStudy = ({
 
   return (
     <OptimizationsContext value={value}>
-      <FakeExperimentsProvider
-        initialExperiments={[]}
-        overrides={{
-          sampleDetachedObjective: makeSyntheticObjectiveSampler(() => 80),
-        }}
-      >
-        <ViewOptimizationDrawer
-          open
-          onClose={() => {}}
-          optimization={optimization}
-        />
-      </FakeExperimentsProvider>
+      <ViewOptimizationDrawer
+        open
+        onClose={() => {}}
+        optimization={optimization}
+      />
     </OptimizationsContext>
   );
 };
