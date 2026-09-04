@@ -473,6 +473,48 @@ describe("voice interview control", () => {
     await waitFor(() => expect(check.getAttribute("aria-busy")).toBe("false"));
   });
 
+  test.each([
+    {
+      failure: "media devices are missing",
+      stubMedia: () => vi.stubGlobal("navigator", {}),
+    },
+    {
+      failure: "getUserMedia throws synchronously",
+      stubMedia: () =>
+        vi.stubGlobal("navigator", {
+          mediaDevices: {
+            getUserMedia: () => {
+              throw new DOMException("Unavailable", "NotSupportedError");
+            },
+          },
+        }),
+    },
+  ])(
+    "reports an accessible microphone failure when $failure",
+    async ({ stubMedia }) => {
+      stubMedia();
+      render(<VoiceInterviewHarness />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+      const disclosure = screen.getByRole("region", {
+        name: "Voice mode consent",
+      });
+      const check = within(disclosure).getByRole("button", {
+        name: "Test microphone",
+      });
+
+      fireEvent.click(check);
+
+      const status = await within(disclosure).findByText(
+        "Microphone access was not available.",
+      );
+      expect(status.getAttribute("aria-live")).toBe("polite");
+      expect(status.getAttribute("aria-atomic")).toBe("true");
+      expect(check.getAttribute("aria-describedby")).toBe(status.id);
+      await waitFor(() => expect(check.getAttribute("aria-busy")).toBe("false"));
+    },
+  );
+
   test("starts directly after acknowledgement and ends through the registered control", async () => {
     window.localStorage.setItem(
       VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,

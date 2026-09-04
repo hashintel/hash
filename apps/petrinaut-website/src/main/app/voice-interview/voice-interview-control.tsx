@@ -637,17 +637,25 @@ const AvailableVoiceInterviewControl = ({
           }
           setCheckingMicrophone(true);
           setMicrophoneCheck("");
-          void navigator.mediaDevices
-            .getUserMedia({ audio: true })
-            .then(
-              (stream) => {
-                for (const track of stream.getTracks()) {
-                  track.stop();
-                }
-                setMicrophoneCheck("Microphone ready.");
-              },
-              () =>
-                setMicrophoneCheck("Microphone access was not available."),
+          let microphoneCheckPromise: Promise<MediaStream>;
+          try {
+            const getUserMedia = navigator.mediaDevices?.getUserMedia;
+            microphoneCheckPromise =
+              getUserMedia === undefined
+                ? Promise.reject(new Error("Microphone access is unavailable."))
+                : getUserMedia.call(navigator.mediaDevices, { audio: true });
+          } catch (error) {
+            microphoneCheckPromise = Promise.reject(error);
+          }
+          void microphoneCheckPromise
+            .then((stream) => {
+              for (const track of stream.getTracks()) {
+                track.stop();
+              }
+              setMicrophoneCheck("Microphone ready.");
+            })
+            .catch(() =>
+              setMicrophoneCheck("Microphone access was not available."),
             )
             .finally(() => setCheckingMicrophone(false));
         }}
