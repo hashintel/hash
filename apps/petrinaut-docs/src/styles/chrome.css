@@ -831,8 +831,8 @@ dialog {
   inset-inline: 0;
   display: block;
   height: 100%;
-  -webkit-backdrop-filter: blur(1px);
-  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(0.5px);
+  backdrop-filter: blur(0.5px);
   -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent);
   mask-image: linear-gradient(to bottom, #000 50%, transparent);
 }

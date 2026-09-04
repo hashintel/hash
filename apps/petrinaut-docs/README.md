@@ -146,7 +146,7 @@ blur completely, because the tint is opaque where the blur is strongest; the
 stretch below the tint is where a reader actually sees content blurred.
 
 `backdrop-filter` takes a single radius, so the ramp comes from the mask rather
-than from the filter: one layer fills the band at 1px of blur, at full strength
+than from the filter: one layer fills the band at 0.5px of blur, at full strength
 for its top half and out to nothing by its bottom, which is what keeps the blur
 from ending on a line across the page.
 
