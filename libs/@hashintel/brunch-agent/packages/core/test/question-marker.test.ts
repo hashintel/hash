@@ -10,7 +10,10 @@ import {
   BrunchQuestionDataSchema,
   BrunchQuestionInputSchema,
   parseBrunchQuestionData,
+  type BrunchQuestionData,
 } from "../src/question-marker";
+
+import type { FlueLogger } from "@flue/runtime";
 
 describe("the Brunch question marker", () => {
   test("defines one non-interactive tool and data-part identity", () => {
@@ -35,15 +38,15 @@ describe("the Brunch question marker", () => {
   });
 
   test("writes the exact marker without terminating or waiting for an answer", async () => {
-    const writeQuestion = vi.fn();
+    const writeQuestion = vi.fn<(question: BrunchQuestionData) => void>();
     const tool = createBrunchQuestionMarkerTool(writeQuestion);
 
     const result = await tool.run({
       data: { question: "Which line should run this order?" },
       log: {
-        error: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
+        error: vi.fn<FlueLogger["error"]>(),
+        info: vi.fn<FlueLogger["info"]>(),
+        warn: vi.fn<FlueLogger["warn"]>(),
       },
       toolCallId: "tool-question-1",
     });
