@@ -30,12 +30,15 @@ When the Brunch voice preview is enabled and available, an empty composer shows 
 titled **Start voice mode**. Typing non-whitespace text replaces it with **Send**. The same dynamic
 action appears in the first-run prompt and the assistant panel; if voice is unavailable, the empty
 composer retains a disabled **Send** action. Starting Voice mode keeps the transcript in place and
-opens the existing one-time disclosure above the composer. Review that OpenAI processes live
-audio and speaks the interviewer's words while Petrinaut keeps finalized answers in the conversation
-rather than the audio. You can check your microphone before confirming that you understand and
-selecting **Start voice mode**. Petrinaut remembers that acknowledgement in this browser for the
-current disclosure version, so later uses of **Start voice mode** start directly. If browser storage
-is unavailable or the disclosure changes, Petrinaut asks again.
+opens the existing one-time disclosure. Voice selected from the first-run prompt starts compact: the
+disclosure and microphone check appear in a card immediately above a **Voice setup** dock, while the
+AI header, transcript, and composer stay hidden. Select **Expand voice setup** to restore the full
+panel. Voice started from the composer keeps that full panel visible. Review that OpenAI processes
+live audio and speaks the interviewer's words while Petrinaut keeps finalized answers in the
+conversation rather than the audio. You can check your microphone before confirming that you
+understand and selecting **Start voice mode**. Petrinaut remembers that acknowledgement in this
+browser for the current disclosure version, so later uses of **Start voice mode** start directly. If
+browser storage is unavailable or the disclosure changes, Petrinaut asks again.
 
 While a session runs, the composer is replaced by a low-profile Voice dock at the foot of the panel:
 a ribbon that fades out at both ends and one short state -- **Connecting**, **Listening**,

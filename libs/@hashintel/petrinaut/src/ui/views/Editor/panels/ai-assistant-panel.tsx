@@ -420,12 +420,19 @@ export const AiAssistantPanel = ({
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [interactionMode, setInteractionMode] =
     useState<PetrinautAiInputMode>("text");
+  const [voiceDockCollapsed, setVoiceDockCollapsed] = useState(false);
   const interactionModeRef = useRef<PetrinautAiInputMode>("text");
   const selectInteractionMode = useCallback(
-    (nextMode: PetrinautAiInputMode) => {
+    (
+      nextMode: PetrinautAiInputMode,
+      options: { collapseVoiceDock?: boolean } = {},
+    ) => {
       const previousMode = interactionModeRef.current;
       interactionModeRef.current = nextMode;
       setInteractionMode(nextMode);
+      setVoiceDockCollapsed(
+        nextMode === "voice" && options.collapseVoiceDock === true,
+      );
       if (previousMode === "voice" && nextMode === "text") {
         setComposerFocusRequest((request) => request + 1);
       }
@@ -1290,12 +1297,14 @@ export const AiAssistantPanel = ({
       return;
     }
 
-    selectInteractionMode(
+    const nextMode =
       initialInteractionMode === "voice" &&
-        aiAssistant.renderVoiceMode === undefined
+      aiAssistant.renderVoiceMode === undefined
         ? "text"
-        : initialInteractionMode,
-    );
+        : initialInteractionMode;
+    selectInteractionMode(nextMode, {
+      collapseVoiceDock: nextMode === "voice",
+    });
     consumedInitialInteractionModeRef.current = initialInteractionMode;
     onInitialInteractionModeConsumed?.();
   }, [
@@ -1501,11 +1510,13 @@ export const AiAssistantPanel = ({
         void stopComposer();
       }}
       onSubmit={submitComposerInput}
+      onVoiceDockCollapsedChange={setVoiceDockCollapsed}
       promptChips={promptChips}
       rightOffset={hasSelection ? propertiesPanelWidth + PANEL_MARGIN : 0}
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}
+      voiceDockCollapsed={voiceDockCollapsed}
       voiceMode={voiceMode}
       voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
     />

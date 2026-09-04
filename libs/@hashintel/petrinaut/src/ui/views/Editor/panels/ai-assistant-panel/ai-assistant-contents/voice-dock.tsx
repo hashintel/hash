@@ -14,6 +14,7 @@ import { LiveVoiceSessionIndicator } from "../../../components/voice-session-ind
 import {
   voiceSessionActionLabels,
   voiceSessionStatusLabel,
+  voiceSetupLabels,
 } from "../../../components/voice-session-labels";
 import { aiFooterMinHeight } from "./footer-height";
 import { MicrophoneIcon } from "./voice-dock/microphone-icon";
@@ -114,11 +115,12 @@ export type VoiceDockProps = {
   notice: string | null;
   onCollapsedToggle: () => void;
   phase: PetrinautAiVoiceSessionPhase;
+  purpose?: "session" | "setup";
 };
 
 /**
- * The live Voice surface inside the assistant panel: one ribbon and the
- * session's controls, standing in for the composer while a session runs.
+ * The compact Voice surface inside the assistant panel: one ribbon for setup
+ * or live-session status and controls.
  */
 export const VoiceDock = ({
   actions,
@@ -131,41 +133,46 @@ export const VoiceDock = ({
   notice,
   onCollapsedToggle,
   phase,
+  purpose = "session",
 }: VoiceDockProps) => {
-  const collapseLabel = collapsed
-    ? voiceSessionActionLabels.expand
-    : voiceSessionActionLabels.collapse;
+  const collapseLabel =
+    purpose === "setup"
+      ? collapsed
+        ? voiceSetupLabels.expand
+        : voiceSetupLabels.collapse
+      : collapsed
+        ? voiceSessionActionLabels.expand
+        : voiceSessionActionLabels.collapse;
   const microphoneLabel = microphoneMuted
     ? voiceSessionActionLabels.unmute
     : voiceSessionActionLabels.mute;
 
   return (
     <section
-      aria-label="Voice session"
+      aria-label={
+        purpose === "setup" ? voiceSetupLabels.region : "Voice session"
+      }
       className={dockStyle}
       data-phase={phase}
       data-voice-notice={notice ? "visible" : undefined}
       data-testid="ai-voice-dock"
     >
       <span className={sideStyle}>
+        <Button
+          aria-label={collapseLabel}
+          iconName={collapsed ? "chevronUp" : "chevronDown"}
+          onClick={onCollapsedToggle}
+          size="sm"
+          tooltip={collapseLabel}
+          type="button"
+          variant="ghost"
+        />
         {actions !== null && (
-          <>
-            <Button
-              aria-expanded={!collapsed}
-              aria-label={collapseLabel}
-              iconName={collapsed ? "chevronUp" : "chevronDown"}
-              onClick={onCollapsedToggle}
-              size="sm"
-              tooltip={collapseLabel}
-              type="button"
-              variant="ghost"
-            />
-            <VoicePlaybackMenu
-              actions={actions}
-              canReadFullResponse={canReadFullResponse}
-              canRepeatQuestion={canRepeatQuestion}
-            />
-          </>
+          <VoicePlaybackMenu
+            actions={actions}
+            canReadFullResponse={canReadFullResponse}
+            canRepeatQuestion={canRepeatQuestion}
+          />
         )}
       </span>
 

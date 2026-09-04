@@ -207,22 +207,54 @@ describe("AiAssistantContents", () => {
         parts: [{ type: "text", text: "Earlier answer" }],
       },
     ] as PetrinautAiMessage[];
-    const renderWith = (messages: PetrinautAiMessage[]) => (
-      <VoiceSessionContext.Provider value={store}>
-        <AiAssistantContents
-          input=""
-          messages={messages}
-          onClose={noop}
-          onInputChange={noop}
-          onStop={noop}
-          onSubmit={noop}
-          status="ready"
-          voiceMode={<div>Host Voice controls</div>}
-        />
-      </VoiceSessionContext.Provider>
-    );
+    const liveMessages = [
+      ...earlierMessages,
+      {
+        id: "spoken-user",
+        metadata: { source: "voice" },
+        role: "user",
+        parts: [{ type: "text", text: "Spoken request" }],
+      },
+      {
+        id: "spoken-assistant",
+        role: "assistant",
+        parts: [{ type: "text", text: "Spoken reply" }],
+      },
+      {
+        id: "typed-user",
+        role: "user",
+        parts: [{ type: "text", text: "Typed aside" }],
+      },
+    ] as PetrinautAiMessage[];
+    const VoiceContents = ({
+      inputMode = "voice",
+      messages,
+    }: {
+      inputMode?: "text" | "voice";
+      messages: PetrinautAiMessage[];
+    }) => {
+      const [collapsed, setCollapsed] = useState(false);
 
-    const { rerender } = render(renderWith(earlierMessages));
+      return (
+        <VoiceSessionContext.Provider value={store}>
+          <AiAssistantContents
+            input=""
+            inputMode={inputMode}
+            messages={messages}
+            onClose={noop}
+            onInputChange={noop}
+            onStop={noop}
+            onSubmit={noop}
+            onVoiceDockCollapsedChange={setCollapsed}
+            status="ready"
+            voiceDockCollapsed={collapsed}
+            voiceMode={<div>Host Voice controls</div>}
+          />
+        </VoiceSessionContext.Provider>
+      );
+    };
+
+    const { rerender } = render(<VoiceContents messages={earlierMessages} />);
 
     const dock = screen.getByRole("region", { name: "Voice session" });
     expect(within(dock).getByText("Listening")).not.toBeNull();
@@ -230,28 +262,13 @@ describe("AiAssistantContents", () => {
       screen.queryByRole("textbox", { name: "Message AI assistant" }),
     ).toBeNull();
     expect(screen.getByText("Earlier answer")).not.toBeNull();
+    expect(
+      within(dock)
+        .getByRole("button", { name: "Collapse voice session" })
+        .getAttribute("aria-expanded"),
+    ).toBeNull();
 
-    rerender(
-      renderWith([
-        ...earlierMessages,
-        {
-          id: "spoken-user",
-          metadata: { source: "voice" },
-          role: "user",
-          parts: [{ type: "text", text: "Spoken request" }],
-        },
-        {
-          id: "spoken-assistant",
-          role: "assistant",
-          parts: [{ type: "text", text: "Spoken reply" }],
-        },
-        {
-          id: "typed-user",
-          role: "user",
-          parts: [{ type: "text", text: "Typed aside" }],
-        },
-      ] as PetrinautAiMessage[]),
-    );
+    rerender(<VoiceContents messages={liveMessages} />);
 
     expect(screen.getByText("Spoken request")).not.toBeNull();
     expect(screen.getByText("Spoken reply")).not.toBeNull();
@@ -288,6 +305,7 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText("Spoken request")).not.toBeNull();
 
     act(() => store.setState(null));
+    rerender(<VoiceContents inputMode="text" messages={liveMessages} />);
 
     expect(screen.getByText("Spoken request")).not.toBeNull();
     expect(screen.getByText("Spoken reply")).not.toBeNull();
@@ -295,6 +313,55 @@ describe("AiAssistantContents", () => {
     expect(
       screen.getByRole("textbox", { name: "Message AI assistant" }),
     ).not.toBeNull();
+  });
+
+  test("stacks Voice setup above its compact dock while keeping the full panel mounted", () => {
+    const onVoiceDockCollapsedChange = vi.fn();
+    render(
+      <AiAssistantContents
+        input=""
+        inputMode="voice"
+        messages={[]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        onVoiceDockCollapsedChange={onVoiceDockCollapsedChange}
+        status="ready"
+        voiceDockCollapsed
+        voiceMode={
+          <section aria-label="Voice mode consent">Permission</section>
+        }
+      />,
+    );
+
+    const permission = screen.getByRole("region", {
+      name: "Voice mode consent",
+    });
+    const setupDock = screen.getByRole("region", { name: "Voice setup" });
+    expect(permission.parentElement?.nextElementSibling).toBe(
+      setupDock.parentElement,
+    );
+    expect(screen.getByTestId("ai-transcript").className).toContain("d_none");
+    expect(
+      screen
+        .getByRole("button", { name: "Close AI assistant", hidden: true })
+        .closest("div")?.className,
+    ).toContain("d_none");
+    expect(
+      screen.getByRole("textbox", {
+        hidden: true,
+        name: "Message AI assistant",
+      }),
+    ).not.toBeNull();
+
+    const expandButton = within(setupDock).getByRole("button", {
+      name: "Expand voice setup",
+    });
+    expect(expandButton.getAttribute("aria-expanded")).toBeNull();
+    fireEvent.click(expandButton);
+
+    expect(onVoiceDockCollapsedChange).toHaveBeenCalledWith(false);
   });
 
   test("keeps handoff and canonical playback controls in the Voice dock", async () => {
