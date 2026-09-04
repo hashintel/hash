@@ -637,6 +637,10 @@ export class VoiceTurnController {
     }
     if (event.type === "canonical-speech-requested") {
       this.#session.setMicrophoneEnabled(false);
+      this.#inputTurnPending = false;
+      this.#transcriptItemId = null;
+      this.#transcriptKey = null;
+      this.#update({ partialText: "" });
       if (
         this.#latencyCorrelationId !== null &&
         this.#ttsSpeechRequestId === null

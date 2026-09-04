@@ -574,6 +574,11 @@ export class OpenAIRealtimeSession {
       request,
       responseTerminalSequence: this.#responseTerminalSequence,
     });
+    for (const itemId of this.#acceptedInputItemIds) {
+      this.#playbackOverlappingInputItemIds.add(itemId);
+    }
+    this.#acceptedInputItemIds.clear();
+    this.#syncMicrophoneTrack();
     try {
       this.#send({
         event_id: eventId,
@@ -590,6 +595,7 @@ export class OpenAIRealtimeSession {
     } catch (error) {
       this.#responseCreateEventId = null;
       this.#pendingClientEvents.delete(eventId);
+      this.#syncMicrophoneTrack();
       throw error;
     }
   }
@@ -1252,6 +1258,7 @@ export class OpenAIRealtimeSession {
       this.#microphoneRequested &&
       this.#connected &&
       this.#cancelOutputPromise === null &&
+      this.#responseCreateEventId === null &&
       this.#speakingResponseId === null;
     this.#microphoneTrack.enabled = enabled;
     if (enabled) {

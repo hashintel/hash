@@ -316,6 +316,101 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.localTracks[0]!.enabled).toBe(false);
   });
 
+  test("invalidates accepted input before requesting canonical speech output", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+    let microphoneEnabledWhenResponseRequested: boolean | undefined;
+    channel.send.mockImplementation((payload: string) => {
+      if (JSON.parse(payload).type === "response.create") {
+        microphoneEnabledWhenResponseRequested =
+          harness.localTracks[0]!.enabled;
+      }
+    });
+
+    channel.receive({
+      audio_start_ms: 80,
+      item_id: "item-before-request",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      content_index: 0,
+      delta: "This started before canonical speech",
+      item_id: "item-before-request",
+      type: "conversation.item.input_audio_transcription.delta",
+    });
+
+    harness.session.speakCanonical([
+      canonicalSegment("ask-request", "What happens next?"),
+    ]);
+    expect(harness.events).toContainEqual(
+      expect.objectContaining({ type: "canonical-speech-requested" }),
+    );
+    expect(microphoneEnabledWhenResponseRequested).toBe(false);
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+
+    channel.receive({
+      content_index: 0,
+      item_id: "item-before-request",
+      transcript: "This completed before output started.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    expect(
+      harness.events.some(
+        (event) =>
+          event.type === "completed" &&
+          event.key.itemId === "item-before-request",
+      ),
+    ).toBe(false);
+
+    const handoff = harness.session.cancelOutput();
+    authorizeLatestSpeechResponse(channel, "response-before-output");
+    channel.receive({ type: "input_audio_buffer.cleared" });
+    channel.receive({
+      response: {
+        id: "response-before-output",
+        output: [],
+        status: "cancelled",
+      },
+      type: "response.done",
+    });
+    await handoff;
+    expect(harness.localTracks[0]!.enabled).toBe(true);
+
+    channel.receive({
+      content_index: 0,
+      item_id: "item-before-request",
+      transcript: "The stale item cannot recover authority.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    channel.receive({
+      audio_start_ms: 160,
+      item_id: "item-after-handoff",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      content_index: 0,
+      item_id: "item-after-handoff",
+      transcript: "This is fresh after the handoff.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+
+    expect(
+      harness.events.filter((event) => event.type === "completed"),
+    ).toEqual([
+      {
+        key: {
+          connectionEpoch: 1,
+          contentIndex: 0,
+          itemId: "item-after-handoff",
+        },
+        text: "This is fresh after the handoff.",
+        type: "completed",
+      },
+    ]);
+  });
+
   test("restores only the latest microphone preference after playback", async () => {
     const harness = createHarness();
     await harness.session.connect();

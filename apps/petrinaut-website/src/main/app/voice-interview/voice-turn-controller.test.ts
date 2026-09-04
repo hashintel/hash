@@ -304,6 +304,91 @@ describe("VoiceTurnController", () => {
     });
   });
 
+  test("clears capture when canonical speech is requested before output starts", async () => {
+    const harness = createHarness();
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question("ask-request")],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitBridge({
+      deliveryId: "voice-request",
+      segments: [question("ask-request")],
+      type: "canonical-response-ready",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      itemId: "item-before-request",
+      type: "input-speech-started",
+    });
+    harness.emitSession({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "item-before-request",
+      },
+      text: "Provisional pre-request words",
+      type: "partial",
+    });
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-request",
+      type: "canonical-speech-requested",
+    });
+
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canTakeTurn: true,
+      lastCommittedText: "",
+      partialText: "",
+    });
+    harness.emitSession({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "item-before-request",
+      },
+      text: "This completed before output started.",
+      type: "completed",
+    });
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      lastCommittedText: "",
+      partialText: "",
+    });
+    expect(harness.submitText).not.toHaveBeenCalled();
+
+    await harness.controller.takeTurn();
+    harness.emitSession({
+      connectionEpoch: 1,
+      itemId: "item-after-handoff",
+      type: "input-speech-started",
+    });
+    harness.emitSession({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "item-after-handoff",
+      },
+      text: "Fresh post-handoff answer.",
+      type: "completed",
+    });
+    harness.emitBridge({
+      answer: "Fresh post-handoff answer.",
+      deliveryId: "fresh-delivery",
+      type: "submission-started",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "submitting",
+      lastCommittedText: "Fresh post-handoff answer.",
+      partialText: "",
+    });
+  });
+
   test("hands off an active response once and applies the latest mute preference after cancellation", async () => {
     const harness = createHarness();
     let finishCancellation: (() => void) | undefined;
