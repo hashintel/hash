@@ -63,6 +63,61 @@ describe("normalizeSDCPN", () => {
     expect(Object.hasOwn(result, "metrics")).toBe(false);
     expect(Object.hasOwn(result, "identities")).toBe(false);
     expect(Object.hasOwn(result, "statusViews")).toBe(false);
+    expect(Object.hasOwn(result, "description")).toBe(false);
+    expect(Object.hasOwn(result, "metadata")).toBe(false);
+    expect(Object.hasOwn(result.places[0]!, "description")).toBe(false);
+  });
+
+  it("passes through description and metadata alongside identities and status views", () => {
+    const result = normalizeSDCPN({
+      description: "A net",
+      metadata: { origin: "host-1", tags: ["a", 1, null] },
+      places: [{ id: "p1", name: "P1", x: 0, y: 0, description: "A place" }],
+      transitions: [
+        {
+          id: "t1",
+          name: "T1",
+          description: "A transition",
+          metadata: { group: { id: "g1", role: "member" } },
+          inputArcs: [{ placeId: "p1" }],
+          outputArcs: [],
+          x: 0,
+          y: 0,
+        },
+      ],
+      identities: [
+        { id: "identity1", name: "Ticket", keyElementTypes: ["string"] },
+      ],
+      statusViews: [
+        {
+          id: "view1",
+          name: "Ticket status",
+          identityRef: "identity1",
+          labels: [
+            {
+              id: "label1",
+              name: "Todo",
+              displayColor: "#94a3b8",
+              places: ["p1"],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.description).toBe("A net");
+    expect(result.metadata).toEqual({
+      origin: "host-1",
+      tags: ["a", 1, null],
+    });
+    expect(result.places[0]!.description).toBe("A place");
+    expect(result.transitions[0]!.description).toBe("A transition");
+    expect(result.transitions[0]!.metadata).toEqual({
+      group: { id: "g1", role: "member" },
+    });
+    expect(Object.hasOwn(result.transitions[0]!, "metadata")).toBe(true);
+    expect(result.identities).toHaveLength(1);
+    expect(result.statusViews).toHaveLength(1);
   });
 
   it("passes through identities and status views", () => {
