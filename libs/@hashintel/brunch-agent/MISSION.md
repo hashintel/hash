@@ -10,14 +10,15 @@ is a bounded parallel implementation intended to reconcile later with
 FE-1575 / Mission 6; it must not copy Mission 6's fixture identity, coherent
 bundle, or evidence architecture.
 
-Partial behavior donor [#9523](https://github.com/hashintel/hash/pull/9523) is
-pinned at `f4476e62bbb4509ad19a4ced62a8d8fa00d16826`. Adopt only its live-net
-read before a scratch-project interview or construction turn and its
-classification of that read as a browser client tool through live transport
-and hydrated history projection. Reimplement those behaviors against this
-branch's shared Flue route and SDCPN plugin. Reject the donor's older app-local
-agent topology and its broader grounding for interviews against non-empty
-nets. This branch neither supersedes #9523 nor authorizes its retirement.
+Behavior donor [#9523](https://github.com/hashintel/hash/pull/9523) is pinned at
+`f4476e62bbb4509ad19a4ced62a8d8fa00d16826`. Adopt its live-net read and
+grounding before answering a request about the current net in every Brunch
+conversation, including non-empty documents, plus its classification of that
+read as a browser client tool through live transport and hydrated history
+projection. Reimplement those behaviors against this branch's shared Flue
+route and SDCPN plugin. Keep all mutation tools gated to explicit scratch or
+validated construction modes, and reject the donor's older app-local agent
+topology. This branch neither supersedes #9523 nor authorizes its retirement.
 
 Reconciliation source [#9537](https://github.com/hashintel/hash/pull/9537) is
 pinned at `ec85958981ccd33270cee3174a39e6fa683f62a1`. Adopt only its generic
@@ -36,9 +37,13 @@ automatically in the currently open empty Petrinaut scratch project. Rendering
 must happen as Brunch emits canonical construction calls; the user must not
 need to press a Preview, Publish, or Generate button.
 
-This closes the visible H-6763 interview-to-draft loop for one local demo
-scenario. It does not claim general workpiece projection, provenance,
-revision, remote persistence, or arbitrary SDCPN coverage.
+Before that construction path, and in ordinary conversations attached to an
+existing non-empty document, Brunch must read the live Petrinaut definition
+before answering a request about the current net. This closes the visible
+H-6763 interview-to-draft loop for one local demo scenario and restores the
+current-net grounding behavior adopted from #9523. It does not claim general
+workpiece projection, provenance, revision, remote persistence, or arbitrary
+SDCPN coverage.
 
 ## Throughline
 
@@ -46,6 +51,7 @@ revision, remote persistence, or arbitrary SDCPN coverage.
 typed input or completed Voice transcript
 → FE-1580 shared panel useChat
 → one browser Flue transport and mounted Brunch ChatAgent
+→ request about the current net reads its live definition in every mode
 → scratch-project conversation mode
 → SDCPN modelling skill maintains the elicited account
 → Brunch reads the active empty document
@@ -61,41 +67,50 @@ only the media/transcription plane and receives no construction tools.
 
 ## Proof
 
-1. **Automatic complete scratch-net construction.** A deterministic
+1. **Existing-net questions use the live document.** An ordinary Brunch
+   conversation with no construction mode receives a request about a non-empty
+   current net, calls the browser-executed `getLatestNetDefinition`, and answers
+   from the returned definition instead of asking the person to attach or
+   describe it. Mutation tools remain absent. Oracle: a deterministic built
+   ChatAgent/client-tool integration test plus the local browser witness.
+2. **Automatic complete scratch-net construction.** A deterministic
    production-path test starts from an empty document, submits one sufficiently
    concrete process description, and observes a non-empty connected net with
    at least two places, one transition, and both input and output arcs. No
    preview/publish/generate action is invoked. Oracle: the Brunch transport,
    Petrinaut panel dispatcher, and final canonical definition in the focused
    browser integration test.
-2. **Immediate canonical rendering seam.** Every accepted construction call is
+3. **Immediate canonical rendering seam.** Every accepted construction call is
    executed through Petrinaut's existing AI mutation dispatcher against the
    active handle; no direct server-to-canvas write or replacement renderer is
    introduced. Oracle: panel tests proving canonical validation, mutation
    output, and handle state after each tool result.
-3. **Voice uses the same route.** Replacing the typed description with one
+4. **Voice uses the same route.** Replacing the typed description with one
    completed Voice transcript produces the same construction tool/result
    sequence through FE-1580 path B, with one admitted spoken turn and no direct
    Voice Flue send. Oracle: `voice-preview.integration.test.ts`.
-4. **Reload does not duplicate construction.** The local demo persists the
+5. **Reload does not duplicate construction.** The local demo persists the
    constructed definition through its existing handle subscription; reopening
    shows one net and canonical history without resubmitting the spoken turn or
    reapplying tool results. Oracle: focused local-storage/history test and a
    local browser witness.
-5. **Parent behavior remains intact.** FE-1580's transcript authority,
+6. **Parent behavior remains intact.** FE-1580's transcript authority,
    half-duplex handoff, exact replay, admission outcomes, question marker, and
    durable Stop suites remain green. Oracle: the existing focused workspace
    tests and type/lint/build checks.
 
-The product witness uses the local Petrinaut Brunch demo, begins with an empty
-scratch net, supplies one concrete bounded process, watches the complete small
-net appear without another action, and reloads it.
+The product witness first asks what an existing non-empty net is about and sees
+an answer grounded in its live definition. It then uses a new empty scratch
+net, supplies one concrete bounded process, watches the complete small net
+appear without another action, and reloads it.
 
 ## Constraints
 
 - Keep FE-1580 Voice path B as the only spoken submission path.
 - Do not make OpenAI Realtime a modelling agent or expose tools to it.
 - Do not add a manual Preview, Publish, Generate, or Finish action.
+- Mount the read-only live-net tool for every Brunch conversation and call it
+  before answering a request about the current net.
 - Scope automatic construction to a conversation explicitly initialized in
   scratch-project mode; do not mount write tools for unrelated conversations.
 - Construct only into an empty scratch document. Refuse automatic whole-net
