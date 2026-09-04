@@ -89,10 +89,12 @@ WORKDIR /repo/apps/petrinaut-opt
 COPY --from=uv /uv /usr/local/bin/uv
 
 # Installs dependencies before the service's own source, so editing `src/`
-# reuses this layer. Editing the bindings does rebuild it, since they are part
-# of the environment. `--no-editable` builds them into the virtualenv, so the
-# runner needs the virtualenv alone and no source tree at a matching path.
+# reuses this layer. Editing the bindings or the optimizer core does rebuild
+# it, since they are part of the environment. `--no-editable` builds them into
+# the virtualenv, so the runner needs the virtualenv alone and no source tree
+# at a matching path.
 COPY apps/petrinaut-opt/pyproject.toml apps/petrinaut-opt/uv.lock ./
+COPY libs/@local/petrinaut-optimizer-core /repo/libs/@local/petrinaut-optimizer-core
 COPY libs/@local/petrinaut-python /repo/libs/@local/petrinaut-python
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-project --no-editable

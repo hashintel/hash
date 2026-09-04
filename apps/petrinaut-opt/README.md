@@ -119,7 +119,11 @@ flat parameters that are not fixed, each one a descriptor such as:
 ```
 
 `float`, `int`, and `boolean` map onto `suggest_float`, `suggest_int`, and
-`suggest_categorical`, and the study seed seeds the sampler. The bindings'
+`suggest_categorical`, and the study seed seeds the sampler. That mapping, the
+description's cross-field rules, and the seeded study construction come from
+[`@local/petrinaut-optimizer-core`](../../libs/@local/petrinaut-optimizer-core/README.md),
+which the in-browser optimizer runs under Pyodide, so a study proposes the same
+values in both places. The bindings'
 [usage manual](../../libs/@local/petrinaut-python/README.md) documents the full
 response.
 

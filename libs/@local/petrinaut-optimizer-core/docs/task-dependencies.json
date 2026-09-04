@@ -1,0 +1,9 @@
+{
+  "package": "@local/petrinaut-optimizer-core",
+  "dependencies": [],
+  "tasks": {
+    "lint:ruff": [],
+    "lint:types": [],
+    "test:unit": []
+  }
+}
