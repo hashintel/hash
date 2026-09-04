@@ -16,7 +16,7 @@
  * into the field as it lands. It follows the record's navigation and the
  * provider's selection stream; the drawer's navigator holds the controls.
  */
-import { use, useEffect, useRef, useState } from "react";
+import { type ReactNode, use, useEffect, useRef, useState } from "react";
 
 import { Slider } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -334,12 +334,15 @@ export const NavigatedOptimizationSurface = ({
   navigation,
   selection,
   onNavigationChange,
+  controls,
 }: {
   optimization: OptimizationRecord;
   navigation: OptimizationNavigation;
   /** The provider's stream at the navigated point (or the followed step). */
   selection: OptimizationSelectionStream | null;
   onNavigationChange: (patch: Partial<OptimizationNavigation>) => void;
+  /** Further controls at the end of the axis row, e.g. a help tooltip. */
+  controls?: ReactNode;
 }) => {
   const input = optimization.input;
   const axes = optimization.axes;
@@ -411,6 +414,7 @@ export const NavigatedOptimizationSurface = ({
         interaction,
         selection,
       })}
+      controls={controls}
     />
   );
 };

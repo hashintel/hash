@@ -58,9 +58,10 @@ const titleStyle = css({
   whiteSpace: "nowrap",
 });
 
+/** The plot's height unless the owner sizes it. */
+const DEFAULT_PLOT_HEIGHT = 260;
+
 const chartStyle = css({
-  height: "[260px]",
-  minHeight: "[260px]",
   width: "full",
   minWidth: "[0]",
   _empty: {
@@ -128,8 +129,6 @@ const aggregateNumberStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  height: "[260px]",
-  minHeight: "[260px]",
   width: "full",
   fontSize: "[44px]",
   fontWeight: "semibold",
@@ -161,10 +160,12 @@ export const ExperimentMetricTimeline = ({
   expectedOutputType,
   timeDomain,
   contentEpoch,
+  plotHeight = DEFAULT_PLOT_HEIGHT,
 }: {
   frames: readonly MetricFrame[];
   displaySize: MetricSize;
-  onDisplaySizeChange: (size: MetricSize) => void;
+  /** Toggles between the two sizes; absent when the chart's slot is fixed. */
+  onDisplaySizeChange?: (size: MetricSize) => void;
   /**
    * Title shown before any frame arrives. With it, the component keeps its
    * full shell — header, fixed-height plot area, footer — while empty, so
@@ -187,8 +188,11 @@ export const ExperimentMetricTimeline = ({
    * change crossfades the previous picture out instead of cutting.
    */
   contentEpoch?: string;
+  /** The plot area's height in pixels; the header and controls add to it. */
+  plotHeight?: number;
 }) => {
   const chartRootRef = useRef<HTMLDivElement>(null);
+  const plotSizeStyle = { height: plotHeight, minHeight: plotHeight };
   const size = useElementSize(chartRootRef, { debounce: 50 });
   const [settings, setSettings] = useState(DEFAULT_METRIC_VIEW_SETTINGS);
   const [selection, setSelection] = useState<FrameSelection | null>(null);
@@ -245,28 +249,34 @@ export const ExperimentMetricTimeline = ({
     <div className={rootStyle}>
       <div className={headerStyle}>
         <span className={titleStyle}>{latestFrame?.label ?? label}</span>
-        <div className={headerRightStyle}>
-          <Button
-            variant="ghost"
-            size="xs"
-            iconName={displaySize === "large" ? "collapse" : "expand"}
-            aria-label={displaySize === "large" ? "Half width" : "Full width"}
-            tooltip={displaySize === "large" ? "Half width" : "Full width"}
-            onClick={() =>
-              onDisplaySizeChange(displaySize === "large" ? "small" : "large")
-            }
-          />
-        </div>
+        {onDisplaySizeChange ? (
+          <div className={headerRightStyle}>
+            <Button
+              variant="ghost"
+              size="xs"
+              iconName={displaySize === "large" ? "collapse" : "expand"}
+              aria-label={displaySize === "large" ? "Half width" : "Full width"}
+              tooltip={displaySize === "large" ? "Half width" : "Full width"}
+              onClick={() =>
+                onDisplaySizeChange(displaySize === "large" ? "small" : "large")
+              }
+            />
+          </div>
+        ) : null}
       </div>
       {view.displayMode === "number" ? (
-        <div className={aggregateNumberStyle}>
+        <div className={aggregateNumberStyle} style={plotSizeStyle}>
           {view.aggregateNumber === null
             ? "n/a"
             : formatNumber(view.aggregateNumber)}
         </div>
       ) : (
         <div className={chartFrameStyle}>
-          <div ref={chartRootRef} className={chartStyle} />
+          <div
+            ref={chartRootRef}
+            className={chartStyle}
+            style={plotSizeStyle}
+          />
           {view.hasPlotData || lastOutputType !== null ? null : (
             <div className={chartWaitingStyle}>Waiting for metric data</div>
           )}

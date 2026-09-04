@@ -1,10 +1,9 @@
 import { use } from "react";
 
-import { Button, Drawer, Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { Button, Drawer, HelpTooltip, Icon } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
-  followedTrial,
   isOptimizationActive,
   type OptimizationNavigation,
   type OptimizationRecord,
@@ -13,13 +12,7 @@ import {
 import { optimizationBooleanIdentifiers } from "../../../../../../react/optimizations/surface-grid";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { Section, SectionList } from "../../../../../components/section";
-import { Table, type TableColumn } from "../../../../../components/table";
-import {
-  ComputeActivity,
-  type ComputeActivityBar,
-  type ComputeActivityBatch,
-} from "../shared/compute-activity";
-import { ComputeBackendBadge } from "../shared/compute-backend-badge";
+import { ComputeActivity } from "../shared/compute-activity";
 import { describeOptimizationStatus } from "./optimization-status";
 import {
   NavigatedOptimizationSurface,
@@ -30,7 +23,22 @@ import {
   remainingOptimizationSteps,
 } from "./view-optimization-drawer/continue-control";
 import { OptimizationMetrics } from "./view-optimization-drawer/optimization-metrics";
-import { OptimizationNavigator } from "./view-optimization-drawer/optimization-navigator";
+import {
+  OptimizationNavigator,
+  OptimizationNavigatorStatus,
+} from "./view-optimization-drawer/optimization-navigator";
+import {
+  formatNumber,
+  formatScalar,
+} from "./view-optimization-drawer/shared/format-value";
+import {
+  activityBatches,
+  finishedStepCount,
+  followedStepBar,
+  stepsBar,
+} from "./view-optimization-drawer/shared/study-progress";
+import { StepsTable } from "./view-optimization-drawer/steps-table";
+import { StudySummaryStrip } from "./view-optimization-drawer/study-summary-strip";
 
 const summaryStyle = css({
   marginTop: "-1",
@@ -74,18 +82,6 @@ const errorStyle = css({
   whiteSpace: "pre-wrap",
 });
 
-const noteStyle = css({
-  display: "block",
-  marginTop: "2",
-  fontSize: "xs",
-  color: "neutral.s80",
-});
-
-const stepHintStyle = css({
-  fontSize: "xs",
-  color: "neutral.s80",
-});
-
 // The drawer body is a column: the summary, the navigator and the surface
 // hold still at the top, and one region below them scrolls.
 const drawerBodyStyle = css({
@@ -102,7 +98,6 @@ const fixedSectionStyle = css({
 
 const stepsScrollStyle = css({
   flex: "[1]",
-  minHeight: "[160px]",
   overflowY: "auto",
   scrollbarWidth: "[thin]",
   borderWidth: "[1px]",
@@ -119,44 +114,37 @@ const stepsScrollStyle = css({
   },
 });
 
-// A connected study's chart and steps share this region; the section
-// headers inside it pin themselves as it scrolls.
-const scrollRegionStyle = css({
+const remoteStepsHeightStyle = css({
+  minHeight: "[160px]",
+});
+
+// A connected study's steps get whatever height the panes above leave: two
+// rows at a short viewport, a page of them at a tall one. The table's own
+// header names the columns, so no section title precedes it.
+const connectedStepsStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
   flex: "[1]",
-  minHeight: "[200px]",
-  overflowY: "auto",
-  scrollbarWidth: "[thin]",
+  minHeight: "[0]",
+  paddingTop: "3",
+  paddingBottom: "3",
 });
 
-const stepsTableStyle = css({
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "md",
+const connectedStepsHeightStyle = css({
+  minHeight: "[96px]",
 });
 
-const stepStateStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[18px]",
-  height: "[18px]",
-  borderRadius: "full",
-  color: "white",
-  flexShrink: "0",
-  "&[data-state='complete']": {
-    backgroundColor: "green.s90",
-  },
-  "&[data-state='pruned']": {
-    backgroundColor: "orange.s80",
-  },
-  "&[data-state='failed']": {
-    backgroundColor: "red.s90",
-  },
-  "& svg": {
-    width: "[9px]",
-    height: "[9px]",
-  },
+// The surface and the objective's chart side by side, each with its own
+// control row over a plot of the same height; they stack when the drawer is
+// too narrow for two readable plots.
+const panesStyle = css({
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))",
+  alignItems: "start",
+  gap: "5",
+  paddingTop: "2.5",
+  paddingBottom: "2",
 });
 
 const bestParametersStyle = css({
@@ -199,124 +187,25 @@ const bestParameterValueStyle = css({
   whiteSpace: "nowrap",
 });
 
-function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toPrecision(6);
-}
+const PARAMETERS_HELP =
+  "The chart beside the surface shows the objective at this point. While the study runs and Follow steps is on, the point follows each step as it is evaluated and the controls only show it; turn Follow steps off, or wait for the study to finish, to move them and look elsewhere.";
 
-function formatScalar(value: number | boolean): string {
-  return typeof value === "boolean" ? String(value) : formatNumber(value);
-}
+const SURFACE_HELP =
+  "The objective over two optimized parameters, drawn from the study's own steps: each step is a dot, the best emphasized, pruned steps hollow, and the field is interpolated between them. The ringed dot is the step being evaluated, filling in as it runs; once the study is over, or Follow steps is off, click or drag the plot to refine a point.";
 
-const finishedStepCount = (optimization: OptimizationRecord): number =>
-  optimization.completedTrials +
-  optimization.prunedTrials +
-  optimization.failedTrials;
-
-/** The summary's main bar: steps finished over steps requested. */
-const stepsBar = (optimization: OptimizationRecord): ComputeActivityBar => {
-  const finished = finishedStepCount(optimization);
-  return {
-    percent:
-      optimization.requestedTrials > 0
-        ? Math.min(100, (finished / optimization.requestedTrials) * 100)
-        : 0,
-    label: `Steps · ${finished} / ${optimization.requestedTrials}`,
-  };
-};
-
-/**
- * The thinner bar beneath: the followed step's runs over the runs each step
- * gets, while a step is being followed.
- */
-const followedStepBar = (
-  optimization: OptimizationRecord,
-): ComputeActivityBar | null => {
-  const { selection } = optimization;
-  if (selection === null || !selection.computing) {
-    return null;
-  }
-  const trial = followedTrial(selection.key);
-  if (trial === null) {
-    return null;
-  }
-  const runsPerStep = optimization.input.execution.seedsPerTrial ?? 1;
-  return {
-    percent: Math.min(100, (selection.runsCompleted / runsPerStep) * 100),
-    label: `Step ${trial + 1} · ${selection.runsCompleted} / ${runsPerStep} runs`,
-  };
-};
-
-/** The study's batches as the activity list shows them; steps are the priority work. */
-const activityBatches = (
-  optimization: OptimizationRecord,
-): ComputeActivityBatch[] =>
-  optimization.activity.map((batch) => ({
-    id: batch.id,
-    label: batch.label,
-    tone: batch.kind === "step" ? "priority" : "background",
-    runCount: batch.runCount,
-    completedRuns: batch.completedRuns,
-  }));
-
-type StepState = OptimizationRecord["trials"][number]["state"];
-
-const stepStatePresentation = {
-  complete: { label: "Complete", icon: "check" },
-  pruned: { label: "Pruned", icon: "filter" },
-  failed: { label: "Failed", icon: "close" },
-} as const satisfies Record<StepState, { label: string; icon: string }>;
-
-const renderStepState = (state: StepState) => {
-  const { label, icon } = stepStatePresentation[state];
-
-  return (
-    <span
-      className={stepStateStyle}
-      data-state={state}
-      role="img"
-      aria-label={label}
-      title={label}
-    >
-      <Icon name={icon} size="xxs" />
-    </span>
+/** The header's second line: the scenario and the objective. */
+const describeStudy = (optimization: OptimizationRecord): string => {
+  const { input } = optimization;
+  const scenario = input.model.definition.scenarios?.find(
+    (candidate) => candidate.id === input.scenario.id,
   );
+  const metric = input.model.definition.metrics?.find(
+    (candidate) => candidate.id === input.objective.metricId,
+  );
+  const direction =
+    input.objective.direction === "maximize" ? "Maximize" : "Minimize";
+  return `${scenario?.name ?? input.scenario.id} · ${direction} ${metric?.name ?? input.objective.metricId}`;
 };
-
-const stepColumns = [
-  {
-    id: "trial",
-    header: "Step",
-    width: 70,
-    render: (trial) => trial.trial + 1,
-  },
-  {
-    id: "parameters",
-    header: "Parameters",
-    minWidth: 260,
-    flex: "1 1 260px",
-    tone: "subtle",
-    render: (trial) =>
-      Object.entries(trial.parameters)
-        .map(([identifier, value]) => `${identifier}=${formatScalar(value)}`)
-        .join(", "),
-  },
-  {
-    id: "objective",
-    header: "Objective",
-    width: 120,
-    render: (trial) =>
-      trial.objective === null ? "—" : formatNumber(trial.objective),
-  },
-  {
-    id: "state",
-    header: null,
-    width: 18,
-    render: (trial) => renderStepState(trial.state),
-  },
-] satisfies readonly TableColumn<OptimizationRecord["trials"][number]>[];
-
-/** The latest steps only: the table stays light on a long study. */
-const DISPLAYED_STEPS = 200;
 
 const OptimizationSummary = ({
   optimization,
@@ -324,12 +213,6 @@ const OptimizationSummary = ({
   optimization: OptimizationRecord;
 }) => {
   const finishedSteps = finishedStepCount(optimization);
-  const scenario = optimization.input.model.definition.scenarios?.find(
-    (candidate) => candidate.id === optimization.input.scenario.id,
-  );
-  const metric = optimization.input.model.definition.metrics?.find(
-    (candidate) => candidate.id === optimization.input.objective.metricId,
-  );
   const seedsPerTrial = optimization.input.execution.seedsPerTrial ?? 1;
 
   return (
@@ -342,21 +225,6 @@ const OptimizationSummary = ({
             {optimization.connectionState === "reconnecting"
               ? " (reconnecting…)"
               : ""}
-          </span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Scenario</span>
-          <span className={statValueStyle}>
-            {scenario?.name ?? optimization.input.scenario.id}
-          </span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Objective</span>
-          <span className={statValueStyle}>
-            {optimization.input.objective.direction === "maximize"
-              ? "Maximize"
-              : "Minimize"}{" "}
-            {metric?.name ?? optimization.input.objective.metricId}
           </span>
         </div>
         <div className={statStyle}>
@@ -386,45 +254,20 @@ const OptimizationSummary = ({
       </div>
       <div className={activityStyle}>
         <ComputeActivity
-          bar={stepsBar(optimization)}
+          bar={stepsBar(
+            optimization,
+            `Steps · ${finishedSteps} / ${optimization.requestedTrials}`,
+          )}
           secondaryBar={followedStepBar(optimization)}
           batches={activityBatches(optimization)}
         />
       </div>
-      {optimization.navigation !== null &&
-      optimization.computeBackendFallbackReason !== null ? (
-        <span className={noteStyle}>
-          Ran on the CPU: {optimization.computeBackendFallbackReason}
-        </span>
-      ) : null}
       {optimization.error ? (
         <span className={errorStyle}>{optimization.error}</span>
       ) : null}
     </div>
   );
 };
-
-const SummarySection = ({
-  optimization,
-}: {
-  optimization: OptimizationRecord;
-}) => (
-  <Section
-    title="Summary"
-    collapsible
-    defaultOpen
-    className={fixedSectionStyle}
-    // Only a connected study computes here; a remote study's badge would
-    // name this machine's backend for compute that ran on a service.
-    renderHeaderAction={
-      optimization.navigation !== null
-        ? () => <ComputeBackendBadge backend={optimization} />
-        : undefined
-    }
-  >
-    <OptimizationSummary optimization={optimization} />
-  </Section>
-);
 
 const BestParametersSection = ({
   optimization,
@@ -453,35 +296,6 @@ const BestParametersSection = ({
     </Section>
   ) : null;
 
-const StepsTable = ({
-  optimization,
-  className,
-}: {
-  optimization: OptimizationRecord;
-  className: string;
-}) => {
-  const displayedSteps = optimization.trials.slice(-DISPLAYED_STEPS).reverse();
-
-  return (
-    <>
-      {optimization.trials.length > displayedSteps.length ? (
-        <span className={stepHintStyle}>
-          Showing the latest {displayedSteps.length} of{" "}
-          {optimization.trials.length} received steps.
-        </span>
-      ) : null}
-      <div className={className}>
-        <Table
-          columns={stepColumns}
-          emptyLabel="No steps completed yet"
-          getRowId={(trial) => String(trial.trial)}
-          rows={displayedSteps}
-        />
-      </div>
-    </>
-  );
-};
-
 /** A study run elsewhere: results only, plus the experimental surface. */
 const RemoteStudySections = ({
   optimization,
@@ -494,7 +308,14 @@ const RemoteStudySections = ({
 
   return (
     <>
-      <SummarySection optimization={optimization} />
+      <Section
+        title="Summary"
+        collapsible
+        defaultOpen
+        className={fixedSectionStyle}
+      >
+        <OptimizationSummary optimization={optimization} />
+      </Section>
       <BestParametersSection optimization={optimization} />
       {surfaceEligible ? (
         <Section
@@ -514,7 +335,8 @@ const RemoteStudySections = ({
         <Section title="Steps" fillHeight>
           <StepsTable
             optimization={optimization}
-            className={stepsScrollStyle}
+            bestTrial={null}
+            className={cx(stepsScrollStyle, remoteStepsHeightStyle)}
           />
         </Section>
       ) : null}
@@ -523,8 +345,11 @@ const RemoteStudySections = ({
 };
 
 /**
- * A study evaluated in this browser: its navigation drives the surface and
- * the objective's chart, following each step while it runs.
+ * A study evaluated in this browser, laid out so everything is in view at
+ * once: the summary strip, the parameter controls with their state line, the
+ * surface beside the objective's chart, and the steps filling what is left.
+ * The navigation drives the surface and the chart, following each step while
+ * the study runs.
  */
 const ConnectedStudySections = ({
   optimization,
@@ -536,17 +361,27 @@ const ConnectedStudySections = ({
   const { setOptimizationNavigation } = use(OptimizationsContext);
   const onNavigationChange = (patch: Partial<OptimizationNavigation>) =>
     setOptimizationNavigation(optimization.id, patch);
+  const running = isOptimizationActive(optimization);
 
   return (
     <>
-      <SummarySection optimization={optimization} />
-      <BestParametersSection optimization={optimization} />
+      <div className={fixedSectionStyle}>
+        <StudySummaryStrip optimization={optimization} />
+      </div>
       <Section
         title="Parameters"
-        tooltip="The chart below shows the objective at this point. While the study runs and Follow steps is on, the point follows each step as it is evaluated and the controls only show it; turn Follow steps off, or wait for the study to finish, to move them and look elsewhere."
+        tooltip={PARAMETERS_HELP}
         className={fixedSectionStyle}
-        // Not collapsible: the navigator stays usable while the chart
-        // below streams.
+        renderHeaderAction={() => (
+          <OptimizationNavigatorStatus
+            navigation={navigation}
+            selection={optimization.selection}
+            running={running}
+            onNavigationChange={onNavigationChange}
+          />
+        )}
+        // Not collapsible: the navigator stays usable while the plots
+        // beside each other stream.
         renderStickyBand={() => (
           <OptimizationNavigator
             axes={optimization.axes}
@@ -554,51 +389,38 @@ const ConnectedStudySections = ({
               optimization.input,
             )}
             navigation={navigation}
-            selection={optimization.selection}
-            running={isOptimizationActive(optimization)}
+            running={running}
             onNavigationChange={onNavigationChange}
           />
         )}
       >
         {null}
       </Section>
-      {optimization.axes.length >= 2 ? (
-        <Section
-          title="Surface"
-          tooltip="The objective over two optimized parameters, drawn from the study's own steps: each step is a dot, the best emphasized, pruned steps hollow, and the field is interpolated between them. The ringed dot is the step being evaluated, filling in as it runs; once the study is over, or Follow steps is off, click or drag the plot to refine a point."
-          collapsible
-          defaultOpen
-          className={fixedSectionStyle}
-        >
+      <div className={panesStyle}>
+        {optimization.axes.length >= 2 ? (
           <NavigatedOptimizationSurface
-            key={optimization.id}
+            key={`surface-${optimization.id}`}
             optimization={optimization}
             navigation={navigation}
             selection={optimization.selection}
             onNavigationChange={onNavigationChange}
+            controls={<HelpTooltip content={SURFACE_HELP} />}
           />
-        </Section>
-      ) : null}
-      <div className={scrollRegionStyle}>
-        <SectionList>
-          <Section title="Metrics" collapsible defaultOpen>
-            {/* Keyed so faded previous pictures and size choices never leak
-                from one study into another when the drawer swaps records. */}
-            <OptimizationMetrics
-              key={optimization.id}
-              optimization={optimization}
-              selection={optimization.selection}
-            />
-          </Section>
-          {optimization.trials.length > 0 ? (
-            <Section title="Steps" collapsible defaultOpen>
-              <StepsTable
-                optimization={optimization}
-                className={stepsTableStyle}
-              />
-            </Section>
-          ) : null}
-        </SectionList>
+        ) : null}
+        {/* Keyed so faded previous pictures never leak from one study into
+            another when the drawer swaps records. */}
+        <OptimizationMetrics
+          key={`metrics-${optimization.id}`}
+          optimization={optimization}
+          selection={optimization.selection}
+        />
+      </div>
+      <div className={connectedStepsStyle}>
+        <StepsTable
+          optimization={optimization}
+          bestTrial={optimization.best?.trial ?? null}
+          className={cx(stepsScrollStyle, connectedStepsHeightStyle)}
+        />
       </div>
     </>
   );
@@ -636,7 +458,7 @@ export const ViewOptimizationDrawer = ({
     >
       <Drawer.Header
         title={optimization.input.name}
-        description="Optimization progress and results"
+        description={describeStudy(optimization)}
       />
       <Drawer.Body className={drawerBodyStyle}>
         <SectionList>

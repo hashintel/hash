@@ -268,7 +268,7 @@ export const describeSurfaceState = ({
     return [
       count === 0 ? "no steps placed yet" : `${steps} placed`,
       ...(best === null ? [] : [`best ${formatAxisValue(best.objective)}`]),
-      "dots are the study's steps, the best highlighted; the optimizer is choosing the next point",
+      "the optimizer is choosing the next point",
     ].join(" · ");
   }
   const refining =
@@ -297,6 +297,7 @@ export const OptimizationSurfacePlot = ({
   contentKey,
   onPick,
   caption,
+  controls,
   children,
 }: {
   axes: readonly OptimizationSurfaceAxis[];
@@ -317,6 +318,8 @@ export const OptimizationSurfacePlot = ({
   onPick: ((positions: Record<string, number>) => void) | undefined;
   /** The state line under the plot, outside a drag. */
   caption: string;
+  /** Further controls at the end of the axis row. */
+  controls?: ReactNode;
   /** Rows between the axis selects and the plot. */
   children?: ReactNode;
 }) => {
@@ -347,7 +350,9 @@ export const OptimizationSurfacePlot = ({
         yAxisId={view.yAxisId}
         onXAxisIdChange={(xAxisId) => onViewChange({ ...view, xAxisId })}
         onYAxisIdChange={(yAxisId) => onViewChange({ ...view, yAxisId })}
-      />
+      >
+        {controls}
+      </SurfaceAxisControls>
       {children}
       {xAxis && yAxis ? (
         <ContourSurface

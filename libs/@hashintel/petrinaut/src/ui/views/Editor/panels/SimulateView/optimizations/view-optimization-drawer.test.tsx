@@ -29,7 +29,18 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const Drawer = Object.assign(
     ({ children }: { children: ReactNode }) => <div>{children}</div>,
     {
-      Header: ({ title }: { title: ReactNode }) => <header>{title}</header>,
+      Header: ({
+        title,
+        description,
+      }: {
+        title: ReactNode;
+        description?: ReactNode;
+      }) => (
+        <header>
+          {title}
+          <p>{description}</p>
+        </header>
+      ),
       Body: ({ children }: { children: ReactNode }) => <main>{children}</main>,
       Footer: ({ actions }: { actions: ReactNode }) => (
         <footer>{actions}</footer>
@@ -83,20 +94,24 @@ vi.mock("./optimization-surface", () => ({
   ),
 }));
 
-vi.mock("../shared/metric-tiles", () => ({
-  MetricTiles: ({
-    tiles,
+vi.mock("../experiments/experiment-metric-timeline", () => ({
+  ExperimentMetricTimeline: ({
+    frames,
+    label,
     contentEpoch,
+    onDisplaySizeChange,
   }: {
-    tiles: readonly { label: string; frames: readonly unknown[] }[];
+    frames: readonly unknown[];
+    label: string;
     contentEpoch: string;
+    onDisplaySizeChange?: () => void;
   }) => (
-    <div data-testid="metric-tiles" data-epoch={contentEpoch}>
-      {tiles.map((tile) => (
-        <span key={tile.label}>
-          {tile.label}: {tile.frames.length} frames
-        </span>
-      ))}
+    <div
+      data-testid="metric-timeline"
+      data-epoch={contentEpoch}
+      data-resizable={onDisplaySizeChange !== undefined}
+    >
+      {label}: {frames.length} frames
     </div>
   ),
 }));
@@ -157,6 +172,10 @@ const renderDrawer = (
 const input = makeOptimizationInput(optimizedBindingSets.base);
 const { trials, best } = makeTrials(input, 5);
 
+/** The Best stat prints the objective as the table does. */
+const formatObjective = (value: number): string =>
+  Number.isInteger(value) ? String(value) : value.toPrecision(6);
+
 describe("ViewOptimizationDrawer for a remote study", () => {
   const remote = makeOptimizationRecord({
     input,
@@ -169,11 +188,25 @@ describe("ViewOptimizationDrawer for a remote study", () => {
     renderDrawer(remote);
 
     expect(screen.getByText("Summary")).toBeTruthy();
+    expect(screen.getByText("Best parameters")).toBeTruthy();
     expect(screen.getByRole("table")).toBeTruthy();
     expect(screen.queryAllByRole("slider")).toHaveLength(0);
-    expect(screen.queryByText("Metrics")).toBeNull();
+    expect(screen.queryByTestId("metric-timeline")).toBeNull();
     expect(screen.queryByText("CPU")).toBeNull();
     expect(screen.queryByTestId("remote-surface")).toBeNull();
+    expect(screen.queryByTitle("Best step")).toBeNull();
+  });
+
+  it("names the scenario and the objective under the title", () => {
+    renderDrawer(remote);
+
+    const metric = input.model.definition.metrics![0]!;
+    const scenario = input.model.definition.scenarios!.find(
+      (candidate) => candidate.id === input.scenario.id,
+    )!;
+    expect(
+      screen.getByText(`${scenario.name} · Maximize ${metric.name}`),
+    ).toBeTruthy();
   });
 
   it("shows the self-navigating surface behind the setting", () => {
@@ -214,11 +247,31 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     expect(screen.getByTestId("navigated-surface").dataset.positions).toBe(
       JSON.stringify(navigation.positions),
     );
-    expect(screen.getByText("Metrics")).toBeTruthy();
-    const tiles = screen.getByTestId("metric-tiles");
-    expect(tiles.dataset.epoch).toBe("trial:2");
-    expect(tiles.textContent).toContain(
+    const timeline = screen.getByTestId("metric-timeline");
+    expect(timeline.dataset.epoch).toBe("trial:2");
+    expect(timeline.dataset.resizable).toBe("false");
+    expect(timeline.textContent).toContain(
       `${input.model.definition.metrics![0]!.name}: 5 frames`,
+    );
+  });
+
+  it("summarizes the study in one strip and stars the best step in the table", () => {
+    renderDrawer(connected);
+
+    expect(screen.queryByText("Summary")).toBeNull();
+    expect(screen.queryByText("Best parameters")).toBeNull();
+    expect(screen.getByText("Running")).toBeTruthy();
+    expect(screen.getByText("3 / 30")).toBeTruthy();
+    expect(screen.getByText("Best").nextElementSibling?.textContent).toBe(
+      formatObjective(trials[2]!.best!.objective),
+    );
+    // The table lists the newest step first; the header row is row 1.
+    const bestTrial = trials[2]!.best!.trial;
+    const rows = trials.slice(0, 3).toReversed();
+    const starred = screen.getByTitle("Best step");
+    expect(starred.textContent).toBe(String(bestTrial + 1));
+    expect(starred.closest("[role='row']")?.getAttribute("aria-rowindex")).toBe(
+      String(rows.findIndex((row) => row.trial === bestTrial) + 2),
     );
   });
 
@@ -244,7 +297,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
       "Could not compute: metric__profit: Unexpected token ')'",
     );
     expect(status.dataset.tone).toBe("error");
-    expect(screen.getByTestId("metric-tiles").textContent).toContain(
+    expect(screen.getByTestId("metric-timeline").textContent).toContain(
       `${input.model.definition.metrics![0]!.name}: 0 frames`,
     );
   });
@@ -383,7 +436,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
       ],
     });
 
-    expect(screen.getByText("Steps · 3 / 30")).toBeTruthy();
+    expect(screen.getByText("3 / 30")).toBeTruthy();
     expect(screen.getByText("Step 3 · 1 / 1 runs")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /1 computing/ }));
     expect(screen.getByText("Step 3")).toBeTruthy();

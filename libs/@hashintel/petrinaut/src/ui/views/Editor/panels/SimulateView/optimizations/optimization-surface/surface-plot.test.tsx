@@ -355,9 +355,7 @@ describe("describeSurfaceState", () => {
         interaction: "following",
         selection: null,
       }),
-    ).toBe(
-      "no steps placed yet · dots are the study's steps, the best highlighted; the optimizer is choosing the next point",
-    );
+    ).toBe("no steps placed yet · the optimizer is choosing the next point");
     expect(
       describeSurfaceState({
         trials,
@@ -366,7 +364,7 @@ describe("describeSurfaceState", () => {
         selection: stream({ key: "trial:3" }),
       }),
     ).toBe(
-      "3 steps placed · best 4 · dots are the study's steps, the best highlighted; the optimizer is choosing the next point",
+      "3 steps placed · best 4 · the optimizer is choosing the next point",
     );
   });
 
