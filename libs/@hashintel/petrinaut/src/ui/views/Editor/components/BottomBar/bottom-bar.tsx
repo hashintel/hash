@@ -156,30 +156,33 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     ReadonlyMap<string, CollapsibleGroupWidth>
   >(() => new Map());
 
-  const reportGroupWidth = (
-    id: string,
-    width: CollapsibleGroupWidth | null,
-  ) => {
-    setGroupWidths((previous) => {
-      const current = previous.get(id);
-      if (width === null) {
-        if (!current) {
+  // Identity is load-bearing rather than a performance nicety: every group
+  // measures from an effect keyed on this callback, and a new one each render
+  // would tear the observers down and report a width in a loop.
+  const reportGroupWidth = useCallback(
+    (id: string, width: CollapsibleGroupWidth | null) => {
+      setGroupWidths((previous) => {
+        const current = previous.get(id);
+        if (width === null) {
+          if (!current) {
+            return previous;
+          }
+          const next = new Map(previous);
+          next.delete(id);
+          return next;
+        }
+        if (
+          current &&
+          current.natural === width.natural &&
+          current.hidden === width.hidden
+        ) {
           return previous;
         }
-        const next = new Map(previous);
-        next.delete(id);
-        return next;
-      }
-      if (
-        current &&
-        current.natural === width.natural &&
-        current.hidden === width.hidden
-      ) {
-        return previous;
-      }
-      return new Map(previous).set(id, width);
-    });
-  };
+        return new Map(previous).set(id, width);
+      });
+    },
+    [],
+  );
 
   const [isPointerOver, setIsPointerOver] = useState(false);
   const [isFocusWithin, setIsFocusWithin] = useState(false);
