@@ -28,6 +28,8 @@ export interface SliderProps {
   defaultValue?: number;
   label?: string;
   showValueText?: boolean;
+  /** Shows the value without letting the pointer or keyboard move it. */
+  disabled?: boolean;
   onChange?: (value: number) => void;
   /** Fires once when a drag or keyboard interaction settles. */
   onChangeEnd?: (value: number) => void;
@@ -43,6 +45,7 @@ export const Slider: React.FC<SliderProps> = ({
   defaultValue,
   label,
   showValueText = false,
+  disabled,
   onChange,
   onChangeEnd,
 }) => {
@@ -50,12 +53,17 @@ export const Slider: React.FC<SliderProps> = ({
     <BaseSlider.Root
       min={min}
       step={step}
+      disabled={disabled}
       className={cx(
         css({
           position: "relative",
           display: "flex",
           flexDirection: "column",
           gap: "2",
+          "&[data-disabled]": {
+            opacity: "[0.5]",
+            cursor: "not-allowed",
+          },
         }),
         className,
       )}

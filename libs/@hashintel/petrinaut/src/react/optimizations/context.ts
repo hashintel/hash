@@ -129,8 +129,19 @@ export type OptimizationRecord = {
   selection: OptimizationSelectionStream | null;
 };
 
+const TRIAL_SELECTION_KEY_PREFIX = "trial:";
+
+/** The trial a selection stream follows, or null when the stream is a point's. */
+export function followedTrial(selectionKey: string): number | null {
+  if (!selectionKey.startsWith(TRIAL_SELECTION_KEY_PREFIX)) {
+    return null;
+  }
+  const trial = Number(selectionKey.slice(TRIAL_SELECTION_KEY_PREFIX.length));
+  return Number.isInteger(trial) ? trial : null;
+}
+
 export function isOptimizationActive(
-  optimization: OptimizationRecord,
+  optimization: Pick<OptimizationRecord, "status">,
 ): boolean {
   return (
     optimization.status === "initializing" || optimization.status === "running"

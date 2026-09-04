@@ -6,12 +6,14 @@
  * in as props, and the only output is `onNavigationChange`, whose patches
  * the owner forwards to the provider. Slider moves commit live — positions
  * are quantized, so a drag emits one change per step crossed and compute
- * follows the thumb — and any move takes the navigation off the followed
- * step.
+ * follows the thumb. While a running study is followed, the optimizer places
+ * the point and the controls only show it; the "Follow steps" switch is the
+ * way to take over early, and once the study is over the controls are free.
  */
 import { LoadingSpinner, Slider, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { followedTrial } from "../../../../../../../react/optimizations/context";
 import {
   optimizationAxisMidpoint,
   optimizationAxisValueAt,
@@ -24,17 +26,6 @@ import type {
 } from "../../../../../../../react/optimizations/context";
 import type { OptimizationSurfaceAxis } from "../../../../../../../react/optimizations/surface-grid";
 
-const TRIAL_KEY_PREFIX = "trial:";
-
-/** The step a selection stream follows, or null when it is a point's. */
-export const followedStep = (selectionKey: string): number | null => {
-  if (!selectionKey.startsWith(TRIAL_KEY_PREFIX)) {
-    return null;
-  }
-  const trial = Number(selectionKey.slice(TRIAL_KEY_PREFIX.length));
-  return Number.isInteger(trial) ? trial : null;
-};
-
 /** The status line under the controls. */
 export const describeSelection = (
   selection: OptimizationSelectionStream | null,
@@ -45,7 +36,7 @@ export const describeSelection = (
   if (selection.error !== null) {
     return `Could not compute: ${selection.error}`;
   }
-  const step = followedStep(selection.key);
+  const step = followedTrial(selection.key);
   if (step !== null) {
     return selection.computing
       ? `Following step ${step + 1}`
@@ -150,91 +141,98 @@ export const OptimizationNavigator = ({
   /** Whether the study still evaluates steps the navigation can follow. */
   running: boolean;
   onNavigationChange: (patch: Partial<OptimizationNavigation>) => void;
-}) => (
-  <div className={navigatorStyle}>
-    {axes.map((axis) => {
-      const position =
-        navigation.positions[axis.identifier] ?? optimizationAxisMidpoint(axis);
-      return (
-        <div className={rowStyle} key={axis.identifier}>
-          <span className={nameStyle} title={axis.identifier}>
-            {axis.identifier}
-          </span>
-          <Slider
-            className={controlStyle}
-            min={0}
-            max={axis.stepCount}
-            step={1}
-            value={position}
-            onChange={(next) => {
-              if (next !== position) {
-                onNavigationChange({
-                  positions: {
-                    ...navigation.positions,
-                    [axis.identifier]: next,
-                  },
-                  followTrials: false,
-                });
-              }
-            }}
-          />
-          <span className={readoutStyle}>
-            {formatAxisValue(
-              optimizationAxisValueAt(axis, position),
-              axisStepAt(axis, position),
-            )}
-          </span>
-        </div>
-      );
-    })}
-    {booleanParameters.map((identifier) => {
-      const value = navigation.booleans[identifier] ?? false;
-      return (
-        <div className={rowStyle} key={identifier}>
-          <span className={nameStyle} title={identifier}>
-            {identifier}
-          </span>
-          <span className={controlStyle}>
-            <Toggle
-              size="sm"
-              aria-label={identifier}
-              value={value}
-              onChange={(next) =>
-                onNavigationChange({
-                  booleans: { ...navigation.booleans, [identifier]: next },
-                  followTrials: false,
-                })
-              }
+}) => {
+  const following = running && navigation.followTrials;
+
+  return (
+    <div className={navigatorStyle}>
+      {axes.map((axis) => {
+        const position =
+          navigation.positions[axis.identifier] ??
+          optimizationAxisMidpoint(axis);
+        return (
+          <div className={rowStyle} key={axis.identifier}>
+            <span className={nameStyle} title={axis.identifier}>
+              {axis.identifier}
+            </span>
+            <Slider
+              className={controlStyle}
+              min={0}
+              max={axis.stepCount}
+              step={1}
+              value={position}
+              disabled={following}
+              onChange={(next) => {
+                if (next !== position) {
+                  onNavigationChange({
+                    positions: {
+                      ...navigation.positions,
+                      [axis.identifier]: next,
+                    },
+                    followTrials: false,
+                  });
+                }
+              }}
             />
-          </span>
-          <span className={readoutStyle}>{String(value)}</span>
-        </div>
-      );
-    })}
-    <div className={statusStyle}>
-      <span
-        className={spinnerSlotStyle}
-        data-idle={!(selection?.computing ?? false)}
-      >
-        <LoadingSpinner size="xs" />
-      </span>
-      <span
-        className={statusTextStyle}
-        data-tone={
-          selection !== null && selection.error !== null ? "error" : undefined
-        }
-      >
-        {describeSelection(selection)}
-      </span>
-      {running ? (
-        <Toggle
-          className={followStyle}
-          size="sm"
-          labelOnText="Follow steps"
-          value={navigation.followTrials}
-          onChange={(followTrials) => onNavigationChange({ followTrials })}
-        />
-      ) : null}
+            <span className={readoutStyle}>
+              {formatAxisValue(
+                optimizationAxisValueAt(axis, position),
+                axisStepAt(axis, position),
+              )}
+            </span>
+          </div>
+        );
+      })}
+      {booleanParameters.map((identifier) => {
+        const value = navigation.booleans[identifier] ?? false;
+        return (
+          <div className={rowStyle} key={identifier}>
+            <span className={nameStyle} title={identifier}>
+              {identifier}
+            </span>
+            <span className={controlStyle}>
+              <Toggle
+                size="sm"
+                aria-label={identifier}
+                value={value}
+                disabled={following}
+                onChange={(next) =>
+                  onNavigationChange({
+                    booleans: { ...navigation.booleans, [identifier]: next },
+                    followTrials: false,
+                  })
+                }
+              />
+            </span>
+            <span className={readoutStyle}>{String(value)}</span>
+          </div>
+        );
+      })}
+      <div className={statusStyle}>
+        <span
+          className={spinnerSlotStyle}
+          data-idle={!(selection?.computing ?? false)}
+        >
+          <LoadingSpinner size="xs" />
+        </span>
+        <span
+          className={statusTextStyle}
+          data-tone={
+            selection !== null && selection.error !== null ? "error" : undefined
+          }
+        >
+          {describeSelection(selection)}
+        </span>
+        {running ? (
+          <Toggle
+            className={followStyle}
+            size="sm"
+            labelOnText="Follow steps"
+            value={navigation.followTrials}
+            onChange={(followTrials) => onNavigationChange({ followTrials })}
+          />
+        ) : null}
+      </div>
     </div>
-  </div>
-);
+  );
+};

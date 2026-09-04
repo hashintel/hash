@@ -38,14 +38,17 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   );
   const Slider = ({
     value,
+    disabled,
     onChange,
   }: {
     value: number;
+    disabled?: boolean;
     onChange?: (value: number) => void;
   }) => (
     <input
       type="range"
       value={value}
+      disabled={disabled}
       onChange={(event) => onChange?.(Number(event.target.value))}
     />
   );
@@ -58,12 +61,24 @@ vi.mock("./optimization-surface", () => ({
   OptimizationSurface: () => <div data-testid="remote-surface" />,
   NavigatedOptimizationSurface: ({
     navigation,
+    onNavigationChange,
   }: {
     navigation: { positions: Record<string, number> };
+    onNavigationChange: (patch: {
+      positions: Record<string, number>;
+      followTrials: boolean;
+    }) => void;
   }) => (
-    <div
+    <button
+      type="button"
       data-testid="navigated-surface"
       data-positions={JSON.stringify(navigation.positions)}
+      onClick={() =>
+        onNavigationChange({
+          positions: { ...navigation.positions, production_rate: 3 },
+          followTrials: false,
+        })
+      }
     />
   ),
 }));
@@ -231,15 +246,52 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     );
   });
 
-  it("moves the navigation through the provider when a slider changes", () => {
+  it("disables the sliders while following a running study", () => {
+    renderDrawer(connected);
+
+    for (const slider of screen.getAllByRole("slider")) {
+      expect(slider).toHaveProperty("disabled", true);
+    }
+    expect(screen.getByLabelText("Follow steps")).toHaveProperty(
+      "disabled",
+      false,
+    );
+  });
+
+  it("frees the sliders once the study settles and moves the navigation through the provider", () => {
     const setOptimizationNavigation = vi.fn();
-    renderDrawer(connected, { setOptimizationNavigation });
+    const settled = {
+      ...connected,
+      status: "complete" as const,
+      selection: makeSelectionStream({ input, navigation, runsCompleted: 100 }),
+    };
+    renderDrawer(settled, { setOptimizationNavigation });
 
     const [productionRate] = screen.getAllByRole("slider");
+    expect(productionRate).toHaveProperty("disabled", false);
     fireEvent.change(productionRate!, { target: { value: "7" } });
 
-    expect(setOptimizationNavigation).toHaveBeenCalledWith(connected.id, {
+    expect(setOptimizationNavigation).toHaveBeenCalledWith(settled.id, {
       positions: { ...navigation.positions, production_rate: 7 },
+      followTrials: false,
+    });
+  });
+
+  it("frees the sliders when Follow steps is turned off mid-run and commits a surface pick the same way", () => {
+    const setOptimizationNavigation = vi.fn();
+    const takenOver = {
+      ...connected,
+      navigation: { ...navigation, followTrials: false },
+    };
+    renderDrawer(takenOver, { setOptimizationNavigation });
+
+    for (const slider of screen.getAllByRole("slider")) {
+      expect(slider).toHaveProperty("disabled", false);
+    }
+    fireEvent.click(screen.getByTestId("navigated-surface"));
+
+    expect(setOptimizationNavigation).toHaveBeenCalledWith(takenOver.id, {
+      positions: { ...navigation.positions, production_rate: 3 },
       followTrials: false,
     });
   });

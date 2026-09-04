@@ -4,6 +4,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { followedTrial } from "../../../../../../../react/optimizations/context";
 import { buildOptimizationSurfaceAxes } from "../../../../../../../react/optimizations/surface-grid";
 import {
   makeOptimizationInput,
@@ -11,7 +12,6 @@ import {
 } from "../optimizations-story-fixtures";
 import {
   describeSelection,
-  followedStep,
   OptimizationNavigator,
 } from "./optimization-navigator";
 
@@ -29,12 +29,14 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
     max,
     step,
     value,
+    disabled,
     onChange,
   }: {
     min: number;
     max: number;
     step: number;
     value: number;
+    disabled?: boolean;
     onChange?: (value: number) => void;
   }) => (
     <input
@@ -43,6 +45,7 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
       max={max}
       step={step}
       value={value}
+      disabled={disabled}
       onChange={(event) => onChange?.(Number(event.target.value))}
     />
   );
@@ -50,11 +53,13 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const Toggle = ({
     "aria-label": ariaLabel,
     labelOnText,
+    disabled,
     onChange,
     value,
   }: {
     "aria-label"?: string;
     labelOnText?: string;
+    disabled?: boolean;
     onChange: (value: boolean) => void;
     value: boolean;
   }) => (
@@ -63,6 +68,7 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
         aria-label={ariaLabel}
         type="checkbox"
         checked={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
       {labelOnText}
@@ -97,6 +103,7 @@ const stream = (
 
 const renderNavigator = (options: {
   running: boolean;
+  followTrials?: boolean;
   selection?: OptimizationSelectionStream | null;
   onNavigationChange?: (patch: Partial<OptimizationNavigation>) => void;
 }) =>
@@ -104,7 +111,10 @@ const renderNavigator = (options: {
     <OptimizationNavigator
       axes={axes}
       booleanParameters={["express_shipping"]}
-      navigation={navigation}
+      navigation={{
+        ...navigation,
+        followTrials: options.followTrials ?? navigation.followTrials,
+      }}
       selection={options.selection ?? null}
       running={options.running}
       onNavigationChange={options.onNavigationChange ?? (() => {})}
@@ -113,8 +123,8 @@ const renderNavigator = (options: {
 
 describe("describeSelection", () => {
   it("names the followed step from the trial key, one-based", () => {
-    expect(followedStep("trial:3")).toBe(3);
-    expect(followedStep("production_rate=10")).toBeNull();
+    expect(followedTrial("trial:3")).toBe(3);
+    expect(followedTrial("production_rate=10")).toBeNull();
     expect(
       describeSelection(
         stream({ key: "trial:3", computing: true, runsCompleted: 1 }),
@@ -152,7 +162,7 @@ describe("describeSelection", () => {
 describe("OptimizationNavigator", () => {
   it("moves one axis and stops following on a slider change", () => {
     const onNavigationChange = vi.fn();
-    renderNavigator({ running: true, onNavigationChange });
+    renderNavigator({ running: true, followTrials: false, onNavigationChange });
 
     const [productionRate] = screen.getAllByRole("slider");
     fireEvent.change(productionRate!, { target: { value: "12" } });
@@ -161,6 +171,33 @@ describe("OptimizationNavigator", () => {
       positions: { production_rate: 12, selling_price: 20 },
       followTrials: false,
     });
+  });
+
+  it("disables the controls while following a running study and frees them once it settles", () => {
+    const { unmount } = renderNavigator({
+      running: true,
+      selection: stream({ key: "trial:0", computing: true }),
+    });
+
+    for (const slider of screen.getAllByRole("slider")) {
+      expect(slider).toHaveProperty("disabled", true);
+    }
+    expect(
+      screen.getByRole("checkbox", { name: "express_shipping" }),
+    ).toHaveProperty("disabled", true);
+    expect(screen.getByLabelText("Follow steps")).toHaveProperty(
+      "disabled",
+      false,
+    );
+    unmount();
+
+    renderNavigator({ running: false });
+    for (const slider of screen.getAllByRole("slider")) {
+      expect(slider).toHaveProperty("disabled", false);
+    }
+    expect(
+      screen.getByRole("checkbox", { name: "express_shipping" }),
+    ).toHaveProperty("disabled", false);
   });
 
   it("toggles a boolean parameter and stops following", () => {

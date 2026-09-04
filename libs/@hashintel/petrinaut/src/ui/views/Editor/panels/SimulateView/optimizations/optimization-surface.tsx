@@ -1,20 +1,20 @@
 /**
  * The optimization surface: an Optuna-style filled contour of the study's
- * objective over two optimized parameters, computed locally.
+ * objective over two optimized parameters. The study's trials arrive with
+ * parameter and objective values and are projected onto the two shown axes.
  *
- * The study's trials arrive with parameter and objective values and are
- * drawn as markers projected onto the two shown axes. The interpolated fill
- * comes from points this view computes itself: it walks an X×Y sub-grid of
- * the shown parameters in quad-tree order, running the study's frozen model
- * with its objective metric on a background worker, holding every other
- * optimized parameter at its navigated position.
- *
- * Two variants share that plot. `OptimizationSurface` navigates by itself:
- * a slider per axis, the best trial as the starting point, and a readout of
- * the selected point, which it refines with escalating batches.
- * `NavigatedOptimizationSurface` follows a connected study's navigation and
- * shows the provider's selection stream at the navigated point; the drawer's
- * navigator holds the controls.
+ * Two variants share the plot and differ in where the field comes from.
+ * `OptimizationSurface`, for a study run elsewhere, computes the fill itself:
+ * it walks an X×Y sub-grid of the shown parameters in quad-tree order,
+ * running the study's frozen model with its objective metric on a background
+ * worker, holding every other optimized parameter at its slider position, and
+ * refines the selected point with escalating batches. The trials sit on that
+ * fill as rings. `NavigatedOptimizationSurface`, for a study evaluated in this
+ * browser, computes nothing: the trials are the samples, the field is
+ * interpolated between them, and the point being evaluated — or, once the
+ * study is over, the point the navigation refines — streams its running value
+ * into the field as it lands. It follows the record's navigation and the
+ * provider's selection stream; the drawer's navigator holds the controls.
  */
 import { use, useEffect, useRef, useState } from "react";
 
@@ -31,6 +31,11 @@ import {
   optimizationBooleanIdentifiers,
 } from "../../../../../../react/optimizations/surface-grid";
 import { formatAxisValue } from "../shared/format-axis-value";
+import { describeSurfaceSampling } from "../shared/surface-frame";
+import {
+  SURFACE_CELL_RUNS,
+  surfacePositions,
+} from "../shared/surface-sampling";
 import {
   type OptimizationSurfaceView,
   resolveSurfaceBooleans,
@@ -43,9 +48,15 @@ import {
   type StudyCellCache,
 } from "./optimization-surface/sample-study-cell";
 import {
+  describeSurfaceState,
+  navigatedSurfaceSample,
   OptimizationSurfacePlot,
   surfaceCellKeyAt,
+  surfaceInteraction,
+  trialSurfaceField,
+  withNavigatedSample,
 } from "./optimization-surface/surface-plot";
+import { useStudySurfaceWalk } from "./optimization-surface/use-study-surface-walk";
 
 import type { DistributionStats } from "../../../../../../react/experiments/distribution-stats";
 import type {
@@ -144,6 +155,17 @@ export const OptimizationSurface = ({
   const walkKey = surfaceWalkKey(optimization.id, view, slice);
   const xSelected = positions[view.xAxisId] ?? 0;
   const ySelected = positions[view.yAxisId] ?? 0;
+  const xAxis = axes.find((axis) => axis.identifier === view.xAxisId);
+  const yAxis = axes.find((axis) => axis.identifier === view.yAxisId);
+
+  const walkValues = useStudySurfaceWalk({
+    sampleDetachedObjective,
+    cellCache: cellCacheRef,
+    optimization,
+    axes,
+    view,
+    slice,
+  });
 
   const optimizationId = optimization.id;
   const { xAxisId, yAxisId } = view;
@@ -228,19 +250,45 @@ export const OptimizationSurface = ({
   const direction =
     input.objective.direction === "maximize" ? "Maximize" : "Minimize";
 
+  // A refined point is usually also a grid cell: its deeper value wins.
+  const cellValues =
+    currentRefined && currentRefined.cells.size > 0
+      ? new Map([...walkValues, ...currentRefined.cells])
+      : walkValues;
+  const markers =
+    xAxis && yAxis
+      ? trialSurfaceField({
+          trials: optimization.trials,
+          best: optimization.best,
+          xAxis,
+          yAxis,
+          mark: "ring",
+        }).markers
+      : [];
+  const totalCells =
+    xAxis && yAxis
+      ? surfacePositions(xAxis).length * surfacePositions(yAxis).length
+      : 0;
+
   return (
     <OptimizationSurfacePlot
-      optimization={optimization}
       axes={axes}
       view={view}
       onViewChange={setView}
       positions={positions}
-      booleans={booleans}
-      cellCache={cellCacheRef}
-      refinedCells={currentRefined?.cells ?? null}
+      values={cellValues}
+      markers={markers}
+      sampleMarks="dot"
+      contentKey={`${view.xAxisId}|${view.yAxisId}`}
       onPick={(picked) =>
         setChosenPositions((previous) => ({ ...previous, ...picked }))
       }
+      caption={describeSurfaceSampling({
+        sampledCount: cellValues.size,
+        totalCells,
+        runsPerCell: SURFACE_CELL_RUNS,
+        note: "rings are the study's trials (best highlighted), the ringed dot the current parameters",
+      })}
     >
       {axes.map((axis) => (
         <div className={sliderRowStyle} key={axis.identifier}>
@@ -294,7 +342,6 @@ export const NavigatedOptimizationSurface = ({
   const input = optimization.input;
   const axes = optimization.axes;
   const [view, setView] = useState(() => initialView(axes));
-  const cellCacheRef = useRef<StudyCellCache>(new Map());
 
   const positions = resolveSurfacePositions(
     axes,
@@ -309,45 +356,56 @@ export const NavigatedOptimizationSurface = ({
   const xAxis = axes.find((axis) => axis.identifier === view.xAxisId);
   const yAxis = axes.find((axis) => axis.identifier === view.yAxisId);
 
-  // The navigated point's value comes from the provider's stream, which
-  // refines it far past the walk's per-cell runs.
-  const cellKey =
-    xAxis && yAxis
-      ? surfaceCellKeyAt(
-          xAxis,
-          yAxis,
-          positions[xAxis.identifier] ?? 0,
-          positions[yAxis.identifier] ?? 0,
-        )
-      : null;
-  const selectionValue = selection
-    ? sweepCellObjective(selection.metricFrames, input.objective.metricId)
-    : null;
-  const refinedCells =
-    cellKey !== null && selectionValue !== null
-      ? new Map([[cellKey, selectionValue]])
-      : null;
-
-  if (axes.length < 2) {
+  if (axes.length < 2 || !xAxis || !yAxis) {
     return null;
   }
 
+  const field = trialSurfaceField({
+    trials: optimization.trials,
+    best: optimization.best,
+    xAxis,
+    yAxis,
+    mark: "dot",
+  });
+  const values = withNavigatedSample(
+    field.values,
+    navigatedSurfaceSample({
+      selection,
+      trials: optimization.trials,
+      metricId: input.objective.metricId,
+      xAxis,
+      yAxis,
+      positions,
+    }),
+  );
+  const interaction = surfaceInteraction(optimization, navigation);
+  const slice = surfaceSliceKey({ axes, view, positions, booleans });
+
   return (
     <OptimizationSurfacePlot
-      optimization={optimization}
       axes={axes}
       view={view}
       onViewChange={setView}
       positions={positions}
-      booleans={booleans}
-      cellCache={cellCacheRef}
-      refinedCells={refinedCells}
-      onPick={(picked) =>
-        onNavigationChange({
-          positions: { ...navigation.positions, ...picked },
-          followTrials: false,
-        })
+      values={values}
+      markers={field.markers}
+      sampleMarks="none"
+      contentKey={surfaceWalkKey(optimization.id, view, slice)}
+      onPick={
+        interaction === "navigable"
+          ? (picked) =>
+              onNavigationChange({
+                positions: { ...navigation.positions, ...picked },
+                followTrials: false,
+              })
+          : undefined
       }
+      caption={describeSurfaceState({
+        trials: optimization.trials,
+        best: optimization.best,
+        interaction,
+        selection,
+      })}
     />
   );
 };

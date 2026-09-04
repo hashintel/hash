@@ -36,6 +36,31 @@ describe("idwRaster", () => {
     // Raster rows are top-down; grid y is up, so grid (0,1)=3 is top-left.
     expect([...raster]).toEqual([3, 4, 1, 2]);
   });
+
+  it("stays inside the sample range and reads each sample's value beside it with sparse, irregular samples", () => {
+    // Three fractional positions on an 11×11 grid, as a study's first steps.
+    const samples = [
+      { x: 1.3, y: 7.6, value: 2 },
+      { x: 8.1, y: 2.2, value: 10 },
+      { x: 4.9, y: 4.4, value: 5 },
+    ];
+    const size = { nx: 11, ny: 11, width: 81, height: 81 };
+    const raster = idwRaster({ samples, ...size });
+
+    expect(Math.min(...raster)).toBeGreaterThanOrEqual(2);
+    expect(Math.max(...raster)).toBeLessThanOrEqual(10);
+    for (const sample of samples) {
+      const px = Math.round((sample.x / 10) * 80);
+      const py = Math.round((1 - sample.y / 10) * 80);
+      expect(raster[py * 81 + px]).toBeCloseTo(sample.value, 0);
+    }
+    // Midway between two samples the field blends them rather than snapping.
+    const midX = Math.round(((1.3 + 8.1) / 2 / 10) * 80);
+    const midY = Math.round((1 - (7.6 + 2.2) / 2 / 10) * 80);
+    const midway = raster[midY * 81 + midX]!;
+    expect(midway).toBeGreaterThan(3);
+    expect(midway).toBeLessThan(9);
+  });
 });
 
 describe("createIdwAccumulator", () => {
