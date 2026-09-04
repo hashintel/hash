@@ -33,6 +33,9 @@ import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 /** Gap kept between the bar and a panel it has been pushed away from. */
 const BOTTOM_BAR_MARGIN = 12;
 
+/** Gap between the bar and whatever is below it, canvas or bottom panel. */
+const BOTTOM_BAR_INSET = 24;
+
 const glassPanelStyle = css({
   padding: "1",
   backgroundColor: "white.a95",
@@ -57,6 +60,8 @@ const toolbarContainerStyle = css({
 
 // Spans the canvas so the bar centers on the canvas rather than on the space
 // between the panels, and lets clicks through everywhere the bar itself is not.
+// The lane is anchored a fixed distance from the bottom, and the bar rides
+// above the bottom panel on its transform.
 const bottomBarLaneStyle = css({
   position: "absolute",
   left: "[0]",
@@ -78,18 +83,12 @@ const bottomBarStyle = css({
  * moves it too, but there the offset follows the width the bar is measured at,
  * frame by frame, and a transition would race that with a curve of its own.
  * A resize drag wants no transition either: the bar tracks the panel edge.
+ *
+ * Both axes ride one transform, which the compositor animates. The bottom
+ * panel slides on its own transform, and a main-thread property could not stay
+ * with it: the frames dropped while the panel's content mounts leave a
+ * layout-driven animation behind, and the bar arrives late.
  */
-const animatingStyle = cva({
-  base: {},
-  variants: {
-    animating: {
-      true: {
-        transition: "[bottom 150ms ease-in-out]",
-      },
-    },
-  },
-});
-
 const barAnimatingStyle = cva({
   base: {},
   variants: {
@@ -251,22 +250,19 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   const isPeeking = isPointerOver || isFocusWithin || hasActiveInteraction;
   const isCollapsed = !isPeeking && !fitsWithinBounds(bounds, naturalWidth);
 
-  // Calculate bottom offset based on bottom panel visibility
-  const bottomOffset = isBottomPanelOpen
-    ? bottomPanelHeight + 24 // panel height + margin + spacing
-    : 24;
+  const panelLift = isBottomPanelOpen ? bottomPanelHeight : 0;
 
   return (
     <div
       ref={laneRef}
-      className={`${bottomBarLaneStyle} ${animatingStyle({ animating: isPanelAnimating })}`}
-      style={{ bottom: bottomOffset }}
+      className={bottomBarLaneStyle}
+      style={{ bottom: BOTTOM_BAR_INSET }}
     >
       <div
         ref={barRef}
         className={`${bottomBarStyle} ${barAnimatingStyle({ animating: isPanelAnimating })}`}
         style={{
-          transform: `translateX(${getBottomBarOffset(bounds, barWidth)}px)`,
+          transform: `translate(${getBottomBarOffset(bounds, barWidth)}px, ${-panelLift}px)`,
         }}
         onPointerEnter={() => setIsPointerOver(true)}
         onPointerLeave={() => setIsPointerOver(false)}
