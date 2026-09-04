@@ -86,6 +86,11 @@ export const setupAtlasProxy = (app: Express, logger: Logger) => {
     createProxyMiddleware<Request, Response>({
       target,
       /**
+       * Appends the caller's address as `X-Forwarded-For`, which the atlas keys its per-address
+       * limit on when its `HASH_GRAPH_CLIENT_IP_SOURCE` names that header.
+       */
+      xfwd: true,
+      /**
        * `/atlas/<route>` names the atlas's `/v1/atlas/<route>`: express strips the mount, and the
        * atlas's own version prefix is restored in its place.
        */
