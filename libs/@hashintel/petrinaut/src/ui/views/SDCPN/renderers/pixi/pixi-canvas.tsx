@@ -44,6 +44,8 @@ import type { NodeRegistry } from "./pixi-canvas/pixi-nodes";
 /** React Flow's default zoom ceiling. */
 const maxZoom = 2;
 const minZoomDebounceMs = 100;
+/** How long the viewport holds still before it counts as settled and is saved. */
+const viewportSettleMs = 150;
 
 const hostStyle = css({
   position: "absolute",
@@ -95,10 +97,26 @@ export const PixiCanvas: CanvasRenderer = ({
   );
   const current = useViewport(viewport);
   const remember = useLatest(rememberViewport);
-  useEffect(
-    () => viewport.subscribe(() => remember.current(viewport.get())),
-    [viewport, remember],
-  );
+  // The store reports every frame of a gesture, and a saved viewport is one
+  // write, so the report waits for the viewport to hold still. Whatever is
+  // still waiting when the renderer goes away is saved rather than dropped.
+  useEffect(() => {
+    const save = () => remember.current(viewport.get());
+    let settling: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = viewport.subscribe(() => {
+      if (settling) {
+        clearTimeout(settling);
+      }
+      settling = setTimeout(save, viewportSettleMs);
+    });
+    return () => {
+      unsubscribe();
+      if (settling) {
+        clearTimeout(settling);
+        save();
+      }
+    };
+  }, [viewport, remember]);
 
   // The zoom floor keeps the net at a readable fraction of the viewport, but
   // never rises above the current zoom, and settles before it applies, as on
