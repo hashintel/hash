@@ -40,3 +40,7 @@ onto the canonical direct-user message, or when the product owner explicitly
 authorizes a different durable representation. The oracle is a snapshot-only
 test that reconstructs the Voice marker after a fresh process with no browser
 correlation state.
+
+The restacked branch still installs `@flue/sdk` 2.0.3 with this same public
+shape. No supported projection seam or owner-approved deferral has been
+recorded, so direct-user reopen attribution remains blocked.

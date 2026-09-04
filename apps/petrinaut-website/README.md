@@ -97,12 +97,12 @@ ambiguity and does not retry automatically. **Stop** requests a durable Brunch
 abort before the panel cancels its local response stream. Local playback
 cancellation remains separate and does not alter canonical history. Canonical
 Flue history is the source used when the same net is reopened. Automated
-projection coverage does not resubmit turns or replay settled audio, but the
-required real hard-reload witness remains blocked by the parent hydration fix,
-so reload parity is not yet claimed for this preview. Voice-origin client-tool
-results retain their markers in Flue history. Direct spoken user turns remain
-canonical text, but Flue 2.0.3 does not yet expose the caller delivery metadata
-needed to restore their Voice chip after reopening.
+coverage guards a locally submitted turn from an older hydration snapshot and
+does not resubmit turns or replay settled audio. The real hard-reload witness is
+still pending, so reload parity is not yet claimed for this preview.
+Voice-origin client-tool results retain their markers in Flue history. Direct
+spoken user turns remain canonical text, but Flue 2.0.3 does not yet expose the
+caller delivery metadata needed to restore their Voice chip after reopening.
 
 An active session stays at the end of the transcript. Its compact divider shows
 a waveform and **Connecting**, **Listening**, **Speaking**, **Paused**, or a
