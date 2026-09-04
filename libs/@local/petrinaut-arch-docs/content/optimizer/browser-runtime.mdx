@@ -1,0 +1,191 @@
+---
+title: The browser runtime
+description: How an optimization runs entirely in the tab — Optuna in a Pyodide worker, trials as detached objective runs on the experiments backend — and what each piece owns.
+sidebar_order: 10
+attachTo: core.optimization.browser
+---
+
+An optimization needs two things the service supplies around the CLI: an
+Optuna study that suggests parameter values, and a simulator that scores them.
+In the browser both exist already — Optuna runs under Pyodide, and the
+editor's experiments backend simulates — so this layer is only the adapter
+between them. It implements `PetrinautConnectedOptimization`: a source the
+optimizations provider `connect`s with a channel, yielding the same
+`PetrinautOptimization` capability a remote service offers. The drawers and
+the event schema never learn which one they have.
+
+The provider reaches the source through `useOptimizationSource()`, which
+returns a connected source only while the experimental **In-browser
+optimization** user setting is on. Off, the hook returns `null`: the
+Optimizations tab hides, the provider disposes the connection and cancels the
+study's runs. A remote capability passes through the hook unchanged.
+
+![One trial through the browser runtime](@diagrams/browser-optimization-loop.svg)
+
+## The data flow
+
+1. **Drawer → provider.** The create drawer builds an optimization manifest
+   (model snapshot, scenario, objective metric, parameter domains, study
+   settings including `seedsPerTrial`) and the
+   [optimizations provider](layer:react.optimizations) calls
+   `createOptimizationRun` on the connected capability. The requested compute
+   backend travels beside the manifest, on the record.
+2. **Capability → worker.** The capability validates the manifest, describes
+   the study with the same `describeOptimization` the CLI uses, allocates a
+   run id, appends `started` to the run's event log and posts `start` to a
+   shared module worker. Runs queue: one study executes at a time.
+3. **Worker → Optuna.** On first use the worker loads Pyodide from the CDN
+   pinned in the runtime lock, installs Optuna with micropip, writes the
+   [optimizer-core](layer:optimizer-core) sources into the virtual filesystem
+   and imports them. `create_browser_study` builds the Optuna study once per
+   run (with the constant-liar TPE when the run asks for parallel steps) and
+   keeps it in a handle; `run_browser_study` runs one segment of trials on
+   that handle, asking the sampler for values and awaiting a JavaScript
+   `evaluate` callback for each trial, up to `parallelism` at a time;
+   `release_browser_study` drops the handle when the record is removed.
+4. **Worker → channel.** Each `evaluate` crosses back to the main thread as a
+   message; the capability resolves the trial's scenario parameter values and
+   seeds (`deriveOptimizationTrialSeeds`, the CLI's helper) and calls
+   `channel.evaluateTrial`.
+5. **Channel → experiments.** The [channel](layer:react.optimizations.channel)
+   turns the trial into one detached objective run: `runDetachedObjective` on
+   the [experiments provider](layer:react.experiments), keyed by the run id so
+   a study compiles its snapshot once and its trials queue in order. The
+   request carries the trial's values, `runCount = seeds.length`, the seeds
+   pinned per run, and the study's requested backend. The sampler picks the
+   backend once per study — `selectExperimentBackend` over the GPU-first
+   registrations with the CPU pool last, at a third of the pool's shards so
+   the surface walk and the user's own experiments keep workers — and reuses
+   it for every later batch. Pinned seeds go only to the CPU pool; the GPU
+   backend refuses them and derives run seeds from the base seed. The trial's
+   objective is the mean of the per-run finals the CPU reports (`runResults`,
+   run index ↔ seed, handed to Optuna as replicates) or, where the backend
+   reports no run axis, the objective metric's last sampled frame reduced to a
+   mean. A batch that does not complete settles with a reason — the metric's
+   compile diagnostics, each backend's refusal, the terminal error, or the
+   count of errored runs — and the channel prunes the trial with that reason;
+   a cancelled batch is pruned as `cancelled`, and a non-finite objective
+   names the metric. The channel never throws.
+6. **Events → drawer.** Each `tell` produces a `trial` event carrying the
+   running best; the summary produces `complete`. The provider consumes them
+   through `attachOptimizationRun`, which replays the run log from a cursor
+   and tails it, so a re-attach neither misses nor duplicates an event. The
+   record's `navigation` and `selection` fields carry the local side: where
+   the drawer points and the objective's live stream there.
+
+## Following and refinement
+
+The provider keeps one connected-study object per record
+(`react/optimizations/provider/connected-study.ts`). While
+`navigation.followTrials` is on — it starts on — `trialStarted` moves the
+navigation to the trial's values (`optimizationAxisPositionFor` per axis) and
+mirrors the batch's frames and progress stores into `selection` under the key
+`trial:<n>`, so the objective's chart beside the drawer's Surface streams the
+step being evaluated. A user move clears `followTrials` and hands the navigation to point
+refinement (`provider/point-refinement.ts`): the experiments' run ladder capped
+at 100, one batch per rung with `seed = sweepBatchSeed(studySeed, from)` and
+`runCount = target − from`, frames merged with `mergeMetricFramesAcrossCells`,
+results cached per navigation key for the record's lifetime. A key change
+cancels the batch in flight; returning to a cached key is instant. A rung that
+fails stops the ladder at that key and records the batch's reason on
+`selection.error`; a followed trial that fails records its reason the same
+way. The **Parameters** band shows it as _Could not compute_, the objective's
+chart beside the Surface shows the empty shell, and the next refine of that
+key — a later navigation change — retries. When the study settles — complete or stopped —
+while following is on, the navigation moves to the best trial's point and
+refines there; a navigation the user moved earlier stays put. Between rungs
+the refinement estimates the point's mean and standard error from the
+objective's last distribution frame and stops with `selection.note` ("8 runs ·
+cannot beat the best") when the mean sits more than 2.5 standard errors on
+the wrong side of the study's best (`shouldStopRefining`); the best trial's
+own point is exempt and always climbs to the top rung.
+
+## Stop, Continue and parallel steps
+
+A connected run's log is a sequence of segments, each begun by `started`
+(carrying the cumulative `requestedTrials`) and ended by a terminal event.
+**Stop** calls `cancelOptimizationRun`: the worker prunes the trials in
+flight, the segment ends with the cancelled terminal, and the study stays in
+the worker. The provider keeps its attachment through the stop so the
+record's cursor covers the whole segment: the stop marks the record cancelled
+at once, the pruned trials leave it so, and the terminal event — `complete`,
+or the cancellation — sets `OptimizationRecord.resumable` while the study's
+local machinery is still held. **Continue** calls
+`extendOptimizationRun(runId, trials)` on the
+`PetrinautConnectedOptimizationCapability`, then re-runs the attach loop from
+`record.lastSeq`: the new `started` sets the total, `followTrials` turns back
+on, and the trials continue Optuna's numbering. Removing the record calls
+`releaseOptimizationRun`, which drops the study.
+
+`createOptimizationRun(input, { parallelism })` keeps up to four trials in
+flight. Each trial's detached run takes a `queueKey` of its own
+(`${runId}:trial:${n}`) while sharing the study's compiled snapshot through
+`cacheKey`, so trials overlap on the backend; the connected study follows the
+most recently started trial and publishes every in-flight trial's running
+objective as `record.inFlight`, which the Surface draws as rings. An
+activity registry (`provider/activity-registry.ts`) lists each in-flight
+trial and the refinement rung with its progress as `record.activity`, on a
+100 ms throttle, for the Summary's "N computing" chip.
+
+The drawer's **Parameters** band edits `navigation` through
+`setOptimizationNavigation`, its controls disabled while they follow a
+running study. The **Surface** section samples nothing of its own: the
+study's trials are the field (`trialSurfaceField` projects each trial with an
+objective onto the shown axes as a sample and a dot, pruned trials as hollow
+marks), and the selection stream's running objective enters the field at the
+navigation (`navigatedSurfaceSample`) — the step in flight until its event
+lands, the refined point afterwards — so the plot fills in as the study
+streams. `surfaceInteraction` keeps the plot display-only while a running
+study is followed and lets a click or drag commit `setOptimizationNavigation`
+once the study is terminal or following is off. Only a remote study's surface
+walks a grid through `sampleDetachedObjective`
+([the sweep surface](doc:experiments/sweep-surface) covers that walk).
+
+## What each side owns
+
+- **Python (optimizer-core)** owns the study: sampler, suggestion, ask/tell,
+  trial state and the best-so-far. It sees flat descriptors and scalar
+  objectives, nothing of the model.
+- **The worker** owns Pyodide: loading, package installation, marshalling
+  proxies to plain objects, and pairing `evaluate` requests with replies by
+  request id. Cancelling resolves any pending evaluate as pruned so the loop
+  observes it.
+- **The capability** owns run identity and the event log — dense sequence
+  numbers, replay from a cursor, terminal `complete`/`error` — and maps
+  channel failures to events: a refusal or abort prunes the trial; anything
+  else fails the run.
+- **The channel** owns the mapping between a trial and a detached run: the
+  request, the outcome, and the study callbacks that let the record follow.
+- **The experiments provider** owns simulation: compilation (cached per
+  study), backend choice, seeding, streaming frames and progress, and the
+  per-study queue.
+- **The connected study** owns the drawer's local state: navigation,
+  following, and the refinement ladder at the navigated point.
+
+## Parity with the service
+
+Both drivers derive per-trial seeds with the same helper, and the sampler
+runs the same Optuna version with the same seed and the same number of
+startup trials: `create_study` in [optimizer-core](layer:optimizer-core) sets
+the TPE sampler's `n_startup_trials` to a third of the requested trials,
+between 2 and Optuna's default of 10, so a short study models its objective
+instead of spending every step on random draws. The create form gives each
+study a fresh random seed, so two studies over different models no longer
+share their random draws. On the CPU pool the request
+pins every run's seed (`runs: [{ seed }]`), so a trial's replicates run on the
+seeds the CLI runs and the trial reports the service's objective value. The
+parity in proposals depends on that: after its startup trials the TPE sampler
+conditions each proposal on the objectives it was told, so the study proposes
+the same parameter values step for step only while the objective values match.
+Every connected study meets the condition, because the form cannot request a
+GPU study: the objective is an expression metric, which the GPU backend cannot
+compute, so `useGpuAvailability` reports it unavailable and the **Backend**
+switch stays disabled. Were the GPU backend to take an objective, it would
+derive its own run seeds from the base seed, and the objective values — and
+the proposals after the startup trials — would diverge from the service's. The
+runtime lock the worker installs from pins the Optuna version the core
+package's own lockfile installs, and a test in the core package fails when they
+differ; the service resolves the same version range in its own lockfile. What
+remains different is where the study lives: in the tab. Closing the page ends
+it, and because a connected run is never written to session storage, the next
+load shows no record for it.

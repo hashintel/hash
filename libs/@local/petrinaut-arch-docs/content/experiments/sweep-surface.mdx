@@ -111,5 +111,10 @@ single-worker lane that compiles the snapshot once per study (cached), runs
 its objective as an expression metric, and returns the finished frames. The
 component keeps its own per-position cache and climbs the same run ladder for
 the selected point, streaming the objective's mean and median. The study's
-completed trials draw as projected markers over the locally computed fill —
-the first form of the optimizer streaming its evaluations back.
+completed trials draw as projected rings over the locally computed fill — the
+optimizer's evaluations laid over a picture computed here. A study run in the
+browser skips the walk: its trials are the field's samples, drawn as dots and
+interpolated between, the step in flight streams its running objective at the
+record's `navigation`, and the plot only displays until the study is over or
+following is off, so the drawer's Parameters band and the plot move together
+([the browser runtime](doc:optimizer/browser-runtime)).

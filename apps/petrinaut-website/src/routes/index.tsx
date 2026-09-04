@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-router";
 
 import { validateSharedExampleSearch } from "../examples/example-search";
+import { BrowserOptimizationProvider } from "../main/app/browser-optimization-provider";
 import { LocalStorageDemoApp } from "../main/app/local-storage-demo/local-storage-demo-app";
 
 function IndexRoute() {
@@ -12,12 +13,14 @@ function IndexRoute() {
   const search = useSearch({ from: "/" });
 
   return (
-    <LocalStorageDemoApp
-      onSearchChange={(nextSearch, history) => {
-        void navigate({ replace: history === "replace", search: nextSearch });
-      }}
-      search={search}
-    />
+    <BrowserOptimizationProvider>
+      <LocalStorageDemoApp
+        onSearchChange={(nextSearch, history) => {
+          void navigate({ replace: history === "replace", search: nextSearch });
+        }}
+        search={search}
+      />
+    </BrowserOptimizationProvider>
   );
 }
 
