@@ -6,6 +6,7 @@
 import { createFlueClient, type FlueConversationSettlement } from "@flue/sdk";
 import { castDraft, produce } from "immer";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import {
   agentOwnershipHeaders,
@@ -735,13 +736,15 @@ export const LocalStorageDemoApp = ({
         width: "100vw",
       }}
     >
-      {preparedFixtureIsCurrent && (
-        <PreparedFixtureBanner
-          currentWorkpiece={crewReservationSession.currentWorkpiece}
-          settledManifest={settledManifest}
-          settlementStatus={crewReservationSession.settlementStatus}
-        />
-      )}
+      {preparedFixtureIsCurrent &&
+        createPortal(
+          <PreparedFixtureBanner
+            currentWorkpiece={crewReservationSession.currentWorkpiece}
+            settledManifest={settledManifest}
+            settlementStatus={crewReservationSession.settlementStatus}
+          />,
+          document.body,
+        )}
       {!preparedFixtureIsCurrent && <PreparedFixtureSelector />}
       <CommandRegistryProvider>
         <WalkthroughProvider steps={walkthroughSteps}>

@@ -22,6 +22,15 @@ const fixturePanelStyle = {
   zIndex: 20,
 } as const;
 
+const fixtureBannerStyle = {
+  ...fixturePanelStyle,
+  left: "50%",
+  position: "fixed",
+  top: 80,
+  transform: "translateX(-50%)",
+  width: "calc(100vw - 32px)",
+} as const;
+
 export const PreparedFixtureSelector = () => (
   <aside aria-label="Prepared fixture selector" style={fixturePanelStyle}>
     <strong>Prepared Brunch fixtures</strong>
@@ -49,7 +58,7 @@ export const PreparedFixtureBanner = ({
       : undefined);
 
   return (
-    <aside aria-label="Prepared fixture status" style={fixturePanelStyle}>
+    <aside aria-label="Prepared fixture status" style={fixtureBannerStyle}>
       <strong>Test-authored prepared fixture</strong>
       <div>
         Revision zero is diagnostic preparation, not model-produced evidence.
