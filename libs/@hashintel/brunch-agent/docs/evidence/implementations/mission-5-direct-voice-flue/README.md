@@ -6,14 +6,16 @@ Automated contract evidence passed on 2026-09-03. The real human Voice witness r
 
 The implementation under test is:
 
-- `525efac51d` — browser Flue `ChatTransport`, stream projector, history projection, and ownership headers;
-- `397a4412e1` — typed Petrinaut panel wiring and same-origin Flue proxy;
-- `afcacac083` — removal of the Brunch `/api/chat` route;
-- `1d99f94475` — Voice submission correlation, canonical response selection, observation-based reopen, and durable Stop;
-- `c92f56a828` — review fixes for canonical history hydration, exact TTS text, content-free lifecycle latency telemetry, Clear behavior, API simplification, and documentation;
-- `68148d5e20` — React-compiler-safe tracker lifecycle and final live-authority corrections;
-- `2c78ce2242` — real Flue admission timing and production-path correlation evidence;
-- `6153699ff2` — client-tool-result ordering that keeps the Voice submission pending until its real Flue admission and cancels stale admission waits.
+- `bb4457c558` — browser Flue `ChatTransport`, stream projector, history projection, and ownership headers;
+- `daf525e142` — typed Petrinaut panel wiring and same-origin Flue proxy;
+- `969808e772` — removal of the Brunch `/api/chat` route;
+- `0d5343b069` — Voice submission correlation, canonical response selection, observation-based reopen, and durable Stop;
+- `2936a4b3f7` — review fixes for canonical history hydration, exact TTS text, content-free lifecycle latency telemetry, Clear behavior, API simplification, and documentation;
+- `05b363649e` — React-compiler-safe tracker lifecycle and final live-authority corrections;
+- `f1189523a8` — real Flue admission timing and production-path correlation evidence;
+- `a4ec9f28ce` — client-tool-result ordering that keeps the Voice submission pending until its real Flue admission and cancels stale admission waits;
+- `2a1bb35775` — durable Stop correlation and aligned live/history conversation projections; and
+- `eecbe99e20` — reply correlation across every submission that wrote a resumed assistant message.
 
 ## Automated verification
 
@@ -48,7 +50,7 @@ The Voice integration holds the finite Flue response stream open and asserts tha
 
 ## Human witness still required
 
-Run `yarn dev:brunch` with `ANTHROPIC_API_KEY`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a dedicated `OPENAI_VOICE_API_KEY`, then perform this witness against source commit `6153699ff2` or a descendant that changes evidence only:
+Run `yarn dev:brunch` with `ANTHROPIC_API_KEY`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a dedicated `OPENAI_VOICE_API_KEY`, then perform this witness against source commit `eecbe99e20` or a descendant that changes evidence only:
 
 1. Open one saved net, submit one typed panel turn, and confirm the network ledger contains conversation traffic only under `/agents/chat/:instanceId`.
 2. Start Voice mode, accept the disclosure if required, speak one finalized answer, and confirm exactly one corresponding visible user message.
