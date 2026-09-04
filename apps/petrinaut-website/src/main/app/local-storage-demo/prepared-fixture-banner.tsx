@@ -1,8 +1,8 @@
 import { latestRunbookIrBlock } from "@hashintel/brunch-agent/workpiece";
 
 import {
-  CREW_RESERVATION_FIXTURE_ID,
-  CREW_RESERVATION_FIXTURE_QUERY,
+  crewReservationFixtureId,
+  crewReservationFixtureQuery,
   preparedCrewReservationWorkpiece,
 } from "./prepared-crew-reservation-fixture";
 
@@ -26,9 +26,7 @@ export const PreparedFixtureSelector = () => (
   <aside aria-label="Prepared fixture selector" style={fixturePanelStyle}>
     <strong>Prepared Brunch fixtures</strong>
     <div>
-      <a
-        href={`?${CREW_RESERVATION_FIXTURE_QUERY}=${CREW_RESERVATION_FIXTURE_ID}`}
-      >
+      <a href={`?${crewReservationFixtureQuery}=${crewReservationFixtureId}`}>
         Open the labelled crew-reservation fixture
       </a>
     </div>
@@ -36,7 +34,7 @@ export const PreparedFixtureSelector = () => (
 );
 
 export const PreparedFixtureBanner = ({
-  currentWorkpiece = latestRunbookIrBlock(preparedCrewReservationWorkpiece),
+  currentWorkpiece,
   settledManifest,
   settlementStatus = { state: "preparing" },
 }: {
@@ -44,9 +42,11 @@ export const PreparedFixtureBanner = ({
   readonly settledManifest: CrewReservationSettledManifest | null;
   readonly settlementStatus?: CrewReservationSettlementStatus;
 }) => {
-  if (currentWorkpiece === undefined) {
-    throw new Error("The prepared fixture has no recoverable workpiece.");
-  }
+  const displayedWorkpiece =
+    currentWorkpiece ??
+    (settledManifest === null
+      ? latestRunbookIrBlock(preparedCrewReservationWorkpiece)
+      : undefined);
 
   return (
     <aside aria-label="Prepared fixture status" style={fixturePanelStyle}>
@@ -58,27 +58,33 @@ export const PreparedFixtureBanner = ({
       </div>
       <div aria-live="polite">
         {settlementStatus.state === "refused"
-          ? `Settlement refused (${settlementStatus.reason}); ${
-              settledManifest === null
-                ? "no coherent bundle is selected"
-                : `bundle revision ${settledManifest.revision} remains selected`
-            }.${settlementStatus.detail === undefined ? "" : ` ${settlementStatus.detail}`}`
+          ? settlementStatus.reason === "bundle-snapshot-unavailable"
+            ? `Settlement refused (${settlementStatus.reason}); the selected document revision is unavailable and the live mirror is shown only for diagnosis.`
+            : `Settlement refused (${settlementStatus.reason}); ${
+                settledManifest === null
+                  ? "no coherent bundle is selected"
+                  : `bundle revision ${settledManifest.revision} remains selected`
+              }.${settlementStatus.detail === undefined ? "" : ` ${settlementStatus.detail}`}`
           : settlementStatus.state !== "settled" || settledManifest === null
             ? "Preparing the conversation, workpiece, and automatically mirrored document…"
             : `Settled bundle revision ${settledManifest.revision}; target crew-reservation arc ${settledManifest.document.targetArc}.`}
       </div>
-      <details>
-        <summary>Current Markdown workpiece</summary>
-        <pre
-          style={{
-            maxHeight: 240,
-            overflow: "auto",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {currentWorkpiece}
-        </pre>
-      </details>
+      {displayedWorkpiece === undefined ? (
+        <div>The selected bundle’s Markdown workpiece is unavailable.</div>
+      ) : (
+        <details>
+          <summary>Current Markdown workpiece</summary>
+          <pre
+            style={{
+              maxHeight: 240,
+              overflow: "auto",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {displayedWorkpiece}
+          </pre>
+        </details>
+      )}
     </aside>
   );
 };

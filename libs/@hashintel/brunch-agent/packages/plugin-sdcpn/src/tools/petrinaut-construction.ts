@@ -13,13 +13,14 @@ export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
   "addArc",
 ] as const satisfies readonly (keyof typeof petrinautAiTools)[];
 
-export const PETRINAUT_FIXTURE_TOOL_NAMES = [
+export const petrinautFixtureToolNames = [
   "getLatestNetDefinition",
   "addArc",
 ] as const satisfies readonly (keyof typeof petrinautAiTools)[];
 
 export type PetrinautConstructionToolName =
   (typeof PETRINAUT_CONSTRUCTION_TOOL_NAMES)[number];
+type PetrinautFixtureToolName = (typeof petrinautFixtureToolNames)[number];
 
 const issuePathFrom = (
   input: Record<string, unknown>,
@@ -97,6 +98,15 @@ export const petrinautConstructionTools = PETRINAUT_CONSTRUCTION_TOOL_NAMES.map(
   definePetrinautConstructionTool,
 );
 
-export const petrinautFixtureTools = PETRINAUT_FIXTURE_TOOL_NAMES.map(
-  definePetrinautConstructionTool,
+const isPetrinautFixtureTool = (
+  tool: (typeof petrinautConstructionTools)[number],
+): tool is (typeof petrinautConstructionTools)[number] & {
+  readonly name: PetrinautFixtureToolName;
+} =>
+  petrinautFixtureToolNames.some((fixtureToolName) => {
+    return fixtureToolName === tool.name;
+  });
+
+export const petrinautFixtureTools = petrinautConstructionTools.filter(
+  isPetrinautFixtureTool,
 );

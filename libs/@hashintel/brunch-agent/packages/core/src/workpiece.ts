@@ -3,13 +3,12 @@
  * append-only conversation projection.
  */
 
-export const PREPARED_WORKPIECE_SIGNAL_TYPE = "brunch.fixture.prepared";
-export const PREPARED_WORKPIECE_SIGNAL_TAG = "prepared-fixture";
-export const PREPARED_WORKPIECE_AUTHORSHIP = "test-authored";
-export const PREPARED_WORKPIECE_CLAIM_BOUNDARY = "prepared-not-model-produced";
-export const PREPARED_WORKPIECE_INITIAL_DATA_MODE =
-  "validated-fixture-mutation";
-export const RUNBOOK_IR_FENCE = "runbook-ir";
+export const preparedWorkpieceSignalType = "brunch.fixture.prepared";
+export const preparedWorkpieceSignalTag = "prepared-fixture";
+export const preparedWorkpieceAuthorship = "test-authored";
+export const preparedWorkpieceClaimBoundary = "prepared-not-model-produced";
+export const preparedWorkpieceInitialDataMode = "validated-fixture-mutation";
+export const runbookIrFence = "runbook-ir";
 
 type WorkpieceTextPart = {
   readonly text: string;
@@ -42,14 +41,14 @@ export interface PreparedWorkpieceDelivery {
   readonly idempotencyKey: string;
   readonly message: {
     readonly attributes: {
-      readonly authorship: typeof PREPARED_WORKPIECE_AUTHORSHIP;
-      readonly claimBoundary: typeof PREPARED_WORKPIECE_CLAIM_BOUNDARY;
+      readonly authorship: typeof preparedWorkpieceAuthorship;
+      readonly claimBoundary: typeof preparedWorkpieceClaimBoundary;
       readonly fixtureId: string;
     };
     readonly body: string;
     readonly kind: "signal";
-    readonly tagName: typeof PREPARED_WORKPIECE_SIGNAL_TAG;
-    readonly type: typeof PREPARED_WORKPIECE_SIGNAL_TYPE;
+    readonly tagName: typeof preparedWorkpieceSignalTag;
+    readonly type: typeof preparedWorkpieceSignalType;
   };
 }
 
@@ -91,10 +90,9 @@ const isPreparedWorkpieceMessage = (
 ): boolean =>
   message.role === "system" &&
   message.purpose === "dispatch" &&
-  message.signal?.tagName === PREPARED_WORKPIECE_SIGNAL_TAG &&
-  message.signal.attributes?.authorship === PREPARED_WORKPIECE_AUTHORSHIP &&
-  message.signal.attributes.claimBoundary ===
-    PREPARED_WORKPIECE_CLAIM_BOUNDARY &&
+  message.signal?.tagName === preparedWorkpieceSignalTag &&
+  message.signal.attributes?.authorship === preparedWorkpieceAuthorship &&
+  message.signal.attributes.claimBoundary === preparedWorkpieceClaimBoundary &&
   preparedFixtureIdFrom(message) !== undefined;
 
 const selectedFrom = (
@@ -130,16 +128,16 @@ export const createPreparedWorkpieceDelivery = (input: {
   }
 
   return {
-    idempotencyKey: `${PREPARED_WORKPIECE_SIGNAL_TAG}:${input.fixtureId}:revision-${input.revision}`,
+    idempotencyKey: `${preparedWorkpieceSignalTag}:${input.fixtureId}:revision-${input.revision}`,
     message: {
       kind: "signal",
-      type: PREPARED_WORKPIECE_SIGNAL_TYPE,
-      tagName: PREPARED_WORKPIECE_SIGNAL_TAG,
+      type: preparedWorkpieceSignalType,
+      tagName: preparedWorkpieceSignalTag,
       body: input.body,
       attributes: {
         fixtureId: input.fixtureId,
-        authorship: PREPARED_WORKPIECE_AUTHORSHIP,
-        claimBoundary: PREPARED_WORKPIECE_CLAIM_BOUNDARY,
+        authorship: preparedWorkpieceAuthorship,
+        claimBoundary: preparedWorkpieceClaimBoundary,
       },
     },
   };
@@ -154,7 +152,7 @@ export const selectRunbookWorkpiece = (
   history: WorkpieceHistory,
 ): SelectedRunbookWorkpiece | undefined => {
   const preparedCandidates = history.messages.filter(
-    (message) => message.signal?.tagName === PREPARED_WORKPIECE_SIGNAL_TAG,
+    (message) => message.signal?.tagName === preparedWorkpieceSignalTag,
   );
   if (preparedCandidates.length > 1) {
     throw new Error(
@@ -178,7 +176,7 @@ export const selectRunbookWorkpiece = (
   for (const message of history.messages) {
     if (message === preparedMessage) {
       const preparedWorkpiece = selectedFrom(message, {
-        authorship: PREPARED_WORKPIECE_AUTHORSHIP,
+        authorship: preparedWorkpieceAuthorship,
         sourceKind: "prepared-signal",
       });
       if (preparedWorkpiece === undefined) {

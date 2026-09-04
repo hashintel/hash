@@ -2,9 +2,9 @@ import { describe, expect, test } from "vitest";
 
 import {
   createPreparedWorkpieceDelivery,
-  PREPARED_WORKPIECE_AUTHORSHIP,
-  PREPARED_WORKPIECE_CLAIM_BOUNDARY,
-  PREPARED_WORKPIECE_SIGNAL_TAG,
+  preparedWorkpieceAuthorship,
+  preparedWorkpieceClaimBoundary,
+  preparedWorkpieceSignalTag,
   selectRunbookWorkpiece,
   type WorkpieceHistory,
   type WorkpieceHistoryMessage,
@@ -22,10 +22,10 @@ const preparedMessage = (
   purpose: "dispatch",
   submissionId,
   signal: {
-    tagName: PREPARED_WORKPIECE_SIGNAL_TAG,
+    tagName: preparedWorkpieceSignalTag,
     attributes: {
-      authorship: PREPARED_WORKPIECE_AUTHORSHIP,
-      claimBoundary: PREPARED_WORKPIECE_CLAIM_BOUNDARY,
+      authorship: preparedWorkpieceAuthorship,
+      claimBoundary: preparedWorkpieceClaimBoundary,
       fixtureId: "crew-reservation-v1",
     },
   },
@@ -154,7 +154,7 @@ describe("selectRunbookWorkpiece", () => {
           {
             ...preparedMessage(),
             signal: {
-              tagName: PREPARED_WORKPIECE_SIGNAL_TAG,
+              tagName: preparedWorkpieceSignalTag,
               attributes: { authorship: "model-produced" },
             },
           },

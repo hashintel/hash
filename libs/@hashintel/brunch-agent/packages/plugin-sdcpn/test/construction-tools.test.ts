@@ -6,11 +6,11 @@ import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 import {
   sdcpnInitialDataSchema,
   VALIDATED_CONSTRUCTION_MODE,
-  VALIDATED_FIXTURE_MUTATION_MODE,
+  validatedFixtureMutationMode,
 } from "../src/flue";
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  PETRINAUT_FIXTURE_TOOL_NAMES,
+  petrinautFixtureToolNames,
   petrinautConstructionTools,
   petrinautFixtureTools,
 } from "../src/tools/petrinaut-construction";
@@ -34,9 +34,9 @@ describe("Petrinaut construction tools", () => {
     ).toEqual({ mode: VALIDATED_CONSTRUCTION_MODE });
     expect(
       v.parse(sdcpnInitialDataSchema, {
-        mode: VALIDATED_FIXTURE_MUTATION_MODE,
+        mode: validatedFixtureMutationMode,
       }),
-    ).toEqual({ mode: VALIDATED_FIXTURE_MUTATION_MODE });
+    ).toEqual({ mode: validatedFixtureMutationMode });
     expect(() =>
       v.parse(sdcpnInitialDataSchema, {
         mode: "unrestricted-construction",
@@ -52,7 +52,7 @@ describe("Petrinaut construction tools", () => {
 
   test("limits prepared fixtures to one canonical read and arc mutation", () => {
     expect(petrinautFixtureTools.map((tool) => tool.name)).toEqual([
-      ...PETRINAUT_FIXTURE_TOOL_NAMES,
+      ...petrinautFixtureToolNames,
     ]);
   });
 

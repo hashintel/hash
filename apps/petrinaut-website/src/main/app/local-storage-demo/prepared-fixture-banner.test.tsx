@@ -2,9 +2,17 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 
 import {
-  CREW_RESERVATION_CONVERSATION_ID,
-  CREW_RESERVATION_DOCUMENT_ID,
-  CREW_RESERVATION_FIXTURE_ID,
+  asCanonicalConversationId,
+  asConversationOffset,
+  asFlueMessageId,
+  asFlueSubmissionId,
+  asManifestId,
+  asSha256Digest,
+} from "./crew-reservation-settled-manifest";
+import {
+  crewReservationConversationId,
+  crewReservationDocumentId,
+  crewReservationFixtureId,
 } from "./prepared-crew-reservation-fixture";
 import {
   PreparedFixtureBanner,
@@ -38,26 +46,26 @@ describe("PreparedFixtureBanner", () => {
       <PreparedFixtureBanner
         settledManifest={{
           version: 1,
-          fixtureId: CREW_RESERVATION_FIXTURE_ID,
+          fixtureId: crewReservationFixtureId,
           revision: 3,
           settledAt: "2026-09-03T15:00:00.000Z",
-          manifestId: "manifest-3",
+          manifestId: asManifestId("manifest-3"),
           conversation: {
-            logicalId: CREW_RESERVATION_CONVERSATION_ID,
-            canonicalId: "canonical-conversation",
-            offset: "20",
+            logicalId: crewReservationConversationId,
+            canonicalId: asCanonicalConversationId("canonical-conversation"),
+            offset: asConversationOffset("20"),
           },
           latestWorkpiece: {
             authorship: "model-produced",
-            contentSha256: "content-hash",
+            contentSha256: asSha256Digest("content-hash"),
             sourceKind: "assistant",
-            sourceMessageId: "assistant-3",
-            sourceMessageSha256: "message-hash",
-            sourceSubmissionId: "submission-3",
+            sourceMessageId: asFlueMessageId("assistant-3"),
+            sourceMessageSha256: asSha256Digest("message-hash"),
+            sourceSubmissionId: asFlueSubmissionId("submission-3"),
           },
           document: {
-            id: CREW_RESERVATION_DOCUMENT_ID,
-            sha256: "document-hash",
+            id: crewReservationDocumentId,
+            sha256: asSha256Digest("document-hash"),
             targetArc: "present",
           },
         }}

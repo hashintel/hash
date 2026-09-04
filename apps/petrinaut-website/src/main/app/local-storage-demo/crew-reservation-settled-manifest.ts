@@ -1,42 +1,67 @@
-import {
-  selectRunbookWorkpiece,
-  type WorkpieceHistory,
-} from "@hashintel/brunch-agent/workpiece";
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import { selectRunbookWorkpiece } from "@hashintel/brunch-agent/workpiece";
 import { isSDCPNEqual, type SDCPN } from "@hashintel/petrinaut-core";
 
 import {
-  CREW_RESERVATION_CONVERSATION_ID,
-  CREW_RESERVATION_DOCUMENT_ID,
-  CREW_RESERVATION_FIXTURE_ID,
-  DISPATCH_CREW_PLACE_ID,
+  crewReservationConversationId,
+  crewReservationDocumentId,
+  crewReservationFixtureId,
+  dispatchCrewPlaceId,
   preparedCrewReservationNet,
-  START_FINAL_INSPECTION_TRANSITION_ID,
+  startFinalInspectionTransitionId,
 } from "./prepared-crew-reservation-fixture";
 
-export const CREW_RESERVATION_SETTLED_MANIFEST_STORAGE_KEY =
+import type { CrewReservationHistory } from "./crew-reservation-history";
+
+export const crewReservationSettledManifestStorageKey =
   "brunch:prepared-fixture:crew-reservation-v1:settled";
+
+declare const manifestValueBrand: unique symbol;
+type ManifestValue<Kind extends string> = string & {
+  readonly [manifestValueBrand]: Kind;
+};
+
+export type CanonicalConversationId = ManifestValue<"canonical-conversation">;
+export type ConversationOffset = ManifestValue<"conversation-offset">;
+export type FlueMessageId = ManifestValue<"flue-message">;
+export type FlueSubmissionId = ManifestValue<"flue-submission">;
+export type ManifestId = ManifestValue<"manifest">;
+export type Sha256Digest = ManifestValue<"sha256">;
+
+export const asCanonicalConversationId = (
+  value: string,
+): CanonicalConversationId => value as CanonicalConversationId;
+export const asConversationOffset = (value: string): ConversationOffset =>
+  value as ConversationOffset;
+export const asFlueMessageId = (value: string): FlueMessageId =>
+  value as FlueMessageId;
+export const asFlueSubmissionId = (value: string): FlueSubmissionId =>
+  value as FlueSubmissionId;
+export const asManifestId = (value: string): ManifestId => value as ManifestId;
+export const asSha256Digest = (value: string): Sha256Digest =>
+  value as Sha256Digest;
 
 export interface CrewReservationSettledManifest {
   readonly conversation: {
-    readonly canonicalId: string;
-    readonly logicalId: typeof CREW_RESERVATION_CONVERSATION_ID;
-    readonly offset: string;
+    readonly canonicalId: CanonicalConversationId;
+    readonly logicalId: typeof crewReservationConversationId;
+    readonly offset: ConversationOffset;
   };
   readonly document: {
-    readonly id: typeof CREW_RESERVATION_DOCUMENT_ID;
-    readonly sha256: string;
+    readonly id: typeof crewReservationDocumentId;
+    readonly sha256: Sha256Digest;
     readonly targetArc: "absent" | "present";
   };
-  readonly fixtureId: typeof CREW_RESERVATION_FIXTURE_ID;
+  readonly fixtureId: typeof crewReservationFixtureId;
   readonly latestWorkpiece: {
     readonly authorship: "model-produced" | "test-authored";
-    readonly contentSha256: string;
+    readonly contentSha256: Sha256Digest;
     readonly sourceKind: "assistant" | "prepared-signal";
-    readonly sourceMessageId: string;
-    readonly sourceMessageSha256: string;
-    readonly sourceSubmissionId: string;
+    readonly sourceMessageId: FlueMessageId;
+    readonly sourceMessageSha256: Sha256Digest;
+    readonly sourceSubmissionId: FlueSubmissionId;
   };
-  readonly manifestId: string;
+  readonly manifestId: ManifestId;
   readonly revision: number;
   readonly settledAt: string;
   readonly version: 1;
@@ -57,78 +82,38 @@ export type CrewReservationSettlementResult =
       readonly status: "refused";
     };
 
-export type CrewReservationSettledHistory = WorkpieceHistory & {
-  readonly offset: string;
-  readonly settlements: readonly {
-    readonly outcome: string;
-    readonly submissionId: string;
-  }[];
+const targetMutationCallIds = (
+  history: CrewReservationHistory,
+): readonly string[] => {
+  const { calls } = clientToolHistoryFrom(history.messages);
+  return calls.flatMap(({ input, toolCallId, toolName }) =>
+    toolName === "addArc" &&
+    input.transitionId === startFinalInspectionTransitionId &&
+    input.arcDirection === "input" &&
+    input.placeId === dispatchCrewPlaceId &&
+    input.weight === 1
+      ? [toolCallId]
+      : [],
+  );
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const targetMutationCallIds = (
-  history: CrewReservationSettledHistory,
-): readonly string[] =>
-  history.messages.flatMap((message) =>
-    message.parts.flatMap((part) => {
-      if (
-        !isRecord(part) ||
-        part.type !== "dynamic-tool" ||
-        part.toolName !== "addArc" ||
-        typeof part.toolCallId !== "string" ||
-        !isRecord(part.input) ||
-        part.input.transitionId !== START_FINAL_INSPECTION_TRANSITION_ID ||
-        part.input.arcDirection !== "input" ||
-        part.input.placeId !== DISPATCH_CREW_PLACE_ID ||
-        part.input.weight !== 1
-      ) {
-        return [];
-      }
-      return [part.toolCallId];
-    }),
-  );
-
 const successfulMutationResultIds = (
-  history: CrewReservationSettledHistory,
-): readonly string[] =>
-  history.messages.flatMap((message) => {
-    if (
-      message.signal?.tagName !== "client-tool-result" &&
-      message.signal?.type !== "client-tool-result"
-    ) {
-      return [];
-    }
-    const body = message.parts
-      .flatMap((part) =>
-        part.type === "text" && typeof part.text === "string"
-          ? [part.text]
-          : [],
-      )
-      .join("");
-    try {
-      const results: unknown = JSON.parse(body);
-      if (!Array.isArray(results)) return [];
-      return results.flatMap((result) => {
-        if (
-          !isRecord(result) ||
-          result.toolName !== "addArc" ||
-          typeof result.toolCallId !== "string" ||
-          !isRecord(result.output) ||
-          result.output.applied !== true
-        ) {
-          return [];
-        }
-        return [result.toolCallId];
-      });
-    } catch {
-      return [];
-    }
-  });
+  history: CrewReservationHistory,
+): readonly string[] => {
+  const { results } = clientToolHistoryFrom(history.messages);
+  return results.flatMap(({ output, toolCallId, toolName }) =>
+    toolName === "addArc" &&
+    typeof output === "object" &&
+    output !== null &&
+    "applied" in output &&
+    output.applied === true
+      ? [toolCallId]
+      : [],
+  );
+};
 
 const hasOneCorrelatedTargetMutation = (
-  history: CrewReservationSettledHistory,
+  history: CrewReservationHistory,
 ): boolean => {
   const targetCallIds = targetMutationCallIds(history);
   const successfulResultIds = successfulMutationResultIds(history);
@@ -139,24 +124,26 @@ const hasOneCorrelatedTargetMutation = (
   );
 };
 
-const sha256 = async (value: string): Promise<string> => {
+const sha256 = async (value: string): Promise<Sha256Digest> => {
   const digest = await globalThis.crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(value),
   );
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  return asSha256Digest(
+    [...new Uint8Array(digest)]
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join(""),
+  );
 };
 
 export const hasCrewReservationTargetArc = (definition: SDCPN): boolean => {
   const transition = definition.transitions.find(
-    ({ id }) => id === START_FINAL_INSPECTION_TRANSITION_ID,
+    ({ id }) => id === startFinalInspectionTransitionId,
   );
   return (
     transition?.inputArcs.some(
       (arc) =>
-        arc.placeId === DISPATCH_CREW_PLACE_ID &&
+        arc.placeId === dispatchCrewPlaceId &&
         arc.type === "standard" &&
         arc.weight === 1,
     ) ?? false
@@ -166,13 +153,13 @@ export const hasCrewReservationTargetArc = (definition: SDCPN): boolean => {
 const preparedCrewReservationNetWithTargetArc = (): SDCPN => {
   const definition = structuredClone(preparedCrewReservationNet);
   const transition = definition.transitions.find(
-    ({ id }) => id === START_FINAL_INSPECTION_TRANSITION_ID,
+    ({ id }) => id === startFinalInspectionTransitionId,
   );
   if (transition === undefined) {
     throw new Error("The prepared fixture has no start-inspection transition.");
   }
   transition.inputArcs.push({
-    placeId: DISPATCH_CREW_PLACE_ID,
+    placeId: dispatchCrewPlaceId,
     type: "standard",
     weight: 1,
   });
@@ -181,7 +168,7 @@ const preparedCrewReservationNetWithTargetArc = (): SDCPN => {
 
 export const settleCrewReservationManifest = async (input: {
   readonly definition: SDCPN;
-  readonly history: CrewReservationSettledHistory;
+  readonly history: CrewReservationHistory;
   readonly previous?: CrewReservationSettledManifest;
   readonly settledAt: string;
 }): Promise<CrewReservationSettlementResult> => {
@@ -256,24 +243,24 @@ export const settleCrewReservationManifest = async (input: {
   const revision = (input.previous?.revision ?? -1) + 1;
   const withoutId = {
     version: 1 as const,
-    fixtureId: CREW_RESERVATION_FIXTURE_ID,
+    fixtureId: crewReservationFixtureId,
     revision,
     settledAt: input.settledAt,
     conversation: {
-      logicalId: CREW_RESERVATION_CONVERSATION_ID,
-      canonicalId: input.history.conversationId,
-      offset: input.history.offset,
+      logicalId: crewReservationConversationId,
+      canonicalId: asCanonicalConversationId(input.history.conversationId),
+      offset: asConversationOffset(input.history.offset),
     },
     latestWorkpiece: {
       authorship: workpiece.authorship,
       contentSha256,
       sourceKind: workpiece.sourceKind,
-      sourceMessageId: workpiece.sourceMessageId,
+      sourceMessageId: asFlueMessageId(workpiece.sourceMessageId),
       sourceMessageSha256,
-      sourceSubmissionId: workpiece.sourceSubmissionId,
+      sourceSubmissionId: asFlueSubmissionId(workpiece.sourceSubmissionId),
     },
     document: {
-      id: CREW_RESERVATION_DOCUMENT_ID,
+      id: crewReservationDocumentId,
       sha256: documentSha256,
       targetArc: targetArcPresent ? ("present" as const) : ("absent" as const),
     },
@@ -283,7 +270,7 @@ export const settleCrewReservationManifest = async (input: {
     status: "settled",
     manifest: {
       ...withoutId,
-      manifestId: await sha256(JSON.stringify(withoutId)),
+      manifestId: asManifestId(await sha256(JSON.stringify(withoutId))),
     },
   };
 };

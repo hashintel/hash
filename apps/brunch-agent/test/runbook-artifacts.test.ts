@@ -2,10 +2,13 @@ import { describe, expect, test } from "vitest";
 
 import {
   latestRunbookIrBlock,
+  runbookIrFence,
+} from "@hashintel/brunch-agent/workpiece";
+
+import { recoverRunbookWorkpiece } from "../src/conversation/workpiece.ts";
+import {
   ordinaryElicitationViolationsFrom,
   recoverRunbookIr,
-  recoverRunbookWorkpiece,
-  RUNBOOK_IR_FENCE,
   skillResourcePathsFrom,
 } from "../src/evaluations/runbook/artifacts.ts";
 
@@ -27,11 +30,11 @@ const snapshotWithAssistantText = (text: string): FlueConversationSnapshot =>
 describe("runbook artifact recovery", () => {
   test("takes the last fenced IR block", () => {
     const text = [
-      "```" + RUNBOOK_IR_FENCE,
+      "```" + runbookIrFence,
       "# first",
       "```",
       "later",
-      "```" + RUNBOOK_IR_FENCE,
+      "```" + runbookIrFence,
       "# second",
       "```",
     ].join("\n");
@@ -41,7 +44,7 @@ describe("runbook artifact recovery", () => {
   test("recovers an IR from assistant history", () => {
     const snapshot = snapshotWithAssistantText(
       [
-        "```" + RUNBOOK_IR_FENCE,
+        "```" + runbookIrFence,
         "# Runbook IR",
         "## Purpose and outcome",
         "```",

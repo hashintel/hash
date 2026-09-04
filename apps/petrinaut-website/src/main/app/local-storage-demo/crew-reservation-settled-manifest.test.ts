@@ -1,9 +1,9 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  PREPARED_WORKPIECE_AUTHORSHIP,
-  PREPARED_WORKPIECE_CLAIM_BOUNDARY,
-  PREPARED_WORKPIECE_SIGNAL_TAG,
+  preparedWorkpieceAuthorship,
+  preparedWorkpieceClaimBoundary,
+  preparedWorkpieceSignalTag,
   type WorkpieceHistoryMessage,
 } from "@hashintel/brunch-agent/workpiece";
 
@@ -12,11 +12,11 @@ import {
   settleCrewReservationManifest,
 } from "./crew-reservation-settled-manifest";
 import {
-  CREW_RESERVATION_FIXTURE_ID,
-  DISPATCH_CREW_PLACE_ID,
+  crewReservationFixtureId,
+  dispatchCrewPlaceId,
   preparedCrewReservationNet,
   preparedCrewReservationWorkpiece,
-  START_FINAL_INSPECTION_TRANSITION_ID,
+  startFinalInspectionTransitionId,
 } from "./prepared-crew-reservation-fixture";
 
 const preparedMessage: WorkpieceHistoryMessage = {
@@ -25,11 +25,11 @@ const preparedMessage: WorkpieceHistoryMessage = {
   purpose: "dispatch",
   submissionId: "prepare-submission",
   signal: {
-    tagName: PREPARED_WORKPIECE_SIGNAL_TAG,
+    tagName: preparedWorkpieceSignalTag,
     attributes: {
-      fixtureId: CREW_RESERVATION_FIXTURE_ID,
-      authorship: PREPARED_WORKPIECE_AUTHORSHIP,
-      claimBoundary: PREPARED_WORKPIECE_CLAIM_BOUNDARY,
+      fixtureId: crewReservationFixtureId,
+      authorship: preparedWorkpieceAuthorship,
+      claimBoundary: preparedWorkpieceClaimBoundary,
     },
   },
   parts: [
@@ -64,9 +64,9 @@ const targetMutationMessages = (): readonly [
         toolCallId: "target-arc-call",
         toolName: "addArc",
         input: {
-          transitionId: START_FINAL_INSPECTION_TRANSITION_ID,
+          transitionId: startFinalInspectionTransitionId,
           arcDirection: "input",
-          placeId: DISPATCH_CREW_PLACE_ID,
+          placeId: dispatchCrewPlaceId,
           weight: 1,
         },
       },
@@ -106,7 +106,7 @@ describe("crew-reservation settled manifest", () => {
     expect(result).toMatchObject({
       status: "settled",
       manifest: {
-        fixtureId: CREW_RESERVATION_FIXTURE_ID,
+        fixtureId: crewReservationFixtureId,
         revision: 0,
         conversation: {
           canonicalId: "canonical-flue-conversation",
@@ -149,13 +149,13 @@ describe("crew-reservation settled manifest", () => {
     };
     const revisedDefinition = structuredClone(preparedCrewReservationNet);
     const startInspection = revisedDefinition.transitions.find(
-      ({ id }) => id === START_FINAL_INSPECTION_TRANSITION_ID,
+      ({ id }) => id === startFinalInspectionTransitionId,
     );
     if (startInspection === undefined) {
       throw new Error("Missing prepared start-inspection transition");
     }
     startInspection.inputArcs.push({
-      placeId: DISPATCH_CREW_PLACE_ID,
+      placeId: dispatchCrewPlaceId,
       type: "standard",
       weight: 1,
     });
@@ -199,13 +199,13 @@ describe("crew-reservation settled manifest", () => {
     };
     const revisedDefinition = structuredClone(preparedCrewReservationNet);
     const startInspection = revisedDefinition.transitions.find(
-      ({ id }) => id === START_FINAL_INSPECTION_TRANSITION_ID,
+      ({ id }) => id === startFinalInspectionTransitionId,
     );
     if (startInspection === undefined) {
       throw new Error("Missing prepared start-inspection transition");
     }
     startInspection.inputArcs.push({
-      placeId: DISPATCH_CREW_PLACE_ID,
+      placeId: dispatchCrewPlaceId,
       type: "standard",
       weight: 1,
     });
@@ -354,13 +354,13 @@ describe("crew-reservation settled manifest", () => {
     }
     const partialDefinition = structuredClone(preparedCrewReservationNet);
     const startInspection = partialDefinition.transitions.find(
-      ({ id }) => id === START_FINAL_INSPECTION_TRANSITION_ID,
+      ({ id }) => id === startFinalInspectionTransitionId,
     );
     if (startInspection === undefined) {
       throw new Error("Missing prepared start-inspection transition");
     }
     startInspection.inputArcs.push({
-      placeId: DISPATCH_CREW_PLACE_ID,
+      placeId: dispatchCrewPlaceId,
       type: "standard",
       weight: 1,
     });

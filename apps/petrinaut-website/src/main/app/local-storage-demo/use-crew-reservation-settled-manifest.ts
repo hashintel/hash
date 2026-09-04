@@ -2,13 +2,13 @@ import { useLocalStorage } from "@mantine/hooks";
 import { useEffect, useRef, useState } from "react";
 
 import {
-  CREW_RESERVATION_SETTLED_MANIFEST_STORAGE_KEY,
+  crewReservationSettledManifestStorageKey,
   settleCrewReservationManifest,
-  type CrewReservationSettledHistory,
   type CrewReservationSettledManifest,
   type CrewReservationSettlementResult,
 } from "./crew-reservation-settled-manifest";
 
+import type { CrewReservationHistory } from "./crew-reservation-history";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 export type CrewReservationSettlementStatus =
@@ -21,23 +21,52 @@ export type CrewReservationSettlementStatus =
             CrewReservationSettlementResult,
             { status: "refused" }
           >["reason"]
+        | "bundle-snapshot-unavailable"
         | "history-unavailable"
+        | "preparation-failed"
         | "settlement-failed";
       readonly state: "refused";
     };
 
-export const useCrewReservationSettledManifest = (input: {
-  readonly definition: SDCPN | undefined;
-  readonly enabled: boolean;
-  readonly history: CrewReservationSettledHistory | undefined;
-  readonly historyError: string | undefined;
-}) => {
+export const useCrewReservationSettledManifestStorage = () => {
   const [settledManifest, setSettledManifest] =
     useLocalStorage<CrewReservationSettledManifest | null>({
-      key: CREW_RESERVATION_SETTLED_MANIFEST_STORAGE_KEY,
+      key: crewReservationSettledManifestStorageKey,
       defaultValue: null,
       getInitialValueInEffect: false,
     });
+  return { settledManifest, setSettledManifest };
+};
+
+export const useCrewReservationSettlement = (input: {
+  readonly definition: SDCPN | undefined;
+  readonly enabled: boolean;
+  readonly history: CrewReservationHistory | undefined;
+  readonly historyError: string | undefined;
+  readonly persistCoherentSnapshot: (sha256: string, definition: SDCPN) => void;
+  readonly preparationError: string | undefined;
+  readonly setSettledManifest: (
+    value:
+      | CrewReservationSettledManifest
+      | null
+      | ((
+          previous: CrewReservationSettledManifest | null,
+        ) => CrewReservationSettledManifest | null),
+  ) => void;
+  readonly settledManifest: CrewReservationSettledManifest | null;
+  readonly snapshotMissing: boolean;
+}) => {
+  const {
+    definition,
+    enabled,
+    history,
+    historyError,
+    persistCoherentSnapshot,
+    preparationError,
+    setSettledManifest,
+    settledManifest,
+    snapshotMissing,
+  } = input;
   const [observedStatus, setObservedStatus] =
     useState<CrewReservationSettlementStatus>({ state: "preparing" });
   const manifestRef = useRef(settledManifest);
@@ -52,23 +81,23 @@ export const useCrewReservationSettledManifest = (input: {
     const observationId = observationIdRef.current + 1;
     observationIdRef.current = observationId;
     if (
-      !input.enabled ||
-      input.historyError !== undefined ||
-      input.definition === undefined ||
-      input.history === undefined
+      !enabled ||
+      historyError !== undefined ||
+      definition === undefined ||
+      history === undefined
     ) {
       return;
     }
 
-    const definition = structuredClone(input.definition);
-    const history = input.history;
+    const definitionSnapshot = structuredClone(definition);
+    const historySnapshot = history;
     queueRef.current = queueRef.current.then(async () => {
       if (observationId !== observationIdRef.current) return;
       let result: CrewReservationSettlementResult;
       try {
         result = await settleCrewReservationManifest({
-          definition,
-          history,
+          definition: definitionSnapshot,
+          history: historySnapshot,
           ...(manifestRef.current === null
             ? {}
             : { previous: manifestRef.current }),
@@ -95,6 +124,10 @@ export const useCrewReservationSettledManifest = (input: {
         });
         return;
       }
+      persistCoherentSnapshot(
+        result.manifest.document.sha256,
+        definitionSnapshot,
+      );
       if (result.manifest.manifestId !== manifestRef.current?.manifestId) {
         manifestRef.current = result.manifest;
         setSettledManifest(result.manifest);
@@ -102,23 +135,36 @@ export const useCrewReservationSettledManifest = (input: {
       setObservedStatus({ state: "settled" });
     });
   }, [
-    input.definition,
-    input.enabled,
-    input.history,
-    input.historyError,
+    definition,
+    enabled,
+    history,
+    historyError,
+    persistCoherentSnapshot,
     setSettledManifest,
   ]);
 
-  const status: CrewReservationSettlementStatus = !input.enabled
+  const status: CrewReservationSettlementStatus = !enabled
     ? { state: "idle" }
-    : input.historyError !== undefined
+    : historyError !== undefined
       ? {
           state: "refused",
           reason: "history-unavailable",
-          detail: input.historyError,
+          detail: historyError,
         }
-      : input.definition === undefined || input.history === undefined
-        ? { state: "preparing" }
-        : observedStatus;
-  return { settledManifest, status };
+      : snapshotMissing
+        ? {
+            state: "refused",
+            reason: "bundle-snapshot-unavailable",
+          }
+        : preparationError !== undefined &&
+            (definition === undefined || history === undefined)
+          ? {
+              state: "refused",
+              reason: "preparation-failed",
+              detail: preparationError,
+            }
+          : definition === undefined || history === undefined
+            ? { state: "preparing" }
+            : observedStatus;
+  return status;
 };
