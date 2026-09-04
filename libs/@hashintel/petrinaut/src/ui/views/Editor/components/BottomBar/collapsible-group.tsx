@@ -14,8 +14,11 @@ const groupStyle = cva({
   base: {
     display: "grid",
     gridTemplateColumns: "[1fr]",
+    // Decelerating rather than eased at both ends, and shorter than a panel's
+    // 150ms: the controls have to be on their way out by the first frame after
+    // the pointer lands, or the bar reads as slow to answer.
     transition:
-      "[grid-template-columns 150ms ease-in-out, opacity 150ms ease-in-out]",
+      "[grid-template-columns 120ms ease-out, opacity 120ms ease-out]",
     "@media (prefers-reduced-motion: reduce)": {
       transition: "[none]",
     },
