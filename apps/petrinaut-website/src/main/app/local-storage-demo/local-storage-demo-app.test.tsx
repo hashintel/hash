@@ -106,6 +106,9 @@ describe("local storage demo Brunch voice integration", () => {
       throw new Error("Expected the configured composer control to render.");
     }
     const failureListener = vi.fn();
+    const responseCompletedListener = vi.fn();
+    const responseStartedListener = vi.fn();
+    const stopListener = vi.fn();
     const target = { kind: "user" as const, messageId: "voice-turn-1" };
     const controlProps = control.props as {
       config: typeof config;
@@ -113,6 +116,13 @@ describe("local storage demo Brunch voice integration", () => {
         admissionTarget: typeof target,
         listener: (error: FlueChatAdmissionError) => void,
       ) => () => void;
+      subscribeToResponseMessageCompleted: (
+        listener: typeof responseCompletedListener,
+      ) => () => void;
+      subscribeToResponseMessageStarted: (
+        listener: typeof responseStartedListener,
+      ) => () => void;
+      subscribeToStopRequested: (listener: () => void) => () => void;
     };
     expect(control.type).toBe(VoiceInterviewControl);
     expect(controlProps.config).toBe(config);
@@ -120,12 +130,37 @@ describe("local storage demo Brunch voice integration", () => {
       target,
       failureListener,
     );
+    const unsubscribeFromStop =
+      controlProps.subscribeToStopRequested(stopListener);
+    const unsubscribeFromResponseCompleted =
+      controlProps.subscribeToResponseMessageCompleted(
+        responseCompletedListener,
+      );
+    const unsubscribeFromResponseStarted =
+      controlProps.subscribeToResponseMessageStarted(responseStartedListener);
     const admissionError = new FlueChatAdmissionError({ kind: "ambiguous" });
 
     tracker.recordAdmissionFailure(target, admissionError);
+    tracker.recordResponse({
+      messageId: "assistant-1",
+      position: { batch: 1, index: 0 },
+      submissionId: "submission-1",
+    });
+    tracker.recordResponseMessageCompleted({
+      messageId: "assistant-1",
+      position: { batch: 1, index: 1 },
+      submissionId: "submission-1",
+    });
+    tracker.recordStopRequested();
 
     expect(failureListener).toHaveBeenCalledWith(admissionError);
+    expect(responseStartedListener).toHaveBeenCalledOnce();
+    expect(responseCompletedListener).toHaveBeenCalledOnce();
+    expect(stopListener).toHaveBeenCalledOnce();
     unsubscribe();
+    unsubscribeFromResponseCompleted();
+    unsubscribeFromResponseStarted();
+    unsubscribeFromStop();
   });
 
   test("registers no brunch_ask tool in the production Brunch preview", async () => {
@@ -271,6 +306,8 @@ describe("local storage demo Brunch voice integration", () => {
     const abort = vi.fn<FlueClient["abort"]>(async () => ({ aborted: true }));
     const client = { abort } as Pick<FlueClient, "abort"> as FlueClient;
     const tracker = new BrunchPanelConversationTracker();
+    const stopListener = vi.fn();
+    tracker.subscribeToStopRequested(stopListener);
     let admit: (() => void) | undefined;
     void tracker.trackSubmission(
       new Promise<void>((resolve) => {
@@ -279,6 +316,7 @@ describe("local storage demo Brunch voice integration", () => {
     );
 
     const stop = requestFlueStop(Promise.resolve(client), tracker);
+    expect(stopListener).toHaveBeenCalledOnce();
     await Promise.resolve();
     await Promise.resolve();
     expect(abort).not.toHaveBeenCalled();

@@ -6,7 +6,11 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  FlueChatAdmissionError,
+  type FlueChatResponseMessageCompletedEvent,
+  type FlueChatResponseMessageStartedEvent,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import { Button, Checkbox } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -43,6 +47,13 @@ type SubscribeToAdmissionFailure = (
   target: RealtimeBrunchAdmissionTarget,
   listener: (error: FlueChatAdmissionError) => void,
 ) => () => void;
+type SubscribeToResponseMessageCompleted = (
+  listener: (event: FlueChatResponseMessageCompletedEvent) => void,
+) => () => void;
+type SubscribeToResponseMessageStarted = (
+  listener: (event: FlueChatResponseMessageStartedEvent) => void,
+) => () => void;
+type SubscribeToStopRequested = (listener: () => void) => () => void;
 type SubmitInterviewAnswer = ConstructorParameters<
   typeof RealtimeBrunchBridge
 >[0]["submitInterviewAnswer"];
@@ -419,6 +430,9 @@ const AvailableVoiceInterviewControl = ({
   settlements,
   subscribeToAdmission,
   subscribeToAdmissionFailure,
+  subscribeToResponseMessageCompleted,
+  subscribeToResponseMessageStarted,
+  subscribeToStopRequested,
 }: {
   config: OpenAIVoiceConfig;
   context: PetrinautAiVoiceModeContext;
@@ -427,6 +441,9 @@ const AvailableVoiceInterviewControl = ({
   settlements?: readonly VoiceSubmissionSettlement[];
   subscribeToAdmission?: SubscribeToAdmission;
   subscribeToAdmissionFailure?: SubscribeToAdmissionFailure;
+  subscribeToResponseMessageCompleted?: SubscribeToResponseMessageCompleted;
+  subscribeToResponseMessageStarted?: SubscribeToResponseMessageStarted;
+  subscribeToStopRequested?: SubscribeToStopRequested;
 }) => {
   "use no memo";
 
@@ -469,6 +486,7 @@ const AvailableVoiceInterviewControl = ({
       submitText: (input) => latestSubmitVoiceInput(input),
     });
     return {
+      bridge,
       controller,
       getSnapshot: () => controller.getSnapshot(),
       subscribe: (listener: (snapshot: VoiceTurnSnapshot) => void) =>
@@ -507,6 +525,26 @@ const AvailableVoiceInterviewControl = ({
     reportVoiceSessionState,
     setVoiceActive,
   } = context;
+
+  useEffect(
+    () =>
+      subscribeToResponseMessageCompleted?.((event) =>
+        store.bridge.notifyResponseMessageCompleted(event),
+      ),
+    [store, subscribeToResponseMessageCompleted],
+  );
+  useEffect(
+    () =>
+      subscribeToResponseMessageStarted?.((event) =>
+        store.bridge.notifyResponseMessageStarted(event),
+      ),
+    [store, subscribeToResponseMessageStarted],
+  );
+  useEffect(
+    () =>
+      subscribeToStopRequested?.(() => store.controller.cancelPendingSpeech()),
+    [store, subscribeToStopRequested],
+  );
 
   useLayoutEffect(() => {
     store.updateSubmissionContext(
@@ -682,6 +720,9 @@ export const VoiceInterviewControl = ({
   settlements,
   subscribeToAdmission,
   subscribeToAdmissionFailure,
+  subscribeToResponseMessageCompleted,
+  subscribeToResponseMessageStarted,
+  subscribeToStopRequested,
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
@@ -690,6 +731,9 @@ export const VoiceInterviewControl = ({
   readonly settlements?: readonly VoiceSubmissionSettlement[];
   readonly subscribeToAdmission?: SubscribeToAdmission;
   readonly subscribeToAdmissionFailure?: SubscribeToAdmissionFailure;
+  readonly subscribeToResponseMessageCompleted?: SubscribeToResponseMessageCompleted;
+  readonly subscribeToResponseMessageStarted?: SubscribeToResponseMessageStarted;
+  readonly subscribeToStopRequested?: SubscribeToStopRequested;
 }) => (
   <AvailableVoiceInterviewControl
     key={context.conversationId}
@@ -700,5 +744,8 @@ export const VoiceInterviewControl = ({
     settlements={settlements}
     subscribeToAdmission={subscribeToAdmission}
     subscribeToAdmissionFailure={subscribeToAdmissionFailure}
+    subscribeToResponseMessageCompleted={subscribeToResponseMessageCompleted}
+    subscribeToResponseMessageStarted={subscribeToResponseMessageStarted}
+    subscribeToStopRequested={subscribeToStopRequested}
   />
 );

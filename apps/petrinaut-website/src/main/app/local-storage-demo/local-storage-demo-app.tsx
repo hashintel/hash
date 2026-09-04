@@ -130,6 +130,23 @@ export const getBrunchVoiceMode = (
           resolveResponseSubmission={(messageId) =>
             tracker?.submissionsForResponse(messageId)
           }
+          subscribeToResponseMessageCompleted={
+            tracker === undefined
+              ? undefined
+              : (listener) =>
+                  tracker.subscribeToResponseMessageCompleted(listener)
+          }
+          subscribeToResponseMessageStarted={
+            tracker === undefined
+              ? undefined
+              : (listener) =>
+                  tracker.subscribeToResponseMessageStarted(listener)
+          }
+          subscribeToStopRequested={
+            tracker === undefined
+              ? undefined
+              : (listener) => tracker.subscribeToStopRequested(listener)
+          }
           subscribeToAdmission={
             tracker === undefined
               ? undefined
@@ -188,6 +205,7 @@ export const requestFlueStop = async (
   clientPromise: Promise<ReturnType<typeof createFlueClient>>,
   tracker: BrunchPanelConversationTracker,
 ): Promise<PetrinautAiStopResult> => {
+  tracker.recordStopRequested();
   const client = await clientPromise;
   await tracker.settleInFlightSubmissions();
   const result = await client.abort();

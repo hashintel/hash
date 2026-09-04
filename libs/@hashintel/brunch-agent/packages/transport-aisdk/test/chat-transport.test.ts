@@ -384,17 +384,22 @@ test("classifies an explicit local admission abort without retrying", async () =
   expect(send).toHaveBeenCalledOnce();
 });
 
-test("reports one admission and its correlated response message", async () => {
+test("reports one admission and its correlated response message completion", async () => {
   const { client } = clientWith(completedEvents);
   const onAdmission =
     vi.fn<NonNullable<FlueChatTransportOptions["onAdmission"]>>();
   const onResponseMessage =
     vi.fn<NonNullable<FlueChatTransportOptions["onResponseMessage"]>>();
+  const onResponseMessageCompleted =
+    vi.fn<
+      NonNullable<FlueChatTransportOptions["onResponseMessageCompleted"]>
+    >();
   const transport = createFlueChatTransport({
     client,
     clientToolNames: new Set(),
     onAdmission,
     onResponseMessage,
+    onResponseMessageCompleted,
   });
 
   const stream = await transport.sendMessages(
@@ -417,6 +422,13 @@ test("reports one admission and its correlated response message", async () => {
   expect(onResponseMessage).toHaveBeenCalledOnce();
   expect(onResponseMessage).toHaveBeenCalledWith({
     messageId: "assistant-1",
+    position: position(0),
+    submissionId: admission.submissionId,
+  });
+  expect(onResponseMessageCompleted).toHaveBeenCalledOnce();
+  expect(onResponseMessageCompleted).toHaveBeenCalledWith({
+    messageId: "assistant-1",
+    position: position(2),
     submissionId: admission.submissionId,
   });
 });
@@ -459,14 +471,19 @@ test("stays silent after the consumer cancels the per-turn stream", async () => 
   await expect(reader.closed).resolves.toBeUndefined();
 });
 
-test("reports a client-tool continuation against the resumed assistant id", async () => {
+test("reports a client-tool continuation and completion against the resumed assistant id", async () => {
   const { client } = clientWith(completedEvents);
   const onResponseMessage =
     vi.fn<NonNullable<FlueChatTransportOptions["onResponseMessage"]>>();
+  const onResponseMessageCompleted =
+    vi.fn<
+      NonNullable<FlueChatTransportOptions["onResponseMessageCompleted"]>
+    >();
   const transport = createFlueChatTransport({
     client,
     clientToolNames: new Set(["readPetrinautDoc"]),
     onResponseMessage,
+    onResponseMessageCompleted,
   });
 
   const stream = await transport.sendMessages(
@@ -495,6 +512,13 @@ test("reports a client-tool continuation against the resumed assistant id", asyn
   expect(onResponseMessage).toHaveBeenCalledOnce();
   expect(onResponseMessage).toHaveBeenCalledWith({
     messageId: "assistant-original",
+    position: position(0),
+    submissionId: admission.submissionId,
+  });
+  expect(onResponseMessageCompleted).toHaveBeenCalledOnce();
+  expect(onResponseMessageCompleted).toHaveBeenCalledWith({
+    messageId: "assistant-original",
+    position: position(2),
     submissionId: admission.submissionId,
   });
 });

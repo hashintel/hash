@@ -472,6 +472,71 @@ describe("VoiceTurnController", () => {
     });
   });
 
+  test("reopens the microphone only after cancellation and Brunch settlement", async () => {
+    const harness = createHarness();
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question("answered-question")],
+      questionSegment: markedQuestion("answered-question"),
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitBridge({
+      answer: "The approved answer.",
+      deliveryId: "voice-request",
+      type: "submission-started",
+    });
+    harness.emitBridge({
+      answer: "The approved answer.",
+      deliveryId: "voice-request",
+      type: "submission-accepted",
+    });
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [question("next-question")],
+      questionSegment: markedQuestion("next-question"),
+      status: "streaming",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-handoff",
+      speechRequestId: "speech-handoff",
+      type: "output-started",
+    });
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    const handoff = harness.controller.takeTurn();
+    let handoffFinished = false;
+    void handoff.then(() => {
+      handoffFinished = true;
+    });
+    await Promise.resolve();
+
+    expect(handoffFinished).toBe(false);
+    expect(harness.bridge.completeTurnHandoff).not.toHaveBeenCalled();
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledOnce();
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledWith(false);
+
+    harness.emitBridge({
+      deliveryId: "voice-request",
+      type: "submission-settled",
+    });
+    await handoff;
+
+    expect(harness.bridge.completeTurnHandoff).toHaveBeenCalledOnce();
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+  });
+
+  test("cancels queued and later speech when the host stops a response", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+
+    harness.controller.cancelPendingSpeech();
+
+    expect(harness.bridge.cancelPendingSpeech).toHaveBeenCalledOnce();
+    expect(harness.session.cancelOutput).toHaveBeenCalledOnce();
+  });
+
   test("keeps the user turn when cancelled pending speech settles later", async () => {
     const harness = createHarness();
     harness.controller.updateChat({
@@ -770,6 +835,7 @@ describe("VoiceTurnController", () => {
     harness.controller.pause();
     await harness.controller.resume();
 
+    expect(harness.bridge.cancelPendingSpeech).toHaveBeenCalledOnce();
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "submitting",
       lastAnswerDelivery: "pending",
