@@ -40,24 +40,8 @@ The provider serialized the arc weight as `"1"`. The corrected correlation artif
 
 The first [2026-09-04 witness](fe-1575-outer-browser-witness-2026-09-04/witness.md) remains immutable historical evidence but is superseded for acceptance: its model-produced workpiece incorrectly called itself test-authored and its correlation artifact omitted the parsed canonical input.
 
-## Remaining human checks
+## Human checks
 
-Cold-reader semantic adjudication and the product-manager demo remain separate
-human gates. They have not been replaced with persona or agent testing.
+The cold reader accepted the fixture and revised workpiece on 2026-09-04; the complete adjudication is retained in [cold-reader-gate.md](fe-1575-outer-browser-witness-2026-09-04-r2/cold-reader-gate.md).
 
-### Cold-reader handoff
-
-Give the reviewer only the prepared and model-revised workpieces plus their
-tagged Flue records. Ask them to identify authorship, the exactly-one-crew
-policy, the intended reservation and return, and every unresolved timing,
-failure, and recovery point. Fail the check if the reader attributes revision
-zero to the model or infers unsupported behavioral execution.
-
-### Product-manager handoff
-
-With a valid live provider credential, have the reviewer open the labelled
-fixture in Tab A, confirm the visible non-claims, submit the crew-reservation
-fact once, and wait for a settled bundle. They must inspect the exact added
-weight-1 input arc, open the same fixture in Tab B, verify matching identities
-and hashes, submit a follow-up, and receive its correlated Brunch response
-without a duplicate prepared submission. A read-only Tab B does not pass.
+The product manager accepted the visible two-tab conversation, workpiece, and document path on 2026-09-04 after a fresh run advanced from settled revision 0 to revision 1, displayed the exact crew-reservation arc, reopened coherently in Tab B, and answered a non-mutating follow-up. The durable correlation and the run's explicit limitation are retained in [product-manager-gate.md](fe-1575-outer-browser-witness-2026-09-04-r2/product-manager-gate.md): the fresh human run contained no Voice-origin or aborted assistant records, so those presentation clauses were not independently re-exercised by the product manager.

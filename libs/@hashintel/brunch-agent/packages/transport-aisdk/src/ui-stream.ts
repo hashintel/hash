@@ -70,6 +70,13 @@ export const createFlueUiStream = (
           if (messageId === undefined) {
             messageId = chunk.messageId;
             options.write({ type: "start", messageId });
+          } else if (
+            chunk.messageId !== messageId &&
+            pendingClientToolCallIds.size > 0
+          ) {
+            // Flue may append a waiting reply after yielding to the browser.
+            // An empty trailing AI SDK step would strand the client tool.
+            return;
           }
           finishTurn();
           turnId = chunk.turnId ?? `${messageId}:turn`;

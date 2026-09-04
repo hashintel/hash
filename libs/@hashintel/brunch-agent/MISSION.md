@@ -2,7 +2,7 @@
 
 ## Status
 
-**Live on `ln/fe-1575-resumable-workpiece-petrinaut`.** [FE-1575](https://linear.app/hash/issue/FE-1575/resume-one-brunch-workpiece-and-petrinaut-document-across-tabs) remains in progress. The implementation and outer mechanical witness are complete; cold-reader semantic adjudication and the product-manager demo remain the final acceptance gates. See the [retained implementation and witness evidence](docs/evidence/implementations/fe-1575-resumable-workpiece-petrinaut.md). On 2026-09-04 the owner amended only the Deferred section, to point at the recut future planning record and carry two admissions from this mission's evidence; the imperative, throughline, proof, constraints, fog-line, and stop conditions are unchanged.
+**Live on `ln/fe-1575-resumable-workpiece-petrinaut`.** [FE-1575](https://linear.app/hash/issue/FE-1575/resume-one-brunch-workpiece-and-petrinaut-document-across-tabs) remains in progress. The implementation, outer mechanical witness, cold-reader adjudication, and the product manager's fresh two-tab conversation/workpiece/document demo are complete; see the [retained implementation and witness evidence](docs/evidence/implementations/fe-1575-resumable-workpiece-petrinaut.md). The fresh human run contained no Voice-origin or aborted assistant records, so it did not independently exercise those two presentation clauses in the full demo script; they remain mechanically covered by the outer witness rather than closed by the product-manager gate. On 2026-09-04 the owner amended only the Deferred section, to point at the recut future planning record and carry two admissions from this mission's evidence; the imperative, throughline, proof, constraints, fog-line, and stop conditions are unchanged.
 
 ## Imperative
 

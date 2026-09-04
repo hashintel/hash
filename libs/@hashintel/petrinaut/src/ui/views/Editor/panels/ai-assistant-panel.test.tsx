@@ -16,6 +16,7 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   createJsonDocHandle,
   createPetrinaut,
+  getLatestNetDefinitionToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -397,6 +398,128 @@ describe("AiAssistantPanel composer submissions", () => {
       transport,
     });
     expect(sendMessages).toHaveBeenCalledOnce();
+  });
+
+  test("continues through consecutive automatic client tools", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      ({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        if (requestMessages.length <= 2) {
+          const toolCallId = `automatic-net-read-${requestMessages.length}`;
+          return Promise.resolve(
+            streamChunks([
+              { type: "start-step" },
+              {
+                type: "tool-input-available",
+                toolCallId,
+                toolName: getLatestNetDefinitionToolName,
+                input: {},
+              },
+              { type: "finish-step" },
+              { type: "finish", finishReason: "tool-calls" },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          streamChunks(
+            textChunks("automatic-complete", "Construction complete"),
+          ),
+        );
+      },
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      initialMessage: "Construct the net",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledTimes(3));
+    expect(await screen.findByText("Construction complete")).not.toBeNull();
+    expect(
+      requestMessages[1]?.flatMap((message) => message.parts),
+    ).toContainEqual(
+      expect.objectContaining({
+        state: "output-available",
+        toolCallId: "automatic-net-read-1",
+      }),
+    );
+    expect(
+      requestMessages[2]?.flatMap((message) => message.parts),
+    ).toContainEqual(
+      expect.objectContaining({
+        state: "output-available",
+        toolCallId: "automatic-net-read-2",
+      }),
+    );
+  });
+
+  test("submits multiple automatic tool outputs in one continuation", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      ({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        if (requestMessages.length === 1) {
+          return Promise.resolve(
+            streamChunks([
+              { type: "start-step" },
+              {
+                type: "tool-input-available",
+                toolCallId: "batched-net-read-1",
+                toolName: getLatestNetDefinitionToolName,
+                input: {},
+              },
+              {
+                type: "tool-input-available",
+                toolCallId: "batched-net-read-2",
+                toolName: getLatestNetDefinitionToolName,
+                input: {},
+              },
+              { type: "finish-step" },
+              { type: "finish", finishReason: "tool-calls" },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          streamChunks(textChunks("batch-complete", "Both reads received")),
+        );
+      },
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      initialMessage: "Read the net twice",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Both reads received")).not.toBeNull();
+    const continuationParts = requestMessages[1]?.flatMap(
+      (message) => message.parts,
+    );
+    expect(continuationParts).toContainEqual(
+      expect.objectContaining({
+        state: "output-available",
+        toolCallId: "batched-net-read-1",
+      }),
+    );
+    expect(continuationParts).toContainEqual(
+      expect.objectContaining({
+        state: "output-available",
+        toolCallId: "batched-net-read-2",
+      }),
+    );
   });
 
   test("invalidates registered Voice controls before typed submit while active publication is pending", async () => {
