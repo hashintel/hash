@@ -1,23 +1,24 @@
 //! The paired-movement readout.
 //!
-//! A direct counterfactual reading of the relation lens over the measured ladder. For a
-//! pseudo-random sample of force-bearing Proximal pairs, the readout measures how each pair's
-//! distance and local neighbourhood rank moved between the zero-condition step and the
-//! canonical step, against a matched control population of nonparticipant rows. It persists as
-//! ladder evidence beside the step measurements. It is warn-only and blocks nothing.
+//! The ladder's step evidence ([`measure_ladder`](super::measure_ladder)) reads the [relation
+//! lens](crate::salt::projector) through the whole layout: alignment residual and relation loss per
+//! step. This readout reads it where the lens acts. For a pseudo-random sample of
+//! [force-bearing](crate::salt::relation::attraction::AttractionEdge)
+//! [Proximal](crate::salt::policy::GeometryClass::Proximal) pairs it measures how each pair's
+//! distance and [local neighbourhood rank](mod@movement) moved between the [zero-condition
+//! step](super::Conditions) and the [canonical step](super::select_canonical), and for a control
+//! sample bounded by the pair count, drawn from [nonparticipant rows](mod@census), it measures
+//! displacement between the same steps, stratified by zero-step distance to the nearest sampled
+//! endpoint. The control separates pair convergence from drift of the layout around it. The readout
+//! persists as [ladder evidence](crate::file::salt::metadata::LadderEvidence) beside the step
+//! measurements and blocks nothing.
 //!
-//! The sample must be replayable without persisting pair identities, so the draw is a pure
-//! function of the generation's declared inputs under a versioned rule. [`identity`] carries
-//! that rule: the rule identity, the salt derived from the metadata document's input sections,
-//! and the keyed order keys the sampler sorts by. [`census`] takes the draw itself: it walks
-//! the attraction index's two candidate domains and selects each bounded sample in keyed order.
-//! [`movement`] reads each drawn subject between the aligned zero and canonical steps: pair
-//! distance and union-domain local rank, control displacement and anchor proximity.
-//! [`evidence`] aggregates the readings into the persisted body the metadata document embeds
-//! beside the steps, with nearest-rank quantiles over per-pair differences, collateral strata
-//! over the candidate census, and a tri-state outcome that cannot carry a partial family.
-//! [`measure`](mod@measure) runs the whole readout for one generation, salt to evidence body,
-//! as one pure function the fit's writer wraps around the staged artifacts.
+//! The draw is a pure function of the [generation](crate::file::generation::Generation)'s declared
+//! inputs. Deriving the sample rather than storing it keeps the evidence body to its aggregates and
+//! every sample replayable from its generation. [`identity`] names the rule and derives the salt,
+//! [`census`] draws both samples, [`movement`] reads each drawn subject at both steps, [`evidence`]
+//! aggregates the readings into the persisted body, and [`measure`](mod@measure) runs the whole
+//! readout for one generation.
 
 mod census;
 mod evidence;
