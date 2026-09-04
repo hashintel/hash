@@ -7,6 +7,13 @@ import { createFlueUiStream } from "./ui-stream";
 import type { AgentSendResult, DeliveredMessage, FlueClient } from "@flue/sdk";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
+export {
+  clientToolHistoryFrom,
+  type ClientToolHistory,
+  type ClientToolHistoryCall,
+  type ClientToolHistoryMessage,
+  type ClientToolHistoryResult,
+} from "./client-tool-history";
 export { BRUNCH_CONVERSATION_HEADER, BRUNCH_PRINCIPAL_HEADER } from "./headers";
 export { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
 export {

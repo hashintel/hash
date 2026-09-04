@@ -1,13 +1,13 @@
 import { describe, expect, test, vi } from "vitest";
 
 import {
-  PREPARED_WORKPIECE_INITIAL_DATA_MODE,
-  PREPARED_WORKPIECE_SIGNAL_TAG,
+  preparedWorkpieceInitialDataMode,
+  preparedWorkpieceSignalTag,
 } from "@hashintel/brunch-agent/workpiece";
 
 import { prepareCrewReservationConversation } from "./prepare-crew-reservation-conversation";
 import {
-  CREW_RESERVATION_FIXTURE_ID,
+  crewReservationFixtureId,
   preparedCrewReservationDelivery,
   preparedCrewReservationWorkpiece,
 } from "./prepared-crew-reservation-fixture";
@@ -23,9 +23,9 @@ const preparedHistory = {
       purpose: "dispatch",
       submissionId: "prepare-submission",
       signal: {
-        tagName: PREPARED_WORKPIECE_SIGNAL_TAG,
+        tagName: preparedWorkpieceSignalTag,
         attributes: {
-          fixtureId: CREW_RESERVATION_FIXTURE_ID,
+          fixtureId: crewReservationFixtureId,
           authorship: "test-authored",
           claimBoundary: "prepared-not-model-produced",
         },
@@ -65,7 +65,7 @@ describe("prepareCrewReservationConversation", () => {
     ).resolves.toEqual(preparedHistory);
     expect(send).toHaveBeenCalledWith({
       uid: null,
-      initialData: { mode: PREPARED_WORKPIECE_INITIAL_DATA_MODE },
+      initialData: { mode: preparedWorkpieceInitialDataMode },
       ...preparedCrewReservationDelivery,
     });
     expect(wait).toHaveBeenCalledWith(admission);

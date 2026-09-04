@@ -2,23 +2,26 @@
  * @vitest-environment jsdom
  */
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
-  PREPARED_WORKPIECE_AUTHORSHIP,
-  PREPARED_WORKPIECE_CLAIM_BOUNDARY,
-  PREPARED_WORKPIECE_SIGNAL_TAG,
+  preparedWorkpieceAuthorship,
+  preparedWorkpieceClaimBoundary,
+  preparedWorkpieceSignalTag,
 } from "@hashintel/brunch-agent/workpiece";
 
-import { CREW_RESERVATION_SETTLED_MANIFEST_STORAGE_KEY } from "./crew-reservation-settled-manifest";
+import { crewReservationSettledManifestStorageKey } from "./crew-reservation-settled-manifest";
 import {
-  CREW_RESERVATION_FIXTURE_ID,
-  DISPATCH_CREW_PLACE_ID,
+  crewReservationFixtureId,
+  dispatchCrewPlaceId,
   preparedCrewReservationNet,
   preparedCrewReservationWorkpiece,
-  START_FINAL_INSPECTION_TRANSITION_ID,
+  startFinalInspectionTransitionId,
 } from "./prepared-crew-reservation-fixture";
-import { useCrewReservationSettledManifest } from "./use-crew-reservation-settled-manifest";
+import {
+  useCrewReservationSettlement,
+  useCrewReservationSettledManifestStorage,
+} from "./use-crew-reservation-settled-manifest";
 
 const preparedHistory = {
   conversationId: "canonical-conversation",
@@ -31,11 +34,11 @@ const preparedHistory = {
       purpose: "dispatch",
       submissionId: "prepare-submission",
       signal: {
-        tagName: PREPARED_WORKPIECE_SIGNAL_TAG,
+        tagName: preparedWorkpieceSignalTag,
         attributes: {
-          fixtureId: CREW_RESERVATION_FIXTURE_ID,
-          authorship: PREPARED_WORKPIECE_AUTHORSHIP,
-          claimBoundary: PREPARED_WORKPIECE_CLAIM_BOUNDARY,
+          fixtureId: crewReservationFixtureId,
+          authorship: preparedWorkpieceAuthorship,
+          claimBoundary: preparedWorkpieceClaimBoundary,
         },
       },
       parts: [{ type: "text", text: preparedCrewReservationWorkpiece }],
@@ -53,30 +56,43 @@ afterEach(() => {
 });
 
 test("keeps the prior runtime bundle selected while a document write is partial", async () => {
+  const persistCoherentSnapshot = vi.fn();
   const { result, rerender } = renderHook(
-    ({ definition }: { definition: typeof preparedCrewReservationNet }) =>
-      useCrewReservationSettledManifest({
+    ({ definition }: { definition: typeof preparedCrewReservationNet }) => {
+      const storage = useCrewReservationSettledManifestStorage();
+      const status = useCrewReservationSettlement({
         definition,
         enabled: true,
         history: preparedHistory,
         historyError: undefined,
-      }),
+        persistCoherentSnapshot,
+        preparationError: undefined,
+        setSettledManifest: storage.setSettledManifest,
+        settledManifest: storage.settledManifest,
+        snapshotMissing: false,
+      });
+      return { ...storage, status };
+    },
     { initialProps: { definition: preparedCrewReservationNet } },
   );
 
   await waitFor(() => expect(result.current.status.state).toBe("settled"));
   const settledManifest = result.current.settledManifest;
   expect(settledManifest?.revision).toBe(0);
+  expect(persistCoherentSnapshot).toHaveBeenCalledWith(
+    settledManifest?.document.sha256,
+    preparedCrewReservationNet,
+  );
 
   const partialDefinition = structuredClone(preparedCrewReservationNet);
   const startInspection = partialDefinition.transitions.find(
-    ({ id }) => id === START_FINAL_INSPECTION_TRANSITION_ID,
+    ({ id }) => id === startFinalInspectionTransitionId,
   );
   if (startInspection === undefined) {
     throw new Error("Missing prepared start-inspection transition");
   }
   startInspection.inputArcs.push({
-    placeId: DISPATCH_CREW_PLACE_ID,
+    placeId: dispatchCrewPlaceId,
     type: "standard",
     weight: 1,
   });
@@ -86,28 +102,61 @@ test("keeps the prior runtime bundle selected while a document write is partial"
   expect(result.current.settledManifest).toEqual(settledManifest);
   expect(
     JSON.parse(
-      window.localStorage.getItem(
-        CREW_RESERVATION_SETTLED_MANIFEST_STORAGE_KEY,
-      ) ?? "null",
+      window.localStorage.getItem(crewReservationSettledManifestStorageKey) ??
+        "null",
     ),
   ).toEqual(settledManifest);
 });
 
 test("surfaces canonical history failure without publishing a bundle", async () => {
-  const { result } = renderHook(() =>
-    useCrewReservationSettledManifest({
+  const persistCoherentSnapshot = vi.fn();
+  const { result } = renderHook(() => {
+    const storage = useCrewReservationSettledManifestStorage();
+    const status = useCrewReservationSettlement({
       definition: preparedCrewReservationNet,
       enabled: true,
       history: undefined,
       historyError: "History unavailable.",
-    }),
-  );
+      persistCoherentSnapshot,
+      preparationError: undefined,
+      setSettledManifest: storage.setSettledManifest,
+      settledManifest: storage.settledManifest,
+      snapshotMissing: false,
+    });
+    return { ...storage, status };
+  });
 
   await waitFor(() => expect(result.current.status.state).toBe("refused"));
   expect(result.current.status).toEqual({
     state: "refused",
     reason: "history-unavailable",
     detail: "History unavailable.",
+  });
+  expect(result.current.settledManifest).toBeNull();
+});
+
+test("distinguishes preparation failure from unavailable history", async () => {
+  const persistCoherentSnapshot = vi.fn();
+  const { result } = renderHook(() => {
+    const storage = useCrewReservationSettledManifestStorage();
+    const status = useCrewReservationSettlement({
+      definition: preparedCrewReservationNet,
+      enabled: true,
+      history: undefined,
+      historyError: undefined,
+      persistCoherentSnapshot,
+      preparationError: "Provider authentication failed.",
+      setSettledManifest: storage.setSettledManifest,
+      settledManifest: storage.settledManifest,
+      snapshotMissing: false,
+    });
+    return { ...storage, status };
+  });
+
+  expect(result.current.status).toEqual({
+    state: "refused",
+    reason: "preparation-failed",
+    detail: "Provider authentication failed.",
   });
   expect(result.current.settledManifest).toBeNull();
 });

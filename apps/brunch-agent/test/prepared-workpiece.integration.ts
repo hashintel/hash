@@ -11,9 +11,10 @@ import { setProvider } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  PETRINAUT_FIXTURE_TOOL_NAMES,
-  VALIDATED_FIXTURE_MUTATION_MODE,
+  petrinautFixtureToolNames,
+  validatedFixtureMutationMode,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { createPreparedWorkpieceDelivery } from "@hashintel/brunch-agent/workpiece";
 
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
@@ -23,10 +24,7 @@ import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
-import {
-  createPreparedWorkpieceDelivery,
-  recoverRunbookWorkpiece,
-} from "../src/conversation/workpiece.ts";
+import { recoverRunbookWorkpiece } from "../src/conversation/workpiece.ts";
 import { createHeadlessPetrinautClient } from "../src/evaluations/runbook/headless-petrinaut-client.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
@@ -160,7 +158,7 @@ try {
   });
   const preparationPrompt = {
     uid: null,
-    initialData: { mode: VALIDATED_FIXTURE_MUTATION_MODE },
+    initialData: { mode: validatedFixtureMutationMode },
     ...preparedDelivery,
   } as const;
   const preparation = await client.send(preparationPrompt);
@@ -188,8 +186,8 @@ try {
       message.parts.flatMap((part) => {
         if (
           part.type !== "dynamic-tool" ||
-          !PETRINAUT_FIXTURE_TOOL_NAMES.includes(
-            part.toolName as (typeof PETRINAUT_FIXTURE_TOOL_NAMES)[number],
+          !petrinautFixtureToolNames.includes(
+            part.toolName as (typeof petrinautFixtureToolNames)[number],
           ) ||
           completedCallIds.has(part.toolCallId) ||
           part.state !== "output-available" ||

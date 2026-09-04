@@ -1,14 +1,14 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  CREW_RESERVATION_CLIENT_TOOL_NAMES,
-  CREW_RESERVATION_FIXTURE_ID,
-  DISPATCH_CREW_PLACE_ID,
+  crewReservationFixtureClientToolNames,
+  crewReservationFixtureId,
+  dispatchCrewPlaceId,
   isCrewReservationFixtureSelected,
   preparedCrewReservationDelivery,
   preparedCrewReservationNet,
   preparedCrewReservationWorkpiece,
-  START_FINAL_INSPECTION_TRANSITION_ID,
+  startFinalInspectionTransitionId,
 } from "./prepared-crew-reservation-fixture";
 
 const transitionById = (transitionId: string) => {
@@ -23,16 +23,14 @@ const transitionById = (transitionId: string) => {
 
 describe("prepared crew-reservation fixture", () => {
   test("advertises only the selected canonical read and mutation", () => {
-    expect(CREW_RESERVATION_CLIENT_TOOL_NAMES).toEqual([
+    expect(crewReservationFixtureClientToolNames).toEqual([
       "getLatestNetDefinition",
       "addArc",
     ]);
   });
 
   test("has the batch flow and crew return but omits the target input arc", () => {
-    const startInspection = transitionById(
-      START_FINAL_INSPECTION_TRANSITION_ID,
-    );
+    const startInspection = transitionById(startFinalInspectionTransitionId);
     const signOff = transitionById("sign-off");
 
     expect(startInspection.inputArcs).toContainEqual({
@@ -41,12 +39,12 @@ describe("prepared crew-reservation fixture", () => {
       weight: 1,
     });
     expect(startInspection.inputArcs).not.toContainEqual(
-      expect.objectContaining({ placeId: DISPATCH_CREW_PLACE_ID }),
+      expect.objectContaining({ placeId: dispatchCrewPlaceId }),
     );
     expect(signOff.outputArcs).toEqual(
       expect.arrayContaining([
         { placeId: "ready-for-dispatch", weight: 1 },
-        { placeId: DISPATCH_CREW_PLACE_ID, weight: 1 },
+        { placeId: dispatchCrewPlaceId, weight: 1 },
       ]),
     );
   });
@@ -62,7 +60,7 @@ describe("prepared crew-reservation fixture", () => {
       "not model-produced evidence",
     );
     expect(preparedCrewReservationDelivery.message.attributes).toEqual({
-      fixtureId: CREW_RESERVATION_FIXTURE_ID,
+      fixtureId: crewReservationFixtureId,
       authorship: "test-authored",
       claimBoundary: "prepared-not-model-produced",
     });
@@ -71,7 +69,7 @@ describe("prepared crew-reservation fixture", () => {
   test("selects only the explicit stable query value", () => {
     expect(
       isCrewReservationFixtureSelected(
-        `?brunch-fixture=${CREW_RESERVATION_FIXTURE_ID}`,
+        `?brunch-fixture=${crewReservationFixtureId}`,
       ),
     ).toBe(true);
     expect(
