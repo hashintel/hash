@@ -5,9 +5,8 @@ import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
-
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
 import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
@@ -146,7 +145,9 @@ describe("local storage demo Brunch voice integration", () => {
       ),
     );
 
-    const rendered = render(<LocalStorageDemoApp />);
+    const rendered = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
     await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
     const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
 
@@ -214,7 +215,9 @@ describe("local storage demo Brunch voice integration", () => {
       ),
     );
 
-    const rendered = render(<LocalStorageDemoApp />);
+    const rendered = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
     await waitFor(() =>
       expect(
         (renderedPetrinaut.aiAssistant as PetrinautAiAssistant).requestStop,
