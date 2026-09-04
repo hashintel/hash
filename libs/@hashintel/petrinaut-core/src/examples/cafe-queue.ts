@@ -28,10 +28,14 @@ import type { SDCPN } from "../types/sdcpn";
 export const cafeQueue: { title: string; petriNetDefinition: SDCPN } = {
   title: "Café Queue",
   petriNetDefinition: {
+    description:
+      "Stochastic café service: customers arrive at a fixed rate, wait for a free member of staff, are served, and leave. The staff pool (FreeStaff plus Serving) is conserved, so whether the Waiting queue drains or grows depends on the arrival rate against the two service rates.",
     places: [
       {
         id: "place__waiting",
         name: "Waiting",
+        description:
+          "Customers queued for service. Arrive feeds it and BeginService drains it, so it grows whenever arrivals outpace the staff.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -42,6 +46,8 @@ export const cafeQueue: { title: string; petriNetDefinition: SDCPN } = {
       {
         id: "place__free_staff",
         name: "FreeStaff",
+        description:
+          "Staff members free to take the next customer. FreeStaff plus Serving is the fixed staff pool.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -52,6 +58,8 @@ export const cafeQueue: { title: string; petriNetDefinition: SDCPN } = {
       {
         id: "place__serving",
         name: "Serving",
+        description:
+          "Customer and staff pairs at the counter mid-service; each completes at the service rate.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -61,6 +69,8 @@ export const cafeQueue: { title: string; petriNetDefinition: SDCPN } = {
       {
         id: "place__served",
         name: "Served",
+        description:
+          "Customers who have been served and left: a cumulative count of throughput.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -72,6 +82,8 @@ export const cafeQueue: { title: string; petriNetDefinition: SDCPN } = {
       {
         id: "transition__arrive",
         name: "Arrive",
+        description:
+          "Source transition with no inputs: adds one customer to Waiting at arrival_rate regardless of the queue's state.",
         inputArcs: [],
         outputArcs: [
           {
@@ -96,6 +108,8 @@ export default TransitionKernel(() => {
       {
         id: "transition__begin_service",
         name: "BeginService",
+        description:
+          "Pairs one Waiting customer with one FreeStaff member and moves them into Serving at begin_rate; stalls when either is empty.",
         inputArcs: [
           {
             placeId: "place__waiting",
@@ -131,6 +145,8 @@ export default TransitionKernel(() => {
       {
         id: "transition__finish_service",
         name: "FinishService",
+        description:
+          "A service in progress completes at service_rate: the customer moves to Served and the staff member returns to FreeStaff.",
         inputArcs: [
           {
             placeId: "place__serving",
