@@ -2,7 +2,7 @@
 
 ## Status
 
-**Live as of 2026-09-04** for [FE-1580](https://linear.app/hash/issue/FE-1580/harden-voice-safety-and-ux-on-the-unified-flue-route) on `kostandin/fe-1580-harden-voice-safety-and-ux-on-the-unified-flue-route`, stacked directly on [PR #9528](https://github.com/hashintel/hash/pull/9528) at the GitHub-verified head `6ca81b7bc4d6c112ff3936c38a7209d07f773b8a`. This file is the sole execution authority for the successor branch. The restack adopts the parent's canonical hydration overwrite guard, multi-submission response correlation, settlement-driven durable Stop, aligned live/snapshot projection, queued Voice-input cancellation, and client-tool continuation behavior. The parent remains the authority for defects in those mechanisms; this branch must restack onto further parent fixes rather than repair them.
+**Live as of 2026-09-04** for [FE-1580](https://linear.app/hash/issue/FE-1580/harden-voice-safety-and-ux-on-the-unified-flue-route) on `kostandin/fe-1580-harden-voice-safety-and-ux-on-the-unified-flue-route`, stacked directly on [PR #9528](https://github.com/hashintel/hash/pull/9528) at the GitHub-verified head `eecbe99e201fd8cb78d9b719e789b6abd373ed1b`. This file is the sole execution authority for the successor branch. The restack adopts the parent's canonical hydration overwrite guard, multi-submission response correlation, settlement-driven durable Stop, aligned live/snapshot projection, queued Voice-input cancellation, and client-tool continuation behavior. The parent remains the authority for defects in those mechanisms; this branch must restack onto further parent fixes rather than repair them.
 
 The owner selected **half-duplex turn ownership** on 2026-09-03. While canonical assistant audio is pending or playing, the microphone is closed. Ownership transfers away from input as soon as canonical speech is requested, before `response.create` is sent: every accepted unfinished input item becomes stale and provisional transcript state is cleared. The explicit **Your turn** action cancels output, waits for provider acknowledgement and response settlement, and only then opens a fresh input turn. Automatic duplex barge-in is rejected because assistant playback can become a false user turn.
 
@@ -40,11 +40,11 @@ old parent blocker, but no real witness claim is valid until the retained human
 evidence exists.
 
 The 2026-09-04 corrective verification covers the current 58-file successor
-diff against #9528 head `6ca81b7bc4`: the four focused race cases pass 4/4
+diff against #9528 head `eecbe99e201f`: the four focused race cases pass 4/4
 tests, the filtered production admission-outcome cases pass 3/3 tests, and the
-complete seven-workspace Turbo run passes 39/39 tasks, including 254/254 website
-tests and the Brunch core package. Architecture validation passes with 62
-layers, 297 edges, 615 files, 63 generated pages, and 31 authored pages. `git
+complete seven-workspace Turbo run passes 39/39 tasks, including 279/279 website
+tests and the Brunch core package. Architecture validation passes with 68
+layers, 337 edges, 692 files, 69 generated pages, and 38 authored pages. `git
 diff --check` and formatting of all 52 formatter-owned successor files pass. The
 root formatter remains red only outside this branch's diff on an unrelated
 untracked `.cursor` plan. The exact commands and dispositions are retained in
