@@ -681,6 +681,12 @@ dialog {
       inset-inline-end var(--pnd-motion-duration) var(--pnd-motion-ease);
   }
 
+  :root:not([data-pnd-resizing]) .pnd-nav-fade {
+    transition:
+      width var(--pnd-motion-duration) var(--pnd-motion-ease),
+      opacity var(--pnd-chrome-fade) ease;
+  }
+
   :root:not([data-pnd-resizing]) .pnd-sidebar-resize {
     transition:
       inset-inline-start var(--pnd-motion-duration) var(--pnd-motion-ease),
@@ -714,13 +720,18 @@ dialog {
  * shorter band below the header. Each layer filters what the layer beneath it
  * produced, so the blur compounds towards the top rather than stepping.
  */
-.pnd-content-fade {
+.pnd-fade {
   position: fixed;
   inset-block-start: var(--sl-nav-height);
-  inset-inline-start: var(--sl-content-inline-start, 0px);
-  inset-inline-end: 0;
   height: var(--pnd-content-blur-height);
   pointer-events: none;
+}
+
+/* Over the content column: from where the content starts to where the
+   on-this-page column does. */
+.pnd-content-fade {
+  inset-inline-start: var(--sl-content-inline-start, 0px);
+  inset-inline-end: 0;
 }
 
 /*
@@ -732,7 +743,7 @@ dialog {
  * The tallest carries the weakest blur and reaches furthest into the content;
  * the shortest carries the strongest and stays up against the header.
  */
-.pnd-content-fade > span {
+.pnd-fade > span {
   position: absolute;
   inset-block-start: 0;
   inset-inline: 0;
@@ -741,19 +752,19 @@ dialog {
   mask-image: linear-gradient(to bottom, #000 50%, transparent);
 }
 
-.pnd-content-fade > span:nth-child(1) {
+.pnd-fade > span:nth-child(1) {
   height: 100%;
   -webkit-backdrop-filter: blur(1px);
   backdrop-filter: blur(1px);
 }
 
-.pnd-content-fade > span:nth-child(2) {
+.pnd-fade > span:nth-child(2) {
   height: 66%;
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
 
-.pnd-content-fade > span:nth-child(3) {
+.pnd-fade > span:nth-child(3) {
   height: 33%;
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
@@ -763,13 +774,37 @@ dialog {
  * The colour half, painted over the blur and only over the top of it. Where it
  * ends the blur carries on alone, which is the part a reader actually sees.
  */
-.pnd-content-fade::after {
+.pnd-fade::after {
   content: "";
   position: absolute;
   inset-block-start: 0;
   inset-inline: 0;
   height: var(--pnd-content-fade-height);
   background: linear-gradient(to bottom, var(--sl-color-bg), transparent);
+}
+
+/*
+ * The nav is its own scroll container, so the band over it appears only once
+ * rows have gone up behind the header. Unconditionally it would sit on the
+ * first row of an unscrolled rail and dim it for no reason. The header script
+ * sets `data-pnd-nav-scrolled`.
+ */
+.pnd-nav-fade {
+  display: none;
+}
+
+@media (min-width: 50rem) {
+  :root[data-has-sidebar] .pnd-nav-fade {
+    display: block;
+    inset-inline-start: 0;
+    width: var(--pnd-sidebar-width);
+    opacity: 0;
+    transition: opacity var(--pnd-chrome-fade) ease;
+  }
+
+  :root[data-has-sidebar][data-pnd-nav-scrolled] .pnd-nav-fade {
+    opacity: 1;
+  }
 }
 
 /* 72rem is where the on-this-page column appears beside the content. */

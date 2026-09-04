@@ -142,7 +142,13 @@ anchored under the header and each running to a different depth: 60px at 1px of
 blur, 40px at 2px, 20px at 4px. They overlap towards the header and thin out to
 one at the bottom, so the tallest and weakest is the layer that meets unblurred
 content. Each fades out over its own lower half, so a layer ending reads as a
-soft edge rather than a line across the page. The band is positioned against the viewport from
+soft edge rather than a line across the page.
+
+The nav carries the same band, built from the same rules. It scrolls
+independently of the page, so its band keys off the rail's own `scrollTop`
+rather than the window's, and appears only once rows have gone up behind the
+header: shown unconditionally it would sit on the first row of an unscrolled
+rail and dim it for nothing. The band is positioned against the viewport from
 `components.SiteTitle`, like the resize handle, and its right inset restates
 Starlight's own width for the on-this-page column since no variable holds it.
 

@@ -59,7 +59,14 @@ import DiffBadges from "./DiffBadges.astro";
   backdrop filters of increasing radius, each masked to a shorter band. See
   `chrome.css`.
 */}
-<div class="pnd-content-fade" aria-hidden="true">
+<div class="pnd-fade pnd-content-fade" aria-hidden="true">
+  <span></span>
+  <span></span>
+  <span></span>
+</div>
+
+{/* The same band over the nav, shown once the rail has been scrolled. */}
+<div class="pnd-fade pnd-nav-fade" aria-hidden="true">
   <span></span>
   <span></span>
   <span></span>
@@ -242,8 +249,30 @@ import DiffBadges from "./DiffBadges.astro";
       });
     };
 
+    /*
+     * The rail scrolls independently of the page, so the band over it keys off
+     * that scroll rather than the window's. Starlight restores the rail's
+     * scroll position on navigation, so the state is read once up front and
+     * not only on the first scroll event.
+     */
+    const watchNavScroll = () => {
+      const pane = document.querySelector(".sidebar-pane");
+
+      if (!pane) {
+        return;
+      }
+
+      const syncScrolled = () => {
+        root.toggleAttribute("data-pnd-nav-scrolled", pane.scrollTop > 0);
+      };
+
+      syncScrolled();
+      pane.addEventListener("scroll", syncScrolled, { passive: true });
+    };
+
     const onReady = () => {
       markLabels();
+      watchNavScroll();
       allowGroupAnimation();
     };
 
