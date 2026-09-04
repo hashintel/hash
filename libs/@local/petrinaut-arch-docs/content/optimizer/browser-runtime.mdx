@@ -80,8 +80,8 @@ The provider keeps one connected-study object per record
 `navigation.followTrials` is on — it starts on — `trialStarted` moves the
 navigation to the trial's values (`optimizationAxisPositionFor` per axis) and
 mirrors the batch's frames and progress stores into `selection` under the key
-`trial:<n>`, so the drawer's **Metrics** section streams the step being
-evaluated. A user move clears `followTrials` and hands the navigation to point
+`trial:<n>`, so the objective's chart beside the drawer's Surface streams the
+step being evaluated. A user move clears `followTrials` and hands the navigation to point
 refinement (`provider/point-refinement.ts`): the experiments' run ladder capped
 at 100, one batch per rung with `seed = sweepBatchSeed(studySeed, from)` and
 `runCount = target − from`, frames merged with `mergeMetricFramesAcrossCells`,
@@ -89,9 +89,9 @@ results cached per navigation key for the record's lifetime. A key change
 cancels the batch in flight; returning to a cached key is instant. A rung that
 fails stops the ladder at that key and records the batch's reason on
 `selection.error`; a followed trial that fails records its reason the same
-way. The **Parameters** band shows it as _Could not compute_, the **Metrics**
-section shows the empty chart shell, and the next refine of that key — a later
-navigation change — retries. When the study settles — complete or stopped —
+way. The **Parameters** band shows it as _Could not compute_, the objective's
+chart beside the Surface shows the empty shell, and the next refine of that
+key — a later navigation change — retries. When the study settles — complete or stopped —
 while following is on, the navigation moves to the best trial's point and
 refines there; a navigation the user moved earlier stays put. Between rungs
 the refinement estimates the point's mean and standard error from the
