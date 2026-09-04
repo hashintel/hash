@@ -39,7 +39,10 @@ const glassPanelStyle = css({
   borderWidth: "thin",
   borderColor: "neutral.a50",
   boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.1)]",
-  transition: "[all 0.3s ease]",
+  // Named rather than `all`: the segment's width changes when a group
+  // collapses, and `all` animated that over 0.3s on top of the group's own
+  // 150ms, which left the bar drifting past its place and back.
+  transition: "[background-color 0.3s ease, box-shadow 0.3s ease]",
   _hover: {
     backgroundColor: "white.a110",
     boxShadow: "[0 4px 13px rgba(0, 0, 0, 0.15)]",
@@ -68,18 +71,34 @@ const bottomBarStyle = css({
   display: "flex",
   gap: "[20px]",
   pointerEvents: "auto",
-  transition: "[transform 150ms ease-in-out]",
-  "@media (prefers-reduced-motion: reduce)": {
-    transition: "[none]",
-  },
 });
 
+/**
+ * Only a panel opening or closing animates the bar into place. A collapse
+ * moves it too, but there the offset follows the width the bar is measured at,
+ * frame by frame, and a transition would race that with a curve of its own.
+ * A resize drag wants no transition either: the bar tracks the panel edge.
+ */
 const animatingStyle = cva({
   base: {},
   variants: {
     animating: {
       true: {
         transition: "[bottom 150ms ease-in-out]",
+      },
+    },
+  },
+});
+
+const barAnimatingStyle = cva({
+  base: {},
+  variants: {
+    animating: {
+      true: {
+        transition: "[transform 150ms ease-in-out]",
+        "@media (prefers-reduced-motion: reduce)": {
+          transition: "[none]",
+        },
       },
     },
   },
@@ -226,10 +245,11 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   }
 
   // What the bar measures now plus what it is already hiding: the width it
-  // would take with every control shown.
+  // would take with every control shown. Both terms move together while a
+  // group collapses, so the sum holds still throughout.
+  const naturalWidth = barWidth + hiddenWidth;
   const isPeeking = isPointerOver || isFocusWithin || hasActiveInteraction;
-  const isCollapsed =
-    !isPeeking && !fitsWithinBounds(bounds, barWidth + hiddenWidth);
+  const isCollapsed = !isPeeking && !fitsWithinBounds(bounds, naturalWidth);
 
   // Calculate bottom offset based on bottom panel visibility
   const bottomOffset = isBottomPanelOpen
@@ -244,7 +264,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     >
       <div
         ref={barRef}
-        className={bottomBarStyle}
+        className={`${bottomBarStyle} ${barAnimatingStyle({ animating: isPanelAnimating })}`}
         style={{
           transform: `translateX(${getBottomBarOffset(bounds, barWidth)}px)`,
         }}
