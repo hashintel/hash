@@ -35,7 +35,7 @@ You will need scenarios when you want to:
 6. Configure **Initial state** for each place that should start with tokens.
 7. Click **Create**. Save is blocked while the form has validation or LSP errors -- hover the disabled button to see why.
 
-The view drawer (opened by clicking a row in the Scenarios list) is the same form populated with the existing values. It has **Close** and **Save** buttons.
+The view drawer opens from the Scenarios list, which works like the other Simulate-mode lists: the first click selects a row, and a click on the selected row (or Enter) opens it. The list is a single Tab stop whose rows the arrow keys walk. The drawer shows the same form populated with the existing values, with **Close** and **Save** buttons.
 
 With the experimental [Ad-hoc scenarios](ad-hoc-scenarios.md#enabling-the-feature) setting on, the Create Scenario drawer instead shows the [ad-hoc form](ad-hoc-scenarios.md#saved-ad-hoc-scenarios): name and description above one inline Initial State + Parameters form, with a **Scenario Parameter** toggle on each Variable and no "Define as code" toggle. A scenario created that way always edits through the same form.
 
