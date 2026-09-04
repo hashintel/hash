@@ -123,7 +123,13 @@ Add a local decorative waveform matching Petrinaut's composer action:
 
 ```tsx
 const VoiceModeIcon = () => (
-  <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 20 20" width="16">
+  <svg
+    aria-hidden="true"
+    fill="none"
+    height="16"
+    viewBox="0 0 20 20"
+    width="16"
+  >
     <path
       d="M3 8.5v3M6.5 5.5v9M10 3v14M13.5 6v8M17 8.5v3"
       stroke="currentColor"
