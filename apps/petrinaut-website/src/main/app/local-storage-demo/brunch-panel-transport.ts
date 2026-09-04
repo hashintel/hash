@@ -34,7 +34,7 @@ export class BrunchPanelConversationTracker {
   >();
   readonly #responseSubmissions = new Map<
     string,
-    AgentSendResult["submissionId"]
+    AgentSendResult["submissionId"][]
   >();
 
   public recordAdmission(admission: BrunchPanelAdmission): void {
@@ -56,16 +56,21 @@ export class BrunchPanelConversationTracker {
   }
 
   /**
-   * A client-tool continuation resumes the assistant message its originating
-   * submission started, so the first submission recorded for a message stays
-   * the one Voice correlates that message's text against.
+   * A client-tool continuation is projected onto the assistant message it
+   * resumes, so one message can be written by several submissions. Keep them
+   * all: Voice correlates a reply by membership, whichever side admitted the
+   * continuation.
    */
   public recordResponse(
     messageId: string,
     submissionId: AgentSendResult["submissionId"],
   ): void {
-    if (this.#responseSubmissions.has(messageId)) return;
-    this.#responseSubmissions.set(messageId, submissionId);
+    const recorded = this.#responseSubmissions.get(messageId);
+    if (recorded === undefined) {
+      this.#responseSubmissions.set(messageId, [submissionId]);
+    } else if (!recorded.includes(submissionId)) {
+      recorded.push(submissionId);
+    }
   }
 
   /**
@@ -92,9 +97,9 @@ export class BrunchPanelConversationTracker {
     return this.#inputSubmissions.get(messageId);
   }
 
-  public submissionForResponse(
+  public submissionsForResponse(
     messageId: string,
-  ): AgentSendResult["submissionId"] | undefined {
+  ): readonly AgentSendResult["submissionId"][] | undefined {
     return this.#responseSubmissions.get(messageId);
   }
 
