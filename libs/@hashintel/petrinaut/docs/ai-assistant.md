@@ -69,8 +69,10 @@ Provisional words remain display-only until the provider completes their transcr
 Every session control lives in the dock: **Show transcription in chat** and **Voice playback
 options** on the left, and the available handoff, microphone, recovery, and end actions on the right.
 **Read full response** becomes available after the matching response and speech have both finished
-and replays every exact retained canonical segment in order. **Repeat question** stays disabled in
-the Brunch preview because its canonical speech does not yet identify which segment is a question.
+and replays every exact retained canonical segment in order. **Repeat question** uses the same
+availability gates and replays only exact question text explicitly marked by Brunch. It stays
+disabled when that marker is missing or does not match finalized assistant text rather than
+guessing that the final segment is a question.
 Playback stays unavailable during active capture, submission, cancellation, pause, and errors. **Mute microphone** becomes
 **Unmute microphone** once muted, and your latest choice applies when a handoff settles. **Resume voice mode**
 replaces the microphone action while a session is paused, and **Reconnect voice mode** replaces it
