@@ -33,6 +33,10 @@ On 2026-09-04, the owner directed PR #9531 to close two more bounded Petrinaut
 defects: preserve real Flue and browser-tool errors through the transport and
 display them in full, and replace deferred Voice-transcript disclosure with
 immediate transcript display plus a dock-only collapsed live-session view.
+Initial-CTA Voice entry defaults to that compact presentation; before a live
+session starts, the consent and microphone-permission card sits above a compact
+Voice setup dock, while composer-initiated Voice entry keeps the existing
+expanded presentation.
 These are explicit exceptions to the parent-defect constraint below; they
 change no conversation authority, submission path, or Voice-turn semantics,
 and local playback cancellation remains separate from durable abort.
