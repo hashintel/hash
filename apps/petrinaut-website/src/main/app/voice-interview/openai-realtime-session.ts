@@ -428,6 +428,28 @@ export class OpenAIRealtimeSession {
     this.#requestCanonicalSpeech(segments, false);
   }
 
+  /**
+   * Close a Realtime function call whose Brunch turn settled without a reply.
+   * The call output records the settlement so the model does not wait on it,
+   * and no speech is requested: a stopped turn has no canonical text to speak.
+   */
+  public completeFunctionCallWithoutResponse(
+    callId: string,
+    outcome: "aborted" | "failed",
+  ): void {
+    if (!callId) {
+      throw new VoiceError("speech", "invalid-response", "");
+    }
+    this.#send({
+      type: "conversation.item.create",
+      item: {
+        type: "function_call_output",
+        call_id: callId,
+        output: JSON.stringify({ response_text: [], outcome }),
+      },
+    });
+  }
+
   public cancelOutput(): void {
     if (!this.#connected || this.#dataChannel?.readyState !== "open") {
       return;

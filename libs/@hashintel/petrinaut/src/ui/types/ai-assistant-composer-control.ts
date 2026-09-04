@@ -99,7 +99,14 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
     params: Omit<
       Parameters<PetrinautAiComposerControlContext["submitText"]>[0],
       "source"
-    >,
+    > & {
+      /**
+       * Withdraws a retained turn that has not been submitted yet, for example
+       * when the Voice session ends while chat is still busy. A turn already
+       * handed to the composer is not cancelled.
+       */
+      readonly signal?: AbortSignal;
+    },
   ) => Promise<PetrinautAiComposerSubmitTextResult>;
 };
 

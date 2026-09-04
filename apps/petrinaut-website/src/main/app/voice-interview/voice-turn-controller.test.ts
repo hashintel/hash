@@ -265,6 +265,40 @@ describe("VoiceTurnController", () => {
     );
   });
 
+  test("returns to listening after a durably stopped turn without speaking", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+
+    harness.emitBridge({
+      answer: "Stop this one.",
+      callId: "call-1",
+      type: "submission-started",
+    });
+    harness.emitBridge({
+      answer: "Stop this one.",
+      callId: "call-1",
+      type: "submission-accepted",
+    });
+    harness.advanceTime(40);
+    harness.emitBridge({ callId: "call-1", type: "submission-settled" });
+    harness.emitBridge({
+      callId: "call-1",
+      outcome: "aborted",
+      type: "submission-stopped",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      lastAnswerDelivery: "delivered",
+      output: "idle",
+    });
+    expect(harness.latencyEvents).toContainEqual({
+      correlationId: "call-1",
+      elapsedMs: 40,
+      name: "submission-settled",
+    });
+  });
+
   test("restores submission state when resumed before Brunch releases the turn", async () => {
     const harness = createHarness();
     await harness.controller.start();

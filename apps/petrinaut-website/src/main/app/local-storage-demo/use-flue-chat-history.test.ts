@@ -83,6 +83,27 @@ test("hydrates through the public Flue observation projection", async () => {
   expect(harness.observe).toHaveBeenCalledWith({ live: "sse" });
 });
 
+test("exposes the canonical settlement index for Voice correlation", async () => {
+  const harness = createObservationHarness({
+    conversation: {
+      conversationId: "conversation-1",
+      settlements: [{ submissionId: "submission-1", outcome: "aborted" }],
+      messages: [],
+    },
+    offset: "offset-1",
+    phase: "live",
+    error: undefined,
+  });
+  const { result } = renderHook(() =>
+    useFlueChatHistory(harness.clientPromise, "conversation-1"),
+  );
+
+  await waitFor(() => expect(result.current.ready).toBe(true));
+  expect(result.current.settlements).toEqual([
+    { submissionId: "submission-1", outcome: "aborted" },
+  ]);
+});
+
 test("asks nothing of the generic chat route, which keeps no history", () => {
   const { result } = renderHook(() =>
     useFlueChatHistory(null, "conversation-1"),
