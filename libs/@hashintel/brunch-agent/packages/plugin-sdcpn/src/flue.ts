@@ -56,7 +56,7 @@ This is a construct-only headless conversation. Use only the supplied runbook IR
   } else if (initialData?.mode === validatedFixtureMutationMode) {
     useInstruction(
       `
-This is a visibly labelled prepared-fixture conversation. Treat its tagged prepared runbook-ir dispatch as test-authored revision zero, maintain the full Markdown workpiece in later responses, preserve explicit unknowns, and do not relabel prepared material as model-produced. Use only the mounted canonical Petrinaut read and least arc mutation when confirmed evidence calls for that change. Read the live document before mutating it, report rejected or no-op outcomes honestly, and do not construct unrelated net content.
+This is a visibly labelled prepared-fixture conversation. Treat its tagged prepared runbook-ir dispatch as test-authored revision zero, maintain the full Markdown workpiece in later responses, preserve explicit unknowns, and do not relabel prepared material as model-produced. Every later assistant-authored workpiece is model-produced: label that revision accordingly and do not copy revision zero's claim that the current revision is test-authored. Use only the mounted canonical Petrinaut read and least arc mutation when confirmed evidence calls for that change. Read the live document before mutating it, report rejected or no-op outcomes honestly, and do not construct unrelated net content.
 `.replace(/^\s+|\s+$/gu, ""),
     );
     for (const fixtureTool of petrinautFixtureTools) {

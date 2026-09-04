@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  latestRunbookIrBlock,
   preparedWorkpieceAuthorship,
   preparedWorkpieceClaimBoundary,
   preparedWorkpieceSignalTag,
@@ -12,7 +13,7 @@ import {
   asFlueMessageId,
   asFlueSubmissionId,
   asManifestId,
-  asSha256Digest,
+  sha256Digest,
   type CrewReservationSettledManifest,
 } from "./crew-reservation-settled-manifest";
 import {
@@ -27,7 +28,29 @@ import {
   workpieceForCrewReservationBundle,
 } from "./resolve-crew-reservation-bundle";
 
+import type { CrewReservationHistory } from "./crew-reservation-history";
 import type { SDCPNInLocalStorage } from "./use-local-storage-sdcpns";
+
+const preparedMessage = {
+  id: "prepared-message",
+  role: "system",
+  purpose: "dispatch",
+  submissionId: "prepare-submission",
+  signal: {
+    tagName: preparedWorkpieceSignalTag,
+    attributes: {
+      fixtureId: crewReservationFixtureId,
+      authorship: preparedWorkpieceAuthorship,
+      claimBoundary: preparedWorkpieceClaimBoundary,
+    },
+  },
+  parts: [{ type: "text", text: preparedCrewReservationWorkpiece }],
+} as const;
+
+const preparedContent = latestRunbookIrBlock(preparedCrewReservationWorkpiece);
+if (preparedContent === undefined) {
+  throw new Error("The prepared fixture has no runbook-ir workpiece.");
+}
 
 const manifest: CrewReservationSettledManifest = {
   version: 1,
@@ -42,16 +65,16 @@ const manifest: CrewReservationSettledManifest = {
   },
   document: {
     id: crewReservationDocumentId,
-    sha256: asSha256Digest("coherent-hash"),
+    sha256: sha256Digest(JSON.stringify(preparedCrewReservationNet)),
     targetArc: "absent",
   },
   latestWorkpiece: {
     authorship: "test-authored",
-    contentSha256: asSha256Digest("content"),
+    contentSha256: sha256Digest(preparedContent),
     sourceKind: "prepared-signal",
-    sourceMessageId: asFlueMessageId("prepared-message"),
-    sourceMessageSha256: asSha256Digest("message"),
-    sourceSubmissionId: asFlueSubmissionId("prepare-submission"),
+    sourceMessageId: asFlueMessageId(preparedMessage.id),
+    sourceMessageSha256: sha256Digest(JSON.stringify(preparedMessage)),
+    sourceSubmissionId: asFlueSubmissionId(preparedMessage.submissionId),
   },
 };
 
@@ -62,8 +85,28 @@ const fallbackDocument: SDCPNInLocalStorage = {
   lastUpdated: "1970-01-01T00:00:00.000Z",
 };
 
+const history: CrewReservationHistory = {
+  conversationId: "canonical",
+  offset: "3",
+  settlements: [],
+  messages: [
+    preparedMessage,
+    {
+      id: "newer-message",
+      role: "assistant",
+      purpose: "assistant",
+      parts: [
+        {
+          type: "text",
+          text: "```runbook-ir\n# Unsettled newer workpiece\n```",
+        },
+      ],
+    },
+  ],
+};
+
 describe("resolveCrewReservationBundle", () => {
-  test("selects the content-addressed coherent document over a partial mirror", () => {
+  test("selects a coherent document whose content matches the manifest digest", () => {
     const partialDefinition = structuredClone(preparedCrewReservationNet);
     const firstPlace = partialDefinition.places.at(0);
     if (firstPlace === undefined) {
@@ -78,7 +121,7 @@ describe("resolveCrewReservationBundle", () => {
         ...fallbackDocument,
         sdcpn: partialDefinition,
         coherentSnapshots: {
-          "coherent-hash": preparedCrewReservationNet,
+          [manifest.document.sha256]: preparedCrewReservationNet,
         },
       },
     });
@@ -88,62 +131,62 @@ describe("resolveCrewReservationBundle", () => {
       preparedCrewReservationNet,
     );
     expect(selection.selectedDocument.sdcpn).not.toEqual(partialDefinition);
-    expect(selection.observedDocument.sdcpn).toEqual(partialDefinition);
   });
 
-  test("keeps a missing snapshot diagnosable without inventing a revision", () => {
+  test("refuses a snapshot stored under a digest that its content does not match", () => {
+    const corruptedSnapshot = structuredClone(preparedCrewReservationNet);
+    const firstPlace = corruptedSnapshot.places.at(0);
+    if (firstPlace === undefined) {
+      throw new Error("The prepared fixture has no places.");
+    }
+    firstPlace.name = "Corrupted snapshot";
+
     const selection = resolveCrewReservationBundle({
       fallbackDocument,
       manifest,
-      storedDocument: fallbackDocument,
+      storedDocument: {
+        ...fallbackDocument,
+        coherentSnapshots: {
+          [manifest.document.sha256]: corruptedSnapshot,
+        },
+      },
     });
 
-    expect(selection).toEqual({
-      observedDocument: fallbackDocument,
+    expect(selection.snapshotMissing).toBe(true);
+    expect(selection.selectedDocument.sdcpn).toEqual(fallbackDocument.sdcpn);
+    expect(selection.selectedDocument.sdcpn).not.toEqual(corruptedSnapshot);
+  });
+
+  test("keeps a missing snapshot diagnosable without inventing a revision", () => {
+    expect(
+      resolveCrewReservationBundle({
+        fallbackDocument,
+        manifest,
+        storedDocument: fallbackDocument,
+      }),
+    ).toEqual({
       selectedDocument: fallbackDocument,
       snapshotMissing: true,
     });
   });
 });
 
-test("selects the workpiece source named by the settled manifest", () => {
-  const newerWorkpiece = "```runbook-ir\n# Unsettled newer workpiece\n```";
-  expect(
-    workpieceForCrewReservationBundle(
-      {
-        conversationId: "canonical",
-        offset: "3",
-        settlements: [],
-        messages: [
-          {
-            id: "prepared-message",
-            role: "system",
-            purpose: "dispatch",
-            submissionId: "prepare-submission",
-            signal: {
-              tagName: preparedWorkpieceSignalTag,
-              attributes: {
-                fixtureId: crewReservationFixtureId,
-                authorship: preparedWorkpieceAuthorship,
-                claimBoundary: preparedWorkpieceClaimBoundary,
-              },
-            },
-            parts: [
-              {
-                type: "text",
-                text: preparedCrewReservationWorkpiece,
-              },
-            ],
-          },
-          {
-            id: "newer-message",
-            role: "assistant",
-            purpose: "assistant",
-            parts: [{ type: "text", text: newerWorkpiece }],
-          },
-        ],
-      },
-      manifest,
-    ),
-  ).toContain("# Final inspection and dispatch workpiece");
+describe("workpieceForCrewReservationBundle", () => {
+  test("selects the source whose content and record match the manifest hashes", () => {
+    expect(workpieceForCrewReservationBundle(history, manifest)).toContain(
+      "# Final inspection and dispatch workpiece",
+    );
+  });
+
+  test("refuses a selected source whose manifest hash does not match", () => {
+    expect(
+      workpieceForCrewReservationBundle(history, {
+        ...manifest,
+        latestWorkpiece: {
+          ...manifest.latestWorkpiece,
+          sourceMessageSha256: sha256Digest("mismatched source"),
+        },
+      }),
+    ).toBeUndefined();
+  });
 });

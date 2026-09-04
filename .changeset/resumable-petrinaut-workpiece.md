@@ -1,5 +1,6 @@
 ---
 "@hashintel/petrinaut": patch
+"@hashintel/petrinaut-core": patch
 ---
 
 Report duplicate AI mutations as no-ops so hosts can distinguish an applied document change from
