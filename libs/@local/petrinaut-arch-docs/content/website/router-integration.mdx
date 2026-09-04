@@ -39,6 +39,17 @@ mirrors `navigationStateToSharedSearch(state)` to the URL, and merges external
 URL changes (Back, Forward, a shared link) back into the in-memory location.
 Fields outside the contract survive that merge untouched.
 
+## A controlled host owns the whole initial location
+
+`PetrinautNavigationProvider` reads `controller?.state ?? uncontrolledState`,
+so a host that passes a controller replaces the provider's initial state
+outright. That includes the Actual-mode default the provider applies when a
+live stream is available. A page that must open in a non-default mode states
+it in the hook's `initialState`, which seeds the fields the URL does not
+carry; the URL still wins for the fields it owns. `/brunch` seeds
+`mode: "actual"` for exactly this reason, and without it the execution frame
+would read the local simulation instead of the stream.
+
 ## Validation normalizes the location
 
 `validateSharedExampleSearch` drops everything it cannot represent: an unknown
@@ -51,8 +62,22 @@ encoder to build embed URLs.
 Query params outside the contract are not rewritten on load. TanStack Router
 only re-stringifies the URL when the parsed search changes, so stripping them
 eagerly would need a document reload, which an embed must not do. The first
-navigation drops them, because both routes write a fresh contract-only search
-rather than merging into the existing one.
+navigation drops them, because the routes write a fresh contract-only search
+rather than merging into the existing one. `/brunch` is the exception: its
+`sse` and `runId` params name the stream, so it carries them over and replaces
+only the contract part.
+
+## Which routes speak the contract
+
+Every page that mounts Petrinaut does: the editable demo at `/` and
+`/optimization`, the Brunch stream at `/brunch`, and the example pages at
+`/examples/$slug` and `/embed/examples/$slug`.
+
+They differ in whether the URL also names the model. The editable demo holds
+its nets in local storage, so a link there names a location inside whatever
+net the visitor has open. `/brunch` names its model with the stream keys it
+carries over, so a copied URL reproduces the run. The example pages name the
+model in the path.
 
 ## What a URL carries, and what it does not
 
@@ -70,5 +95,5 @@ an embed with no scenario has nothing to run. The embed route itself honours
 ## Hosting Petrinaut without a router
 
 The prop is optional. Omit it and Petrinaut keeps its location in internal
-state, which is what Storybook and the local-storage demo do. Nothing about the
-editor's behaviour depends on a host router being present.
+state, which is what Storybook does. Nothing about the editor's behaviour
+depends on a host router being present.

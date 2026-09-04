@@ -49,6 +49,13 @@ export type {
   PetrinautNavigationUpdater,
   PetrinautSimulateResource,
 } from "./navigation";
+// The vocabularies two navigation fields are drawn from. A host encoding the
+// location into a router needs to spell them, and to fail its own build when
+// either gains a member.
+export type {
+  EditorGlobalMode,
+  SimulateViewMode,
+} from "./state/editor-context";
 export {
   NetManagementContext,
   type NetManagement,
