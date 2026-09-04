@@ -52,7 +52,7 @@ const ComponentDropdown: React.FC<{
           isActive={
             editionMode === "add-component" && componentSubnetId !== null
           }
-          ariaLabel="Add component"
+          aria-label="Add component"
         />
       }
       items={items}

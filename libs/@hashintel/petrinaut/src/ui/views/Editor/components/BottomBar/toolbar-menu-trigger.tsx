@@ -50,17 +50,21 @@ const chevronStyle = css({
 /**
  * The button a toolbar dropdown opens from: the mode it would apply, and a
  * chevron saying there is a choice behind it.
+ *
+ * Every other prop reaches the `button`, ref included. `Menu` mounts its
+ * trigger through Ark's `asChild`, which clones this element to attach the
+ * click handling, the trigger ref and its ARIA — anything this component keeps
+ * to itself never reaches the DOM, and the menu then does not open.
  */
-export const ToolbarMenuTrigger: React.FC<{
+export const ToolbarMenuTrigger = ({
+  icon,
+  isActive,
+  ...buttonProps
+}: {
   icon: IconName;
   isActive: boolean;
-  ariaLabel: string;
-}> = ({ icon, isActive, ariaLabel }) => (
-  <button
-    type="button"
-    className={triggerStyle({ isActive })}
-    aria-label={ariaLabel}
-  >
+} & React.ComponentPropsWithRef<"button">) => (
+  <button type="button" {...buttonProps} className={triggerStyle({ isActive })}>
     <Icon name={icon} />
     <Icon name="chevronDown" size="xs" className={chevronStyle} />
   </button>

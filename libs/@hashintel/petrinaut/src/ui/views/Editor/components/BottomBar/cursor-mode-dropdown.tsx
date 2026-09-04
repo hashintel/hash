@@ -47,7 +47,7 @@ export const CursorModeDropdown: React.FC<{
         <ToolbarMenuTrigger
           icon={cursorMode === "pan" ? "hand" : "cursor"}
           isActive={editionMode === "cursor"}
-          ariaLabel="Cursor mode"
+          aria-label="Cursor mode"
         />
       }
       items={items}
