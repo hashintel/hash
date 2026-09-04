@@ -119,3 +119,119 @@ test("keeps Flue data parts on the AI SDK message", () => {
     },
   ]);
 });
+
+test("keeps a rehydrated server tool provider-executed while it still runs", () => {
+  const snapshot: FlueConversationSnapshot = {
+    ...snapshotWithPendingClientTool,
+    messages: [
+      {
+        id: "assistant-1",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolCallId: "tool-sweep-1",
+            toolName: "brunch_sweep",
+            state: "input-available",
+            input: { range: "all" },
+          },
+        ],
+      },
+    ],
+  };
+
+  expect(snapshotToUiMessages(snapshot, projectionOptions)[0]?.parts).toEqual([
+    {
+      type: "tool-brunch_sweep",
+      toolCallId: "tool-sweep-1",
+      state: "input-available",
+      input: { range: "all" },
+      providerExecuted: true,
+    },
+  ]);
+});
+
+test("folds a client-tool continuation into the assistant message it resumed", () => {
+  const snapshot: FlueConversationSnapshot = {
+    ...snapshotWithPendingClientTool,
+    messages: [
+      {
+        id: "user-1",
+        role: "user",
+        purpose: "user",
+        display: "visible",
+        parts: [{ type: "text", text: "Read the guide.", state: "done" }],
+      },
+      ...snapshotWithPendingClientTool.messages,
+      {
+        id: "signal-1",
+        role: "system",
+        purpose: "dispatch",
+        display: "hidden",
+        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        parts: [
+          {
+            type: "text",
+            text: '[{"toolCallId":"tool-doc-1","toolName":"readPetrinautDoc","output":"The guide."}]',
+            state: "done",
+          },
+        ],
+      },
+      {
+        id: "assistant-2",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        parts: [{ type: "text", text: "The guide says hello.", state: "done" }],
+      },
+      {
+        id: "user-2",
+        role: "user",
+        purpose: "user",
+        display: "visible",
+        parts: [{ type: "text", text: "Thanks.", state: "done" }],
+      },
+      {
+        id: "assistant-3",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        parts: [{ type: "text", text: "You are welcome.", state: "done" }],
+      },
+    ],
+  };
+
+  expect(snapshotToUiMessages(snapshot, projectionOptions)).toEqual([
+    {
+      id: "user-1",
+      role: "user",
+      parts: [{ type: "text", text: "Read the guide.", state: "done" }],
+    },
+    {
+      id: "assistant-1",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-readPetrinautDoc",
+          toolCallId: "tool-doc-1",
+          state: "output-available",
+          input: { doc: "ai-assistant" },
+          output: "The guide.",
+        },
+        { type: "text", text: "The guide says hello.", state: "done" },
+      ],
+    },
+    {
+      id: "user-2",
+      role: "user",
+      parts: [{ type: "text", text: "Thanks.", state: "done" }],
+    },
+    {
+      id: "assistant-3",
+      role: "assistant",
+      parts: [{ type: "text", text: "You are welcome.", state: "done" }],
+    },
+  ]);
+});

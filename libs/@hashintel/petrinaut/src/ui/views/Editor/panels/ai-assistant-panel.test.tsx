@@ -1853,6 +1853,246 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(screen.queryByText("Response stopped")).toBeNull();
   });
 
+  test("does not let a late durable Stop cancel a newer turn", async () => {
+    let firstStreamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    let secondStreamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const secondCancellation = vi.fn();
+    let requestCount = 0;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(
+        ({
+          abortSignal,
+        }: Parameters<PetrinautAiTransport["sendMessages"]>[0]) => {
+          requestCount += 1;
+          if (requestCount === 1) {
+            return Promise.resolve(
+              new ReadableStream<UIMessageChunk>({
+                start(controller) {
+                  firstStreamController = controller;
+                  controller.enqueue({ type: "start-step" });
+                  controller.enqueue({ type: "text-start", id: "first" });
+                  controller.enqueue({
+                    type: "text-delta",
+                    id: "first",
+                    delta: "First partial",
+                  });
+                },
+              }),
+            );
+          }
+          return Promise.resolve(
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                secondStreamController = controller;
+                abortSignal?.addEventListener("abort", secondCancellation);
+                controller.enqueue({ type: "start-step" });
+                controller.enqueue({ type: "text-start", id: "second" });
+                controller.enqueue({
+                  type: "text-delta",
+                  id: "second",
+                  delta: "Second turn",
+                });
+              },
+            }),
+          );
+        },
+      ),
+    };
+    let resolveStop: ((result: "stop-requested") => void) | undefined;
+    const requestStop = vi.fn(
+      () =>
+        new Promise<"stop-requested">((resolve) => {
+          resolveStop = resolve;
+        }),
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        renderComposerControl: ({ status: hostStatus, submitText }) => (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                void submitText({ text: "Second" });
+              }}
+            >
+              Send second
+            </button>
+            <span data-testid="host-status">{hostStatus}</span>
+          </>
+        ),
+        requestStop,
+        transport,
+      },
+      initialMessage: "First",
+    });
+    await screen.findByText("First partial");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
+
+    // The first response completes on its own while the durable stop is
+    // still in flight, and the user starts another turn.
+    await act(async () => {
+      firstStreamController?.enqueue({ type: "text-end", id: "first" });
+      firstStreamController?.enqueue({ type: "finish-step" });
+      firstStreamController?.enqueue({ type: "finish", finishReason: "stop" });
+      firstStreamController?.close();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("host-status").textContent).toBe("ready"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Send second" }));
+    await screen.findByText("Second turn");
+
+    // The stale Stop result lands while the second turn is still streaming.
+    await act(async () => {
+      resolveStop?.("stop-requested");
+    });
+    expect(screen.getByTestId("host-status").textContent).toBe("streaming");
+    expect(secondCancellation).not.toHaveBeenCalled();
+
+    await act(async () => {
+      secondStreamController?.enqueue({ type: "text-end", id: "second" });
+      secondStreamController?.close();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("host-status").textContent).toBe("ready"),
+    );
+    expect(screen.queryByText("Response stopped")).toBeNull();
+  });
+
+  test("withdraws a retained voice input when its signal aborts", async () => {
+    let streamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() =>
+        Promise.resolve(
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              streamController = controller;
+              controller.enqueue({ type: "start-step" });
+              controller.enqueue({ type: "text-start", id: "busy" });
+              controller.enqueue({
+                type: "text-delta",
+                id: "busy",
+                delta: "Still answering",
+              });
+            },
+          }),
+        ),
+      ),
+    };
+    let latestVoiceContext: PetrinautAiVoiceModeContext | undefined;
+
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => {
+          latestVoiceContext = context;
+          return null;
+        },
+        transport,
+      },
+      initialMessage: "Begin",
+    });
+    await screen.findByText("Still answering");
+    await waitFor(() => expect(latestVoiceContext?.status).toBe("streaming"));
+
+    const withdrawal = new AbortController();
+    const retained = latestVoiceContext!.submitVoiceInput({
+      signal: withdrawal.signal,
+      text: "Stale voice input",
+    });
+    await waitFor(() =>
+      expect(latestVoiceContext?.canAcceptVoiceInput).toBe(false),
+    );
+
+    withdrawal.abort();
+
+    await expect(retained).rejects.toMatchObject({ name: "AbortError" });
+    await waitFor(() =>
+      expect(latestVoiceContext?.canAcceptVoiceInput).toBe(true),
+    );
+
+    await act(async () => {
+      streamController?.enqueue({ type: "text-end", id: "busy" });
+      streamController?.close();
+    });
+    await waitFor(() => expect(latestVoiceContext?.status).toBe("ready"));
+    expect(transport.sendMessages).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Stale voice input")).toBeNull();
+  });
+
+  test("waits to hydrate until the host snapshot carries a turn submitted first", async () => {
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() =>
+        Promise.resolve(
+          streamChunks([
+            { type: "start", messageId: "assistant-live-1" },
+            ...textChunks("live", "Live answer"),
+            { type: "finish-step" },
+            { type: "finish", finishReason: "stop" },
+          ]),
+        ),
+      ),
+    };
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: { conversationId: "conversation-1", transport },
+      initialMessage: "Ask before history loads",
+    });
+    await screen.findByText("Live answer");
+
+    // The observation publishes a snapshot that predates the live turn.
+    rerenderPanel({
+      conversationId: "conversation-1",
+      messages: [
+        {
+          id: "assistant-history-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "Older history" }],
+        },
+      ],
+      transport,
+    });
+    await act(async () => {});
+    expect(screen.getByText("Live answer")).not.toBeNull();
+    expect(screen.queryByText("Older history")).toBeNull();
+
+    // Once the snapshot carries the live reply too, canonical history wins.
+    rerenderPanel({
+      conversationId: "conversation-1",
+      messages: [
+        {
+          id: "assistant-history-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "Older history" }],
+        },
+        {
+          id: "user-live-1",
+          role: "user",
+          parts: [{ type: "text", text: "Ask before history loads" }],
+        },
+        {
+          id: "assistant-live-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "Live answer" }],
+        },
+      ],
+      transport,
+    });
+    expect(await screen.findByText("Older history")).not.toBeNull();
+    expect(screen.getByText("Live answer")).not.toBeNull();
+    expect(transport.sendMessages).toHaveBeenCalledTimes(1);
+  });
+
   test("maps keyboard text to one unresolved host tool before sending another message", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
-import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
+
+import { brunchClientToolNames } from "./brunch-client-tools";
 
 import type {
   AgentConversationObservation,
@@ -13,13 +14,15 @@ import type {
 } from "@flue/sdk";
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
+const noSettlements: readonly FlueConversationSettlement[] = [];
+
 const projectPetrinautMessages = (
   conversation: FlueConversationState,
 ): PetrinautAiMessage[] =>
   // The host owns this narrowing: its configured client-tool catalog is the
   // same catalog Petrinaut's message type exposes.
   snapshotToUiMessages(conversation, {
-    clientToolNames: new Set([readPetrinautDocToolName]),
+    clientToolNames: brunchClientToolNames,
   }) as PetrinautAiMessage[];
 
 export const useFlueChatHistory = (
@@ -32,6 +35,7 @@ export const useFlueChatHistory = (
   readonly phase: AgentConversationObservationPhase | undefined;
   readonly ready: boolean;
   readonly refresh: () => void;
+  readonly settlements: readonly FlueConversationSettlement[];
 } => {
   const observationRef = useRef<AgentConversationObservation | null>(null);
   const [observed, setObserved] = useState<{
@@ -106,5 +110,6 @@ export const useFlueChatHistory = (
     phase: snapshot?.phase,
     ready,
     refresh,
+    settlements: conversation?.settlements ?? noSettlements,
   };
 };

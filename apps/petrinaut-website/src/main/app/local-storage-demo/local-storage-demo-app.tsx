@@ -3,7 +3,7 @@
  * @role Editable demo shell: nets in local storage, one live document handle
  */
 
-import { createFlueClient } from "@flue/sdk";
+import { createFlueClient, type FlueConversationSettlement } from "@flue/sdk";
 import { produce } from "immer";
 import { useEffect, useMemo, useState } from "react";
 
@@ -25,6 +25,7 @@ import {
 import {
   DefaultChatTransport,
   Petrinaut,
+  type PetrinautAiInteractiveTool,
   type PetrinautAiMessage,
   type PetrinautAiStopResult,
   type PetrinautAiVoiceMode,
@@ -117,12 +118,14 @@ const brunchPreviewConfig = resolveBrunchPreviewConfig(
 export const getBrunchVoiceMode = (
   config: OpenAIVoiceConfig | null | undefined,
   tracker?: BrunchPanelConversationTracker,
+  settlements?: readonly FlueConversationSettlement[],
 ): PetrinautAiVoiceMode | undefined =>
   config
     ? (context: PetrinautAiVoiceModeContext) => (
         <VoiceInterviewControl
           {...context}
           config={config}
+          settlements={settlements}
           resolveInputSubmission={(messageId) =>
             tracker?.submissionForInput(messageId)
           }
@@ -150,6 +153,11 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
 
 const brunchPrincipal = getOrCreateBrunchPrincipal();
 
+/** Every widget here must answer a tool named in `brunchClientToolNames`. */
+export const brunchInteractiveTools: readonly PetrinautAiInteractiveTool[] = [
+  brunchAskInteractiveTool,
+];
+
 const stockChatTransport = new DefaultChatTransport({
   api: brunchPreviewConfig.chatEndpoint,
   headers: () => ({
@@ -171,10 +179,18 @@ const createBrunchFlueClient = async (conversationId: string) => {
   });
 };
 
+/**
+ * Flue's `abort()` is conversation-wide and only reaches unsettled work, so a
+ * Stop pressed while `send()` is still in flight must first let that admission
+ * land; otherwise `aborted: false` would read as "already settled" while the
+ * admitted turn keeps running.
+ */
 export const requestFlueStop = async (
   clientPromise: Promise<ReturnType<typeof createFlueClient>>,
+  tracker: BrunchPanelConversationTracker,
 ): Promise<PetrinautAiStopResult> => {
   const client = await clientPromise;
+  await tracker.settleInFlightSubmissions();
   const result = await client.abort();
   return result.aborted ? "stop-requested" : "already-settled";
 };
@@ -506,13 +522,18 @@ export const LocalStorageDemoApp = ({
     () => createConversationTrackerFor(conversationId),
     [conversationId],
   );
-  const brunchVoiceMode = useMemo(
-    () => getBrunchVoiceMode(openAIVoiceConfig, conversationTracker),
-    [conversationTracker, openAIVoiceConfig],
-  );
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
+  );
+  const brunchVoiceMode = useMemo(
+    () =>
+      getBrunchVoiceMode(
+        openAIVoiceConfig,
+        conversationTracker,
+        flueHistory.settlements,
+      ),
+    [conversationTracker, flueHistory.settlements, openAIVoiceConfig],
   );
   const petrinautAiChatTransport = useMemo(
     () =>
@@ -528,12 +549,13 @@ export const LocalStorageDemoApp = ({
     () => ({
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
-      interactiveTools: [brunchAskInteractiveTool],
+      interactiveTools: brunchInteractiveTools,
       transport: petrinautAiChatTransport,
       ...(flueClientPromise === null
         ? {}
         : {
-            requestStop: () => requestFlueStop(flueClientPromise),
+            requestStop: () =>
+              requestFlueStop(flueClientPromise, conversationTracker),
           }),
       ...(flueClientPromise === null
         ? {}
@@ -583,6 +605,7 @@ export const LocalStorageDemoApp = ({
     [
       aiMessagesByNetId,
       brunchVoiceMode,
+      conversationTracker,
       conversationId,
       currentNetId,
       flueClientPromise,

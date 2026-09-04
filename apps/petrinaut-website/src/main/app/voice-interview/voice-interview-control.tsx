@@ -15,6 +15,7 @@ import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import {
   RealtimeBrunchBridge,
   type RealtimeBrunchAdmissionTarget,
+  type VoiceSubmissionSettlement,
 } from "./realtime-brunch-bridge";
 import { toVoiceSessionState } from "./voice-session-state";
 import {
@@ -300,12 +301,14 @@ const AvailableVoiceInterviewControl = ({
   context,
   resolveInputSubmission,
   resolveResponseSubmission,
+  settlements,
   subscribeToAdmission,
 }: {
   config: OpenAIVoiceConfig;
   context: PetrinautAiVoiceModeContext;
   resolveInputSubmission?: ResolveSubmission;
   resolveResponseSubmission?: ResolveSubmission;
+  settlements?: readonly VoiceSubmissionSettlement[];
   subscribeToAdmission?: SubscribeToAdmission;
 }) => {
   "use no memo";
@@ -397,6 +400,7 @@ const AvailableVoiceInterviewControl = ({
             : { ...segment, submissionId };
         },
       ),
+      settlements,
       status: context.status,
     });
   }, [
@@ -406,6 +410,7 @@ const AvailableVoiceInterviewControl = ({
     context.submitVoiceInput,
     resolveInputSubmission,
     resolveResponseSubmission,
+    settlements,
     subscribeToAdmission,
     store,
   ]);
@@ -521,12 +526,14 @@ export const VoiceInterviewControl = ({
   config,
   resolveInputSubmission,
   resolveResponseSubmission,
+  settlements,
   subscribeToAdmission,
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmission;
+  readonly settlements?: readonly VoiceSubmissionSettlement[];
   readonly subscribeToAdmission?: SubscribeToAdmission;
 }) => (
   <AvailableVoiceInterviewControl
@@ -535,6 +542,7 @@ export const VoiceInterviewControl = ({
     context={context}
     resolveInputSubmission={resolveInputSubmission}
     resolveResponseSubmission={resolveResponseSubmission}
+    settlements={settlements}
     subscribeToAdmission={subscribeToAdmission}
   />
 );

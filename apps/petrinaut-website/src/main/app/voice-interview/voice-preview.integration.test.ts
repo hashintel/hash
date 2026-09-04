@@ -444,6 +444,7 @@ describe("controlled voice preview", () => {
     const bridge = new RealtimeBrunchBridge({
       session: {
         completeFunctionCall: vi.fn(),
+        completeFunctionCallWithoutResponse: vi.fn(),
         speakCanonical: vi.fn(),
         subscribe: (listener) => {
           realtimeListener = listener;

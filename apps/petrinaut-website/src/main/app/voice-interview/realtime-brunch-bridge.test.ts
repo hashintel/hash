@@ -26,6 +26,7 @@ const createHarness = () => {
   let listener: ((event: OpenAIRealtimeSessionEvent) => void) | undefined;
   const session = {
     completeFunctionCall: vi.fn(),
+    completeFunctionCallWithoutResponse: vi.fn(),
     speakCanonical: vi.fn(),
     subscribe: vi.fn((next: (event: OpenAIRealtimeSessionEvent) => void) => {
       listener = next;
@@ -605,6 +606,129 @@ describe("RealtimeBrunchBridge", () => {
       expect(harness.events.at(-1)).toMatchObject({ type: "error" }),
     );
     expect(harness.session.completeFunctionCall).not.toHaveBeenCalled();
+  });
+
+  test("records first canonical text before the turn settles", async () => {
+    const harness = createHarness();
+    const question = segment("ask-current", "Question");
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      status: "ready",
+    });
+    harness.bridge.start(7);
+    harness.emit(toolDone(7));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    harness.submitInterviewAnswer.mock.calls[0]?.[0].onAdmission(
+      "submission-text",
+    );
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual(
+        expect.objectContaining({ type: "submission-accepted" }),
+      ),
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [question],
+      status: "streaming",
+    });
+    const firstText = {
+      ...segment("first", "First completed block.", "assistant-text"),
+      submissionId: "submission-text",
+    };
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [question, firstText],
+      status: "streaming",
+    });
+
+    const typesWhileStreaming = harness.events.map(({ type }) => type);
+    expect(typesWhileStreaming).toContain("canonical-text-ready");
+    expect(typesWhileStreaming).not.toContain("submission-settled");
+    expect(harness.session.completeFunctionCall).not.toHaveBeenCalled();
+
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question, firstText],
+      status: "ready",
+    });
+    expect(
+      harness.events.filter(({ type }) => type === "canonical-text-ready"),
+    ).toHaveLength(1);
+    expect(harness.events.map(({ type }) => type)).toContain(
+      "submission-settled",
+    );
+    expect(harness.session.completeFunctionCall).toHaveBeenCalledWith(
+      "call-1",
+      [firstText],
+    );
+  });
+
+  test("closes a durably stopped Voice turn without speaking", async () => {
+    const harness = createHarness();
+    const question = segment("ask-current", "Question");
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      status: "ready",
+    });
+    harness.bridge.start(7);
+    harness.emit(toolDone(7));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    harness.submitInterviewAnswer.mock.calls[0]?.[0].onAdmission(
+      "submission-stopped",
+    );
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual(
+        expect.objectContaining({ type: "submission-accepted" }),
+      ),
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [question],
+      status: "streaming",
+    });
+
+    // A completed step with no text is not a stop: the panel may still be
+    // sending the client-tool follow-up that carries the reply.
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      settlements: [
+        { outcome: "completed", submissionId: "submission-stopped" },
+      ],
+      status: "ready",
+    });
+    expect(
+      harness.session.completeFunctionCallWithoutResponse,
+    ).not.toHaveBeenCalled();
+    expect(harness.events.map(({ type }) => type)).not.toContain(
+      "submission-settled",
+    );
+
+    const speechRequestsBeforeStop =
+      harness.session.speakCanonical.mock.calls.length;
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      settlements: [{ outcome: "aborted", submissionId: "submission-stopped" }],
+      status: "ready",
+    });
+    expect(
+      harness.session.completeFunctionCallWithoutResponse,
+    ).toHaveBeenCalledWith("call-1", "aborted");
+    expect(harness.session.completeFunctionCall).not.toHaveBeenCalled();
+    expect(harness.session.speakCanonical).toHaveBeenCalledTimes(
+      speechRequestsBeforeStop,
+    );
+    expect(harness.events.map(({ type }) => type)).toEqual(
+      expect.arrayContaining(["submission-settled", "submission-stopped"]),
+    );
+    expect(harness.events.some(({ type }) => type === "error")).toBe(false);
   });
 
   test("speaks new canonical text turns without creating a Realtime tool result", () => {

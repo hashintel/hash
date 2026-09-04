@@ -1,8 +1,8 @@
 import { createFlueChatTransport } from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
-import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
+import { brunchClientToolNames } from "./brunch-client-tools";
 
 import type {
   SweepCapture,
@@ -27,6 +27,7 @@ export class BrunchPanelConversationTracker {
     readonly listener: (admission: BrunchPanelAdmission) => void;
     readonly target: BrunchPanelAdmissionTarget;
   }>();
+  readonly #inFlightSubmissions = new Set<Promise<unknown>>();
   readonly #inputSubmissions = new Map<
     string,
     AgentSendResult["submissionId"]
@@ -54,11 +55,35 @@ export class BrunchPanelConversationTracker {
     }
   }
 
+  /**
+   * A client-tool continuation resumes the assistant message its originating
+   * submission started, so the first submission recorded for a message stays
+   * the one Voice correlates that message's text against.
+   */
   public recordResponse(
     messageId: string,
     submissionId: AgentSendResult["submissionId"],
   ): void {
+    if (this.#responseSubmissions.has(messageId)) return;
     this.#responseSubmissions.set(messageId, submissionId);
+  }
+
+  /**
+   * Resolves once every submission currently between `send()` and its
+   * admission has been admitted or rejected, so a conversation-wide abort
+   * issued afterwards has a settled target rather than racing the admission.
+   */
+  public settleInFlightSubmissions(): Promise<void> {
+    return Promise.allSettled(this.#inFlightSubmissions).then(() => undefined);
+  }
+
+  public trackSubmission<T>(submission: Promise<T>): Promise<T> {
+    this.#inFlightSubmissions.add(submission);
+    const release = (): void => {
+      this.#inFlightSubmissions.delete(submission);
+    };
+    submission.then(release, release);
+    return submission;
   }
 
   public submissionForInput(
@@ -208,18 +233,21 @@ export const createBrunchPanelTransport = (
   },
 ): PetrinautAiChatTransport => ({
   reconnectToStream: async () => null,
-  sendMessages: async (sendOptions) => {
-    const client = await clientPromise;
-    const transport = createFlueChatTransport({
-      client,
-      clientToolNames: new Set([readPetrinautDocToolName]),
-      onAdmission: (event) => {
-        tracker.recordAdmission(event);
-        hooks?.onAdmission?.(event.admission);
-      },
-      onResponseMessage: ({ messageId, submissionId }) =>
-        tracker.recordResponse(messageId, submissionId),
-    });
-    return decorateBrunchStream(await transport.sendMessages(sendOptions));
-  },
+  sendMessages: (sendOptions) =>
+    tracker.trackSubmission(
+      (async () => {
+        const client = await clientPromise;
+        const transport = createFlueChatTransport({
+          client,
+          clientToolNames: brunchClientToolNames,
+          onAdmission: (event) => {
+            tracker.recordAdmission(event);
+            hooks?.onAdmission?.(event.admission);
+          },
+          onResponseMessage: ({ messageId, submissionId }) =>
+            tracker.recordResponse(messageId, submissionId),
+        });
+        return decorateBrunchStream(await transport.sendMessages(sendOptions));
+      })(),
+    ),
 });

@@ -134,3 +134,37 @@ test("matches client-tool admissions once and supports unsubscribe", () => {
   expect(matchingListener).toHaveBeenCalledWith(event);
   expect(unsubscribedListener).not.toHaveBeenCalled();
 });
+
+test("keeps the originating submission for a resumed assistant message", () => {
+  const tracker = new BrunchPanelConversationTracker();
+  tracker.recordResponse("assistant-1", "submission-1");
+  tracker.recordResponse("assistant-1", "submission-continuation");
+
+  expect(tracker.submissionForResponse("assistant-1")).toBe("submission-1");
+});
+
+test("settles in-flight submissions before a durable abort can target them", async () => {
+  const tracker = new BrunchPanelConversationTracker();
+  let admit: (() => void) | undefined;
+  void tracker.trackSubmission(
+    new Promise<void>((resolve) => {
+      admit = resolve;
+    }),
+  );
+  let settled = false;
+  void tracker.settleInFlightSubmissions().then(() => {
+    settled = true;
+  });
+
+  await Promise.resolve();
+  expect(settled).toBe(false);
+
+  admit?.();
+  await vi.waitFor(() => expect(settled).toBe(true));
+
+  const rejected = tracker.trackSubmission(
+    Promise.reject(new Error("rejected admission")),
+  );
+  await expect(rejected).rejects.toThrow("rejected admission");
+  await expect(tracker.settleInFlightSubmissions()).resolves.toBeUndefined();
+});
