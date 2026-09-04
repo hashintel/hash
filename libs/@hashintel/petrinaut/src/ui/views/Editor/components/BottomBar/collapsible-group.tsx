@@ -5,20 +5,21 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { BottomBarCollapseContext } from "./collapse-context";
 
 /**
- * The group collapses by animating its grid column to nothing while the
- * content inside keeps its natural width. That keeps the content measurable
- * whether it is shown or hidden, so the bar can tell how wide it would be with
- * everything shown without laying the controls out twice.
+ * The group folds by animating its grid column to nothing while the content
+ * inside keeps its natural width. That keeps the content measurable whether it
+ * is shown or hidden, so the bar can tell how wide it would be with everything
+ * shown without laying the controls out twice.
+ *
+ * The reveal is a selector on the bar rather than state passed back down: the
+ * browser maintains `:hover` and `:focus-within` itself, where mirroring them
+ * into React can strand the bar open — a control that unmounts while focused
+ * fires no blur.
  */
 const groupStyle = cva({
   base: {
     display: "grid",
     gridTemplateColumns: "[1fr]",
-    // Decelerating rather than eased at both ends, and shorter than a panel's
-    // 150ms: the controls have to be on their way out by the first frame after
-    // the pointer lands, or the bar reads as slow to answer.
-    transition:
-      "[grid-template-columns 120ms ease-out, opacity 120ms ease-out]",
+    transition: "[grid-template-columns 160ms ease-in, opacity 160ms ease-in]",
     "@media (prefers-reduced-motion: reduce)": {
       transition: "[none]",
     },
@@ -29,6 +30,18 @@ const groupStyle = cva({
         gridTemplateColumns: "[0fr]",
         opacity: "[0]",
         pointerEvents: "none",
+        // Revealing answers the pointer, so it runs shorter and decelerates;
+        // folding is not a response to anything and eases in. The selector
+        // stays on one line: Panda writes the key into the class name, and a
+        // wrapped one stops matching the rule it generated.
+        '[data-bottom-bar]:hover &, [data-bottom-bar]:focus-within &, [data-bottom-bar][data-holding="true"] &':
+          {
+            gridTemplateColumns: "[1fr]",
+            opacity: "[1]",
+            pointerEvents: "auto",
+            transition:
+              "[grid-template-columns 120ms ease-out, opacity 120ms ease-out]",
+          },
       },
     },
   },
@@ -49,6 +62,10 @@ const contentStyle = css({
 /**
  * Toolbar controls the bottom bar hides when it runs out of room, and shows
  * again while the pointer or the keyboard is on the bar.
+ *
+ * A folded group keeps its controls focusable on purpose: focus is what
+ * reveals them, so making the subtree inert would leave a keyboard with no way
+ * in.
  */
 export const CollapsibleGroup: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -76,9 +93,9 @@ export const CollapsibleGroup: React.FC<{ children: React.ReactNode }> = ({
     measure();
 
     // Both boxes are watched: the content changes when a control appears, and
-    // the clip changes on every frame of the collapse. Reporting the pair from
-    // one observer keeps the two in step, so the width the bar derives from
-    // them is right mid-animation too.
+    // the clip changes on every frame of the fold. Reporting the pair from one
+    // observer keeps the two in step, so the width the bar derives from them
+    // is right mid-animation too.
     const observer = new ResizeObserver(measure);
     observer.observe(clip);
     observer.observe(content);

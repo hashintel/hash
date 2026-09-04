@@ -16,12 +16,12 @@ export interface BottomBarBounds {
   readonly leftInset: number;
   /** Width taken by whatever is docked on the right, viewport controls included. */
   readonly rightInset: number;
-  /** Gap kept between the bar and anything it is pushed away from. */
+  /** Gap kept clear inside each inset, so the bar never touches a panel. */
   readonly margin: number;
 }
 
 /** Width left for the bar once the insets and both margins are taken out. */
-export const getAvailableWidth = (bounds: BottomBarBounds): number =>
+const getAvailableWidth = (bounds: BottomBarBounds): number =>
   bounds.containerWidth -
   bounds.leftInset -
   bounds.rightInset -

@@ -1,4 +1,4 @@
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -11,30 +11,21 @@ import {
   EditorContext,
   type EditorState,
 } from "../../../../../react/state/editor-context";
+import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
-import {
-  VIEWPORT_CONTROLS_OFFSET,
-  VIEWPORT_CONTROLS_WIDTH,
-} from "../../../../constants/ui";
-import { fitsWithinBounds, getBottomBarOffset } from "./bottom-bar-placement";
-import {
-  BottomBarCollapseContext,
-  type CollapsibleGroupWidth,
-} from "./collapse-context";
+import { BottomBarCollapseContext } from "./collapse-context";
 import { CollapsibleGroup } from "./collapsible-group";
+import { CursorModeDropdown } from "./cursor-mode-dropdown";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
+import { EditionTools } from "./edition-tools";
 import { SimulationControls } from "./simulation-controls";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
-import { CursorModeDropdown, EditionTools } from "./toolbar-modes";
-import { useElementWidth } from "./use-element-width";
+import { useBottomBarLayout } from "./use-bottom-bar-layout";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
-/** Gap kept between the bar and a panel it has been pushed away from. */
-const BOTTOM_BAR_MARGIN = 12;
-
 /** Gap between the bar and whatever is below it, canvas or bottom panel. */
-const BOTTOM_BAR_INSET = 24;
+const BOTTOM_BAR_GAP = 24;
 
 const glassPanelStyle = css({
   padding: "1",
@@ -42,9 +33,8 @@ const glassPanelStyle = css({
   borderWidth: "thin",
   borderColor: "neutral.a50",
   boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.1)]",
-  // Named rather than `all`: the segment's width changes when a group
-  // collapses, and `all` animated that over 0.3s on top of the group's own
-  // 150ms, which left the bar drifting past its place and back.
+  // Named rather than `all`, which would animate the width a folding group
+  // changes and take twice as long doing it as the group itself.
   transition: "[background-color 0.3s ease, box-shadow 0.3s ease]",
   _hover: {
     backgroundColor: "white.a110",
@@ -58,10 +48,8 @@ const toolbarContainerStyle = css({
   gap: "1",
 });
 
-// Spans the canvas so the bar centers on the canvas rather than on the space
+// Spans the canvas so the bar centres on the canvas rather than on the space
 // between the panels, and lets clicks through everywhere the bar itself is not.
-// The lane is anchored a fixed distance from the bottom, and the bar rides
-// above the bottom panel on its transform.
 const bottomBarLaneStyle = css({
   position: "absolute",
   left: "[0]",
@@ -76,18 +64,24 @@ const bottomBarStyle = css({
   display: "flex",
   gap: "[20px]",
   pointerEvents: "auto",
+  // A bar wider than the lane overflows rather than squashing its segments:
+  // revealing the hidden controls in a cramped window does exactly that.
+  flexShrink: 0,
 });
 
 /**
- * Only a panel opening or closing animates the bar into place. A collapse
- * moves it too, but there the offset follows the width the bar is measured at,
- * frame by frame, and a transition would race that with a curve of its own.
- * A resize drag wants no transition either: the bar tracks the panel edge.
+ * Only a panel opening or closing animates the bar into place. Folding moves
+ * it too, but there the offset follows the width the bar is measured at, frame
+ * by frame, and a transition would race that with a curve of its own; a resize
+ * drag wants none either, so the bar tracks the edge under the pointer.
  *
- * Both axes ride one transform, which the compositor animates. The bottom
- * panel slides on its own transform, and a main-thread property could not stay
- * with it: the frames dropped while the panel's content mounts leave a
- * layout-driven animation behind, and the bar arrives late.
+ * Both axes ride one transform, which the compositor animates like the panel's
+ * own slide. A main-thread property could not stay with it: the frames dropped
+ * while a panel's content mounts leave a layout-driven animation behind.
+ *
+ * Reduced motion is deliberately not honoured here. This transition is not
+ * decoration, it is what keeps the bar attached to a panel that animates
+ * regardless of the setting, and stopping only the bar detaches it.
  */
 const barAnimatingStyle = cva({
   base: {},
@@ -95,9 +89,6 @@ const barAnimatingStyle = cva({
     animating: {
       true: {
         transition: "[transform 150ms ease-in-out]",
-        "@media (prefers-reduced-motion: reduce)": {
-          transition: "[none]",
-        },
       },
     },
   },
@@ -128,14 +119,8 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     isBottomPanelOpen,
     setBottomPanelOpen,
     setActiveBottomPanelTab,
-    bottomPanelHeight,
     isAiAssistantOpen,
     isPanelAnimating,
-    isLeftSidebarOpen,
-    isSearchOpen,
-    leftSidebarWidth,
-    hasSelection,
-    propertiesPanelWidth,
     toggleAiAssistant,
   } = use(EditorContext);
 
@@ -145,15 +130,12 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   const hasDiagnostics = errorDiagnosticsCount > 0;
   const { activeSubnetId } = use(ActiveNetContext);
   const isInSubnet = activeSubnetId !== null;
+  const isReadOnly = useIsReadOnly();
 
-  const showDiagnostics = useCallback(() => {
+  const showDiagnostics = () => {
     setBottomPanelOpen(true);
     setActiveBottomPanelTab("diagnostics");
-  }, [setBottomPanelOpen, setActiveBottomPanelTab]);
-
-  const toggleBottomPanel = useCallback(() => {
-    setBottomPanelOpen(!isBottomPanelOpen);
-  }, [setBottomPanelOpen, isBottomPanelOpen]);
+  };
 
   // Fallback to cursor mode when switching away from edit while in a mutative mode.
   useEffect(() => {
@@ -167,114 +149,37 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 
   const laneRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
-  const containerWidth = useElementWidth(laneRef);
-  const barWidth = useElementWidth(barRef);
+  const layout = useBottomBarLayout(laneRef, barRef, {
+    hasViewportControls: !isActualMode,
+    isAnimating: isPanelAnimating,
+  });
 
-  const [groupWidths, setGroupWidths] = useState<
-    ReadonlyMap<string, CollapsibleGroupWidth>
-  >(() => new Map());
-
-  // Identity is load-bearing rather than a performance nicety: every group
-  // measures from an effect keyed on this callback, and a new one each render
-  // would tear the observers down and report a width in a loop.
-  const reportGroupWidth = useCallback(
-    (id: string, width: CollapsibleGroupWidth | null) => {
-      setGroupWidths((previous) => {
-        const current = previous.get(id);
-        if (width === null) {
-          if (!current) {
-            return previous;
-          }
-          const next = new Map(previous);
-          next.delete(id);
-          return next;
-        }
-        if (
-          current &&
-          current.natural === width.natural &&
-          current.hidden === width.hidden
-        ) {
-          return previous;
-        }
-        return new Map(previous).set(id, width);
-      });
-    },
-    [],
-  );
-
-  const [isPointerOver, setIsPointerOver] = useState(false);
-  const [isFocusWithin, setIsFocusWithin] = useState(false);
-  const [hasActiveInteraction, setHasActiveInteraction] = useState(false);
-
-  // A menu opened from the bar renders outside it, so the pointer leaving for
-  // the menu would otherwise collapse the bar out from under the click that
-  // opened it. A click inside the bar holds it expanded until one lands
-  // elsewhere.
-  useEffect(() => {
-    if (!hasActiveInteraction) {
-      return;
-    }
-
-    const release = (event: PointerEvent) => {
-      const bar = barRef.current;
-      if (bar && event.target instanceof Node && bar.contains(event.target)) {
-        return;
-      }
-      setHasActiveInteraction(false);
-    };
-
-    document.addEventListener("pointerdown", release);
-    return () => document.removeEventListener("pointerdown", release);
-  }, [hasActiveInteraction]);
-
-  const bounds = {
-    containerWidth,
-    leftInset: isLeftSidebarOpen || isSearchOpen ? leftSidebarWidth : 0,
-    // The viewport controls sit in the bar's row on the right of the canvas,
-    // so they bound it the same way a panel does.
-    rightInset:
-      (hasSelection ? propertiesPanelWidth : 0) +
-      (isActualMode ? 0 : VIEWPORT_CONTROLS_OFFSET + VIEWPORT_CONTROLS_WIDTH),
-    margin: BOTTOM_BAR_MARGIN,
-  };
-
-  let hiddenWidth = 0;
-  for (const width of groupWidths.values()) {
-    hiddenWidth += width.hidden;
-  }
-
-  // What the bar measures now plus what it is already hiding: the width it
-  // would take with every control shown. Both terms move together while a
-  // group collapses, so the sum holds still throughout.
-  const naturalWidth = barWidth + hiddenWidth;
-  const isPeeking = isPointerOver || isFocusWithin || hasActiveInteraction;
-  const isCollapsed = !isPeeking && !fitsWithinBounds(bounds, naturalWidth);
-
-  const panelLift = isBottomPanelOpen ? bottomPanelHeight : 0;
+  // Edit tools are absent on a read-only net and outside edit mode, so the
+  // group would otherwise fold an empty box and leave its gap behind.
+  const hasEditionGroup = !isActualMode && (!isReadOnly || hasAiAssistant);
 
   return (
     <div
       ref={laneRef}
       className={bottomBarLaneStyle}
-      style={{ bottom: BOTTOM_BAR_INSET }}
+      style={{ bottom: BOTTOM_BAR_GAP }}
     >
       <div
         ref={barRef}
+        data-bottom-bar
+        data-holding={layout.isHolding}
         className={`${bottomBarStyle} ${barAnimatingStyle({ animating: isPanelAnimating })}`}
         style={{
-          transform: `translate(${getBottomBarOffset(bounds, barWidth)}px, ${-panelLift}px)`,
+          transform: `translate(${layout.offsetX}px, ${-layout.liftY}px)`,
         }}
-        onPointerEnter={() => setIsPointerOver(true)}
-        onPointerLeave={() => setIsPointerOver(false)}
-        onPointerDown={() => setHasActiveInteraction(true)}
-        onFocus={() => setIsFocusWithin(true)}
-        onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget)) {
-            setIsFocusWithin(false);
-          }
-        }}
+        onPointerDown={layout.hold}
       >
-        <BottomBarCollapseContext value={{ isCollapsed, reportGroupWidth }}>
+        <BottomBarCollapseContext
+          value={{
+            isCollapsed: layout.isCollapsed,
+            reportGroupWidth: layout.reportGroupWidth,
+          }}
+        >
           {/* Edition tools segment */}
           <refractive.div
             className={glassPanelStyle}
@@ -292,7 +197,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                 cursorMode={cursorMode}
                 onCursorModeChange={onCursorModeChange}
               />
-              {!isActualMode && (
+              {hasEditionGroup && (
                 <CollapsibleGroup>
                   <EditionTools
                     editionMode={editionMode}
@@ -338,7 +243,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             <div className={toolbarContainerStyle}>
               <ToolbarButton
                 tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
-                onClick={toggleBottomPanel}
+                onClick={() => setBottomPanelOpen(!isBottomPanelOpen)}
                 ariaLabel={isBottomPanelOpen ? "Hide panel" : "Show panel"}
                 ariaExpanded={isBottomPanelOpen}
               >

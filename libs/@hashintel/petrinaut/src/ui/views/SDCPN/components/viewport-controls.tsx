@@ -5,10 +5,8 @@ import { cx, css, cva } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../react/navigation";
 import { EditorContext } from "../../../../react/state/editor-context";
-import {
-  PANEL_MARGIN,
-  VIEWPORT_CONTROLS_OFFSET,
-} from "../../../constants/ui";
+import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
+import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
 import { useCanvasController } from "../canvas-renderer";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
@@ -47,21 +45,14 @@ export const ViewportControls: React.FC<{
     );
   };
   const { zoomIn, zoomOut } = useCanvasController();
-  const {
-    collapseAllPanels,
-    hasSelection,
-    propertiesPanelWidth,
-    isBottomPanelOpen,
-    bottomPanelHeight,
-    isPanelAnimating,
-  } = use(EditorContext);
+  const { collapseAllPanels, isPanelAnimating } = use(EditorContext);
 
-  const isPropertiesPanelVisible = hasSelection;
-  const rightOffset =
-    VIEWPORT_CONTROLS_OFFSET +
-    (isPropertiesPanelVisible ? propertiesPanelWidth + PANEL_MARGIN : 0);
-  const bottomOffset =
-    VIEWPORT_CONTROLS_OFFSET + (isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0);
+  // Shared with the bottom toolbar, so the two keep clear of the same panels
+  // by the same rules — the assistant panel included, which used to cover the
+  // column when it opened.
+  const insets = useCanvasInsets();
+  const rightOffset = VIEWPORT_CONTROLS_OFFSET + insets.right;
+  const bottomOffset = VIEWPORT_CONTROLS_OFFSET + insets.bottom;
 
   return (
     <div

@@ -15,6 +15,7 @@ import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { NotificationsContext } from "../../../../../react/notifications/context";
+import { EditorContext } from "../../../../../react/state/editor-context";
 import { VoiceSessionContext } from "../../../../../react/voice-session/context";
 import {
   useVoiceSessionErrorMessage,
@@ -76,8 +77,6 @@ export type AiAssistantContentsProps = {
   voiceModeAvailable?: boolean;
 };
 
-const defaultAssistantWidth = 500;
-
 const shellStyle = cva({
   base: {
     position: "absolute",
@@ -94,7 +93,6 @@ const shellStyle = cva({
       true: {
         top: "0",
         bottom: "0",
-        width: `[${defaultAssistantWidth}px]`,
         maxWidth: "[calc(100vw - 32px)]",
         padding: "2",
         _before: {
@@ -672,7 +670,12 @@ export const AiAssistantContents = ({
     (message) => revealedIds.has(message.id) && message.role === "user",
   ).length;
 
-  const [assistantWidth, setAssistantWidth] = useState(defaultAssistantWidth);
+  // Held in editor state, not here: the bottom toolbar and the viewport
+  // controls have to keep clear of this panel, and cannot read a local value.
+  const {
+    aiAssistantWidth: assistantWidth,
+    setAiAssistantWidth: setAssistantWidth,
+  } = use(EditorContext);
 
   const [chipsDismissed, setChipsDismissed] = useState(false);
 

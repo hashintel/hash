@@ -2,9 +2,9 @@ import { createContext } from "react";
 
 /** What one collapsible group of toolbar controls takes up, in CSS pixels. */
 export interface CollapsibleGroupWidth {
-  /** Width the group takes when the bar shows everything. */
+  /** What this group takes when its controls are shown. */
   readonly natural: number;
-  /** Width currently clipped away — 0 while the group is expanded. */
+  /** How much of that is clipped away right now — 0 while it is shown. */
   readonly hidden: number;
 }
 
@@ -25,8 +25,8 @@ export interface BottomBarCollapseValue {
  * Lets controls anywhere under the bottom bar mark themselves collapsible
  * without the bar having to know what its segments are made of.
  *
- * The default keeps groups expanded, so the controls render normally outside
- * the bar — in Storybook, say.
+ * The default shows everything and measures nothing: away from the bar there
+ * is no space to run out of.
  */
 export const BottomBarCollapseContext = createContext<BottomBarCollapseValue>({
   isCollapsed: false,
