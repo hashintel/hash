@@ -1,4 +1,4 @@
-use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 
 use super::{OpenOptions, error::WorldError};
 use crate::{
@@ -50,11 +50,35 @@ impl Geometry {
         let world = generation.repository().metadata.evidence.lod.world;
         let bounds = (morton_order.count() > 0).then(|| world.image_in(WIRE_FRAME));
 
-        Ok(Self {
+        let this = Self {
             bounds,
             positions,
             spatial_index,
             morton_order,
-        })
+        };
+
+        let mut errors = ReportSink::new_armed();
+
+        if this.positions.len() as u64 != this.morton_order.count() {
+            errors.capture(WorldError::GeometryCountMismatch {
+                positions: this.positions.len(),
+                morton_order: this.morton_order.count(),
+            });
+        }
+
+        if let Some(root) = this.spatial_index.nodes().first()
+            && root.points() as usize != this.positions.len()
+        {
+            errors.capture(WorldError::SpatialIndexCountMismatch {
+                root: root.points(),
+                positions: this.positions.len(),
+            });
+        }
+
+        errors.finish_ok(this)
+    }
+
+    pub(crate) fn node_count(&self) -> usize {
+        self.positions.len()
     }
 }

@@ -1,4 +1,4 @@
-use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 
 use super::{OpenOptions, error::WorldError};
 use crate::{
@@ -43,10 +43,42 @@ impl Topology {
 
         let (identity, adjacency, endpoints) = (identity, adjacency, endpoints).try_collect()?;
 
-        Ok(Self {
+        let this = Self {
             identity,
             adjacency,
             endpoints,
-        })
+        };
+
+        let mut sink = ReportSink::new_armed();
+
+        if this.identity.len() != this.endpoints.len() as u64
+            || this.identity.len() != this.adjacency.edges()
+        {
+            sink.capture(WorldError::TopologyCountMismatch {
+                identity: this.identity.len(),
+                endpoints: this.endpoints.len(),
+                adjacency: this.adjacency.edges(),
+            });
+        }
+
+        if let Err(error) = u32::try_from(this.identity.len()) {
+            sink.capture(Report::new(error).change_context(WorldError::TooManyEdges {
+                edges: this.identity.len(),
+            }));
+        }
+
+        sink.finish_ok(this)
+    }
+
+    pub(crate) fn edge_count(&self) -> usize {
+        self.endpoints.len()
+    }
+
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the world's open compares the count against the layout's `usize` node count"
+    )]
+    pub(crate) const fn node_count(&self) -> usize {
+        self.adjacency.rows() as usize
     }
 }

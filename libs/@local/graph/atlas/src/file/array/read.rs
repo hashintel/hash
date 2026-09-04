@@ -228,6 +228,18 @@ impl ArrayFile {
         Ok(IdSlice::from_raw(elements))
     }
 
+    pub(crate) unsafe fn column_unchecked<I, T>(&self) -> &IdSlice<I, T>
+    where
+        I: Id,
+        T: ColumnScalar + zerocopy::FromBytes + zerocopy::KnownLayout,
+    {
+        let data = self.data();
+        let length = data.len() / size_of::<T>();
+
+        let slice = unsafe { core::slice::from_raw_parts(data.as_ptr() as *const T, length) };
+        IdSlice::from_raw(slice)
+    }
+
     /// Views the data as `N`-component SIMD-aligned vectors.
     ///
     /// The view exists exactly when the file holds `f32` elements shaped `[T, N]`; the returned

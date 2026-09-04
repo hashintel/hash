@@ -94,6 +94,7 @@ where
     /// # Errors
     ///
     /// Returns the [`InvalidColumnError`] when the file's element stamp is not `T`'s.
+    #[inline]
     pub(crate) fn new(file: ArrayFile) -> Result<Self, InvalidColumnError> {
         let _: &IdSlice<I, T> = file.column()?;
 
@@ -104,13 +105,15 @@ where
     }
 
     /// Views the elements, indexed by the column's id domain.
+    #[inline]
+    #[must_use]
     pub(crate) fn view(&self) -> &IdSlice<I, T> {
-        self.file
-            .column()
-            .expect("construction validated the element stamp")
+        unsafe { self.file.column_unchecked() }
     }
 
     /// Counts the elements.
+    #[inline]
+    #[must_use]
     pub(crate) fn len(&self) -> usize {
         self.view().len()
     }
