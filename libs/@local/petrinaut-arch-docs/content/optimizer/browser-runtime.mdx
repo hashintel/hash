@@ -37,8 +37,12 @@ study's runs. A remote capability passes through the hook unchanged.
 3. **Worker → Optuna.** On first use the worker loads Pyodide from the CDN
    pinned in the runtime lock, installs Optuna with micropip, writes the
    [optimizer-core](layer:optimizer-core) sources into the virtual filesystem
-   and imports them. `run_browser_study` asks the sampler for values and
-   awaits a JavaScript `evaluate` callback for each trial.
+   and imports them. `create_browser_study` builds the Optuna study once per
+   run (with the constant-liar TPE when the run asks for parallel steps) and
+   keeps it in a handle; `run_browser_study` runs one segment of trials on
+   that handle, asking the sampler for values and awaiting a JavaScript
+   `evaluate` callback for each trial, up to `parallelism` at a time;
+   `release_browser_study` drops the handle when the record is removed.
 4. **Worker → channel.** Each `evaluate` crosses back to the main thread as a
    message; the capability resolves the trial's scenario parameter values and
    seeds (`deriveOptimizationTrialSeeds`, the CLI's helper) and calls
@@ -87,9 +91,41 @@ fails stops the ladder at that key and records the batch's reason on
 `selection.error`; a followed trial that fails records its reason the same
 way. The **Parameters** band shows it as _Could not compute_, the **Metrics**
 section shows the empty chart shell, and the next refine of that key — a later
-navigation change — retries. When the study settles, following ends and the
-point refines wherever the navigation stands — except after a cancellation,
-which stops compute until the next move.
+navigation change — retries. When the study settles — complete or stopped —
+while following is on, the navigation moves to the best trial's point and
+refines there; a navigation the user moved earlier stays put. Between rungs
+the refinement estimates the point's mean and standard error from the
+objective's last distribution frame and stops with `selection.note` ("8 runs ·
+cannot beat the best") when the mean sits more than 2.5 standard errors on
+the wrong side of the study's best (`shouldStopRefining`); the best trial's
+own point is exempt and always climbs to the top rung.
+
+## Stop, Continue and parallel steps
+
+A connected run's log is a sequence of segments, each begun by `started`
+(carrying the cumulative `requestedTrials`) and ended by a terminal event.
+**Stop** calls `cancelOptimizationRun`: the worker prunes the trials in
+flight, the segment ends with the cancelled terminal, and the study stays in
+the worker. The provider keeps its attachment through the stop so the
+record's cursor covers the whole segment: the stop marks the record cancelled
+at once, the pruned trials leave it so, and the terminal event — `complete`,
+or the cancellation — sets `OptimizationRecord.resumable` while the study's
+local machinery is still held. **Continue** calls
+`extendOptimizationRun(runId, trials)` on the
+`PetrinautConnectedOptimizationCapability`, then re-runs the attach loop from
+`record.lastSeq`: the new `started` sets the total, `followTrials` turns back
+on, and the trials continue Optuna's numbering. Removing the record calls
+`releaseOptimizationRun`, which drops the study.
+
+`createOptimizationRun(input, { parallelism })` keeps up to four trials in
+flight. Each trial's detached run takes a `queueKey` of its own
+(`${runId}:trial:${n}`) while sharing the study's compiled snapshot through
+`cacheKey`, so trials overlap on the backend; the connected study follows the
+most recently started trial and publishes every in-flight trial's running
+objective as `record.inFlight`, which the Surface draws as rings. An
+activity registry (`provider/activity-registry.ts`) lists each in-flight
+trial and the refinement rung with its progress as `record.activity`, on a
+100 ms throttle, for the Summary's "N computing" chip.
 
 The drawer's **Parameters** band edits `navigation` through
 `setOptimizationNavigation`, its controls disabled while they follow a
