@@ -179,6 +179,13 @@ export const WorkspaceSwitcher = () => {
                 src={avatarSrc}
                 size={26}
                 borderRadius={isOrg ? "4px" : undefined}
+                sx={
+                  avatarSrc
+                    ? {
+                        backgroundColor: ({ palette }) => palette.common.white,
+                      }
+                    : undefined
+                }
                 title={
                   webId === authenticatedUser.accountId
                     ? authenticatedUser.displayName
