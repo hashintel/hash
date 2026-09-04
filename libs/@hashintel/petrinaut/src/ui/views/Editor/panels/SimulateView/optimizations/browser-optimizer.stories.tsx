@@ -2,6 +2,7 @@ import { createBrowserOptimization } from "@hashintel/petrinaut-core/browser-opt
 import {
   sirModel,
   supplyChainProfit,
+  vaccinationCampaign,
 } from "@hashintel/petrinaut-core/examples";
 
 import {
@@ -75,6 +76,17 @@ const richStockStudy: StudyPreset = {
     selling_price: { minimum: 20, maximum: 60 },
   },
   objective: { metricName: "Adjusted profit", direction: "maximize" },
+};
+
+const winterWaveStudy: StudyPreset = {
+  scenarioName: "Winter wave",
+  name: "Cheapest response",
+  dt: 0.1,
+  optimize: {
+    vaccination_coverage: { minimum: 0, maximum: 0.9 },
+    contact_reduction: { minimum: 0, maximum: 0.8 },
+  },
+  objective: { metricName: "Total cost", direction: "minimize" },
 };
 
 const BrowserOptimizerStory = ({
@@ -169,6 +181,25 @@ export const SupplyChain: Story = {
       {...args}
       example={supplyChainProfit}
       study={richStockStudy}
+    />
+  ),
+};
+
+export const VaccinationCampaign: Story = {
+  name: "Vaccination Campaign",
+  args: { steps: 6 },
+  parameters: {
+    docs: {
+      description: {
+        story: `The Vaccination Campaign example's Winter wave scenario, minimizing Total cost over vaccination coverage (0 to 0.9) and contact reduction (0 to 0.8) on the CPU: the model built for this drawer. Cases are priced against a campaign and distancing whose prices rise quadratically, so the Surface shows a valley along the epidemic threshold with its floor near a coverage of 0.45 and a contact reduction of 0.4 (about 960 against 1,280 to 2,220 in the corners). Six steps are still the sampler's random start-up, so expect scattered dots with the best step landing in the valley and the Surface field dipping there. The net is GPU-eligible, so an experiment on it runs on the GPU when one is available, while the study's expression objective keeps its steps on the CPU. ${firstRunNote} ${watchForNote} ${gpuNote}`,
+      },
+    },
+  },
+  render: (args) => (
+    <BrowserOptimizerStory
+      {...args}
+      example={vaccinationCampaign}
+      study={winterWaveStudy}
     />
   ),
 };

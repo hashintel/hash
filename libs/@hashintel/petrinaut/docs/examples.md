@@ -22,6 +22,22 @@ The classic Susceptible-Infected-Recovered compartmental model from epidemiology
 
 <img width="1104" height="412" alt="SIR" src="https://github.com/user-attachments/assets/b8ad69cb-687c-452a-8394-d5100db3e198" />
 
+## Vaccination Campaign
+
+The SIR model with two policy levers and a cost account, built as the model to optimize: a town of 1,000 seeded with 20 cases, a vaccination campaign whose coverage is set before the wave, and distancing that holds for its whole run.
+
+**Demonstrates:**
+
+- **Parameter-driven rates** -- Infection fires at `infection_rate` scaled by `(1 - contact_reduction)` and by `(1 - vaccine_efficacy × vaccination_coverage)`, the share of contacts that land on an unprotected person; Recovery fires at `recovery_rate`. The wave persists while the scaled infection rate exceeds the recovery rate and dies out below it.
+- **Scenario parameters wired to the initial state and the rates** -- the _Winter wave_ scenario seeds `Vaccinated` from `vaccination_coverage` and overrides both lever parameters, so an optimization or a sweep over the levers changes the initial marking and the rates together.
+- **An objective with an interior optimum** -- the **Total cost** [metric](simulation.md) charges every case at `case_cost` and each lever at a price quadratic in its intensity (`campaign_cost`, `distancing_cost`), so both levers have diminishing returns against a rising price. Over a 60-day horizon the cost is about 960 near a coverage of 0.45 and a contact reduction of 0.4, against 1,280 to 2,220 in the corners of the domain.
+- **GPU-ready modelling** -- untyped places and rates that read only parameters, so an experiment measuring the **Infected** place's token count (**Built-in › Place tokens**) runs on the GPU backend as shipped. The model metric of the same name is an expression, which keeps an experiment on the CPU.
+- Two further metrics -- **Infected** (the wave's curve, dying out or growing) and **Attack rate** (share of the population infected so far).
+
+**Suggested initial state:** pick **Winter wave** and, in the Optimizations tab, minimize **Total cost** over `vaccination_coverage` (0 to 0.9) and `contact_reduction` (0 to 0.8) with a max time of 60: the surface shows a valley along the epidemic threshold and the steps settle around a coverage of 0.45 and a contact reduction of 0.4. To watch a single run instead, press Play and select the **Infected** metric in the timeline.
+
+**Key concepts:** [stochastic firing](petri-net-extensions.md#stochastic-rate), [parameters](petri-net-extensions.md#global-parameters), [scenarios](scenarios.md), [optimization objectives](useful-patterns.md#optimization-objectives-metrics-that-read-parameters), [optimization](optimization.md).
+
 ## Café Queue
 
 A small service system: customers arrive, wait, are served by a limited staff pool, and leave. Built to run on the **GPU compute backend out of the box** — every place is untyped, and the interesting measurements are plain token counts.

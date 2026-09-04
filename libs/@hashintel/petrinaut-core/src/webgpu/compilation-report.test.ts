@@ -92,6 +92,7 @@ describe("analyzeCompilation", () => {
       dronePatrol: true,
       supplyChainWithDisruption: true,
       supplyChainProfit: true,
+      vaccinationCampaign: true,
     });
     const production = analyze(
       allExamples.productionMachines.petriNetDefinition,
