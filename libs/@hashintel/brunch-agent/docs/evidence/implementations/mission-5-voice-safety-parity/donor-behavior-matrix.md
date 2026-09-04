@@ -71,16 +71,20 @@ The owner selected half-duplex turn ownership on 2026-09-03: assistant output ow
 
 ## Corrective verification
 
-Fresh local checks on 2026-09-04 cover the 44-file successor diff against the
+Fresh local checks on 2026-09-04 cover the 58-file successor diff against the
 verified #9528 head `036fb06ee83e840fd7a87dd1bc758a2dd49ddd4c`:
 
 | Command | Result |
 | --- | --- |
-| `yarn workspace @apps/petrinaut-website test:unit src/main/app/voice-interview/openai-realtime-session.test.ts src/main/app/voice-interview/realtime-brunch-bridge.test.ts src/main/app/voice-interview/voice-turn-controller.test.ts src/main/app/voice-interview/voice-preview.integration.test.ts` | Exit 0; 4 files and 94/94 tests passed. This includes the request-before-output race at session, bridge, controller, and production integration layers. |
+| `yarn workspace @apps/petrinaut-website test:unit src/main/app/voice-interview/openai-realtime-session.test.ts src/main/app/voice-interview/realtime-brunch-bridge.test.ts src/main/app/voice-interview/voice-turn-controller.test.ts src/main/app/voice-interview/voice-preview.integration.test.ts -t 'invalidates accepted input before requesting canonical speech output\|rejects unfinished input as soon as canonical speech is requested\|clears capture when canonical speech is requested before output starts\|bridges one completed transcript through Brunch and back to canonical half-duplex audio'` | Exit 0; 4/4 selected tests passed and 91 unrelated tests were filtered across four files. This covers the request-before-output race at session, bridge, controller, and production integration layers. |
 | `yarn workspace @apps/petrinaut-website test:unit src/main/app/voice-interview/voice-preview.integration.test.ts -t 'ambiguous Flue admission\|conflicting submission\|local admission abort'` | Exit 0; 3/3 selected tests passed and 2 unrelated tests were filtered. Conflict retains the original `submissionId`; local abort remains distinct from durable abort; every path calls `send()` once. |
-| `mise exec -- yarn exec turbo run lint:tsc lint:eslint test:unit build --filter @apps/brunch-agent --filter @apps/petrinaut-website --filter @hashintel/petrinaut --filter @hashintel/brunch-agent-transport-aisdk` | Exit 0; 30/30 tasks passed, including 31 website test files and 243/243 website tests. Website ESLint retains one non-failing warning at `voice-interview-control.tsx:480`. |
+| `yarn workspace @hashintel/brunch-agent test:unit test/question-marker.test.ts` | Exit 0; 9/9 exact question-marker tests passed. |
+| `yarn workspace @hashintel/brunch-agent-transport-aisdk test:unit` | Exit 0; 22/22 transport tests passed, including live and snapshot marker projection. |
+| `yarn workspace @apps/brunch-agent test:unit test/petrinaut-chat.test.ts` | Exit 0; 1/1 real-Flue integration test passed, including exact marker persistence through fresh-process reopen while marker tools remain hidden. |
+| `yarn workspace @hashintel/petrinaut test:unit --run src/ui/views/Editor/panels/ai-assistant-panel.test.tsx` | Exit 0; 40/40 production host-registration and panel tests passed. |
+| `mise exec -- yarn exec turbo run lint:tsc lint:eslint test:unit build --filter @apps/brunch-agent --filter @apps/petrinaut-website --filter @hashintel/petrinaut --filter @hashintel/brunch-agent-transport-aisdk` | Exit 0; 30/30 tasks passed, including 31 website test files and 249/249 website tests. Website ESLint retains one non-failing warning at `voice-interview-control.tsx:485`. |
 | `yarn workspace @local/petrinaut-arch-docs lint:arch-docs` | Exit 0; 62 layers, 297 edges, 614 files, 63 generated pages, and 31 authored pages. |
-| `yarn exec oxfmt --check $(cat /tmp/fe1580-files)` over the 44 child-owned paths | Exit 0; all 40 formatter-owned files passed. The remaining four Brunch Markdown records are intentionally excluded by `oxfmt.config.ts` and pass repository whitespace validation. |
+| `git diff --name-only -z ln/fe-1574-direct-voice-flue...HEAD \| xargs -0 yarn exec oxfmt --check` | Exit 0; all 52 formatter-owned files in the 58-file successor diff passed. The six unmatched documentation files are excluded by `oxfmt.config.ts` and pass repository whitespace validation. |
 | `git diff --check` | Exit 0. |
 | `yarn lint:format` | Exit 1 outside the successor diff only: parent-owned `apps/brunch-agent/src/conversation/identity.ts` and `apps/brunch-agent/test/conversation-identity.test.ts`, plus unrelated untracked `.cursor/plans/fe-1574_mission_recut_6f23f7cd.plan.md`. They were not modified. |
 

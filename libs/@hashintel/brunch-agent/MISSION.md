@@ -38,10 +38,10 @@ browser-correlation implementation would have violated the explicit
 second-durable-store stop condition. The real witness remains blocked by the
 parent hydration defect.
 
-The 2026-09-04 corrective verification covers the current 44-file successor
-diff against #9528: the four race suites pass 94/94 tests, the filtered
+The 2026-09-04 corrective verification covers the current 58-file successor
+diff against #9528: the four focused race cases pass 4/4 tests, the filtered
 production admission-outcome cases pass 3/3 tests, and the requested Turbo run
-passes 30/30 tasks, including 243/243 website tests. Architecture validation
+passes 30/30 tasks, including 249/249 website tests. Architecture validation
 passes with 62 layers, 297 edges, 614 files, 63 generated pages, and 31 authored
 pages. `git diff --check` and formatting of all formatter-owned successor files
 pass. The root formatter remains red only outside this branch's diff: two
