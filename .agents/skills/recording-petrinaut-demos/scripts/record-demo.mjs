@@ -66,8 +66,11 @@ const capture = { width: cssWidth * 2, height: cssHeight * 2 };
 const demoSeconds = Number(option("--duration", "18"));
 const holdSeconds = scenario.holdSeconds ?? demoSeconds + 3;
 const startedAt = Date.now();
+// The format string stays constant and the elapsed time is an argument:
+// putting a computed value first would make `console.log` read it for format
+// specifiers.
 const log = (...parts) =>
-  console.log(`[${((Date.now() - startedAt) / 1000).toFixed(1)}s]`, ...parts);
+  console.log("[%ss]", ((Date.now() - startedAt) / 1000).toFixed(1), ...parts);
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 log(
