@@ -11,6 +11,13 @@ The editor is organized around a central canvas where you build your net:
 - **Bottom panel** -- tabs for Diagnostics (code errors), Simulation Settings, and Timeline (during simulation).
 - **Bottom toolbar** -- editing mode buttons, simulation controls, the AI assistant toggle, and a show/hide button for the bottom panel.
 
+The bottom toolbar sits centered on the canvas and steps aside rather than
+slide under anything: open a panel wide enough to reach it and it shifts to the
+free side, keeping clear of the left sidebar, the properties panel and the
+viewport controls. Where even that leaves too little room it shrinks to the
+cursor, the diagnostics status and Play; point at it, or tab into it, and the
+rest comes back for as long as you stay on it.
+
 <img width="1793" height="1175" alt="full-editor" src="https://github.com/user-attachments/assets/ea41efe8-9056-479b-a936-e0d5e4196b11" />
 
 ## Top bar
