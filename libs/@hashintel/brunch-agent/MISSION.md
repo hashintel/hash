@@ -2,7 +2,7 @@
 
 ## Status
 
-**Live on `ln/fe-1575-resumable-workpiece-petrinaut` from 2026-09-03.** [FE-1575](https://linear.app/hash/issue/FE-1575/resume-one-brunch-workpiece-and-petrinaut-document-across-tabs) is in progress. This authority cut is committed separately before product or evaluation implementation begins. It was recut on restack the same day to carry the product-manager litmus adopted in [`MISSION.next.md`](MISSION.next.md#current-authority-and-accepted-spine) after the first cut: completion is the readiness gate below, not the first green two-tab pass. The owner subsequently accepted the probe-backed prepared-history semantics under [Accepted fixture and boundary crossings](#accepted-fixture-and-boundary-crossings), then corrected this mission to consume Mission 5's one-route browser Flue transport, automatic localStorage persistence, a runtime settled manifest, visible preparation language, and an actual Tab B continuation. Each authority amendment lands separately before dependent implementation.
+**Live on `ln/fe-1575-resumable-workpiece-petrinaut`.** [FE-1575](https://linear.app/hash/issue/FE-1575/resume-one-brunch-workpiece-and-petrinaut-document-across-tabs) remains in progress. The implementation and outer mechanical witness are complete; cold-reader semantic adjudication and the product-manager demo remain the final acceptance gates. See the [retained implementation and witness evidence](docs/evidence/implementations/fe-1575-resumable-workpiece-petrinaut.md).
 
 ## Imperative
 
