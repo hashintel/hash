@@ -19,6 +19,15 @@ branch's shared Flue route and SDCPN plugin. Reject the donor's older app-local
 agent topology and its broader grounding for interviews against non-empty
 nets. This branch neither supersedes #9523 nor authorizes its retirement.
 
+Reconciliation source [#9537](https://github.com/hashintel/hash/pull/9537) is
+pinned at `ec85958981ccd33270cee3174a39e6fa683f62a1`. Adopt only its generic
+host-supplied client-tool catalog and input-mapping seams, applied consistently
+to live stream projection and hydrated history. Preserve this branch's
+scratch-mode initialization, FE-1580 hidden-tool filtering, admission and
+response tracking, complete error reporting, Voice provenance, and deliberate
+exclusion of `brunch_ask`. Do not import Mission 6's prepared fixture,
+identities, coherent bundle, settled manifest, or evidence architecture.
+
 ## Imperative
 
 Let a person describe a small process through the existing typed or Voice
