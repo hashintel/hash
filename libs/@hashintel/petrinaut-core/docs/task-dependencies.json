@@ -1,6 +1,8 @@
 {
   "package": "@hashintel/petrinaut-core",
-  "dependencies": [],
+  "dependencies": [
+    "@local/petrinaut-optimizer-core"
+  ],
   "tasks": {
     "build": [],
     "fix:eslint": [

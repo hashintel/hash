@@ -14,6 +14,7 @@ the runtimes stay testable on the main thread.
 | `lsp.ts`         | the language server                 |
 | `simulation.ts`  | frame computation for a single run  |
 | `monte-carlo.ts` | batched runs reporting only metrics |
+| `optimizer.ts`   | the Optuna study, in Pyodide        |
 
 Separate export subpaths rather than one worker, so a host pays only for the
 threads it uses — an editor with no experiments open never loads the Monte
