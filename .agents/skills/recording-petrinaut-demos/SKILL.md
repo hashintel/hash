@@ -149,6 +149,31 @@ What it does and why:
 - **An odd output height fails the encode.** `yuv420p` subsamples by two, and ffmpeg reports it as "Could not open encoder before EOF", which reads like a codec problem.
 - **Check the frame counts.** 540 frames for 18 s at 30 fps, 360 for a GIF at 20 fps, and the width you asked for. Anything else means a wrong flag.
 
+## Before and after pairs
+
+A pair has to run the same path against two builds, so record it in one sitting
+from one scenario file:
+
+1. **Record the after take** against the branch: build the library, start the
+   dev server, record.
+2. **Put the package back to main**: `git checkout origin/main -- libs/@hashintel/petrinaut/src`.
+   One path, all or nothing, rather than a file list that goes stale as the
+   branch grows.
+3. **Rebuild and restart the dev server.** The website serves the built output,
+   and a server started before the build serves the previous bundle.
+4. **Record the before take.**
+5. **Restore the branch**: `git checkout HEAD -- libs/@hashintel/petrinaut/src`.
+
+**Step 5 does not fully undo step 2.** A file that main has and the branch
+deleted comes back _staged_, because `git checkout HEAD -- <path>` cannot
+remove what HEAD does not contain. Finish with `git status --short`, and for
+anything still listed run `git rm --cached <path> && rm <path>`. Do not commit
+until that status is empty.
+
+Encode both with the same `--width`, and read the same check frames in each:
+the beats should land within about 0.2 s of each other, which is what makes the
+two comparable.
+
 ## Sharing
 
 `scripts/upload-attachment.sh <file> [--repo owner/name]` posts the file to GitHub's user-attachments store and prints an asset URL. The repository decides the audience: anyone who can read it can play the video, and nobody else can.
