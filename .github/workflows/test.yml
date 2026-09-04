@@ -225,19 +225,31 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+    env:
+      # Playwright is only executed in the merge queue. Pull requests and pushes
+      # to main still spawn this matrix cell so the check reports success, but
+      # skip the suite itself.
+      RUN_TESTS: ${{ matrix.name != '@tests/hash-playwright' || github.event_name == 'merge_group' }}
     steps:
       - name: Show selection reason
         env:
           MATRIX: ${{ toJSON(matrix) }}
         run: echo "$MATRIX"
 
+      - name: Skip Playwright outside merge queue
+        if: env.RUN_TESTS != 'true'
+        run: echo "Playwright tests only run in the merge queue; reporting success."
+
       - name: Checkout
+        if: env.RUN_TESTS == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Clean up disk
+        if: env.RUN_TESTS == 'true'
         uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
+        if: env.RUN_TESTS == 'true'
         uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -245,15 +257,18 @@ jobs:
           sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Prune repository
+        if: env.RUN_TESTS == 'true'
         uses: $/.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.name }}
 
       - name: Warm up repository
+        if: env.RUN_TESTS == 'true'
         uses: $/.github/actions/warm-up-repo
 
       - name: Find test steps to run
+        if: env.RUN_TESTS == 'true'
         id: tests
         run: |
           HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .name] != []' || echo 'false')
@@ -263,10 +278,11 @@ jobs:
           echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
       - name: Create temp files and folders
+        if: env.RUN_TESTS == 'true'
         run: mkdir -p var/logs
 
       - name: Install playwright
-        if: matrix.name == '@tests/hash-playwright'
+        if: env.RUN_TESTS == 'true' && matrix.name == '@tests/hash-playwright'
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
         with:
           max_attempts: 3
@@ -275,6 +291,7 @@ jobs:
           command: npx playwright install chromium
 
       - name: Show disk usage
+        if: env.RUN_TESTS == 'true'
         run: df -h
 
       - name: Launch external services
@@ -282,6 +299,7 @@ jobs:
         # individual runners (e.g. "failed to receive status: rpc error: code =
         # Unavailable desc = error reading from server: EOF"), failing the job
         # before any test runs. See https://linear.app/hash/issue/SRE-803
+        if: env.RUN_TESTS == 'true'
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
         with:
           max_attempts: 3
@@ -292,7 +310,7 @@ jobs:
 
       - name: Start background tasks
         id: background-tasks
-        if: steps.tests.outputs.has-background-tasks == 'true'
+        if: env.RUN_TESTS == 'true' && steps.tests.outputs.has-background-tasks == 'true'
         env:
           # Set terminal logging to WARN level and enable verbose file logging for CI
           HASH_GRAPH_LOG_CONSOLE_LEVEL: warn
@@ -316,36 +334,40 @@ jobs:
           turbo run start:test:healthcheck --env-mode=loose
 
       - name: Show disk usage
+        if: env.RUN_TESTS == 'true'
         run: df -h
 
       - name: Run tests
+        if: env.RUN_TESTS == 'true'
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
         run: |
           turbo run test:integration --env-mode=loose --filter "${{ matrix.name }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
 
       - name: Show disk usage
+        if: env.RUN_TESTS == 'true'
         run: df -h
 
       - uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
+        if: env.RUN_TESTS == 'true'
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
       - name: Show container logs
-        if: ${{ success() || failure() }}
+        if: env.RUN_TESTS == 'true' && (success() || failure())
         working-directory: infra/compose
         run: docker compose --profile dev logs --timestamps
 
       - name: Show background tasks logs
-        if: always() && steps.tests.outputs.has-background-tasks == 'true'
+        if: always() && env.RUN_TESTS == 'true' && steps.tests.outputs.has-background-tasks == 'true'
         run: |
           kill -15 ${{ steps.background-tasks.outputs.pid }} || true
           cat var/logs/background-task.log
 
       - name: Upload artifact playwright-report
-        if: matrix.name == '@tests/hash-playwright' && (success() || failure())
+        if: env.RUN_TESTS == 'true' && matrix.name == '@tests/hash-playwright' && (success() || failure())
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_report
@@ -353,7 +375,7 @@ jobs:
 
       - name: Upload logs
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: success() || failure()
+        if: env.RUN_TESTS == 'true' && (success() || failure())
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
           path: |
