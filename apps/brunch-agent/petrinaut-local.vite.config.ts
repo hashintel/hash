@@ -9,12 +9,33 @@
 
 import { join, resolve } from "node:path";
 
-import { defineConfig, loadConfigFromFile, mergeConfig } from "vite";
+import {
+  defineConfig,
+  loadConfigFromFile,
+  mergeConfig,
+  type UserConfig,
+} from "vite";
 
 import {
   defaultChatOrigin,
   petrinautLocalServer,
 } from "./src/http/local-origins.ts";
+
+interface PetrinautPanelConfigOptions {
+  readonly chatOrigin: string;
+  readonly loadedConfig: UserConfig;
+  readonly root: string;
+}
+
+export const mergePetrinautPanelConfig = ({
+  chatOrigin,
+  loadedConfig,
+  root,
+}: PetrinautPanelConfigOptions): UserConfig =>
+  mergeConfig(loadedConfig, {
+    root,
+    server: petrinautLocalServer(chatOrigin),
+  });
 
 export default defineConfig(async (environment) => {
   const websiteRoot = process.env.PETRINAUT_WEBSITE_ROOT;
@@ -36,8 +57,9 @@ export default defineConfig(async (environment) => {
     throw new Error(`Could not load Petrinaut's Vite config from ${root}.`);
 
   const chatOrigin = process.env.BRUNCH_CHAT_ORIGIN ?? defaultChatOrigin;
-  return mergeConfig(loaded.config, {
+  return mergePetrinautPanelConfig({
+    chatOrigin,
+    loadedConfig: loaded.config,
     root,
-    server: petrinautLocalServer(chatOrigin),
   });
 });
