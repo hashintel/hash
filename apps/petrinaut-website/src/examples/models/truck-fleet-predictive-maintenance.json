@@ -3,6 +3,7 @@
     {
       "id": "place__load_board",
       "name": "LoadBoard",
+      "description": "Loads on offer, one token per load with its route class, distance, due time, and revenue. A load ages on the board and goes to another haulier after board_patience hours.",
       "colorId": "type__load",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__waiting_load",
@@ -13,6 +14,7 @@
     {
       "id": "place__available",
       "name": "Available",
+      "description": "Trucks parked at the depot and ready to dispatch, carrying their accumulated brake, engine, and tyre wear.",
       "colorId": "type__truck",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__stopped",
@@ -23,6 +25,7 @@
     {
       "id": "place__drivers",
       "name": "Drivers",
+      "description": "Pool of free drivers. A dispatch takes one; the truck's return or tow hands one back.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -33,6 +36,7 @@
     {
       "id": "place__on_route",
       "name": "OnRoute",
+      "description": "Loaded trucks driving to the customer. The loaded dynamics count km_remaining down and add wear and fuel burn scaled by speed, road severity, and route class.",
       "colorId": "type__truck",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__driving",
@@ -43,6 +47,7 @@
     {
       "id": "place__stranded",
       "name": "Stranded",
+      "description": "Trucks that failed at the roadside, waiting for a recovery unit.",
       "colorId": "type__truck",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__stopped",
@@ -53,6 +58,7 @@
     {
       "id": "place__recovery",
       "name": "RecoveryUnits",
+      "description": "Recovery vehicles free to attend a stranded truck.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -63,6 +69,7 @@
     {
       "id": "place__under_recovery",
       "name": "UnderRecovery",
+      "description": "Stranded trucks with a recovery unit on scene, being towed back over tow_time hours on average.",
       "colorId": "type__truck",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__stopped",
@@ -73,6 +80,7 @@
     {
       "id": "place__returning",
       "name": "Returning",
+      "description": "Empty trucks driving back to the depot after a delivery, wearing at 70% of the loaded rate.",
       "colorId": "type__truck",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__returning",
@@ -83,6 +91,7 @@
     {
       "id": "place__depot_queue",
       "name": "DepotQueue",
+      "description": "Trucks that have just arrived at the depot, about to be parked, sent for service, or rested depending on wear and hours driven.",
       "colorId": "type__truck",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__stopped",
@@ -93,6 +102,7 @@
     {
       "id": "place__bays",
       "name": "Bays",
+      "description": "Free workshop bays. A service or repair holds one until it finishes.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -103,6 +113,7 @@
     {
       "id": "place__technicians",
       "name": "Technicians",
+      "description": "Free workshop technicians. Each truck in a bay ties up one.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -113,6 +124,7 @@
     {
       "id": "place__spares",
       "name": "Spares",
+      "description": "Spare parts on the shelf. Each service or repair consumes one and orders a replacement; with none in stock the truck waits for parts.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -123,6 +135,7 @@
     {
       "id": "place__in_bay",
       "name": "InBay",
+      "description": "Trucks under planned service or breakdown repair, counting service_remaining down.",
       "colorId": "type__truck",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__in_bay",
@@ -133,6 +146,7 @@
     {
       "id": "place__needs_repair",
       "name": "NeedsRepair",
+      "description": "Towed-in trucks waiting for a bay, a technician, and a spare so their repair can start.",
       "colorId": "type__truck",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__stopped",
@@ -143,6 +157,7 @@
     {
       "id": "place__awaiting_parts",
       "name": "AwaitingParts",
+      "description": "Trucks holding a bay and technician but waiting for a spare part to arrive.",
       "colorId": "type__truck",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__stopped",
@@ -153,6 +168,7 @@
     {
       "id": "place__parts_on_order",
       "name": "PartsOnOrder",
+      "description": "Replacement parts on order, each arriving after parts_lead_time hours on average.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -163,6 +179,7 @@
     {
       "id": "place__delivered",
       "name": "DeliveredLoads",
+      "description": "Loads delivered on or before their due time.",
       "colorId": "type__load",
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -173,6 +190,7 @@
     {
       "id": "place__late_loads",
       "name": "LateLoads",
+      "description": "Loads delivered after their due time.",
       "colorId": "type__load",
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -183,6 +201,7 @@
     {
       "id": "place__dropped_loads",
       "name": "DroppedLoads",
+      "description": "Loads lost: left on the board past board_patience or abandoned when the truck carrying them failed.",
       "colorId": "type__load",
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -193,6 +212,7 @@
     {
       "id": "place__roadside_events",
       "name": "RoadsideEvents",
+      "description": "Cumulative count of roadside failures.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -203,6 +223,7 @@
     {
       "id": "place__services_done",
       "name": "ServicesDone",
+      "description": "Cumulative count of planned services completed.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -213,6 +234,7 @@
     {
       "id": "place__repairs_done",
       "name": "RepairsDone",
+      "description": "Cumulative count of breakdown repairs completed.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -223,6 +245,7 @@
     {
       "id": "place__deferred",
       "name": "DeferredServices",
+      "description": "Cumulative count of times a truck due for service was sent back out because no bay was free.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -233,6 +256,7 @@
     {
       "id": "place__conditions",
       "name": "Conditions",
+      "description": "Single token holding the regional weather: the mean road severity and speed factor a dispatched truck picks up. The weather dynamics pull them back toward their base values between resamples.",
       "colorId": "type__conditions",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__conditions",
@@ -243,6 +267,7 @@
     {
       "id": "place__rest",
       "name": "Rest",
+      "description": "Trucks parked while their driver takes mandatory rest, counting rest_remaining down.",
       "colorId": "type__truck",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__resting",
@@ -253,6 +278,7 @@
     {
       "id": "place__rest_events",
       "name": "RestEvents",
+      "description": "Cumulative count of mandatory rest stops.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -265,6 +291,7 @@
     {
       "id": "transition__load_motorway",
       "name": "A motorway load is offered",
+      "description": "A 420 km motorway load appears on the board at motorway_rate, due after 420 km at average_speed times due_allowance and paying revenue_per_km.",
       "inputArcs": [],
       "outputArcs": [
         {
@@ -281,6 +308,7 @@
     {
       "id": "transition__load_urban",
       "name": "A urban load is offered",
+      "description": "A 180 km urban load appears on the board at urban_rate, with due time and revenue derived the same way.",
       "inputArcs": [],
       "outputArcs": [
         {
@@ -297,6 +325,7 @@
     {
       "id": "transition__load_mountain",
       "name": "A mountain load is offered",
+      "description": "A 260 km mountain load appears on the board at mountain_rate. Mountain routes wear brakes and tyres hardest.",
       "inputArcs": [],
       "outputArcs": [
         {
@@ -313,6 +342,7 @@
     {
       "id": "transition__dispatch",
       "name": "Dispatch a truck",
+      "description": "Pairs a load with an available truck and driver when the truck's worst wear is under the limit for the route (severe_route_wear_limit for mountain loads, wear_limit otherwise) and the trip fits within 1.5 times max_driving_hours. The truck takes the current road severity and speed factor from Conditions.",
       "inputArcs": [
         {
           "placeId": "place__load_board",
@@ -354,6 +384,7 @@
     {
       "id": "transition__deliver_on_time",
       "name": "Load delivered on time",
+      "description": "The truck reaches the customer (km_remaining zero) at or before the load's due time. A delivery is counted and the truck starts back with the return distance set.",
       "inputArcs": [
         {
           "placeId": "place__on_route",
@@ -380,6 +411,7 @@
     {
       "id": "transition__deliver_late",
       "name": "Load delivered late",
+      "description": "The truck reaches the customer after the load's due time. The load counts as late and the truck starts back.",
       "inputArcs": [
         {
           "placeId": "place__on_route",
@@ -406,6 +438,7 @@
     {
       "id": "transition__breakdown",
       "name": "Truck fails at the roadside",
+      "description": "Failure hazard of failure_rate, multiplied by route severity (1 motorway, 1.8 urban, 3.2 mountain) and by the worst of the brake, engine, and tyre wear hazards. The truck is stranded and its load dropped.",
       "inputArcs": [
         {
           "placeId": "place__on_route",
@@ -436,6 +469,7 @@
     {
       "id": "transition__recover",
       "name": "Recovery unit reaches the truck",
+      "description": "A free recovery unit reaches a stranded truck after recovery_response hours on average.",
       "inputArcs": [
         {
           "placeId": "place__stranded",
@@ -463,6 +497,7 @@
     {
       "id": "transition__tow_home",
       "name": "Truck towed back to the depot",
+      "description": "The tow takes tow_time hours on average. The truck joins NeedsRepair and the recovery unit and driver are freed.",
       "inputArcs": [
         {
           "placeId": "place__under_recovery",
@@ -493,6 +528,7 @@
     {
       "id": "transition__start_repair",
       "name": "Repair after a breakdown starts",
+      "description": "A towed truck enters a bay once a bay, a technician, and a spare are all free, with a lognormal repair_time, and a replacement part is ordered.",
       "inputArcs": [
         {
           "placeId": "place__needs_repair",
@@ -534,6 +570,7 @@
     {
       "id": "transition__repair_waits_for_parts",
       "name": "Repair waits for a part",
+      "description": "A towed truck takes a bay and technician but no spare is in stock, so it waits for parts, flagged as an unplanned repair.",
       "inputArcs": [
         {
           "placeId": "place__needs_repair",
@@ -571,6 +608,7 @@
     {
       "id": "transition__arrive_depot",
       "name": "Truck arrives back at the depot",
+      "description": "The empty return leg ends (km_remaining zero): the truck joins the depot queue and its driver is freed.",
       "inputArcs": [
         {
           "placeId": "place__returning",
@@ -597,6 +635,7 @@
     {
       "id": "transition__park",
       "name": "Truck parks up, no service due",
+      "description": "A queued truck whose worst wear is under service_wear_limit and whose driver is under max_driving_hours goes straight back to Available.",
       "inputArcs": [
         {
           "placeId": "place__depot_queue",
@@ -619,6 +658,7 @@
     {
       "id": "transition__park_workshop_full",
       "name": "Service deferred, workshop full",
+      "description": "A queued truck due for service finds no free bay, so it goes back to Available and a deferral is counted.",
       "inputArcs": [
         {
           "placeId": "place__depot_queue",
@@ -650,6 +690,7 @@
     {
       "id": "transition__into_bay",
       "name": "Truck goes into a bay",
+      "description": "A queued truck at or above service_wear_limit takes a bay, a technician, and a spare for a lognormal service_time, and a replacement part is ordered.",
       "inputArcs": [
         {
           "placeId": "place__depot_queue",
@@ -691,6 +732,7 @@
     {
       "id": "transition__wait_for_parts",
       "name": "Truck waits for a part",
+      "description": "A queued truck due for service takes a bay and technician but the shelf is empty, so it waits for a part.",
       "inputArcs": [
         {
           "placeId": "place__depot_queue",
@@ -728,6 +770,7 @@
     {
       "id": "transition__parts_arrive",
       "name": "Ordered part arrives",
+      "description": "An ordered part reaches the shelf after parts_lead_time hours on average.",
       "inputArcs": [
         {
           "placeId": "place__parts_on_order",
@@ -750,6 +793,7 @@
     {
       "id": "transition__fit_part",
       "name": "Part fitted",
+      "description": "A waiting truck receives a spare and its service, or its repair if the stop was unplanned, begins with the matching lognormal duration. A replacement part is ordered.",
       "inputArcs": [
         {
           "placeId": "place__awaiting_parts",
@@ -781,6 +825,7 @@
     {
       "id": "transition__service_complete",
       "name": "Planned service finished",
+      "description": "The service countdown ends: brake, engine, and tyre wear reset to zero and the truck, bay, and technician are released.",
       "inputArcs": [
         {
           "placeId": "place__in_bay",
@@ -815,6 +860,7 @@
     {
       "id": "transition__repair_complete",
       "name": "Breakdown repair finished",
+      "description": "The repair countdown ends: wear is halved rather than reset, and the truck, bay, and technician are released.",
       "inputArcs": [
         {
           "placeId": "place__in_bay",
@@ -849,6 +895,7 @@
     {
       "id": "transition__load_expires",
       "name": "Load goes to another haulier",
+      "description": "A load older than board_patience hours leaves the board as dropped.",
       "inputArcs": [
         {
           "placeId": "place__load_board",
@@ -871,6 +918,7 @@
     {
       "id": "transition__conditions_on_route",
       "name": "Road noise injection (OnRoute)",
+      "description": "Every conditions_step hours a loaded truck's road severity and speed factor take a Gaussian step scaled by their volatilities, on top of the mean reversion in the dynamics.",
       "inputArcs": [
         {
           "placeId": "place__on_route",
@@ -893,6 +941,7 @@
     {
       "id": "transition__conditions_returning",
       "name": "Road noise injection (Returning)",
+      "description": "The same periodic Gaussian step for trucks on the return leg.",
       "inputArcs": [
         {
           "placeId": "place__returning",
@@ -915,6 +964,7 @@
     {
       "id": "transition__env_shift",
       "name": "Weather noise injection",
+      "description": "Every env_step hours the regional severity and speed means take a Gaussian step of env_volatility, so every truck shares a slowly wandering climate.",
       "inputArcs": [
         {
           "placeId": "place__conditions",
@@ -937,6 +987,7 @@
     {
       "id": "transition__mandatory_rest",
       "name": "Mandatory rest",
+      "description": "A queued truck whose driver has reached max_driving_hours goes to Rest instead of back into service, and a rest stop is counted.",
       "inputArcs": [
         {
           "placeId": "place__depot_queue",
@@ -963,6 +1014,7 @@
     {
       "id": "transition__mandatory_rest_available",
       "name": "Mandatory rest (parked truck)",
+      "description": "The same rule applied to a truck already parked as available.",
       "inputArcs": [
         {
           "placeId": "place__available",
@@ -989,6 +1041,7 @@
     {
       "id": "transition__rest_complete",
       "name": "Rest complete",
+      "description": "rest_remaining reaches zero and the truck is available again.",
       "inputArcs": [
         {
           "placeId": "place__rest",
@@ -1013,6 +1066,7 @@
     {
       "id": "type__truck",
       "name": "Truck",
+      "description": "A truck and its driver: brake, engine, and tyre wear (0 new, 1 fully worn), remaining and total route distance, service countdown, the current load's class, due time, and revenue, age, loads done, an unplanned-repair flag, the road severity and speed factor it is driving under, clocks for conditions resampling and rest, fuel burned, hours driven, and fuel rate.",
       "iconSlug": "circle",
       "displayColor": "#3b82f6",
       "elements": [
@@ -1116,6 +1170,7 @@
     {
       "id": "type__load",
       "name": "Load",
+      "description": "A load on offer: route class (0 motorway, 1 urban, 2 mountain), distance, due time, revenue, and how long it has sat on the board.",
       "iconSlug": "circle",
       "displayColor": "#f97316",
       "elements": [
@@ -1149,6 +1204,7 @@
     {
       "id": "type__conditions",
       "name": "Conditions",
+      "description": "Regional weather: the mean road severity and speed factor newly dispatched trucks inherit, plus the clock to the next resample.",
       "iconSlug": "circle",
       "displayColor": "#10b981",
       "elements": [
@@ -2261,5 +2317,6 @@
   "meta": {
     "generator": "Petrinaut"
   },
-  "title": "Truck fleet with condition-based maintenance (v4)"
+  "title": "Truck fleet with condition-based maintenance (v4)",
+  "description": "A haulage fleet under condition-based maintenance. Loads of three route classes are offered, dispatched to trucks whose wear is under the limit, and driven under drifting regional weather that sets wear and fuel burn. Worn trucks are serviced when a bay, a technician, and a spare are free; the rest run on and risk a roadside failure whose hazard grows with wear, followed by recovery, tow, and repair."
 }
