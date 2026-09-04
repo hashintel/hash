@@ -1432,6 +1432,7 @@ export const AiAssistantPanel = ({
         voiceModeControlsRef.current?.pause();
         setAiAssistantOpen(false);
       }}
+      onCollapsedVoiceEnd={() => setAiAssistantOpen(false)}
       onInputChange={setInput}
       onInputModeChange={selectInteractionMode}
       onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {

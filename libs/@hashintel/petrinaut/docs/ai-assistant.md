@@ -52,11 +52,13 @@ glance. It flattens to near a line whenever nobody holds the turn.
 Spoken turns appear in the conversation as soon as their finalized text arrives, so the transcript
 stays current while the session runs and tools that edit the net remain visible. Select **Collapse
 voice session** to reduce the panel to the Voice dock alone; this hides the AI header, transcript, and
-host Voice region without ending the session. Select **Expand voice session** to restore them. Only
-finalized answers and canonical Brunch text become chat history; provisional transcription and
-Realtime audio are ephemeral. Finalized spoken user messages carry a small **Voice** chip in front of
-the words themselves, and the exact inline answer completed by speech carries the same chip, so Voice
-provenance remains visible without duplicating an answer while the session is mounted.
+host Voice region without ending the session. Select **Expand voice session** to restore them. Ending
+Voice while collapsed also closes the AI panel; ending Voice while expanded returns to the text
+composer. Only finalized answers and canonical Brunch text become chat history; provisional
+transcription and Realtime audio are ephemeral. Finalized spoken user messages carry a small
+**Voice** chip in front of the words themselves, and the exact inline answer completed by speech
+carries the same chip, so Voice provenance remains visible without duplicating an answer while the
+session is mounted.
 
 Voice is half-duplex. The microphone is closed while the interviewer speaks or the assistant is
 working, which prevents playback from becoming a false answer. Select **Your turn** to interrupt:

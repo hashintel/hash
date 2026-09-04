@@ -113,6 +113,7 @@ export type VoiceDockProps = {
   indicator?: ReactNode;
   microphoneMuted: boolean;
   notice: string | null;
+  onCollapsedEnd?: () => void;
   onCollapsedToggle: () => void;
   phase: PetrinautAiVoiceSessionPhase;
   purpose?: "session" | "setup";
@@ -131,6 +132,7 @@ export const VoiceDock = ({
   indicator,
   microphoneMuted,
   notice,
+  onCollapsedEnd,
   onCollapsedToggle,
   phase,
   purpose = "session",
@@ -233,7 +235,12 @@ export const VoiceDock = ({
             <Button
               aria-label={voiceSessionActionLabels.end}
               iconName="close"
-              onClick={actions.end}
+              onClick={() => {
+                actions.end();
+                if (collapsed) {
+                  onCollapsedEnd?.();
+                }
+              }}
               size="sm"
               tone="error"
               tooltip="End voice mode"
@@ -260,9 +267,11 @@ export const VoiceDock = ({
 /** Reads the session straight from the store so the panel re-renders less. */
 export const LiveVoiceDock = ({
   collapsed,
+  onCollapsedEnd,
   onCollapsedToggle,
 }: {
   collapsed: boolean;
+  onCollapsedEnd?: () => void;
   onCollapsedToggle: () => void;
 }) => {
   const actions = useVoiceSessionActions();
@@ -286,6 +295,7 @@ export const LiveVoiceDock = ({
       collapsed={collapsed}
       microphoneMuted={microphoneMuted}
       notice={notice}
+      onCollapsedEnd={onCollapsedEnd}
       onCollapsedToggle={onCollapsedToggle}
       phase={phase}
     />
