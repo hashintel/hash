@@ -6,7 +6,7 @@ This record pins the semantic disposition of the Voice donor branches for the li
 
 | Source | Pinned head | Role |
 | --- | --- | --- |
-| Parent PR [#9528](https://github.com/hashintel/hash/pull/9528) | `6ca81b7bc4d6c112ff3936c38a7209d07f773b8a` | Unified Flue route and path-B departure base |
+| Parent PR [#9528](https://github.com/hashintel/hash/pull/9528) | `eecbe99e201fd8cb78d9b719e789b6abd373ed1b` | Unified Flue route and path-B departure base |
 | Donor PR [#9496](https://github.com/hashintel/hash/pull/9496) | `c7fe8a2e68e8fdc37018b21ec2e9daf4e9ef7c82` | Canonical TTS queue and replay mechanics |
 | Donor PR [#9500](https://github.com/hashintel/hash/pull/9500) | `935aa9f02a5ac635a50eb8bc130edb3e258af8e4` | Completed-transcript authority |
 | Donor PR [#9507](https://github.com/hashintel/hash/pull/9507) | `252b9dbb0c77fae8cee45a506f09cac3e20c381c` | Temporary `brunch_ask` shim, excluded |
@@ -23,7 +23,7 @@ The owner selected half-duplex turn ownership on 2026-09-03: assistant output ow
 | #9528 | One `/agents/chat/:instanceId` product route, browser `ChatTransport`, one memoized client, path-B Voice submission through shared `useChat` | **Adopt** | This is the departure architecture and prevents a second admission authority. | Restack onto every new parent head; verify no successor code calls `send()` directly from Voice. |
 | #9528 | Direct Voice `send()` as a fog-line fallback | **Reject** | It creates a second admission path and mutable coordination surface. The parent has already proved path B. | Mission authority now permits path B only. |
 | #9528 | Claim that Flue 2.0.3 lacks caller idempotency | **Reject as factually false** | Installed typings expose `AgentPromptOptions.idempotencyKey`, `AgentSendResult.deduplicated`, and 409 `submission_conflict` with the existing `submissionId`. | Implemented with transport convergence/conflict tests and typed Voice admission outcomes. |
-| #9528 | Canonical hydration guard, multi-submission response correlation, settlement-driven durable Stop, aligned live/snapshot projection, queued Voice-input cancellation, and client-tool continuation | **Adopt through restack** | These mechanisms remain parent-owned and must enter the successor through the stack rather than copied fixes. | Restacked onto `6ca81b7bc4`; hydration no longer blocks the real witness. Further defects in these mechanisms remain parent scope. |
+| #9528 | Canonical hydration guard, multi-submission response correlation, settlement-driven durable Stop, aligned live/snapshot projection, queued Voice-input cancellation, and client-tool continuation | **Adopt through restack** | These mechanisms remain parent-owned and must enter the successor through the stack rather than copied fixes. | Restacked onto `eecbe99e201f`; hydration no longer blocks the real witness. Further defects in these mechanisms remain parent scope. |
 | #9496 | Serialized canonical speech queue, retained exact source segments, response/output terminal gating | **Adopt mechanics** | Replay and ordinary TTS need one lifecycle-safe queue, and exact text preserves canonical authority. | Implemented without a preparation/simplifier dependency; exact-segment and queue tests pass. |
 | #9496 | `canReadFullResponse`, `readFullResponse()`, exact full-response playback menu | **Adopt** | Exact full-response replay is supported by retained canonical segment identity. | Implemented with idle-state and matching response/output terminal gates. |
 | #9496 | `canRepeatQuestion`, `repeatQuestion()`, and playback-menu action | **Adopt UX; reject final-segment inference** | The final segment may be ordinary prose and is not authority for question identity. The approved `brunch_mark_question` data marker now supplies deterministic identity without accepting an answer. | Implemented by replaying only exact marked text found in finalized prose from the same assistant message; a missing or unmatched marker leaves the action disabled. |
@@ -73,7 +73,13 @@ The owner selected half-duplex turn ownership on 2026-09-03: assistant output ow
 ## Corrective verification
 
 Fresh local checks on 2026-09-04 cover the 58-file successor diff against the
-verified #9528 head `6ca81b7bc4d6c112ff3936c38a7209d07f773b8a`:
+verified #9528 head `eecbe99e201fd8cb78d9b719e789b6abd373ed1b`. Graphite replayed one
+repeatedly touched integration-test conflict while restacking: the semantic
+resolution keeps the parent's required URL-navigation props and tests together
+with the successor's admission, dormant-ask, durable-Stop, and status-removal
+proof. No production-source conflict was resolved by choosing either side
+wholesale. The verified code head before this evidence-only update is
+`9938283a19ab20567ad6b4c96330ea392243c16f`:
 
 | Command | Result |
 | --- | --- |
@@ -85,9 +91,9 @@ verified #9528 head `6ca81b7bc4d6c112ff3936c38a7209d07f773b8a`:
 | `mise exec -- yarn workspace @hashintel/petrinaut test:unit --run src/ui/views/Editor/panels/ai-assistant-panel.test.tsx` | Exit 0; 44/44 production host-registration and panel tests passed. |
 | `mise exec -- yarn workspace @apps/petrinaut-website test:unit src/main/app/voice-interview/canonical-speech.test.ts src/main/app/voice-interview/openai-realtime-session.test.ts src/main/app/voice-interview/voice-turn-controller.test.ts` | Exit 0; 79/79 exact replay, queue, terminal-gating, and turn-controller tests passed. |
 | `mise exec -- yarn exec turbo run lint:tsc lint:eslint test:unit build --filter @hashintel/brunch-agent` | Exit 0; 5/5 tasks passed, including 10/10 test files and 86/86 tests; the four question-marker mock lint failures are resolved with production-interface signatures. |
-| `mise exec -- yarn exec turbo run lint:tsc lint:eslint test:unit build --filter @apps/brunch-agent --filter @apps/petrinaut-website --filter @hashintel/petrinaut --filter @hashintel/brunch-agent --filter @hashintel/brunch-agent-binding-flue --filter @hashintel/brunch-agent-plugin-sdcpn --filter @hashintel/brunch-agent-transport-aisdk` | Exit 0; 39/39 tasks passed, including 16/16 Brunch app files with 79/79 tests and 31/31 website files with 254/254 tests. Website ESLint retains one non-failing warning at `voice-interview-control.tsx:493`. |
-| `yarn workspace @local/petrinaut-arch-docs lint:arch-docs` | Exit 0; 62 layers, 297 edges, 615 files, 63 generated pages, and 31 authored pages. |
-| `git diff --name-only -z 6ca81b7bc4d6c112ff3936c38a7209d07f773b8a...HEAD \| xargs -0 yarn exec oxfmt --check` | Exit 0; all 52 formatter-owned files in the 58-file successor diff passed. The six unmatched documentation files are excluded by `oxfmt.config.ts` and pass repository whitespace validation. |
+| `mise exec -- yarn exec turbo run lint:tsc lint:eslint test:unit build --filter @apps/brunch-agent --filter @apps/petrinaut-website --filter @hashintel/petrinaut --filter @hashintel/brunch-agent --filter @hashintel/brunch-agent-binding-flue --filter @hashintel/brunch-agent-plugin-sdcpn --filter @hashintel/brunch-agent-transport-aisdk` | Exit 0; 39/39 tasks passed, including 16/16 Brunch app files with 79/79 tests, 10/10 Brunch core files with 86/86 tests, 3/3 transport files with 26/26 tests, 5/5 binding files with 18/18 tests, 2/2 plugin files with 8/8 tests, 72/72 Petrinaut files with 616/616 tests, and 31/31 website files with 279/279 tests. Website ESLint retains one non-failing warning at `voice-interview-control.tsx:493`; other inherited warnings remain outside this successor's corrective scope. |
+| `yarn workspace @local/petrinaut-arch-docs lint:arch-docs` | Exit 0; 68 layers, 337 edges, 692 files, 69 generated pages, and 38 authored pages. |
+| `git diff --name-only -z eecbe99e201fd8cb78d9b719e789b6abd373ed1b...HEAD \| xargs -0 yarn exec oxfmt --check` | Exit 0; all 52 formatter-owned files in the 58-file successor diff passed. The six unmatched documentation files are excluded by `oxfmt.config.ts` and pass repository whitespace validation. |
 | `git diff --check` | Exit 0. |
 | `yarn lint:format` | Exit 1 outside the successor diff only: unrelated untracked `.cursor/plans/fe-1574_mission_recut_6f23f7cd.plan.md`. It was not modified. |
 | In isolated detached worktree `/Users/kostandin/Projects/hashdev/worktrees/fe-1580-latency-baseline-9496`: `mise exec -- yarn exec turbo run build --filter '@apps/petrinaut-website^...'`, then `mise exec -- yarn workspace @apps/petrinaut-website test:unit src/main/app/voice-interview/canonical-speech.test.ts src/main/app/voice-interview/openai-realtime-session.test.ts src/main/app/voice-interview/realtime-brunch-bridge.test.ts src/main/app/voice-interview/voice-turn-controller.test.ts src/main/app/voice-interview/voice-preview.integration.test.ts` | Exit 0; dependency build passed 14/14 tasks, then all 5/5 donor Voice files and 108/108 tests passed at pinned #9496 head. The isolated donor and candidate panels return HTTP 200 on ports 4916 and 4915 respectively; real audible samples remain uncollected. |
