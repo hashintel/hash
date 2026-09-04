@@ -123,8 +123,10 @@ microphone for fresh capture. Its playback menu offers **Repeat question** and
 **Read full response**. Full-response replay becomes available once the matching
 response and audio output have both finished, enqueues all exact retained
 canonical segments in order, and is disabled during capture, submission,
-cancellation, pause, and errors. **Repeat question** remains disabled because
-canonical Brunch speech does not yet identify which segment is a question.
+cancellation, pause, and errors. **Repeat question** has the same safety gates
+and replays only exact question text carrying Brunch's non-interactive marker;
+if the marker is missing, malformed, or does not match finalized prose, the
+action stays disabled rather than guessing from the final segment.
 
 The browser sends its SDP offer to this app; the server initializes a trusted
 `gpt-realtime-2` audio-input/audio-output session through OpenAI's unified
