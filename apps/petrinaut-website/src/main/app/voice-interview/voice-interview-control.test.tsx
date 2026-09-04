@@ -448,7 +448,7 @@ describe("voice interview control", () => {
     expect(screen.getByText("Voice inactive")).not.toBeNull();
   });
 
-  test("does not register Repeat question without a canonical question marker", async () => {
+  test("registers replay controls that remain snapshot-gated", async () => {
     render(<VoiceInterviewHarness />);
 
     await waitFor(() => expect(registeredVoiceModeControls).toBeDefined());
@@ -457,7 +457,7 @@ describe("voice interview control", () => {
       "function",
     );
     expect(registeredVoiceModeControls?.takeTurn).toBeTypeOf("function");
-    expect(registeredVoiceModeControls?.repeatQuestion).toBeUndefined();
+    expect(registeredVoiceModeControls?.repeatQuestion).toBeTypeOf("function");
   });
 
   test("restarts when Voice is reselected before teardown completes", async () => {

@@ -11,7 +11,7 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
-import { selectCanonicalSpeechSegments } from "./canonical-speech";
+import { selectCanonicalSpeech } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import {
   RealtimeBrunchBridge,
@@ -25,6 +25,7 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { AgentSendResult } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
@@ -420,16 +421,19 @@ const AvailableVoiceInterviewControl = ({
       subscribeToAdmission,
       subscribeToAdmissionFailure,
     );
+    const canonicalSpeech = selectCanonicalSpeech(context.messages);
+    const correlateSegment = (segment: CanonicalSpeechSegment) => {
+      const submissionIds = resolveResponseSubmission?.(segment.messageId);
+      return submissionIds === undefined || submissionIds.length === 0
+        ? segment
+        : { ...segment, submissionIds };
+    };
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
-      canonicalSegments: selectCanonicalSpeechSegments(context.messages).map(
-        (segment) => {
-          const submissionIds = resolveResponseSubmission?.(segment.messageId);
-          return submissionIds === undefined || submissionIds.length === 0
-            ? segment
-            : { ...segment, submissionIds };
-        },
-      ),
+      canonicalSegments: canonicalSpeech.segments.map(correlateSegment),
+      ...(canonicalSpeech.questionSegment
+        ? { questionSegment: correlateSegment(canonicalSpeech.questionSegment) }
+        : {}),
       settlements,
       status: context.status,
     });
@@ -457,6 +461,7 @@ const AvailableVoiceInterviewControl = ({
         reconnect: () => {
           void store.controller.reconnect();
         },
+        repeatQuestion: () => store.controller.repeatQuestion(),
         resume: () => {
           void store.controller.resume();
         },

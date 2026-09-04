@@ -23,6 +23,7 @@ export type VoiceSubmissionSettlement = Pick<
 interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
+  readonly questionSegment?: CanonicalSpeechSegment;
   /** Flue's settlement index: the only witness that a turn ended short of a reply. */
   readonly settlements?: readonly VoiceSubmissionSettlement[];
   readonly status: PetrinautAiVoiceModeContext["status"];
@@ -115,6 +116,7 @@ export type RealtimeBrunchBridgeEvent =
     }
   | {
       readonly deliveryId: string;
+      readonly questionSegment?: CanonicalSpeechSegment;
       readonly segments: CanonicalSpeechSegment[];
       readonly speechCancelled?: true;
       readonly type: "canonical-response-ready";
@@ -542,9 +544,20 @@ export class RealtimeBrunchBridge {
     for (const segment of responseSegments) {
       this.#seenSegmentIds.add(segment.id);
     }
+    const questionSegment = this.#chat.questionSegment;
+    const correlatedQuestion =
+      questionSegment &&
+      responseSegments.some(
+        ({ messageId }) => messageId === questionSegment.messageId,
+      ) &&
+      (active.submissionId === null ||
+        (questionSegment.submissionIds?.includes(active.submissionId) ?? false))
+        ? questionSegment
+        : undefined;
     this.#activeSubmission = null;
     this.#emit({
       deliveryId: active.deliveryId,
+      ...(correlatedQuestion ? { questionSegment: correlatedQuestion } : {}),
       segments: responseSegments,
       ...(active.speechCancelled ? { speechCancelled: true as const } : {}),
       type: "canonical-response-ready",
