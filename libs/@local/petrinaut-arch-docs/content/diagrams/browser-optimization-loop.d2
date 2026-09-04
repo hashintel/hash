@@ -9,9 +9,10 @@ channel: Channel
 experiments: Experiments provider
 
 provider -> capability: createOptimizationRun(manifest)
-capability -> worker: "start { runId, description }"
-worker -> optuna: run_browser_study
-optuna -> worker: ask, suggest values
+capability -> worker: "start { runId, description, parallelism }"
+worker -> optuna: create_browser_study (kept handle)
+worker -> optuna: run_browser_study (one segment of trials)
+optuna -> worker: ask, suggest values (up to parallelism in flight)
 worker -> capability: "evaluate { requestId, trial, suggestedValues }"
 capability -> channel: evaluateTrial(request)
 channel -> experiments: "runDetachedObjective (runCount = seeds, seeds pinned on the CPU)"
@@ -23,3 +24,9 @@ worker -> optuna: tell
 optuna -> worker: trial event with best
 worker -> capability: "trial { event }"
 capability -> provider: trial event through attachOptimizationRun
+provider -> capability: "extendOptimizationRun(runId, trials) after Stop or Complete"
+capability -> worker: "extend { runId, trials }"
+worker -> optuna: run_browser_study (next segment, same study)
+provider -> capability: releaseOptimizationRun(runId) when the record is removed
+capability -> worker: "release { runId }"
+worker -> optuna: release_browser_study

@@ -48,7 +48,8 @@ parameter behind the scenes.
    out, with the reason on hover: the objective is an expression metric, which
    the GPU backend cannot compute (see
    [Compute backend](experiments.md#compute-backend-experimental)), so the
-   steps run on the CPU.
+   steps run on the CPU. The in-browser optimizer also offers **Parallel
+   steps** (1 to 4, default `1`): how many steps it evaluates at once.
 5. In **Parameters**, leave a parameter at its current **Value** or enable
    **Optimize** and enter its search range. At least one parameter must be
    optimized.
@@ -94,8 +95,10 @@ steps arrive and shows:
   retaining aggregate progress and the current best result.
 
 Closing the drawer does not stop the optimization. Use **Cancel** to abort an
-active run. Completed, cancelled, and failed records can be removed from their
-result drawer.
+active run on the optimization service, or **Stop** to end a study running in
+the browser, which can then be continued (see [Running in the
+browser](#running-in-the-browser)). Completed, cancelled, stopped, and failed
+records can be removed from their result drawer.
 
 If a run fails, the drawer explains what happened — for example, a lost
 connection reports how many of the requested trials had completed and includes
@@ -201,11 +204,30 @@ experiments.
   **Parameters** band says why under **Could not compute** and the **Metrics**
   section stays empty; a step that fails this way is pruned. Moving to another
   point, or back to this one, tries again.
-- Once the study is finished the controls stay. The point they hold — the last
-  step, or wherever you moved them — refines up to 100 runs, and every point
-  you visit is kept for the record's lifetime, so returning to one is instant.
-  **Cancel** stops the current step and the study; the drawer keeps the
-  received steps and computes again only when you move.
+- **Parallel steps** (1 to 4, default 1) sets how many steps the optimizer
+  evaluates at once. Above 1, the optimizer accounts for the steps still
+  running when it picks the next values, so the proposals differ from a
+  one-at-a-time study. The Parameters band follows the most recently started
+  step, and the Surface rings every step in flight with its running value.
+- Under the Summary's steps bar, a thinner bar tracks the followed step's runs
+  over the runs per step, and a **"N computing"** chip appears while anything
+  computes — the steps in flight and the picked point's refinement — expanding
+  into one row per batch with its own progress.
+- Once the study is finished, or you press **Stop**, the controls move to the
+  best step's point (if a step completed) and that point refines up to 100
+  runs; a point you had already moved to stays where it is. Every point you
+  visit is kept for the record's lifetime, so returning to one is instant. A
+  point that cannot beat the best — its mean sits more than 2.5 standard
+  errors on the wrong side of the best value after its first 8 runs — stops
+  refining there, and the Parameters band says so: **8 runs · cannot beat the
+  best**. The best step's own point always refines to 100 runs.
+- **Stop** discards the steps in flight — they count as pruned — and keeps
+  the study's sampler: the status reads **Stopped**, and the footer offers
+  **Continue** with a number of steps (the study's own step count by default).
+  Continue runs that many more steps on the same study, with everything it
+  learned so far, and the Summary's Steps counts them into the total. A
+  completed study can be continued the same way, as often as the 1,000-step
+  cap allows. Removing the study drops its sampler.
 - Keep the tab open. Closing or reloading the page ends the study, and the
   record is gone on the next load.
 - Given the same settings, each step of an in-browser optimization runs on the
