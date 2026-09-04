@@ -38,4 +38,3 @@ This workpiece and the corrected net establish only:
 - Token flow from ready batch through inspection to dispatch readiness
 
 This is test-authored diagnostic material for the narrow final-inspection–to-dispatch path. It does not establish capture provenance, behavioral execution, failure handling, full process projection, or integration with upstream or downstream operations.
-

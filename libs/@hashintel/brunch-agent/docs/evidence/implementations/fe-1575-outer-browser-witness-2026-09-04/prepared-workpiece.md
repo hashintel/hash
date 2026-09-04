@@ -19,4 +19,3 @@ Inspection and sign-off timing, failure modes, and recovery behavior remain unre
 
 ## Claim boundary
 This prepared revision is test-authored diagnostic material. It is not model-produced evidence and does not establish capture provenance, behavioral execution, or broad projection quality.
-
