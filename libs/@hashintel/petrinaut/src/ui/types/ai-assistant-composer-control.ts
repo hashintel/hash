@@ -61,12 +61,18 @@ export type PetrinautAiVoiceModeControls = {
   reconnect: () => void;
   /** Resumes microphone capture after `pause`. */
   resume: () => void;
+  /** Replays the exact retained canonical assistant response when available. */
+  readFullResponse?: () => void;
+  /** Replays the final segment of the retained canonical response. */
+  repeatQuestion?: () => void;
   /**
    * Stops or restarts microphone capture while the session keeps running, so
    * the assistant carries on speaking. Unlike `pause`, which suspends the
    * whole session when Petrinaut closes the panel.
    */
   setMicrophoneMuted: (muted: boolean) => void;
+  /** Cancels Voice output and hands the live microphone turn to the user. */
+  takeTurn?: () => Promise<void> | void;
 };
 
 /** Stable controls and conversation state supplied to a host-owned Voice mode. */

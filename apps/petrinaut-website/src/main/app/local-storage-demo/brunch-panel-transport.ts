@@ -1,8 +1,12 @@
-import { createFlueChatTransport } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  createFlueChatTransport,
+  FlueChatAdmissionError,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
+import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
-import { brunchClientToolNames } from "./brunch-client-tools";
 
 import type {
   SweepCapture,
@@ -10,7 +14,11 @@ import type {
   SweepCompletionReport,
 } from "../brunch-sweep-output";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
-import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
+import type {
+  FlueChatResponseMessageCompletedEvent,
+  FlueChatResponseMessageStartedEvent,
+  FlueChatTransportOptions,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type { UIMessageChunk } from "ai";
 
@@ -23,6 +31,10 @@ export type BrunchPanelAdmissionTarget = Pick<
 >;
 
 export class BrunchPanelConversationTracker {
+  readonly #admissionFailureSubscriptions = new Set<{
+    readonly listener: (error: FlueChatAdmissionError) => void;
+    readonly target: BrunchPanelAdmissionTarget;
+  }>();
   readonly #admissionSubscriptions = new Set<{
     readonly listener: (admission: BrunchPanelAdmission) => void;
     readonly target: BrunchPanelAdmissionTarget;
@@ -36,6 +48,13 @@ export class BrunchPanelConversationTracker {
     string,
     AgentSendResult["submissionId"][]
   >();
+  readonly #responseMessageStartedListeners = new Set<
+    (event: FlueChatResponseMessageStartedEvent) => void
+  >();
+  readonly #responseMessageCompletedListeners = new Set<
+    (event: FlueChatResponseMessageCompletedEvent) => void
+  >();
+  readonly #stopRequestedListeners = new Set<() => void>();
 
   public recordAdmission(admission: BrunchPanelAdmission): void {
     if (admission.kind === "user") {
@@ -61,15 +80,29 @@ export class BrunchPanelConversationTracker {
    * all: Voice correlates a reply by membership, whichever side admitted the
    * continuation.
    */
-  public recordResponse(
-    messageId: string,
-    submissionId: AgentSendResult["submissionId"],
-  ): void {
-    const recorded = this.#responseSubmissions.get(messageId);
+  public recordResponse(event: FlueChatResponseMessageStartedEvent): void {
+    const recorded = this.#responseSubmissions.get(event.messageId);
     if (recorded === undefined) {
-      this.#responseSubmissions.set(messageId, [submissionId]);
-    } else if (!recorded.includes(submissionId)) {
-      recorded.push(submissionId);
+      this.#responseSubmissions.set(event.messageId, [event.submissionId]);
+    } else if (!recorded.includes(event.submissionId)) {
+      recorded.push(event.submissionId);
+    }
+    for (const listener of this.#responseMessageStartedListeners) {
+      listener(event);
+    }
+  }
+
+  public recordResponseMessageCompleted(
+    event: FlueChatResponseMessageCompletedEvent,
+  ): void {
+    for (const listener of this.#responseMessageCompletedListeners) {
+      listener(event);
+    }
+  }
+
+  public recordStopRequested(): void {
+    for (const listener of this.#stopRequestedListeners) {
+      listener();
     }
   }
 
@@ -91,6 +124,21 @@ export class BrunchPanelConversationTracker {
     return submission;
   }
 
+  public recordAdmissionFailure(
+    target: BrunchPanelAdmissionTarget,
+    error: FlueChatAdmissionError,
+  ): void {
+    for (const subscription of this.#admissionFailureSubscriptions) {
+      if (
+        subscription.target.kind === target.kind &&
+        subscription.target.messageId === target.messageId
+      ) {
+        this.#admissionFailureSubscriptions.delete(subscription);
+        subscription.listener(error);
+      }
+    }
+  }
+
   public submissionForInput(
     messageId: string,
   ): AgentSendResult["submissionId"] | undefined {
@@ -110,6 +158,34 @@ export class BrunchPanelConversationTracker {
     const subscription = { listener, target };
     this.#admissionSubscriptions.add(subscription);
     return () => this.#admissionSubscriptions.delete(subscription);
+  }
+
+  public subscribeToAdmissionFailure(
+    target: BrunchPanelAdmissionTarget,
+    listener: (error: FlueChatAdmissionError) => void,
+  ): () => void {
+    const subscription = { listener, target };
+    this.#admissionFailureSubscriptions.add(subscription);
+    return () => this.#admissionFailureSubscriptions.delete(subscription);
+  }
+
+  public subscribeToResponseMessageCompleted(
+    listener: (event: FlueChatResponseMessageCompletedEvent) => void,
+  ): () => void {
+    this.#responseMessageCompletedListeners.add(listener);
+    return () => this.#responseMessageCompletedListeners.delete(listener);
+  }
+
+  public subscribeToResponseMessageStarted(
+    listener: (event: FlueChatResponseMessageStartedEvent) => void,
+  ): () => void {
+    this.#responseMessageStartedListeners.add(listener);
+    return () => this.#responseMessageStartedListeners.delete(listener);
+  }
+
+  public subscribeToStopRequested(listener: () => void): () => void {
+    this.#stopRequestedListeners.add(listener);
+    return () => this.#stopRequestedListeners.delete(listener);
   }
 }
 
@@ -244,15 +320,40 @@ export const createBrunchPanelTransport = (
         const client = await clientPromise;
         const transport = createFlueChatTransport({
           client,
-          clientToolNames: brunchClientToolNames,
+          clientToolNames: new Set([readPetrinautDocToolName]),
+          hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
           onAdmission: (event) => {
             tracker.recordAdmission(event);
             hooks?.onAdmission?.(event.admission);
           },
-          onResponseMessage: ({ messageId, submissionId }) =>
-            tracker.recordResponse(messageId, submissionId),
+          onResponseMessage: (event) => tracker.recordResponse(event),
+          onResponseMessageCompleted: (event) =>
+            tracker.recordResponseMessageCompleted(event),
         });
-        return decorateBrunchStream(await transport.sendMessages(sendOptions));
+        try {
+          return decorateBrunchStream(
+            await transport.sendMessages(sendOptions),
+          );
+        } catch (error) {
+          const messageId =
+            sendOptions.messageId ?? sendOptions.messages.at(-1)?.id;
+          if (
+            error instanceof FlueChatAdmissionError &&
+            messageId !== undefined
+          ) {
+            tracker.recordAdmissionFailure(
+              {
+                kind:
+                  sendOptions.messageId === undefined
+                    ? "user"
+                    : "client-tool-result",
+                messageId,
+              },
+              error,
+            );
+          }
+          throw error;
+        }
       })(),
     ),
 });

@@ -31,6 +31,7 @@ const snapshotWithPendingClientTool: FlueConversationSnapshot = {
 
 const projectionOptions = {
   clientToolNames: new Set(["readPetrinautDoc"]),
+  hiddenToolNames: new Set(["brunch_mark_question"]),
 };
 
 test("leaves an unfinished client tool available to run", () => {
@@ -82,6 +83,65 @@ test("uses a recorded browser result even when it is null", () => {
       input: { doc: "ai-assistant" },
       output: null,
     },
+  ]);
+});
+
+test("reconstructs durable voice provenance for each browser result", () => {
+  const snapshot: FlueConversationSnapshot = {
+    ...snapshotWithPendingClientTool,
+    messages: [
+      {
+        ...snapshotWithPendingClientTool.messages[0]!,
+        parts: [
+          ...snapshotWithPendingClientTool.messages[0]!.parts,
+          {
+            type: "dynamic-tool",
+            toolCallId: "tool-doc-2",
+            toolName: "readPetrinautDoc",
+            state: "output-available",
+            input: { doc: "ai-assistant" },
+            output: { awaiting: "client" },
+          },
+        ],
+      },
+      {
+        id: "signal-voice-results",
+        role: "system",
+        purpose: "dispatch",
+        display: "hidden",
+        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        parts: [
+          {
+            type: "text",
+            text: JSON.stringify([
+              {
+                toolCallId: "tool-doc-1",
+                toolName: "readPetrinautDoc",
+                output: "First guide",
+                source: "voice",
+              },
+              {
+                toolCallId: "tool-doc-2",
+                toolName: "readPetrinautDoc",
+                output: "Second guide",
+                source: "voice",
+              },
+            ]),
+            state: "done",
+          },
+        ],
+      },
+    ],
+  };
+
+  expect(snapshotToUiMessages(snapshot, projectionOptions)).toEqual([
+    expect.objectContaining({
+      id: "assistant-1",
+      metadata: {
+        source: "voice",
+        voiceToolCallIds: ["tool-doc-1", "tool-doc-2"],
+      },
+    }),
   ]);
 });
 
@@ -232,6 +292,53 @@ test("folds a client-tool continuation into the assistant message it resumed", (
       id: "assistant-3",
       role: "assistant",
       parts: [{ type: "text", text: "You are welcome.", state: "done" }],
+    },
+  ]);
+});
+
+test("hides a question-marker tool while retaining its durable data", () => {
+  const question = "Which line should run this order?";
+  const snapshot: FlueConversationSnapshot = {
+    v: 1,
+    conversationId: "conversation-1",
+    offset: "0",
+    messages: [
+      {
+        id: "assistant-question",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolCallId: "tool-question-1",
+            toolName: "brunch_mark_question",
+            state: "output-available",
+            input: { question },
+            output: { marked: true },
+          },
+          {
+            type: "data-brunch-question",
+            data: { question, toolCallId: "tool-question-1" },
+          },
+          { type: "text", text: question, state: "done" },
+        ],
+      },
+    ],
+    settlements: [],
+  };
+
+  expect(snapshotToUiMessages(snapshot, projectionOptions)).toEqual([
+    {
+      id: "assistant-question",
+      role: "assistant",
+      parts: [
+        {
+          type: "data-brunch-question",
+          data: { question, toolCallId: "tool-question-1" },
+        },
+        { type: "text", text: question, state: "done" },
+      ],
     },
   ]);
 });

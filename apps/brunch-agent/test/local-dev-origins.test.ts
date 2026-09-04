@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { expect, test } from "vitest";
 
+import { mergePetrinautPanelConfig } from "../petrinaut-local.vite.config.ts";
 import {
   defaultChatOrigin,
   localChatListen,
@@ -21,7 +22,7 @@ test("one documented root command starts the Brunch server and Petrinaut panel",
   };
 
   expect(rootPackage.scripts["dev:brunch"]).toBe(
-    "CARGO_TERM_PROGRESS_WHEN=never turbo run build --filter '@apps/petrinaut-website^...' && npm-run-all --parallel dev:brunch:server dev:brunch:panel",
+    "CARGO_TERM_PROGRESS_WHEN=never turbo run build --filter '@apps/brunch-agent^...' --filter '@apps/petrinaut-website^...' && npm-run-all --parallel dev:brunch:server dev:brunch:panel",
   );
   expect(rootPackage.scripts["dev:brunch:server"]).toBe(
     "yarn workspace @apps/brunch-agent dev",
@@ -62,5 +63,21 @@ test("petrinaut:dev proxies the mounted Flue conversation route", () => {
   );
   expect(readAppFile("petrinaut-local.vite.config.ts")).toContain(
     'VITE_BRUNCH_CHAT_ENDPOINT ??= "/agents/chat"',
+  );
+});
+
+test("petrinaut:dev retains the website API handlers needed by Voice", () => {
+  const config = mergePetrinautPanelConfig({
+    chatOrigin: defaultChatOrigin,
+    loadedConfig: {
+      plugins: [{ name: "petrinaut-api-dev" }],
+    },
+    root: "/test/petrinaut-website",
+  });
+
+  expect(config.plugins).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ name: "petrinaut-api-dev" }),
+    ]),
   );
 });

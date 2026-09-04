@@ -1,163 +1,197 @@
-# Mission 5 — one Flue conversation route for Voice and the typed panel
+# Mission 5 successor — Voice safety and UX parity on the unified Flue route
 
 ## Status
 
-**Live as of 2026-09-03** for [FE-1574](https://linear.app/hash/issue/FE-1574/let-voice-speak-through-canonical-brunch-conversations) on `ln/fe-1574-direct-voice-flue`, stacked directly on the closed Mission 4 branch. This is the sole execution authority for the branch. The builder implementation now routes typed panel and finalized Voice turns through one browser `FlueClient` at `/agents/chat/:instanceId`, projects canonical replies into Petrinaut and TTS, uses durable Flue abort for explicit Stop, and rehydrates canonical conversation state through SDK observation. The former Brunch `/api/chat` handler and projector are deleted. Mission acceptance remains open until the required human demo and proof-leaf-8 bundle exist.
+**Live as of 2026-09-04** for [FE-1580](https://linear.app/hash/issue/FE-1580/harden-voice-safety-and-ux-on-the-unified-flue-route) on `kostandin/fe-1580-harden-voice-safety-and-ux-on-the-unified-flue-route`, stacked directly on [PR #9528](https://github.com/hashintel/hash/pull/9528) at the GitHub-verified head `eecbe99e201fd8cb78d9b719e789b6abd373ed1b`. This file is the sole execution authority for the successor branch. The restack adopts the parent's canonical hydration overwrite guard, multi-submission response correlation, settlement-driven durable Stop, aligned live/snapshot projection, queued Voice-input cancellation, and client-tool continuation behavior. The parent remains the authority for defects in those mechanisms; this branch must restack onto further parent fixes rather than repair them.
 
-The accepted departure base remains Mission 4's package-composed `ChatAgent`: `useBrunchAgent()` mounts core's independent `elicitation` capability and `useSdcpnPlugin()` mounts the SDCPN job contribution. `@hashintel/brunch-agent-transport-aisdk` is now the browser adapter over public `@flue/sdk`, not a server handler. The current external Voice evidence remains PR [#9496](https://github.com/hashintel/hash/pull/9496) at `c7fe8a2e68e8fdc37018b21ec2e9daf4e9ef7c82`, PR [#9507](https://github.com/hashintel/hash/pull/9507) at `252b9dbb0c77fae8cee45a506f09cac3e20c381c`, and PR [#9512](https://github.com/hashintel/hash/pull/9512) at `d13535d1077b3a78d6a1411031b7d0a0a78e3144`. They are read-only source evidence, not branches to rewrite or wholesale architecture to restore.
+The owner selected **half-duplex turn ownership** on 2026-09-03. While canonical assistant audio is pending or playing, the microphone is closed. Ownership transfers away from input as soon as canonical speech is requested, before `response.create` is sent: every accepted unfinished input item becomes stale and provisional transcript state is cleared. Initial automatic speech may begin before Brunch settlement when a new canonical segment is durably completed and correlated to the active Voice submission. The explicit **Your turn** action may cancel that audio immediately, but opens a fresh input turn only after both provider cancellation acknowledgement and Brunch settlement. Automatic duplex barge-in is rejected because assistant playback can become a false user turn.
 
-Cold-start reads are [`docs/evidence/implementations/mission-4-voice-integration-handoff.md`](docs/evidence/implementations/mission-4-voice-integration-handoff.md), [`packages/transport-aisdk/src/index.ts`](packages/transport-aisdk/src/index.ts), [`packages/transport-aisdk/src/ui-stream.ts`](packages/transport-aisdk/src/ui-stream.ts), [`packages/transport-aisdk/src/transcript.ts`](packages/transport-aisdk/src/transcript.ts), [`apps/brunch-agent/src/app.ts`](../../../apps/brunch-agent/src/app.ts), [`apps/brunch-agent/src/http/ownership.ts`](../../../apps/brunch-agent/src/http/ownership.ts), [`apps/brunch-agent/test/petrinaut-chat.integration.ts`](../../../apps/brunch-agent/test/petrinaut-chat.integration.ts), [`apps/brunch-agent/test/architecture/boundaries.integration.ts`](../../../apps/brunch-agent/test/architecture/boundaries.integration.ts), [`apps/petrinaut-website/src/main/app/local-storage-demo/`](../../../apps/petrinaut-website/src/main/app/local-storage-demo/), [`apps/petrinaut-website/src/main/app/voice-interview/`](../../../apps/petrinaut-website/src/main/app/voice-interview/), and the installed Flue 2.0.3 documentation at `node_modules/@flue/sdk/docs/sdk/flue-client.md`, `node_modules/@flue/sdk/docs/reference/streaming-protocol.md`, and `node_modules/@flue/sdk/docs/guide/react.md`.
+On 2026-09-04, the owner approved a non-interactive Brunch-owned question
+marker for exact **Repeat question** replay. The marker is a server tool plus a
+durable client data part: it identifies exact assistant-authored text but never
+suspends for an answer, mounts `brunch_ask`, or creates a second Voice submission
+path. For direct-user Voice provenance, the owner selected an upstream Flue
+user-metadata contract rather than a local runtime patch or correlated sidecar
+signal. The [decision record](docs/evidence/design/mission-5-question-marker-and-provenance-decision-2026-09-04.md)
+defines the accepted and rejected mechanics.
+
+### Turn-ownership decision
+
+1. **Adopted — half-duplex explicit handoff.** It gives assistant playback exclusive ownership, makes cancellation settlement a visible boundary, and guarantees fresh post-handoff capture. The product cost is one extra **Your turn** action and barrier latency when the user interrupts.
+2. **Rejected — automatic duplex barge-in.** It offers the most conversational interruption and avoids an explicit control, but an open microphone can transcribe assistant playback as a user answer, and capture can race an unsettled cancellation. This risk is unacceptable for authoritative completed transcripts.
+
+The parent now prevents its once-per-conversation canonical hydration from overwriting a locally submitted turn. The real microphone, handoff, Stop, hard-reload, and same-origin witness is therefore executable but remains unproved until the human witness and retained artifact bundle are complete.
+
+On 2026-09-04, the owner directed PR #9531 to close one bounded launcher
+defect exposed while starting that witness. The Brunch panel config now retains
+Petrinaut's stock API plugin so `/api/voice/config` and
+`/api/voice/realtime-call` remain available beside the unchanged
+`/agents/chat/*` Flue proxy. This is an explicit exception to the parent-defect
+constraint below; it changes no conversation or Voice-turn semantics.
+
+On 2026-09-04, the owner directed PR #9531 to close two more bounded Petrinaut
+defects: preserve real Flue and browser-tool errors through the transport and
+display them in full, and replace deferred Voice-transcript disclosure with
+immediate transcript display plus a dock-only collapsed live-session view.
+Initial-CTA Voice entry defaults to that compact presentation; before a live
+session starts, the consent and microphone-permission card sits above a compact
+Voice setup dock, while composer-initiated Voice entry keeps the existing
+expanded presentation. Ending Voice from a collapsed dock also closes the AI
+panel instead of restoring its expanded text composer; ending from an expanded
+dock retains the existing return-to-composer behavior.
+These are explicit exceptions to the parent-defect constraint below; they
+change no conversation authority, submission path, or Voice-turn semantics,
+and local playback cancellation remains separate from durable abort.
+
+Completed-transcript authority, half-duplex ownership, admission idempotency,
+the cancellation barrier, exact full-response replay, and exact marked-question
+replay have focused regression coverage, including the interval between a
+canonical speech request and output start. **Repeat question** is enabled only
+for an approved durable Brunch marker whose exact text appears in finalized
+assistant prose from the same message; the final text segment remains invalid
+question authority. Proof item 5 is complete
+only for the supported client-tool-result path: Flue signals persist each
+Voice-origin tool-call id beside its output, and canonical projection
+reconstructs multiple surviving origins. Direct spoken user attribution is
+blocked because Flue 2.0.3 projects the generated `submissionId` but neither
+caller metadata nor the caller idempotency key. The discarded
+browser-correlation implementation would have violated the explicit
+second-durable-store stop condition. The restacked hydration guard removes the
+old parent blocker, but no real witness claim is valid until the retained human
+evidence exists.
+
+The 2026-09-04 corrective verification covers the current 72-file successor
+diff against #9528 head `eecbe99e201f`: the four focused race cases pass 4/4
+tests, the filtered production admission-outcome cases pass 3/3 tests, and the
+complete seven-workspace Turbo run passes 39/39 tasks and 1,123/1,123 tests,
+including 282/282 website tests and the Brunch core package. Architecture
+validation passes with 68 layers, 337 edges, 690 files, 69 generated pages, and
+38 authored pages. `git diff --check` passes, and the root formatter accepts all
+5,527 matched files. The exact commands and dispositions are retained in the
+[donor matrix](docs/evidence/implementations/mission-5-voice-safety-parity/donor-behavior-matrix.md#corrective-verification).
+
+The pinned donor-behavior decision record is the [FE-1580 donor matrix](docs/evidence/implementations/mission-5-voice-safety-parity/donor-behavior-matrix.md). Donor PRs are read-only evidence at their named heads; semantic reimplementation is required, never merge or cherry-pick.
 
 ## Imperative
 
-Make the mounted Flue conversation route the only product door into a Brunch conversation, and make Voice a faithful audio projection of that one canonical conversation. One finalized spoken answer and one typed panel message must both enter the owning Flue conversation through `@flue/sdk` against `/agents/chat/:instanceId`, and the corresponding canonical Brunch response must reach visible text and TTS without another model rewriting the text. Do this now because Mission 4 established the canonical agent composition while two transports still exist to the same conversation: the Voice preview's AI SDK composer path and the server-side `/api/chat` adapter, which admits through a different code path than the SDK does. Routing Voice onto Flue while keeping `/api/chat` for typed text would harden the split into two routes, two ownership rules, and two protocols; the least mechanism is one route, with the AI SDK reduced to the panel's rendering contract behind a host-supplied browser `ChatTransport`.
+Make Voice safe and product-complete on the one Flue conversation route established by the parent. Only a completed provider transcription may become a spoken answer; one logical typed or Voice delivery must admit at most one Flue turn; assistant output must yield the microphone through an acknowledged cancellation barrier; exact canonical responses must be replayable; and Voice attribution must survive canonical hydration and reopen.
 
-### Product-manager litmus
+Voice path B is the **only admissible submission shape**:
 
-Adopted on restack onto the parent spine's 2026-09-03 litmus reframing. A product manager who did not watch the work must be able to notice the advance; the single-route consolidation, the browser `ChatTransport`, the deleted `/api/chat` door, and the repurposed transport package are internal sequencing and must not be presented as the advance.
+```text
+Voice completed transcript
+→ Voice controller validates one keyed transcript identity
+→ panel submitVoiceInputWithAdmission
+→ panel submitVoiceInput
+→ shared useChat submitText
+→ host-supplied Flue ChatTransport
+→ client.send({ message, idempotencyKey, signal })
+→ /agents/chat/:instanceId
+```
 
-**Release note:** in the Petrinaut Brunch panel you can type or speak to Brunch in one conversation; what you hear is exactly what Brunch wrote; **Stop** really stops Brunch rather than just hiding its answer; and reopening the panel shows the same conversation you left, without re-sending or replaying anything.
+Voice may not call `FlueClient.send()` directly and may not own a second mutable transcript. A direct-send fallback would recreate the second admission path this stack exists to remove.
 
-**Demo script (no engineer present), on the deployment posture available at cut time — the local `yarn dev:brunch` pair with the Brunch preview selected:** open the panel and type one message; read the reply. Start Voice mode and speak one answer; see exactly one new user message appear, then see Brunch's reply appear as text and hear the same words read aloud. Speak over it once; playback stops and the text stays. Ask a second question and press **Stop** while Brunch is still working; the conversation shows that turn as stopped, not as an answer. Close the panel and reopen the same conversation: the typed turn, the spoken turn, and the stopped turn are all there exactly as you saw them, nothing replays, and nothing is sent again.
-
-**Previously impossible:** Stop only cancelled the browser request while Brunch kept working, so reopening the panel showed a full answer you had stopped; typed and spoken turns entered Brunch through different doors, so a spoken turn could be held or ordered differently from a typed one.
-
-**Completion:** the mission is complete at the contract stratum below — when a product manager can run this demo script end to end and proof leaf 8's witness bundle records it — not when the first typed or spoken turn crosses the route. The first green typed-panel tracer and the first green Voice tracer are internal milestones.
-
-### Recut rationale
-
-Inspected at the real boundary on 2026-09-03 (`node_modules/@flue/sdk/docs/reference/streaming-protocol.md`, `packages/transport-aisdk/src/index.ts`, `packages/transport-aisdk/src/ui-stream.ts`, `apps/petrinaut-website/src/main/app/local-storage-demo/brunch-panel-transport.ts`, `node_modules/ai/dist/index.d.ts` `ChatTransport`):
-
-- Flue's SSE does not remove the need for translation while the panel speaks `useChat`: Flue admits one `DeliveredMessage` with a 202 and streams `ConversationStreamChunk` batches on a separate, never-ending offset-resumed read; the AI SDK posts the whole `messages` array and expects one finite `UIMessageChunk` stream per turn. Request shape, vocabulary, and lifecycle all differ, and `@flue/*` ships no AI SDK adapter.
-- At the recut, the adapter was one translation cut across two homes by the transport topology gate: AI SDK request framing, CORS, and principal parsing in `transport-aisdk` (then Flue-free), and the load-bearing `ConversationStreamChunk → UIMessageChunk` projection plus snapshot → UI messages in `apps/brunch-agent/src/conversation/`.
-- A Hono-level relocation would have re-expressed the same admit → follow → project → terminate join as a server handler; it would have removed nothing and kept two routes. It was rejected.
-- AI SDK `ChatTransport` is a client-side interface, and Petrinaut already accepts and wraps host-supplied transports. The landed browser transport over the same `createFlueClient()` that Voice uses owns the projector, removes `/api/chat` and its handler, and makes typed and spoken turns share one admission path, one ownership guard, and one protocol.
+The parent's claim that Flue 2.0.3 cannot accept caller idempotency is false. The installed `@flue/sdk` 2.0.3 typings expose `AgentPromptOptions.idempotencyKey?: string`, `AgentSendResult.deduplicated?: boolean`, and the 409 `submission_conflict` response with the existing `submissionId` in `FlueApiError.body.error.meta.submissionId`. The invariant is **at most one admitted turn**, not exactly one invocation of `send()`.
 
 ## Throughline
 
-The real boundary is the local Petrinaut surface driven by `yarn dev:brunch` — both its typed panel and its Voice control — through one same-origin-proxied Flue route into the mounted production `ChatAgent`, back to visible Petrinaut text and, for Voice, audible playback:
+The production throughline is the local Petrinaut Brunch surface driven by `yarn dev:brunch`:
 
 ```text
-                 Petrinaut typed panel (`useChat`)              Petrinaut microphone
-                 → host-supplied browser `ChatTransport`         → OpenAI Realtime provisional STT + turn detection
-                   (`sendMessages` → one user text or            → one validated finalized `continue_interview` answer
-                    one client-tool-result signal)
-                              └──────────────┬────────────────────────────┘
-→ one browser `createFlueClient()` per selected principal + logical conversation id
-→ one supported `send()` admission at the same-origin proxied `/agents/chat/:instanceId` route
-  (Voice may enter via the panel's transport — preferred, one visible store — or call `send()` directly; see fog-line)
-→ `agentOwnershipGuard` (the only ownership check) → `createAgentRouter(ChatAgent)`
-→ current `ChatAgent` with `useBrunchAgent()` + `useSdcpnPlugin()`
-→ SDK reads: `wait(admission, { onEvent })` for the panel's finite per-turn stream,
-  `observe({ live: "sse" })` for canonical state and reopen
-→ response parts correlated by server-issued `submissionId`
-→ panel: existing `ConversationStreamChunk → UIMessageChunk` projector, terminated on `submission-settled`
-→ Voice: canonical completed Brunch text displayed and passed unchanged as TTS input
-→ local playback/observation cancellation or explicit conversation-wide `abort()`
-→ observation rehydration after reopening the same logical conversation
+OpenAI Realtime microphone input
+→ semantic VAD marks an input boundary but creates no model response
+→ conversation.item.input_audio_transcription.completed
+→ keyed transcript authority (connection epoch, item id, content index)
+→ half-duplex Voice controller and shared panel submission path B
+→ browser AI SDK ChatTransport over the memoized FlueClient
+→ idempotent Flue admission on the same-origin /agents/chat/:instanceId proxy
+→ agentOwnershipGuard → mounted Brunch ChatAgent
+→ durably completed, submission-correlated canonical segments
+→ each new finalized segment enters the exact speech queue while remaining work continues
+→ settlement releases exact replay, the next input turn, and supported client-tool Voice provenance
+→ observe({ live: "sse" }) hydration and reopen
 ```
 
-The `/api/chat` route, `createPetrinautChatHandler`, the in-process `init().dispatch()/read()` admission path, the `GET ?id=` history door, and the `/api/chat` Vite proxy are removed from the Brunch app; the local launcher proxies `/agents/chat/*` instead. `@hashintel/brunch-agent-transport-aisdk` is repurposed as the browser-side adapter: it exports the projector, the snapshot → UI-message projection, the header names, and a `ChatTransport` factory over a caller-supplied `FlueClient`, and depends on `ai` and the public `@flue/sdk` client only. The Petrinaut panel itself stays on `useChat`; it is not rewritten onto `@flue/react`.
+Realtime exposes no tools, uses `tool_choice: "none"`, and configures semantic VAD with `create_response: false`. Model function-call arguments are ignored even if a provider violates the policy. Provisional transcription is display-only and disappears without submission. OpenAI permits transcription completion for any committed audio item and does not guarantee completion order across turns; this mission deliberately accepts only an item whose matching `speech_started` boundary occurred during the current input turn. A boundaryless or completion-before-boundary item remains rejected rather than gaining authority retroactively. Requesting canonical speech ends that input turn before `response.create`: unfinished accepted items and their provisional display state are invalidated even if their transcription completes before output audio starts.
 
-`conversationId` is the stable logical reference selected by the Petrinaut host. The current principal plus that id mechanically derives the Flue instance path and ownership headers. `submissionId` correlates one admitted answer and its settlement. Flue offsets remain opaque. `uid` identifies one current incarnation and may guard a known continuation, but it must not replace the logical conversation id or be presented as durable user identity.
-
-For maintained Voice state beyond what the panel already holds, use the SDK's materialized `observe()` surface, or `useFlueAgent()` over the same memoized client if the React seam earns it. Use `readSubmissionReply()`, `read()`, or `wait({ onEvent })` only for submission-scoped extraction, not as a parallel transcript reducer; the panel transport's per-submission projection into `useChat`'s own store is that submission-scoped use, not a second transcript. Do not parse SSE, calculate offsets, retry stream chunks, or hand-pick the latest message. The tracer may stream canonical text visibly through the observation, but TTS begins only from completed speakable segments and may remain settlement-gated; token-by-token speech is not part of this claim.
-
-The first tracer is text-turn-only at the Brunch boundary. It does not require the temporary `brunch_ask` client-tool shim: a finalized spoken answer is a direct Flue user message, and canonical plain assistant text is sufficient to prove the transport. If the real tracer cannot preserve answer correlation without structured questions, stop and present that observed strain before mounting the suspended capability.
-
-### Contract stratum and readiness gate
-
-Close the **one-route conversation transport stratum**: one typed turn and one finalized Voice turn each admitted once through `@flue/sdk` at the mounted route, canonical output, client-tool follow-up as a signal, local playback cancellation, durable abort, visible failure, and same-conversation reopen — with no second server-side door remaining.
-
-Order the tracers so the cheaper one proves the route first: the typed panel over the browser transport (it reuses the existing projector and has an existing integration scenario to re-express), then Voice. After each end-to-end turn works, enumerate the lateral obligations it exposes and close those required to make the visible claim true: duplicate finalization, ambiguous admission, submission/reply correlation, client-tool resume correlation, reconnect and replay, local cancellation versus durable abort races, fatal ownership errors, and canonical text/TTS-input correspondence. Carry broader speech ergonomics, multi-turn barge-in tuning, structured questions, and remote identity and exposure only to the named deferred owners below.
+Local playback cancellation, local observation cancellation, the HTTP request `AbortSignal`, and durable conversation-wide `FlueClient.abort()` remain separate operations. The first three never masquerade as durable Stop; durable Stop never appears as a Voice transcription or playback failure.
 
 ## Proof
 
-This proof establishes that one real local typed turn and one real local Voice turn each cross the supported Flue conversation protocol at the single mounted route into the current canonical Brunch agent, that the typed turn returns as one finite AI SDK stream and the Voice turn as one visible and spoken canonical response, both with bounded cancellation and recovery semantics, and that no server-side AI SDK door remains. It does **not** establish trusted production authentication, remote deployment, broad Voice UX, structured-question transport, Petrinaut client-tool mutation, workpiece viability, or that the `useChat` panel itself is removable.
+This mission closes the Voice safety and UX-parity stratum on the parent's route. It does not establish production identity, remote deployment, structured questions, a live `brunch_ask` capability, response simplification, workpiece mutation, or fixes for the parent's named defects.
 
-1. **Typed panel over the browser Flue transport.** A typed panel submission calls `send()` exactly once with one `kind: "user"` message; a completed client-tool follow-up calls `send()` exactly once with one `kind: "signal"` `client-tool-result` message and resumes the same assistant message id; the returned `UIMessageChunk` stream carries the same start/step/part/finish sequence the former `/api/chat` integration asserted, and terminates on that submission's `submission-settled`. Reopen hydration comes from `observe({ live: "sse" })` through `snapshotToUiMessages`. Oracle: the current `apps/brunch-agent/test/petrinaut-chat.integration.ts` scenario re-expressed through the browser transport against the in-process `app.fetch` of the real `app.ts` (Flue route, ownership guard, faux provider), preserving its text, reasoning, server-tool, and client-tool-resume assertions; the relocated projector and transcript unit tests; and the outer witness typing one message in the real panel with the network ledger showing only `/agents/chat/:instanceId` traffic.
-2. **Direct finalized admission.** A completed Realtime `continue_interview` call invokes Flue `send()` exactly once with one `kind: "user"` message; provisional transcript events, duplicated provider terminal events, stale epochs, and repeated tool-call delivery never enter history. The admitted server `submissionId` becomes the turn correlation key. A lost or ambiguous admission is surfaced and never blindly resent. Oracle: named cases in `apps/petrinaut-website/src/main/app/voice-interview/realtime-brunch-bridge.test.ts`, including `admits one finalized Realtime answer through Flue once`, plus canonical snapshot inspection showing exactly one matching visible user message.
-3. **No server-side AI SDK door.** The Brunch app no longer mounts `/api/chat`; `createPetrinautChatHandler`, `PETRINAUT_CHAT_ROUTE`, the in-process `init()` admission path, and the `/api/chat` proxy are deleted; the repurposed transport package contains no `Request`/`Response` handler. The real Voice turn reaches the mounted route through `@flue/sdk` — either through the panel's Flue transport or by a direct `send()` — and makes no submission over any non-Flue protocol. Oracle: `apps/brunch-agent/test/build-artifact.test.ts` asserting the built server answers `/api/chat` with Hono's 404 and still serves the Flue route; the retained browser network ledger from the outer witness; and a focused integration case in `apps/petrinaut-website/src/main/app/voice-interview/voice-preview.integration.test.ts` named `admits a Voice turn only through the Flue route`.
-4. **Canonical visible and TTS output.** The materialized response selected for the admitted `submissionId` is the source for visible text and TTS input. Completed visible assistant text is preserved in part order; reasoning and non-speech parts are not promoted to spoken text. The exact string array sent for canonical speech equals the selected Brunch text, and no response-preparation or simplification generation call occurs. Oracle: `apps/petrinaut-website/src/main/app/voice-interview/canonical-speech.test.ts`, `openai-realtime-session.test.ts`, and the outer artifact comparison of canonical snapshot text to the recorded TTS request payload; the human witness confirms that playback begins but does not claim synthesized audio is a verbatim recording.
-5. **Cancellation and abort stay distinct.** Barge-in, pause, or panel closure stops local playback/observation according to the existing Voice contract without rewriting or deleting canonical history. An explicit durable Stop action uses Flue's conversation-wide `abort()` when work is unsettled, and history/observation exposes an `aborted` settlement; an abort that loses the race to completion remains completed. Oracle: named local-versus-durable cancellation cases in `voice-turn-controller.test.ts` and `voice-preview.integration.test.ts`, plus the retained Voice event ledger and Flue settlement.
-6. **Reopen resumes without replay.** Reopening the same selected conversation rehydrates its canonical messages and settlements from Flue, does not submit another user message, and does not automatically replay settled audio. An absent conversation, fatal 401/403, reconnecting stream, and settled conversation are visibly distinguishable. Oracle: a named `rehydrates the settled Voice turn without resubmission or playback` case over the SDK observation in `realtime-brunch-bridge.test.ts`, followed by the outer witness reopening the panel and comparing the second view with the same snapshot.
-7. **Architecture and boundary integrity.** The built app still mounts `useBrunchAgent()` plus `useSdcpnPlugin()`, excludes the obsolete app-local stub agent, derives ownership from principal plus logical conversation id in exactly one guard, and reaches Flue locally through a same-origin protocol-preserving proxy rather than a newly public route. The transport package's runtime dependencies are exactly `ai` and `@flue/sdk`; it imports no `@flue/runtime`, core, plugin, or binding module. Oracle: `apps/brunch-agent/test/build-artifact.test.ts`, `apps/brunch-agent/test/agent-ownership.test.ts`, the transport case in `apps/brunch-agent/test/architecture/boundaries.integration.ts` (`transports consume their wire encoder and the public Flue client only — never core, a binding, or the runtime`), SDCPN packaging tests, and browser inspection of the claimed local route and headers.
-8. **Real Voice witness and retained proof bundle.** With `yarn dev:brunch`, a human speaks one answer, sees exactly one matching user message, sees and hears the canonical Brunch response begin, interrupts playback once, exercises Stop on one unsettled turn, and reopens the original settled turn. Retain under `docs/evidence/implementations/mission-5-direct-voice-flue/` the witness record, sanitized Voice event ledger, network route summary, canonical Flue snapshot, settlement outcomes, source/build commit, and hashes. Oracle: human adjudication against that bundle; mocked browser or server-only evidence cannot satisfy this leaf.
-9. **Focused repository verification and truthful docs.** Brunch app, website, core/plugin, transport, and Petrinaut checks pass; end-user and operator prose describes the single route that actually shipped and preserves the distinction between canonical text and generated audio; no surviving prose or comment names `/api/chat` as a Brunch door. Oracle: `yarn exec turbo run lint:tsc lint:eslint test:unit build --filter @apps/brunch-agent --filter @apps/petrinaut-website --filter @hashintel/petrinaut --filter @hashintel/brunch-agent --filter @hashintel/brunch-agent-plugin-sdcpn --filter @hashintel/brunch-agent-transport-aisdk`, `yarn workspace @local/petrinaut-arch-docs lint:arch-docs` if a Petrinaut architectural boundary changes, `rg -n "api/chat" apps/brunch-agent libs/@hashintel/brunch-agent/packages apps/petrinaut-website/src/main/app/local-storage-demo` returning only the stock Petrinaut route and frozen Mission 4 evidence, inspection of `apps/petrinaut-website/README.md` and `libs/@hashintel/petrinaut/docs/ai-assistant.md`, and a patch changeset if the published Petrinaut package changes.
+### Product-manager litmus
+
+**Release note:** Voice now submits only what the microphone actually transcribed, waits for a safe **Your turn** handoff before listening over Brunch, and can replay the exact full response or exact Brunch-marked question. Client-tool Voice origins survive canonical reopen. Restoring the Voice chip on direct spoken user messages remains blocked on an upstream Flue user-metadata contract.
+
+**Demo script:** run `yarn dev:brunch` and select the Brunch preview. Speak one answer and see exactly one matching user turn. While Brunch is speaking, confirm the microphone remains closed, choose **Your turn**, wait for the handoff, and speak again. After the response and audio settle, use the playback menu to read the full response exactly and repeat only the exact Brunch-marked question; a missing or unmatched marker keeps that action disabled. Start another turn, press durable **Stop** before settlement, and see a stopped turn rather than a Voice error. Hard-reload the settled conversation and confirm the canonical turn remains without resubmission or replay; direct-user Voice-chip restoration additionally waits on the Flue projection seam.
+
+**Previously impossible:** model-generated function arguments rather than completed audio transcription could become the answer; an accepted transcript could complete after canonical speech was requested but before output started; assistant playback could create a false user turn; cancellation could reopen capture before the provider settled; replay controls and multi-origin client-tool Voice attribution were incomplete.
+
+**Completion:** the implemented portions close when their tests and focused checks pass. Exact question replay uses the Brunch-owned marker recorded below; direct-user provenance still needs the Flue re-entry seam recorded below. Mission acceptance additionally requires the real microphone, handoff, Stop, hard-reload, and same-origin route witness, plus the comparative Voice latency gate. Mocked or server-only proof cannot substitute for that witness or for real audible-latency samples.
+
+1. **Completed-transcript authority and half-duplex ownership.** Realtime session configuration has no tools, no model-created semantic-VAD response, and no automatic interruption policy. Only a unique completed transcript can reach the shared panel submission path. Duplicate, empty, failed, unavailable, stale, canonical-speech-overlapping/pre-handoff, playback-overlapping, and over-limit transcripts do not submit and produce the specified passive or recoverable notice. Before sending `response.create`, a canonical speech request invalidates every unfinished accepted item, clears bridge/controller transcript state and provisional UI, and closes the microphone; a completion in the interval before output starts cannot submit or regain authority. **Your turn** may cancel audio immediately but opens only a post-barrier input turn after provider cancellation acknowledgement and Brunch settlement. Oracle: transplanted-first cases in `openai-realtime-session.test.ts`, `realtime-brunch-bridge.test.ts`, `voice-turn-controller.test.ts`, `voice-interview-control.test.tsx`, and `voice-preview.integration.test.ts`.
+2. **Idempotent admission.** Typed turns derive a stable key from the AI SDK message id; Voice turns derive it from connection epoch, item id, and content index. A repeated same-payload key converges on the original receipt, including `deduplicated: true`; a 409 `submission_conflict` surfaces the original `submissionId` without admitting another turn. An admission whose outcome cannot be established stays visibly ambiguous and is never automatically retried. Oracle: transport unit tests plus Voice integration tests asserting one admitted submission rather than one `send()` invocation.
+3. **Acknowledged cancellation barrier.** `cancelOutput()` resolves only after input/output buffer clears, matching provider acknowledgements, and all targeted response terminal events. The latest mute preference wins while it settles. **Your turn** may request cancellation immediately, but the microphone reopens only after both that provider acknowledgement and correlated Brunch settlement. Audio captured before the handoff cannot submit afterward. Durable Stop remains a stopped Flue turn rather than a Voice failure. Oracle: donor-adapted session/controller race tests and the unsettled-Stop integration case.
+4. **Committed canonical speech, full-response replay, and exact question replay.** Initial automatic speech begins from each new, finalized canonical segment as soon as its Flue model step is durably completed and correlated to the active Voice submission; it does not wait for whole-submission settlement. Streaming deltas, unfinished text, reasoning, tool inputs and results, and inferred text are never speech sources. Stable canonical segment ids deduplicate the serialized speech queue and preserve canonical order across client-tool continuations. Hydration seeds existing ids without autoplay; cancellation, pause, Your turn, durable Stop, failure, and abort suppress queued and later continuation speech. `canReadFullResponse`, `readFullResponse()`, and the playback menu retain and enqueue all exact canonical text segments in order without a simplifier. A non-interactive `brunch_mark_question` server tool writes a durable `data-brunch-question` marker containing exact question text and tool-call identity. The selector accepts it only when the same finalized assistant message contains that exact text; there is no final-segment or punctuation fallback. `repeatQuestion()` queues only the accepted marked segment. Both replay actions remain gated until the correlated Brunch response settles, matching Realtime audio is terminal, and input is idle, and remain disabled during submission, capture, cancellation, pause, and errors. The marker never accepts an answer or changes Voice path B. Oracle: transport correlation, live transport, snapshot projection, canonical speech, bridge, controller, panel-host, and production-preview tests proving completed canonical segments can start speech while chat is streaming without admitting any noncanonical source or mounting `brunch_ask`.
+5. **Durable Voice provenance.** An assistant message may retain multiple `voiceToolCallIds`; one failed sibling origin does not erase successful origins. Persisted Flue client-tool-result signals support deterministic reconstruction after hydration and reopen. Direct spoken user messages remain Voice-attributed only while live because the canonical snapshot omits their caller origin. Re-entry requires a supported Flue user-message metadata/idempotency projection; browser storage and user-text encoding are rejected. Oracle: snapshot projection and panel partial-failure tests for supported origins, plus the [blocker record](docs/evidence/implementations/mission-5-voice-safety-parity/provenance-blocker.md).
+6. **Dormant ask removal.** If still present after restacking, the website does not register `brunchAskInteractiveTool` for Voice and canonical speech does not recognize `"brunch-ask"`. No spoken ask answer can enter a wait state the transport cannot resume. Oracle: registration/canonical-speech negative tests and a repository search showing no mounted Voice `brunch_ask` surface.
+7. **Real witness and same-origin route.** A human performs one microphone turn, explicit interruption/handoff, durable Stop on an unsettled turn, and hard reload of a settled turn. The retained network route summary proves the absolute Flue `streamUrl` remains on the same-origin proxy. Oracle: `witness.md`, sanitized `voice-events.jsonl`, `network-routes.json`, canonical `flue-snapshot.json`, `settlements.json`, commit manifest, and hashes under `docs/evidence/implementations/mission-5-voice-safety-parity/`.
+8. **Comparative Voice latency.** Ten comparable real-audio trials at pinned donor #9496 head `c7fe8a2e68e8fdc37018b21ec2e9daf4e9ef7c82` and ten at the final restacked candidate use the same machine, browser, microphone/input phrase, model configuration, warm/cold-start policy, and finalized-speech-to-first-audible-canonical-TTS boundary. The candidate median must not regress, and its p95 regression must remain below 20%. The donor runs from an isolated worktree without changing its branch. Oracle: retained raw sanitized samples, calculation method, environment, both commit SHAs, median, and p95; a comparison that cannot be run reliably leaves this proof incomplete.
+9. **Focused repository verification and truthful docs.** The requested seven-workspace Turbo command passes, including `@hashintel/brunch-agent`, `@hashintel/brunch-agent-binding-flue`, and `@hashintel/brunch-agent-plugin-sdcpn`. `apps/petrinaut-website/README.md` and `libs/@hashintel/petrinaut/docs/ai-assistant.md` describe half-duplex handoff, exact full-response and marked-question replay, Stop, transcript rejection, and the direct-user attribution limitation. If the published Petrinaut package changes, exactly one patch changeset covers it. Oracle: the command recorded in the PR and changeset inspection.
 
 ## Constraints
 
-- Preserve Mission 4's current core/plugin/app composition and authored skill packaging. Voice reconciliation must never restore the deleted app-local `ChatAgent`, concise stub prompt, YAML plugin machinery, or a second model-facing agent.
-- Flue history is the sole canonical conversation record. Voice owns media capture, provisional display, turn finalization, TTS, playback, and local interaction state; it owns no durable transcript and may not splice into stock-assistant history.
-- Use `@flue/sdk`/`@flue/react` directly for shell-facing conversation transport. No adapter may re-specify Flue offsets, retries, materialization, settlement, or recovery. The browser `ChatTransport` is a projection over the public `FlueClient` (`send()`, `wait()`/`observe()`, `history()`), never a second HTTP client; it reads chunks only through the SDK's `onEvent`/observation surfaces.
-- One product route. `/agents/chat/:instanceId` behind `agentOwnershipGuard` is the sole door for typed, Voice, diagnostic, and evaluation traffic; no route, handler, or package may accept a conversation turn over another protocol. The stock Petrinaut `/api/chat` (the website's own OpenAI function) is untouched and must not be borrowed.
-- The Petrinaut panel remains on `useChat`; the AI SDK is its rendering contract, supplied a transport by the host. Do not rewrite the panel onto `@flue/react`, and do not add a second transcript store beside `useChat`'s messages for the typed panel.
-- Submit only the validated finalized answer. Provisional transcription and audio remain ephemeral. One Voice finalization causes at most one `send()` call; because Flue 2.0.3 does not accept a caller idempotency key on `send()`, ambiguous admission must remain visible and must not trigger an automatic retry.
-- Brunch owns canonical response content. TTS may synthesize audio from exact selected text, but no second model may summarize, shorten, paraphrase, or select replacement wording for the tracer.
-- Local playback cancellation, local observation cancellation, HTTP request cancellation, and Flue's conversation-wide durable abort are distinct operations and must remain distinguishable in code, UI state, evidence, and tests.
-- The current browser-minted local principal is an ownership discriminator, not trusted authentication. The outer proof is local and same-origin; it must not expose `/agents/chat/:id` publicly or claim production identity, authorization, CORS, deployment, or recovery.
-- `@hashintel/brunch-agent-transport-aisdk` survives only as the browser-side adapter and the home of the projector, snapshot projection, and header names. Its runtime dependencies are `ai` and `@flue/sdk`; it never imports `@flue/runtime`, core, a plugin, or a binding, and client-tool names reach it as caller-supplied options. The boundary test's transport gate is amended to say exactly that — this is the one accepted topology-gate change of the recut.
-- Do not mount the suspended `brunch_ask` capability merely to preserve the divergent preview stack. Re-entry requires observed plain-turn correlation strain and an owner decision consistent with the structured-question planning contract.
-- External Voice branches and their issues/PRs remain read-only evidence. Port only behavior that serves this mission, preserve relevant provenance in commits, and do not rewrite, close, or represent those records as accepted wholesale.
-- Record admission, first canonical text, first TTS request/audio, and settlement latency without transcript, prompt, tool, SDP, audio, credential, or response-body content in ordinary telemetry.
-- No implementation begins until this authority cut is committed separately. Material changes to this contract require owner review and another focused authority commit before dependent implementation.
+- Preserve the parent's one product route, memoized Flue client, browser `ChatTransport`, shared panel `useChat`, path-B Voice submission, canonical speech selection, durable Stop seam, and SDK observation hydration. Do not rebuild them.
+- Transplant relevant regression tests before implementation. Reimplement donor behavior semantically against the current Flue path; donor branches and PRs are never merged, cherry-picked, rebased, rewritten, retargeted, or closed by this implementation.
+- Derive one deterministic admission key per logical delivery. Treat `deduplicated` as successful convergence and `submission_conflict` as evidence of the already-admitted submission. Do not automatically retry an ambiguous admission.
+- Normalize completed transcripts exactly once in the Realtime bridge with trim plus Unicode whitespace collapse, then enforce the 32,000-code-point bound. The generic panel validates but does not mutate that already-normalized Voice payload. Provisional text remains ephemeral and display-only.
+- The half-duplex microphone is closed from the canonical speech request through output, cancellation, pause, error, and submission states. The request invalidates accepted unfinished input before `response.create`; only a **Your turn** handoff completed by both provider cancellation acknowledgement and Brunch settlement can establish fresh post-request capture. A cancellation promise is part of the turn boundary, not a cosmetic animation state.
+- Automatic speech may precede settlement only for new, durably completed canonical segments correlated to the active Voice submission. Settlement remains the authority for replay and next-turn release. Never speak deltas, unfinished text, reasoning, tool material, inferred text, hydrated history, or any segment from a failed or aborted submission.
+- Brunch canonical text is never summarized, shortened, paraphrased, or regenerated for speech or replay.
+- Preserve every surviving Voice origin independently. Provenance must use supported Flue data or deterministic durable correlation; never encode it in visible user text.
+- Do not fix the parent's admission/Stop races, stream cancellation, hydration overwrite, client-tool classification, response/submission correlation, CI, title, or body. Restack onto Lu's fixes; report any blocker.
+- Keep local playback cancellation, local observation cancellation, HTTP request cancellation, and durable `abort()` distinguishable in code, UI, tests, and evidence.
+- No simplifier, interactive or suspending structured questions, live `brunch_ask`, Petri-net generation/mutation, FE-1575 workpiece work, production identity, CORS/remote deployment, or panel `useChat` removal. The approved non-interactive question marker annotates existing assistant prose only; it is not an answer path or affordance.
 
 ### Expected touched paths
 
 ```text
-~ libs/@hashintel/brunch-agent/packages/transport-aisdk/src/  delete the HTTP handler; add ChatTransport factory over FlueClient; receive ui-stream + snapshotToUiMessages + headers
-~ libs/@hashintel/brunch-agent/packages/transport-aisdk/package.json  deps become ai + @flue/sdk; drop valibot if unused
-~ libs/@hashintel/brunch-agent/packages/transport-aisdk/test/ replace chat-handler/golden with transport + projector + snapshot tests
-~ apps/brunch-agent/test/architecture/boundaries.integration.ts                 amend the transport gate
-- apps/brunch-agent/src/http/petrinaut-chat.ts                server-side door removed
-- apps/brunch-agent/src/conversation/ui-stream.ts              moves into the transport package
-~ apps/brunch-agent/src/conversation/transcript.ts             snapshotToUiMessages moves out; formatFlueTranscript stays for the CLI
-~ apps/brunch-agent/src/http/routes.ts, local-origins.ts       drop PETRINAUT_CHAT_ROUTE and the /api/chat proxy; proxy /agents/chat/*
-~ apps/brunch-agent/src/app.ts                                 remove the /api/chat mount and app-transport closure
-~ apps/brunch-agent/package.json                               drop the `ai` devDependency if nothing else uses it
-- apps/brunch-agent/test/petrinaut-chat.test.ts, petrinaut-chat.integration.ts, petrinaut-chat-result.ts, flue-ui-stream.test.ts  re-expressed against the browser transport / relocated
-~ apps/brunch-agent/test/build-artifact.test.ts, local-dev-origins.test.ts  single-route assertions
-~ apps/brunch-agent/petrinaut-local.vite.config.ts             same-origin Flue-route proxy for the local real surface
-~ apps/petrinaut-website/src/main/app/local-storage-demo/     createFlueClient composition, browser transport, delete use-flue-chat-history
-~ apps/petrinaut-website/src/main/app/voice-interview/        direct Flue admission, materialized response, cancellation, reopen
-~ apps/petrinaut-website/package.json                         add @flue/sdk
-~ yarn.lock                                                   workspace dependency update
-? apps/brunch-agent/src/http/ownership.ts, src/conversation/identity*.ts  only if the identity-contract home (fog-line) moves
-? libs/@hashintel/petrinaut/src/ui/                           smallest public panel seam only if host composition cannot remain local
-~ apps/petrinaut-website/README.md                            operator-facing route and preview behavior
-~ libs/@hashintel/petrinaut/docs/ai-assistant.md              user-visible Voice behavior
-~ libs/@hashintel/brunch-agent/MISSION.next.md                reconcile the production-door, restricted-ingress, and adapter-removal statements
-+ libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-5-direct-voice-flue/  retained proof bundle
-? .changeset/                                                 one patch changeset only if the published Petrinaut package changes
+~ apps/petrinaut-website/src/main/app/voice-interview/             transcript authority, half-duplex state, cancellation, replay tests/code
+~ apps/petrinaut-website/src/main/app/local-storage-demo/          path-B correlation and dormant ask removal if still present
+~ apps/petrinaut-website/src/server/voice/                         Realtime policy tests/code
+~ libs/@hashintel/brunch-agent/packages/transport-aisdk/           stable idempotency and canonical projection/provenance tests/code
+~ libs/@hashintel/petrinaut/src/react/voice-session/                public Voice state required by the panel
+~ libs/@hashintel/petrinaut/src/ui/views/Editor/panels/             Your turn, replay menu, durable provenance
+~ apps/brunch-agent/petrinaut-local.vite.config.ts                  retain Petrinaut Voice API handlers beside the Flue proxy
+~ apps/brunch-agent/test/local-dev-origins.test.ts                  real merged-config launcher regression
+~ apps/petrinaut-website/README.md                                  operator behavior
+~ libs/@hashintel/petrinaut/docs/ai-assistant.md                    end-user behavior
+? .changeset/                                                       one patch changeset if published Petrinaut changes
++ libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-5-voice-safety-parity/  donor matrix and gated witness
 ```
 
 ## Fog-line
 
-- How a finalized Voice answer enters Flue. Two shapes are admissible: **(B, preferred)** Voice submits through the panel's own Flue `ChatTransport` (`useChat.sendMessage` → `send()`), so the panel's `useChat` messages remain the single visible store and Voice's `observe()` shrinks to selecting completed canonical text for TTS — or reads the panel's completed assistant message and drops `observe()` entirely; **(A)** Voice calls `send()` directly and keeps its own `observe()` state, with the panel rehydrating. Start with B; fall back to A only if the existing hold-while-streaming, epoch, or TTS-correlation semantics demonstrably strain under the panel's transport, and record the observed strain. Either way, one finalization is one `send()`, and if the chosen shape would create two mutable transcript stores or a second custom reducer, stop and reorient at the panel boundary.
-- The smallest honest home for the browser-safe principal + logical-conversation-id → Flue-instance-id contract and the two ownership header names. `apps/brunch-agent/src/conversation/identity-web.ts` proves the algorithm; the website must not gain an app-to-app source import, and core must not own HTTP header names. The leading candidate is the repurposed transport package, which already exports the principal header; a website-local copy pinned by an equality test against the app is the fallback. Do not create a new package to hold two strings and a hash.
-- Whether `wait(admission, { onEvent })` alone gives the browser transport a clean finite per-turn stream, or whether the panel needs `observe()` for reconnect during a turn. `wait()` rejects on failed/aborted settlement and on `terminal_event_missing`; the transport must map those to `error`/`abort` chunks rather than throwing past `useChat`. The first real disconnect mid-turn decides; do not pre-build reconnect machinery.
-- Whether `reconnectToStream` should return `null` (observation-only rehydration, the current behavior) or resume an unsettled submission after reload. Start with `null` plus SDK observation; re-enter only if the witness observes a lost in-flight turn.
-- The exact subset of PRs #9496, #9507, and #9512 to port after semantic comparison with the current branch. Their useful Voice state-machine behavior is evidence; their app-local agent topology, temporary ask shim, and generative preparation are not presumed requirements.
-- The bounded speech-selection policy if the exercised Brunch response contains multiple completed text blocks or an interactive part. Begin with canonical completed visible text in order; if this produces duplicate, misleading, or unspeakable output, retain the mismatch and seek a Brunch-owned deterministic presentation rule rather than another generator.
-- Whether the existing Stop affordance can express both local Voice interruption and explicit conversation-wide durable abort without misleading the user. The first real race decides the smallest UI distinction.
-- Whether a same-origin local proxy can carry every SDK history/SSE/send/abort route unchanged. A crisp protocol or middleware blocker permits the thinnest route correction; it does not permit rebuilding the AI SDK adapter under another name.
+- **Parent movement.** Lu owns #9528 and may push more commits. Before each implementation phase, compare the GitHub head and restack this branch; an observed parent change is adopted only through restack, never copied into this branch.
+- **Conflict normalization.** The installed SDK exposes the 409 contract through `FlueApiError.body: unknown`. Narrow only the documented envelope needed to recover `error.meta.submissionId`; do not create a general error protocol or infer success from prose.
+- **Dormant `brunch_ask`.** Remove or gate only the parent surfaces that remain after the next restack. If Lu has already removed them, record the parent commit and make no duplicate change.
+- **Question-marker compliance.** The owner selected `brunch_mark_question` plus a durable client data part. The remaining implementation uncertainty is whether the model follows the instruction on every eligible question. Missing or unmatched markers must degrade by leaving **Repeat question** disabled; they never justify inference from final prose. Product proof covers structural correctness, not a universal model-compliance rate.
+- **Direct-user Voice provenance.** Flue 2.0.3 and current upstream `main` expose a generated `submissionId` but not caller metadata or `idempotencyKey` on canonical user messages. The owner selected an upstream Flue user-metadata contract. Keep this leaf blocked until a released seam can be adopted; do not patch Flue locally, add a provenance signal admission, add sidecar persistence, or encode origin in user content.
+- **Observed timing opportunity.** One pre-change real Voice turn at `f3f5c4ebc7` measured 48.5 ms from finalized transcript to admission, 3,366.6 ms from admission to first canonical text, 0.0 ms from first canonical text to settlement, 0.3 ms from settlement to TTS request, and 628.3 ms from TTS request to the provider audio-start event. The zero measured target gap means this recut would not meaningfully improve that turn; the preceding model/tool/construction latency belongs to #9538 rather than Mission 5. Automated checks cannot establish a latency improvement, and comparable physical microphone-to-audible-TTS trials remain the accepted proof.
+- **Human product evidence.** The hydration overwrite guard is present after the restack, so proof leaf 7 may run. Unit/integration tests still cannot substitute for the real microphone/hard-reload witness, and server or synthetic timing cannot substitute for proof leaf 8's first-audible-audio measurements.
 
 ## Stop or reorient
 
-Stop and surface the evidence if the implementation creates a second conversation authority, keeps or re-adds any server-side route that accepts a conversation turn over a non-Flue protocol, submits provisional STT, automatically retries an ambiguous admission, rewrites canonical text through another model, hand-rolls stream recovery, computes offsets, restores the old stub agent, or activates `brunch_ask` without observed need and owner approval.
+Stop and report if the work would require direct Voice `send()`, a second transcript or conversation authority, hand-rolled stream offsets/recovery, automatic retry after ambiguous admission, canonical text rewriting, a live structured-question path, or any excluded parent fix.
 
-Stop if the browser transport cannot preserve the current client-tool resume semantics (completed client-tool parts on the referenced assistant message → one signal send → continuation of the same assistant message id) without a server-side helper; that is evidence the resume contract needs redesign, not permission to reintroduce `/api/chat`.
+Stop if half-duplex handoff cannot guarantee that pre-handoff audio is rejected and post-barrier audio is fresh, or if provider acknowledgements cannot bound `cancelOutput()` without inventing events. The provenance stop condition has fired for direct spoken user turns: the browser-store implementation was removed and the unsupported leaf is recorded as blocked pending upstream Flue support. For **Repeat question**, stop rather than infer question identity when the approved marker is absent or does not exactly match finalized assistant text. Stop if either replay action can enable before both matching terminal conditions, or if local cancellation invokes durable abort.
 
-Stop at the boundary if direct Flue state cannot reach the existing visible panel without duplicated mutable history; decide the UI ownership seam before adding synchronization machinery. Stop if local cancellation accidentally aborts durable work, explicit Stop only cancels a browser request while the provider keeps spending, a stale response is spoken after conversation/epoch change, or reopen resubmits or replays a settled turn.
-
-Stop rather than widen if the real route requires public unauthenticated exposure, production identity work, remote deployment, Petrinaut mutation tools, workpiece/projection state, or a whole assistant rewrite. Those are not hidden prerequisites to this transport tracer.
+Do not manufacture the hard-reload witness or latency samples. If the human/browser environment cannot produce reliable observations, retain an incomplete evidence record and request the missing action explicitly.
 
 ## Deferred
 
-- **`useChat` panel removal:** with the server-side door gone, the AI SDK survives only as the Petrinaut panel's rendering contract behind a host-supplied transport. Whether Petrinaut ever drops `useChat` is a Petrinaut product decision, not a Brunch transport question; Brunch carries no further obligation here.
-- **Restricted-ingress rule for the Flue route:** Mission 8's landed contract denied `/agents/chat/:id` publicly and routed restricted traffic through `/api/chat`. This recut makes the Flue route the only product route, so that rule must be re-expressed as the FE-1423 gates applying directly to `/agents/chat/:id`. Record the re-expression in `MISSION.next.md`; the release/deployment gate owns its enforcement.
-- **Structured questions:** core-owned question semantics, binding, rendering, correlated reply, and resumed tool execution remain in the shared future-planning record. Re-enter when plain Voice turns demonstrably cannot preserve a required interaction.
-- **Broader Voice quality:** multi-turn barge-in tuning, long-response ergonomics, optional deterministic spoken presentation, accessibility breadth, and response optimisation re-enter after measured strain on the direct canonical route.
-- **Remote/public operation:** trusted identity and authorization, origin policy, hosted Flue reachability, rate/spend controls, replacement recovery, and remote observability remain with the Mission 8 release/deployment gate or a separately cut successor.
-- **Product-data work:** prepared workpiece/Petrinaut viability remains Mission 6; capture-backed review remains Mission 7; automatic traceable projection remains Mission 9. This mission carries no document mutation or provenance claim beyond canonical conversation history.
-- **Host breadth:** stock/Brunch picker behavior, session switching beyond the selected local Brunch conversation, and HASH embed parity wait for the first visible consumer that makes them load-bearing.
+- The real witness, same-origin absolute-`streamUrl` observation, and comparative latency gate require human browser and microphone evidence; they are part of this mission rather than a successor.
+- Direct-user Voice attribution after canonical hydration waits on a released upstream Flue caller-metadata projection seam. The owner rejected a local Flue patch and correlated signal sidecar for this mission.
+- Donor retirement waits until this replacement is accepted and each donor owner explicitly approves closure. Do not close #9496, #9500, #9507, or #9512 as an implementation side effect, and never close stakeholder-owned H-6763.
+- Response preparation/simplification, structured questions, Petri-net work, FE-1575, production identity, CORS/remote deployment, and panel migration away from `useChat` remain in their existing owners or the future mission spine.

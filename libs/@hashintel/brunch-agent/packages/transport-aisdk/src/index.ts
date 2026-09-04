@@ -2,9 +2,15 @@ import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { getToolName, isToolUIPart } from "ai";
 
 import { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
+import { serializeErrorText } from "./error-text";
 import { createFlueUiStream } from "./ui-stream";
 
-import type { AgentSendResult, DeliveredMessage, FlueClient } from "@flue/sdk";
+import type {
+  AgentSendResult,
+  ConversationStreamChunk,
+  DeliveredMessage,
+  FlueClient,
+} from "@flue/sdk";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
 export { BRUNCH_CONVERSATION_HEADER, BRUNCH_PRINCIPAL_HEADER } from "./headers";
@@ -26,21 +32,85 @@ export interface ClientToolResult {
   readonly toolCallId: string;
   readonly toolName: string;
   readonly output: unknown;
+  readonly source?: "voice";
+}
+
+export interface FlueChatResponseMessageEvent {
+  readonly messageId: string;
+  readonly submissionId: AgentSendResult["submissionId"];
+}
+
+export interface FlueChatResponseMessageStartedEvent extends FlueChatResponseMessageEvent {
+  readonly position: Extract<
+    ConversationStreamChunk,
+    { type: "message-started" }
+  >["position"];
+}
+
+export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseMessageEvent {
+  readonly position: Extract<
+    ConversationStreamChunk,
+    { type: "message-completed" }
+  >["position"];
 }
 
 export interface FlueChatTransportOptions {
   readonly client: FlueClient;
   readonly clientToolNames: ReadonlySet<string>;
+  readonly hiddenToolNames?: ReadonlySet<string>;
   readonly onAdmission?: (event: {
     readonly admission: AgentSendResult;
     readonly kind: "client-tool-result" | "user";
     readonly messageId: string;
   }) => void;
-  readonly onResponseMessage?: (event: {
-    readonly messageId: string;
-    readonly submissionId: AgentSendResult["submissionId"];
-  }) => void;
+  readonly onResponseMessage?: (
+    event: FlueChatResponseMessageStartedEvent,
+  ) => void;
+  readonly onResponseMessageCompleted?: (
+    event: FlueChatResponseMessageCompletedEvent,
+  ) => void;
 }
+
+export type FlueChatAdmissionFailure =
+  | { readonly kind: "aborted" }
+  | { readonly kind: "ambiguous" }
+  | { readonly kind: "rejected"; readonly status: number }
+  | {
+      readonly kind: "submission-conflict";
+      readonly status: 409;
+      readonly submissionId: AgentSendResult["submissionId"];
+    };
+
+const admissionFailureMessage = (failure: FlueChatAdmissionFailure): string => {
+  switch (failure.kind) {
+    case "aborted":
+      return "The local chat submission was cancelled.";
+    case "ambiguous":
+      return "Brunch may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.";
+    case "rejected":
+      return `Brunch rejected the message before admission (HTTP ${failure.status}).`;
+    case "submission-conflict":
+      return `The delivery key already belongs to admitted submission ${failure.submissionId}; the changed payload was not admitted.`;
+  }
+};
+
+export class FlueChatAdmissionError extends Error {
+  public readonly failure: FlueChatAdmissionFailure;
+
+  public constructor(
+    failure: FlueChatAdmissionFailure,
+    options?: { readonly cause?: unknown },
+  ) {
+    super(admissionFailureMessage(failure), options);
+    this.name = "FlueChatAdmissionError";
+    this.failure = failure;
+  }
+}
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 
 const completedClientToolResults = (
   messages: readonly UIMessage[],
@@ -53,6 +123,17 @@ const completedClientToolResults = (
   );
   if (assistantMessage === undefined) {
     return [];
+  }
+  const metadata = asRecord(assistantMessage.metadata);
+  const voiceToolCallIds = new Set(
+    Array.isArray(metadata?.voiceToolCallIds)
+      ? metadata.voiceToolCallIds.filter(
+          (toolCallId): toolCallId is string => typeof toolCallId === "string",
+        )
+      : [],
+  );
+  if (typeof metadata?.toolCallId === "string") {
+    voiceToolCallIds.add(metadata.toolCallId);
   }
   return assistantMessage.parts.flatMap((part): ClientToolResult[] => {
     if (!isToolUIPart(part)) return [];
@@ -70,6 +151,9 @@ const completedClientToolResults = (
         toolCallId: part.toolCallId,
         toolName,
         output: part.output,
+        ...(voiceToolCallIds.has(part.toolCallId)
+          ? { source: "voice" as const }
+          : {}),
       },
     ];
   });
@@ -97,20 +181,49 @@ const finalUserMessage = (
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === "AbortError";
 
-const admissionError = (error: unknown): Error => {
-  if (isAbortError(error)) {
-    return error as Error;
+const conflictingSubmissionId = (error: FlueApiError): string | null => {
+  if (error.status !== 409) return null;
+  const body = asRecord(error.body);
+  const errorBody = asRecord(body?.error);
+  const metadata = asRecord(errorBody?.meta);
+  return errorBody?.type === "submission_conflict" &&
+    typeof metadata?.submissionId === "string" &&
+    metadata.submissionId.length > 0
+    ? metadata.submissionId
+    : null;
+};
+
+const documentedPreAdmissionStatuses = new Set([
+  400, 401, 403, 404, 405, 409, 415,
+]);
+
+const admissionError = (
+  error: unknown,
+  signal: AbortSignal | undefined,
+): FlueChatAdmissionError => {
+  if (signal?.aborted || isAbortError(error)) {
+    return new FlueChatAdmissionError({ kind: "aborted" }, { cause: error });
   }
   if (error instanceof FlueApiError) {
-    return new Error(
-      `Brunch rejected the message before admission (HTTP ${error.status}).`,
-      { cause: error },
-    );
+    const existingSubmissionId = conflictingSubmissionId(error);
+    if (existingSubmissionId !== null) {
+      return new FlueChatAdmissionError(
+        {
+          kind: "submission-conflict",
+          status: 409,
+          submissionId: existingSubmissionId,
+        },
+        { cause: error },
+      );
+    }
+    if (documentedPreAdmissionStatuses.has(error.status)) {
+      return new FlueChatAdmissionError(
+        { kind: "rejected", status: error.status },
+        { cause: error },
+      );
+    }
   }
-  return new Error(
-    "Brunch may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.",
-    { cause: error },
-  );
+  return new FlueChatAdmissionError({ kind: "ambiguous" }, { cause: error });
 };
 
 const streamFailureChunk = (
@@ -136,7 +249,7 @@ const streamFailureChunk = (
       error instanceof FlueExecutionError &&
       error.failure === "terminal_event_missing"
         ? "The chat stream ended before the turn settled."
-        : "The chat turn failed.",
+        : serializeErrorText(error),
   };
 };
 
@@ -159,6 +272,12 @@ const streamSubmission = (
   return new ReadableStream<UIMessageChunk>({
     start(controller) {
       let terminalEmitted = false;
+      let responseMessage:
+        | {
+            readonly effectiveId: string;
+            readonly flueId: string;
+          }
+        | undefined;
       const close = (): void => {
         if (closed) return;
         closed = true;
@@ -182,6 +301,7 @@ const streamSubmission = (
       const projector = createFlueUiStream({
         submissionId: admission.submissionId,
         clientToolNames: options.clientToolNames,
+        hiddenToolNames: options.hiddenToolNames,
         write,
       });
 
@@ -195,12 +315,27 @@ const streamSubmission = (
             ) {
               // Report the id the consumer sees: a client-tool continuation is
               // projected onto the assistant message it resumes.
+              responseMessage = {
+                effectiveId: continuationMessageId ?? event.messageId,
+                flueId: event.messageId,
+              };
               options.onResponseMessage?.({
-                messageId: continuationMessageId ?? event.messageId,
+                messageId: responseMessage.effectiveId,
+                position: event.position,
                 submissionId: admission.submissionId,
               });
             }
             projector.accept(event);
+            if (
+              event.type === "message-completed" &&
+              event.messageId === responseMessage?.flueId
+            ) {
+              options.onResponseMessageCompleted?.({
+                messageId: responseMessage.effectiveId,
+                position: event.position,
+                submissionId: admission.submissionId,
+              });
+            }
           },
         })
         .then(close)
@@ -262,18 +397,36 @@ export const createFlueChatTransport = <
                 toolCallIds: toolResults
                   .map((result) => result.toolCallId)
                   .join(","),
+                ...(toolResults.some(({ source }) => source === "voice")
+                  ? {
+                      voiceToolCallIds: toolResults
+                        .filter(({ source }) => source === "voice")
+                        .map(({ toolCallId }) => toolCallId)
+                        .join(","),
+                    }
+                  : {}),
               },
             };
           })();
+    const idempotencyKey =
+      messageId === undefined
+        ? `ai-sdk:${userMessage!.id}`
+        : `ai-sdk-tool:${messageId}:${toolResults
+            .map(({ toolCallId }) => toolCallId)
+            .join(",")}`;
+    if (Array.from(idempotencyKey).length > 256) {
+      throw new Error("The submitted message identity is too long.");
+    }
 
     let admission: AgentSendResult;
     try {
       admission = await options.client.send({
+        idempotencyKey,
         message,
         signal: abortSignal,
       });
     } catch (error) {
-      throw admissionError(error);
+      throw admissionError(error, abortSignal);
     }
     options.onAdmission?.({
       admission,

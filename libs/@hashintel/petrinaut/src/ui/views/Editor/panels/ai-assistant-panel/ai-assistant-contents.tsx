@@ -1,5 +1,4 @@
 import {
-  Fragment,
   memo,
   type ReactNode,
   type RefObject,
@@ -14,8 +13,10 @@ import ReactMarkdown from "react-markdown";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { NotificationsContext } from "../../../../../react/notifications/context";
-import { VoiceSessionContext } from "../../../../../react/voice-session/context";
+import {
+  NotificationsContext,
+  type AddNotificationInput,
+} from "../../../../../react/notifications/context";
 import {
   useVoiceSessionErrorMessage,
   useVoiceSessionPhase,
@@ -23,7 +24,7 @@ import {
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { ResizeHandle } from "../../../../resize/resize-handle";
 import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
-import { partitionVoiceSessionMessages } from "./ai-assistant-contents/defer-voice-messages";
+import { voiceSetupLabels } from "../../components/voice-session-labels";
 import { aiFooterMinHeight } from "./ai-assistant-contents/footer-height";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
@@ -36,7 +37,7 @@ import {
   AiAssistantToolList,
   type OnInteractiveToolSubmit,
 } from "./ai-assistant-contents/tool-list";
-import { LiveVoiceDock } from "./ai-assistant-contents/voice-dock";
+import { LiveVoiceDock, VoiceDock } from "./ai-assistant-contents/voice-dock";
 import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
 import type { PetrinautAiInputMode } from "../../../../types/ai-assistant-composer-control";
@@ -47,6 +48,11 @@ import type { PetrinautAiMessage } from "./types";
 type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
 
 const EMPTY_INTERACTIVE_TOOLS: readonly PetrinautAiInteractiveTool[] = [];
+
+const errorNotification = (
+  message: string,
+  detail?: string,
+): AddNotificationInput => ({ detail, message, tone: "error" });
 
 export type AiAssistantContentsProps = {
   clearMessagesDisabled?: boolean;
@@ -60,6 +66,7 @@ export type AiAssistantContentsProps = {
   messages: PetrinautAiMessage[];
   onClearMessages?: () => void;
   onClose: () => void;
+  onCollapsedVoiceEnd?: () => void;
   onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   onInputChange: (value: string) => void;
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
@@ -67,11 +74,13 @@ export type AiAssistantContentsProps = {
   onSendPrompt?: (prompt: string) => void;
   onStop: () => void;
   onSubmit: () => void;
+  onVoiceDockCollapsedChange?: (collapsed: boolean) => void;
   promptChips?: PromptChip[];
   rightOffset?: number;
   status: AiAssistantStatus;
   stopped?: boolean;
   voiceHandoffPending?: boolean;
+  voiceDockCollapsed?: boolean;
   voiceMode?: ReactNode;
   voiceModeAvailable?: boolean;
 };
@@ -90,6 +99,9 @@ const shellStyle = cva({
     },
   },
   variants: {
+    collapsed: {
+      true: {},
+    },
     open: {
       true: {
         top: "0",
@@ -117,6 +129,16 @@ const shellStyle = cva({
       },
     },
   },
+  compoundVariants: [
+    {
+      collapsed: true,
+      open: true,
+      css: {
+        top: "[auto]",
+        height: "auto",
+      },
+    },
+  ],
 });
 
 // Tracks the card's inset within the padded shell, so the resize handle
@@ -261,40 +283,6 @@ const messageStyle = cva({
         textAlign: "right",
       },
     },
-    // Spoken turns land in the transcript together once the session ends, so
-    // they arrive with a single entrance rather than appearing out of nowhere.
-    revealed: {
-      true: {
-        animationName: "[petrinautVoiceReveal]",
-        animationDuration: "[420ms]",
-        animationTimingFunction: "[cubic-bezier(0.22, 0.9, 0.3, 1)]",
-        "@media (prefers-reduced-motion: reduce)": {
-          animationName: "[none]",
-        },
-      },
-    },
-  },
-});
-
-const voiceSessionMetaStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-  paddingX: "1",
-  color: "neutral.s90",
-  fontSize: "xs",
-  fontWeight: "medium",
-  _before: {
-    flex: "[1]",
-    height: "[1px]",
-    backgroundColor: "neutral.a30",
-    content: '""',
-  },
-  _after: {
-    flex: "[1]",
-    height: "[1px]",
-    backgroundColor: "neutral.a30",
-    content: '""',
   },
 });
 
@@ -441,12 +429,10 @@ const AiAssistantMessage = memo(
     handlersRef,
     interactiveTools,
     message,
-    revealed = false,
   }: {
     handlersRef: MessageHandlersRef;
     interactiveTools: readonly PetrinautAiInteractiveTool[];
     message: PetrinautAiMessage;
-    revealed?: boolean;
   }) => {
     const role = message.role === "user" ? "user" : "assistant";
     const renderItems = getMessageRenderItems(message, interactiveTools);
@@ -459,7 +445,7 @@ const AiAssistantMessage = memo(
 
     return (
       <div
-        className={messageStyle({ revealed, role })}
+        className={messageStyle({ role })}
         data-role={role}
         data-voice-origin={hasVoiceOrigin || undefined}
       >
@@ -526,6 +512,7 @@ export const AiAssistantContents = ({
   messages,
   onClearMessages,
   onClose,
+  onCollapsedVoiceEnd,
   onInputModeChange,
   onInputChange,
   onInteractiveToolSubmit,
@@ -533,16 +520,17 @@ export const AiAssistantContents = ({
   onSendPrompt,
   onStop,
   onSubmit,
+  onVoiceDockCollapsedChange,
   promptChips,
   rightOffset = 0,
   status,
   stopped = false,
   voiceHandoffPending = false,
+  voiceDockCollapsed = false,
   voiceMode,
   voiceModeAvailable = false,
 }: AiAssistantContentsProps) => {
   const { addNotification } = use(NotificationsContext);
-  const voiceSessionStore = use(VoiceSessionContext);
   const voiceSessionPhase = useVoiceSessionPhase();
   const voiceSessionErrorMessage = useVoiceSessionErrorMessage();
   const isVoiceSessionLive = voiceSessionPhase !== null;
@@ -601,76 +589,8 @@ export const AiAssistantContents = ({
             variant: "solid",
           };
 
-  // Index of the first message belonging to the current or most recent voice
-  // session. Everything from here on is held back while that session runs, and
-  // revealed together once it ends.
-  const [sessionBaselineIndex, setSessionBaselineIndex] = useState<
-    number | null
-  >(() =>
-    voiceSessionStore.getSnapshot().state === null ? null : messages.length,
-  );
-
-  // Off by default: the dock's transcription action writes spoken turns into
-  // the conversation as they land instead of holding them to the end.
-  const [transcriptionShown, setTranscriptionShown] = useState(false);
-
-  const messageCountRef = useRef(messages.length);
-  useEffect(() => {
-    messageCountRef.current = messages.length;
-  }, [messages]);
-
-  // Read from the store rather than from a render effect, so the baseline is
-  // captured on the event that starts the session instead of a render that
-  // happens to observe it.
-  useEffect(() => {
-    let wasLive = voiceSessionStore.getSnapshot().state !== null;
-
-    return voiceSessionStore.subscribe(() => {
-      const isLive = voiceSessionStore.getSnapshot().state !== null;
-      if (isLive === wasLive) {
-        return;
-      }
-      wasLive = isLive;
-
-      if (isLive) {
-        setSessionBaselineIndex(messageCountRef.current);
-        setTranscriptionShown(false);
-      }
-    });
-  }, [voiceSessionStore]);
-
-  const isHoldingVoiceTurns = isVoiceSessionLive && !transcriptionShown;
-
-  const sessionPartition =
-    sessionBaselineIndex === null
-      ? null
-      : partitionVoiceSessionMessages({
-          deferredFromIndex: sessionBaselineIndex,
-          interactiveTools,
-          messages,
-        });
-
-  const visibleMessages =
-    isHoldingVoiceTurns && sessionPartition !== null
-      ? sessionPartition.visible
-      : messages;
-
-  // Held turns become "revealed" once they are let through — by the
-  // transcription action mid-session, or by the session ending — so they carry
-  // the entrance animation either way.
-  const revealedIds = new Set(
-    isHoldingVoiceTurns || sessionPartition === null
-      ? []
-      : sessionPartition.deferred.map((message) => message.id),
-  );
-  // The divider counts a finished session, so it waits for the session to end
-  // rather than growing a turn at a time under a live transcription.
-  const firstRevealedMessageId = isVoiceSessionLive
-    ? undefined
-    : visibleMessages.find((message) => revealedIds.has(message.id))?.id;
-  const revealedVoiceTurnCount = visibleMessages.filter(
-    (message) => revealedIds.has(message.id) && message.role === "user",
-  ).length;
+  const isVoiceDockCollapsed =
+    voiceDockCollapsed && (isVoiceSessionLive || inputMode === "voice");
 
   const [assistantWidth, setAssistantWidth] = useState(defaultAssistantWidth);
 
@@ -686,10 +606,7 @@ export const AiAssistantContents = ({
       return;
     }
     notifiedErrorRef.current = error;
-    addNotification({
-      message: error.message,
-      tone: "error",
-    });
+    addNotification(errorNotification("AI assistant error", error.message));
   }, [addNotification, error]);
 
   // Voice failures (microphone denied, connection dropped) are reported by the
@@ -709,10 +626,7 @@ export const AiAssistantContents = ({
     }
 
     notifiedVoiceErrorRef.current = voiceSessionErrorMessage;
-    addNotification({
-      message: voiceSessionErrorMessage,
-      tone: "error",
-    });
+    addNotification(errorNotification(voiceSessionErrorMessage));
   }, [addNotification, voiceSessionErrorMessage, voiceSessionPhase]);
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -810,7 +724,10 @@ export const AiAssistantContents = ({
     <aside
       aria-hidden={!isOpen ? true : undefined}
       aria-label="AI assistant"
-      className={shellStyle({ open: isOpen })}
+      className={shellStyle({
+        collapsed: isOpen && isVoiceDockCollapsed,
+        open: isOpen,
+      })}
       style={{
         right: isOpen ? rightOffset : 0,
         ...(isOpen ? { width: assistantWidth } : {}),
@@ -821,7 +738,7 @@ export const AiAssistantContents = ({
           padding pushes the shell edge away from it. */}
       <div
         className={`${resizeAnchorStyle} ${panelContentStyle({
-          visible: isOpen,
+          visible: isOpen && !isVoiceDockCollapsed,
         })}`}
       >
         <ResizeHandle
@@ -836,7 +753,9 @@ export const AiAssistantContents = ({
       </div>
       <div className={cardStyle({ open: isOpen })} data-input-mode={inputMode}>
         <div
-          className={`${headerStyle} ${panelContentStyle({ visible: isOpen })}`}
+          className={`${headerStyle} ${panelContentStyle({
+            visible: isOpen && !isVoiceDockCollapsed,
+          })}`}
         >
           <div className={headerLabelStyle}>AI</div>
           <div style={{ flex: 1 }} />
@@ -864,7 +783,7 @@ export const AiAssistantContents = ({
 
         <div
           className={`${messagesStyle} ${panelContentStyle({
-            visible: isOpen,
+            visible: isOpen && !isVoiceDockCollapsed,
           })}`}
           data-testid="ai-transcript"
           onScroll={recordDistanceFromEnd}
@@ -879,23 +798,13 @@ export const AiAssistantContents = ({
               </div>
             </div>
           )}
-          {visibleMessages.map((message) => (
-            <Fragment key={message.id}>
-              {message.id === firstRevealedMessageId &&
-                revealedVoiceTurnCount > 0 && (
-                  <div className={voiceSessionMetaStyle}>
-                    {`Voice session · ${revealedVoiceTurnCount} ${
-                      revealedVoiceTurnCount === 1 ? "turn" : "turns"
-                    }`}
-                  </div>
-                )}
-              <AiAssistantMessage
-                interactiveTools={interactiveTools}
-                message={message}
-                handlersRef={handlersRef}
-                revealed={revealedIds.has(message.id)}
-              />
-            </Fragment>
+          {messages.map((message) => (
+            <AiAssistantMessage
+              interactiveTools={interactiveTools}
+              key={message.id}
+              message={message}
+              handlersRef={handlersRef}
+            />
           ))}
           {stopped && !error && (
             <div className={stoppedNoteStyle}>Response stopped</div>
@@ -906,7 +815,7 @@ export const AiAssistantContents = ({
         {voiceMode && (
           <div
             className={`${voiceModeStyle} ${panelContentStyle({
-              visible: isOpen,
+              visible: isOpen && (!isVoiceDockCollapsed || !isVoiceSessionLive),
             })}`}
             data-testid="ai-voice-mode"
           >
@@ -917,98 +826,121 @@ export const AiAssistantContents = ({
         {isVoiceSessionLive ? (
           <div className={panelContentStyle({ visible: isOpen })}>
             <LiveVoiceDock
-              onTranscriptionToggle={() =>
-                setTranscriptionShown(!transcriptionShown)
+              collapsed={isVoiceDockCollapsed}
+              onCollapsedEnd={onCollapsedVoiceEnd}
+              onCollapsedToggle={() =>
+                onVoiceDockCollapsedChange?.(!isVoiceDockCollapsed)
               }
-              transcriptionShown={transcriptionShown}
             />
           </div>
         ) : (
-          <div
-            className={`${composerWrapStyle} ${panelContentStyle({
-              visible: isOpen,
-            })}`}
-          >
-            {showChips && (
-              <PromptChips
-                chips={promptChips}
-                disabled={isBusy}
-                onDismiss={() => setChipsDismissed(true)}
-                onSelect={(prompt) => onSendPrompt(prompt)}
-              />
-            )}
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                const submitter = (event.nativeEvent as SubmitEvent).submitter;
-                if (
-                  canSubmit &&
-                  submitter?.hasAttribute("data-ai-assistant-submit")
-                ) {
-                  onSubmit();
-                }
-              }}
-            >
-              <div className={composerStyle}>
-                <textarea
-                  ref={inputRef}
-                  className={composerTextareaStyle}
-                  rows={1}
-                  value={input}
-                  onChange={(event) => onInputChange(event.currentTarget.value)}
-                  onKeyDown={(event) => {
-                    // Enter sends; Shift+Enter inserts a newline (the textarea's
-                    // native behaviour, so we just let it through). The
-                    // `isComposing` guard stops an IME confirmation keystroke
-                    // from sending a half-finished message.
-                    if (
-                      event.key === "Enter" &&
-                      !event.shiftKey &&
-                      !event.nativeEvent.isComposing
-                    ) {
-                      event.preventDefault();
-                      if (canSubmit) {
-                        onSubmit();
-                      }
-                    }
-                  }}
-                  placeholder={
-                    messages.length === 0
-                      ? "Describe the process you want to create"
-                      : "Continue iterating..."
-                  }
-                  aria-label="Message AI assistant"
-                  disabled={voiceHandoffPending}
-                />
-                {composerControl}
-                <Button
-                  aria-label={composerAction.label}
-                  data-ai-assistant-submit={
-                    composerAction.isSubmit || undefined
-                  }
-                  disabled={composerAction.disabled}
-                  onClick={composerAction.onClick}
-                  prefix={
-                    <span
-                      className={composerActionGlyphStyle}
-                      key={composerAction.glyph}
-                    >
-                      {composerAction.glyph === "voice" ? (
-                        <AiVoiceModeIcon size={16} />
-                      ) : (
-                        <Icon name={composerAction.glyph} size="sm" />
-                      )}
-                    </span>
-                  }
-                  size="sm"
-                  tone={composerAction.tone}
-                  tooltip={composerAction.label}
-                  type={composerAction.type}
-                  variant={composerAction.variant}
+          <>
+            {isVoiceDockCollapsed && (
+              <div className={panelContentStyle({ visible: isOpen })}>
+                <VoiceDock
+                  actions={null}
+                  canReadFullResponse={false}
+                  canRepeatQuestion={false}
+                  canTakeTurn={false}
+                  collapsed
+                  indicator={<AiVoiceModeIcon size={16} />}
+                  microphoneMuted={false}
+                  notice={voiceSetupLabels.status}
+                  onCollapsedToggle={() => onVoiceDockCollapsedChange?.(false)}
+                  phase="connecting"
+                  purpose="setup"
                 />
               </div>
-            </form>
-          </div>
+            )}
+            <div
+              className={`${composerWrapStyle} ${panelContentStyle({
+                visible: isOpen && !isVoiceDockCollapsed,
+              })}`}
+            >
+              {showChips && (
+                <PromptChips
+                  chips={promptChips}
+                  disabled={isBusy}
+                  onDismiss={() => setChipsDismissed(true)}
+                  onSelect={(prompt) => onSendPrompt(prompt)}
+                />
+              )}
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const submitter = (event.nativeEvent as SubmitEvent)
+                    .submitter;
+                  if (
+                    canSubmit &&
+                    submitter?.hasAttribute("data-ai-assistant-submit")
+                  ) {
+                    onSubmit();
+                  }
+                }}
+              >
+                <div className={composerStyle}>
+                  <textarea
+                    ref={inputRef}
+                    className={composerTextareaStyle}
+                    rows={1}
+                    value={input}
+                    onChange={(event) =>
+                      onInputChange(event.currentTarget.value)
+                    }
+                    onKeyDown={(event) => {
+                      // Enter sends; Shift+Enter inserts a newline (the textarea's
+                      // native behaviour, so we just let it through). The
+                      // `isComposing` guard stops an IME confirmation keystroke
+                      // from sending a half-finished message.
+                      if (
+                        event.key === "Enter" &&
+                        !event.shiftKey &&
+                        !event.nativeEvent.isComposing
+                      ) {
+                        event.preventDefault();
+                        if (canSubmit) {
+                          onSubmit();
+                        }
+                      }
+                    }}
+                    placeholder={
+                      messages.length === 0
+                        ? "Describe the process you want to create"
+                        : "Continue iterating..."
+                    }
+                    aria-label="Message AI assistant"
+                    disabled={voiceHandoffPending}
+                  />
+                  {composerControl}
+                  <Button
+                    aria-label={composerAction.label}
+                    data-ai-assistant-submit={
+                      composerAction.isSubmit || undefined
+                    }
+                    disabled={composerAction.disabled}
+                    onClick={composerAction.onClick}
+                    prefix={
+                      <span
+                        className={composerActionGlyphStyle}
+                        key={composerAction.glyph}
+                      >
+                        {composerAction.glyph === "voice" ? (
+                          <AiVoiceModeIcon size={16} />
+                        ) : (
+                          <Icon name={composerAction.glyph} size="sm" />
+                        )}
+                      </span>
+                    }
+                    size="sm"
+                    tone={composerAction.tone}
+                    tooltip={composerAction.label}
+                    type={composerAction.type}
+                    variant={composerAction.variant}
+                  />
+                </div>
+              </form>
+            </div>
+          </>
         )}
       </div>
     </aside>

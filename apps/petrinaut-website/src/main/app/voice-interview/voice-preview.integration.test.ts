@@ -1,3 +1,4 @@
+import { FlueApiError } from "@flue/sdk";
 import { describe, expect, test, vi } from "vitest";
 
 import { createOpenAIRealtimeCallHandler } from "../../../server/voice/openai-realtime-call";
@@ -9,11 +10,13 @@ import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../local-storage-demo/brunch-panel-transport";
-import { selectCanonicalSpeechSegments } from "./canonical-speech";
+import { selectCanonicalSpeech } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
+import { submitVoiceInputWithAdmission } from "./voice-interview-control";
 import { VoiceTurnController } from "./voice-turn-controller";
 
+import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type { RealtimeBrunchBridgeEvent } from "./realtime-brunch-bridge";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
@@ -73,11 +76,16 @@ const initialMessages = [
     id: "initial-question-message",
     parts: [
       {
-        input: { question: "What happens after approval?" },
-        state: "input-available",
-        toolCallId: "ask-current",
-        toolName: "brunch_ask",
-        type: "dynamic-tool",
+        data: {
+          question: "What happens after approval?",
+          toolCallId: "tool-initial-question",
+        },
+        type: "data-brunch-question",
+      },
+      {
+        state: "done",
+        text: "What happens after approval?",
+        type: "text",
       },
     ],
     role: "assistant",
@@ -95,19 +103,100 @@ const responseMessages = [
     id: "next-question-message",
     parts: [
       {
-        input: { question: canonicalQuestion },
-        state: "input-available",
-        toolCallId: "ask-next",
-        toolName: "brunch_ask",
-        type: "dynamic-tool",
+        data: {
+          question: canonicalQuestion,
+          toolCallId: "tool-next-question",
+        },
+        type: "data-brunch-question",
+      },
+      {
+        state: "done",
+        text: canonicalQuestion,
+        type: "text",
       },
     ],
     role: "assistant",
   },
 ] satisfies PetrinautAiMessage[];
 
+const createAdmissionOutcomeHarness = (
+  client: Pick<FlueClient, "abort" | "send">,
+) => {
+  const tracker = new BrunchPanelConversationTracker();
+  const transport = createBrunchPanelTransport(
+    Promise.resolve(client as FlueClient),
+    tracker,
+  );
+  let realtimeListener:
+    | ((event: OpenAIRealtimeSessionEvent) => void)
+    | undefined;
+  const bridge = new RealtimeBrunchBridge({
+    session: {
+      speakCanonical: vi.fn(),
+      subscribe: (listener) => {
+        realtimeListener = listener;
+        return () => {
+          realtimeListener = undefined;
+        };
+      },
+    },
+    submitInterviewAnswer: (input) =>
+      submitVoiceInputWithAdmission({
+        input,
+        resolveInputSubmission: (messageId) =>
+          tracker.submissionForInput(messageId),
+        submitVoiceInput: async ({ id, text }) => {
+          if (id === undefined) {
+            throw new Error("Voice message identity is required.");
+          }
+          void transport
+            .sendMessages({
+              abortSignal: input.signal,
+              chatId: "conversation-1",
+              messageId: undefined,
+              messages: [
+                {
+                  id,
+                  metadata: { source: "voice" },
+                  parts: [{ text, type: "text" }],
+                  role: "user",
+                },
+              ],
+              trigger: "submit-message",
+            })
+            .catch(() => undefined);
+          return { kind: "message", messageId: id };
+        },
+        subscribeToAdmission: (target, listener) =>
+          tracker.subscribeToAdmission(target, ({ admission }) =>
+            listener(admission.submissionId),
+          ),
+        subscribeToAdmissionFailure: (target, listener) =>
+          tracker.subscribeToAdmissionFailure(target, listener),
+      }),
+  });
+  const events: RealtimeBrunchBridgeEvent[] = [];
+  bridge.subscribe((event) => events.push(event));
+  bridge.updateChat({
+    canAcceptInterviewAnswer: true,
+    canonicalSegments: [],
+    status: "ready",
+  });
+  bridge.start(1);
+
+  return {
+    emitCompletedTranscript: (itemId: string) =>
+      realtimeListener?.({
+        key: { connectionEpoch: 1, contentIndex: 0, itemId },
+        text: spokenAnswer,
+        type: "completed",
+      }),
+    events,
+  };
+};
+
 describe("controlled voice preview", () => {
-  test("bridges one Realtime tool call through Brunch and back to canonical duplex audio", async () => {
+  test("bridges one completed transcript through Brunch and back to canonical half-duplex audio", async () => {
     const diagnostics: VoiceDiagnosticEvent[] = [];
     const reportDiagnostic = (event: VoiceDiagnosticEvent) =>
       diagnostics.push(event);
@@ -211,10 +300,59 @@ describe("controlled voice preview", () => {
       reportDiagnostic,
       requestAnimationFrame: vi.fn(() => 1),
     });
-    const submitInterviewAnswer = vi.fn(async () => ({
-      kind: "interactive-tool" as const,
-      toolCallId: "ask-current",
-    }));
+    const admission: AgentSendResult = {
+      offset: "offset-voice-1",
+      streamUrl: "https://petrinaut.test/agents/chat/instance-1",
+      submissionId: "submission-voice-1",
+      uid: "uid-voice-1",
+    };
+    const send = vi.fn<FlueClient["send"]>(async () => admission);
+    const wait = vi.fn<FlueClient["wait"]>(async () => undefined);
+    const tracker = new BrunchPanelConversationTracker();
+    const transport = createBrunchPanelTransport(
+      Promise.resolve({ send, wait } as Pick<
+        FlueClient,
+        "send" | "wait"
+      > as FlueClient),
+      tracker,
+    );
+    type SubmitInterviewAnswer = ConstructorParameters<
+      typeof RealtimeBrunchBridge
+    >[0]["submitInterviewAnswer"];
+    const submitInterviewAnswer = vi.fn<SubmitInterviewAnswer>((input) =>
+      submitVoiceInputWithAdmission({
+        input,
+        resolveInputSubmission: (messageId) =>
+          tracker.submissionForInput(messageId),
+        submitVoiceInput: async ({ id, text }) => {
+          if (id === undefined) {
+            throw new Error("Voice message identity is required.");
+          }
+          const stream = await transport.sendMessages({
+            abortSignal: input.signal,
+            chatId: "conversation-1",
+            messageId: undefined,
+            messages: [
+              {
+                id,
+                metadata: { source: "voice" },
+                parts: [{ text, type: "text" }],
+                role: "user",
+              },
+            ],
+            trigger: "submit-message",
+          });
+          void stream.pipeTo(new WritableStream());
+          return { kind: "message", messageId: id };
+        },
+        subscribeToAdmission: (target, listener) =>
+          tracker.subscribeToAdmission(target, ({ admission: admitted }) =>
+            listener(admitted.submissionId),
+          ),
+        subscribeToAdmissionFailure: (target, listener) =>
+          tracker.subscribeToAdmissionFailure(target, listener),
+      }),
+    );
     const bridge = new RealtimeBrunchBridge({
       session,
       submitInterviewAnswer,
@@ -222,32 +360,90 @@ describe("controlled voice preview", () => {
     const controller = new VoiceTurnController({
       bridge,
       session,
-      submitText: submitInterviewAnswer,
+      submitText: vi.fn(async () => ({ kind: "message" as const })),
     });
+    await controller.start();
+    dataChannel.receive({
+      audio_start_ms: 200,
+      item_id: "pre-output-item",
+      type: "input_audio_buffer.speech_started",
+    });
+    dataChannel.receive({
+      content_index: 0,
+      delta: "Speech started before output",
+      item_id: "pre-output-item",
+      type: "conversation.item.input_audio_transcription.delta",
+    });
+    expect(controller.getSnapshot().partialText).toBe(
+      "Speech started before output",
+    );
+    const initialSelection = selectCanonicalSpeech(initialMessages);
+    const initialSegments = initialSelection.segments;
     controller.updateChat({
       canAcceptInterviewAnswer: true,
-      canonicalSegments: selectCanonicalSpeechSegments(initialMessages),
+      canonicalSegments: initialSegments,
+      questionSegment: initialSelection.questionSegment,
       status: "ready",
     });
+    dataChannel.receive({
+      content_index: 0,
+      item_id: "pre-output-item",
+      transcript: "This completed before output started.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    expect(controller.getSnapshot()).toMatchObject({
+      lastCommittedText: "",
+      microphoneEnabled: true,
+      partialText: "",
+    });
+    expect(track.enabled).toBe(false);
+    expect(submitInterviewAnswer).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
 
-    await controller.start();
+    dataChannel.receive({
+      content_index: 0,
+      item_id: "pre-output-item",
+      transcript: "The stale item cannot recover authority.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    expect(send).not.toHaveBeenCalled();
+
     authorizeLatestSpeechResponse(dataChannel, "response-initial-question");
     dataChannel.receive({
       response_id: "response-initial-question",
       type: "output_audio_buffer.started",
     });
+    expect(controller.getSnapshot()).toMatchObject({
+      canTakeTurn: true,
+      output: "speaking",
+    });
+
+    const handoff = controller.takeTurn();
     dataChannel.receive({
       audio_start_ms: 300,
-      item_id: "user-item",
+      item_id: "playback-overlap",
       type: "input_audio_buffer.speech_started",
     });
     dataChannel.receive({
+      content_index: 0,
+      item_id: "playback-overlap",
+      transcript: "Playback must not become input.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    dataChannel.receive({ type: "input_audio_buffer.cleared" });
+    dataChannel.receive({
       response: {
         id: "response-initial-question",
+        output: [],
         status: "cancelled",
       },
       type: "response.done",
     });
+    dataChannel.receive({
+      response_id: "response-initial-question",
+      type: "output_audio_buffer.cleared",
+    });
+    await handoff;
     expect(controller.getSnapshot()).toMatchObject({
       input: "listening",
       microphoneEnabled: true,
@@ -255,75 +451,93 @@ describe("controlled voice preview", () => {
     });
 
     dataChannel.receive({
-      call_id: "call-1",
-      delta: `{"answer":"${spokenAnswer}"}`,
-      item_id: "function-item-1",
-      output_index: 0,
-      response_id: "response-tool-1",
-      type: "response.function_call_arguments.delta",
+      audio_start_ms: 500,
+      item_id: "user-item",
+      type: "input_audio_buffer.speech_started",
     });
     dataChannel.receive({
-      response: {
-        id: "response-tool-1",
-        output: [
-          {
-            arguments: `{"answer":"${spokenAnswer}"}`,
-            call_id: "call-1",
-            id: "function-item-1",
-            name: "continue_interview",
-            status: "completed",
-            type: "function_call",
-          },
-        ],
-        status: "completed",
-      },
-      type: "response.done",
+      content_index: 0,
+      delta: "The supervisor",
+      item_id: "user-item",
+      type: "conversation.item.input_audio_transcription.delta",
+    });
+    dataChannel.receive({
+      content_index: 0,
+      item_id: "user-item",
+      transcript: spokenAnswer,
+      type: "conversation.item.input_audio_transcription.completed",
     });
 
     await vi.waitFor(() =>
       expect(submitInterviewAnswer).toHaveBeenCalledWith(
         expect.objectContaining({
           admissionTarget: {
-            kind: "client-tool-result",
-            messageId: "initial-question-message",
+            kind: "user",
+            messageId: "voice-realtime:1:user-item:0",
           },
-          id: "voice-realtime:1:call-1",
+          id: "voice-realtime:1:user-item:0",
           text: spokenAnswer,
         }),
       ),
     );
-    expect(controller.getSnapshot()).toMatchObject({
-      input: "submitting",
-      lastAnswerDelivery: "delivered",
-      microphoneEnabled: true,
-      output: "waiting-for-tool",
-    });
+    await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: "ai-sdk:voice-realtime:1:user-item:0",
+        message: { body: spokenAnswer, kind: "user" },
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(controller.getSnapshot()).toMatchObject({
+        input: "submitting",
+        lastAnswerDelivery: "delivered",
+        microphoneEnabled: true,
+        output: "waiting-for-tool",
+      }),
+    );
 
     controller.updateChat({
       canAcceptInterviewAnswer: false,
-      canonicalSegments: selectCanonicalSpeechSegments(initialMessages),
+      canonicalSegments: initialSegments,
       status: "streaming",
     });
+    const initialSegmentIds = new Set(initialSegments.map(({ id }) => id));
+    const responseSelection = selectCanonicalSpeech(responseMessages);
+    const correlateResponse = (segment: CanonicalSpeechSegment) =>
+      initialSegmentIds.has(segment.id)
+        ? segment
+        : { ...segment, submissionIds: [admission.submissionId] };
+    const correlatedSegments =
+      responseSelection.segments.map(correlateResponse);
     controller.updateChat({
       canAcceptInterviewAnswer: true,
-      canonicalSegments: selectCanonicalSpeechSegments(responseMessages),
+      canonicalSegments: correlatedSegments,
+      questionSegment: responseSelection.questionSegment
+        ? correlateResponse(responseSelection.questionSegment)
+        : undefined,
       status: "ready",
     });
 
-    const [functionOutput, responseCreate] = sentEvents(dataChannel).slice(-2);
-    expect(functionOutput).toEqual({
-      type: "conversation.item.create",
-      item: {
-        type: "function_call_output",
-        call_id: "call-1",
-        output: JSON.stringify({
-          response_text: [canonicalReply, canonicalQuestion],
-        }),
-      },
-    });
+    const responseCreate = sentEvents(dataChannel).findLast(
+      ({ type }) => type === "response.create",
+    );
     expect(responseCreate).toMatchObject({
       type: "response.create",
       response: {
+        input: [
+          {
+            content: [
+              {
+                text: JSON.stringify({
+                  response_text: [canonicalReply, canonicalQuestion],
+                }),
+                type: "input_text",
+              },
+            ],
+            role: "system",
+            type: "message",
+          },
+        ],
         output_modalities: ["audio"],
         tool_choice: "none",
         tools: [],
@@ -340,6 +554,48 @@ describe("controlled voice preview", () => {
       input: "listening",
       microphoneEnabled: true,
       output: "speaking",
+    });
+    expect(track.enabled).toBe(false);
+
+    dataChannel.receive({
+      response_id: "response-canonical-reply",
+      type: "output_audio_buffer.stopped",
+    });
+    dataChannel.receive({
+      response: {
+        id: "response-canonical-reply",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+    expect(controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
+      output: "idle",
+    });
+
+    controller.repeatQuestion();
+
+    const replayCreate = sentEvents(dataChannel).findLast(
+      ({ type }) => type === "response.create",
+    );
+    expect(replayCreate).toMatchObject({
+      response: {
+        input: [
+          {
+            content: [
+              {
+                text: JSON.stringify({ response_text: [canonicalQuestion] }),
+                type: "input_text",
+              },
+            ],
+            role: "system",
+            type: "message",
+          },
+        ],
+      },
+      type: "response.create",
     });
 
     const remoteTrack = { kind: "audio", stop: vi.fn() };
@@ -373,11 +629,13 @@ describe("controlled voice preview", () => {
           turn_detection: {
             type: "semantic_vad",
             eagerness: "low",
-            create_response: true,
-            interrupt_response: true,
+            create_response: false,
+            interrupt_response: false,
           },
         },
       },
+      tool_choice: "none",
+      tools: [],
     });
     expect(diagnostics).toEqual(
       expect.arrayContaining([
@@ -443,8 +701,6 @@ describe("controlled voice preview", () => {
       | undefined;
     const bridge = new RealtimeBrunchBridge({
       session: {
-        completeFunctionCall: vi.fn(),
-        completeFunctionCallWithoutResponse: vi.fn(),
         speakCanonical: vi.fn(),
         subscribe: (listener) => {
           realtimeListener = listener;
@@ -457,6 +713,7 @@ describe("controlled voice preview", () => {
         admissionTarget,
         id,
         onAdmission,
+        signal,
         text,
       }) => {
         const unsubscribe = tracker.subscribeToAdmission(
@@ -475,7 +732,7 @@ describe("controlled voice preview", () => {
               parts: [{ type: "text", text }],
             },
           ],
-          abortSignal: undefined,
+          abortSignal: signal,
         });
         try {
           await stream.pipeTo(new WritableStream());
@@ -498,14 +755,14 @@ describe("controlled voice preview", () => {
     });
     bridge.start(1);
 
-    const finalized = {
-      arguments: '{"answer":"The supervisor approves it."}',
-      callId: "call-1",
-      connectionEpoch: 1,
-      itemId: "function-item-1",
-      name: "continue_interview",
-      responseId: "response-1",
-      type: "tool-arguments-done" as const,
+    const finalized: OpenAIRealtimeSessionEvent = {
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "input-item-1",
+      },
+      text: spokenAnswer,
+      type: "completed",
     };
     realtimeListener?.(finalized);
     realtimeListener?.(finalized);
@@ -513,7 +770,7 @@ describe("controlled voice preview", () => {
     await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
     await vi.waitFor(() =>
       expect(bridgeEvents).toContainEqual({
-        callId: "call-1",
+        deliveryId: "voice-realtime:1:input-item-1:0",
         submissionId: admission.submissionId,
         type: "submission-admitted",
       }),
@@ -521,10 +778,13 @@ describe("controlled voice preview", () => {
     expect(bridgeEvents).not.toContainEqual(
       expect.objectContaining({ type: "submission-accepted" }),
     );
-    expect(send).toHaveBeenCalledWith({
-      message: { kind: "user", body: "The supervisor approves it." },
-      signal: undefined,
+    expect(send).toHaveBeenCalledOnce();
+    const sendInput = send.mock.calls[0]?.[0];
+    expect(sendInput).toMatchObject({
+      idempotencyKey: "ai-sdk:voice-realtime:1:input-item-1:0",
+      message: { kind: "user", body: spokenAnswer },
     });
+    expect(sendInput?.signal).toBeInstanceOf(AbortSignal);
     expect(admission.streamUrl).toContain("/agents/chat/");
 
     settleSubmission?.();
@@ -533,5 +793,81 @@ describe("controlled voice preview", () => {
         expect.objectContaining({ type: "submission-accepted" }),
       ),
     );
+  });
+
+  test("surfaces an ambiguous Flue admission through the panel observer without retrying", async () => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw new FlueApiError(500, "");
+    });
+    const abort = vi.fn<FlueClient["abort"]>(async () => ({ aborted: true }));
+    const harness = createAdmissionOutcomeHarness({ abort, send });
+
+    harness.emitCompletedTranscript("input-item-ambiguous");
+
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual({
+        code: "admission-ambiguous",
+        failure: { kind: "ambiguous" },
+        message:
+          "Brunch may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.",
+        type: "error",
+      }),
+    );
+    expect(send).toHaveBeenCalledOnce();
+    expect(abort).not.toHaveBeenCalled();
+  });
+
+  test("preserves a conflicting submission through the production admission path", async () => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw new FlueApiError(409, {
+        error: {
+          details: "",
+          message: "The delivery key already names another payload.",
+          meta: { submissionId: "submission-existing" },
+          type: "submission_conflict",
+        },
+      });
+    });
+    const abort = vi.fn<FlueClient["abort"]>(async () => ({ aborted: true }));
+    const harness = createAdmissionOutcomeHarness({ abort, send });
+
+    harness.emitCompletedTranscript("input-item-conflict");
+
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual({
+        code: "admission-conflict",
+        failure: {
+          kind: "submission-conflict",
+          status: 409,
+          submissionId: "submission-existing",
+        },
+        message:
+          "The delivery key already belongs to admitted submission submission-existing; the changed payload was not admitted.",
+        type: "error",
+      }),
+    );
+    expect(send).toHaveBeenCalledOnce();
+    expect(abort).not.toHaveBeenCalled();
+  });
+
+  test("keeps local admission abort distinct from durable Flue abort", async () => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw new DOMException("Local admission cancelled", "AbortError");
+    });
+    const abort = vi.fn<FlueClient["abort"]>(async () => ({ aborted: true }));
+    const harness = createAdmissionOutcomeHarness({ abort, send });
+
+    harness.emitCompletedTranscript("input-item-aborted");
+
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual({
+        code: "admission-aborted",
+        failure: { kind: "aborted" },
+        message: "The local chat submission was cancelled.",
+        type: "error",
+      }),
+    );
+    expect(send).toHaveBeenCalledOnce();
+    expect(abort).not.toHaveBeenCalled();
   });
 });

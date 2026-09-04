@@ -9,11 +9,13 @@ const position = (index: number) => ({ batch: 1, index });
 
 const project = (
   chunks: readonly ConversationStreamChunk[],
+  hiddenToolNames: ReadonlySet<string> = new Set(),
 ): UIMessageChunk[] => {
   const written: UIMessageChunk[] = [];
   const projector = createFlueUiStream({
     submissionId: "submission-1",
     clientToolNames: new Set(["readPetrinautDoc"]),
+    hiddenToolNames,
     write: (chunk) => written.push(chunk),
   });
   for (const chunk of chunks) projector.accept(chunk);
@@ -62,6 +64,72 @@ test("projects data and metadata onto the AI SDK stream", () => {
     type: "data-orderCard",
     data: { orderId: "42", status: "loaded" },
   });
+});
+
+test("hides an implementation tool while preserving its data marker", () => {
+  const written = project(
+    [
+      {
+        type: "message-started",
+        conversationId: "conversation-1",
+        messageId: "message-1",
+        submissionId: "submission-1",
+        turnId: "turn-1",
+        position: position(0),
+      },
+      {
+        type: "tool-input",
+        conversationId: "conversation-1",
+        messageId: "message-1",
+        toolCallId: "tool-question-1",
+        toolName: "brunch_mark_question",
+        input: { question: "Which line should run this order?" },
+        position: position(1),
+      },
+      {
+        type: "data-part",
+        conversationId: "conversation-1",
+        messageId: "message-1",
+        name: "brunch-question",
+        data: {
+          question: "Which line should run this order?",
+          toolCallId: "tool-question-1",
+        },
+        position: position(2),
+      },
+      {
+        type: "tool-output",
+        conversationId: "conversation-1",
+        toolCallId: "tool-question-1",
+        output: { marked: true },
+        position: position(3),
+      },
+      {
+        type: "submission-settled",
+        conversationId: "conversation-1",
+        submissionId: "submission-1",
+        outcome: "completed",
+        position: position(4),
+      },
+    ],
+    new Set(["brunch_mark_question"]),
+  );
+
+  expect(written).toContainEqual({
+    type: "data-brunch-question",
+    data: {
+      question: "Which line should run this order?",
+      toolCallId: "tool-question-1",
+    },
+  });
+  expect(
+    written.some(
+      (chunk) =>
+        chunk.type === "tool-input-available" ||
+        chunk.type === "tool-output-available" ||
+        chunk.type === "tool-output-error",
+    ),
+  ).toBe(false);
 });
 
 test("ignores observation catch-up chunks in a submission stream", () => {
@@ -117,4 +185,72 @@ test("ignores observation catch-up chunks in a submission stream", () => {
     "finish-step",
     "finish",
   ]);
+});
+
+test.each([
+  {
+    error: new Error("Elicitor failed.", {
+      cause: "The requested field is required.",
+    }),
+    expected: "Elicitor failed.\nCaused by: The requested field is required.",
+    shape: "Error with cause",
+  },
+  {
+    error: "The elicitor rejected the answer.",
+    expected: "The elicitor rejected the answer.",
+    shape: "string",
+  },
+  {
+    error: { field: "answer", reason: "Required" },
+    expected: '{"field":"answer","reason":"Required"}',
+    shape: "plain object",
+  },
+  {
+    error: 503,
+    expected: "The chat turn failed.",
+    shape: "unsupported value",
+  },
+  {
+    error: "",
+    expected: "The chat turn failed.",
+    shape: "empty string",
+  },
+])("preserves a failed submission's $shape error", ({ error, expected }) => {
+  const written = project([
+    {
+      type: "submission-settled",
+      conversationId: "conversation-1",
+      submissionId: "submission-1",
+      outcome: "failed",
+      error,
+      position: position(0),
+    },
+  ]);
+
+  expect(written).toEqual([{ type: "error", errorText: expected }]);
+  expect(written).not.toContainEqual({
+    type: "error",
+    errorText: "[object Object]",
+  });
+});
+
+test("bounds cyclic failed-submission objects", () => {
+  const cyclicError: Record<string, unknown> = { reason: "Recursive failure" };
+  cyclicError.self = cyclicError;
+  cyclicError.payload = "x".repeat(20_000);
+
+  const written = project([
+    {
+      type: "submission-settled",
+      conversationId: "conversation-1",
+      submissionId: "submission-1",
+      outcome: "failed",
+      error: cyclicError,
+      position: position(0),
+    },
+  ]);
+
+  const failure = written.find((chunk) => chunk.type === "error");
+  expect(failure?.errorText).toContain('"self":"[Circular]"');
+  expect(failure?.errorText.length).toBeLessThanOrEqual(10_000);
 });

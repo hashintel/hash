@@ -26,10 +26,23 @@ export const voiceSessionStatusLabel = (
 };
 
 export const voiceSessionActionLabels = {
+  collapse: "Collapse voice session",
   end: "End voice mode",
+  expand: "Expand voice session",
   mute: "Mute microphone",
   pause: "Pause voice mode",
+  playbackOptions: "Voice playback options",
+  readFullResponse: "Read full response",
   reconnect: "Reconnect voice mode",
+  repeatQuestion: "Repeat question",
   resume: "Resume voice mode",
+  takeTurn: "Your turn",
   unmute: "Unmute microphone",
+} as const;
+
+export const voiceSetupLabels = {
+  collapse: "Collapse voice setup",
+  expand: "Expand voice setup",
+  region: "Voice setup",
+  status: "Voice setup",
 } as const;

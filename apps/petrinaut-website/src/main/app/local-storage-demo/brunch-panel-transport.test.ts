@@ -1,3 +1,4 @@
+import { FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
 import {
@@ -25,11 +26,17 @@ test("delegates one typed message to the supplied Flue conversation", async () =
       position: { batch: 1, index: 0 },
     });
     await options?.onEvent?.({
+      type: "message-completed",
+      conversationId: "conversation-stable",
+      messageId: "assistant-1",
+      position: { batch: 1, index: 1 },
+    });
+    await options?.onEvent?.({
       type: "submission-settled",
       conversationId: "conversation-stable",
       submissionId: admission.submissionId,
       outcome: "completed",
-      position: { batch: 1, index: 1 },
+      position: { batch: 1, index: 2 },
     });
   });
   const client = {
@@ -42,6 +49,10 @@ test("delegates one typed message to the supplied Flue conversation", async () =
     { kind: "user", messageId: "user-1" },
     admissionListener,
   );
+  const responseCompletedListener = vi.fn();
+  tracker.subscribeToResponseMessageCompleted(responseCompletedListener);
+  const responseStartedListener = vi.fn();
+  tracker.subscribeToResponseMessageStarted(responseStartedListener);
   const onAdmission = vi.fn();
   const transport = createBrunchPanelTransport(
     Promise.resolve(client),
@@ -71,6 +82,7 @@ test("delegates one typed message to the supplied Flue conversation", async () =
 
   expect(send).toHaveBeenCalledOnce();
   expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:user-1",
     message: { kind: "user", body: "Typed tracer." },
     signal: undefined,
   });
@@ -78,6 +90,18 @@ test("delegates one typed message to the supplied Flue conversation", async () =
   expect(tracker.submissionsForResponse("assistant-1")).toEqual([
     "submission-1",
   ]);
+  expect(responseStartedListener).toHaveBeenCalledOnce();
+  expect(responseStartedListener).toHaveBeenCalledWith({
+    messageId: "assistant-1",
+    position: { batch: 1, index: 0 },
+    submissionId: "submission-1",
+  });
+  expect(responseCompletedListener).toHaveBeenCalledOnce();
+  expect(responseCompletedListener).toHaveBeenCalledWith({
+    messageId: "assistant-1",
+    position: { batch: 1, index: 1 },
+    submissionId: "submission-1",
+  });
   expect(onAdmission).toHaveBeenCalledOnce();
   expect(onAdmission).toHaveBeenCalledWith(admission);
 });
@@ -139,15 +163,66 @@ test("matches client-tool admissions once and supports unsubscribe", () => {
 
 test("records every submission that wrote a resumed assistant message", () => {
   const tracker = new BrunchPanelConversationTracker();
-  tracker.recordResponse("assistant-1", "submission-1");
-  tracker.recordResponse("assistant-1", "submission-continuation");
-  tracker.recordResponse("assistant-1", "submission-continuation");
+  const responseStartedListener = vi.fn();
+  tracker.subscribeToResponseMessageStarted(responseStartedListener);
+  tracker.recordResponse({
+    messageId: "assistant-1",
+    position: { batch: 1, index: 0 },
+    submissionId: "submission-1",
+  });
+  tracker.recordResponse({
+    messageId: "assistant-1",
+    position: { batch: 2, index: 0 },
+    submissionId: "submission-continuation",
+  });
+  tracker.recordResponse({
+    messageId: "assistant-1",
+    position: { batch: 2, index: 0 },
+    submissionId: "submission-continuation",
+  });
 
   expect(tracker.submissionsForResponse("assistant-1")).toEqual([
     "submission-1",
     "submission-continuation",
   ]);
   expect(tracker.submissionsForResponse("assistant-2")).toBeUndefined();
+  expect(responseStartedListener.mock.calls).toEqual([
+    [
+      {
+        messageId: "assistant-1",
+        position: { batch: 1, index: 0 },
+        submissionId: "submission-1",
+      },
+    ],
+    [
+      {
+        messageId: "assistant-1",
+        position: { batch: 2, index: 0 },
+        submissionId: "submission-continuation",
+      },
+    ],
+    [
+      {
+        messageId: "assistant-1",
+        position: { batch: 2, index: 0 },
+        submissionId: "submission-continuation",
+      },
+    ],
+  ]);
+});
+
+test("publishes Stop immediately and supports unsubscribe", () => {
+  const tracker = new BrunchPanelConversationTracker();
+  const listener = vi.fn();
+  const unsubscribedListener = vi.fn();
+  tracker.subscribeToStopRequested(listener);
+  const unsubscribe = tracker.subscribeToStopRequested(unsubscribedListener);
+  unsubscribe();
+
+  tracker.recordStopRequested();
+
+  expect(listener).toHaveBeenCalledOnce();
+  expect(unsubscribedListener).not.toHaveBeenCalled();
 });
 
 test("settles in-flight submissions before a durable abort can target them", async () => {
@@ -174,4 +249,47 @@ test("settles in-flight submissions before a durable abort can target them", asy
   );
   await expect(rejected).rejects.toThrow("rejected admission");
   await expect(tracker.settleInFlightSubmissions()).resolves.toBeUndefined();
+});
+
+test("publishes a typed admission failure for the exact panel input", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(500, "");
+  });
+  const tracker = new BrunchPanelConversationTracker();
+  const failureListener = vi.fn();
+  tracker.subscribeToAdmissionFailure(
+    { kind: "user", messageId: "voice-realtime:1:item-1:0" },
+    failureListener,
+  );
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send } as Pick<FlueClient, "send"> as FlueClient),
+    tracker,
+  );
+
+  const submission = transport.sendMessages({
+    trigger: "submit-message",
+    chatId: "conversation-stable",
+    messageId: undefined,
+    messages: [
+      {
+        id: "voice-realtime:1:item-1:0",
+        role: "user",
+        parts: [{ type: "text", text: "One Voice turn." }],
+      },
+    ],
+    abortSignal: undefined,
+  });
+
+  await expect(submission).rejects.toMatchObject({
+    failure: { kind: "ambiguous" },
+    name: "FlueChatAdmissionError",
+  });
+  expect(failureListener).toHaveBeenCalledOnce();
+  expect(failureListener).toHaveBeenCalledWith(
+    expect.objectContaining({
+      failure: { kind: "ambiguous" },
+      name: "FlueChatAdmissionError",
+    }),
+  );
+  expect(send).toHaveBeenCalledOnce();
 });
