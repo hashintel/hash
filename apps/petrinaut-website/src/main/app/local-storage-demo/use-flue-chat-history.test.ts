@@ -83,6 +83,55 @@ test("hydrates through the public Flue observation projection", async () => {
   expect(harness.observe).toHaveBeenCalledWith({ live: "sse" });
 });
 
+test("projects a pending live-net read as a browser client tool", async () => {
+  const harness = createObservationHarness({
+    conversation: {
+      conversationId: "conversation-1",
+      settlements: [],
+      messages: [
+        {
+          id: "assistant-net-read",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "tool-net-1",
+              toolName: "getLatestNetDefinition",
+              state: "output-available",
+              input: {},
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+      ],
+    },
+    offset: "offset-net-read",
+    phase: "live",
+    error: undefined,
+  });
+  const { result } = renderHook(() =>
+    useFlueChatHistory(harness.clientPromise, "conversation-1"),
+  );
+
+  await waitFor(() => expect(result.current.ready).toBe(true));
+  expect(result.current.messages).toStrictEqual([
+    {
+      id: "assistant-net-read",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-getLatestNetDefinition",
+          toolCallId: "tool-net-1",
+          state: "input-available",
+          input: {},
+        },
+      ],
+    },
+  ]);
+});
+
 test("exposes the canonical settlement index for Voice correlation", async () => {
   const harness = createObservationHarness({
     conversation: {

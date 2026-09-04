@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
 import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
-import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
+
+import { brunchClientToolNames } from "./brunch-client-tools";
 
 import type {
   AgentConversationObservation,
@@ -22,7 +23,7 @@ const projectPetrinautMessages = (
   // The host owns this narrowing: its configured client-tool catalog is the
   // same catalog Petrinaut's message type exposes.
   snapshotToUiMessages(conversation, {
-    clientToolNames: new Set([readPetrinautDocToolName]),
+    clientToolNames: brunchClientToolNames,
     hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
   }) as PetrinautAiMessage[];
 

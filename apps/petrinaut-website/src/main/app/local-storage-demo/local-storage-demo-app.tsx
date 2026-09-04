@@ -44,6 +44,10 @@ import {
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../voice-interview/voice-interview-control";
+import {
+  brunchClientToolNames,
+  scratchProjectConstructionInitialData,
+} from "./brunch-client-tools";
 import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
 import {
   BrunchPanelConversationTracker,
@@ -494,14 +498,25 @@ export const LocalStorageDemoApp = ({
       ),
     [conversationTracker, flueHistory.settlements, openAIVoiceConfig],
   );
+  const brunchInitialData =
+    activeHandle !== null && isEmptySDCPN(activeHandle.fallbackNet.sdcpn)
+      ? scratchProjectConstructionInitialData
+      : undefined;
   const petrinautAiChatTransport = useMemo(
     () =>
       flueClientPromise === null
         ? stockChatTransport
         : createBrunchPanelTransport(flueClientPromise, conversationTracker, {
+            clientToolNames: brunchClientToolNames,
+            initialData: brunchInitialData,
             onAdmission: flueHistory.refresh,
           }),
-    [conversationTracker, flueClientPromise, flueHistory.refresh],
+    [
+      brunchInitialData,
+      conversationTracker,
+      flueClientPromise,
+      flueHistory.refresh,
+    ],
   );
 
   const aiAssistant = useMemo(

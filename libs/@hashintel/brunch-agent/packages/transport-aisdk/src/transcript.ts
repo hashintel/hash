@@ -98,7 +98,7 @@ const toolPartFrom = (
       state: "output-error",
       input: part.input,
       errorText: part.errorText,
-      ...(isClientTool ? {} : { providerExecuted: true }),
+      providerExecuted: true,
     };
   }
   if (isClientTool && !hasClientOutput) {

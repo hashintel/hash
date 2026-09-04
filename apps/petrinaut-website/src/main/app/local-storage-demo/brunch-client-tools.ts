@@ -1,5 +1,22 @@
-import { ASK_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
+
+import type { PetrinautAiToolName } from "@hashintel/petrinaut-core/ai";
+
+export const scratchProjectConstructionMode =
+  "scratch-project-construction" as const;
+
+export const scratchProjectConstructionInitialData = {
+  mode: scratchProjectConstructionMode,
+} as const;
+
+export const scratchProjectConstructionToolNames = [
+  "getLatestNetDefinition",
+  "addType",
+  "addParameter",
+  "addPlace",
+  "addTransition",
+  "addArc",
+] as const satisfies readonly PetrinautAiToolName[];
 
 /**
  * The one catalog of tools the browser answers on Brunch's behalf. The panel
@@ -10,5 +27,5 @@ import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
  */
 export const brunchClientToolNames: ReadonlySet<string> = new Set([
   readPetrinautDocToolName,
-  ASK_TOOL_NAME,
+  ...scratchProjectConstructionToolNames,
 ]);

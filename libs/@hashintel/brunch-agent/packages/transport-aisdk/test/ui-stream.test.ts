@@ -132,6 +132,98 @@ test("hides an implementation tool while preserving its data marker", () => {
   ).toBe(false);
 });
 
+test("waits for server validation before exposing a client tool", () => {
+  const written: UIMessageChunk[] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(["addTransition"]),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "add-transition-1",
+    toolName: "addTransition",
+    input: { id: "fulfill_order" },
+    position: position(1),
+  });
+
+  expect(written.some((chunk) => chunk.type === "tool-input-available")).toBe(
+    false,
+  );
+
+  projector.accept({
+    type: "tool-output",
+    conversationId: "conversation-1",
+    toolCallId: "add-transition-1",
+    output: { awaiting: "client" },
+    position: position(2),
+  });
+
+  expect(written).toContainEqual({
+    type: "tool-input-available",
+    toolCallId: "add-transition-1",
+    toolName: "addTransition",
+    input: { id: "fulfill_order" },
+  });
+});
+
+test("keeps a server-rejected client tool away from the browser dispatcher", () => {
+  const written = project([
+    {
+      type: "message-started",
+      conversationId: "conversation-1",
+      messageId: "message-1",
+      submissionId: "submission-1",
+      turnId: "turn-1",
+      position: position(0),
+    },
+    {
+      type: "tool-input",
+      conversationId: "conversation-1",
+      messageId: "message-1",
+      toolCallId: "tool-doc-invalid",
+      toolName: "readPetrinautDoc",
+      input: { doc: 42 },
+      position: position(1),
+    },
+    {
+      type: "tool-output-error",
+      conversationId: "conversation-1",
+      toolCallId: "tool-doc-invalid",
+      errorText: "Expected doc to be a string.",
+      position: position(2),
+    },
+  ]);
+
+  expect(written).toEqual(
+    expect.arrayContaining([
+      {
+        type: "tool-input-available",
+        toolCallId: "tool-doc-invalid",
+        toolName: "readPetrinautDoc",
+        input: { doc: 42 },
+        providerExecuted: true,
+      },
+      {
+        type: "tool-output-error",
+        toolCallId: "tool-doc-invalid",
+        errorText: "Expected doc to be a string.",
+        providerExecuted: true,
+      },
+    ]),
+  );
+});
+
 test("ignores observation catch-up chunks in a submission stream", () => {
   const written = project([
     {

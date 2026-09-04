@@ -129,6 +129,34 @@ test("admits one user message and projects a finite per-turn stream", async () =
   ]);
 });
 
+test("seeds a newly created conversation with configured initial data", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const initialData = { mode: "scratch-project-construction" };
+  const transportOptions = {
+    client,
+    clientToolNames: new Set(["getLatestNetDefinition"]),
+    initialData,
+  } as FlueChatTransportOptions & { readonly initialData: unknown };
+  const transport = createFlueChatTransport(transportOptions);
+
+  await transport.sendMessages(
+    sendOptions([
+      {
+        id: "user-scratch",
+        role: "user",
+        parts: [{ type: "text", text: "Model this process." }],
+      },
+    ]),
+  );
+
+  expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:user-scratch",
+    initialData,
+    message: { kind: "user", body: "Model this process." },
+    signal: undefined,
+  });
+});
+
 test("admits one client-tool result signal and resumes its assistant id", async () => {
   const { client, send } = clientWith(completedEvents);
   const transport = createFlueChatTransport({

@@ -310,6 +310,8 @@ export const createBrunchPanelTransport = (
   clientPromise: Promise<FlueClient>,
   tracker: BrunchPanelConversationTracker,
   hooks?: {
+    readonly clientToolNames?: FlueChatTransportOptions["clientToolNames"];
+    readonly initialData?: FlueChatTransportOptions["initialData"];
     readonly onAdmission?: (admission: AgentSendResult) => void;
   },
 ): PetrinautAiChatTransport => ({
@@ -320,8 +322,10 @@ export const createBrunchPanelTransport = (
         const client = await clientPromise;
         const transport = createFlueChatTransport({
           client,
-          clientToolNames: new Set([readPetrinautDocToolName]),
+          clientToolNames:
+            hooks?.clientToolNames ?? new Set([readPetrinautDocToolName]),
           hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
+          initialData: hooks?.initialData,
           onAdmission: (event) => {
             tracker.recordAdmission(event);
             hooks?.onAdmission?.(event.admission);

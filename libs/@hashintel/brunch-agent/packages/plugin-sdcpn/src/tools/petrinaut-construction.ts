@@ -4,6 +4,8 @@ import * as v from "valibot";
 import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
+import { valibotObjectSchemaFromJsonSchema } from "./petrinaut-construction/json-schema-to-valibot";
+
 export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
   "getLatestNetDefinition",
   "addType",
@@ -50,7 +52,7 @@ const canonicalInputFor = (toolName: PetrinautConstructionToolName) => {
       JSON.stringify(jsonSchema),
     ].join("\n"),
     schema: v.pipe(
-      v.looseObject({}),
+      valibotObjectSchemaFromJsonSchema(jsonSchema),
       v.rawTransform((context) => {
         const parsed = canonicalTool.inputSchema.safeParse(
           context.dataset.value,
