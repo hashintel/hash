@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 import { expect, test } from "vitest";
 
+import petrinautLocalConfig from "../petrinaut-local.vite.config.ts";
 import {
   defaultChatOrigin,
   localChatListen,
@@ -63,4 +65,40 @@ test("petrinaut:dev proxies the mounted Flue conversation route", () => {
   expect(readAppFile("petrinaut-local.vite.config.ts")).toContain(
     'VITE_BRUNCH_CHAT_ENDPOINT ??= "/agents/chat"',
   );
+});
+
+test("petrinaut:dev retains the website API handlers needed by Voice", async () => {
+  const previousCwd = process.cwd();
+  const previousWebsiteRoot = process.env.PETRINAUT_WEBSITE_ROOT;
+  const previousChatEndpoint = process.env.VITE_BRUNCH_CHAT_ENDPOINT;
+  process.env.PETRINAUT_WEBSITE_ROOT = fileURLToPath(
+    new URL("../../petrinaut-website", import.meta.url),
+  );
+
+  try {
+    const config = await petrinautLocalConfig({
+      command: "serve",
+      isPreview: false,
+      isSsrBuild: false,
+      mode: "test",
+    });
+
+    expect(config.plugins).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "petrinaut-api-dev" }),
+      ]),
+    );
+  } finally {
+    process.chdir(previousCwd);
+    if (previousWebsiteRoot === undefined) {
+      delete process.env.PETRINAUT_WEBSITE_ROOT;
+    } else {
+      process.env.PETRINAUT_WEBSITE_ROOT = previousWebsiteRoot;
+    }
+    if (previousChatEndpoint === undefined) {
+      delete process.env.VITE_BRUNCH_CHAT_ENDPOINT;
+    } else {
+      process.env.VITE_BRUNCH_CHAT_ENDPOINT = previousChatEndpoint;
+    }
+  }
 });
