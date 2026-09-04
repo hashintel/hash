@@ -66,12 +66,15 @@ describe("analyzeCompilation", () => {
     ).toHaveLength(2);
   });
 
-  it("accepts every bundled example except the one multi-place consumer", () => {
+  it("accepts every bundled example except the identity-keyed nets", () => {
     // With derived capacities, calibrated histogram windows, forwarded
-    // kernel tokens, and the tiling-aware state gate, the only example the
-    // GPU still declines is Production Machines — its \`Start Repair\`
+    // kernel tokens, and the tiling-aware state gate, the GPU declines only
+    // the three status-view examples. Their tokens carry a \`uuid\` or
+    // \`string\` identity key so Kanban cards read as machines, tickets, and
+    // deployments, and WebGPU integers are 32-bit, so those attributes
+    // cannot be represented. (Production Machines' \`Start Repair\` also
     // consumes typed tokens from two places, a cross-product enumeration
-    // the shader does not scan yet (the weight > 2 family).
+    // the shader does not scan yet, but eligibility declines it first.)
     // Deliberately exhaustive over the examples namespace: adding an example
     // MUST extend this matrix, so its GPU verdict is a decision, not an
     // accident.
@@ -85,7 +88,8 @@ describe("analyzeCompilation", () => {
     );
     expect(readiness).toStrictEqual({
       productionMachines: false,
-      deploymentPipelineSDCPN: true,
+      deploymentPipelineSDCPN: false,
+      ticketProcessingSDCPN: false,
       probabilisticSatellitesSDCPN: true,
       sirModel: true,
       cafeQueue: true,
@@ -93,12 +97,18 @@ describe("analyzeCompilation", () => {
       supplyChainWithDisruption: true,
       supplyChainProfit: true,
     });
-    const production = analyze(
-      allExamples.productionMachines.petriNetDefinition,
-    );
-    expect(production.shaderFailure).toMatch(
-      /consumes typed tokens from 2 places/,
-    );
+    for (const example of [
+      allExamples.productionMachines,
+      allExamples.deploymentPipelineSDCPN,
+      allExamples.ticketProcessingSDCPN,
+    ]) {
+      const report = analyze(example.petriNetDefinition);
+      expect(report.eligibilityReasons.length).toBeGreaterThan(0);
+      for (const reason of report.eligibilityReasons) {
+        expect(reason.code).toBe("unsupported-attribute-type");
+        expect(reason.message).toMatch(/`(uuid|string)` attribute/);
+      }
+    }
   });
 
   it("reports the satellites example GPU-ready with derived capacities", () => {
