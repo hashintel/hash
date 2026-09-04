@@ -562,12 +562,9 @@ describe("CreateOptimizationDrawer", () => {
     const submittedInput = createOptimization.mock.calls[0]![0];
     expect(submittedInput.model.definition.metrics).toEqual([savedMetric]);
     expect(submittedInput.objective.metricId).toBe(savedMetric!.id);
-    expect(submittedInput.execution).toEqual({
-      seed: 1234,
-      dt: 0.1,
-      maxTime: 180,
-      seedsPerTrial: 1,
-    });
+    const { seed: submittedSeed, ...execution } = submittedInput.execution;
+    expect(Number.isInteger(submittedSeed)).toBe(true);
+    expect(execution).toEqual({ dt: 0.1, maxTime: 180, seedsPerTrial: 1 });
     expect(createOptimization.mock.calls[0]![1]).toEqual({
       computeBackend: "cpu",
       parallelism: 1,
@@ -602,6 +599,62 @@ describe("CreateOptimizationDrawer", () => {
     await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
     expect(createOptimization.mock.calls[0]![0].execution.seedsPerTrial).toBe(
       3,
+    );
+  });
+
+  it("sends the typed seed with the manifest", async () => {
+    const languageClient = makeSuccessfulLanguageClient();
+    const createOptimization = vi.fn(
+      async (_input: PetrinautOptimizationInput) => "optimization-seed",
+    );
+    const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
+    expect(savedMetric).toBeDefined();
+    openConfiguration({ createOptimization, languageClient });
+
+    fireEvent.change(screen.getByLabelText("Seed"), {
+      target: { value: "4242" },
+    });
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}${savedMetric!.id}` },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
+    fireEvent.click(screen.getByRole("button", { name: /Run/ }));
+
+    await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
+    expect(createOptimization.mock.calls[0]![0].execution.seed).toBe(4242);
+  });
+
+  it("rejects a seed above the limit before submitting", () => {
+    openConfiguration();
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: {
+          value: `${MODEL_METRIC_VALUE_PREFIX}metric__infected_fraction`,
+        },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
+
+    fireEvent.change(screen.getByLabelText("Seed"), {
+      target: { value: "2147483648" },
+    });
+
+    expect(
+      screen.getByText("Seed must be an integer between 0 and 2,147,483,647"),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Run/ })).toHaveProperty(
+      "disabled",
+      true,
     );
   });
 
@@ -740,6 +793,7 @@ describe("CreateOptimizationDrawer", () => {
       direction: "minimize",
       optimizationSteps: 20,
       seedsPerTrial: 4,
+      seed: 99,
       dt: 0.5,
       maxTime: 100,
     });
@@ -783,7 +837,7 @@ describe("CreateOptimizationDrawer", () => {
       direction: "minimize",
     });
     expect(input.execution).toEqual({
-      seed: 1234,
+      seed: 99,
       dt: 0.5,
       maxTime: 100,
       seedsPerTrial: 4,
@@ -863,6 +917,7 @@ describe("CreateOptimizationDrawer", () => {
       direction: "maximize",
       optimizationSteps: 10,
       seedsPerTrial: 1,
+      seed: 7,
       dt: 0.5,
       maxTime: 50,
     });
