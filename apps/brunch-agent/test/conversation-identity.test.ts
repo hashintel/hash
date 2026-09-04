@@ -41,7 +41,10 @@ test("ownsFlueInstance admits only the principal and conversation that hashed th
     ownsFlueInstance({ ...identity, principalKey: "principal-b" }, instanceId),
   ).toBe(false);
   expect(
-    ownsFlueInstance({ ...identity, conversationId: "conversation-2" }, instanceId),
+    ownsFlueInstance(
+      { ...identity, conversationId: "conversation-2" },
+      instanceId,
+    ),
   ).toBe(false);
   expect(ownsFlueInstance(identity, "not-a-hash")).toBe(false);
 });
