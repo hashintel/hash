@@ -45,8 +45,10 @@
   --pnd-motion-duration: 200ms;
   --pnd-motion-ease: cubic-bezier(0.32, 0.72, 0, 1);
 
-  /* The chrome sits back until it is pointed at. */
+  /* The chrome sits back until it is pointed at. The toggle sits back further:
+     it is one small control against a wide header, not a column of text. */
   --pnd-chrome-idle-opacity: 0.7;
+  --pnd-toggle-idle-opacity: 0.5;
   --pnd-chrome-fade: 300ms;
 
   /*
@@ -66,6 +68,7 @@
 @media (prefers-reduced-transparency: reduce) {
   :root {
     --pnd-chrome-idle-opacity: 1;
+    --pnd-toggle-idle-opacity: 1;
   }
 }
 
@@ -245,6 +248,50 @@ h6 {
 
 .site-title img {
   height: 1.5rem;
+}
+
+/* Header controls ------------------------------------------------------- */
+
+/*
+ * Starlight draws a rule between the social links and the theme select from
+ * `.social-icons::after`, on the container rather than on a link, so it
+ * survives having no links to divide. Hidden by the absence of links rather
+ * than outright, so restoring one in the config brings the group back.
+ */
+.right-group .social-icons:not(:has(a)) {
+  display: none;
+}
+
+/*
+ * The theme select rests back like the collapse toggle: one small control in a
+ * wide header. Its own hover already lifts the colour; this lifts the whole
+ * control with it.
+ */
+.right-group starlight-theme-select {
+  display: block;
+  opacity: var(--pnd-toggle-idle-opacity);
+  transition: opacity var(--pnd-chrome-fade) ease;
+}
+
+.right-group starlight-theme-select:hover,
+.right-group starlight-theme-select:focus-within {
+  opacity: 1;
+}
+
+/*
+ * The select carries no border of its own, so the browser's focus ring is the
+ * only thing marking it, and it arrives as a thick blue rectangle from outside
+ * the palette. Replaced rather than removed: keyboard focus still has to be
+ * visible, it just reads in the site's own greys.
+ */
+.right-group select {
+  border-radius: var(--pnd-radius-sm);
+  outline: none;
+}
+
+.right-group select:focus-visible {
+  outline: 2px solid var(--sl-color-gray-4);
+  outline-offset: 1px;
 }
 
 /* Search --------------------------------------------------------------- */
@@ -566,18 +613,44 @@ dialog {
     background: none;
     color: var(--sl-color-gray-3);
     cursor: pointer;
-    opacity: var(--pnd-chrome-idle-opacity);
+    opacity: var(--pnd-toggle-idle-opacity);
     transition:
       background-color 120ms ease,
       color 120ms ease,
       opacity var(--pnd-chrome-fade) ease;
   }
 
-  .pnd-sidebar-toggle:hover,
-  .pnd-sidebar-toggle:focus-visible {
+  /*
+   * These carry the same `:root[data-has-sidebar]` prefix as the rule above,
+   * which is load-bearing rather than decoration: that prefix is three
+   * selectors' worth of specificity, and a bare `.pnd-sidebar-toggle:hover` is
+   * two, so it loses and the button never lights up.
+   */
+  :root[data-has-sidebar] .pnd-sidebar-toggle:hover,
+  :root[data-has-sidebar] .pnd-sidebar-toggle:focus-visible {
     background: var(--pnd-row-active);
     color: var(--sl-color-white);
     opacity: 1;
+  }
+
+  /*
+   * A press dips the button and springs back past its own size, which is the
+   * bounce. The dip is quick and the return is not, so the weight lands on the
+   * way back rather than on the way in.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    :root[data-has-sidebar] .pnd-sidebar-toggle {
+      transition:
+        background-color 120ms ease,
+        color 120ms ease,
+        opacity var(--pnd-chrome-fade) ease,
+        transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    :root[data-has-sidebar] .pnd-sidebar-toggle:active {
+      transform: scale(0.88);
+      transition-duration: 120ms, 120ms, var(--pnd-chrome-fade), 90ms;
+    }
   }
 
   /*

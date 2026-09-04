@@ -123,8 +123,17 @@ borders that framed the header, the sidebar and the on-this-page column are
 gone. Element borders stay where they separate content from the page: tables,
 code frames, and the markdown images that hold the diagrams.
 
-Both rails and the collapse toggle rest at 70% and come to full strength when
-the pointer or keyboard focus reaches them, over 300ms. The hover target is the
+Both rails rest at 70% and come to full strength when the pointer or keyboard
+focus reaches them, over 300ms. The collapse toggle and the theme select rest
+further back at 50%: one small control in a wide header carries less than a
+column of text does. A press dips the toggle and springs it back past its own
+size.
+
+The header keeps no social links, so Starlight's `.social-icons::after` rule
+would leave a rule dividing nothing; the group is hidden while it holds no
+links, which brings it back if one is configured again. The theme select's
+focus ring is restated in the palette's greys, since the browser's own arrives
+as a thick blue rectangle over a control that has no border of its own. The hover target is the
 whole rail, so the reveal does not depend on landing on a row, and the opacity
 sits on each rail's inner element rather than the scrolling pane, which already
 owns a transition for the collapse. `prefers-reduced-transparency` turns the

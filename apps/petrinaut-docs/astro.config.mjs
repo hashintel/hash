@@ -377,13 +377,6 @@ export default defineConfig({
 } catch {}`,
         },
       ],
-      social: [
-        {
-          icon: "github",
-          label: "GitHub",
-          href: "https://github.com/hashintel/hash/tree/main/libs/@hashintel/petrinaut",
-        },
-      ],
       sidebar: buildSidebar(),
       // No llms.txt plugin: the bundle emits its own `architecture.md` and
       // `architecture.json`, which `scripts/sync-bundle.mjs` copies into
