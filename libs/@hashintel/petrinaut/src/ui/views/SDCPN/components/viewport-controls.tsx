@@ -1,4 +1,3 @@
-import { useReactFlow } from "@xyflow/react";
 import { use } from "react";
 
 import { Button } from "@hashintel/ds-components";
@@ -7,6 +6,7 @@ import { cx, css, cva } from "@hashintel/ds-helpers/css";
 import { usePetrinautNavigation } from "../../../../react/navigation";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { PANEL_MARGIN } from "../../../constants/ui";
+import { useCanvasController } from "../canvas-renderer";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
 import type { ViewportAction } from "../../../types/viewport-action";
@@ -45,7 +45,7 @@ export const ViewportControls: React.FC<{
       { cause: "user", action: "overlay" },
     );
   };
-  const { zoomIn, zoomOut } = useReactFlow();
+  const { zoomIn, zoomOut } = useCanvasController();
   const {
     collapseAllPanels,
     hasSelection,
@@ -77,8 +77,7 @@ export const ViewportControls: React.FC<{
         tooltipOptions={{ position: "left" }}
         iconName="plus"
         className={blurredBackground}
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        onClick={() => zoomIn()}
+        onClick={zoomIn}
       />
       <Button
         size="xs"
@@ -88,8 +87,7 @@ export const ViewportControls: React.FC<{
         tooltipOptions={{ position: "left" }}
         iconName="dash"
         className={blurredBackground}
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        onClick={() => zoomOut()}
+        onClick={zoomOut}
       />
       <Button
         size="xs"

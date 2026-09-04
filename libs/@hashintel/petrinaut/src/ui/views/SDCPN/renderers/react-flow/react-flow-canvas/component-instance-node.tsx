@@ -4,9 +4,10 @@ import { use } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../react/state/editor-context";
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { portInHandleId, portOutHandleId } from "./port-handles";
 
-import type { ComponentInstanceNodeType } from "../reactflow-types";
+import type { ComponentInstanceNodeType } from "./react-flow-types";
 
 const PORT_SIZE = 10;
 const PORT_OFFSET = PORT_SIZE / 2;
@@ -133,11 +134,11 @@ export const ComponentInstanceNode: React.FC<
           portCount === 1 ? 50 : (index / (portCount - 1)) * 100;
 
         return (
-          <div key={`port-in-${port.id}`}>
+          <div key={portInHandleId(port.id)}>
             <Handle
               type="target"
               position={Position.Left}
-              id={`port-in-${port.id}`}
+              id={portInHandleId(port.id)}
               className={portStyle}
               style={{
                 top: `${topPercent}%`,
@@ -170,10 +171,10 @@ export const ComponentInstanceNode: React.FC<
 
         return (
           <Handle
-            key={`port-out-${port.id}`}
+            key={portOutHandleId(port.id)}
             type="source"
             position={Position.Right}
-            id={`port-out-${port.id}`}
+            id={portOutHandleId(port.id)}
             className={portStyle}
             style={{
               top: `${topPercent}%`,

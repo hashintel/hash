@@ -3,11 +3,11 @@ import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../react/state/editor-context";
-import { PANEL_MARGIN } from "../../../constants/ui";
-import { miniMapPlaceFillColor } from "../styles/type-colors";
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { PANEL_MARGIN } from "../../../../../constants/ui";
+import { miniMapPlaceFillColor } from "../../../styles/type-colors";
 
-import type { NodeType } from "../reactflow-types";
+import type { NodeType } from "./react-flow-types";
 import type { MiniMapNodeProps, MiniMapProps } from "@xyflow/react";
 
 const miniMapClassName = css({
@@ -42,15 +42,15 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
 
   // Compute colors based on node type and type color
   const fill =
-    node.data.type === "place"
+    node.data.kind === "place"
       ? miniMapPlaceFillColor(node.data.typeColor)
-      : node.data.type === "componentInstance"
+      : node.data.kind === "componentInstance"
         ? DEFAULT_COMPONENT_FILL
         : DEFAULT_TRANSITION_FILL;
 
   const isSelected = node.selected;
 
-  if (node.data.type === "place") {
+  if (node.data.kind === "place") {
     return (
       <circle
         cx={x + SHAPE_SIZE / 2}
@@ -64,7 +64,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
     );
   }
 
-  if (node.data.type === "componentInstance") {
+  if (node.data.kind === "componentInstance") {
     return (
       <rect
         x={x - SHAPE_SIZE}
