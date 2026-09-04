@@ -571,7 +571,7 @@ describe("VoiceTurnController", () => {
       "response-prose",
       "The approver is recorded. I can explain the escalation path.",
     );
-    const markedQuestion: CanonicalSpeechSegment = {
+    const exactQuestion: CanonicalSpeechSegment = {
       ...question("marked-question", "Who approves release?"),
       messageId: finalProse.messageId,
       source: "assistant-question",
@@ -580,7 +580,7 @@ describe("VoiceTurnController", () => {
 
     harness.emitBridge({
       deliveryId: "voice-1",
-      questionSegment: markedQuestion,
+      questionSegment: exactQuestion,
       segments: [context, finalProse],
       type: "canonical-response-ready",
     });
@@ -611,7 +611,7 @@ describe("VoiceTurnController", () => {
 
     expect(harness.session.speakCanonical).toHaveBeenCalledOnce();
     expect(harness.session.speakCanonical).toHaveBeenCalledWith([
-      markedQuestion,
+      exactQuestion,
     ]);
   });
 
