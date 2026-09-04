@@ -83,16 +83,16 @@ not to the saved scenario.
 ## Watching results
 
 Open an optimization row to follow it while it runs. The drawer updates as
-steps arrive and shows:
+steps arrive. A study run on the optimization service shows:
 
 - Completed, pruned, and failed step counts.
 - The current best metric value.
 - The best flat scenario-parameter assignment.
 - The latest received steps, including their parameters, objective values, and
   colored state indicators. The step list sits at the bottom of the drawer and
-  scrolls on its own — the summary, the best parameters, and the surface above
-  it hold still. For long runs, the drawer displays the newest 200 steps while
-  retaining aggregate progress and the current best result.
+  scrolls on its own — the sections above it hold still. For long runs, the
+  drawer displays the newest 200 steps while retaining aggregate progress and
+  the current best result.
 
 Closing the drawer does not stop the optimization. Use **Cancel** to abort an
 active run on the optimization service, or **Stop** to end a study running in
@@ -107,35 +107,49 @@ kept, and a **Retry** action starts a fresh run with the same settings.
 
 A study that runs in the browser (see [Running in the
 browser](#running-in-the-browser)) shows more, because the machine computing
-it is yours:
+it is yours, and lays it out so everything is in view at once — on a laptop
+screen nothing needs scrolling while the study streams:
 
-- A badge beside the **Summary** heading says where the steps run. It reads
-  **CPU**, because the GPU backend cannot compute an expression objective (see
-  step 4 of [Creating an optimization](#creating-an-optimization)).
+- A summary strip across the top: the status, the steps finished over the
+  steps requested (with the runs per step and the parallel steps when they
+  are above one), the best value so far — hover it for the best step's
+  parameters — and a badge saying where the steps run. It reads **CPU**,
+  because the GPU backend cannot compute an expression objective (see step 4
+  of [Creating an optimization](#creating-an-optimization)). Under the strip,
+  a progress bar for the steps, a thinner one for the runs of the step in
+  flight, and an **N computing** chip that expands into one row per batch
+  computing right now, each with its own progress.
 - A **Parameters** band with one slider per optimized numeric parameter and a
-  switch per optimized boolean parameter. While the study runs, **Follow
-  steps** is on: the controls move to each step's values as it is evaluated,
-  disabled while they follow, and the status line reads **Following step N**.
-  Turn **Follow steps** off to take over early, or wait for the study to
-  finish; then move any control and the point you picked computes in
-  escalating batches (8, 25, then 100 runs) while the line reads **N of M
-  runs — refining**. Turn **Follow steps** back on to rejoin the step in
-  flight.
-- The **Surface** section whenever two or more numeric parameters are
-  optimized, without the Optimization surface setting. It draws only the
-  study's steps: each step is a dot at its parameters, the best emphasized,
-  pruned steps hollow, and the field is interpolated between them, so it fills
-  in as steps report — nothing is sampled behind the study. The ringed dot is
-  the step being evaluated, its running value streaming into the field as the
-  runs complete; the caption counts the steps placed and the best so far.
+  switch per optimized boolean parameter, two to a row when they fit. Its
+  heading carries the state line and the **Follow steps** switch. While the
+  study runs, **Follow steps** is on: the controls move to each step's values
+  as it is evaluated, disabled while they follow, and the line reads
+  **Following step N**. Turn **Follow steps** off to take over early, or wait
+  for the study to finish; then move any control and the point you picked
+  computes in escalating batches (8, 25, then 100 runs) while the line reads
+  **N of M runs — refining**. Turn **Follow steps** back on to rejoin the step
+  in flight.
+- The **Surface**, on the left below the band, whenever two or more numeric
+  parameters are optimized, without the Optimization surface setting. It
+  draws only the study's steps: each step is a dot at its parameters, the
+  best emphasized, pruned steps hollow, and the field is interpolated between
+  them, so it fills in as steps report — nothing is sampled behind the study.
+  The ringed dot is the step being evaluated, its running value streaming into
+  the field as the runs complete; the caption counts the steps placed and the
+  best so far, and the info icon beside the axis pickers explains the marks.
   While the study runs with **Follow steps** on, the plot only displays. Once
   the study is over, or **Follow steps** is off, the ringed dot is the point
   the Parameters band holds: click or drag the plot to move it, and the
   point's value enters the field as it refines.
-- A **Metrics** section with the objective metric's distribution over
-  simulation time at that position: the step being evaluated while following,
-  otherwise the point you picked. It streams again whenever the position
-  changes.
+- The objective metric's chart, beside the surface: its distribution over
+  simulation time at that position — the step being evaluated while
+  following, otherwise the point you picked. It streams again whenever the
+  position changes, so the surface and the chart always describe the same
+  point.
+- The steps table, filling whatever height is left: the newest steps first,
+  the best one starred and tinted, scrolling on its own. It shows a row or
+  two on a laptop screen and a page of them on a taller one; the strip's step
+  count and best value stay in view either way.
 
 ## The surface view
 
@@ -192,8 +206,8 @@ experiments.
 - While the study runs, the drawer follows it: the **Parameters** band moves
   to each step's values, the **Surface** gains a dot per step with the field
   filling in around it and the ringed dot streaming the step in flight, and
-  the **Metrics** section streams the objective metric over that step's runs
-  as they complete. The sliders and the plot only display while **Follow
+  the objective's chart beside the surface streams the metric over that
+  step's runs as they complete. The sliders and the plot only display while **Follow
   steps** is on; turn it off to take over early. Then, or once the study is
   over, move a slider, flip a switch, or click or drag the surface to look at
   any other point — its objective computes in escalating batches on the same
@@ -201,15 +215,15 @@ experiments.
   the study.
 - When a point cannot be computed — the objective metric does not compile,
   the backend declines the model, or some of its runs fail — the
-  **Parameters** band says why under **Could not compute** and the **Metrics**
-  section stays empty; a step that fails this way is pruned. Moving to another
+  **Parameters** band says why under **Could not compute** and the
+  objective's chart stays empty; a step that fails this way is pruned. Moving to another
   point, or back to this one, tries again.
 - **Parallel steps** (1 to 4, default 1) sets how many steps the optimizer
   evaluates at once. Above 1, the optimizer accounts for the steps still
   running when it picks the next values, so the proposals differ from a
   one-at-a-time study. The Parameters band follows the most recently started
   step, and the Surface rings every step in flight with its running value.
-- Under the Summary's steps bar, a thinner bar tracks the followed step's runs
+- Under the summary strip's steps bar, a thinner bar tracks the followed step's runs
   over the runs per step, and a **"N computing"** chip appears while anything
   computes — the steps in flight and the picked point's refinement — expanding
   into one row per batch with its own progress.
@@ -225,7 +239,7 @@ experiments.
   the study's sampler: the status reads **Stopped**, and the footer offers
   **Continue** with a number of steps (the study's own step count by default).
   Continue runs that many more steps on the same study, with everything it
-  learned so far, and the Summary's Steps counts them into the total. A
+  learned so far, and the strip's **Steps** counts them into the total. A
   completed study can be continued the same way, as often as the 1,000-step
   cap allows. Removing the study drops its sampler.
 - Keep the tab open. Closing or reloading the page ends the study, and the
