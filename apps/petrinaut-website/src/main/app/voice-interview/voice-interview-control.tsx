@@ -639,11 +639,13 @@ const AvailableVoiceInterviewControl = ({
           setMicrophoneCheck("");
           let microphoneCheckPromise: Promise<MediaStream>;
           try {
-            const getUserMedia = navigator.mediaDevices?.getUserMedia;
+            const { mediaDevices } = navigator as {
+              readonly mediaDevices?: MediaDevices;
+            };
             microphoneCheckPromise =
-              getUserMedia === undefined
+              mediaDevices === undefined
                 ? Promise.reject(new Error("Microphone access is unavailable."))
-                : getUserMedia.call(navigator.mediaDevices, { audio: true });
+                : mediaDevices.getUserMedia({ audio: true });
           } catch (error) {
             microphoneCheckPromise = Promise.reject(error);
           }

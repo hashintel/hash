@@ -511,7 +511,9 @@ describe("voice interview control", () => {
       expect(status.getAttribute("aria-live")).toBe("polite");
       expect(status.getAttribute("aria-atomic")).toBe("true");
       expect(check.getAttribute("aria-describedby")).toBe(status.id);
-      await waitFor(() => expect(check.getAttribute("aria-busy")).toBe("false"));
+      await waitFor(() =>
+        expect(check.getAttribute("aria-busy")).toBe("false"),
+      );
     },
   );
 
