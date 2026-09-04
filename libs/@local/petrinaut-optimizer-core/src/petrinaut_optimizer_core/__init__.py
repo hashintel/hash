@@ -38,6 +38,7 @@ from .study import (
     study_summary,
     suggest,
     told_trials,
+    tpe_startup_trials,
     trial_event,
 )
 
@@ -69,5 +70,6 @@ __all__ = [
     "suggest",
     "to_python",
     "told_trials",
+    "tpe_startup_trials",
     "trial_event",
 ]

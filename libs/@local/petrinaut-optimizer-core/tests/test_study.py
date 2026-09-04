@@ -4,6 +4,7 @@ import warnings
 from typing import Any
 
 import optuna
+import pytest
 from optuna.exceptions import ExperimentalWarning
 from optuna.trial import TrialState
 
@@ -14,6 +15,7 @@ from petrinaut_optimizer_core import (
     study_summary,
     suggest,
     told_trials,
+    tpe_startup_trials,
     trial_event,
 )
 
@@ -155,3 +157,49 @@ def test_trial_events_and_summary_track_best_and_states(
         "failedTrials": 0,
         "best": third_event["best"],
     }
+
+
+@pytest.mark.parametrize(
+    ("trials", "startup"),
+    [(1, 2), (5, 2), (6, 2), (9, 3), (12, 4), (30, 10), (1000, 10)],
+)
+def test_tpe_startup_trials_are_a_third_of_the_study_within_two_and_ten(
+    trials: int, startup: int
+) -> None:
+    assert tpe_startup_trials(trials) == startup
+
+
+def test_tpe_study_models_after_its_scaled_startup_trials(
+    optimization_description: dict[str, Any],
+) -> None:
+    optimization_description["study"] = {"trials": 6, "sampler": "tpe", "seed": 42}
+    description = parse_description(optimization_description)
+    study = create_study(description)
+    # Optuna keeps the count on the sampler; nothing public exposes it.
+    assert study.sampler._n_startup_trials == 2
+
+    # After two random trials the proposals depend on the objectives told,
+    # so two studies told different values part ways from the third trial.
+    def third_suggestion(objectives: list[float]) -> dict[str, Any]:
+        seeded = create_study(description)
+        for objective in objectives:
+            trial = seeded.ask()
+            suggest(trial, description.parameters)
+            seeded.tell(trial, objective)
+        return suggest(seeded.ask(), description.parameters)
+
+    assert third_suggestion([1.0, 2.0]) != third_suggestion([2.0, 1.0])
+
+
+def test_explicit_startup_trials_win_and_the_random_sampler_ignores_them(
+    optimization_description: dict[str, Any],
+) -> None:
+    optimization_description["study"] = {"trials": 6, "sampler": "tpe", "seed": 42}
+    tpe_study = create_study(
+        parse_description(optimization_description), n_startup_trials=5
+    )
+    assert tpe_study.sampler._n_startup_trials == 5
+
+    optimization_description["study"] = {"trials": 6, "sampler": "random", "seed": 42}
+    random_study = create_study(parse_description(optimization_description))
+    assert not hasattr(random_study.sampler, "_n_startup_trials")
