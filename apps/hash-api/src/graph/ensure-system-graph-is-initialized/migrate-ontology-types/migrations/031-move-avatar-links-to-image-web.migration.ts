@@ -11,7 +11,7 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { createLinkEntity } from "../../../knowledge/primitive/link-entity";
-import { getExistingUsersAndOrgs } from "../util";
+import { getExistingUsersAndOrgs, queryAllEntityPages } from "../util";
 
 import type { ImpureGraphContext } from "../../../context-types";
 import type { MigrationFunction } from "../types";
@@ -134,7 +134,7 @@ const collectWebAvatarLinks = async (
   webBotAuthentication: AuthenticationContext,
   webId: WebId,
 ): Promise<AvatarLink[]> => {
-  const { entities: linkEntities } = await queryEntities(
+  const linkEntities = await queryAllEntityPages(
     context,
     webBotAuthentication,
     {
@@ -255,7 +255,7 @@ const findReferencedImages = async (
     ],
   };
 
-  const { entities: incomingLinks } = await queryEntities(
+  const incomingLinks = await queryAllEntityPages(
     context,
     webBotAuthentication,
     {
