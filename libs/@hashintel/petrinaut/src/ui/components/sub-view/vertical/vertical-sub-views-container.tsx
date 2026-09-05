@@ -503,9 +503,10 @@ export const VerticalSubViewsContainer: React.FC<
                   isExpanded={isExpanded}
                   onToggle={() => toggleSection(subView)}
                   renderHeaderAction={
-                    presentation.showMutationActions
-                      ? subView.renderHeaderAction
-                      : undefined
+                    subView.headerActionMutates &&
+                    !presentation.showMutationActions
+                      ? undefined
+                      : subView.renderHeaderAction
                   }
                   alwaysShowHeaderAction={subView.alwaysShowHeaderAction}
                 />

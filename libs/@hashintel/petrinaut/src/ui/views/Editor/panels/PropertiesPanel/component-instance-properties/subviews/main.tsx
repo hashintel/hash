@@ -201,5 +201,6 @@ export const componentInstanceMainContentSubView: SubView = {
   renderTitle: () => <ComponentInstanceTitle />,
   component: ComponentInstanceMainContent,
   renderHeaderAction: () => <DeleteComponentInstanceAction />,
+  headerActionMutates: true,
   alwaysShowHeaderAction: true,
 };

@@ -12,6 +12,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { usePetrinautPresentation } from "../../../../../../shared/presentation-context";
 import { usePlacePropertiesContext } from "../../context";
 import { InitialStateEditor } from "./initial-state-editor";
 
@@ -38,6 +39,7 @@ const scenarioInfoStyle = css({
  * Only shown when not in simulation mode and there's data to clear.
  */
 const ClearStateHeaderAction: React.FC = () => {
+  const presentation = usePetrinautPresentation();
   const { place, placeType } = usePlacePropertiesContext();
   const { state, initialMarking, setInitialMarking, selectedScenarioId } =
     use(SimulationContext);
@@ -62,6 +64,13 @@ const ClearStateHeaderAction: React.FC = () => {
 
   // Hide when simulation has run or when there's no data to clear.
   if (!isSimulationNotRun || !hasData) {
+    return null;
+  }
+
+  // This slot carries a status above and a mutation here, so the sub-view
+  // cannot declare itself one or the other: only the button goes when a
+  // presentation hides mutation actions.
+  if (!presentation.showMutationActions) {
     return null;
   }
 

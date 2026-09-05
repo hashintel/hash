@@ -306,5 +306,6 @@ export const diffEqMainContentSubView: SubView = {
   main: true,
   component: DiffEqMainContent,
   renderHeaderAction: () => <DiffEqCodeAction />,
+  headerActionMutates: true,
   alwaysShowHeaderAction: true,
 };

@@ -494,5 +494,6 @@ export const placeMainContentSubView: SubView = {
   main: true,
   component: PlaceMainContent,
   renderHeaderAction: () => <DeletePlaceAction />,
+  headerActionMutates: true,
   alwaysShowHeaderAction: true,
 };

@@ -103,16 +103,11 @@ const renameInputStyle = css({
 });
 
 const NetsHeaderAction: React.FC = () => {
-  const presentation = usePetrinautPresentation();
   const {
     petriNetDefinition: { subnets },
   } = use(SDCPNContext);
   const { addSubnet } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
-
-  if (!presentation.showMutationActions) {
-    return null;
-  }
 
   return (
     <Button
@@ -376,5 +371,6 @@ export const netsListSubView: SubView = {
     "View the root net and reusable subnets. Mark subnet places as ports, then instantiate subnets as components in the root net.",
   component: NetsListContent,
   renderHeaderAction: () => <NetsHeaderAction />,
+  headerActionMutates: true,
   defaultCollapsed: false,
 };
