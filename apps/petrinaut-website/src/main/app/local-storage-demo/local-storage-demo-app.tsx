@@ -3,7 +3,7 @@
  * @role Editable demo shell: nets in local storage, one live document handle
  */
 
-import { produce } from "immer";
+import { castDraft, produce } from "immer";
 import { useEffect, useMemo, useState } from "react";
 
 import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
@@ -294,13 +294,14 @@ export const LocalStorageDemoApp = ({
 
       setStoredSDCPNs((prev) => {
         const stored = prev[netId] ?? fallbackNet;
+        const next: SDCPNInLocalStorage = {
+          ...stored,
+          sdcpn: event.next,
+          lastUpdated,
+        };
 
         return produce(prev, (draft) => {
-          draft[netId] = {
-            ...stored,
-            sdcpn: event.next,
-            lastUpdated,
-          };
+          draft[netId] = castDraft(next);
         });
       });
     });
@@ -385,11 +386,18 @@ export const LocalStorageDemoApp = ({
 
     setStoredSDCPNs((prev) =>
       produce(prev, (draft) => {
-        draft[currentNetId] = {
-          ...(draft[currentNetId] ?? currentNet),
-          title,
-          lastUpdated,
-        };
+        const existing = draft[currentNetId];
+        if (existing) {
+          existing.title = title;
+          existing.lastUpdated = lastUpdated;
+        } else {
+          const next: SDCPNInLocalStorage = {
+            ...currentNet,
+            title,
+            lastUpdated,
+          };
+          draft[currentNetId] = castDraft(next);
+        }
       }),
     );
   };

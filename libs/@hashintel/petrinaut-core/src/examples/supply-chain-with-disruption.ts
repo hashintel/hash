@@ -27,10 +27,14 @@ export const supplyChainWithDisruption: {
 } = {
   title: "Supply Chain With Disruption",
   petriNetDefinition: {
+    description:
+      "End-to-end supply chain under disruption: two suppliers that can go down and recover feed inbound shipments to a factory whose machine wears out and breaks, while customer orders are fulfilled from stock, converted to backorders, cancelled, or delivered through a lossy outbound leg.",
     places: [
       {
         id: "place_supplier_a_available",
         name: "SupplierAAvailable",
+        description:
+          "Reliable supplier A is operating and can take purchase orders; the token moves to SupplierADown during a disruption.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -42,6 +46,8 @@ export const supplyChainWithDisruption: {
       {
         id: "place_supplier_a_down",
         name: "SupplierADown",
+        description:
+          "Supplier A is disrupted and takes no orders until it recovers.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -53,6 +59,8 @@ export const supplyChainWithDisruption: {
       {
         id: "place_supplier_b_available",
         name: "SupplierBAvailable",
+        description:
+          "Low-cost supplier B is operating and can take purchase orders; cheaper than A but riskier and slower.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -64,6 +72,8 @@ export const supplyChainWithDisruption: {
       {
         id: "place_supplier_b_down",
         name: "SupplierBDown",
+        description:
+          "Supplier B is disrupted and takes no orders until it recovers.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -75,6 +85,8 @@ export const supplyChainWithDisruption: {
       {
         id: "place_raw_materials",
         name: "RawMaterials",
+        description:
+          "Warehouse stock of usable material from cleanly received inbound shipments, consumed by production batches.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -86,6 +98,8 @@ export const supplyChainWithDisruption: {
       {
         id: "place_damaged_inbound",
         name: "DamagedInbound",
+        description:
+          "Inbound shipments that arrived too damaged to use, written off on receipt.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -97,6 +111,8 @@ export const supplyChainWithDisruption: {
       {
         id: "place_finished_goods",
         name: "FinishedGoods",
+        description:
+          "Sellable stock: production batches that passed quality, waiting to fulfil open orders and backorders.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -108,6 +124,8 @@ export const supplyChainWithDisruption: {
       {
         id: "place_scrap",
         name: "Scrap",
+        description:
+          "Production batches that failed the quality check and were scrapped.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -119,6 +137,8 @@ export const supplyChainWithDisruption: {
       {
         id: "place_delivered",
         name: "Delivered",
+        description:
+          "Orders that completed the outbound leg and reached the customer.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -130,6 +150,8 @@ export const supplyChainWithDisruption: {
       {
         id: "place_lost",
         name: "Lost",
+        description:
+          "Outbound shipments lost or damaged in transit and never delivered.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -141,6 +163,8 @@ export const supplyChainWithDisruption: {
       {
         id: "place_cancelled",
         name: "Cancelled",
+        description:
+          "Backorders whose customers gave up waiting and cancelled.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -152,6 +176,8 @@ export const supplyChainWithDisruption: {
       {
         id: "place_inbound",
         name: "InboundShipments",
+        description:
+          "Purchase orders in transit from a supplier. The ETA-countdown dynamics run each one down to arrival, where it is received cleanly or written off as damaged.",
         colorId: "type_shipment",
         dynamicsEnabled: true,
         differentialEquationId: "dyn_shipment_eta",
@@ -190,6 +216,8 @@ export default Visualization(({ tokens, parameters }) => {
       {
         id: "place_wip",
         name: "WorkInProcess",
+        description:
+          "Batches on the factory floor. Dynamics count their remaining processing time down while quality decays; each finishes as a good batch or scrap.",
         colorId: "type_batch",
         dynamicsEnabled: true,
         differentialEquationId: "dyn_batch_processing",
@@ -229,6 +257,8 @@ export default Visualization(({ tokens, parameters }) => {
       {
         id: "place_orders",
         name: "OpenOrders",
+        description:
+          "New customer orders awaiting same-day fulfilment from stock; those that outlive their promised lead time convert to backorders.",
         colorId: "type_order",
         dynamicsEnabled: true,
         differentialEquationId: "dyn_order_age",
@@ -262,6 +292,8 @@ export default Visualization(({ tokens, parameters }) => {
       {
         id: "place_backorders",
         name: "Backorders",
+        description:
+          "Orders that missed their promised lead time and now wait for replenished stock, at growing risk of cancellation as they age.",
         colorId: "type_order",
         dynamicsEnabled: true,
         differentialEquationId: "dyn_order_age",
@@ -291,6 +323,8 @@ export default Visualization(({ tokens, parameters }) => {
       {
         id: "place_outbound",
         name: "OutboundShipments",
+        description:
+          "Fulfilled orders on the last-mile leg to the customer; each arrives and is delivered, or is lost or damaged in transit.",
         colorId: "type_shipment",
         dynamicsEnabled: true,
         differentialEquationId: "dyn_shipment_eta",
@@ -326,6 +360,8 @@ export default Visualization(({ tokens, parameters }) => {
       {
         id: "place_machine_up",
         name: "MachineUp",
+        description:
+          "The factory machine while operational. Its health and wear drift over time and gate whether production can start.",
         colorId: "type_machine",
         dynamicsEnabled: true,
         differentialEquationId: "dyn_machine_health",
@@ -353,6 +389,8 @@ export default Visualization(({ tokens, parameters }) => {
       {
         id: "place_machine_down",
         name: "MachineDown",
+        description:
+          "The factory machine while broken down, halting production until it is repaired.",
         colorId: "type_machine",
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -366,6 +404,8 @@ export default Visualization(({ tokens, parameters }) => {
       {
         id: "trans_order_supplier_a",
         name: "Order from reliable supplier A",
+        description:
+          "While supplier A is available, places purchase orders that become inbound shipments with A's lead time, cost, and low damage risk.",
         inputArcs: [
           {
             placeId: "place_supplier_a_available",
@@ -408,6 +448,8 @@ return {
       {
         id: "trans_order_supplier_b",
         name: "Order from low-cost supplier B",
+        description:
+          "While supplier B is available, places purchase orders that become inbound shipments with B's cheaper cost but longer lead time and higher damage risk.",
         inputArcs: [
           {
             placeId: "place_supplier_b_available",
@@ -447,6 +489,8 @@ return {
       {
         id: "trans_supplier_a_disrupts",
         name: "Supplier A disruption",
+        description:
+          "Supplier A randomly goes down, stopping its order flow until it recovers.",
         inputArcs: [
           {
             placeId: "place_supplier_a_available",
@@ -474,6 +518,8 @@ return {};`,
       {
         id: "trans_supplier_a_recovers",
         name: "Supplier A recovers",
+        description:
+          "A disrupted supplier A comes back online and resumes taking orders.",
         inputArcs: [
           {
             placeId: "place_supplier_a_down",
@@ -499,6 +545,8 @@ return {};`,
       {
         id: "trans_supplier_b_disrupts",
         name: "Supplier B disruption",
+        description:
+          "Supplier B randomly goes down, stopping its order flow until it recovers.",
         inputArcs: [
           {
             placeId: "place_supplier_b_available",
@@ -524,6 +572,8 @@ return {};`,
       {
         id: "trans_supplier_b_recovers",
         name: "Supplier B recovers",
+        description:
+          "A disrupted supplier B comes back online and resumes taking orders.",
         inputArcs: [
           {
             placeId: "place_supplier_b_down",
@@ -549,6 +599,8 @@ return {};`,
       {
         id: "trans_inbound_good",
         name: "Inbound shipment received",
+        description:
+          "An arrived inbound shipment (ETA counted down to zero) whose damage risk is below the threshold is received into raw-materials stock.",
         inputArcs: [
           {
             placeId: "place_inbound",
@@ -577,6 +629,8 @@ return {};`,
       {
         id: "trans_inbound_damaged",
         name: "Inbound shipment damaged",
+        description:
+          "The mutually exclusive receipt outcome: an arrived shipment at or above the damage threshold is written off instead of stocked.",
         inputArcs: [
           {
             placeId: "place_inbound",
@@ -604,6 +658,8 @@ return {};`,
       {
         id: "trans_start_production",
         name: "Start production batch",
+        description:
+          "Consumes raw material on a sufficiently healthy machine to start a work-in-process batch, adding wear to the machine and inheriting quality from its condition.",
         inputArcs: [
           {
             placeId: "place_raw_materials",
@@ -656,6 +712,8 @@ return {
       {
         id: "trans_finish_good_batch",
         name: "Batch passes quality",
+        description:
+          "A batch whose processing is complete and whose quality is at or above the minimum becomes finished goods.",
         inputArcs: [
           {
             placeId: "place_wip",
@@ -683,6 +741,8 @@ return {};`,
       {
         id: "trans_scrap_bad_batch",
         name: "Batch fails quality",
+        description:
+          "The competing outcome: a completed batch below the minimum quality is scrapped.",
         inputArcs: [
           {
             placeId: "place_wip",
@@ -710,6 +770,8 @@ return {};`,
       {
         id: "trans_machine_breakdown_random",
         name: "Machine breakdown",
+        description:
+          "The running machine breaks down, losing health in the process; the hazard rises with wear and poor health.",
         inputArcs: [
           {
             placeId: "place_machine_up",
@@ -738,6 +800,8 @@ return { MachineDown: [{ health: Math.max(0, machine.health - 0.15), wear: machi
       {
         id: "trans_machine_repair",
         name: "Repair machine",
+        description:
+          "A broken machine is repaired, restoring most of its health and removing most of its wear.",
         inputArcs: [
           {
             placeId: "place_machine_down",
@@ -764,6 +828,8 @@ return { MachineUp: [{ health: Math.min(1, machine.health + 0.55), wear: Math.ma
       {
         id: "trans_preventive_maintenance",
         name: "Preventive maintenance",
+        description:
+          "Maintenance on the running machine boosts health and shaves off wear without taking it offline, and is more likely once wear builds up.",
         inputArcs: [
           {
             placeId: "place_machine_up",
@@ -793,6 +859,8 @@ return { MachineUp: [{ health: Math.min(1, machine.health + parameters.maintenan
       {
         id: "trans_customer_demand",
         name: "Customer demand arrives",
+        description:
+          "External demand source: new customer orders arrive at a constant rate, classified as VIP or standard priority.",
         inputArcs: [],
         outputArcs: [
           {
@@ -822,6 +890,8 @@ return {
       {
         id: "trans_fulfill_open_order",
         name: "Fulfill open order from stock",
+        description:
+          "Pairs an open order with finished-goods stock and dispatches it as an outbound shipment, favouring VIP orders.",
         inputArcs: [
           {
             placeId: "place_orders",
@@ -864,6 +934,8 @@ return {
       {
         id: "trans_convert_to_backorder",
         name: "Convert aging order to backorder",
+        description:
+          "An open order that has outlived its promised lead time while stock is empty becomes a backorder.",
         inputArcs: [
           {
             placeId: "place_orders",
@@ -899,6 +971,8 @@ return { Backorders: [{ age: order.age, priority: order.priority, promised_lead_
       {
         id: "trans_fulfill_backorder",
         name: "Fulfill backorder",
+        description:
+          "Once stock is replenished, ships a waiting backorder (VIPs first), with an age surcharge on its cost.",
         inputArcs: [
           {
             placeId: "place_backorders",
@@ -940,6 +1014,8 @@ return {
       {
         id: "trans_cancel_backorder",
         name: "Customer cancels backorder",
+        description:
+          "A waiting customer gives up: the cancellation hazard grows with the backorder's age, and VIP customers are more patient.",
         inputArcs: [
           {
             placeId: "place_backorders",
@@ -969,6 +1045,8 @@ return {};`,
       {
         id: "trans_outbound_delivered",
         name: "Outbound delivered",
+        description:
+          "An arrived outbound shipment below the loss threshold reaches the customer.",
         inputArcs: [
           {
             placeId: "place_outbound",
@@ -997,6 +1075,8 @@ return {};`,
       {
         id: "trans_outbound_lost",
         name: "Outbound lost or damaged",
+        description:
+          "The competing last-mile outcome: an arrived shipment at or above the loss threshold never reaches the customer.",
         inputArcs: [
           {
             placeId: "place_outbound",
@@ -1026,6 +1106,8 @@ return {};`,
       {
         id: "type_shipment",
         name: "Shipment",
+        description:
+          "Goods in transit, inbound or outbound: time to arrival (eta), damage/loss risk score, originating supplier, and accumulated cost.",
         iconSlug: "truck",
         displayColor: "#2563eb",
         elements: [
@@ -1054,6 +1136,8 @@ return {};`,
       {
         id: "type_order",
         name: "Customer order",
+        description:
+          "A customer order: its age since arrival, VIP-or-standard priority, and the lead time promised to the customer.",
         iconSlug: "clipboard",
         displayColor: "#f97316",
         elements: [
@@ -1077,6 +1161,8 @@ return {};`,
       {
         id: "type_batch",
         name: "Production batch",
+        description:
+          "A batch on the factory floor: remaining processing time, decaying quality, the supplier mix of its material, and accumulated cost.",
         iconSlug: "box",
         displayColor: "#16a34a",
         elements: [
@@ -1105,6 +1191,8 @@ return {};`,
       {
         id: "type_machine",
         name: "Factory machine",
+        description:
+          "The production machine, tracked by health (gates production and drops on breakdown) and wear (raises the breakdown hazard).",
         iconSlug: "cog",
         displayColor: "#64748b",
         elements: [

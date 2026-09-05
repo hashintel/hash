@@ -17,6 +17,8 @@ const DOCUMENT_KEY_ORDER = [
   "version",
   "meta",
   "title",
+  "description",
+  "metadata",
   "parameters",
   "types",
   "differentialEquations",
@@ -31,6 +33,8 @@ const DOCUMENT_KEY_ORDER = [
 const SUBNET_KEY_ORDER = [
   "id",
   "name",
+  "description",
+  "metadata",
   "parameters",
   "types",
   "differentialEquations",

@@ -3,6 +3,7 @@
     {
       "id": "place__idle_tankers",
       "name": "IdleTankers",
+      "description": "Tankers parked at the depot and free to be dispatched, each carrying its product, payload, and whether it is a spot hire.",
       "colorId": "type__tanker",
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -13,6 +14,7 @@
     {
       "id": "place__loads_delivered",
       "name": "LoadsDelivered",
+      "description": "Cumulative count of tanker deliveries unloaded at a customer.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -23,6 +25,7 @@
     {
       "id": "place__returning",
       "name": "Returning",
+      "description": "Tankers on the empty run back to the depot; the returning dynamics count their journey clock down to zero.",
       "colorId": "type__tanker",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__returning",
@@ -33,6 +36,7 @@
     {
       "id": "place__open_orders",
       "name": "OpenOrders",
+      "description": "Count of orders currently open across all customers. Hiring a tanker needs at least three; releasing a hired one needs none.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -43,6 +47,7 @@
     {
       "id": "place__hires",
       "name": "Hires",
+      "description": "Cumulative count of spot-hired tankers.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -53,6 +58,7 @@
     {
       "id": "place__plant",
       "name": "Plant",
+      "description": "Single token for the air separation plant that fills the tankers: up is 1 while producing and 0 during an outage. Dispatch reads it to pick the normal or re-sourced route.",
       "colorId": "type__plant",
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -63,6 +69,7 @@
     {
       "id": "place__outages",
       "name": "Outages",
+      "description": "Cumulative count of plant trips.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -73,6 +80,7 @@
     {
       "id": "place__s1_order_placed",
       "name": "SteadyNitrogenOrderPlaced",
+      "description": "An open order from the steady nitrogen customer, waiting for a tanker. At most one is open at a time because raising an order also takes the order permit.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -83,6 +91,7 @@
     {
       "id": "place__s1_order_permits",
       "name": "SteadyNitrogenOrderPermits",
+      "description": "The single permit that lets the steady nitrogen customer have one order open at a time. Raising an order takes it; unloading the delivery hands it back.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -93,6 +102,7 @@
     {
       "id": "place__s1_on_route",
       "name": "SteadyNitrogenOnRoute",
+      "description": "A tanker on its way to the steady nitrogen customer. Its journey clock counts down under the on-route dynamics and the delivery unloads when it reaches zero.",
       "colorId": "type__tanker",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__on_route",
@@ -103,6 +113,7 @@
     {
       "id": "place__s1_vented",
       "name": "SteadyNitrogenVented",
+      "description": "Cumulative count of relief-valve openings at the tank of the steady nitrogen customer, each losing vent_loss units.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -113,6 +124,7 @@
     {
       "id": "place__s1_line_running",
       "name": "SteadyNitrogenLineRunning",
+      "description": "Marker token present while the production line of the steady nitrogen customer is running on gas from the tank.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -123,6 +135,7 @@
     {
       "id": "place__s1_line_stopped",
       "name": "SteadyNitrogenLineStopped",
+      "description": "Marker token present while the line of the steady nitrogen customer is stopped because the tank is empty.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -133,6 +146,7 @@
     {
       "id": "place__s1_stockouts",
       "name": "SteadyNitrogenStockouts",
+      "description": "Cumulative count of times the tank of the steady nitrogen customer ran dry and stopped the line.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -143,6 +157,7 @@
     {
       "id": "place__s1_tank",
       "name": "SteadyNitrogenTank",
+      "description": "The cryogenic tank of the steady nitrogen customer as a single token. Its level and pressure evolve continuously under the Tank dynamics; the ordering, venting, and line transitions read them and fire on threshold crossings (trigger_1 for ordering).",
       "colorId": "type__tank",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__tank",
@@ -153,6 +168,7 @@
     {
       "id": "place__s2_order_placed",
       "name": "SlowNitrogenOrderPlaced",
+      "description": "An open order from the slow-drawing nitrogen customer, waiting for a tanker. At most one is open at a time because raising an order also takes the order permit.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -163,6 +179,7 @@
     {
       "id": "place__s2_order_permits",
       "name": "SlowNitrogenOrderPermits",
+      "description": "The single permit that lets the slow-drawing nitrogen customer have one order open at a time. Raising an order takes it; unloading the delivery hands it back.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -173,6 +190,7 @@
     {
       "id": "place__s2_on_route",
       "name": "SlowNitrogenOnRoute",
+      "description": "A tanker on its way to the slow-drawing nitrogen customer. Its journey clock counts down under the on-route dynamics and the delivery unloads when it reaches zero.",
       "colorId": "type__tanker",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__on_route",
@@ -183,6 +201,7 @@
     {
       "id": "place__s2_vented",
       "name": "SlowNitrogenVented",
+      "description": "Cumulative count of relief-valve openings at the tank of the slow-drawing nitrogen customer, each losing vent_loss units.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -193,6 +212,7 @@
     {
       "id": "place__s2_line_running",
       "name": "SlowNitrogenLineRunning",
+      "description": "Marker token present while the production line of the slow-drawing nitrogen customer is running on gas from the tank.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -203,6 +223,7 @@
     {
       "id": "place__s2_line_stopped",
       "name": "SlowNitrogenLineStopped",
+      "description": "Marker token present while the line of the slow-drawing nitrogen customer is stopped because the tank is empty.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -213,6 +234,7 @@
     {
       "id": "place__s2_stockouts",
       "name": "SlowNitrogenStockouts",
+      "description": "Cumulative count of times the tank of the slow-drawing nitrogen customer ran dry and stopped the line.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -223,6 +245,7 @@
     {
       "id": "place__s2_tank",
       "name": "SlowNitrogenTank",
+      "description": "The cryogenic tank of the slow-drawing nitrogen customer as a single token. Its level and pressure evolve continuously under the Tank dynamics; the ordering, venting, and line transitions read them and fire on threshold crossings (trigger_2 for ordering).",
       "colorId": "type__tank",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__tank",
@@ -233,6 +256,7 @@
     {
       "id": "place__s3_order_placed",
       "name": "CriticalOxygenOrderPlaced",
+      "description": "An open order from the oxygen customer, a metals plant for which supply is critical, waiting for a tanker. At most one is open at a time because raising an order also takes the order permit.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -243,6 +267,7 @@
     {
       "id": "place__s3_order_permits",
       "name": "CriticalOxygenOrderPermits",
+      "description": "The single permit that lets the oxygen customer, a metals plant for which supply is critical have one order open at a time. Raising an order takes it; unloading the delivery hands it back.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -253,6 +278,7 @@
     {
       "id": "place__s3_on_route",
       "name": "CriticalOxygenOnRoute",
+      "description": "A tanker on its way to the oxygen customer, a metals plant for which supply is critical. Its journey clock counts down under the on-route dynamics and the delivery unloads when it reaches zero.",
       "colorId": "type__tanker",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__on_route",
@@ -263,6 +289,7 @@
     {
       "id": "place__s3_vented",
       "name": "CriticalOxygenVented",
+      "description": "Cumulative count of relief-valve openings at the tank of the oxygen customer, a metals plant for which supply is critical, each losing vent_loss units.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -273,6 +300,7 @@
     {
       "id": "place__s3_line_running",
       "name": "CriticalOxygenLineRunning",
+      "description": "Marker token present while the production line of the oxygen customer, a metals plant for which supply is critical is running on gas from the tank.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -283,6 +311,7 @@
     {
       "id": "place__s3_line_stopped",
       "name": "CriticalOxygenLineStopped",
+      "description": "Marker token present while the line of the oxygen customer, a metals plant for which supply is critical is stopped because the tank is empty.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -293,6 +322,7 @@
     {
       "id": "place__s3_stockouts",
       "name": "CriticalOxygenStockouts",
+      "description": "Cumulative count of times the tank of the oxygen customer, a metals plant for which supply is critical ran dry and stopped the line.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -303,6 +333,7 @@
     {
       "id": "place__s3_tank",
       "name": "CriticalOxygenTank",
+      "description": "The cryogenic tank of the oxygen customer, a metals plant for which supply is critical as a single token. Its level and pressure evolve continuously under the Tank dynamics; the ordering, venting, and line transitions read them and fire on threshold crossings (trigger_3 for ordering).",
       "colorId": "type__tank",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__tank",
@@ -315,6 +346,7 @@
     {
       "id": "transition__s1_raise_order",
       "name": "Raise an order (SteadyNitrogen)",
+      "description": "Fires the moment the tank level of the steady nitrogen customer drops below trigger_1, taking the order permit and adding to OpenOrders. The tank token is read and put back unchanged.",
       "inputArcs": [
         {
           "placeId": "place__s1_tank",
@@ -350,6 +382,7 @@
     {
       "id": "transition__s1_dispatch",
       "name": "Dispatch a tanker (SteadyNitrogen)",
+      "description": "With the plant up, an idle tanker carrying nitrogen loads for the steady nitrogen customer at loading_rate (a mismatched tanker's rate is 1e-9) and sets off with a lognormal journey around 6 hours times route_scale, spread route_spread. Closes one open order.",
       "inputArcs": [
         {
           "placeId": "place__s1_order_placed",
@@ -387,6 +420,7 @@
     {
       "id": "transition__s1_dispatch_resourced",
       "name": "Dispatch a re-sourced tanker (SteadyNitrogen)",
+      "description": "The same dispatch for the steady nitrogen customer while the plant is down: product comes from a farther source, so the journey mean is multiplied by outage_route_penalty.",
       "inputArcs": [
         {
           "placeId": "place__s1_order_placed",
@@ -424,6 +458,7 @@
     {
       "id": "transition__s1_arrive",
       "name": "Unload the tanker (SteadyNitrogen)",
+      "description": "When the journey clock reaches zero the tanker discharges as much of its payload as the tank of the steady nitrogen customer has room for, hands back the order permit, counts a delivery, and starts the return run.",
       "inputArcs": [
         {
           "placeId": "place__s1_on_route",
@@ -463,6 +498,7 @@
     {
       "id": "transition__s1_vent",
       "name": "Vent through the relief valve (SteadyNitrogen)",
+      "description": "Pressure in the tank of the steady nitrogen customer reaching relief_setpoint lifts the valve: vent_loss units of product are lost and pressure drops to the setpoint minus relief_reseat, so the valve cycles while the tank stays nearly full.",
       "inputArcs": [
         {
           "placeId": "place__s1_tank",
@@ -489,6 +525,7 @@
     {
       "id": "transition__s1_stop_line",
       "name": "Stop the line (SteadyNitrogen)",
+      "description": "The line of the steady nitrogen customer stops the instant the tank level reaches zero and a stockout is counted.",
       "inputArcs": [
         {
           "placeId": "place__s1_tank",
@@ -524,6 +561,7 @@
     {
       "id": "transition__s1_resume_line",
       "name": "Resume the line (SteadyNitrogen)",
+      "description": "The line of the steady nitrogen customer restarts as soon as the tank level is above zero again.",
       "inputArcs": [
         {
           "placeId": "place__s1_tank",
@@ -555,6 +593,7 @@
     {
       "id": "transition__s2_raise_order",
       "name": "Raise an order (SlowNitrogen)",
+      "description": "Fires the moment the tank level of the slow-drawing nitrogen customer drops below trigger_2, taking the order permit and adding to OpenOrders. The tank token is read and put back unchanged.",
       "inputArcs": [
         {
           "placeId": "place__s2_tank",
@@ -590,6 +629,7 @@
     {
       "id": "transition__s2_dispatch",
       "name": "Dispatch a tanker (SlowNitrogen)",
+      "description": "With the plant up, an idle tanker carrying nitrogen loads for the slow-drawing nitrogen customer at loading_rate (a mismatched tanker's rate is 1e-9) and sets off with a lognormal journey around 9 hours times route_scale, spread route_spread. Closes one open order.",
       "inputArcs": [
         {
           "placeId": "place__s2_order_placed",
@@ -627,6 +667,7 @@
     {
       "id": "transition__s2_dispatch_resourced",
       "name": "Dispatch a re-sourced tanker (SlowNitrogen)",
+      "description": "The same dispatch for the slow-drawing nitrogen customer while the plant is down: product comes from a farther source, so the journey mean is multiplied by outage_route_penalty.",
       "inputArcs": [
         {
           "placeId": "place__s2_order_placed",
@@ -664,6 +705,7 @@
     {
       "id": "transition__s2_arrive",
       "name": "Unload the tanker (SlowNitrogen)",
+      "description": "When the journey clock reaches zero the tanker discharges as much of its payload as the tank of the slow-drawing nitrogen customer has room for, hands back the order permit, counts a delivery, and starts the return run.",
       "inputArcs": [
         {
           "placeId": "place__s2_on_route",
@@ -703,6 +745,7 @@
     {
       "id": "transition__s2_vent",
       "name": "Vent through the relief valve (SlowNitrogen)",
+      "description": "Pressure in the tank of the slow-drawing nitrogen customer reaching relief_setpoint lifts the valve: vent_loss units of product are lost and pressure drops to the setpoint minus relief_reseat, so the valve cycles while the tank stays nearly full.",
       "inputArcs": [
         {
           "placeId": "place__s2_tank",
@@ -729,6 +772,7 @@
     {
       "id": "transition__s2_stop_line",
       "name": "Stop the line (SlowNitrogen)",
+      "description": "The line of the slow-drawing nitrogen customer stops the instant the tank level reaches zero and a stockout is counted.",
       "inputArcs": [
         {
           "placeId": "place__s2_tank",
@@ -764,6 +808,7 @@
     {
       "id": "transition__s2_resume_line",
       "name": "Resume the line (SlowNitrogen)",
+      "description": "The line of the slow-drawing nitrogen customer restarts as soon as the tank level is above zero again.",
       "inputArcs": [
         {
           "placeId": "place__s2_tank",
@@ -795,6 +840,7 @@
     {
       "id": "transition__s3_raise_order",
       "name": "Raise an order (CriticalOxygen)",
+      "description": "Fires the moment the tank level of the oxygen customer, a metals plant for which supply is critical drops below trigger_3, taking the order permit and adding to OpenOrders. The tank token is read and put back unchanged.",
       "inputArcs": [
         {
           "placeId": "place__s3_tank",
@@ -830,6 +876,7 @@
     {
       "id": "transition__s3_dispatch",
       "name": "Dispatch a tanker (CriticalOxygen)",
+      "description": "With the plant up, an idle tanker carrying oxygen loads for the oxygen customer, a metals plant for which supply is critical at loading_rate (a mismatched tanker's rate is 1e-9) and sets off with a lognormal journey around 12 hours times route_scale, spread route_spread. Closes one open order.",
       "inputArcs": [
         {
           "placeId": "place__s3_order_placed",
@@ -867,6 +914,7 @@
     {
       "id": "transition__s3_dispatch_resourced",
       "name": "Dispatch a re-sourced tanker (CriticalOxygen)",
+      "description": "The same dispatch for the oxygen customer, a metals plant for which supply is critical while the plant is down: product comes from a farther source, so the journey mean is multiplied by outage_route_penalty.",
       "inputArcs": [
         {
           "placeId": "place__s3_order_placed",
@@ -904,6 +952,7 @@
     {
       "id": "transition__s3_arrive",
       "name": "Unload the tanker (CriticalOxygen)",
+      "description": "When the journey clock reaches zero the tanker discharges as much of its payload as the tank of the oxygen customer, a metals plant for which supply is critical has room for, hands back the order permit, counts a delivery, and starts the return run.",
       "inputArcs": [
         {
           "placeId": "place__s3_on_route",
@@ -943,6 +992,7 @@
     {
       "id": "transition__s3_vent",
       "name": "Vent through the relief valve (CriticalOxygen)",
+      "description": "Pressure in the tank of the oxygen customer, a metals plant for which supply is critical reaching relief_setpoint lifts the valve: vent_loss units of product are lost and pressure drops to the setpoint minus relief_reseat, so the valve cycles while the tank stays nearly full.",
       "inputArcs": [
         {
           "placeId": "place__s3_tank",
@@ -969,6 +1019,7 @@
     {
       "id": "transition__s3_stop_line",
       "name": "Stop the line (CriticalOxygen)",
+      "description": "The line of the oxygen customer, a metals plant for which supply is critical stops the instant the tank level reaches zero and a stockout is counted.",
       "inputArcs": [
         {
           "placeId": "place__s3_tank",
@@ -1004,6 +1055,7 @@
     {
       "id": "transition__s3_resume_line",
       "name": "Resume the line (CriticalOxygen)",
+      "description": "The line of the oxygen customer, a metals plant for which supply is critical restarts as soon as the tank level is above zero again.",
       "inputArcs": [
         {
           "placeId": "place__s3_tank",
@@ -1035,6 +1087,7 @@
     {
       "id": "transition__return_to_depot",
       "name": "Return a tanker to the depot",
+      "description": "The return clock reaches zero and the tanker is idle at the depot again, keeping its product, payload, and hire status.",
       "inputArcs": [
         {
           "placeId": "place__returning",
@@ -1057,6 +1110,7 @@
     {
       "id": "transition__hire_tanker",
       "name": "Hire a tanker",
+      "description": "With three or more orders open and hire_enabled set, a spot tanker is hired at hire_rate: it carries hired_payload of nitrogen (oxygen if hire_oxygen is set) and is flagged as hired.",
       "inputArcs": [
         {
           "placeId": "place__open_orders",
@@ -1083,6 +1137,7 @@
     {
       "id": "transition__release_tanker",
       "name": "Release a hired tanker",
+      "description": "An idle hired tanker leaves the fleet as soon as no orders are open.",
       "inputArcs": [
         {
           "placeId": "place__idle_tankers",
@@ -1105,6 +1160,7 @@
     {
       "id": "transition__plant_trips",
       "name": "Trip the air separation plant",
+      "description": "The plant trips at rate 1/uptime_hours while up, counting an outage.",
       "inputArcs": [
         {
           "placeId": "place__plant",
@@ -1131,6 +1187,7 @@
     {
       "id": "transition__plant_recovers",
       "name": "Restart the air separation plant",
+      "description": "A tripped plant is back up at rate 1/repair_hours.",
       "inputArcs": [
         {
           "placeId": "place__plant",
@@ -1155,6 +1212,7 @@
     {
       "id": "type__tanker",
       "name": "Tanker",
+      "description": "A road tanker: its journey clock (remaining), the product it carries, its payload in units, and whether it is a spot hire.",
       "iconSlug": "circle",
       "displayColor": "#0ea5e9",
       "elements": [
@@ -1183,6 +1241,7 @@
     {
       "id": "type__tank",
       "name": "Tank",
+      "description": "A customer's cryogenic tank: liquid level, gas pressure, capacity, the customer's draw rate, cumulative units drawn, boiled off, and spilled, its criticality, and the product it holds.",
       "iconSlug": "circle",
       "displayColor": "#f97316",
       "elements": [
@@ -1236,6 +1295,7 @@
     {
       "id": "type__plant",
       "name": "Plant",
+      "description": "The air separation plant supplying the depot: up is 1 when producing and 0 during an outage.",
       "iconSlug": "circle",
       "displayColor": "#ef4444",
       "elements": [
@@ -1615,5 +1675,6 @@
   "meta": {
     "generator": "Petrinaut"
   },
-  "title": "Gases 4 \u2014 dynamic coloured net"
+  "title": "Gases 4 — dynamic coloured net",
+  "description": "Dynamic coloured net: each customer's tank is one token whose level and pressure evolve continuously, with orders, venting, and line stops fired by threshold crossings rather than by counting units. Journeys are lognormal countdowns, spare tankers can be hired when orders pile up, and an air separation plant that trips forces deliveries onto longer re-sourced routes."
 }

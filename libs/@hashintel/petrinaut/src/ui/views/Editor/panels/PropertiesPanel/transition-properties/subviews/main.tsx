@@ -18,6 +18,7 @@ import {
   ArcList,
   type PlaceOption,
 } from "../../../../../../components/arc-item";
+import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
@@ -153,6 +154,19 @@ const TransitionMainContent: React.FC = () => {
             updateTransition({
               transitionId: transition.id,
               update: { name },
+            })
+          }
+          disabled={isReadOnly}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
+
+        <DescriptionField
+          sourceId={transition.id}
+          sourceValue={transition.description}
+          onCommit={(description) =>
+            updateTransition({
+              transitionId: transition.id,
+              update: { description },
             })
           }
           disabled={isReadOnly}

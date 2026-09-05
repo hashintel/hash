@@ -18,7 +18,6 @@ import {
   exampleCatalog,
   type ExampleCatalogEntry,
 } from "../src/examples/catalog-metadata.ts";
-import { normalizeExampleDefinition } from "../src/examples/normalize-example.ts";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const examplesDirectory = resolve(scriptDirectory, "../src/examples");
@@ -33,8 +32,8 @@ const readModelFile = async (slug: string): Promise<SDCPN> => {
   if (!parsed.ok) {
     throw new Error(`${slug}: ${parsed.error}`);
   }
-  const { title: _title, ...rawDefinition } = parsed.sdcpn;
-  return normalizeExampleDefinition(slug, rawDefinition);
+  const { title: _title, ...definition } = parsed.sdcpn;
+  return definition;
 };
 
 const loadDefinition = (entry: ExampleCatalogEntry): Promise<SDCPN> => {

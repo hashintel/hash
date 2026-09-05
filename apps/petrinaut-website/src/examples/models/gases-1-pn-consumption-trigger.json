@@ -3,6 +3,7 @@
     {
       "id": "place__idle_tankers",
       "name": "IdleTankers",
+      "description": "Tankers parked at the depot and free to be dispatched. Dispatch takes one; unloading returns it.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -13,6 +14,7 @@
     {
       "id": "place__loads_delivered",
       "name": "LoadsDelivered",
+      "description": "Cumulative count of tanker deliveries unloaded at a customer.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -23,6 +25,7 @@
     {
       "id": "place__s1_order_placed",
       "name": "SteadyNitrogenOrderPlaced",
+      "description": "An open order from the steady nitrogen customer, waiting for a tanker. At most one is open at a time because raising an order also takes the order permit.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -33,6 +36,7 @@
     {
       "id": "place__s1_order_permits",
       "name": "SteadyNitrogenOrderPermits",
+      "description": "The single permit that lets the steady nitrogen customer have one order open at a time. Raising an order takes it; unloading the delivery hands it back.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -43,6 +47,7 @@
     {
       "id": "place__s1_on_route",
       "name": "SteadyNitrogenOnRoute",
+      "description": "A dispatched tanker travelling to the steady nitrogen customer with a 12-unit load.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -53,6 +58,7 @@
     {
       "id": "place__s1_vented",
       "name": "SteadyNitrogenVented",
+      "description": "Cumulative units of product the steady nitrogen customer lost through the relief valve because the tank was full.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -63,6 +69,7 @@
     {
       "id": "place__s1_line_running",
       "name": "SteadyNitrogenLineRunning",
+      "description": "Marker token present while the production line of the steady nitrogen customer is running on gas from the tank.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -73,6 +80,7 @@
     {
       "id": "place__s1_line_stopped",
       "name": "SteadyNitrogenLineStopped",
+      "description": "Marker token present while the line of the steady nitrogen customer is stopped because the tank is empty.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -83,6 +91,7 @@
     {
       "id": "place__s1_stockouts",
       "name": "SteadyNitrogenStockouts",
+      "description": "Cumulative count of times the tank of the steady nitrogen customer ran dry and stopped the line.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -93,6 +102,7 @@
     {
       "id": "place__s1_consumed",
       "name": "SteadyNitrogenConsumed",
+      "description": "Cumulative units drawn by the process of the steady nitrogen customer.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -103,6 +113,7 @@
     {
       "id": "place__s1_evaporated",
       "name": "SteadyNitrogenEvaporated",
+      "description": "Cumulative units lost to boil-off from the cryogenic tank of the steady nitrogen customer.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -113,6 +124,7 @@
     {
       "id": "place__s1_contents",
       "name": "SteadyNitrogenContents",
+      "description": "Units of liquid in the tank of the steady nitrogen customer. Draw and boil-off take one at a time and a delivery adds 12; Contents plus Ullage is the tank's capacity.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -123,6 +135,7 @@
     {
       "id": "place__s1_ullage",
       "name": "SteadyNitrogenUllage",
+      "description": "Empty space in the tank of the steady nitrogen customer, in units. Every unit drawn, boiled off, or vented frees one; a delivery needs 12 free units to unload.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -133,6 +146,7 @@
     {
       "id": "place__s1_units_drawn_since_order",
       "name": "SteadyNitrogenUnitsDrawnSinceOrder",
+      "description": "Counter of units the steady nitrogen customer has drawn since the last order was raised. Reaching 8 raises the next order, so ordering follows consumption rather than tank level.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -145,6 +159,7 @@
     {
       "id": "transition__s1_draw",
       "name": "Draw a unit (SteadyNitrogen)",
+      "description": "The process of the steady nitrogen customer draws one unit from the tank into Consumed, freeing one unit of ullage and advancing the units-drawn counter. Enabled only while draw_enabled is set, so the shut-plant scenario can switch consumption off.",
       "inputArcs": [
         {
           "placeId": "place__s1_contents",
@@ -175,6 +190,7 @@
     {
       "id": "transition__s1_boil_off",
       "name": "Boil off a unit (SteadyNitrogen)",
+      "description": "Heat leak evaporates one unit from the tank of the steady nitrogen customer into Evaporated, freeing one unit of ullage. Runs whether or not the customer is drawing.",
       "inputArcs": [
         {
           "placeId": "place__s1_contents",
@@ -201,6 +217,7 @@
     {
       "id": "transition__s1_raise_order",
       "name": "Raise an order, 8 units drawn (SteadyNitrogen)",
+      "description": "Places an order for the steady nitrogen customer once 8 units have been drawn since the last order, consuming the counter and the single order permit.",
       "inputArcs": [
         {
           "placeId": "place__s1_units_drawn_since_order",
@@ -228,6 +245,7 @@
     {
       "id": "transition__s1_dispatch",
       "name": "Dispatch a tanker (SteadyNitrogen)",
+      "description": "Pairs the open order of the steady nitrogen customer with an idle tanker and sends it on route.",
       "inputArcs": [
         {
           "placeId": "place__s1_order_placed",
@@ -255,6 +273,7 @@
     {
       "id": "transition__s1_arrive",
       "name": "Unload the tanker (SteadyNitrogen)",
+      "description": "The tanker arrives at the steady nitrogen customer and discharges 12 units into the tank, which must have 12 units of ullage to take them. Returns the order permit and the tanker to the depot and counts a delivery.",
       "inputArcs": [
         {
           "placeId": "place__s1_on_route",
@@ -294,6 +313,7 @@
     {
       "id": "transition__s1_vent",
       "name": "Vent through the relief valve (SteadyNitrogen)",
+      "description": "With no ullage left in the tank of the steady nitrogen customer, boil-off gas has nowhere to go: one unit is vented and one unit of ullage is left free.",
       "inputArcs": [
         {
           "placeId": "place__s1_contents",
@@ -325,6 +345,7 @@
     {
       "id": "transition__s1_stop_line",
       "name": "Stop the line (SteadyNitrogen)",
+      "description": "When the tank of the steady nitrogen customer is empty (inhibitor arc on Contents) the running line stops and a stockout is counted.",
       "inputArcs": [
         {
           "placeId": "place__s1_line_running",
@@ -356,6 +377,7 @@
     {
       "id": "transition__s1_resume_line",
       "name": "Resume the line (SteadyNitrogen)",
+      "description": "The stopped line of the steady nitrogen customer restarts as soon as the read arc sees product back in the tank.",
       "inputArcs": [
         {
           "placeId": "place__s1_line_stopped",
@@ -482,5 +504,6 @@
   "meta": {
     "generator": "Petrinaut"
   },
-  "title": "Gases 1 — plain net, one customer (consumption trigger)"
+  "title": "Gases 1 — plain net, one customer (consumption trigger)",
+  "description": "The one-customer plain net with a different ordering policy: an order is raised after 8 units have been drawn rather than when the tank level drops below a trigger. Boil-off drains the tank without advancing the counter, so a shut plant can run dry before an order is ever placed."
 }

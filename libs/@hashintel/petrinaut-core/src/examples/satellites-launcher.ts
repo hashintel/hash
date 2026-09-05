@@ -26,10 +26,14 @@ export const probabilisticSatellitesSDCPN: {
 } = {
   title: "Probabilistic Satellite Launcher",
   petriNetDefinition: {
+    description:
+      "Orbital mechanics simulation: satellites launch stochastically into orbit around a central body, a gravitational ODE integrates their position and velocity, and collisions between satellites or crashes into the planet turn them into debris.",
     places: [
       {
         id: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
         name: "Space",
+        description:
+          "Satellites in orbit. The orbit dynamics integrate each one's position and velocity under the planet's gravity, and a custom visualizer draws them around the planet.",
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         dynamicsEnabled: true,
         differentialEquationId: "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
@@ -123,6 +127,8 @@ export const probabilisticSatellitesSDCPN: {
       {
         id: "ea42ba61-03ea-4940-b2e2-b594d5331a71",
         name: "Debris",
+        description:
+          "Defunct objects left by collisions and crashes, frozen at the point of impact with zero velocity.",
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -134,6 +140,8 @@ export const probabilisticSatellitesSDCPN: {
       {
         id: "d25015d8-7aac-45ff-82b0-afd943f1b7ec",
         name: "Collision",
+        description:
+          "Two satellites whose surfaces come within the collision threshold collide and become two pieces of stationary debris at the impact point.",
         inputArcs: [
           {
             placeId: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
@@ -184,6 +192,8 @@ return {
       {
         id: "716fe1e5-9b35-413f-83fe-99b28ba73945",
         name: "Crash",
+        description:
+          "A satellite that falls within the crash threshold of the planet surface crashes and becomes debris at the crash site.",
         inputArcs: [
           {
             placeId: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
@@ -227,6 +237,8 @@ return {
       {
         id: "transition__c7008acb-b0e7-468e-a5d3-d56eaa1fe806",
         name: "LaunchSatellite",
+        description:
+          "Launches a new satellite at the configured rate, placing it at a uniformly sampled angle on the launch altitude with a Gaussian initial velocity.",
         inputArcs: [],
         outputArcs: [
           {
@@ -259,6 +271,8 @@ return {
       {
         id: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         name: "Satellite",
+        description:
+          "An orbiting object described by its position relative to the planet centre (x, y), heading, and speed.",
         iconSlug: "9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d",
         displayColor: "#1E90FF",
         elements: [

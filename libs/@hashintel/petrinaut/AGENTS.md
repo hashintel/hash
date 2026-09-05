@@ -85,7 +85,7 @@ Hand-written MDX in `libs/@local/petrinaut-arch-docs/content/` is optional. Give
 
 These apply to changes in `petrinaut`, `petrinaut-core`, and `petrinaut-cli`.
 
-- Changesets: `@hashintel/petrinaut` and `@hashintel/petrinaut-core` always get a `patch` bump, never `minor`, whatever the change. One changeset per PR; pure refactors get none. `@local/*` and `@apps/*` packages never publish.
+- Changesets: `@hashintel/petrinaut` and `@hashintel/petrinaut-core` always get a `patch` bump, never `minor`, whatever the change. Write one changeset per affected package, each describing only that package's consumer-facing changes; pure refactors get none. `@local/*` and `@apps/*` packages never publish.
 - Review fixes and scope additions land as dedicated commits on an open PR.
 - Never commit `mise.lock` changes or generated arch-docs output. Stage explicit paths, not `git add -A`.
 - Diagrams in Petrinaut documentation are D2, in `libs/@local/petrinaut-arch-docs/content/diagrams/`. Design and performance write-ups live in that package's `content/` tree, not in loose package `.md` files. A documented flaw that needs a refactor gets a `:::danger` aside and a Linear ticket.
