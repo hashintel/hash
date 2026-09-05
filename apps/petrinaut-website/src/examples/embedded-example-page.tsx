@@ -2,15 +2,19 @@ import { lazy, Suspense, type FunctionComponent } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { getReadonlyExampleHandle } from "./readonly-example-handle";
-import { useSharedSearchNavigation } from "./use-shared-search-navigation";
+import { previewSearchToNavigationState } from "./navigation-search";
 
-import type { LoadedExample } from "./catalog";
+import type { GeneratedExampleRuntime, LoadedExample } from "./catalog";
 import type { SharedExampleSearch } from "./example-search";
+import type {
+  PetrinautPreviewNavigationState,
+  PetrinautPreviewQuickSimulation,
+} from "@hashintel/petrinaut/preview";
+import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 
-const LazyPetrinaut = lazy(async () => {
-  const { Petrinaut } = await import("@hashintel/petrinaut/ui");
-  return { default: Petrinaut };
+const LazyPetrinautPreview = lazy(async () => {
+  const { PetrinautPreview } = await import("@hashintel/petrinaut/preview");
+  return { default: PetrinautPreview };
 });
 
 // The page frame and the loading fallback render outside Petrinaut, and the
@@ -36,55 +40,37 @@ const loadingStyle = css({
   fontSize: "[14px]",
 });
 
-const embedTitleStyle = css({
-  minWidth: "0",
-  overflow: "hidden",
-  color: "neutral.s90",
-  fontSize: "sm",
-  fontWeight: "medium",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
 export type EmbeddedExamplePageProps = {
   example: LoadedExample;
-  /** Writes the shared search subset back to the embed URL. */
-  onSearchChange: (
-    search: SharedExampleSearch,
-    history: "push" | "replace",
-  ) => void;
+  runtime: GeneratedExampleRuntime;
+  onNavigate: PetrinautNavigationController<PetrinautPreviewNavigationState>["onNavigate"];
   search: SharedExampleSearch;
 };
 
-/**
- * Embed of an example: the full Petrinaut component in its read-only
- * presentation, navigated through the shared search contract.
- */
 export const EmbeddedExamplePage: FunctionComponent<
   EmbeddedExamplePageProps
-> = ({ example, onSearchChange, search }) => {
-  const handle = getReadonlyExampleHandle(example);
-  const navigation = useSharedSearchNavigation(search, onSearchChange, {
-    // The embed lives in an iframe; it must not grow the host page's history.
-    historyPolicy: () => "replace",
-  });
+> = ({ example, onNavigate, runtime, search }) => {
+  const navigation: PetrinautNavigationController<PetrinautPreviewNavigationState> =
+    {
+      state: previewSearchToNavigationState(search),
+      historyPolicy: () => "replace",
+      onNavigate,
+    };
+  const quickSimulation: PetrinautPreviewQuickSimulation = {
+    ...runtime,
+    parameterBounds: example.catalog.parameterBounds,
+  };
 
   return (
     <main className={pageStyle}>
       <Suspense
         fallback={<div className={loadingStyle}>Loading Petrinaut…</div>}
       >
-        <LazyPetrinaut
-          handle={handle}
-          hideNetManagementControls="all"
+        <LazyPetrinautPreview
+          definition={example.definition}
+          documentId={`example:${example.catalog.slug}`}
           navigation={navigation}
-          presentationProfile="review"
-          readonly
-          slots={{
-            topBarStart: (
-              <span className={embedTitleStyle}>{example.catalog.title}</span>
-            ),
-          }}
+          quickSimulation={quickSimulation}
           title={example.catalog.title}
         />
       </Suspense>
