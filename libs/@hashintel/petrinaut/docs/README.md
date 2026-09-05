@@ -21,9 +21,10 @@ A quick map of the things you'll encounter:
 - **Optimization** -- a search over a flat set of scenario parameters,
   targeting one saved or run-local custom metric.
 
-Petrinaut has three global modes in the top bar, though **Actual** is only enabled when the host application provides a live execution source:
+Petrinaut has four global modes in the top bar, though **Notebook** is experimental and **Actual** is only enabled when the host application provides a live execution source:
 
 - **Edit** -- the drawing/configuration workspace plus single-run simulation playback.
+- **Notebook** -- the net as a list of cells editable in place, behind the Notebook view setting.
 - **Simulate** -- a separate management surface for scenarios and experiments,
   with optimizations when the host application provides an optimizer.
 - **Actual** -- a read-only live-execution view supplied by a host such as Brunch.
@@ -39,6 +40,7 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Experiments](experiments.md) -- Run Monte Carlo batches and inspect token-count distributions over time.
 - [Optimization](optimization.md) -- Search scenario parameter ranges to maximize or minimize a metric.
 - [Actual Mode](actual-mode.md) -- View a host-provided live Petri net execution, currently via Brunch.
+- [Notebook View](notebook-view.md) -- Read the net as a list of cells with dependency analysis (experimental).
 - [AI Assistant](ai-assistant.md) -- Build, review, and revise nets with text or inline Voice mode.
 - [Visual Settings](visual-settings.md) -- Configure the editor appearance and behavior.
 - [Compilation Output](compilation-output.md) -- Inspect how your net's code compiled, and what stops it running on the GPU.

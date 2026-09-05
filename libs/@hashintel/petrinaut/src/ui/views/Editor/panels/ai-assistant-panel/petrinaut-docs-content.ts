@@ -10,6 +10,7 @@ import compilationOutput from "../../../../../../docs/compilation-output.md?raw"
 import drawingANet from "../../../../../../docs/drawing-a-net.md?raw";
 import examples from "../../../../../../docs/examples.md?raw";
 import experiments from "../../../../../../docs/experiments.md?raw";
+import notebookView from "../../../../../../docs/notebook-view.md?raw";
 import optimization from "../../../../../../docs/optimization.md?raw";
 import petriNetExtensions from "../../../../../../docs/petri-net-extensions.md?raw";
 import scenarios from "../../../../../../docs/scenarios.md?raw";
@@ -39,6 +40,7 @@ const rawDocsByName: Record<PetrinautDocName, string> = {
   experiments,
   optimization,
   "actual-mode": actualMode,
+  "notebook-view": notebookView,
   "ai-assistant": aiAssistant,
   "visual-settings": visualSettings,
   "compilation-output": compilationOutput,

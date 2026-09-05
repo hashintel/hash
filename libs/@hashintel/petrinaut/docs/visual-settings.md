@@ -40,6 +40,10 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 - **Enabled** -- nodes that are only partially inside the selection box are selected.
 - **Disabled** -- nodes must be fully enclosed to be selected.
 
+### Notebook view (experimental)
+
+Adds a **Notebook** option to the mode selector in the top bar, next to **Edit**: the net as a list of cells editable in place, for reviewing and debugging models. See [Notebook View](notebook-view.md).
+
 ### Entities tree view (experimental)
 
 Replaces the tabbed left sidebar with a unified **tree view** showing all entities (nodes, types, equations, parameters) in a single hierarchy.
