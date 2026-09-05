@@ -18,6 +18,8 @@
 # Petrinaut bundles its user-facing docs into the build via `?raw` imports,
 # so they must be present in the Docker context (not just README.md).
 !libs/@hashintel/petrinaut/docs/*.md
+# Brunch packages prompts and skills through `?raw` imports in their builds.
+!libs/@hashintel/brunch-agent/packages/*/src/**/*.md
 
 ########################
 ## Same as in .gitignore
