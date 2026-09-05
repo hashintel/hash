@@ -242,8 +242,24 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
 
   useEffect(() => () => instance.dispose(), [instance]);
 
+  /**
+   * The simulation and playback providers read their initial configuration
+   * once, on mount, and the document id does not change when a host swaps the
+   * model or its run settings in place: `documentId` is the host's own, and
+   * the generated fallback is generated once. Keying on the settings
+   * themselves is what makes a swap take, instead of leaving the previous dt,
+   * horizon and speed running against the new artifacts.
+   */
+  const runSettingsKey = [
+    handle.id,
+    quickSimulation?.dt ?? "",
+    quickSimulation?.maxTime ?? "",
+    playbackOptions?.defaultPlaybackSpeed ?? "",
+  ].join(":");
+
   const canvas = (
     <PetrinautCanvasProvider
+      key={runSettingsKey}
       initialPlaybackSpeed={playbackOptions?.defaultPlaybackSpeed}
     >
       <div
@@ -296,6 +312,7 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
             {quickSimulation && simulationCompiler ? (
               <NotificationsProvider>
                 <SimulationProvider
+                  key={runSettingsKey}
                   compiler={simulationCompiler}
                   initialConfiguration={{
                     dt: quickSimulation.dt,
