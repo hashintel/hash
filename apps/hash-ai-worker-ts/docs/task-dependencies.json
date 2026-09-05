@@ -10,6 +10,7 @@
     "@local/hash-graph-client",
     "@local/hash-graph-sdk",
     "@local/hash-isomorphic-utils",
+    "@local/internal-api-client",
     "@local/status",
     "@local/tsconfig"
   ],
@@ -23,6 +24,7 @@
       "@local/hash-graph-client#build",
       "@local/hash-graph-sdk#build",
       "@local/hash-isomorphic-utils#build",
+      "@local/internal-api-client#build",
       "@local/status#build"
     ],
     "build:docker": [],
@@ -35,6 +37,7 @@
       "@local/hash-graph-client#build",
       "@local/hash-graph-sdk#build",
       "@local/hash-isomorphic-utils#build",
+      "@local/internal-api-client#build",
       "@local/status#build"
     ],
     "fix:eslint": [
@@ -46,6 +49,7 @@
       "@local/hash-graph-client#build",
       "@local/hash-graph-sdk#build",
       "@local/hash-isomorphic-utils#build",
+      "@local/internal-api-client#build",
       "@local/status#build"
     ],
     "lint:eslint": [
@@ -57,6 +61,7 @@
       "@local/hash-graph-client#build",
       "@local/hash-graph-sdk#build",
       "@local/hash-isomorphic-utils#build",
+      "@local/internal-api-client#build",
       "@local/status#build"
     ],
     "lint:tsc": [
@@ -68,6 +73,7 @@
       "@local/hash-graph-client#build",
       "@local/hash-graph-sdk#build",
       "@local/hash-isomorphic-utils#build",
+      "@local/internal-api-client#build",
       "@local/status#build"
     ],
     "sentry:sourcemaps": [
@@ -92,6 +98,7 @@
       "@local/hash-graph-client#build",
       "@local/hash-graph-sdk#build",
       "@local/hash-isomorphic-utils#build",
+      "@local/internal-api-client#build",
       "@local/status#build"
     ]
   }
