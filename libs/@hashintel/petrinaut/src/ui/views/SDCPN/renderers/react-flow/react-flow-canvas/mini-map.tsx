@@ -5,6 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { PANEL_MARGIN } from "../../../../../constants/ui";
+import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { miniMapPlaceFillColor } from "../../../styles/type-colors";
 
 import type { NodeType } from "./react-flow-types";
@@ -102,8 +103,13 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
   const { hasSelection, propertiesPanelWidth, isPanelAnimating } =
     use(EditorContext);
+  const presentation = usePetrinautPresentation();
 
-  const isPropertiesPanelVisible = hasSelection;
+  // The editor mounts its resizable properties panel to the right of the
+  // canvas; the preview renders its own floating inspector instead, so the
+  // editor panel width must not displace the minimap there.
+  const isPropertiesPanelVisible =
+    hasSelection && presentation.profile !== "preview";
   // True inset from the canvas edges (react-flow's default 15px panel margin
   // is zeroed below) — matches the viewport controls' offset.
   const minimapOffset = 12;

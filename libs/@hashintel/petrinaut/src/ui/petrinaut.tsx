@@ -121,7 +121,7 @@ export type PetrinautProps = {
    * surface while suppressing authoring actions for route-scoped read-only
    * examples. The default remains `editor`.
    */
-  presentationProfile?: PetrinautPresentationProfile;
+  presentationProfile?: Exclude<PetrinautPresentationProfile, "preview">;
 };
 
 const noop = () => {};

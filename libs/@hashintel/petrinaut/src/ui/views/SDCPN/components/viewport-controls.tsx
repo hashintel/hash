@@ -46,6 +46,9 @@ export const ViewportControls: React.FC<{
       { cause: "user", action: "overlay" },
     );
   };
+  const chromeBackground = presentation.blurredChrome
+    ? blurredBackground
+    : undefined;
   // Fit view goes through the canvas controller like the zooms: these
   // controls sit above the renderer contract and must not reach for a
   // renderer's own API.
@@ -73,7 +76,7 @@ export const ViewportControls: React.FC<{
         tooltip="Zoom in"
         tooltipOptions={{ position: "left" }}
         iconName="plus"
-        className={blurredBackground}
+        className={chromeBackground}
         onClick={zoomIn}
       />
       <Button
@@ -83,7 +86,7 @@ export const ViewportControls: React.FC<{
         tooltip="Zoom out"
         tooltipOptions={{ position: "left" }}
         iconName="dash"
-        className={blurredBackground}
+        className={chromeBackground}
         onClick={zoomOut}
       />
       <Button
@@ -93,7 +96,7 @@ export const ViewportControls: React.FC<{
         tooltip="Fit view"
         tooltipOptions={{ position: "left" }}
         iconName="collapse"
-        className={blurredBackground}
+        className={chromeBackground}
         onClick={fitView}
       />
       {presentation.showViewportSettings && (
@@ -105,7 +108,7 @@ export const ViewportControls: React.FC<{
             tooltip="Fullscreen"
             tooltipOptions={{ position: "left" }}
             iconName="expand"
-            className={blurredBackground}
+            className={chromeBackground}
             onClick={collapseAllPanels}
           />
           <Button
@@ -115,7 +118,7 @@ export const ViewportControls: React.FC<{
             tooltip="Lock view"
             tooltipOptions={{ position: "left" }}
             iconName="lockOpen"
-            className={blurredBackground}
+            className={chromeBackground}
             onClick={() => {
               // Placeholder for future lock view functionality
             }}
@@ -127,7 +130,7 @@ export const ViewportControls: React.FC<{
             tooltip="Settings"
             tooltipOptions={{ position: "left" }}
             iconName="gear"
-            className={blurredBackground}
+            className={chromeBackground}
             onClick={() => setIsSettingsOpen(true)}
           />
           <ViewportSettingsDialog
@@ -146,7 +149,7 @@ export const ViewportControls: React.FC<{
           tooltip={action.tooltip}
           tooltipOptions={{ position: "left" }}
           onClick={action.onClick}
-          className={cx(action.className, blurredBackground)}
+          className={cx(action.className, chromeBackground)}
           prefix={action.icon}
         />
       ))}

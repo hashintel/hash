@@ -28,6 +28,14 @@ export type { ActualModeContextValue } from "./actual-mode-context";
 export { PetrinautProvider } from "./petrinaut-provider";
 export type { PetrinautProviderProps } from "./petrinaut-provider";
 export {
+  PetrinautCanvasProvider,
+  PetrinautDocumentProvider,
+} from "./petrinaut-provider-layers";
+export type {
+  PetrinautCanvasProviderProps,
+  PetrinautDocumentProviderProps,
+} from "./petrinaut-provider-layers";
+export {
   defaultPetrinautNavigationHistoryPolicy,
   defaultPetrinautNavigationState,
   openPetrinautSimulationResource,

@@ -12,6 +12,7 @@ import examples from "../../../../../../docs/examples.md?raw";
 import experiments from "../../../../../../docs/experiments.md?raw";
 import optimization from "../../../../../../docs/optimization.md?raw";
 import petriNetExtensions from "../../../../../../docs/petri-net-extensions.md?raw";
+import preview from "../../../../../../docs/preview.md?raw";
 import scenarios from "../../../../../../docs/scenarios.md?raw";
 import simulation from "../../../../../../docs/simulation.md?raw";
 import usefulPatterns from "../../../../../../docs/useful-patterns.md?raw";
@@ -39,6 +40,7 @@ const rawDocsByName: Record<PetrinautDocName, string> = {
   experiments,
   optimization,
   "actual-mode": actualMode,
+  preview,
   "ai-assistant": aiAssistant,
   "visual-settings": visualSettings,
   "compilation-output": compilationOutput,

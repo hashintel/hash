@@ -1,34 +1,24 @@
-import { type ReactNode } from "react";
-
-import {
-  type Petrinaut,
-  type LspWorkerFactory,
-  type WorkerFactory,
-} from "@hashintel/petrinaut-core";
-
-import { ExecutionFrameProvider } from "./execution-frame/provider";
 import { ExperimentsProvider } from "./experiments/provider";
-import { PetrinautInstanceContext } from "./instance-context";
 import { LanguageClientProvider } from "./lsp/provider";
 import {
   PetrinautNavigationProvider,
   type PetrinautNavigationController,
 } from "./navigation";
-import {
-  NetManagementContext,
-  type NetManagement,
-} from "./net-management-context";
 import { NotificationsProvider } from "./notifications/provider";
 import { OptimizationsProvider } from "./optimizations/provider";
-import { PlaybackProvider } from "./playback/provider";
-import { SDCPNProvider } from "./sdcpn-provider";
+import {
+  PetrinautCanvasProvider,
+  PetrinautDocumentProvider,
+} from "./petrinaut-provider-layers";
 import { SimulationProvider } from "./simulation/provider";
-import { ActiveNetProvider } from "./state/active-net-provider";
-import { CanvasViewportProvider } from "./state/canvas-viewport-provider";
-import { EditorProvider } from "./state/editor-provider";
-import { UndoRedoContext } from "./state/undo-redo-context";
-import { UserSettingsProvider } from "./state/user-settings-provider";
-import { useHandleHistoryAsUndoRedo } from "./use-handle-history-as-undo-redo";
+
+import type { NetManagement } from "./net-management-context";
+import type {
+  Petrinaut,
+  LspWorkerFactory,
+  WorkerFactory,
+} from "@hashintel/petrinaut-core";
+import type { ReactNode } from "react";
 
 export type PetrinautProviderProps = {
   /** The Core instance whose stores the bridges subscribe to. */
@@ -50,7 +40,11 @@ export type PetrinautProviderProps = {
    * LSP worker themselves rather than relying on the inlined-blob default.
    */
   lspWorkerFactory?: LspWorkerFactory;
-  /** Optional host-owned, router-neutral app location. */
+  /**
+   * Optional host-owned app location. This keeps Petrinaut router-neutral
+   * while allowing URLs and Back / Forward to control workspaces, resources,
+   * subnets, complete selection, and supported overlays.
+   */
   navigation?: PetrinautNavigationController;
   children: ReactNode;
 };
@@ -70,67 +64,36 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   navigation,
   children,
 }) => {
-  const handleHistoryUndoRedo = useHandleHistoryAsUndoRedo(
-    instance.handle.history,
-  );
-
-  // Keyed by handle id so a net switch fully resets net-scoped worker state
-  // and uncontrolled app locations.
-  const inner = (
-    <SDCPNProvider>
+  return (
+    <PetrinautDocumentProvider
+      instance={instance}
+      netManagement={netManagement}
+    >
       <PetrinautNavigationProvider
         controller={navigation}
         key={instance.handle.id}
       >
+        {/* Keyed by handle id so a net switch resets net-scoped workers. */}
         <LanguageClientProvider
           key={instance.handle.id}
           workerFactory={lspWorkerFactory}
         >
           <NotificationsProvider>
-            {/* Above SimulationProvider: the simulation provider reads the
-                Ad-hoc scenarios setting to gate the inline definition. */}
-            <UserSettingsProvider>
-              <CanvasViewportProvider>
-                <SimulationProvider
-                  key={instance.handle.id}
-                  workerFactory={simulationWorkerFactory}
-                >
-                  <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
-                    <OptimizationsProvider>
-                      <PlaybackProvider>
-                        <ActiveNetProvider>
-                          <EditorProvider>
-                            <ExecutionFrameProvider>
-                              {children}
-                            </ExecutionFrameProvider>
-                          </EditorProvider>
-                        </ActiveNetProvider>
-                      </PlaybackProvider>
-                    </OptimizationsProvider>
-                  </ExperimentsProvider>
-                </SimulationProvider>
-              </CanvasViewportProvider>
-            </UserSettingsProvider>
+            {/* The simulation provider reads the Ad-hoc scenarios user
+                setting, which the document layer above provides. */}
+            <SimulationProvider
+              key={instance.handle.id}
+              workerFactory={simulationWorkerFactory}
+            >
+              <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
+                <OptimizationsProvider>
+                  <PetrinautCanvasProvider>{children}</PetrinautCanvasProvider>
+                </OptimizationsProvider>
+              </ExperimentsProvider>
+            </SimulationProvider>
           </NotificationsProvider>
         </LanguageClientProvider>
       </PetrinautNavigationProvider>
-    </SDCPNProvider>
-  );
-
-  return (
-    <PetrinautInstanceContext value={instance}>
-      <NetManagementContext value={netManagement}>
-        {handleHistoryUndoRedo ? (
-          // Only override UndoRedoContext when the handle actually provides
-          // history — otherwise leave any outer UndoRedoContext (e.g. one
-          // injected by the legacy `<Petrinaut>` adapter) untouched.
-          <UndoRedoContext value={handleHistoryUndoRedo}>
-            {inner}
-          </UndoRedoContext>
-        ) : (
-          inner
-        )}
-      </NetManagementContext>
-    </PetrinautInstanceContext>
+    </PetrinautDocumentProvider>
   );
 };
