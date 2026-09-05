@@ -21,6 +21,7 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
 
 import {
   isDeclaredEdge,
@@ -35,21 +36,38 @@ const quote = (text: string): string => JSON.stringify(text);
 /** Top-level ancestor of a dotted id, used for colour classing. */
 const rootSegment = (id: string): string => id.split(".")[0] ?? id;
 
+/**
+ * Fill and stroke per layer family, in one place because two things read it:
+ * the `classes` block below, which is what `d2` renders with, and the
+ * stylesheet appended to every rendered SVG, which restates each colour as a
+ * custom property so a host can retheme the diagram. Split across two
+ * declarations they would drift, and the drift would only show in dark mode.
+ */
+const layerPalette: Record<string, { fill: string; stroke: string }> = {
+  core: { fill: "#dcecff", stroke: "#3676b8" },
+  react: { fill: "#e8e0ff", stroke: "#7051b5" },
+  ui: { fill: "#e2f4e8", stroke: "#3d8055" },
+  petrinaut: { fill: "#fdeedc", stroke: "#b5762f" },
+  cli: { fill: "#fbe3e8", stroke: "#ad3a5b" },
+  "python-bindings": { fill: "#fff4d6", stroke: "#a3801f" },
+  optimizer: { fill: "#e0f2f1", stroke: "#2b7a72" },
+  website: { fill: "#eef3d9", stroke: "#6f8f2f" },
+  other: { fill: "#f2f2f2", stroke: "#777777" },
+  elided: { fill: "#ffffff", stroke: "#aaaaaa" },
+};
+
 const styleClasses = [
   `classes: {`,
-  `  core: {style.fill: "#dcecff"; style.stroke: "#3676b8"}`,
-  `  react: {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}`,
-  `  ui: {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}`,
-  `  petrinaut: {style.fill: "#fdeedc"; style.stroke: "#b5762f"}`,
-  `  cli: {style.fill: "#fbe3e8"; style.stroke: "#ad3a5b"}`,
-  `  python-bindings: {style.fill: "#fff4d6"; style.stroke: "#a3801f"}`,
-  `  optimizer: {style.fill: "#e0f2f1"; style.stroke: "#2b7a72"}`,
-  `  website: {style.fill: "#eef3d9"; style.stroke: "#6f8f2f"}`,
-  `  other: {style.fill: "#f2f2f2"; style.stroke: "#777777"}`,
+  ...Object.entries(layerPalette)
+    .filter(([name]) => name !== "elided")
+    .map(
+      ([name, { fill, stroke }]) =>
+        `  ${name}: {style.fill: "${fill}"; style.stroke: "${stroke}"}`,
+    ),
   `  boundary: {style.stroke-dash: 4}`,
   `  declared: {style.stroke-dash: 2}`,
   `  focus: {style.stroke-width: 3; style.bold: true}`,
-  `  elided: {style.fill: "#ffffff"; style.stroke: "#aaaaaa"; style.stroke-dash: 3; style.italic: true}`,
+  `  elided: {style.fill: "${layerPalette.elided!.fill}"; style.stroke: "${layerPalette.elided!.stroke}"; style.stroke-dash: 3; style.italic: true}`,
   `}`,
 ].join("\n");
 
@@ -477,10 +495,93 @@ export const canRenderDiagrams = (repoRoot: string): boolean => {
  * `.d2` sources are the diffable artefact, and a missing renderer should not
  * block regenerating the model and pages.
  */
+/**
+ * `d2`'s own palette, as it writes it into every SVG: seven neutrals and the
+ * blues it draws connections and links with. Restated here so the appended
+ * stylesheet can hand each one to a custom property.
+ *
+ * Taken from the rendered output rather than from a `d2` theme file, because
+ * these are the values it bakes in at the default theme.
+ */
+const rendererPalette: Record<string, string> = {
+  n1: "#0A0F25",
+  n2: "#676C7E",
+  n3: "#9499AB",
+  n4: "#CFD2DD",
+  n5: "#DEE1EB",
+  n6: "#EEF1F8",
+  n7: "#FFFFFF",
+  b1: "#0D32B2",
+  b2: "#0D32B2",
+  b3: "#E3E9FD",
+  b4: "#E3E9FD",
+  b5: "#EDF0FD",
+  b6: "#F7F8FE",
+};
+
+/**
+ * Restates every colour in a rendered SVG as a custom property, so a host can
+ * retheme the diagram without the generator knowing anything about that host's
+ * themes.
+ *
+ * Appended as a stylesheet rather than rewritten into the markup, for two
+ * reasons. `var()` is not reliably honoured inside SVG presentation attributes,
+ * where the layer colours land, but is honoured in a declaration that overrides
+ * them, because any rule beats a presentation attribute. And `d2`'s own colours
+ * arrive as classes under a per-diagram `.d2-<hash>` scope, so matching that
+ * scope and coming later in the document is what wins the cascade without
+ * inventing specificity.
+ *
+ * Every property carries the original colour as its fallback, so a host that
+ * defines nothing renders exactly what `d2` drew.
+ */
+const withThemeableColours = (markup: string): string => {
+  const scope = /class="(d2-\d+)/u.exec(markup)?.[1];
+
+  if (scope === undefined) {
+    return markup;
+  }
+
+  const rules = [
+    ...Object.entries(rendererPalette).flatMap(([token, colour]) => [
+      `.${scope} .fill-${token.toUpperCase()}{fill:var(--pnd-diagram-${token},${colour});}`,
+      `.${scope} .stroke-${token.toUpperCase()}{stroke:var(--pnd-diagram-${token},${colour});}`,
+    ]),
+    ...Object.entries(layerPalette).flatMap(([name, { fill, stroke }]) => [
+      `.${scope} [fill="${fill}"]{fill:var(--pnd-diagram-${name}-fill,${fill});}`,
+      `.${scope} [stroke="${stroke}"]{stroke:var(--pnd-diagram-${name}-stroke,${stroke});}`,
+    ]),
+  ].join("\n");
+
+  return markup.replace(
+    "</svg>",
+    `<style type="text/css"><![CDATA[\n${rules}\n]]></style></svg>`,
+  );
+};
+
+/** Where the vendored render fonts live, relative to the package root. */
+const fontPath = (packageRoot: string, file: string): string =>
+  `${packageRoot}/fonts/${file}`;
+
+/**
+ * Renders a `.d2` file to SVG.
+ *
+ * `d2` is provided by mise, matching how the previous script invoked it. When it
+ * is unavailable the caller is told rather than the build failing outright: the
+ * `.d2` sources are the diffable artefact, and a missing renderer should not
+ * block regenerating the model and pages.
+ *
+ * Rendered with the same face the docs are set in. This is not decoration: `d2`
+ * measures every label with the font it renders with and sizes the boxes from
+ * that, so a diagram drawn in one face and displayed in another has labels that
+ * no longer fit. The padding is `d2`'s 100px default cut to something that
+ * leaves the drawing room without a frame of empty page around it.
+ */
 export const renderD2 = (
   repoRoot: string,
   sourcePath: string,
   outputPath: string,
+  packageRoot: string,
 ): { ok: true } | { ok: false; error: string } => {
   const result = spawnSync(
     "mise",
@@ -492,6 +593,12 @@ export const renderD2 = (
       "d2",
       "--layout",
       "elk",
+      "--pad",
+      "16",
+      "--font-regular",
+      fontPath(packageRoot, "Inter-Regular.ttf"),
+      "--font-bold",
+      fontPath(packageRoot, "Inter-Bold.ttf"),
       sourcePath,
       outputPath,
     ],
@@ -507,6 +614,15 @@ export const renderD2 = (
       ok: false,
       error: result.stderr || result.stdout || "d2 exited non-zero",
     };
+  }
+
+  try {
+    writeFileSync(
+      outputPath,
+      withThemeableColours(readFileSync(outputPath, "utf8")),
+    );
+  } catch (error) {
+    return { ok: false, error: String(error) };
   }
 
   return { ok: true };

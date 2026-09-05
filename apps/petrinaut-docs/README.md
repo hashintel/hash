@@ -197,6 +197,23 @@ arrow key, and the transitions do not apply while it is set. The handle keeps a
 `localStorage` once on release rather than on every pointer position. All of the
 motion is behind `prefers-reduced-motion`.
 
+## Diagrams are inlined
+
+The bundle emits each rendered diagram as a plain markdown image, which is what
+keeps it portable. Behind an `<img>` an SVG is a separate document, so nothing
+on the page reaches it: not this site's palette, not its custom properties, not
+the theme it is currently set to.
+[`src/plugins/inline-diagrams.mjs`](src/plugins/inline-diagrams.mjs) replaces
+those images with the SVG itself at build time, which hands it all three. The
+generator writes every colour in the SVG as
+`var(--pnd-diagram-*, <the colour d2 drew>)`, and `chrome.css` defines those
+properties for dark mode; light mode needs nothing, because the fallbacks are
+already the light palette.
+
+The plugin is registered through `markdown.rehypePlugins`, which is why
+`@astrojs/markdown-remark` is a dependency: Astro no longer installs it by
+default, and the hook does nothing without it.
+
 ## The fonts
 
 Body text renders in Inter and code in JetBrains Mono, both requested through

@@ -297,6 +297,39 @@ Names are namespaced by directory rather than by prefix: a layer id is unique
 only among layer ids, so a flat `around-<id>` would collide with a top-level
 layer actually called `around-something`.
 
+### How they are rendered
+
+`d2` runs with the Inter faces vendored in `fonts/`, and with padding well under
+its 100px default. The font is not decoration: `d2` measures every label with
+the face it renders with and sizes the boxes from that, so a diagram drawn in
+one face and shown in another has labels that no longer fit their boxes. The
+faces are Inter, under the SIL Open Font License 1.1, whose text sits beside
+them.
+
+Every colour in a rendered SVG is then restated as a custom property, so a host
+can retheme a diagram without this package knowing anything about that host's
+themes:
+
+```css
+:root[data-theme="dark"] {
+  --pnd-diagram-n1: #f3f3f3; /* d2's strongest foreground */
+  --pnd-diagram-n7: transparent; /* the drawing's own background */
+  --pnd-diagram-core-fill: #16273a;
+}
+```
+
+Each property carries the colour `d2` drew as its fallback, so a host that
+defines none of them renders exactly what it always did. The rules are appended
+as a stylesheet rather than written into the markup, because `var()` is not
+reliably honoured inside SVG presentation attributes but is honoured in a
+declaration that overrides them.
+
+Reaching those properties needs the SVG inlined into the page: behind an `<img>`
+it is a separate document and nothing on the page reaches it. The bundle still
+emits a plain markdown image, which is what keeps it portable; a host that wants
+themed diagrams inlines them itself. `apps/petrinaut-docs` does this in a rehype
+plugin, and is worth copying from.
+
 ## Hand-written pages (optional)
 
 `content/` is entirely optional. With no `content/` directory at all, the

@@ -7,6 +7,7 @@ import starlight from "@astrojs/starlight";
 import { defineConfig, fontProviders } from "astro/config";
 
 import { resolveDiffCompareContext } from "./src/diff-context";
+import { rehypeInlineDiagrams } from "./src/plugins/inline-diagrams.mjs";
 
 /**
  * Renders the architecture bundle produced by `@local/petrinaut-arch-docs`.
@@ -293,6 +294,10 @@ export default defineConfig({
   },
 
   ...(hasAuthoredIndex ? {} : { redirects: { "/": "/architecture" } }),
+
+  // Diagrams arrive as markdown images and are inlined so the page's palette
+  // reaches them; see the plugin.
+  markdown: { rehypePlugins: [rehypeInlineDiagrams] },
 
   // The bundle's inter-page links are relative and assume slugs map to URLs
   // without a trailing slash. `format: "file"` writes `views.html` rather than

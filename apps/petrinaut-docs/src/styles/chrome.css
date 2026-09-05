@@ -498,14 +498,98 @@ dialog {
   border-color: var(--sl-color-hairline);
 }
 
-/*
- * Rendered diagrams arrive as plain markdown images with a white background
- * baked into the SVG, so they read as cards once their edge matches the layer
- * cards beside them.
- */
 .sl-markdown-content img {
   border: 1px solid var(--sl-color-hairline-light);
   border-radius: var(--pnd-radius-lg);
+}
+
+/*
+ * The mobile table-of-contents opens downwards into the strip the content band
+ * covers. The band is rendered inside the header, which is its own stacking
+ * context at `--sl-z-index-navbar`, so everything in it paints at that level
+ * and the band landed on top of the open list. Nothing inside the header can
+ * be pushed below a sibling of the header, so the list is lifted above it
+ * instead. It hangs below the header and never overlaps it, so nothing of the
+ * header is covered in exchange.
+ */
+mobile-starlight-toc nav {
+  z-index: calc(var(--sl-z-index-navbar) + 1);
+}
+
+/* Diagrams --------------------------------------------------------------- */
+
+/*
+ * Rendered diagrams are inlined into the page rather than left in an `<img>`
+ * (see `src/plugins/inline-diagrams.mjs`), which is what lets these properties
+ * reach them. The generator writes every colour in the SVG as
+ * `var(--pnd-diagram-*, <the colour d2 drew>)`, so light mode needs nothing
+ * here: the fallbacks are already the light palette.
+ *
+ * No border and no card: the background is the page's own now, so the drawing
+ * sits on the page instead of in a frame on it.
+ */
+.pnd-diagram {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
+
+:root[data-theme="dark"] {
+  /*
+   * d2's neutral ramp runs dark-to-light, and inverting it is most of what
+   * makes a diagram legible here. n7 is the drawing's own background, which
+   * goes transparent so the page shows through.
+   */
+  --pnd-diagram-n1: var(--pnd-gray-75);
+  --pnd-diagram-n2: var(--pnd-gray-300);
+  --pnd-diagram-n3: var(--pnd-gray-400);
+  --pnd-diagram-n4: var(--pnd-gray-500);
+  --pnd-diagram-n5: var(--pnd-gray-600);
+  --pnd-diagram-n6: var(--pnd-gray-700);
+  --pnd-diagram-n7: transparent;
+
+  /* The blues d2 draws connections and their labels with. */
+  --pnd-diagram-b1: #6c9cf0;
+  --pnd-diagram-b2: #6c9cf0;
+  --pnd-diagram-b3: #22304a;
+  --pnd-diagram-b4: #22304a;
+  --pnd-diagram-b5: #1b2436;
+  --pnd-diagram-b6: #161d2b;
+
+  /*
+   * One pair per layer family, holding each family's hue while swapping the
+   * pale fill for a dark one and lifting the stroke enough to read against it.
+   */
+  --pnd-diagram-core-fill: #16273a;
+  --pnd-diagram-core-stroke: #5b9bd8;
+  --pnd-diagram-react-fill: #251d38;
+  --pnd-diagram-react-stroke: #9b7fd4;
+  --pnd-diagram-ui-fill: #16281d;
+  --pnd-diagram-ui-stroke: #5fa87a;
+  --pnd-diagram-petrinaut-fill: #2e2314;
+  --pnd-diagram-petrinaut-stroke: #d3a05a;
+  --pnd-diagram-cli-fill: #2c1a20;
+  --pnd-diagram-cli-stroke: #d1697f;
+  --pnd-diagram-python-bindings-fill: #2b2510;
+  --pnd-diagram-python-bindings-stroke: #c9a83f;
+  --pnd-diagram-optimizer-fill: #132625;
+  --pnd-diagram-optimizer-stroke: #57a89f;
+  --pnd-diagram-website-fill: #222711;
+  --pnd-diagram-website-stroke: #9bb85a;
+  --pnd-diagram-other-fill: #1e1e1e;
+  --pnd-diagram-other-stroke: var(--pnd-gray-400);
+  --pnd-diagram-elided-fill: transparent;
+  --pnd-diagram-elided-stroke: var(--pnd-gray-500);
+}
+
+/*
+ * d2 multiplies its connection labels over the page so they knock out the line
+ * behind them. On a dark page multiply drives them to black, so the label
+ * disappears into the background it was meant to sit on.
+ */
+:root[data-theme="dark"] .pnd-diagram .blend {
+  mix-blend-mode: normal;
 }
 
 /*
