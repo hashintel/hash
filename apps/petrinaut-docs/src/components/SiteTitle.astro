@@ -263,12 +263,18 @@ import DiffBadges from "./DiffBadges.astro";
       });
     };
 
-/**
+    /**
      * Scroll, in px, over which a fade band reaches its full height. Well under
      * one row of the rail: a band is there as soon as anything has gone up
      * behind the header, and the ramp only takes the hard edge off its arrival.
+     *
+     * Read from `--pnd-fade-ramp` rather than repeated: the scroll-driven path
+     * in `chrome.css` takes its `animation-range` from the same token, and the
+     * two ramps have to agree.
      */
-    const FADE_RAMP = 20;
+    const FADE_RAMP =
+      parseFloat(getComputedStyle(root).getPropertyValue("--pnd-fade-ramp")) ||
+      20;
 
     /**
      * Drives a scroll container's bands. `chrome.css` takes each band's height,
@@ -308,7 +314,23 @@ import DiffBadges from "./DiffBadges.astro";
       return schedule;
     };
 
+    /*
+     * The bands are scroll-driven animations wherever CSS can express them,
+     * which is everywhere but Firefox as of writing. There the progress cannot
+     * be resolved from layout, so it is written from a scroll listener instead,
+     * at the cost of a frame on a page that loads part-way down. `chrome.css`
+     * tests the same condition, and its animations override what is written
+     * here, so this only has to stay out of the way.
+     */
+    const cssDrivesFades =
+      CSS.supports("animation-timeline: scroll()") &&
+      CSS.supports("timeline-scope: --pnd-nav-scroll");
+
     const watchScrollFades = () => {
+      if (cssDrivesFades) {
+        return;
+      }
+
       const pane = document.querySelector(".sidebar-pane");
 
       if (pane) {

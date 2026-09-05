@@ -76,6 +76,9 @@
    */
   --pnd-fade-tint-height: 45px;
   --pnd-fade-blur-height: 60px;
+
+  /* How far a scroller travels before a band is fully grown. */
+  --pnd-fade-ramp: 20px;
 }
 
 /*
@@ -1062,6 +1065,82 @@ mobile-starlight-toc summary {
    */
   :root[data-has-sidebar] .pnd-nav-fade-bottom {
     --pnd-fade-progress: var(--pnd-nav-end-progress, 0);
+  }
+}
+
+/*
+ * The bands, without the script ---------------------------------------------
+ *
+ * `--pnd-fade-progress` is otherwise a number the header script writes on every
+ * scroll, which means a band cannot be correct until that script has run: a
+ * page restored to a scroll position paints once without its bands and then
+ * with them. A scroll-driven animation has no such gap, because the progress is
+ * resolved from layout at the same time as everything else on the first frame,
+ * and the scroll no longer runs script at all.
+ *
+ * Registering the property is what makes it animatable: an unregistered custom
+ * property is an unparsed token sequence, and interpolating one is undefined.
+ *
+ * Firefox has not shipped either half of this, so `@supports` keeps the script
+ * as the fallback there. `watchScrollFades` in `SiteTitle.astro` tests the same
+ * condition and does nothing when the browser can do it in CSS.
+ */
+@property --pnd-fade-progress {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@keyframes pnd-fade-grow {
+  from {
+    --pnd-fade-progress: 0;
+  }
+
+  to {
+    --pnd-fade-progress: 1;
+  }
+}
+
+@supports (animation-timeline: scroll()) and (timeline-scope: --pnd-nav-scroll) {
+  .pnd-content-fade {
+    animation: pnd-fade-grow linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 var(--pnd-fade-ramp);
+  }
+
+  /*
+   * The rail's bands are drawn in the header, not inside the rail, so they
+   * cannot see its scroller by lookup. Naming the timeline and widening its
+   * scope to the document is what lets a sibling subtree read it.
+   */
+  .sidebar-pane {
+    scroll-timeline: --pnd-nav-scroll block;
+  }
+
+  :root {
+    timeline-scope: --pnd-nav-scroll;
+  }
+
+  @media (min-width: 50rem) {
+    :root[data-has-sidebar] .pnd-nav-fade {
+      animation: pnd-fade-grow linear both;
+      animation-timeline: --pnd-nav-scroll;
+      animation-range: 0 var(--pnd-fade-ramp);
+    }
+
+    /*
+     * Reversed over the last stretch of the scroll rather than the first, which
+     * is how "what is left below the fold" falls out of a timeline that only
+     * counts distance travelled. `both` holds 1 above the range and 0 past its
+     * end, so the band is open the whole way down and closes as the last rows
+     * arrive. A rail with nothing to scroll has an inactive timeline and no
+     * animation at all, which is the same 0 it rests at.
+     */
+    :root[data-has-sidebar] .pnd-nav-fade-bottom {
+      animation: pnd-fade-grow linear both reverse;
+      animation-timeline: --pnd-nav-scroll;
+      animation-range: calc(100% - var(--pnd-fade-ramp)) 100%;
+    }
   }
 }
 
