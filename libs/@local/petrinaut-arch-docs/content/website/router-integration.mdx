@@ -79,6 +79,11 @@ net the visitor has open. `/brunch` names its model with the stream keys it
 carries over, so a copied URL reproduces the run. The example pages name the
 model in the path.
 
+`/new` and `/examples` mount nothing and speak no contract. Both redirect from
+`beforeLoad`: `/examples` sends the visitor to the editable demo, and `/new`
+starts an empty net in local storage first, which the demo then opens as the
+most recently modified one.
+
 ## What a URL carries, and what it does not
 
 A single focused item is shareable; a multi-selection is not. Multi-selection
