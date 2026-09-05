@@ -123,10 +123,23 @@ export const navigationStateToPreviewSearch = (
   ...selectionToSearch(state.selection),
 });
 
+/**
+ * Applies a Preview navigation to a search, keeping the fields the Preview
+ * does not navigate.
+ *
+ * Writing the projection alone would drop `mode`, `view` and `overlay` on the
+ * first selection, and an embed can arrive carrying them: oEmbed copies the
+ * source page's `mode` into the iframe URL. A surface that does not understand
+ * a field must not destroy it.
+ */
 export const applyPreviewNavigationUpdate = (
   search: SharedExampleSearch,
   update: PetrinautNavigationUpdater<PetrinautPreviewNavigationState>,
-): SharedExampleSearch =>
-  navigationStateToPreviewSearch(
+): SharedExampleSearch => ({
+  mode: search.mode,
+  view: search.view,
+  overlay: search.overlay,
+  ...navigationStateToPreviewSearch(
     update(previewSearchToNavigationState(search)),
-  );
+  ),
+});
