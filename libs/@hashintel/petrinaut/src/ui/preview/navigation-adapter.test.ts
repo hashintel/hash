@@ -31,6 +31,26 @@ describe("Preview navigation adapter", () => {
     });
   });
 
+  test("pins Quick Simulation Preview to simulate mode", () => {
+    const controller: PetrinautNavigationController<PetrinautPreviewNavigationState> =
+      {
+        state: {
+          scenarioId: undefined,
+          subnetId: null,
+          selection: [],
+        },
+        onNavigate: vi.fn(),
+      };
+
+    expect(
+      createPreviewNavigationAdapter(controller, "simulate").state,
+    ).toEqual({
+      ...defaultPetrinautNavigationState,
+      mode: "simulate",
+      simulateView: "scenarios",
+    });
+  });
+
   test("projects full-state updaters back onto the Preview contract", () => {
     const onNavigate =
       vi.fn<

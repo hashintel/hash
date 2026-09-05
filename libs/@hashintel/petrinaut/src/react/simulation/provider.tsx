@@ -10,9 +10,15 @@ import {
   compileScenario,
   synthesizeAdHocScenario,
   type AdHocScenarioState,
+  type AdHocSynthesisContext,
+  type HirCompileResult,
+  type PetrinautExtensionSettings,
   type ReadableStore,
   type Scenario,
   type ScenarioCompilationError,
+  type ScenarioHir,
+  type ScenarioLoweringInput,
+  type SDCPN,
   type Simulation,
   type SimulationState as CoreSimulationState,
   type WorkerFactory,
@@ -80,6 +86,8 @@ function getScenarioParameterDefaults(
 }
 
 function createInitialStateValues(options?: {
+  dt?: number;
+  maxTime?: number | null;
   selectedScenarioId?: string | null;
 }): SimulationStateValues {
   return {
@@ -88,16 +96,48 @@ function createInitialStateValues(options?: {
     selectedScenarioId: options?.selectedScenarioId,
     scenarioParameterValues: {},
     adHocScenario: null,
-    dt: 0.01,
-    maxTime: null,
+    dt: options?.dt ?? 0.01,
+    maxTime: options?.maxTime ?? null,
   };
 }
 
-function getEffectiveSelectedScenarioId(
+/**
+ * Whether the requested scenario has to be rewritten to the one in effect.
+ *
+ * A host that requires a scenario normalizes an absent or stale request, so a
+ * URL without one resolves to a real scenario. A host that does not require
+ * one normalizes only a stale request, so an explicit no-scenario choice
+ * survives instead of snapping back to the first scenario.
+ */
+export function shouldNormalizeScenarioSelection({
+  effectiveSelectedScenarioId,
+  requestedScenarioId,
+  requireScenario = false,
+}: {
+  effectiveSelectedScenarioId: string | null;
+  requestedScenarioId: string | null | undefined;
+  requireScenario?: boolean;
+}): boolean {
+  if (requireScenario) {
+    return (
+      effectiveSelectedScenarioId !== null &&
+      requestedScenarioId !== effectiveSelectedScenarioId
+    );
+  }
+
+  return (
+    requestedScenarioId !== undefined &&
+    requestedScenarioId !== null &&
+    requestedScenarioId !== effectiveSelectedScenarioId
+  );
+}
+
+export function getEffectiveSelectedScenarioId(
   scenarios: readonly Scenario[] | undefined,
   selectedScenarioId: string | null | undefined,
+  requireScenario = false,
 ): string | null {
-  if (selectedScenarioId === null) {
+  if (selectedScenarioId === null && !requireScenario) {
     return null;
   }
 
@@ -157,7 +197,22 @@ function mapCoreState(status: CoreSimulationState | null): SimulationState {
   }
 }
 
-type SimulationProviderProps = React.PropsWithChildren<{
+/** Compilation surface consumed by simulation without coupling it to an LSP. */
+export type SimulationCompiler = {
+  requestHirArtifacts: (
+    sdcpn: SDCPN,
+    extensions?: PetrinautExtensionSettings,
+  ) => Promise<HirCompileResult>;
+  requestScenarioHir: (
+    scenario: ScenarioLoweringInput,
+    /** The net context an `adhoc` initial state synthesizes against. */
+    adHocContext?: AdHocSynthesisContext,
+    /** Lets a host with precompiled artifacts look the scenario up. */
+    scenarioId?: string,
+  ) => Promise<ScenarioHir>;
+};
+
+export type SimulationProviderProps = React.PropsWithChildren<{
   /**
    * Factory that produces the simulation worker. Hosts can plug in their own
    * worker bundling — e.g. via Vite's `?worker` directive against the package
@@ -169,16 +224,37 @@ type SimulationProviderProps = React.PropsWithChildren<{
    * blob URL (e.g. some production builds against the dist output).
    */
   workerFactory?: WorkerFactory;
+  /**
+   * Optional compiler override. The Preview supplies build-time artifacts so
+   * it can reuse the simulation/playback providers without mounting an LSP.
+   */
+  compiler?: SimulationCompiler;
+  initialConfiguration?: {
+    dt?: number;
+    maxTime?: number | null;
+  };
+  /**
+   * Require one of the model's named scenarios. Missing, explicit-none, and
+   * stale selections resolve to the first scenario and are normalized back
+   * through controlled navigation. The full editor keeps this disabled so
+   * its existing "No scenario" workflow is unchanged.
+   */
+  requireScenario?: boolean;
 }>;
 
 export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   children,
+  compiler,
+  initialConfiguration,
+  requireScenario = false,
   workerFactory,
 }) => {
   const sdcpnContext = use(SDCPNContext);
-  const { requestHirArtifacts, requestScenarioHir } = use(
-    LanguageClientContext,
-  );
+  const languageClient = use(LanguageClientContext);
+  // The language client satisfies the compiler surface as is: it ignores the
+  // scenario id that hosts with precompiled artifacts key their lookups by.
+  const activeCompiler: SimulationCompiler = compiler ?? languageClient;
+  const { requestHirArtifacts, requestScenarioHir } = activeCompiler;
   const navigation = usePetrinautNavigation();
   const { extensions, petriNetDefinition } = sdcpnContext;
   const { addNotification } = use(NotificationsContext);
@@ -194,11 +270,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const effectiveSelectedScenarioId = getEffectiveSelectedScenarioId(
     petriNetDefinition.scenarios,
     requestedScenarioId,
+    requireScenario,
   );
 
   // Configuration state (not managed by the simulation handle)
   const [stateValues, setStateValues] = useState<SimulationStateValues>(() =>
     createInitialStateValues({
+      ...initialConfiguration,
       selectedScenarioId: navigation.state.scenarioId,
     }),
   );
@@ -486,6 +564,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
             places: sdcpn.places,
             types: sdcpn.types,
           },
+          scenarioToCompile.scenario.id,
         );
         if (initializationGenerationRef.current !== generation) {
           return;
@@ -654,16 +733,23 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const totalFrames = frameSummary.count;
   useEffect(() => {
     if (
-      requestedScenarioId !== undefined &&
-      requestedScenarioId !== null &&
-      requestedScenarioId !== effectiveSelectedScenarioId
+      shouldNormalizeScenarioSelection({
+        effectiveSelectedScenarioId,
+        requestedScenarioId,
+        requireScenario,
+      })
     ) {
       navigation.navigate(
         { scenarioId: effectiveSelectedScenarioId },
         { cause: "normalization", action: "scenario" },
       );
     }
-  }, [effectiveSelectedScenarioId, navigation, requestedScenarioId]);
+  }, [
+    effectiveSelectedScenarioId,
+    navigation,
+    requestedScenarioId,
+    requireScenario,
+  ]);
   const effectiveScenarioParameterValues =
     stateValues.selectedScenarioId === undefined ||
     stateValues.selectedScenarioId === effectiveSelectedScenarioId
@@ -703,12 +789,17 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const scenarioHirState = useScenarioHir(
     selectedScenario ??
       (adHocSynthesized?.ok ? adHocSynthesized.scenario : undefined),
-    // A persisted ad-hoc scenario synthesizes in the worker against the
-    // net context; the quick-sim definition was synthesized above already.
     {
-      netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
-      places: petriNetDefinition.places,
-      types: petriNetDefinition.types,
+      requestScenarioHir,
+      // A persisted ad-hoc scenario synthesizes in the worker against the
+      // net context; the quick-sim definition was synthesized above already.
+      adHocContext: {
+        netParameters: extensions.parameters
+          ? petriNetDefinition.parameters
+          : [],
+        places: petriNetDefinition.places,
+        types: petriNetDefinition.types,
+      },
     },
   );
 

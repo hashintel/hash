@@ -12,9 +12,10 @@ export type PetrinautPreviewNavigationState = Pick<
 
 const toFullNavigationState = (
   state: Readonly<PetrinautPreviewNavigationState>,
+  mode: "edit" | "simulate",
 ): PetrinautNavigationState => ({
   ...defaultPetrinautNavigationState,
-  mode: "edit",
+  mode,
   simulateView: "scenarios",
   scenarioId: state.scenarioId,
   subnetId: state.subnetId,
@@ -32,12 +33,14 @@ export const toPreviewNavigationState = (
 /** Adapts Preview's deliberately smaller URL contract to the shared providers. */
 export const createPreviewNavigationAdapter = (
   controller: PetrinautNavigationController<PetrinautPreviewNavigationState>,
+  mode: "edit" | "simulate" = "edit",
 ): PetrinautNavigationController => ({
-  state: toFullNavigationState(controller.state),
+  state: toFullNavigationState(controller.state, mode),
   historyPolicy: controller.historyPolicy,
   onNavigate: (update, options) => {
     controller.onNavigate(
-      (state) => toPreviewNavigationState(update(toFullNavigationState(state))),
+      (state) =>
+        toPreviewNavigationState(update(toFullNavigationState(state, mode))),
       options,
     );
   },
