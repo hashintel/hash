@@ -52,6 +52,23 @@
   --pnd-chrome-fade: 300ms;
 
   /*
+   * Resting the chrome behind an opacity composites its text against the page
+   * before anyone reads it, and the greys Starlight would otherwise use land
+   * under WCAG once composited: gray-3 at 70% is 3.6:1 where body text owes
+   * 4.5:1, and at 50% it is 2.3:1 where a control owes 3:1. These two are the
+   * greys whose composite clears those thresholds, so the fade is kept exactly
+   * as designed and only the colour underneath it is stronger.
+   *
+   * Measured, not eyeballed: composited against the page these give 4.93:1
+   * dark and 5.09:1 light for rail text, and 3.68:1 / 3.19:1 for the toggle's
+   * icon. Any change to the ramp or to an idle opacity moves those, so
+   * recompute rather than assume — the ratio is of the *composited* colour,
+   * which is not the one written here.
+   */
+  --pnd-rail-text: var(--pnd-gray-300);
+  --pnd-control-idle: var(--pnd-gray-200);
+
+  /*
    * The band under the header is two heights. The tint runs the shorter one and
    * the blur the taller, so below the tint there is a stretch where content is
    * blurred but still visible. Matched heights hid the blur completely: its
@@ -141,6 +158,10 @@
   --sl-color-gray-1: var(--pnd-gray-900);
   --sl-color-gray-2: var(--pnd-gray-700);
   --sl-color-gray-3: var(--pnd-gray-500);
+
+  /* The dark ramp's contrast-safe pair, mirrored. */
+  --pnd-rail-text: var(--pnd-gray-700);
+  --pnd-control-idle: var(--pnd-gray-800);
   --sl-color-gray-4: var(--pnd-gray-400);
   --sl-color-gray-5: var(--pnd-gray-200);
   --sl-color-gray-6: var(--pnd-gray-100);
@@ -263,13 +284,20 @@ h6 {
 }
 
 /*
- * The theme select rests back like the collapse toggle: one small control in a
- * wide header. Its own hover already lifts the colour; this lifts the whole
- * control with it.
+ * The theme select rests back like the collapse toggle. Its own hover already
+ * lifts the colour; this lifts the whole control with it.
+ *
+ * It rests at the rails' opacity rather than the toggle's, because it is the
+ * one header control carrying a visible label: at 50% over a white page no
+ * colour reaches the 4.5:1 that text owes, pure black included, so the
+ * threshold decides the resting opacity here rather than the shape of the
+ * control. Starlight colours it with gray-2, not the gray-3 the rails use.
  */
 .right-group starlight-theme-select {
+  --sl-color-gray-2: var(--pnd-rail-text);
+
   display: block;
-  opacity: var(--pnd-toggle-idle-opacity);
+  opacity: var(--pnd-chrome-idle-opacity);
   transition: opacity var(--pnd-chrome-fade) ease;
 }
 
@@ -402,6 +430,21 @@ dialog {
 }
 
 /* Chrome at rest -------------------------------------------------------- */
+
+/*
+ * Both rails and both header controls dim as a whole, so the grey their
+ * contents resolve is restated for the subtree instead of element by element:
+ * the sidebar's links, the table of contents' heading and its rows all read
+ * `--sl-color-gray-3`, and all of them are behind the same opacity.
+ */
+.sidebar-content,
+.right-sidebar-panel {
+  --sl-color-gray-3: var(--pnd-rail-text);
+}
+
+:root[data-has-sidebar] .pnd-sidebar-toggle {
+  --sl-color-gray-3: var(--pnd-control-idle);
+}
 
 /*
  * Both rails rest at `--pnd-chrome-idle-opacity` and come up to full strength
