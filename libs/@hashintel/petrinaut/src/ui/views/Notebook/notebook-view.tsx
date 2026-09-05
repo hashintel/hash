@@ -1,7 +1,7 @@
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { Button, SegmentedControl, TextInput } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
@@ -11,8 +11,10 @@ import { focusLands } from "../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
 import { useFocusStops } from "../../worksheet/use-focus-stops";
 import { CELL_KIND_PLURAL_LABELS, CELL_KINDS } from "./cell-kinds";
+import { CommandPalette } from "./command-palette";
 import { CONNECTION_GUTTER_WIDTH, ConnectionLines } from "./connection-lines";
 import { GraphExplorer } from "./graph-explorer";
+import { hintLabels, matchHint } from "./hint-jump";
 import { buildCycleMembership, findCycleGroups } from "./net-cycles";
 import { layoutNetGraph } from "./net-graph-layout";
 import {
@@ -32,8 +34,11 @@ import {
   noConnections,
 } from "./notebook-model";
 import { orderCellsTopologically } from "./notebook-order";
+import { PeekCard, peekPosition } from "./peek-card";
+import { useJumpHistory } from "./use-jump-history";
 
 import type { FocusStop } from "../../worksheet/use-focus-stops";
+import type { PaletteAction } from "./command-palette";
 import type { InitialPlaceGroup } from "./net-siphons";
 import type {
   NodeRef,
@@ -128,6 +133,32 @@ const hoistInitialPlaces = (
   ...flowOrder.filter((id) => !initialByPlace.has(id)),
 ];
 
+/** The letter chips hint-jump overlays on each visible row. */
+const hintChipStyle = css({
+  position: "absolute",
+  left: "[4px]",
+  zIndex: "[1]",
+  paddingX: "1",
+  borderRadius: "sm",
+  fontSize: "[10px]",
+  fontFamily: "mono",
+  fontWeight: "semibold",
+  backgroundColor: "yellow.s30",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "yellow.s70",
+  color: "neutral.s115",
+  pointerEvents: "none",
+});
+
+const hintChipDeadStyle = css({
+  opacity: "[0.25]",
+});
+
+const hintChipTypedStyle = css({
+  color: "orange.s110",
+});
+
 const emptyStyle = css({
   fontSize: "sm",
   color: "neutral.fg.subtle",
@@ -165,6 +196,20 @@ const NotebookViewContent: React.FC = () => {
     () => new Set(),
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [isPaletteOpen, setPaletteOpen] = useState(false);
+  // Peek preview over a hovered/focused reference, IDE-style.
+  const [peek, setPeek] = useState<{
+    cellId: string;
+    position: { left: number; top: number };
+  } | null>(null);
+  const peekTimerRef = useRef<number | null>(null);
+
+  // Hint-jump: targets are measured when the mode is entered, so the chips
+  // stay put even if the list re-renders while a label is being typed.
+  const [hint, setHint] = useState<{
+    typed: string;
+    targets: { cellId: string; top: number }[];
+  } | null>(null);
   const [explorerWidth, setExplorerWidth] = useState(DEFAULT_EXPLORER_WIDTH);
   const [cellOrder, setCellOrder] = useState<CellOrder>("document");
   const [focusOnSelection, setFocusOnSelection] = useState(false);
@@ -405,15 +450,206 @@ const NotebookViewContent: React.FC = () => {
     }
   };
 
-  const navigateToNode = (node: NodeRef) => {
-    // Jumping to a kind the filter hides would select an invisible cell, so
-    // reveal that kind as part of the navigation.
-    if (!visibleKinds.has(node.type)) {
-      setVisibleKinds((previous) => new Set(previous).add(node.type));
+  const jumps = useJumpHistory();
+
+  /**
+   * Teleport to a cell — a reference jump rather than an arrow move. The
+   * target's kind is revealed if the filter hides it, and the jump lands in
+   * the history so back/forward can retrace it.
+   */
+  const jumpToCell = (cellId: string, options?: { recordJump?: boolean }) => {
+    const target = cells.find(({ id }) => id === cellId);
+    if (target === undefined) {
+      return;
     }
-    selectItem({ type: node.type, id: node.id });
-    focusCellRow(node.id);
+    if (options?.recordJump ?? true) {
+      jumps.record(selectedId, cellId);
+    }
+    if (!visibleKinds.has(target.kind)) {
+      setVisibleKinds((previous) => new Set(previous).add(target.kind));
+    }
+    selectCell(target, { focus: true });
   };
+
+  const goBack = () => {
+    const target = jumps.back(selectedId);
+    if (target !== null) {
+      jumpToCell(target, { recordJump: false });
+    }
+  };
+
+  const goForward = () => {
+    const target = jumps.forward(selectedId);
+    if (target !== null) {
+      jumpToCell(target, { recordJump: false });
+    }
+  };
+
+  /** Label every row currently inside the scroll viewport. */
+  const enterHintMode = () => {
+    const content = contentRef.current;
+    const scroller = content?.parentElement;
+    if (!content || !scroller) {
+      return;
+    }
+    const targets = [
+      ...content.querySelectorAll<HTMLElement>("[data-cell-row]"),
+    ]
+      .filter(
+        (row) =>
+          row.offsetTop + row.offsetHeight > scroller.scrollTop &&
+          row.offsetTop < scroller.scrollTop + scroller.clientHeight,
+      )
+      .flatMap((row) =>
+        row.dataset.cellRow === undefined
+          ? []
+          : [{ cellId: row.dataset.cellRow, top: row.offsetTop }],
+      );
+    if (targets.length > 0) {
+      setHint({ typed: "", targets });
+    }
+  };
+
+  // While hint-jump is active every key belongs to it: letters build up a
+  // label, a completed label jumps, anything else leaves the mode.
+  const isHintActive = hint !== null;
+  const handleHintKey = useEffectEvent((event: KeyboardEvent) => {
+    if (hint === null) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (
+      !/^[a-z]$/u.test(event.key) ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.altKey
+    ) {
+      setHint(null);
+      return;
+    }
+    const typed = hint.typed + event.key;
+    const outcome = matchHint(typed, hint.targets.length);
+    if (outcome.kind === "match") {
+      setHint(null);
+      jumpToCell(hint.targets[outcome.index]!.cellId);
+    } else if (outcome.kind === "pending") {
+      setHint({ ...hint, typed });
+    } else {
+      setHint(null);
+    }
+  });
+  useEffect(() => {
+    if (!isHintActive) {
+      return;
+    }
+    window.addEventListener("keydown", handleHintKey, true);
+    return () => window.removeEventListener("keydown", handleHintKey, true);
+  }, [isHintActive]);
+
+  // View-level shortcuts. ⌘K opens the palette from anywhere except a code
+  // editor (Monaco owns ⌘K chords); Alt+←/→ retrace jumps browser-style,
+  // except in inputs and editors (word-wise caret movement on some
+  // platforms).
+  const handleViewShortcut = useEffectEvent((event: KeyboardEvent) => {
+    const target = event.target as HTMLElement;
+    const inCodeEditor = target.closest(".monaco-editor") !== null;
+    if (
+      (event.metaKey || event.ctrlKey) &&
+      event.key.toLowerCase() === "k" &&
+      !inCodeEditor
+    ) {
+      event.preventDefault();
+      // A host app may bind its own ⌘K palette on window; while the notebook
+      // is the active mode its palette wins, so the capture-phase listener
+      // stops the event before the host's bubble-phase one sees it.
+      event.stopPropagation();
+      setPaletteOpen((open) => !open);
+      return;
+    }
+    const inTextEntry =
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.isContentEditable ||
+      inCodeEditor;
+    if (
+      event.key === "f" &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !inTextEntry &&
+      !isPaletteOpen &&
+      !isHintActive
+    ) {
+      event.preventDefault();
+      enterHintMode();
+      return;
+    }
+    if (
+      !event.altKey ||
+      (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
+    ) {
+      return;
+    }
+    if (inTextEntry) {
+      return;
+    }
+    event.preventDefault();
+    if (event.key === "ArrowLeft") {
+      goBack();
+    } else {
+      goForward();
+    }
+  });
+  useEffect(() => {
+    window.addEventListener("keydown", handleViewShortcut, true);
+    return () =>
+      window.removeEventListener("keydown", handleViewShortcut, true);
+  }, []);
+
+  const navigateToNode = (node: NodeRef) => {
+    jumpToCell(node.id);
+  };
+
+  const schedulePeek = (anchor: HTMLElement, delayMs: number) => {
+    const cellId = anchor.dataset.peekCell;
+    if (cellId === undefined) {
+      return;
+    }
+    if (peekTimerRef.current !== null) {
+      window.clearTimeout(peekTimerRef.current);
+    }
+    peekTimerRef.current = window.setTimeout(() => {
+      peekTimerRef.current = null;
+      const rect = anchor.getBoundingClientRect();
+      setPeek({
+        cellId,
+        position: peekPosition(rect, {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        }),
+      });
+    }, delayMs);
+  };
+
+  const cancelPeek = () => {
+    if (peekTimerRef.current !== null) {
+      window.clearTimeout(peekTimerRef.current);
+      peekTimerRef.current = null;
+    }
+    setPeek(null);
+  };
+
+  // The card must not outlive what it is anchored to: any scroll hides it.
+  const isPeekOpen = peek !== null;
+  const handleAnyScroll = useEffectEvent(() => cancelPeek());
+  useEffect(() => {
+    if (!isPeekOpen) {
+      return;
+    }
+    window.addEventListener("scroll", handleAnyScroll, true);
+    return () => window.removeEventListener("scroll", handleAnyScroll, true);
+  }, [isPeekOpen]);
 
   /**
    * Step the selection to the next/previous navigable cell without moving
@@ -442,10 +678,124 @@ const NotebookViewContent: React.FC = () => {
     searchInputRef.current?.select();
   };
 
+  const paletteActions: PaletteAction[] = [
+    {
+      id: "toggle-order",
+      label: "Toggle cell order",
+      hint:
+        cellOrder === "document"
+          ? "document → topological"
+          : "topological → document",
+      run: () =>
+        setCellOrder(cellOrder === "document" ? "topological" : "document"),
+    },
+    {
+      id: "expand-all",
+      label: "Expand all cells",
+      run: () => setExpandedIds(new Set(visibleCells.map(({ id }) => id))),
+    },
+    {
+      id: "collapse-all",
+      label: "Collapse all cells",
+      run: () => setExpandedIds(new Set()),
+    },
+    {
+      id: "show-all-kinds",
+      label: "Show all cell kinds",
+      run: () => setVisibleKinds(new Set(CELL_KINDS)),
+    },
+    ...CELL_KINDS.map(
+      (kind): PaletteAction => ({
+        id: `toggle-${kind}`,
+        label: `Toggle ${CELL_KIND_PLURAL_LABELS[kind].toLowerCase()}`,
+        hint: visibleKinds.has(kind) ? "shown" : "hidden",
+        run: () => toggleKind(kind),
+      }),
+    ),
+    {
+      id: "toggle-focus-mode",
+      label: "Organize graph around selection",
+      hint: focusOnSelection ? "on" : "off",
+      run: () => setFocusOnSelection((previous) => !previous),
+    },
+    {
+      id: "focus-search",
+      label: "Search cells",
+      hint: "/",
+      run: () => focusSearch(),
+    },
+  ];
+
+  const peekCell =
+    peek === null ? undefined : cells.find(({ id }) => id === peek.cellId);
+
   return (
-    <div className={containerStyle}>
+    <div
+      className={containerStyle}
+      // Peeking is wired by delegation: any element carrying
+      // `data-peek-cell` (arc places, explorer rows, graph nodes) previews
+      // its target on hover after a beat, immediately on keyboard focus.
+      onMouseOver={(event) => {
+        const anchor = (event.target as HTMLElement).closest<HTMLElement>(
+          "[data-peek-cell]",
+        );
+        if (anchor !== null) {
+          schedulePeek(anchor, 350);
+        }
+      }}
+      onMouseOut={(event) => {
+        const from = (event.target as HTMLElement).closest<HTMLElement>(
+          "[data-peek-cell]",
+        );
+        const to =
+          event.relatedTarget instanceof HTMLElement
+            ? event.relatedTarget.closest<HTMLElement>("[data-peek-cell]")
+            : null;
+        if (from !== null && from !== to) {
+          cancelPeek();
+        }
+      }}
+      onFocus={(event) => {
+        const target = event.target as HTMLElement;
+        const anchor =
+          target.closest<HTMLElement>("[data-peek-cell]") ??
+          (target.dataset.cellPart !== undefined
+            ? target.querySelector<HTMLElement>("[data-peek-cell]")
+            : null);
+        if (anchor !== null) {
+          schedulePeek(anchor, 0);
+        } else {
+          cancelPeek();
+        }
+      }}
+      onBlur={(event) => {
+        if (event.relatedTarget === null) {
+          cancelPeek();
+        }
+      }}
+    >
       <div className={cellsColumnStyle}>
         <div className={searchBarStyle}>
+          <Button
+            size="xs"
+            variant="ghost"
+            tone="neutral"
+            iconName="arrowLeft"
+            aria-label="Back to the previous cell"
+            tooltip="Back through jumps (⌥←)"
+            disabled={!jumps.canGoBack}
+            onClick={goBack}
+          />
+          <Button
+            size="xs"
+            variant="ghost"
+            tone="neutral"
+            iconName="arrowRight"
+            aria-label="Forward to the next cell"
+            tooltip="Forward through jumps (⌥→)"
+            disabled={!jumps.canGoForward}
+            onClick={goForward}
+          />
           <TextInput
             className={searchInputStyle}
             size="sm"
@@ -471,7 +821,7 @@ const NotebookViewContent: React.FC = () => {
                   matchesById.has(id),
                 );
                 if (firstMatch) {
-                  selectCell(firstMatch, { focus: true });
+                  jumpToCell(firstMatch.id);
                 }
               } else if (event.key === "Escape") {
                 setSearchQuery("");
@@ -593,12 +943,7 @@ const NotebookViewContent: React.FC = () => {
                         onNavigate: listFocus.onKeyDown({ stopId, column }),
                       };
                     },
-                    navigateToCell: (cellId) => {
-                      const target = cells.find(({ id }) => id === cellId);
-                      if (target) {
-                        selectCell(target, { focus: true });
-                      }
-                    },
+                    navigateToCell: (cellId) => jumpToCell(cellId),
                   }}
                   onFocusSearch={focusSearch}
                 />
@@ -615,9 +960,46 @@ const NotebookViewContent: React.FC = () => {
                 ({ id }) => id,
               )}
             />
+            {hint !== null &&
+              hint.targets.map((target, at) => {
+                const label = hintLabels(hint.targets.length)[at]!;
+                const isDead = !label.startsWith(hint.typed);
+                return (
+                  <span
+                    key={target.cellId}
+                    className={cx(
+                      hintChipStyle,
+                      isDead ? hintChipDeadStyle : undefined,
+                    )}
+                    style={{ top: target.top }}
+                    aria-hidden
+                  >
+                    <span className={hintChipTypedStyle}>{hint.typed}</span>
+                    {label.slice(hint.typed.length)}
+                  </span>
+                );
+              })}
           </div>
         </div>
       </div>
+
+      {peekCell !== undefined && peek !== null && (
+        <PeekCard
+          net={activeNet}
+          cell={peekCell}
+          dependentCount={dependentCounts.get(peekCell.id)}
+          position={peek.position}
+        />
+      )}
+
+      {isPaletteOpen && (
+        <CommandPalette
+          cells={cells}
+          actions={paletteActions}
+          onJumpToCell={(cellId) => jumpToCell(cellId)}
+          onClose={() => setPaletteOpen(false)}
+        />
+      )}
 
       <div className={explorerColumnStyle} style={{ width: explorerWidth }}>
         <ResizeHandle

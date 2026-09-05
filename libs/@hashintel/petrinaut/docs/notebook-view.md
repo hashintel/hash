@@ -19,6 +19,13 @@ Two badges can appear after a cell's name:
 - **`initial`** (blue) — this place must hold tokens in the initial state. Nothing in the net can produce its first token: either nothing feeds it at all, or it belongs to a pool that only circulates what it starts with (a resource pool such as a set of machines). If a scenario leaves every place of such a group empty, the transitions that need it can never fire.
 - **`↻N`** (tinted) — this node is part of cycle _N_. Hover the badge to light up the whole cycle in the list and the graph.
 
+## Getting around
+
+- **Command palette** — press **⌘K** (Ctrl+K) to open a palette that fuzzy-matches every cell name and the view's commands (cell order, kind filters, expand/collapse all, graph focus). **Enter** jumps to a cell or runs a command; **Escape** closes.
+- **Jump history** — following a reference (an arc's place, an explorer row, a palette result) is a jump, and jumps are remembered: the **‹ ›** buttons in the toolbar, or **⌥←** / **⌥→**, go back and forward through them, like a browser.
+- **Hint jump** — press **f** while in the list to label every visible row with a letter chip; type a chip's letters to jump straight to that row. **Escape** (or any other key) leaves the mode.
+- **Peek** — hover a reference (an arc's place name, an explorer row, a graph node) or move keyboard focus onto it, and a card previews the target cell — its kind, summary, and dependent counts — without navigating.
+
 ## Toolbar
 
 - **Search** — type in the search box (or press **/**) to fuzzy-match cell names; matching characters are highlighted and other cells fade. **↑** / **↓** step through matches, **Enter** jumps to the first one, **Escape** clears.
@@ -35,6 +42,7 @@ The right-hand panel draws the whole net as a top-to-bottom flow graph of places
 
 - Selecting a place or transition highlights it in the graph: dependencies in blue, dependents in orange, a node connected in both directions in purple. Clicking a node in the graph selects its cell.
 - The **target button** re-organizes the graph around the selected node: what it depends on stacks above it, what depends on it below, everything else settles underneath. The re-layout is animated. Toggle it off to return to the default flow layout.
+- The diagram is a camera: **scroll** to zoom toward the cursor, **drag** the background to pan, and **double-click** the background to fit the whole net again. Zoomed far out, node labels give way to shapes alone. The minimap in the corner shows where you are — press or drag it to move the camera.
 - Below the graph, the selected cell's dependencies and dependents are listed in full — including types, equations, and parameters, which the diagram itself leaves out.
 - Drag the panel's left edge to resize it, and the divider above the lists to trade space between the graph and the lists.
 
