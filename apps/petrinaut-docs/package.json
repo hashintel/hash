@@ -6,7 +6,7 @@
   "license": "(MIT OR Apache-2.0)",
   "type": "module",
   "scripts": {
-    "build": "astro build",
+    "build": "astro build && node scripts/check-built-css.mjs",
     "dev": "astro dev --port ${PORT:-4321}",
     "lint:tsc": "astro check --minimumSeverity error",
     "preview": "astro preview",

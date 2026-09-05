@@ -291,6 +291,20 @@ export default defineConfig({
     define: {
       __PND_DIFF_COMPARE__: JSON.stringify(diffCompareContext),
     },
+
+    /*
+     * Lightning CSS folds the animation longhands into the `animation`
+     * shorthand, and puts the timeline in it: `animation: linear both
+     * pnd-fade-grow scroll(root)`. No browser accepts a timeline there — it was
+     * dropped from the shorthand while the spec settled — so the whole
+     * declaration is invalid and `animation-name` computes to `none`. That
+     * killed the scroll-driven fade bands in built output only, while the
+     * unminified dev server kept working, and the header script had already
+     * stood down because the browser does support the feature.
+     *
+     * esbuild minifies these rules without rewriting them.
+     */
+    build: { cssMinify: "esbuild" },
   },
 
   ...(hasAuthoredIndex ? {} : { redirects: { "/": "/architecture" } }),
