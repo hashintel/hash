@@ -62,10 +62,10 @@ Realtime audio are ephemeral. Finalized spoken user messages carry a small **Voi
 the words themselves, and the exact inline answer completed by speech carries the same chip, so Voice
 provenance remains visible without duplicating an answer.
 
-The microphone stays on while the interviewer speaks, so speaking naturally interrupts the audio
-and starts listening to you; you do not need to select an interrupt action. Semantic voice detection
-finishes each answer automatically after a natural pause and is tuned to allow longer thinking
-pauses. There is no required done-speaking action.
+Microphone capture pauses while the interviewer speaks so speaker echo cannot be submitted as your
+answer. Wait for playback to finish; Voice resumes listening automatically in your previous mute
+state. Semantic voice detection finishes each answer after a natural pause and is tuned to allow
+longer thinking pauses. There is no required done-speaking action.
 
 Every session control lives in the dock: **Show transcription in chat** on the left, and on the right
 **Mute microphone** (**Unmute microphone** once muted) beside **End voice mode**. Muting stops

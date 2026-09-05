@@ -33,6 +33,7 @@ const createHarness = () => {
   };
   const bridge = {
     cancelPendingSpeech: vi.fn(),
+    restoreCancelledSpeech: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
     subscribe: vi.fn((listener: (event: RealtimeBrunchBridgeEvent) => void) => {
@@ -84,7 +85,7 @@ const speechSource = (): InterviewSpeechSource => {
 };
 
 describe("VoiceTurnController", () => {
-  test("opens a continuous microphone before starting canonical question speech", async () => {
+  test("requests microphone input before starting canonical question speech", async () => {
     const harness = createHarness();
     const order: string[] = [];
     harness.session.setMicrophoneEnabled.mockImplementation((enabled) => {
@@ -109,7 +110,7 @@ describe("VoiceTurnController", () => {
     });
   });
 
-  test("keeps capture active while the interviewer speaks and interrupts automatically", async () => {
+  test("tracks playback without changing the user's requested microphone state", async () => {
     const harness = createHarness();
     await harness.controller.start();
 
@@ -123,18 +124,6 @@ describe("VoiceTurnController", () => {
       microphoneEnabled: true,
       output: "speaking",
     });
-
-    harness.emitSession({
-      connectionEpoch: 1,
-      itemId: "item-user",
-      type: "input-speech-started",
-    });
-    expect(harness.controller.getSnapshot()).toMatchObject({
-      microphoneEnabled: true,
-      output: "interrupted",
-    });
-    expect(harness.session.cancelOutput).not.toHaveBeenCalled();
-    expect(harness.bridge.cancelPendingSpeech).toHaveBeenCalledOnce();
   });
 
   test("invalidates pending preparation before pausing or cancelling paused output", async () => {
@@ -477,7 +466,6 @@ describe("VoiceTurnController", () => {
 
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
       type: "submission-started",
     });
     expect(harness.controller.getSnapshot()).toMatchObject({
@@ -489,11 +477,9 @@ describe("VoiceTurnController", () => {
     });
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
       type: "submission-accepted",
     });
     harness.emitBridge({
-      callId: "call-1",
       segments: [question("ask-2", "Who acts next?")],
       type: "canonical-response-ready",
     });
@@ -514,7 +500,6 @@ describe("VoiceTurnController", () => {
     await harness.controller.start();
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
       type: "submission-started",
     });
 
@@ -529,11 +514,9 @@ describe("VoiceTurnController", () => {
 
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
       type: "submission-accepted",
     });
     harness.emitBridge({
-      callId: "call-1",
       segments: [question("ask-2", "Who acts next?")],
       type: "canonical-response-ready",
     });
@@ -554,7 +537,6 @@ describe("VoiceTurnController", () => {
     await harness.controller.start();
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
       type: "submission-started",
     });
 
@@ -565,11 +547,9 @@ describe("VoiceTurnController", () => {
     });
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
       type: "submission-accepted",
     });
     harness.emitBridge({
-      callId: "call-1",
       segments: [question("ask-2", "Who acts next?")],
       type: "canonical-response-ready",
     });
@@ -591,13 +571,11 @@ describe("VoiceTurnController", () => {
     await harness.controller.start();
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
       type: "submission-started",
     });
 
     harness.controller.pause();
     harness.emitBridge({
-      callId: "call-1",
       segments: [question("ask-2", "Who acts next?")],
       type: "canonical-response-ready",
     });
@@ -659,11 +637,9 @@ describe("VoiceTurnController", () => {
     });
     harness.emitBridge({
       answer: "First answer",
-      callId: "call-1",
       type: "submission-started",
     });
     harness.emitBridge({
-      callId: "call-1",
       segments: [question("ask-2", "Who acts next?")],
       type: "canonical-response-ready",
     });
@@ -726,6 +702,144 @@ describe("VoiceTurnController", () => {
     });
 
     expect(harness.controller.getSnapshot().partialText).toBe("Current answer");
+  });
+
+  test.each(["empty", "failed"] as const)(
+    "returns to listening with a recoverable notice when a transcript is rejected as %s",
+    async (reason) => {
+      const harness = createHarness();
+      const source = speechSource();
+      harness.controller.updateChat({
+        automaticSource: source,
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: [...source.fullResponseSegments],
+        status: "ready",
+      });
+      await harness.controller.start();
+      harness.emitSession({
+        connectionEpoch: 1,
+        itemId: "item-1",
+        type: "input-speech-started",
+      });
+      harness.emitSession({
+        key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-1" },
+        text: "um",
+        type: "partial",
+      });
+
+      harness.emitBridge({ reason, type: "transcript-rejected" });
+
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        canReadFullResponse: true,
+        canRepeatQuestion: true,
+        connection: "connected",
+        currentQuestion: "Who approves release?",
+        input: "listening",
+        inputNotice: "not-heard",
+        lastAnswerDelivery: "none",
+        lastCommittedText: "",
+        output: "idle",
+        partialText: "",
+      });
+      expect(harness.bridge.restoreCancelledSpeech).toHaveBeenCalledOnce();
+      expect(harness.submitText).not.toHaveBeenCalled();
+
+      harness.emitSession({
+        connectionEpoch: 1,
+        itemId: "item-2",
+        type: "input-speech-started",
+      });
+      expect(harness.controller.getSnapshot().inputNotice).toBe("none");
+    },
+  );
+
+  test("keeps the current state when a transcript is rejected as duplicate or unavailable", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitBridge({ answer: "First answer", type: "submission-started" });
+
+    harness.emitBridge({ reason: "unavailable", type: "transcript-rejected" });
+    harness.emitBridge({ reason: "duplicate", type: "transcript-rejected" });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "submitting",
+      inputNotice: "none",
+      lastAnswerDelivery: "pending",
+      lastCommittedText: "First answer",
+    });
+    expect(harness.bridge.restoreCancelledSpeech).not.toHaveBeenCalled();
+  });
+
+  test.each(["duplicate", "unavailable"] as const)(
+    "keeps the active input turn when a transcript is rejected as %s",
+    async (reason) => {
+      const harness = createHarness();
+      await harness.controller.start();
+      harness.emitSession({
+        connectionEpoch: 1,
+        itemId: "item-1",
+        type: "input-speech-started",
+      });
+      harness.emitSession({
+        key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-1" },
+        text: "Current ",
+        type: "partial",
+      });
+
+      harness.emitBridge({ reason, type: "transcript-rejected" });
+      harness.emitSession({
+        key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-1" },
+        text: "answer",
+        type: "completed",
+      });
+
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        input: "listening",
+        inputNotice: "none",
+        partialText: "answer",
+      });
+      expect(harness.bridge.restoreCancelledSpeech).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(["empty", "failed"] as const)(
+    "does not restore rejected speech while paused for %s input",
+    async (reason) => {
+      const harness = createHarness();
+      await harness.controller.start();
+      harness.emitSession({
+        connectionEpoch: 1,
+        itemId: "item-1",
+        type: "input-speech-started",
+      });
+      harness.controller.pause();
+
+      harness.emitBridge({ reason, type: "transcript-rejected" });
+
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        input: "paused",
+        inputNotice: "not-heard",
+      });
+      expect(harness.bridge.restoreCancelledSpeech).not.toHaveBeenCalled();
+    },
+  );
+
+  test("clears the not-heard notice when an answer is submitted while paused", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitBridge({ reason: "empty", type: "transcript-rejected" });
+    harness.controller.pause();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "paused",
+      inputNotice: "not-heard",
+    });
+
+    harness.emitBridge({ answer: "Answer", type: "submission-started" });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "paused",
+      inputNotice: "none",
+    });
   });
 
   test("pauses and resumes input without ending the connection", async () => {
@@ -972,7 +1086,6 @@ describe("VoiceTurnController", () => {
     await harness.controller.start();
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
       type: "submission-started",
     });
     harness.emitBridge({
@@ -1041,7 +1154,6 @@ describe("VoiceTurnController", () => {
     await bridgeFailure.controller.start();
     bridgeFailure.emitBridge({
       answer: "Pending answer",
-      callId: "call-1",
       type: "submission-started",
     });
     bridgeFailure.emitBridge({
