@@ -90,30 +90,146 @@ its own `cookie@2.x` without changing hoisting for the rest of the monorepo.
 ## Chrome overrides
 
 [`src/styles/chrome.css`](src/styles/chrome.css), registered as Starlight's
-`customCss`, narrows both side panels to give the content column more width,
-tones down the header, and rounds the corners on markdown images so the embedded
-diagrams match the bordered cards beside them. The left nav takes its own
-`--pnd-sidebar-width` because Starlight sizes both panels from
-`--sl-sidebar-width`, and collapsing the nav has to zero one of them without
-flattening the other. The collapse toggle and resize handle come from
-`components.SiteTitle`, the header's leftmost slot, next to the rail they act
-on — and the fixed header is the one piece of chrome still on screen once the
-nav is gone. Both
-controls remember their state in `localStorage`, restored by a `head` script so
-a collapsed sidebar does not render open and then jump.
+`customCss`, holds the whole of the site's appearance in three parts.
 
-## The code font
+**Tokens.** Starlight's palette and type scale are restated in a flat
+monochrome key: one neutral ramp serving both themes, a header and sidebar that
+share the page background and carry no divider between them, and an accent
+pointed at the strongest foreground instead of a colour. That last one
+is why removing the blue took no hunting: Starlight routes links, the active nav
+row and the active table-of-contents row through the accent tokens. Links stay
+distinguishable by their underline. Type is 17px on a 1.65 leading with a
+heading scale shorter than Starlight's, so hierarchy comes from weight and space
+rather than size. Starlight defines `--sl-text-body` but never applies it, so
+the body size is set here or copy stays at the browser default. Blocks sit
+1.5rem apart and a section heading takes 2.25em above it, which is what makes a
+new section read as a break rather than another paragraph.
 
-Code renders in JetBrains Mono, requested through Astro's font support in
-[`astro.config.mjs`](astro.config.mjs) and emitted by `<Font>` in
-[`src/components/Head.astro`](src/components/Head.astro).
+Colour is left to what carries meaning: the diff badges, the asides, and the
+accents the bundle's own cards paint themselves. Nothing in the bundle is styled
+from here. Its CSS derives everything from `currentColor`, so it follows this
+palette on its own, in both themes and in any other host.
 
-A build downloads one variable file covering weights 400 to 700, subsets it to
-latin, and writes it beside the other assets, so a reader makes no request to a
-font host. The head carries a `preload` link and `font-display: swap`, and Astro
-generates a metric-matched fallback, which is what keeps text from shifting when
-the file arrives. The downloaded originals are cached under `.astro/`, which is
-ignored.
+**Components.** Sidebar and table-of-contents rows as pills, flat code frames
+(through the `--ec-*` variables Expressive Code reads), underlined monochrome
+links, and rounded corners on markdown images so the embedded diagrams match the
+bordered cards beside them. Controls read by fill: the search field and the
+diff-build compare chips sit one step off the page background rather than
+carrying an outline.
+
+The sidebar's depth guide is the only rule drawn anywhere in the chrome, and it
+is there because it carries information: how deep a row sits in the tree. The
+borders that framed the header, the sidebar, the on-this-page column and the
+bar it collapses into below 72rem are gone. That bar needed the one under it
+least of all: the fade band starts below it, so content dissolves before it
+reaches a line. Element borders stay where they separate content from the page: tables,
+code frames, and the markdown images that hold the diagrams.
+
+Both rails rest at 70% and come to full strength when the pointer or keyboard
+focus reaches them, over 300ms. The collapse toggle and the theme select rest
+further back at 50%: one small control in a wide header carries less than a
+column of text does. A press dips the toggle and springs it back past its own
+size.
+
+The header keeps no social links, so Starlight's `.social-icons::after` rule
+would leave a rule dividing nothing; the group is hidden while it holds no
+links, which brings it back if one is configured again. The theme select's
+focus ring is restated in the palette's greys, since the browser's own arrives
+as a thick blue rectangle over a control that has no border of its own. The hover target is the
+whole rail, so the reveal does not depend on landing on a row, and the opacity
+sits on each rail's inner element rather than the scrolling pane, which already
+owns a transition for the collapse. `prefers-reduced-transparency` turns the
+whole effect off.
+
+Under the header, over the content column only, a band blurs and tints whatever
+scrolls beneath it, so text does not meet the header on a hard edge. It runs to
+two heights: the tint over 45px and the blur over 60px. Matching them hid the
+blur completely, because the tint is opaque where the blur is strongest; the
+stretch below the tint is where a reader actually sees content blurred.
+
+`backdrop-filter` takes a single radius, so the ramp comes from the mask rather
+than from the filter: one layer fills the band at 0.5px of blur, at full strength
+for its top half and out to nothing by its bottom, which is what keeps the blur
+from ending on a line across the page.
+
+Both bands grow out of scroll and neither exists before it. The header script
+writes progress from 0 to 1 over the first 20px, and a band's height, its tint
+and its opacity all come off that one number, so an unscrolled page has nothing
+laid over it at all. Twenty is well under one row, so a band is there as soon as
+anything has gone up behind the header and the ramp only takes the hard edge off
+its arrival. Nothing eases it: the value already tracks the scroll frame by
+frame, and a transition on top would only make a band lag the rows it covers.
+
+The nav reads its own `scrollTop` rather than the window's, since the rail
+scrolls independently of the page, and carries a second band at its foot,
+mirrored: box, layer, mask and tint all run upwards from the bottom edge. That
+one is driven by what is left below the fold rather than by what has gone above
+it, so a rail short enough to need no scrolling never shows one and the band
+closes as the last rows arrive. Opening a group changes how much is left without
+scrolling anything, so a `ResizeObserver` on the rail's content recomputes it. The content band starts below
+`--sl-mobile-toc-height` as well as the header: between 50rem and 72rem
+Starlight moves the on-this-page column into a bar under the header, which the
+band would otherwise blur. The band is positioned against the viewport from
+`components.SiteTitle`, like the resize handle, and its right inset restates
+Starlight's own width for the on-this-page column since no variable holds it.
+
+**The sidebar.** The left nav takes its own `--pnd-sidebar-width` because
+Starlight sizes both panels from `--sl-sidebar-width`, and collapsing the nav has
+to zero one of them without flattening the other. The collapse toggle and resize
+handle come from `components.SiteTitle`, which renders at the header's leading
+edge, next to the rail they act on. The fixed header is also the one piece of chrome
+still on screen once the nav is gone. Both controls remember their state in
+`localStorage`, restored by a `head` script so a collapsed sidebar does not
+render open and then jump.
+
+Collapsing is animated, which is what the shape of those rules is for. The pane
+keeps its box and hides with `visibility` rather than `display: none`, so there
+is something to animate and the rows stay painted for the whole collapse. The
+content column derives its inset as `max(sidebar-width, 2rem)`, so the toggle
+moves one length between two ends instead of jumping between two unrelated
+values. Every box that sizes off the sidebar width or `--sl-content-width`
+transitions on the same curve, otherwise the column separates from the pane it
+is following.
+
+A drag is the opposite case: it already tracks the pointer frame by frame, and a
+transition on top of that makes the pane lag. The handle sets
+`data-pnd-resizing` for the length of a gesture, either a pointer drag or a held
+arrow key, and the transitions do not apply while it is set. The handle keeps a
+6px hit area with a 2px mark that fades in on hover, and writes to
+`localStorage` once on release rather than on every pointer position. All of the
+motion is behind `prefers-reduced-motion`.
+
+## Diagrams are inlined
+
+The bundle emits each rendered diagram as a plain markdown image, which is what
+keeps it portable. Behind an `<img>` an SVG is a separate document, so nothing
+on the page reaches it: not this site's palette, not its custom properties, not
+the theme it is currently set to.
+[`src/plugins/inline-diagrams.mjs`](src/plugins/inline-diagrams.mjs) replaces
+those images with the SVG itself at build time, which hands it all three. The
+generator writes every colour in the SVG as
+`var(--pnd-diagram-*, <the colour d2 drew>)`, and `chrome.css` defines those
+properties for dark mode; light mode needs nothing, because the fallbacks are
+already the light palette.
+
+The plugin is registered through `markdown.rehypePlugins`, which is why
+`@astrojs/markdown-remark` is a dependency: Astro no longer installs it by
+default, and the hook does nothing without it.
+
+## The fonts
+
+Body text renders in Inter and code in JetBrains Mono, both requested through
+Astro's font support in [`astro.config.mjs`](astro.config.mjs) and emitted by
+`<Font>` in [`src/components/Head.astro`](src/components/Head.astro). Inter
+stands in for the grotesque the reference design uses, which is not licensed for
+redistribution.
+
+A build downloads one variable file per family covering weights 400 to 700,
+subsets it to latin, and writes it beside the other assets, so a reader makes no
+request to a font host. The head carries a `preload` link and `font-display:
+swap`, and Astro generates a metric-matched fallback, which is what keeps text
+from shifting when the file arrives. The downloaded originals are cached under
+`.astro/`, which is ignored.
 
 ## Deployment
 
