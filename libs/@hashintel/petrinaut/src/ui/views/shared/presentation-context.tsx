@@ -16,6 +16,15 @@ export type PetrinautPresentationCapabilities = {
   showMinimap: boolean;
   /** Prefer controls sized for a compact embed over the full editor sizing. */
   compactControls: boolean;
+  /**
+   * Whether the panels around the canvas float over it. The editor's panels
+   * do, so floating controls have to keep clear of them; the Preview docks its
+   * inspector as a flex sibling, which shrinks the canvas instead, and
+   * reserving the same width there pushes the controls inward twice.
+   */
+  panelsOverlayCanvas: boolean;
+  /** Blur the chrome that floats over the canvas. */
+  blurredChrome: boolean;
 };
 
 const PRESENTATION_CAPABILITIES: Record<
@@ -30,6 +39,8 @@ const PRESENTATION_CAPABILITIES: Record<
     showViewportSettings: true,
     showMinimap: true,
     compactControls: false,
+    panelsOverlayCanvas: true,
+    blurredChrome: true,
   },
   review: {
     profile: "review",
@@ -39,6 +50,8 @@ const PRESENTATION_CAPABILITIES: Record<
     showViewportSettings: true,
     showMinimap: true,
     compactControls: false,
+    panelsOverlayCanvas: true,
+    blurredChrome: true,
   },
   preview: {
     profile: "preview",
@@ -48,6 +61,8 @@ const PRESENTATION_CAPABILITIES: Record<
     showViewportSettings: false,
     showMinimap: true,
     compactControls: true,
+    panelsOverlayCanvas: false,
+    blurredChrome: false,
   },
 };
 
