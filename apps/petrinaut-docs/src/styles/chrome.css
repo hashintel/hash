@@ -911,7 +911,15 @@ mobile-starlight-toc summary {
 .pnd-content-fade {
   --pnd-fade-progress: var(--pnd-content-progress, 0);
 
-  inset-block-start: calc(var(--sl-nav-height) + var(--sl-mobile-toc-height));
+  /*
+   * A pixel short of the two heights added up, because Starlight pulls the
+   * on-this-page bar up by one to sit on the header's border, so the bar ends a
+   * pixel above where those heights put it. `max()` keeps the subtraction from
+   * applying when there is no bar to sit under and the height is zero.
+   */
+  inset-block-start: calc(
+    var(--sl-nav-height) + max(var(--sl-mobile-toc-height) - 1px, 0px)
+  );
   inset-inline-start: var(--sl-content-inline-start, 0px);
   inset-inline-end: 0;
 }
