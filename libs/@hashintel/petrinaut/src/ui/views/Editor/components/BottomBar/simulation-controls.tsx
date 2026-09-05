@@ -6,6 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { PlaybackContext } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../react/state/editor-context";
+import { CollapsibleGroup } from "./collapsible-group";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
@@ -173,7 +174,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     <>
       {/* Stop button - only visible when simulation exists */}
       {hasSimulation && (
-        <>
+        <CollapsibleGroup>
           <ToolbarButton
             tooltip="Stop simulation"
             onClick={handleReset}
@@ -183,7 +184,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             <Icon name="rotateLeft" />
           </ToolbarButton>
           <ToolbarDivider />
-        </>
+        </CollapsibleGroup>
       )}
 
       {/* Play/Pause button - always visible */}
@@ -200,35 +201,38 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         )}
       </ToolbarButton>
 
-      {/* Frame controls - only visible when simulation exists */}
-      {hasSimulation && (
-        <>
-          <div className={frameInfoStyle}>
-            <div>Frame</div>
-            <div className={frameIndexStyle}>
-              {frameIndex + 1} / {totalFrames}
+      {/* Frame controls - only visible when simulation exists - and the
+          playback settings, which the bar hides first when it runs short of
+          room: the scrubber is the widest thing on it. */}
+      <CollapsibleGroup>
+        {hasSimulation && (
+          <>
+            <div className={frameInfoStyle}>
+              <div>Frame</div>
+              <div className={frameIndexStyle}>
+                {frameIndex + 1} / {totalFrames}
+              </div>
+              <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
             </div>
-            <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
-          </div>
 
-          <input
-            type="range"
-            min="0"
-            max={Math.max(0, totalFrames - 1)}
-            value={frameIndex}
-            disabled={isDisabled}
-            onChange={(event) =>
-              setCurrentViewedFrame(Number(event.target.value))
-            }
-            className={sliderStyle}
-          />
+            <input
+              type="range"
+              min="0"
+              max={Math.max(0, totalFrames - 1)}
+              value={frameIndex}
+              disabled={isDisabled}
+              onChange={(event) =>
+                setCurrentViewedFrame(Number(event.target.value))
+              }
+              className={sliderStyle}
+            />
 
-          <ToolbarDivider />
-        </>
-      )}
+            <ToolbarDivider />
+          </>
+        )}
 
-      {/* Playback settings menu */}
-      <PlaybackSettingsMenu />
+        <PlaybackSettingsMenu />
+      </CollapsibleGroup>
     </>
   );
 };

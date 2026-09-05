@@ -1,6 +1,7 @@
 import { createContext, createRef } from "react";
 
 import {
+  DEFAULT_AI_ASSISTANT_WIDTH,
   DEFAULT_BOTTOM_PANEL_HEIGHT,
   DEFAULT_LEFT_SIDEBAR_WIDTH,
   DEFAULT_PROPERTIES_PANEL_WIDTH,
@@ -81,6 +82,11 @@ export type EditorState = {
   propertiesPanelWidth: number;
   isBottomPanelOpen: boolean;
   bottomPanelHeight: number;
+  /**
+   * Width of the AI assistant panel. Held here rather than inside the panel so
+   * the surfaces that have to keep clear of it can read it.
+   */
+  aiAssistantWidth: number;
   activeBottomPanelTab: BottomPanelTab;
   componentSubnetId: string | null;
   selection: SelectionMap;
@@ -127,6 +133,7 @@ export type EditorActions = {
   setLeftSidebarOpen: (isOpen: boolean) => void;
   setLeftSidebarWidth: (width: number) => void;
   setPropertiesPanelWidth: (width: number) => void;
+  setAiAssistantWidth: (width: number) => void;
   setBottomPanelOpen: (isOpen: boolean) => void;
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
@@ -189,6 +196,7 @@ export const initialEditorState: EditorState = {
   propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
   isBottomPanelOpen: false,
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
+  aiAssistantWidth: DEFAULT_AI_ASSISTANT_WIDTH,
   activeBottomPanelTab: "diagnostics",
   componentSubnetId: null,
   selection: new Map(),
@@ -215,6 +223,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},
   setPropertiesPanelWidth: () => {},
+  setAiAssistantWidth: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},
