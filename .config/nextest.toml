@@ -6,3 +6,8 @@ status-level   = "skip"
 [[profile.ci.overrides]]
 filter  = 'package(harpc-net) and (test(session::test::echo_tcp_concurrent) or test(session::test::echo_memory_concurrent))'
 retries = 3
+
+# Only select tests that live in a `miri` child of their tests module. Can be exercised via
+# `cargo miri nextest run -P miri --package <crate>`.
+[profile.miri]
+default-filter = 'test(/::miri::/)'

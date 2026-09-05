@@ -356,7 +356,7 @@ where
     }
 }
 
-impl<I, T, const N: usize> Deref for IdArray<I, T, N>
+const impl<I, T, const N: usize> Deref for IdArray<I, T, N>
 where
     I: Id,
 {
@@ -368,7 +368,7 @@ where
     }
 }
 
-impl<I, T, const N: usize> DerefMut for IdArray<I, T, N>
+const impl<I, T, const N: usize> DerefMut for IdArray<I, T, N>
 where
     I: Id,
 {

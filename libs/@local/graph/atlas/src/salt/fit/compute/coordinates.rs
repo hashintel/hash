@@ -1,0 +1,123 @@
+//! The published coordinate column as an owned, typed value.
+
+use core::{error::Error, fmt, ops::Deref, ptr::NonNull};
+
+use hashql_core::id::IdSlice;
+
+use crate::{
+    file::{
+        array::{ArrayFile, OpenArrayError},
+        generation::StagedGeneration,
+        repository::Binding,
+        salt::artifact,
+    },
+    identity::NodeRowId,
+    math::{FinitePointField, NonFinitePoint, Vec2},
+};
+
+/// The staged coordinate column failed to open as a finite point field.
+#[derive(Debug)]
+pub(crate) enum OpenCoordinatesError {
+    /// The staged column failed to open as an array.
+    Open(OpenArrayError),
+    /// The array does not hold `f32` pairs.
+    InvalidArray,
+    /// The column carries a non-finite point.
+    NonFinite(NonFinitePoint<NodeRowId>),
+}
+
+impl From<OpenArrayError> for OpenCoordinatesError {
+    fn from(error: OpenArrayError) -> Self {
+        Self::Open(error)
+    }
+}
+
+impl fmt::Display for OpenCoordinatesError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Open(_) => fmt.write_str("the coordinate column does not open"),
+            Self::InvalidArray => fmt.write_str("the coordinate column does not hold f32 pairs"),
+            Self::NonFinite(source) => {
+                write!(fmt, "the coordinate column is not finite: {source}")
+            }
+        }
+    }
+}
+
+impl Error for OpenCoordinatesError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Open(error) => Some(error),
+            Self::NonFinite(source) => Some(source),
+            Self::InvalidArray => None,
+        }
+    }
+}
+
+/// The staged coordinate column, mapped, proven finite, and addressed by the corpus row domain.
+///
+/// The value is the fit's coordinates: it owns the mapping and dereferences to the proven point
+/// field, while the repository binding it holds is what the seal publishes. Finiteness is proven
+/// once at the open, so every consumer downstream reads a [`FinitePointField`] and re-proves
+/// nothing.
+pub(super) struct Coordinates {
+    /// The staged column's typed repository binding.
+    pub binding: Binding<artifact::Coordinates>,
+    /// The mapped point slice, validated as finite at construction.
+    ///
+    /// The pointee lives inside the mapping owned by `_file`, whose address is stable under moves
+    /// of this handle, so the pointer stays valid for exactly as long as the handle lives.
+    points: NonNull<[Vec2]>,
+    /// The mapping. Held for its lifetime alone: every read goes through `points`.
+    _file: ArrayFile,
+}
+
+impl Coordinates {
+    /// Maps the staged coordinate column back under its typed binding and proves it finite.
+    ///
+    /// The binding is the one the staging boundary returned for the column's write, so the
+    /// mapped view carries the same identity the seal publishes.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpenCoordinatesError::Open`] when the staged column does not open as an array,
+    /// [`OpenCoordinatesError::InvalidArray`] when the array does not hold `f32` pairs, and
+    /// [`OpenCoordinatesError::NonFinite`] when a point of the column is not finite.
+    pub(super) fn open(
+        staging: &StagedGeneration,
+        binding: Binding<artifact::Coordinates>,
+    ) -> Result<Self, OpenCoordinatesError> {
+        let file = ArrayFile::open(staging.path_of(&binding.name()))
+            .map_err(OpenCoordinatesError::Open)?;
+        let points: &[Vec2] = file.points().ok_or(OpenCoordinatesError::InvalidArray)?;
+        let points = FinitePointField::new(IdSlice::<NodeRowId, _>::from_raw(points))
+            .map_err(OpenCoordinatesError::NonFinite)?;
+        let points = NonNull::from(points.as_slice().as_raw());
+
+        Ok(Self {
+            binding,
+            _file: file,
+            points,
+        })
+    }
+}
+
+// SAFETY: the mapping is read-only for the handle's whole life, `points` points into memory
+// owned by `_file` within the same value, and no interior mutability exists, so moving the handle
+// or sharing it across threads leaves every read valid.
+unsafe impl Send for Coordinates {}
+// SAFETY: shared access only ever reads the immutable mapping. See the `Send` proof above.
+unsafe impl Sync for Coordinates {}
+
+impl Deref for Coordinates {
+    type Target = FinitePointField<NodeRowId>;
+
+    fn deref(&self) -> &Self::Target {
+        // SAFETY: `points` was derived from the mapping owned by `self._file` at construction, the
+        // mapping is immutable and lives as long as `self`, and the returned borrow is tied to
+        // `&self`, so the pointee is valid and unaliased by writes for the borrow's life.
+        let points = unsafe { &*self.points.as_ptr() };
+        // Finiteness was proven over these exact bytes at the open, and the mapping is immutable.
+        FinitePointField::new_unchecked(IdSlice::from_raw(points))
+    }
+}

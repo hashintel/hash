@@ -1,0 +1,40 @@
+{
+  "golden": "g4-empty-root",
+  "layer": "tile",
+  "prefix": {
+    "magic": "SALTILET",
+    "wireVersion": 1,
+    "flags": 0,
+    "slotCount": 5,
+    "reserved": 0
+  },
+  "directory": [
+    [56, 120],
+    [120, 120],
+    [120, 120],
+    [0, 0],
+    [0, 0]
+  ],
+  "head": {
+    "generation": "4444444444444444444444444444444444444444444444444444444444444444",
+    "variant": 0,
+    "coordinate": [0, 0, 0],
+    "mode": 0,
+    "delivered": 0,
+    "firstBucket": 0,
+    "runs": [0, 0, 0],
+    "global": {
+      "visibleAtZoom": 0,
+      "boundsBits": null,
+      "minResolution": 0
+    },
+    "children": 0,
+    "trailer": false
+  },
+  "positions": [],
+  "rowIds": [],
+  "typeMask": null,
+  "mass": null,
+  "appended": null,
+  "trailer": null
+}
