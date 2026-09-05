@@ -606,6 +606,11 @@ mobile-starlight-toc summary {
   --pnd-diagram-device-stroke: #c9a03f;
   --pnd-diagram-caution-fill: #2e1616;
   --pnd-diagram-caution-stroke: #d16a6a;
+
+  /* The tooltip badge on a node, which d2 draws outside its palette. */
+  --pnd-diagram-badge-fill: var(--pnd-gray-800);
+  --pnd-diagram-badge-edge: var(--pnd-gray-600);
+  --pnd-diagram-badge-mark: var(--pnd-gray-300);
 }
 
 /*

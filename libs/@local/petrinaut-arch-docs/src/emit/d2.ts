@@ -567,13 +567,21 @@ const withThemeableColours = (markup: string): string => {
       `.${scope} [stroke="${stroke}"]{stroke:var(--pnd-diagram-${name}-stroke,${stroke});}`,
     ]),
     /*
-     * Named `white` and `black` are deliberately left alone. `d2` knocks its
-     * connections out from behind their labels with an SVG mask built from a
-     * white rect that shows everything and black rects over each label, and
-     * there those two are not colours at all: they are show and hide. Theming
-     * them inverts the mask, and every masked connection disappears except the
-     * stubs behind its own labels.
+     * The badge that marks a node as carrying a tooltip. `d2` draws it outside
+     * its palette, so without these it stays a white disc with a near-black
+     * glyph whatever the host does.
+     *
+     * Matched on the pair of attributes rather than on `white` alone, and that
+     * is the whole point. `d2` knocks its connections out from behind their
+     * labels with a mask built from a white rect that shows everything and
+     * black rects over each label, where white and black are not colours but
+     * show and hide; theming those inverts the mask and every masked
+     * connection vanishes apart from the stubs behind its own labels. A mask
+     * holds only `rect` elements and none of them carry a stroke, so a
+     * `path` carrying both a fill and this stroke cannot be one.
      */
+    `.${scope} path[fill="white"][stroke="#DEE1EB"]{fill:var(--pnd-diagram-badge-fill,#FFFFFF);stroke:var(--pnd-diagram-badge-edge,#DEE1EB);}`,
+    `.${scope} [stroke="#2E3346"]{stroke:var(--pnd-diagram-badge-mark,#2E3346);}`,
   ].join("\n");
 
   return markup.replace(
