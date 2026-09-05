@@ -34,6 +34,7 @@
     "@opentelemetry/instrumentation-grpc": "0.220.0",
     "@sentry/node": "10.64.0",
     "@temporalio/activity": "1.20.2",
+    "@temporalio/client": "1.20.2",
     "@temporalio/common": "1.20.2",
     "@temporalio/interceptors-opentelemetry-v2": "1.20.2",
     "@temporalio/worker": "1.20.2",

@@ -2,8 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "build:openapi": {
-      // TODO(SRE-989): replace with a build-free upstream dependency
-      "dependsOn": ["^build"],
+      "dependsOn": ["^manifest"],
       "outputs": ["openapi/openapi.json", "openapi/models/**"]
     }
   }

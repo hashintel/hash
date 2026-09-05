@@ -1,6 +1,13 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "tasks": {
+    // A task nothing implements, so depending on it runs nothing. Its hash still covers the
+    // package's inputs, and the chain over `^manifest` carries those of every transitive
+    // dependency, which is what a task needs from a crate it reads sources from rather than
+    // artifacts.
+    "manifest": {
+      "dependsOn": ["^manifest"]
+    },
     // Development commands
     "dev": {
       "cache": false,
@@ -66,7 +73,6 @@
     },
     // Test commands
     "test:unit": {
-      // TODO(SRE-989): replace `^build` with a build-free upstream dependency
       "dependsOn": ["codegen", "^build"],
       "env": ["TEST_COVERAGE"]
     },

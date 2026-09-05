@@ -32,6 +32,7 @@
     "@local/hash-graph-client": "workspace:*",
     "@local/hash-graph-sdk": "workspace:*",
     "@local/hash-graph-store": "workspace:*",
+    "@local/status": "workspace:*",
     "@sentry/browser": "10.64.0",
     "@sindresorhus/slugify": "3.0.0",
     "big.js": "7.0.1",

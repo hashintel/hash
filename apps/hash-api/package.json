@@ -51,6 +51,7 @@
     "@local/hash-graph-sdk": "workspace:*",
     "@local/hash-graph-store": "workspace:*",
     "@local/hash-isomorphic-utils": "workspace:*",
+    "@local/internal-api-client": "workspace:*",
     "@local/petrinaut-optimizer-client": "workspace:*",
     "@local/status": "workspace:*",
     "@mailchimp/mailchimp_marketing": "3.0.80",

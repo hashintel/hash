@@ -7,8 +7,6 @@
     "build": [
       "@local/hash-graph-client#codegen"
     ],
-    "codegen": [
-      "@local/status#build"
-    ]
+    "codegen": []
   }
 }
