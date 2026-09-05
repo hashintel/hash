@@ -559,7 +559,13 @@ mobile-starlight-toc summary {
   --pnd-diagram-n4: var(--pnd-gray-500);
   --pnd-diagram-n5: var(--pnd-gray-600);
   --pnd-diagram-n6: var(--pnd-gray-700);
-  --pnd-diagram-n7: transparent;
+  /*
+   * The page's own background, not `transparent`. n7 is the drawing's paper:
+   * it fills the outer background rect, where either would do, but it also
+   * knocks the connection lines out from behind their labels. Transparent left
+   * every label with its own line struck through it.
+   */
+  --pnd-diagram-n7: var(--sl-color-bg);
 
   /* The blues d2 draws connections and their labels with. */
   --pnd-diagram-b1: #6c9cf0;
@@ -593,15 +599,13 @@ mobile-starlight-toc summary {
   --pnd-diagram-other-stroke: var(--pnd-gray-400);
   --pnd-diagram-elided-fill: transparent;
   --pnd-diagram-elided-stroke: var(--pnd-gray-500);
-}
 
-/*
- * d2 multiplies its connection labels over the page so they knock out the line
- * behind them. On a dark page multiply drives them to black, so the label
- * disappears into the background it was meant to sit on.
- */
-:root[data-theme="dark"] .pnd-diagram .blend {
-  mix-blend-mode: normal;
+  /* The two accents the authored diagrams use for something other than a
+     layer family: the device a batch runs on, and a case that falls back. */
+  --pnd-diagram-device-fill: #2e2510;
+  --pnd-diagram-device-stroke: #c9a03f;
+  --pnd-diagram-caution-fill: #2e1616;
+  --pnd-diagram-caution-stroke: #d16a6a;
 }
 
 /*

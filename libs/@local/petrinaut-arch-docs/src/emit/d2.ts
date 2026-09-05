@@ -56,6 +56,21 @@ const layerPalette: Record<string, { fill: string; stroke: string }> = {
   elided: { fill: "#ffffff", stroke: "#aaaaaa" },
 };
 
+/*
+ * Colours the authored diagrams reach for that mean something other than a
+ * layer family: the device a batch runs on, a case that falls back. They are
+ * not classes, so they never reach the `classes` block, but they do have to be
+ * themeable, or a hand-written diagram renders a pale box with pale text on it
+ * the moment a host goes dark.
+ */
+const accentPalette: Record<string, { fill: string; stroke: string }> = {
+  device: { fill: "#fff3d6", stroke: "#b8862b" },
+  caution: { fill: "#fdeaea", stroke: "#b83636" },
+};
+
+/** Everything the appended stylesheet hands to a custom property. */
+const themeableColours = { ...layerPalette, ...accentPalette };
+
 const styleClasses = [
   `classes: {`,
   ...Object.entries(layerPalette)
@@ -547,10 +562,18 @@ const withThemeableColours = (markup: string): string => {
       `.${scope} .fill-${token.toUpperCase()}{fill:var(--pnd-diagram-${token},${colour});}`,
       `.${scope} .stroke-${token.toUpperCase()}{stroke:var(--pnd-diagram-${token},${colour});}`,
     ]),
-    ...Object.entries(layerPalette).flatMap(([name, { fill, stroke }]) => [
+    ...Object.entries(themeableColours).flatMap(([name, { fill, stroke }]) => [
       `.${scope} [fill="${fill}"]{fill:var(--pnd-diagram-${name}-fill,${fill});}`,
       `.${scope} [stroke="${stroke}"]{stroke:var(--pnd-diagram-${name}-stroke,${stroke});}`,
     ]),
+    /*
+     * Named `white` and `black` are deliberately left alone. `d2` knocks its
+     * connections out from behind their labels with an SVG mask built from a
+     * white rect that shows everything and black rects over each label, and
+     * there those two are not colours at all: they are show and hide. Theming
+     * them inverts the mask, and every masked connection disappears except the
+     * stubs behind its own labels.
+     */
   ].join("\n");
 
   return markup.replace(
