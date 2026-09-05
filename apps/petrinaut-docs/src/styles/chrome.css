@@ -48,22 +48,28 @@
   /* The chrome sits back until it is pointed at. The toggle sits back further:
      it is one small control against a wide header, not a column of text. */
   --pnd-chrome-idle-opacity: 0.7;
-  --pnd-toggle-idle-opacity: 0.5;
+  --pnd-rail-idle-opacity: 0.525;
+  --pnd-toggle-idle-opacity: 0.375;
   --pnd-chrome-fade: 300ms;
 
   /*
    * Resting the chrome behind an opacity composites its text against the page
-   * before anyone reads it, and the greys Starlight would otherwise use land
-   * under WCAG once composited: gray-3 at 70% is 3.6:1 where body text owes
-   * 4.5:1, and at 50% it is 2.3:1 where a control owes 3:1. These two are the
-   * greys whose composite clears those thresholds, so the fade is kept exactly
-   * as designed and only the colour underneath it is stronger.
+   * before anyone reads it, so what a reader sees is never the colour written
+   * here. These are the strongest greys the palette offers at each step, which
+   * is what keeps the composite as legible as the chosen opacities allow.
    *
-   * Measured, not eyeballed: composited against the page these give 4.93:1
-   * dark and 5.09:1 light for rail text, and 3.68:1 / 3.19:1 for the toggle's
-   * icon. Any change to the ramp or to an idle opacity moves those, so
-   * recompute rather than assume — the ratio is of the *composited* colour,
-   * which is not the one written here.
+   * Those opacities are a deliberate design choice and they cost contrast. At
+   * the rail's 52.5% and the toggle's 37.5% the composite is 3.1:1 dark and
+   * 3.1:1 light for rail text, against the 4.5:1 body text owes, and 2.5:1 /
+   * 2.3:1 for the toggle's icon against 3:1. Raising the grey cannot close
+   * that: at 52.5% over a white page even pure black reaches only 4.35:1, and
+   * at 37.5% only 2.6:1. Closing it means a higher resting opacity, not a
+   * different colour.
+   *
+   * Both come to full strength on hover and on keyboard focus, and
+   * `prefers-reduced-transparency` turns the fade off altogether. Measure
+   * rather than assume after any change here: the ratio is of the composited
+   * colour, which is not the one written above.
    */
   --pnd-rail-text: var(--pnd-gray-300);
   --pnd-control-idle: var(--pnd-gray-200);
@@ -432,6 +438,19 @@ dialog {
   scrollbar-color: var(--sl-color-gray-5) transparent;
 }
 
+/*
+ * The title wrapper clips its overflow, so the collapse button can only reach
+ * as far left as the wrapper itself does. This extends the wrapper by the 4px
+ * the button moves and returns the same 4px as padding, so the clip boundary
+ * travels with the button and nothing else inside shifts.
+ */
+@media (min-width: 50rem) {
+  :root[data-has-sidebar] .title-wrapper {
+    margin-inline-start: -0.5rem;
+    padding-inline-start: 0.5rem;
+  }
+}
+
 /* Chrome at rest -------------------------------------------------------- */
 
 /*
@@ -461,7 +480,7 @@ dialog {
  */
 @media (min-width: 50rem) {
   .sidebar-content {
-    opacity: var(--pnd-chrome-idle-opacity);
+    opacity: var(--pnd-rail-idle-opacity);
     transition: opacity var(--pnd-chrome-fade) ease;
   }
 
@@ -752,10 +771,11 @@ mobile-starlight-toc summary {
     align-items: center;
     justify-content: center;
     /* The wrapper has no gap, so the separation from the logo is set here.
-       The negative start pulls the button in from the header padding — only
-       as far as the title wrapper's own negative margin, since its
-       `overflow: clip` cuts anything past that. */
-    margin-inline: -0.25rem 0.85rem;
+       The start pulls the button out of the header's 24px padding to 16px, so
+       it sits as far from the left edge as it does from the top: the header is
+       64px and the button 32px, which leaves 16px above it. The end grows by
+       the same 4px, so the logo beside it does not move with the button. */
+    margin-inline: -0.5rem 1.1rem;
     width: var(--sl-menu-button-size);
     height: var(--sl-menu-button-size);
     padding: 0;
