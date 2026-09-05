@@ -123,6 +123,11 @@ export const WorkspaceSwitcher = () => {
             src={activeWorkspace.avatarSrc}
             title={activeWorkspace.name}
             borderRadius={activeWorkspace.isOrg ? "4px" : undefined}
+            sx={
+              activeWorkspace.avatarSrc
+                ? { backgroundColor: ({ palette }) => palette.common.white }
+                : undefined
+            }
           />
           <Typography
             sx={{
@@ -179,6 +184,13 @@ export const WorkspaceSwitcher = () => {
                 src={avatarSrc}
                 size={26}
                 borderRadius={isOrg ? "4px" : undefined}
+                sx={
+                  avatarSrc
+                    ? {
+                        backgroundColor: ({ palette }) => palette.common.white,
+                      }
+                    : undefined
+                }
                 title={
                   webId === authenticatedUser.accountId
                     ? authenticatedUser.displayName
