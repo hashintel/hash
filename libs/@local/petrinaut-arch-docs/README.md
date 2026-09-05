@@ -313,13 +313,17 @@ themes:
 ```css
 :root[data-theme="dark"] {
   --pnd-diagram-n1: #f3f3f3; /* d2's strongest foreground */
-  --pnd-diagram-n7: transparent; /* the drawing's own background */
+  --pnd-diagram-n7: #0d0d0d; /* the drawing's paper: opaque, see below */
   --pnd-diagram-core-fill: #16273a;
 }
 ```
 
 Each property carries the colour `d2` drew as its fallback, so a host that
-defines none of them renders exactly what it always did. The rules are appended
+defines none of them renders exactly what it always did. Give `n7` the host
+page's own background rather than `transparent`: it is the drawing's paper, and
+it also fills the rectangles that knock connection lines out from behind their
+labels, so a transparent one leaves every label with its line struck through
+it. The rules are appended
 as a stylesheet rather than written into the markup, because `var()` is not
 reliably honoured inside SVG presentation attributes but is honoured in a
 declaration that overrides them.

@@ -550,7 +550,17 @@ const rendererPalette: Record<string, string> = {
  * Every property carries the original colour as its fallback, so a host that
  * defines nothing renders exactly what `d2` drew.
  */
-const withThemeableColours = (markup: string): string => {
+/**
+ * Rewrites a rendered diagram so a host page can recolour it.
+ *
+ * `d2` writes its palette straight into the markup, so a drawing carries one
+ * theme and keeps it. Each colour it drew is restated here as a custom property
+ * holding that same colour as its fallback, scoped to the `d2-<hash>` class the
+ * renderer puts on the drawing: a host that defines none of them gets exactly
+ * what `d2` drew, and one that defines them can follow its own light and dark
+ * themes. Markup carrying no such class is returned untouched.
+ */
+export const withThemeableColours = (markup: string): string => {
   const scope = /class="(d2-\d+)/u.exec(markup)?.[1];
 
   if (scope === undefined) {
