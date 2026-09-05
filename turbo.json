@@ -74,6 +74,12 @@
       "dependsOn": ["codegen", "^start:test:healthcheck"],
       "env": ["TEST_COVERAGE"]
     },
+    // Smoke-tests the image `build:docker` produced. Not run in CI yet.
+    // TODO(SRE-1032): run this in the deploy workflow against the image it already builds.
+    "test:docker": {
+      "cache": false,
+      "dependsOn": ["build:docker"]
+    },
     "test:codspeed": {
       "cache": false
     },

@@ -11,9 +11,13 @@
       "persistent": true,
       "passThroughEnv": [
         "ANTHROPIC_API_KEY",
+        "BRUNCH_CHAT_MODEL",
         "BRUNCH_DEV_DB_PATH",
         "BRUNCH_PETRINAUT_ORIGINS",
-        "BRUNCH_TRANSPORT_AISDK_INSPECT"
+        "BRUNCH_TRANSPORT_AISDK_INSPECT",
+        "HASH_OTLP_ENDPOINT",
+        "OTEL_RESOURCE_ATTRIBUTES",
+        "OTEL_SERVICE_NAME"
       ]
     },
     "petrinaut:dev": {
