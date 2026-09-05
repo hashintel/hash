@@ -119,8 +119,10 @@ carrying an outline.
 
 The sidebar's depth guide is the only rule drawn anywhere in the chrome, and it
 is there because it carries information: how deep a row sits in the tree. The
-borders that framed the header, the sidebar and the on-this-page column are
-gone. Element borders stay where they separate content from the page: tables,
+borders that framed the header, the sidebar, the on-this-page column and the
+bar it collapses into below 72rem are gone. That bar needed the one under it
+least of all: the fade band starts below it, so content dissolves before it
+reaches a line. Element borders stay where they separate content from the page: tables,
 code frames, and the markdown images that hold the diagrams.
 
 Both rails rest at 70% and come to full strength when the pointer or keyboard

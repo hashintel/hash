@@ -514,6 +514,18 @@ dialog {
  */
 mobile-starlight-toc nav {
   z-index: calc(var(--sl-z-index-navbar) + 1);
+  /* The rule above it duplicated the header's, which is already gone. */
+  border-top: 0;
+}
+
+/*
+ * No rule under the bar either. It was there to separate the bar from content
+ * scrolling beneath it, which the fade band now does: the band starts below
+ * this bar, so content dissolves before it reaches one.
+ */
+mobile-starlight-toc summary {
+  gap: 0.9rem;
+  border-bottom: 0;
 }
 
 /* Diagrams --------------------------------------------------------------- */
