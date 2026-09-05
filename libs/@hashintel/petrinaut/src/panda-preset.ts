@@ -1,7 +1,8 @@
 import { CODE_FONT_FAMILY } from "./ui/constants/fonts";
 
 /**
- * Petrinaut's Panda CSS theme extension, shared between:
+ * Petrinaut's Panda CSS preset — theme extension and `.petrinaut-root`-scoped
+ * global styles — shared between:
  *
  * - Petrinaut's own Panda config (`panda.config.shared.ts`), which generates
  *   the package's standalone stylesheet (`dist/main.css`), and
@@ -29,6 +30,91 @@ import { CODE_FONT_FAMILY } from "./ui/constants/fonts";
  */
 export const petrinautPandaPreset = {
   name: "@hashintel/petrinaut/panda-preset",
+
+  /**
+   * Registered so the scrollbar reveal in `globalCss` below can animate:
+   * only a registered custom property interpolates in a transition. It
+   * must be `inherits: true` — the `::-webkit-scrollbar-thumb`
+   * pseudo-element carries no declaration of its own and reads the value
+   * from its originating scroll container.
+   */
+  globalVars: {
+    "--petrinaut-scrollbar-thumb": {
+      syntax: "<color>",
+      inherits: true,
+      initialValue: "transparent",
+    },
+  },
+
+  /**
+   * Native scrollbars inside `.petrinaut-root` render as a quiet rounded
+   * thumb on an invisible track, hidden until the pointer is over the
+   * scroll container (every ancestor under the pointer counts as hovered,
+   * so the container being scrolled always reveals its own thumb).
+   * Emitted in Panda's `base` layer, so a component utility
+   * (`scrollbarWidth: "[none]"`, a `display` override on the
+   * pseudo-element, ...) still wins where a scrollable opts out.
+   *
+   * The thumb color routes through `--petrinaut-scrollbar-thumb` because
+   * `::-webkit-scrollbar-*` pseudo-elements do not run transitions: the
+   * scroll container animates the custom property and the pseudo-element
+   * repaints from it each frame. The per-element `transparent`
+   * declaration keeps a hovered ancestor's value from bleeding into
+   * descendant scrollbars.
+   *
+   * Chromium and Safari take the `::-webkit-scrollbar` path. An element
+   * whose computed `scrollbar-width`/`scrollbar-color` is not `auto`
+   * ignores `::-webkit-scrollbar-*` styling in those engines, so the
+   * standard-property fallback for Firefox must not reach them. It is
+   * gated on `-moz-appearance` support rather than
+   * `@supports not selector(::-webkit-scrollbar)`, because Firefox parses
+   * `::-webkit-*` pseudo-elements as valid selectors and that check would
+   * exclude Firefox too.
+   */
+  globalCss: {
+    ".petrinaut-root ::-webkit-scrollbar": {
+      width: "10px",
+      height: "10px",
+      background: "transparent",
+    },
+    ".petrinaut-root ::-webkit-scrollbar-track": {
+      background: "transparent",
+    },
+    ".petrinaut-root ::-webkit-scrollbar-corner": {
+      background: "transparent",
+    },
+    ".petrinaut-root ::-webkit-scrollbar-button": {
+      display: "none",
+    },
+    ".petrinaut-root ::-webkit-scrollbar-thumb": {
+      backgroundColor: "var(--petrinaut-scrollbar-thumb)",
+      // A transparent border shrinks the visible thumb to a 6px pill
+      // floating in the 10px gutter; `padding-box` keeps the fill from
+      // painting under the border.
+      backgroundClip: "padding-box",
+      border: "2px solid transparent",
+      borderRadius: "9999px",
+    },
+    ".petrinaut-root ::-webkit-scrollbar-thumb:hover": {
+      backgroundColor: "neutral.a90",
+    },
+    // Keeps the thumb visible while it is being dragged, even when the
+    // pointer strays off the scroll container mid-drag.
+    ".petrinaut-root ::-webkit-scrollbar-thumb:active": {
+      backgroundColor: "neutral.a90",
+    },
+    ".petrinaut-root, .petrinaut-root *": {
+      "--petrinaut-scrollbar-thumb": "transparent",
+      transition: "--petrinaut-scrollbar-thumb 200ms ease",
+      "@supports (-moz-appearance: none)": {
+        scrollbarWidth: "thin",
+        scrollbarColor: "var(--petrinaut-scrollbar-thumb) transparent",
+      },
+    },
+    ".petrinaut-root :hover": {
+      "--petrinaut-scrollbar-thumb": "token(colors.neutral.a70)",
+    },
+  },
 
   theme: {
     extend: {

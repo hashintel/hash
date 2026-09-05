@@ -76,7 +76,6 @@ const scrollContainerStyle = css({
 
 const panelContentStyle = css({
   overflowY: "auto",
-  scrollbarWidth: "[thin]",
   flex: "[1]",
   minHeight: "[0]",
   display: "flex",
