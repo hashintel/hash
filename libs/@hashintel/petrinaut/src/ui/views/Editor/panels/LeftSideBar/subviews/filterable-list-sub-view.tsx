@@ -6,6 +6,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
+import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { RowActionCell } from "./row-action-cell";
 
 import type {
@@ -185,6 +186,7 @@ interface FilterableListSubViewConfig<T extends FilterableListItem> {
 const FilterHeaderAction: React.FC<{
   renderExtraAction?: () => ReactNode;
 }> = ({ renderExtraAction }) => {
+  const presentation = usePetrinautPresentation();
   const { setSearchOpen } = use(EditorContext);
 
   return (
@@ -197,7 +199,9 @@ const FilterHeaderAction: React.FC<{
         iconName="search"
         onClick={() => setSearchOpen(true)}
       />
-      {renderExtraAction?.()}
+      {/* Searching a list is not a mutation, so only the extra action, which
+          is the list's Add button, answers to the presentation. */}
+      {presentation.showMutationActions && renderExtraAction?.()}
     </>
   );
 };

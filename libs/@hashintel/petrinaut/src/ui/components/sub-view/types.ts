@@ -36,6 +36,16 @@ export interface SubView {
    */
   renderHeaderAction?: () => ReactNode;
   /**
+   * Whether the header action creates, deletes or clears something. A
+   * presentation that hides mutation actions hides only these.
+   *
+   * Defaults to false, because the slot also carries close buttons, view
+   * toggles and status labels, and losing those costs a reader more than a
+   * disabled Add button does. An action that is a mutation only some of the
+   * time reads the presentation itself instead of setting this.
+   */
+  headerActionMutates?: boolean;
+  /**
    * Whether this subview should grow to fill available space.
    * Only affects vertical layout. Defaults to false.
    */

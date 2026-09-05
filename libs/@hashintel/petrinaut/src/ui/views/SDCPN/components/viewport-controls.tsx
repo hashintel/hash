@@ -7,6 +7,7 @@ import { usePetrinautNavigation } from "../../../../react/navigation";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
 import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
+import { usePetrinautPresentation } from "../../shared/presentation-context";
 import { useCanvasController } from "../canvas-renderer";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
@@ -36,6 +37,7 @@ const blurredBackground = css({ backdropFilter: "[blur(10px)]" });
 export const ViewportControls: React.FC<{
   viewportActions?: ViewportAction[];
 }> = ({ viewportActions }) => {
+  const presentation = usePetrinautPresentation();
   const navigation = usePetrinautNavigation();
   const isSettingsOpen = navigation.state.overlay?.type === "viewport-settings";
   const setIsSettingsOpen = (open: boolean) => {
@@ -44,7 +46,10 @@ export const ViewportControls: React.FC<{
       { cause: "user", action: "overlay" },
     );
   };
-  const { zoomIn, zoomOut } = useCanvasController();
+  // Fit view goes through the canvas controller like the zooms: these
+  // controls sit above the renderer contract and must not reach for a
+  // renderer's own API.
+  const { fitView, zoomIn, zoomOut } = useCanvasController();
   const { collapseAllPanels, isPanelAnimating } = use(EditorContext);
 
   // Shared with the bottom toolbar, so the two keep clear of the same panels
@@ -84,39 +89,53 @@ export const ViewportControls: React.FC<{
       <Button
         size="xs"
         variant="subtle"
-        aria-label="Fullscreen"
-        tooltip="Fullscreen"
+        aria-label="Fit view"
+        tooltip="Fit view"
         tooltipOptions={{ position: "left" }}
-        iconName="expand"
+        iconName="collapse"
         className={blurredBackground}
-        onClick={collapseAllPanels}
+        onClick={fitView}
       />
-      <Button
-        size="xs"
-        variant="subtle"
-        aria-label="Lock view"
-        tooltip="Lock view"
-        tooltipOptions={{ position: "left" }}
-        iconName="lockOpen"
-        className={blurredBackground}
-        onClick={() => {
-          // Placeholder for future lock view functionality
-        }}
-      />
-      <Button
-        size="xs"
-        variant="subtle"
-        aria-label="Settings"
-        tooltip="Settings"
-        tooltipOptions={{ position: "left" }}
-        iconName="gear"
-        className={blurredBackground}
-        onClick={() => setIsSettingsOpen(true)}
-      />
-      <ViewportSettingsDialog
-        open={isSettingsOpen}
-        onOpenChange={(details) => setIsSettingsOpen(details.open)}
-      />
+      {presentation.showViewportSettings && (
+        <>
+          <Button
+            size="xs"
+            variant="subtle"
+            aria-label="Fullscreen"
+            tooltip="Fullscreen"
+            tooltipOptions={{ position: "left" }}
+            iconName="expand"
+            className={blurredBackground}
+            onClick={collapseAllPanels}
+          />
+          <Button
+            size="xs"
+            variant="subtle"
+            aria-label="Lock view"
+            tooltip="Lock view"
+            tooltipOptions={{ position: "left" }}
+            iconName="lockOpen"
+            className={blurredBackground}
+            onClick={() => {
+              // Placeholder for future lock view functionality
+            }}
+          />
+          <Button
+            size="xs"
+            variant="subtle"
+            aria-label="Settings"
+            tooltip="Settings"
+            tooltipOptions={{ position: "left" }}
+            iconName="gear"
+            className={blurredBackground}
+            onClick={() => setIsSettingsOpen(true)}
+          />
+          <ViewportSettingsDialog
+            open={isSettingsOpen}
+            onOpenChange={(details) => setIsSettingsOpen(details.open)}
+          />
+        </>
+      )}
       {viewportActions?.map((action) => (
         <Button
           key={action.key}

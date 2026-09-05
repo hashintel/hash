@@ -27,6 +27,28 @@ For host applications that own their Petri net data, implement a
 guide lives in the architecture docs:
 [Embedding in a host application](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/handle/host-integration.mdx).
 
+### Presentation profiles
+
+`presentationProfile` chooses how much editing chrome the component draws:
+
+- `editor`, the default, draws the full authoring surface.
+- `review` drops the controls whose only purpose is to change the net: the
+  add and delete actions in the sidebar lists and property panels. Source
+  code, custom visualizers, the minimap and the viewport settings stay, so a
+  reader can still inspect and simulate the model.
+
+The profile is chrome, not enforcement. A host that must not accept edits
+passes `readonly` as well, which is what disables the fields themselves:
+
+```tsx
+<Petrinaut
+  handle={handle}
+  title="My net"
+  presentationProfile="review"
+  readonly
+/>
+```
+
 ## Commands and the palette
 
 Petrinaut registers its user-invocable actions (undo, tools, search, panel

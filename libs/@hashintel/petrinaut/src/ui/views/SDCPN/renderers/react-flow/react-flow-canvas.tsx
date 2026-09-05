@@ -24,6 +24,7 @@ import { EditorContext } from "../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { SNAP_GRID_SIZE } from "../../../../constants/ui";
 import { readDraggedNodeKind } from "../../../shared/canvas-node-drag";
+import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import {
   CanvasControllerContext,
   type CanvasRenderer,
@@ -86,6 +87,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   containerSize,
   viewportActions,
 }) => {
+  const presentation = usePetrinautPresentation();
   const { compactNodes, showMinimap, partialSelection } =
     use(UserSettingsContext);
   const { hasCanvasSelection, globalMode } = use(EditorContext);
@@ -216,7 +218,9 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
         >
           <Background gap={SNAP_GRID_SIZE} size={1} />
           {hasCanvasSelection && <div className={fadeBgStyle} />}
-          {showMinimap && <MiniMap pannable zoomable />}
+          {showMinimap && presentation.showMinimap && (
+            <MiniMap pannable zoomable />
+          )}
           {!isActualMode && (
             <ViewportControls viewportActions={viewportActions} />
           )}

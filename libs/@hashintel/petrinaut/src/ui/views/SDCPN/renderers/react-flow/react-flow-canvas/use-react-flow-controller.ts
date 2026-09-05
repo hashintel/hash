@@ -22,6 +22,10 @@ export const useReactFlowController = (): CanvasController => {
     zoomOut: () => {
       void reactFlow.zoomOut();
     },
+    fitView: () => {
+      // Padded, so the framed net does not sit against the canvas edges.
+      void reactFlow.fitView({ padding: 0.4, duration: 250 });
+    },
     screenToScene: (point) => reactFlow.screenToFlowPosition(point),
     sceneToScreen: (point) => reactFlow.flowToScreenPosition(point),
   };

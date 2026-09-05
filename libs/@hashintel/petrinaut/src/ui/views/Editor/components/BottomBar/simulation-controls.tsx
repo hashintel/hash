@@ -1,28 +1,38 @@
 import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { PlaybackContext } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../react/state/editor-context";
+import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import { CollapsibleGroup } from "./collapsible-group";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
-const frameInfoStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  fontSize: "[10px]",
-  color: "neutral.s105",
-  fontWeight: "medium",
-  lineHeight: "[1]",
-  width: "[90px]",
-  fontVariantNumeric: "tabular-nums",
-  overflow: "hidden",
-  whiteSpace: "nowrap",
+import type { PlaybackSpeed } from "../../../../../react/playback/context";
+
+const frameInfoStyle = cva({
+  base: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    fontSize: "[10px]",
+    color: "neutral.s105",
+    fontWeight: "medium",
+    lineHeight: "[1]",
+    width: "[90px]",
+    fontVariantNumeric: "tabular-nums",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+  },
+  variants: {
+    compact: {
+      true: { width: "[64px]" },
+    },
+  },
 });
 
 const elapsedTimeStyle = css({
@@ -38,45 +48,59 @@ const frameIndexStyle = css({
   marginTop: "[1px]",
 });
 
-const sliderStyle = css({
-  width: "[300px]",
-  height: "[4px]",
-  appearance: "none",
-  background: "neutral.s30",
-  borderRadius: "[2px]",
-  outline: "none",
-  cursor: "pointer",
-  "&:disabled": {
-    opacity: "[0.5]",
-    cursor: "not-allowed",
-  },
-  "&::-webkit-slider-thumb": {
+const sliderStyle = cva({
+  base: {
+    width: "[300px]",
+    height: "[4px]",
     appearance: "none",
-    width: "[12px]",
-    height: "[12px]",
-    borderRadius: "[50%]",
-    background: "blue.s90",
+    background: "neutral.s30",
+    borderRadius: "[2px]",
+    outline: "none",
     cursor: "pointer",
+    "&:disabled": {
+      opacity: "[0.5]",
+      cursor: "not-allowed",
+    },
+    "&::-webkit-slider-thumb": {
+      appearance: "none",
+      width: "[12px]",
+      height: "[12px]",
+      borderRadius: "[50%]",
+      background: "blue.s90",
+      cursor: "pointer",
+    },
+    "&::-moz-range-thumb": {
+      width: "[12px]",
+      height: "[12px]",
+      borderRadius: "[50%]",
+      background: "blue.s90",
+      cursor: "pointer",
+      border: "none",
+    },
   },
-  "&::-moz-range-thumb": {
-    width: "[12px]",
-    height: "[12px]",
-    borderRadius: "[50%]",
-    background: "blue.s90",
-    cursor: "pointer",
-    border: "none",
+  variants: {
+    compact: {
+      true: {
+        width: "[clamp(96px, 30vw, 220px)]",
+        flex: "[1 1 160px]",
+        minWidth: "[96px]",
+      },
+    },
   },
 });
 
-interface SimulationControlsProps {
+export interface SimulationControlsProps {
   disabled?: boolean;
   inSubnet?: boolean;
+  allowedPlaybackSpeeds?: readonly PlaybackSpeed[];
 }
 
 export const SimulationControls: React.FC<SimulationControlsProps> = ({
   disabled = false,
   inSubnet = false,
+  allowedPlaybackSpeeds,
 }) => {
+  const presentation = usePetrinautPresentation();
   const { dt, state: simulationState, reset } = use(SimulationContext);
 
   const {
@@ -207,8 +231,12 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
       <CollapsibleGroup>
         {hasSimulation && (
           <>
-            <div className={frameInfoStyle}>
-              <div>Frame</div>
+            <div
+              className={frameInfoStyle({
+                compact: presentation.compactControls,
+              })}
+            >
+              {!presentation.compactControls && <div>Frame</div>}
               <div className={frameIndexStyle}>
                 {frameIndex + 1} / {totalFrames}
               </div>
@@ -224,14 +252,14 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
               onChange={(event) =>
                 setCurrentViewedFrame(Number(event.target.value))
               }
-              className={sliderStyle}
+              className={sliderStyle({ compact: presentation.compactControls })}
             />
 
             <ToolbarDivider />
           </>
         )}
 
-        <PlaybackSettingsMenu />
+        <PlaybackSettingsMenu allowedSpeeds={allowedPlaybackSpeeds} />
       </CollapsibleGroup>
     </>
   );

@@ -5,13 +5,19 @@ import {
   useReactFlow,
   useViewport,
 } from "@xyflow/react";
-import { use, useRef } from "react";
+import { lazy, Suspense, use, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { PlaceStateVisualization } from "../../../../shared/place-state-visualization";
+import { usePetrinautPresentation } from "../../../../shared/presentation-context";
+
+const DeferredPlaceStateVisualization = lazy(async () => {
+  const { PlaceStateVisualization } =
+    await import("../../../../shared/place-state-visualization");
+  return { default: PlaceStateVisualization };
+});
 
 // Gap between the node and the box, in screen pixels.
 const TOOLTIP_OFFSET_PX = 12;
@@ -37,6 +43,7 @@ const tooltipStyle = css({
  * Hover box surfacing a colored place's custom visualizer on the canvas.
  */
 export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
+  const presentation = usePetrinautPresentation();
   const { petriNetDefinition } = use(SDCPNContext);
 
   const node = useInternalNode(nodeId);
@@ -52,6 +59,7 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
     : null;
 
   if (
+    !presentation.showCustomVisualizers ||
     !place ||
     !placeType ||
     placeType.elements.length === 0 ||
@@ -86,7 +94,12 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
         // the top bar before the above/below decision settles.
         style={{ opacity: boxSize ? 1 : 0 }}
       >
-        <PlaceStateVisualization place={place} placeType={placeType} />
+        <Suspense fallback={null}>
+          <DeferredPlaceStateVisualization
+            place={place}
+            placeType={placeType}
+          />
+        </Suspense>
       </div>
     </NodeToolbar>
   );
