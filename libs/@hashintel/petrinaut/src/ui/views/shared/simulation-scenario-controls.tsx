@@ -235,8 +235,10 @@ export type SimulationScenarioControlsProps = {
 };
 
 /**
- * Shared scenario picker and typed parameter controls, decoupled from the
- * full editor settings panel so compact hosts can compose them too.
+ * Shared scenario picker and typed parameter controls, decoupled from the full
+ * editor settings panel so the embedded Preview composes them too. Internal to
+ * this package: a host embeds `Petrinaut` or `PetrinautPreview`, and neither
+ * this component nor the bottom-bar controls are part of a published entry.
  */
 export const SimulationScenarioControls: React.FC<
   SimulationScenarioControlsProps
