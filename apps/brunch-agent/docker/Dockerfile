@@ -58,6 +58,7 @@ RUN turbo run build --filter '@apps/brunch-agent' --env-mode=loose && \
 FROM tools AS runner
 
 ENV NODE_ENV=production
+ENV PORT=3002
 
 WORKDIR /repo/apps/brunch-agent
 
@@ -70,9 +71,9 @@ RUN groupadd --system --gid 60000 hash && \
 
 USER brunch:hash
 
-EXPOSE 3000
+EXPOSE 3002
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD ["node", "-e", "fetch('http://127.0.0.1:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+    CMD ["node", "-e", "fetch('http://127.0.0.1:3002/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
 
 CMD ["node", "dist/server.mjs"]
