@@ -29,6 +29,7 @@ const baseSubViews: SubView[] = [
 
 const placeVisualizerSubView = createDeferredSubView({
   id: "place-visualizer",
+  headerActionMutates: true,
   title: "Visualizer",
   tooltip:
     "Custom visualization of tokens in this place, defined by visualizer code.",
