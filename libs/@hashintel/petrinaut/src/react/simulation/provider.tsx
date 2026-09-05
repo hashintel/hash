@@ -101,6 +101,37 @@ function createInitialStateValues(options?: {
   };
 }
 
+/**
+ * Whether the requested scenario has to be rewritten to the one in effect.
+ *
+ * A host that requires a scenario normalizes an absent or stale request, so a
+ * URL without one resolves to a real scenario. A host that does not require
+ * one normalizes only a stale request, so an explicit no-scenario choice
+ * survives instead of snapping back to the first scenario.
+ */
+export function shouldNormalizeScenarioSelection({
+  effectiveSelectedScenarioId,
+  requestedScenarioId,
+  requireScenario = false,
+}: {
+  effectiveSelectedScenarioId: string | null;
+  requestedScenarioId: string | null | undefined;
+  requireScenario?: boolean;
+}): boolean {
+  if (requireScenario) {
+    return (
+      effectiveSelectedScenarioId !== null &&
+      requestedScenarioId !== effectiveSelectedScenarioId
+    );
+  }
+
+  return (
+    requestedScenarioId !== undefined &&
+    requestedScenarioId !== null &&
+    requestedScenarioId !== effectiveSelectedScenarioId
+  );
+}
+
 export function getEffectiveSelectedScenarioId(
   scenarios: readonly Scenario[] | undefined,
   selectedScenarioId: string | null | undefined,
@@ -701,19 +732,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const simulationState = mapCoreState(simulation ? coreStatus : null);
   const totalFrames = frameSummary.count;
   useEffect(() => {
-    const shouldNormalizeRequiredScenario =
-      requireScenario &&
-      effectiveSelectedScenarioId !== null &&
-      requestedScenarioId !== effectiveSelectedScenarioId;
-    const shouldNormalizeStaleOptionalScenario =
-      !requireScenario &&
-      requestedScenarioId !== undefined &&
-      requestedScenarioId !== null &&
-      requestedScenarioId !== effectiveSelectedScenarioId;
-
     if (
-      shouldNormalizeRequiredScenario ||
-      shouldNormalizeStaleOptionalScenario
+      shouldNormalizeScenarioSelection({
+        effectiveSelectedScenarioId,
+        requestedScenarioId,
+        requireScenario,
+      })
     ) {
       navigation.navigate(
         { scenarioId: effectiveSelectedScenarioId },
