@@ -22,7 +22,84 @@ const assetsDir = path.join(import.meta.dirname, "..", "dist", "_astro");
 const timelineInShorthand =
   /animation\s*:[^;}]*\b(?:scroll|view)\s*\(|animation\s*:[^;}]*--pnd-nav-scroll/u;
 
-/** @type {{ name: string, failing: (css: string) => boolean }[]} */
+/**
+ * Every custom property naming a resting opacity, wherever it is declared.
+ *
+ * @param {string} css
+ * @returns {Set<string>}
+ */
+const idleOpacityTokens = (css) =>
+  new Set(
+    [...css.matchAll(/(--pnd-[a-z-]*idle-opacity)\s*:/gu)].map(
+      (match) => match[1],
+    ),
+  );
+
+/**
+ * The body of the `prefers-reduced-transparency` rule, braces balanced.
+ *
+ * @param {string} css
+ * @returns {string | null}
+ */
+const reducedTransparencyBlock = (css) => {
+  const opening = css.search(/@media[^{]*prefers-reduced-transparency[^{]*\{/u);
+
+  if (opening === -1) {
+    return null;
+  }
+
+  let depth = 0;
+
+  for (let at = css.indexOf("{", opening); at < css.length; at += 1) {
+    if (css[at] === "{") {
+      depth += 1;
+    } else if (css[at] === "}") {
+      depth -= 1;
+
+      if (depth === 0) {
+        return css.slice(opening, at + 1);
+      }
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Which resting opacities the reduced-transparency rule forgets to lift.
+ *
+ * A reader who asks for less transparency should get all of the chrome at full
+ * strength, and each of these tokens holds back one piece of it. Nothing ties a
+ * new token to that rule, so splitting one out silently leaves its element
+ * faded — which is how the left rail came to be the only thing still at 52.5%
+ * for exactly the readers who had asked it not to be.
+ *
+ * @param {string} css
+ * @returns {string[]}
+ */
+const unreset = (css) => {
+  const tokens = idleOpacityTokens(css);
+
+  if (tokens.size === 0) {
+    return [];
+  }
+
+  const block = reducedTransparencyBlock(css);
+
+  if (block === null) {
+    return [...tokens];
+  }
+
+  return [...tokens].filter((token) => !block.includes(`${token}:`));
+};
+
+/**
+ * @type {{
+ *   name: string,
+ *   failing: (css: string) => boolean,
+ *   detail?: (css: string) => string,
+ * }[]}
+ */
 const checks = [
   {
     name: "no scroll timeline folded into the `animation` shorthand",
@@ -38,6 +115,11 @@ const checks = [
     failing: (css) =>
       css.includes("pnd-fade-grow") &&
       !css.includes("@property --pnd-fade-progress"),
+  },
+  {
+    name: "every resting opacity is lifted under prefers-reduced-transparency",
+    failing: (css) => unreset(css).length > 0,
+    detail: (css) => unreset(css).join(", "),
   },
 ];
 
@@ -57,7 +139,8 @@ for (const file of files) {
 
   for (const check of checks) {
     if (check.failing(css)) {
-      failures.push(`${file}: ${check.name}`);
+      const detail = check.detail?.(css);
+      failures.push(`${file}: ${check.name}${detail ? ` (${detail})` : ""}`);
     }
   }
 }

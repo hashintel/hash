@@ -94,6 +94,7 @@
 @media (prefers-reduced-transparency: reduce) {
   :root {
     --pnd-chrome-idle-opacity: 1;
+    --pnd-rail-idle-opacity: 1;
     --pnd-toggle-idle-opacity: 1;
   }
 }
