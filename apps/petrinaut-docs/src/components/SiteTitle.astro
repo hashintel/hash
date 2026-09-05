@@ -183,6 +183,13 @@ import DiffBadges from "./DiffBadges.astro";
       );
     });
 
+    /**
+     * The width a keyboard gesture has reached, persisted when it ends.
+     *
+     * @type {number | null}
+     */
+    let keyedWidth = null;
+
     handle.addEventListener("keydown", (event) => {
       const step =
         event.key === "ArrowLeft" ? -16 : event.key === "ArrowRight" ? 16 : 0;
@@ -197,15 +204,27 @@ import DiffBadges from "./DiffBadges.astro";
       // repeat 200ms behind.
       setResizing(true);
 
-      const width = widthFrom(currentEdge() + step);
-
-      applyWidth(width);
-      remember("pnd:sidebar-width", `${width}px`);
+      keyedWidth = widthFrom(currentEdge() + step);
+      applyWidth(keyedWidth);
     });
 
+    /*
+     * Held down, an arrow key repeats about thirty times a second, and
+     * `localStorage` writes synchronously. The width is kept in hand and
+     * written once the gesture ends, the same as a drag.
+     */
+    const endKeyGesture = () => {
+      setResizing(false);
+
+      if (keyedWidth !== null) {
+        remember("pnd:sidebar-width", `${keyedWidth}px`);
+        keyedWidth = null;
+      }
+    };
+
     // Both, because a key released after focus has moved on fires only `blur`.
-    handle.addEventListener("keyup", () => setResizing(false));
-    handle.addEventListener("blur", () => setResizing(false));
+    handle.addEventListener("keyup", endKeyGesture);
+    handle.addEventListener("blur", endKeyGesture);
 
     // A gradient cannot ask whether the text fits, so the labels that do not
     // fit are marked here and the fade keys off the mark. Deferred because this
