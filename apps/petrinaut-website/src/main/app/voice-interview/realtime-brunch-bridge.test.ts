@@ -1,13 +1,21 @@
 import { describe, expect, test, vi } from "vitest";
 
 import {
+  assemblePreparedInterviewSpeech,
   createRealtimeSubmissionId,
   RealtimeBrunchBridge,
   type RealtimeBrunchBridgeEvent,
 } from "./realtime-brunch-bridge";
 
-import type { CanonicalSpeechSegment } from "./canonical-speech";
-import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
+import type {
+  CanonicalSpeechSegment,
+  InterviewSpeechSource,
+} from "./canonical-speech";
+import type {
+  InterviewSpeechPreparationRequest,
+  InterviewSpeechPreparationResult,
+  OpenAIRealtimeSessionEvent,
+} from "./openai-realtime-session";
 
 const segment = (
   id: string,
@@ -22,11 +30,46 @@ const segment = (
   text,
 });
 
+const speechSource = ({
+  context = [],
+  messageId = "message-current-turn",
+  question = null,
+}: {
+  readonly context?: readonly CanonicalSpeechSegment[];
+  readonly messageId?: string;
+  readonly question?: CanonicalSpeechSegment | null;
+}): InterviewSpeechSource => {
+  const contextSegments = context.map((contextSegment) => ({
+    ...contextSegment,
+    messageId,
+  }));
+  const questionSegment = question ? { ...question, messageId } : null;
+  return {
+    contextSegments,
+    fullResponseSegments: [
+      ...contextSegments,
+      ...(questionSegment ? [questionSegment] : []),
+    ],
+    messageId,
+    questionSegment,
+  };
+};
+
 const createHarness = () => {
   let listener: ((event: OpenAIRealtimeSessionEvent) => void) | undefined;
   const session = {
     completeFunctionCall: vi.fn(),
+    prepareInterviewSpeech: vi.fn(
+      async (
+        request: InterviewSpeechPreparationRequest,
+      ): Promise<InterviewSpeechPreparationResult> => ({
+        context: "Prepared concise context.",
+        kind: "prepared",
+        sourceSegmentIds: request.sourceSegmentIds,
+      }),
+    ),
     speakCanonical: vi.fn(),
+    speakPrepared: vi.fn(),
     subscribe: vi.fn((next: (event: OpenAIRealtimeSessionEvent) => void) => {
       listener = next;
       return () => {
@@ -96,6 +139,331 @@ const responseTerminal = (
 });
 
 describe("RealtimeBrunchBridge", () => {
+  test("prepares only context and appends the exact canonical question", async () => {
+    const harness = createHarness();
+    const context = segment(
+      "context",
+      "This complete canonical explanation is deliberately long enough to be condensed before automatic speech.",
+      "assistant-text",
+    );
+    const question = segment(
+      "ask-current",
+      "Who approves it: the manager or quality lead?",
+    );
+    const source = speechSource({ context: [context], question });
+    harness.bridge.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+
+    harness.bridge.start(4);
+
+    await vi.waitFor(() =>
+      expect(harness.session.speakPrepared).toHaveBeenCalledOnce(),
+    );
+    const preparationRequest =
+      harness.session.prepareInterviewSpeech.mock.calls[0]?.[0];
+    expect(typeof preparationRequest?.cacheKey).toBe("string");
+    expect(preparationRequest).toEqual({
+      cacheKey: preparationRequest?.cacheKey,
+      contextText: [context.text],
+      contextWordBudget: 42,
+      sourceSegmentIds: [context.id],
+    });
+    expect(
+      JSON.stringify(harness.session.prepareInterviewSpeech.mock.calls),
+    ).not.toContain(question.text);
+    expect(harness.session.speakPrepared).toHaveBeenCalledWith([
+      "Prepared concise context.",
+      question.text,
+    ]);
+    expect(source.fullResponseSegments.map(({ text }) => text)).toEqual([
+      context.text,
+      question.text,
+    ]);
+    expect(JSON.stringify(harness.events)).not.toContain(
+      "Prepared concise context.",
+    );
+  });
+
+  test("skips preparation when a turn contains only a protected question", async () => {
+    const harness = createHarness();
+    const question = segment("ask-current", "What happens after approval?");
+    const source = speechSource({ question });
+    harness.bridge.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+
+    harness.bridge.start(4);
+
+    await vi.waitFor(() =>
+      expect(harness.session.speakPrepared).toHaveBeenCalledWith([
+        question.text,
+      ]),
+    );
+    expect(harness.session.prepareInterviewSpeech).not.toHaveBeenCalled();
+  });
+
+  test("prepares every human-facing segment in a standalone completion", async () => {
+    const harness = createHarness();
+    const first = segment("first", "First result.", "assistant-text");
+    const second = segment("second", "Second result.", "assistant-text");
+    const source = speechSource({ context: [first, second] });
+    harness.bridge.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+
+    harness.bridge.start(4);
+
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contextText: [first.text, second.text],
+          contextWordBudget: 50,
+        }),
+      ),
+    );
+    expect(harness.session.speakPrepared).toHaveBeenCalledWith([
+      "Prepared concise context.",
+    ]);
+  });
+
+  test.each([
+    "empty-context",
+    "invalid-output",
+    "provider-error",
+    "timeout",
+    "interrupted",
+  ] as const)(
+    "reads complete canonical speech after %s fallback",
+    async (reason) => {
+      const harness = createHarness();
+      const context = segment("context", "Complete context.", "assistant-text");
+      const question = segment("ask-current", "Exact question?");
+      const source = speechSource({ context: [context], question });
+      harness.session.prepareInterviewSpeech.mockResolvedValueOnce({
+        kind: "fallback",
+        reason,
+        sourceSegmentIds: [context.id],
+      });
+      harness.bridge.updateChat({
+        automaticSource: source,
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: [...source.fullResponseSegments],
+        status: "ready",
+      });
+
+      harness.bridge.start(4);
+
+      await vi.waitFor(() =>
+        expect(harness.session.speakPrepared).toHaveBeenCalledWith([
+          context.text,
+          question.text,
+        ]),
+      );
+    },
+  );
+
+  test("assembles prepared context with the protected question identity", () => {
+    const context = segment("context", "Complete context.", "assistant-text");
+    const question = segment("ask-current", "Exact question?");
+    const source = speechSource({ context: [context], question });
+
+    expect(
+      assemblePreparedInterviewSpeech({
+        preparation: {
+          context: "Prepared context.",
+          kind: "prepared",
+          sourceSegmentIds: [context.id],
+        },
+        source,
+      }),
+    ).toEqual({
+      mode: "realtime-processed",
+      sourceSegmentIds: [context.id, question.id],
+      text: ["Prepared context.", question.text],
+    });
+  });
+
+  test("reuses prepared context only while its epoch, content, and budget match", async () => {
+    const harness = createHarness();
+    const context = segment("context", "Complete context.", "assistant-text");
+    const question = segment("ask-current", "Exact question?");
+    const source = speechSource({ context: [context], question });
+    harness.bridge.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+
+    harness.bridge.start(4);
+    await vi.waitFor(() =>
+      expect(harness.session.speakPrepared).toHaveBeenCalledOnce(),
+    );
+    harness.bridge.start(4);
+    await vi.waitFor(() =>
+      expect(harness.session.speakPrepared).toHaveBeenCalledTimes(2),
+    );
+    expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledOnce();
+
+    const changedContext = { ...context, contentHash: "fnv1a32:changed" };
+    const changedContentSource = speechSource({
+      context: [changedContext],
+      question,
+    });
+    harness.bridge.updateChat({
+      automaticSource: changedContentSource,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...changedContentSource.fullResponseSegments],
+      status: "ready",
+    });
+    harness.bridge.start(4);
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledTimes(2),
+    );
+
+    const longerQuestion = { ...question, text: "What is the exact question?" };
+    const changedBudgetSource = speechSource({
+      context: [changedContext],
+      question: longerQuestion,
+    });
+    harness.bridge.updateChat({
+      automaticSource: changedBudgetSource,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...changedBudgetSource.fullResponseSegments],
+      status: "ready",
+    });
+    harness.bridge.start(4);
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledTimes(3),
+    );
+
+    harness.bridge.start(5);
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledTimes(4),
+    );
+    harness.bridge.stop();
+    harness.bridge.start(5);
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledTimes(5),
+    );
+  });
+
+  test("does not cache fallback or deliver preparation cancelled by lifecycle", async () => {
+    const harness = createHarness();
+    const context = segment("context", "Complete context.", "assistant-text");
+    const question = segment("ask-current", "Exact question?");
+    const source = speechSource({ context: [context], question });
+    let finishPreparation:
+      | ((result: InterviewSpeechPreparationResult) => void)
+      | undefined;
+    harness.session.prepareInterviewSpeech.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishPreparation = resolve;
+        }),
+    );
+    harness.bridge.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    harness.bridge.start(4);
+
+    harness.bridge.cancelPendingSpeech();
+    finishPreparation?.({
+      kind: "fallback",
+      reason: "interrupted",
+      sourceSegmentIds: [context.id],
+    });
+    await Promise.resolve();
+
+    expect(harness.session.speakPrepared).not.toHaveBeenCalled();
+    harness.bridge.start(4);
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledTimes(2),
+    );
+  });
+
+  test("completes a function call without speech when preparation is cancelled", async () => {
+    const harness = createHarness();
+    const question = segment("ask-current", "What happens after approval?");
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      status: "ready",
+    });
+    harness.bridge.start(7);
+    harness.emit(toolDone(7));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [question],
+      status: "streaming",
+    });
+
+    let finishPreparation:
+      | ((result: InterviewSpeechPreparationResult) => void)
+      | undefined;
+    harness.session.prepareInterviewSpeech.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishPreparation = resolve;
+        }),
+    );
+    const acknowledgement = segment(
+      "acknowledgement",
+      "Thanks. I have recorded that.",
+      "assistant-text",
+    );
+    const nextQuestion = segment(
+      "ask-next",
+      "Who is informed next?",
+      "brunch-ask",
+    );
+    const source = speechSource({
+      context: [acknowledgement],
+      question: nextQuestion,
+    });
+    harness.bridge.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question, ...source.fullResponseSegments],
+      status: "ready",
+    });
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledOnce(),
+    );
+
+    harness.bridge.cancelPendingSpeech();
+    finishPreparation?.({
+      context: "Prepared concise context.",
+      kind: "prepared",
+      sourceSegmentIds: [acknowledgement.id],
+    });
+
+    await vi.waitFor(() =>
+      expect(harness.session.completeFunctionCall).toHaveBeenCalledWith(
+        "call-1",
+        [acknowledgement.text, nextQuestion.text],
+        { speakResponse: false },
+      ),
+    );
+    expect(harness.session.speakPrepared).not.toHaveBeenCalled();
+  });
+
   test("speaks the current canonical turn without replaying history", () => {
     const harness = createHarness();
     const historical = segment(
@@ -174,7 +542,7 @@ describe("RealtimeBrunchBridge", () => {
     await vi.waitFor(() =>
       expect(harness.session.completeFunctionCall).toHaveBeenCalledWith(
         "call-1",
-        [acknowledgement, nextQuestion],
+        [acknowledgement.text, nextQuestion.text],
       ),
     );
     expect(harness.events.map(({ type }) => type)).toEqual([
@@ -222,7 +590,7 @@ describe("RealtimeBrunchBridge", () => {
 
     expect(harness.session.completeFunctionCall).toHaveBeenCalledWith(
       "call-1",
-      [firstQuestion],
+      [firstQuestion.text],
     );
     expect(harness.events.map(({ type }) => type)).toEqual([
       "submission-started",
@@ -271,7 +639,7 @@ describe("RealtimeBrunchBridge", () => {
 
     expect(harness.session.completeFunctionCall).toHaveBeenCalledWith(
       "call-1",
-      [unrelated],
+      [unrelated.text],
     );
   });
 

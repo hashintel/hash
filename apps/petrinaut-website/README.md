@@ -97,12 +97,12 @@ bubble is replaced by the finalized message or pending-question tool output,
 which retains a waveform indicator without duplicating the answer. Provisional
 transcription and Realtime audio are not persisted as chat history.
 
-The text composer remains available. Sending typed text ends Voice mode first,
-then submits the draft exactly once through the same conversation; a failed
-handoff restores the draft. Closing the assistant pauses capture and speech
-before hiding it. Reopening preserves the mounted session in **Paused** state.
-**Pause** and **End voice mode** live under **Voice mode actions**, while
-**Resume** or **Reconnect** appears as the primary action when applicable.
+The active session replaces the text composer with the Voice dock, and all
+session controls are direct dock controls. Closing the assistant pauses capture
+and speech before hiding it. Reopening preserves the mounted session in
+**Paused** state. A compact **Voice playback options** menu beside the
+transcription control provides **Repeat question** and **Read full response**;
+both replay canonical Brunch content and bypass speech preparation.
 
 The browser sends its SDP offer to this app; the server initializes a trusted
 `gpt-realtime-2` audio-input/audio-output session through OpenAI's unified
@@ -118,12 +118,19 @@ and durable history. The browser bridge accepts only the configured
 duplicate or stale calls, and submits the answer through Petrinaut's shared
 composer path with pending-`brunch_ask` correlation.
 
-The bridge waits for the correlated Brunch turn before returning canonical
-speech segments to Realtime. It then requests audio with tools disabled and
-instructs Realtime to speak only those segments. Generated audio is not a
-verbatim record: canonical Brunch text remains visible and authoritative. The
-microphone stays active while the interviewer speaks and while Brunch is
-working. Speaking over assistant audio interrupts playback automatically;
+The experimental **Approach D** design waits for the correlated Brunch turn,
+then gives Realtime two bounded roles. First, an out-of-band, text-only request
+semantically prepares the canonical context within the portion of a strict
+50-word spoken budget left after reserving the exact Brunch question.
+Application code validates the prepared context and appends the protected
+question exactly. Second, a
+tool-disabled audio request renders only those supplied words verbatim. If
+preparation is unavailable, invalid, or times out, the bridge supplies the
+canonical context and question instead. Brunch's canonical transcript and
+exact question are never rewritten and remain authoritative. Preparation,
+provisional transcription, and Realtime audio are ephemeral and are not
+persisted. The microphone stays active while the interviewer speaks and while
+Brunch is working. Speaking over assistant audio interrupts playback automatically;
 WebRTC truncates provider-side unheard audio without changing Brunch history.
 
 The Brunch deployment must allow the website origin through its

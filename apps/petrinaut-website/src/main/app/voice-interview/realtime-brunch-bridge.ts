@@ -1,9 +1,19 @@
-import type { CanonicalSpeechSegment } from "./canonical-speech";
-import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
+import {
+  hashCanonicalSpeechText,
+  type CanonicalSpeechSegment,
+  type InterviewSpeechSource,
+} from "./canonical-speech";
+
+import type {
+  InterviewSpeechPreparationRequest,
+  InterviewSpeechPreparationResult,
+  OpenAIRealtimeSessionEvent,
+} from "./openai-realtime-session";
 
 type ChatStatus = "ready" | "submitted" | "streaming" | "error";
 
 interface ChatUpdate {
+  readonly automaticSource?: InterviewSpeechSource | null;
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
   readonly status: ChatStatus;
@@ -12,9 +22,14 @@ interface ChatUpdate {
 interface RealtimeBridgeSession {
   completeFunctionCall(
     callId: string,
-    segments: CanonicalSpeechSegment[],
+    responseText: readonly string[],
+    options?: { readonly speakResponse?: boolean },
   ): void;
+  prepareInterviewSpeech(
+    request: InterviewSpeechPreparationRequest,
+  ): Promise<InterviewSpeechPreparationResult>;
   speakCanonical(segments: CanonicalSpeechSegment[]): void;
+  speakPrepared(responseText: readonly string[]): void;
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
 }
 
@@ -49,6 +64,10 @@ interface ArgumentStream {
   readonly responseId: string;
 }
 
+type SpeechDelivery =
+  | { readonly kind: "automatic" }
+  | { readonly callId: string; readonly kind: "function-call" };
+
 export type RealtimeBridgeErrorCode =
   | "interview-correlation"
   | "interview-response"
@@ -74,7 +93,44 @@ export type RealtimeBrunchBridgeEvent =
       readonly code: RealtimeBridgeErrorCode;
       readonly message: string;
       readonly type: "error";
+    }
+  | {
+      readonly type: "speech-delivery-pending";
     };
+
+export interface PreparedInterviewSpeech {
+  readonly mode: "realtime-processed" | "canonical-fallback";
+  readonly sourceSegmentIds: readonly string[];
+  readonly text: readonly string[];
+}
+
+export const assemblePreparedInterviewSpeech = ({
+  preparation,
+  source,
+}: {
+  preparation: InterviewSpeechPreparationResult;
+  source: InterviewSpeechSource;
+}): PreparedInterviewSpeech => {
+  if (preparation.kind === "prepared") {
+    return {
+      mode: "realtime-processed",
+      sourceSegmentIds: [
+        ...preparation.sourceSegmentIds,
+        ...(source.questionSegment ? [source.questionSegment.id] : []),
+      ],
+      text: [
+        ...(preparation.context ? [preparation.context] : []),
+        ...(source.questionSegment ? [source.questionSegment.text] : []),
+      ],
+    };
+  }
+
+  return {
+    mode: "canonical-fallback",
+    sourceSegmentIds: source.fullResponseSegments.map(({ id }) => id),
+    text: source.fullResponseSegments.map(({ text }) => text),
+  };
+};
 
 type BridgeListener = (event: RealtimeBrunchBridgeEvent) => void;
 
@@ -91,6 +147,22 @@ const latestPendingQuestion = (
   segments: CanonicalSpeechSegment[],
 ): CanonicalSpeechSegment | undefined =>
   segments.findLast(({ source }) => source === "brunch-ask");
+
+const spokenWordCount = (text: string): number => {
+  const trimmedText = text.trim();
+  return trimmedText ? trimmedText.split(/\s+/u).length : 0;
+};
+
+const preparationCacheKey = (
+  source: InterviewSpeechSource,
+  contextWordBudget: number,
+): string => {
+  const sourceIdentity = JSON.stringify([
+    ...source.contextSegments.map(({ contentHash, id }) => [id, contentHash]),
+    contextWordBudget,
+  ]);
+  return `speech-preparation:${hashCanonicalSpeechText(sourceIdentity)}`;
+};
 
 const parseContinueInterviewArguments = (
   argumentsJson: string,
@@ -114,6 +186,7 @@ const parseContinueInterviewArguments = (
 export class RealtimeBrunchBridge {
   readonly #argumentDeltas = new Map<string, ArgumentStream>();
   readonly #listeners = new Set<BridgeListener>();
+  readonly #preparedContextCache = new Map<string, string>();
   readonly #processedCalls = new Set<string>();
   readonly #session: RealtimeBridgeSession;
   readonly #submitInterviewAnswer: (
@@ -129,6 +202,7 @@ export class RealtimeBrunchBridge {
     status: "ready",
   };
   #generation = 0;
+  #speechGeneration = 0;
 
   public constructor({
     session,
@@ -146,6 +220,9 @@ export class RealtimeBrunchBridge {
 
   public start(connectionEpoch: number): void {
     ++this.#generation;
+    if (this.#activeEpoch !== connectionEpoch) {
+      this.#preparedContextCache.clear();
+    }
     this.#activeEpoch = connectionEpoch;
     this.#activeSubmission = null;
     this.#argumentDeltas.clear();
@@ -156,13 +233,18 @@ export class RealtimeBrunchBridge {
       this.#seenSegmentIds.add(segment.id);
     }
 
-    const question = latestPendingQuestion(this.#chat.canonicalSegments);
-    if (question) {
-      this.#session.speakCanonical(
-        this.#chat.canonicalSegments.filter(
-          ({ messageId }) => messageId === question.messageId,
-        ),
+    const source = this.#chat.automaticSource;
+    if (source) {
+      this.#prepareAndDeliver(source, { kind: "automatic" });
+    } else {
+      const question = latestPendingQuestion(this.#chat.canonicalSegments);
+      if (!question) {
+        return;
+      }
+      const currentTurnSegments = this.#chat.canonicalSegments.filter(
+        ({ messageId }) => messageId === question.messageId,
       );
+      this.#session.speakCanonical(currentTurnSegments);
     }
   }
 
@@ -171,7 +253,12 @@ export class RealtimeBrunchBridge {
     this.#activeEpoch = null;
     this.#activeSubmission = null;
     this.#argumentDeltas.clear();
+    this.#preparedContextCache.clear();
     this.#terminalResponseIds.clear();
+  }
+
+  public cancelPendingSpeech(): void {
+    ++this.#speechGeneration;
   }
 
   public updateChat(update: ChatUpdate): void {
@@ -204,9 +291,14 @@ export class RealtimeBrunchBridge {
       return;
     }
     try {
-      this.#session.speakCanonical(newSegments);
       for (const segment of newSegments) {
         this.#seenSegmentIds.add(segment.id);
+      }
+      const source = update.automaticSource;
+      if (source && this.#sourceMatchesSegments(source, newSegments)) {
+        this.#prepareAndDeliver(source, { kind: "automatic" });
+      } else {
+        this.#session.speakCanonical(newSegments);
       }
     } catch {
       this.#fail(INVALID_BRIDGE_EVENT);
@@ -408,20 +500,142 @@ export class RealtimeBrunchBridge {
       return;
     }
 
-    try {
-      this.#session.completeFunctionCall(active.callId, responseSegments);
-    } catch {
-      this.#fail(INVALID_BRIDGE_EVENT);
-      return;
-    }
     for (const segment of responseSegments) {
       this.#seenSegmentIds.add(segment.id);
     }
     this.#activeSubmission = null;
+    const source = this.#chat.automaticSource;
+    if (source && this.#sourceMatchesSegments(source, responseSegments)) {
+      this.#prepareAndDeliver(source, {
+        callId: active.callId,
+        kind: "function-call",
+      });
+    } else {
+      try {
+        this.#session.completeFunctionCall(
+          active.callId,
+          responseSegments.map(({ text }) => text),
+        );
+      } catch {
+        this.#fail(INVALID_BRIDGE_EVENT);
+        return;
+      }
+    }
     this.#emit({
       callId: active.callId,
       segments: responseSegments,
       type: "canonical-response-ready",
     });
+  }
+
+  #sourceMatchesSegments(
+    source: InterviewSpeechSource,
+    segments: readonly CanonicalSpeechSegment[],
+  ): boolean {
+    return (
+      source.fullResponseSegments.length === segments.length &&
+      source.fullResponseSegments.every(
+        ({ id }, index) => segments[index]?.id === id,
+      )
+    );
+  }
+
+  #prepareAndDeliver(
+    source: InterviewSpeechSource,
+    delivery: SpeechDelivery,
+  ): void {
+    this.#emit({ type: "speech-delivery-pending" });
+    const generation = this.#generation;
+    const speechGeneration = this.#speechGeneration;
+    const questionWordCount = source.questionSegment
+      ? spokenWordCount(source.questionSegment.text)
+      : 0;
+    const contextWordBudget = Math.max(0, 50 - questionWordCount);
+
+    if (source.contextSegments.length === 0 || contextWordBudget === 0) {
+      const questionOnlySource: InterviewSpeechSource = {
+        ...source,
+        contextSegments: [],
+        fullResponseSegments: source.questionSegment
+          ? [source.questionSegment]
+          : [],
+      };
+      this.#deliverPreparedSpeech(
+        assemblePreparedInterviewSpeech({
+          preparation: {
+            context: "",
+            kind: "prepared",
+            sourceSegmentIds: [],
+          },
+          source: questionOnlySource,
+        }).text,
+        delivery,
+      );
+      return;
+    }
+
+    const request: InterviewSpeechPreparationRequest = {
+      cacheKey: preparationCacheKey(source, contextWordBudget),
+      contextText: source.contextSegments.map(({ text }) => text),
+      contextWordBudget,
+      sourceSegmentIds: source.contextSegments.map(({ id }) => id),
+    };
+    const cachedContext = this.#preparedContextCache.get(request.cacheKey);
+    if (cachedContext !== undefined) {
+      this.#deliverPreparedSpeech(
+        assemblePreparedInterviewSpeech({
+          preparation: {
+            context: cachedContext,
+            kind: "prepared",
+            sourceSegmentIds: request.sourceSegmentIds,
+          },
+          source,
+        }).text,
+        delivery,
+      );
+      return;
+    }
+    void this.#session.prepareInterviewSpeech(request).then((preparation) => {
+      if (generation !== this.#generation) {
+        return;
+      }
+      const preparedSpeech = assemblePreparedInterviewSpeech({
+        preparation,
+        source,
+      });
+      if (speechGeneration !== this.#speechGeneration) {
+        if (delivery.kind === "function-call") {
+          try {
+            this.#session.completeFunctionCall(
+              delivery.callId,
+              source.fullResponseSegments.map(({ text }) => text),
+              { speakResponse: false },
+            );
+          } catch {
+            this.#fail(INVALID_BRIDGE_EVENT);
+          }
+        }
+        return;
+      }
+      if (preparation.kind === "prepared") {
+        this.#preparedContextCache.set(request.cacheKey, preparation.context);
+      }
+      this.#deliverPreparedSpeech(preparedSpeech.text, delivery);
+    });
+  }
+
+  #deliverPreparedSpeech(
+    responseText: readonly string[],
+    delivery: SpeechDelivery,
+  ): void {
+    try {
+      if (delivery.kind === "function-call") {
+        this.#session.completeFunctionCall(delivery.callId, responseText);
+      } else {
+        this.#session.speakPrepared(responseText);
+      }
+    } catch {
+      this.#fail(INVALID_BRIDGE_EVENT);
+    }
   }
 }

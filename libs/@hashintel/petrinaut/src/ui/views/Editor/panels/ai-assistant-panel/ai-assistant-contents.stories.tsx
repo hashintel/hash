@@ -304,6 +304,8 @@ const Frame = ({
 const liveSession = (
   overrides: Partial<PetrinautAiVoiceSessionState>,
 ): PetrinautAiVoiceSessionState => ({
+  canReadFullResponse: true,
+  canRepeatQuestion: true,
   errorMessage: null,
   microphoneLevel: 0,
   microphoneMuted: false,

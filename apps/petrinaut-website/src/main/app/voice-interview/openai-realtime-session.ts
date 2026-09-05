@@ -112,9 +112,59 @@ interface RequestTiming {
   readonly startedAt: number;
 }
 
+export interface InterviewSpeechPreparationRequest {
+  readonly cacheKey: string;
+  readonly contextText: readonly string[];
+  readonly contextWordBudget: number;
+  readonly sourceSegmentIds: readonly string[];
+}
+
+export type InterviewSpeechPreparationResult =
+  | {
+      readonly context: string;
+      readonly kind: "prepared";
+      readonly sourceSegmentIds: readonly string[];
+    }
+  | {
+      readonly kind: "fallback";
+      readonly reason:
+        | "empty-context"
+        | "invalid-output"
+        | "provider-error"
+        | "timeout"
+        | "interrupted";
+      readonly sourceSegmentIds: readonly string[];
+    };
+
+type InterviewSpeechPreparationFallbackReason = Extract<
+  InterviewSpeechPreparationResult,
+  { kind: "fallback" }
+>["reason"];
+
 interface CanonicalSpeechRequest {
+  readonly kind: "canonical-speech";
   readonly response: Record<string, unknown>;
   readonly speechRequestId: string;
+}
+
+interface InterviewPreparationResponseRequest {
+  readonly kind: "speech-preparation";
+  readonly preparationRequestId: string;
+  readonly response: Record<string, unknown>;
+}
+
+type SerializedResponseRequest =
+  | CanonicalSpeechRequest
+  | InterviewPreparationResponseRequest;
+
+interface PendingInterviewPreparation {
+  readonly inputWordCount: number;
+  readonly outputChunks: string[];
+  readonly request: InterviewSpeechPreparationRequest;
+  readonly requestId: string;
+  readonly resolve: (result: InterviewSpeechPreparationResult) => void;
+  readonly startedAt: number;
+  readonly timeout: ReturnType<typeof globalThis.setTimeout>;
 }
 
 type PendingClientEvent =
@@ -124,7 +174,7 @@ type PendingClientEvent =
     }
   | {
       readonly kind: "response-create";
-      readonly request: CanonicalSpeechRequest;
+      readonly request: SerializedResponseRequest;
       readonly responseTerminalSequence: number;
     };
 
@@ -132,7 +182,20 @@ type SessionListener = (event: OpenAIRealtimeSessionEvent) => void;
 
 const CANONICAL_RESPONSE_INSTRUCTIONS =
   "Speak only the response_text strings supplied by Petrinaut, in array order and verbatim. Deliver them as a warm, calm, curious, confident, concise, and professionally neutral expert interviewer, at a measured conversational pace with natural emphasis. Never sound robotic, fawning, rushed, overenthusiastic, or patronizing. Do not add, remove, paraphrase, acknowledge, or explain anything.";
+const INTERVIEW_PREPARATION_INSTRUCTIONS = [
+  "Rewrite the supplied context as a concise spoken interviewer response.",
+  "Output plain text only.",
+  "Use one or two short sentences.",
+  "Do not ask a question.",
+  "Do not add facts, promises, praise, choices, or next steps.",
+  "Preserve explicit negations, warnings, commitments, and required actions.",
+  "Stay within the supplied maximum word count.",
+].join(" ");
 const MAX_CANONICAL_SEGMENTS = 64;
+const MAX_PREPARED_CONTEXT_CHARACTERS = 400;
+const PREPARATION_TIMEOUT_MS = 2_000;
+const INVALID_PREPARED_CONTEXT_SYNTAX =
+  /(^|\n)\s*(?:#{1,6}\s|[-*+]\s|\d+[.)]\s)|```(?:json)?|\b(?:brunch_ask|continue_interview)\s*\(|<tool\b/iu;
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   typeof value === "object" && value !== null && !Array.isArray(value)
@@ -144,6 +207,11 @@ const nonEmptyString = (value: unknown): string | null =>
 
 const nonNegativeInteger = (value: unknown): number | null =>
   Number.isInteger(value) && (value as number) >= 0 ? (value as number) : null;
+
+const countWords = (text: string): number => {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/u).length : 0;
+};
 
 const parseRealtimeEvent = (value: unknown): Record<string, unknown> | null => {
   if (typeof value !== "string") {
@@ -191,13 +259,19 @@ export class OpenAIRealtimeSession {
   readonly #listeners = new Set<SessionListener>();
   readonly #authorizedResponseIds = new Set<string>();
   readonly #cancelledCanonicalResponseIds = new Set<string>();
+  readonly #cancelledPreparationRequestIds = new Set<string>();
   readonly #cancelledSpeechRequestIds = new Set<string>();
   readonly #canonicalResponseIds = new Set<string>();
-  readonly #canonicalSpeechQueue: CanonicalSpeechRequest[] = [];
   readonly #completedResponseCancelEventIds = new Set<string>();
   readonly #pendingClientEvents = new Map<string, PendingClientEvent>();
+  readonly #pendingPreparations = new Map<
+    string,
+    PendingInterviewPreparation
+  >();
   readonly #pendingSpeechRequests = new Map<string, RequestTiming>();
+  readonly #preparationResponseIds = new Map<string, string>();
   readonly #remoteStreams = new Set<MediaStream>();
+  readonly #responseQueue: SerializedResponseRequest[] = [];
   readonly #speechTimings = new Map<string, RequestTiming>();
   readonly #transcriptionTimings = new Map<string, RequestTiming>();
   #abortController: AbortController | null = null;
@@ -399,17 +473,26 @@ export class OpenAIRealtimeSession {
   }
 
   public speakCanonical(segments: CanonicalSpeechSegment[]): void {
-    this.#requestCanonicalSpeech(segments, true);
+    this.#requestSpeech(this.#canonicalResponseText(segments), true);
+  }
+
+  public speakPrepared(responseText: readonly string[]): void {
+    this.#requestSpeech(this.#validResponseText(responseText), true);
   }
 
   public completeFunctionCall(
     callId: string,
-    segments: CanonicalSpeechSegment[],
+    responseTextInput: readonly string[],
+    {
+      speakResponse = true,
+    }: {
+      readonly speakResponse?: boolean;
+    } = {},
   ): void {
     if (!callId) {
       throw new VoiceError("speech", "invalid-response", "");
     }
-    const responseText = this.#canonicalResponseText(segments);
+    const responseText = this.#validResponseText(responseTextInput);
     this.#send({
       type: "conversation.item.create",
       item: {
@@ -418,7 +501,103 @@ export class OpenAIRealtimeSession {
         output: JSON.stringify({ response_text: responseText }),
       },
     });
-    this.#requestCanonicalSpeech(segments, false);
+    if (speakResponse) {
+      this.#requestSpeech(responseText, false);
+    }
+  }
+
+  public prepareInterviewSpeech(
+    request: InterviewSpeechPreparationRequest,
+  ): Promise<InterviewSpeechPreparationResult> {
+    const sourceSegmentIds = [...request.sourceSegmentIds];
+    const contextText = request.contextText.filter((text) => text.trim());
+    if (contextText.length === 0) {
+      return Promise.resolve({
+        kind: "fallback",
+        reason: "empty-context",
+        sourceSegmentIds,
+      });
+    }
+    if (request.contextWordBudget === 0) {
+      return Promise.resolve({
+        context: "",
+        kind: "prepared",
+        sourceSegmentIds,
+      });
+    }
+    if (
+      !request.cacheKey ||
+      !Number.isInteger(request.contextWordBudget) ||
+      request.contextWordBudget < 0 ||
+      this.#pendingPreparations.has(request.cacheKey)
+    ) {
+      return Promise.resolve({
+        kind: "fallback",
+        reason: "invalid-output",
+        sourceSegmentIds,
+      });
+    }
+
+    return new Promise((resolve) => {
+      const timeout = globalThis.setTimeout(
+        () => this.#timeoutPreparation(request.cacheKey),
+        PREPARATION_TIMEOUT_MS,
+      );
+      this.#pendingPreparations.set(request.cacheKey, {
+        inputWordCount: countWords(contextText.join(" ")),
+        outputChunks: [],
+        request,
+        requestId:
+          this.#dependencies.createRequestId?.() ?? createVoiceRequestId(),
+        resolve,
+        startedAt: this.#now(),
+        timeout,
+      });
+
+      const serializedRequest: InterviewPreparationResponseRequest = {
+        kind: "speech-preparation",
+        preparationRequestId: request.cacheKey,
+        response: {
+          conversation: "none",
+          input: [
+            {
+              type: "message",
+              role: "user",
+              content: [
+                {
+                  type: "input_text",
+                  text: JSON.stringify({
+                    context_text: contextText,
+                    maximum_words: request.contextWordBudget,
+                  }),
+                },
+              ],
+            },
+          ],
+          instructions: INTERVIEW_PREPARATION_INSTRUCTIONS,
+          max_output_tokens: 120,
+          output_modalities: ["text"],
+          parallel_tool_calls: false,
+          tool_choice: "none",
+          tools: [],
+          metadata: {
+            petrinaut_kind: "speech-preparation",
+            petrinaut_request_id: request.cacheKey,
+          },
+        },
+      };
+      this.#responseQueue.push(serializedRequest);
+      try {
+        this.#sendNextSerializedResponse();
+      } catch {
+        const queuedRequestIndex =
+          this.#responseQueue.indexOf(serializedRequest);
+        if (queuedRequestIndex >= 0) {
+          this.#responseQueue.splice(queuedRequestIndex, 1);
+        }
+        this.#settlePreparation(request.cacheKey, "provider-error");
+      }
+    });
   }
 
   public cancelOutput(): void {
@@ -426,8 +605,12 @@ export class OpenAIRealtimeSession {
       return;
     }
 
-    for (const request of this.#canonicalSpeechQueue.splice(0)) {
-      this.#cancelPendingSpeechRequest(request.speechRequestId);
+    for (const request of this.#responseQueue.splice(0)) {
+      if (request.kind === "canonical-speech") {
+        this.#cancelPendingSpeechRequest(request.speechRequestId);
+      } else {
+        this.#settlePreparation(request.preparationRequestId, "interrupted");
+      }
     }
 
     if (this.#responseCreateEventId !== null) {
@@ -435,9 +618,29 @@ export class OpenAIRealtimeSession {
         this.#responseCreateEventId,
       );
       if (pendingEvent?.kind === "response-create") {
-        this.#cancelledSpeechRequestIds.add(
-          pendingEvent.request.speechRequestId,
-        );
+        if (pendingEvent.request.kind === "canonical-speech") {
+          this.#cancelledSpeechRequestIds.add(
+            pendingEvent.request.speechRequestId,
+          );
+        } else {
+          this.#cancelledPreparationRequestIds.add(
+            pendingEvent.request.preparationRequestId,
+          );
+          this.#settlePreparation(
+            pendingEvent.request.preparationRequestId,
+            "interrupted",
+          );
+        }
+      }
+    }
+
+    for (const [
+      responseId,
+      preparationRequestId,
+    ] of this.#preparationResponseIds) {
+      if (this.#activeResponseIds.has(responseId)) {
+        this.#settlePreparation(preparationRequestId, "interrupted");
+        this.#cancelResponse(responseId);
       }
     }
 
@@ -462,21 +665,24 @@ export class OpenAIRealtimeSession {
   }
 
   #canonicalResponseText(segments: CanonicalSpeechSegment[]): string[] {
-    const responseText = segments
+    return this.#validResponseText(segments.map(({ text }) => text));
+  }
+
+  #validResponseText(responseTextInput: readonly string[]): string[] {
+    const responseText = responseTextInput
       .slice(0, MAX_CANONICAL_SEGMENTS)
-      .map(({ text }) => text.trim())
+      .map((text) => text.trim())
       .filter(Boolean);
-    if (responseText.length === 0 || responseText.length !== segments.length) {
+    if (
+      responseText.length === 0 ||
+      responseText.length !== responseTextInput.length
+    ) {
       throw new VoiceError("speech", "invalid-response", "");
     }
     return responseText;
   }
 
-  #requestCanonicalSpeech(
-    segments: CanonicalSpeechSegment[],
-    outOfBand: boolean,
-  ): void {
-    const responseText = this.#canonicalResponseText(segments);
+  #requestSpeech(responseText: string[], outOfBand: boolean): void {
     const speechRequestId = `canonical-${this.#activeEpoch}-${++this.#speechRequestSequence}`;
     this.#pendingSpeechRequests.set(speechRequestId, {
       requestId:
@@ -511,14 +717,18 @@ export class OpenAIRealtimeSession {
         petrinaut_request_id: speechRequestId,
       },
     };
-    const request = { response, speechRequestId };
-    this.#canonicalSpeechQueue.push(request);
+    const request: CanonicalSpeechRequest = {
+      kind: "canonical-speech",
+      response,
+      speechRequestId,
+    };
+    this.#responseQueue.push(request);
     try {
-      this.#sendNextCanonicalSpeech();
+      this.#sendNextSerializedResponse();
     } catch (error) {
-      const queuedRequestIndex = this.#canonicalSpeechQueue.indexOf(request);
+      const queuedRequestIndex = this.#responseQueue.indexOf(request);
       if (queuedRequestIndex >= 0) {
-        this.#canonicalSpeechQueue.splice(queuedRequestIndex, 1);
+        this.#responseQueue.splice(queuedRequestIndex, 1);
       }
       this.#pendingSpeechRequests.delete(speechRequestId);
       throw error;
@@ -547,7 +757,7 @@ export class OpenAIRealtimeSession {
     return `petrinaut-${this.#activeEpoch}-${++this.#clientEventSequence}`;
   }
 
-  #sendNextCanonicalSpeech(): void {
+  #sendNextSerializedResponse(): void {
     if (
       this.#activeResponseIds.size > 0 ||
       this.#responseCreateEventId !== null ||
@@ -555,7 +765,7 @@ export class OpenAIRealtimeSession {
     ) {
       return;
     }
-    const request = this.#canonicalSpeechQueue.shift();
+    const request = this.#responseQueue.shift();
     if (!request) {
       return;
     }
@@ -602,6 +812,10 @@ export class OpenAIRealtimeSession {
     }
     if (parsed.type === "response.done") {
       this.#handleResponseDone(parsed, connectionEpoch);
+      return;
+    }
+    if (parsed.type === "response.output_text.delta") {
+      this.#handlePreparationDelta(parsed);
       return;
     }
     if (parsed.type === "input_audio_buffer.committed") {
@@ -664,42 +878,99 @@ export class OpenAIRealtimeSession {
     }
     this.#activeResponseIds.add(responseId);
     const metadata = asRecord(response?.metadata);
-    const speechRequestId = nonEmptyString(metadata?.petrinaut_request_id);
-    if (metadata?.petrinaut_kind !== "canonical-speech" || !speechRequestId) {
+    const correlatedRequestId = nonEmptyString(metadata?.petrinaut_request_id);
+    if (!correlatedRequestId) {
       return;
     }
-    this.#completeResponseCreateEvent(speechRequestId);
+
+    if (metadata?.petrinaut_kind === "speech-preparation") {
+      const correlated = this.#completeResponseCreateEvent(
+        "speech-preparation",
+        correlatedRequestId,
+      );
+      if (!correlated) {
+        this.#cancelResponse(responseId);
+        return;
+      }
+      this.#preparationResponseIds.set(responseId, correlatedRequestId);
+      if (
+        this.#cancelledPreparationRequestIds.delete(correlatedRequestId) ||
+        !this.#pendingPreparations.has(correlatedRequestId)
+      ) {
+        this.#cancelResponse(responseId);
+      }
+      return;
+    }
+    if (metadata?.petrinaut_kind !== "canonical-speech") {
+      return;
+    }
+
+    if (
+      !this.#completeResponseCreateEvent(
+        "canonical-speech",
+        correlatedRequestId,
+      )
+    ) {
+      this.#cancelResponse(responseId);
+      return;
+    }
     this.#canonicalResponseIds.add(responseId);
-    if (this.#cancelledSpeechRequestIds.delete(speechRequestId)) {
-      this.#cancelPendingSpeechRequest(speechRequestId);
+    if (this.#cancelledSpeechRequestIds.delete(correlatedRequestId)) {
+      this.#cancelPendingSpeechRequest(correlatedRequestId);
       this.#cancelledCanonicalResponseIds.add(responseId);
       this.#cancelOutputResponse(responseId);
       return;
     }
-    const timing = this.#pendingSpeechRequests.get(speechRequestId);
+    const timing = this.#pendingSpeechRequests.get(correlatedRequestId);
     if (!timing) {
       return;
     }
-    this.#pendingSpeechRequests.delete(speechRequestId);
+    this.#pendingSpeechRequests.delete(correlatedRequestId);
     this.#authorizedResponseIds.add(responseId);
     this.#speechTimings.set(responseId, timing);
   }
 
-  #completeResponseCreateEvent(speechRequestId: string): void {
-    if (!this.#responseCreateEventId) {
-      return;
-    }
-    const pendingEvent = this.#pendingClientEvents.get(
-      this.#responseCreateEventId,
-    );
+  #completeResponseCreateEvent(
+    kind: SerializedResponseRequest["kind"],
+    requestId: string,
+  ): boolean {
+    const eventIds = this.#responseCreateEventId
+      ? [this.#responseCreateEventId]
+      : [];
     if (
-      pendingEvent?.kind !== "response-create" ||
-      pendingEvent.request.speechRequestId !== speechRequestId
+      kind === "speech-preparation" &&
+      this.#cancelledPreparationRequestIds.has(requestId)
     ) {
-      return;
+      eventIds.push(
+        ...[...this.#pendingClientEvents.entries()]
+          .filter(
+            ([eventId, pendingEvent]) =>
+              eventId !== this.#responseCreateEventId &&
+              pendingEvent.kind === "response-create" &&
+              pendingEvent.request.kind === "speech-preparation" &&
+              pendingEvent.request.preparationRequestId === requestId,
+          )
+          .map(([eventId]) => eventId),
+      );
     }
-    this.#pendingClientEvents.delete(this.#responseCreateEventId);
-    this.#responseCreateEventId = null;
+    for (const eventId of eventIds) {
+      const pendingEvent = this.#pendingClientEvents.get(eventId);
+      if (
+        pendingEvent?.kind !== "response-create" ||
+        pendingEvent.request.kind !== kind ||
+        (pendingEvent.request.kind === "canonical-speech"
+          ? pendingEvent.request.speechRequestId
+          : pendingEvent.request.preparationRequestId) !== requestId
+      ) {
+        continue;
+      }
+      this.#pendingClientEvents.delete(eventId);
+      if (this.#responseCreateEventId === eventId) {
+        this.#responseCreateEventId = null;
+      }
+      return true;
+    }
+    return false;
   }
 
   #handleProviderError(event: Record<string, unknown>): void {
@@ -736,6 +1007,7 @@ export class OpenAIRealtimeSession {
         this.#responseCreateEventId = null;
       }
       if (
+        pendingEvent.request.kind === "canonical-speech" &&
         this.#cancelledSpeechRequestIds.delete(
           pendingEvent.request.speechRequestId,
         )
@@ -743,11 +1015,40 @@ export class OpenAIRealtimeSession {
         this.#cancelPendingSpeechRequest(pendingEvent.request.speechRequestId);
         return;
       }
-      this.#canonicalSpeechQueue.unshift(pendingEvent.request);
+      if (
+        pendingEvent.request.kind === "speech-preparation" &&
+        this.#cancelledPreparationRequestIds.delete(
+          pendingEvent.request.preparationRequestId,
+        )
+      ) {
+        this.#settlePreparation(
+          pendingEvent.request.preparationRequestId,
+          "interrupted",
+        );
+        return;
+      }
+      this.#responseQueue.unshift(pendingEvent.request);
       this.#waitingForResponseTerminal =
         this.#responseTerminalSequence ===
         pendingEvent.responseTerminalSequence;
-      this.#resumeCanonicalSpeechQueue();
+      this.#resumeSerializedResponseQueue();
+      return;
+    }
+
+    if (
+      pendingEvent?.kind === "response-create" &&
+      pendingEvent.request.kind === "speech-preparation" &&
+      sourceEventId
+    ) {
+      this.#pendingClientEvents.delete(sourceEventId);
+      if (this.#responseCreateEventId === sourceEventId) {
+        this.#responseCreateEventId = null;
+      }
+      this.#settlePreparation(
+        pendingEvent.request.preparationRequestId,
+        "provider-error",
+      );
+      this.#resumeSerializedResponseQueue();
       return;
     }
 
@@ -778,6 +1079,21 @@ export class OpenAIRealtimeSession {
     this.#clearResponseCancelEvents(responseId);
     this.#waitingForResponseTerminal = false;
 
+    const preparationRequestId = this.#preparationResponseIds.get(responseId);
+    if (preparationRequestId) {
+      this.#preparationResponseIds.delete(responseId);
+      if (status === "completed") {
+        this.#finishPreparation(preparationRequestId);
+      } else {
+        this.#settlePreparation(
+          preparationRequestId,
+          status === "cancelled" ? "interrupted" : "provider-error",
+        );
+      }
+      this.#resumeSerializedResponseQueue();
+      return;
+    }
+
     if (this.#cancelledCanonicalResponseIds.delete(responseId)) {
       this.#emit({
         connectionEpoch,
@@ -786,7 +1102,7 @@ export class OpenAIRealtimeSession {
         type: "response-terminal",
       });
       this.#finishSpeech(responseId, "request-aborted");
-      this.#resumeCanonicalSpeechQueue();
+      this.#resumeSerializedResponseQueue();
       return;
     }
 
@@ -840,7 +1156,7 @@ export class OpenAIRealtimeSession {
         status,
         type: "response-terminal",
       });
-      this.#resumeCanonicalSpeechQueue();
+      this.#resumeSerializedResponseQueue();
       return;
     }
     if (status === "cancelled") {
@@ -858,7 +1174,7 @@ export class OpenAIRealtimeSession {
         type: "response-terminal",
       });
       this.#finishSpeech(responseId, "request-aborted");
-      this.#resumeCanonicalSpeechQueue();
+      this.#resumeSerializedResponseQueue();
       return;
     }
     this.#emit({
@@ -885,12 +1201,121 @@ export class OpenAIRealtimeSession {
     }
   }
 
-  #resumeCanonicalSpeechQueue(): void {
+  #resumeSerializedResponseQueue(): void {
     try {
-      this.#sendNextCanonicalSpeech();
+      this.#sendNextSerializedResponse();
     } catch {
       this.#handleConnectionFailure("network", "speech");
     }
+  }
+
+  #handlePreparationDelta(event: Record<string, unknown>): void {
+    const responseId = nonEmptyString(event.response_id);
+    const delta = event.delta;
+    if (!responseId || typeof delta !== "string") {
+      return;
+    }
+    const preparationRequestId = this.#preparationResponseIds.get(responseId);
+    if (!preparationRequestId) {
+      return;
+    }
+    this.#pendingPreparations
+      .get(preparationRequestId)
+      ?.outputChunks.push(delta);
+  }
+
+  #finishPreparation(preparationRequestId: string): void {
+    const pending = this.#pendingPreparations.get(preparationRequestId);
+    if (!pending) {
+      return;
+    }
+    const context = pending.outputChunks.join("").trim();
+    if (
+      !context ||
+      countWords(context) > pending.request.contextWordBudget ||
+      Array.from(context).length > MAX_PREPARED_CONTEXT_CHARACTERS ||
+      INVALID_PREPARED_CONTEXT_SYNTAX.test(context)
+    ) {
+      this.#settlePreparation(preparationRequestId, "invalid-output", context);
+      return;
+    }
+    this.#settlePreparation(preparationRequestId, undefined, context);
+  }
+
+  #settlePreparation(
+    preparationRequestId: string,
+    reason?: InterviewSpeechPreparationFallbackReason,
+    context = "",
+  ): void {
+    const pending = this.#pendingPreparations.get(preparationRequestId);
+    if (!pending) {
+      return;
+    }
+    this.#pendingPreparations.delete(preparationRequestId);
+    globalThis.clearTimeout(pending.timeout);
+    const errorCode: VoiceErrorCode | undefined =
+      reason === undefined
+        ? undefined
+        : reason === "timeout"
+          ? "timeout"
+          : reason === "interrupted"
+            ? "request-aborted"
+            : "invalid-response";
+    this.#dependencies.reportDiagnostic?.({
+      durationMs: voiceDurationMs(pending.startedAt, this.#now()),
+      ...(errorCode === undefined ? {} : { errorCode }),
+      inputWordCount: pending.inputWordCount,
+      operation: "preparation",
+      outcome: voiceDiagnosticOutcome(errorCode),
+      outputWordCount: countWords(context),
+      requestId: pending.requestId,
+      sourceSegmentCount: pending.request.sourceSegmentIds.length,
+      stage: "browser",
+    });
+    pending.resolve(
+      reason === undefined
+        ? {
+            context,
+            kind: "prepared",
+            sourceSegmentIds: [...pending.request.sourceSegmentIds],
+          }
+        : {
+            kind: "fallback",
+            reason,
+            sourceSegmentIds: [...pending.request.sourceSegmentIds],
+          },
+    );
+  }
+
+  #timeoutPreparation(preparationRequestId: string): void {
+    const queuedRequestIndex = this.#responseQueue.findIndex(
+      (request) =>
+        request.kind === "speech-preparation" &&
+        request.preparationRequestId === preparationRequestId,
+    );
+    if (queuedRequestIndex >= 0) {
+      this.#responseQueue.splice(queuedRequestIndex, 1);
+    }
+
+    const pendingCreateEvent = this.#responseCreateEventId
+      ? this.#pendingClientEvents.get(this.#responseCreateEventId)
+      : undefined;
+    if (
+      pendingCreateEvent?.kind === "response-create" &&
+      pendingCreateEvent.request.kind === "speech-preparation" &&
+      pendingCreateEvent.request.preparationRequestId === preparationRequestId
+    ) {
+      this.#cancelledPreparationRequestIds.add(preparationRequestId);
+      this.#responseCreateEventId = null;
+    }
+    const activeResponse = [...this.#preparationResponseIds].find(
+      ([, requestId]) => requestId === preparationRequestId,
+    );
+    if (activeResponse) {
+      this.#cancelResponse(activeResponse[0]);
+    }
+    this.#settlePreparation(preparationRequestId, "timeout");
+    this.#resumeSerializedResponseQueue();
   }
 
   #handleOutputBufferEvent(
@@ -1257,6 +1682,9 @@ export class OpenAIRealtimeSession {
   }
 
   #releaseResources(): void {
+    for (const preparationRequestId of this.#pendingPreparations.keys()) {
+      this.#settlePreparation(preparationRequestId, "interrupted");
+    }
     for (const timing of this.#transcriptionTimings.values()) {
       this.#reportDiagnostic(
         "transcription",
@@ -1279,11 +1707,14 @@ export class OpenAIRealtimeSession {
     this.#transcriptionTimings.clear();
     this.#activeResponseIds.clear();
     this.#cancelledCanonicalResponseIds.clear();
+    this.#cancelledPreparationRequestIds.clear();
     this.#cancelledSpeechRequestIds.clear();
-    this.#canonicalSpeechQueue.length = 0;
     this.#completedResponseCancelEventIds.clear();
     this.#pendingClientEvents.clear();
+    this.#pendingPreparations.clear();
     this.#pendingSpeechRequests.clear();
+    this.#preparationResponseIds.clear();
+    this.#responseQueue.length = 0;
     this.#speechTimings.clear();
     this.#authorizedResponseIds.clear();
     this.#canonicalResponseIds.clear();

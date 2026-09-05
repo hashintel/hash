@@ -18,6 +18,18 @@ export interface CanonicalSpeechSegment {
   readonly text: string;
 }
 
+export interface InterviewSpeechSource {
+  readonly contextSegments: readonly CanonicalSpeechSegment[];
+  readonly fullResponseSegments: readonly CanonicalSpeechSegment[];
+  readonly messageId: string;
+  readonly questionSegment: CanonicalSpeechSegment | null;
+}
+
+export interface InterviewSpeechSelection {
+  readonly automaticSource: InterviewSpeechSource | null;
+  readonly canonicalSegments: readonly CanonicalSpeechSegment[];
+}
+
 const createSegment = (
   messageId: string,
   partId: string,
@@ -40,15 +52,20 @@ const createSegment = (
   };
 };
 
-export const selectCanonicalSpeechSegments = (
+export const selectInterviewSpeech = (
   messages: PetrinautAiMessage[],
-): CanonicalSpeechSegment[] => {
-  const segments: CanonicalSpeechSegment[] = [];
+): InterviewSpeechSelection => {
+  const canonicalSegments: CanonicalSpeechSegment[] = [];
+  let automaticSource: InterviewSpeechSource | null = null;
 
   for (const message of messages) {
     if (message.role !== "assistant") {
       continue;
     }
+
+    const contextSegments: CanonicalSpeechSegment[] = [];
+    const questionSegments: CanonicalSpeechSegment[] = [];
+    let hasAskPart = false;
 
     for (const [partIndex, part] of message.parts.entries()) {
       if (
@@ -56,40 +73,62 @@ export const selectCanonicalSpeechSegments = (
         part.state !== "streaming" &&
         part.text.trim()
       ) {
-        segments.push(
-          createSegment(
-            message.id,
-            `text:${partIndex}`,
-            "assistant-text",
-            part.text,
-          ),
+        const segment = createSegment(
+          message.id,
+          `text:${partIndex}`,
+          "assistant-text",
+          part.text,
         );
+        canonicalSegments.push(segment);
+        contextSegments.push(segment);
         continue;
       }
 
-      if (
-        part.type !== "dynamic-tool" ||
-        part.toolName !== ASK_TOOL_NAME ||
-        part.state !== "input-available"
-      ) {
+      if (part.type !== "dynamic-tool" || part.toolName !== ASK_TOOL_NAME) {
+        continue;
+      }
+      hasAskPart = true;
+      if (part.state !== "input-available") {
         continue;
       }
 
       try {
         const input = parseBrunchAskInput(part.input);
-        segments.push(
-          createSegment(
-            message.id,
-            part.toolCallId,
-            "brunch-ask",
-            input.question,
-          ),
+        const segment = createSegment(
+          message.id,
+          part.toolCallId,
+          "brunch-ask",
+          input.question,
         );
+        canonicalSegments.push(segment);
+        questionSegments.push(segment);
       } catch {
         // Malformed tool inputs remain visible as tool errors; they are not spoken.
       }
     }
+
+    const questionSegment = questionSegments.at(-1) ?? null;
+    if (contextSegments.length > 0 || hasAskPart) {
+      automaticSource =
+        questionSegment || !hasAskPart
+          ? {
+              contextSegments,
+              fullResponseSegments: [
+                ...contextSegments,
+                ...(questionSegment ? [questionSegment] : []),
+              ],
+              messageId: message.id,
+              questionSegment,
+            }
+          : null;
+    }
   }
 
-  return segments;
+  return { automaticSource, canonicalSegments };
 };
+
+export const selectCanonicalSpeechSegments = (
+  messages: PetrinautAiMessage[],
+): CanonicalSpeechSegment[] => [
+  ...selectInterviewSpeech(messages).canonicalSegments,
+];

@@ -3,7 +3,10 @@ import { describe, expect, test, vi } from "vitest";
 import { VoiceError } from "../../../voice-diagnostics";
 import { VoiceTurnController } from "./voice-turn-controller";
 
-import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type {
+  CanonicalSpeechSegment,
+  InterviewSpeechSource,
+} from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type { RealtimeBrunchBridgeEvent } from "./realtime-brunch-bridge";
 
@@ -18,6 +21,7 @@ const createHarness = () => {
     connect: vi.fn(async () => ++epoch),
     disconnect: vi.fn(async () => undefined),
     setMicrophoneEnabled: vi.fn(),
+    speakCanonical: vi.fn(),
     subscribe: vi.fn(
       (listener: (event: OpenAIRealtimeSessionEvent) => void) => {
         sessionListener = listener;
@@ -28,6 +32,7 @@ const createHarness = () => {
     ),
   };
   const bridge = {
+    cancelPendingSpeech: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
     subscribe: vi.fn((listener: (event: RealtimeBrunchBridgeEvent) => void) => {
@@ -63,6 +68,20 @@ const question = (
   source: "brunch-ask",
   text,
 });
+
+const speechSource = (): InterviewSpeechSource => {
+  const context = {
+    ...question("context", "Approval is required before release."),
+    source: "assistant-text" as const,
+  };
+  const nextQuestion = question("ask-replay", "Who approves release?");
+  return {
+    contextSegments: [context],
+    fullResponseSegments: [context, nextQuestion],
+    messageId: "message-replay",
+    questionSegment: nextQuestion,
+  };
+};
 
 describe("VoiceTurnController", () => {
   test("opens a continuous microphone before starting canonical question speech", async () => {
@@ -115,6 +134,341 @@ describe("VoiceTurnController", () => {
       output: "interrupted",
     });
     expect(harness.session.cancelOutput).not.toHaveBeenCalled();
+    expect(harness.bridge.cancelPendingSpeech).toHaveBeenCalledOnce();
+  });
+
+  test("invalidates pending preparation before pausing or cancelling paused output", async () => {
+    const harness = createHarness();
+    const order: string[] = [];
+    harness.bridge.cancelPendingSpeech.mockImplementation(() =>
+      order.push("bridge-cancel"),
+    );
+    harness.bridge.updateChat.mockImplementation(() =>
+      order.push("chat-update"),
+    );
+    harness.session.cancelOutput.mockImplementation(() =>
+      order.push("session-cancel"),
+    );
+    await harness.controller.start();
+
+    harness.controller.pause();
+    expect(order).toEqual(["bridge-cancel", "session-cancel"]);
+
+    order.length = 0;
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question("ask-paused")],
+      status: "ready",
+    });
+    expect(order).toEqual(["chat-update", "bridge-cancel", "session-cancel"]);
+  });
+
+  test("replays canonical speech only when preparation and turn state are safe", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+
+    harness.emitBridge({ type: "speech-delivery-pending" });
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: false,
+      canRepeatQuestion: false,
+    });
+    harness.controller.repeatQuestion();
+    harness.controller.readFullResponse();
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-replay-source",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-replay-source",
+      type: "output-stopped",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-replay-source",
+      status: "completed",
+      type: "response-terminal",
+    });
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
+    });
+    harness.controller.repeatQuestion();
+    harness.controller.readFullResponse();
+
+    expect(harness.session.speakCanonical).toHaveBeenCalledOnce();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([
+      source.questionSegment,
+    ]);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: false,
+      canRepeatQuestion: false,
+      output: "waiting-for-tool",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-repeat-question",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-repeat-question",
+      type: "output-stopped",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-repeat-question",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.controller.readFullResponse();
+
+    expect(harness.session.speakCanonical).toHaveBeenNthCalledWith(
+      2,
+      source.fullResponseSegments,
+    );
+  });
+
+  test("keeps replay disabled after barge-in until the input turn settles", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitBridge({ type: "speech-delivery-pending" });
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      itemId: "item-user",
+      type: "input-speech-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      itemId: "item-user",
+      type: "input-speech-stopped",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: false,
+      canRepeatQuestion: false,
+      output: "interrupted",
+    });
+
+    harness.emitSession({
+      key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-user" },
+      text: "The supervisor approves it.",
+      type: "completed",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
+    });
+  });
+
+  test("refuses replay after audio stops until the response is terminal", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      type: "output-stopped",
+    });
+
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([
+      source.questionSegment,
+    ]);
+  });
+
+  test("refuses replay when an unrelated response becomes terminal", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      type: "output-stopped",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-b",
+      status: "completed",
+      type: "response-terminal",
+    });
+
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([
+      source.questionSegment,
+    ]);
+  });
+
+  test("refuses interrupted replay until the response is terminal", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      type: "output-interrupted",
+    });
+
+    harness.controller.readFullResponse();
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      status: "cancelled",
+      type: "response-terminal",
+    });
+    harness.controller.readFullResponse();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith(
+      source.fullResponseSegments,
+    );
+  });
+
+  test("keeps replay unavailable when terminal arrives before audio stops", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      status: "completed",
+      type: "response-terminal",
+    });
+
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      type: "output-stopped",
+    });
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([
+      source.questionSegment,
+    ]);
+  });
+
+  test("refuses replay when unrelated audio stops after the tracked response is terminal", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-b",
+      type: "output-stopped",
+    });
+
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      type: "output-stopped",
+    });
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([
+      source.questionSegment,
+    ]);
   });
 
   test("represents submitting and output independently without closing capture", async () => {

@@ -3,6 +3,8 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import {
   useVoiceSessionActions,
+  useVoiceSessionCanReadFullResponse,
+  useVoiceSessionCanRepeatQuestion,
   useVoiceSessionMicrophoneMuted,
   useVoiceSessionPhase,
 } from "../../../../../../react/voice-session/use-voice-session";
@@ -13,6 +15,7 @@ import {
 } from "../../../components/voice-session-labels";
 import { aiFooterMinHeight } from "./footer-height";
 import { MicrophoneIcon } from "./voice-dock/microphone-icon";
+import { VoicePlaybackMenu } from "./voice-dock/playback-menu";
 import { TranscriptionIcon } from "./voice-dock/transcription-icon";
 
 import type { VoiceSessionActions } from "../../../../../../react/voice-session/store";
@@ -100,6 +103,8 @@ const visuallyHiddenStyle = css({
 
 export type VoiceDockProps = {
   actions: VoiceSessionActions | null;
+  canReadFullResponse: boolean;
+  canRepeatQuestion: boolean;
   /** Rendered instead of the live indicator when the caller supplies one. */
   indicator?: ReactNode;
   microphoneMuted: boolean;
@@ -117,6 +122,8 @@ export type VoiceDockProps = {
  */
 export const VoiceDock = ({
   actions,
+  canReadFullResponse,
+  canRepeatQuestion,
   indicator,
   microphoneMuted,
   onTranscriptionToggle,
@@ -139,16 +146,23 @@ export const VoiceDock = ({
     >
       <span className={sideStyle}>
         {actions !== null && (
-          <Button
-            aria-label={transcriptionLabel}
-            onClick={onTranscriptionToggle}
-            prefix={<TranscriptionIcon />}
-            pressed={transcriptionShown}
-            size="sm"
-            tooltip={transcriptionLabel}
-            type="button"
-            variant="ghost"
-          />
+          <>
+            <Button
+              aria-label={transcriptionLabel}
+              onClick={onTranscriptionToggle}
+              prefix={<TranscriptionIcon />}
+              pressed={transcriptionShown}
+              size="sm"
+              tooltip={transcriptionLabel}
+              type="button"
+              variant="ghost"
+            />
+            <VoicePlaybackMenu
+              actions={actions}
+              canReadFullResponse={canReadFullResponse}
+              canRepeatQuestion={canRepeatQuestion}
+            />
+          </>
         )}
       </span>
 
@@ -231,6 +245,8 @@ export const LiveVoiceDock = ({
   transcriptionShown: boolean;
 }) => {
   const actions = useVoiceSessionActions();
+  const canReadFullResponse = useVoiceSessionCanReadFullResponse();
+  const canRepeatQuestion = useVoiceSessionCanRepeatQuestion();
   const microphoneMuted = useVoiceSessionMicrophoneMuted();
   const phase = useVoiceSessionPhase();
 
@@ -241,6 +257,8 @@ export const LiveVoiceDock = ({
   return (
     <VoiceDock
       actions={actions}
+      canReadFullResponse={canReadFullResponse}
+      canRepeatQuestion={canRepeatQuestion}
       microphoneMuted={microphoneMuted}
       onTranscriptionToggle={onTranscriptionToggle}
       phase={phase}

@@ -62,3 +62,23 @@ export const useVoiceSessionActions = (): VoiceSessionActions | null => {
     () => null,
   );
 };
+
+export const useVoiceSessionCanReadFullResponse = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.canReadFullResponse ?? false,
+    () => false,
+  );
+};
+
+export const useVoiceSessionCanRepeatQuestion = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.canRepeatQuestion ?? false,
+    () => false,
+  );
+};
