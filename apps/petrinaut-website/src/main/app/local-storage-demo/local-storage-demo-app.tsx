@@ -47,6 +47,9 @@ import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import {
+  createLocalStorageNetRecord,
+  emptySDCPN,
+  isEmptySDCPN,
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
@@ -54,49 +57,12 @@ import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
 
-const isEmptySDCPN = (sdcpn: SDCPN) =>
-  sdcpn.places.length === 0 &&
-  sdcpn.transitions.length === 0 &&
-  sdcpn.types.length === 0 &&
-  sdcpn.parameters.length === 0 &&
-  sdcpn.differentialEquations.length === 0 &&
-  (sdcpn.subnets ?? []).length === 0 &&
-  (sdcpn.componentInstances ?? []).length === 0 &&
-  (sdcpn.scenarios ?? []).length === 0 &&
-  (sdcpn.metrics ?? []).length === 0;
-
-const emptySDCPN: SDCPN = {
-  places: [],
-  transitions: [],
-  types: [],
-  parameters: [],
-  differentialEquations: [],
-};
-
 const createDefaultStoredSDCPN = (): SDCPNInLocalStorage => ({
   id: "net-1",
   title: "New Process",
   sdcpn: emptySDCPN,
   lastUpdated: new Date(0).toISOString(),
 });
-
-/**
- * Creates the localStorage record for a newly created net, keeping the generated
- * id and last-updated timestamp in sync.
- */
-const createLocalStorageNetRecord = (params: {
-  petriNetDefinition: SDCPN;
-  title: string;
-}): SDCPNInLocalStorage => {
-  const now = new Date();
-
-  return {
-    id: `net-${now.getTime()}`,
-    title: params.title,
-    sdcpn: params.petriNetDefinition,
-    lastUpdated: now.toISOString(),
-  };
-};
 
 const DEMO_CAPABILITIES = {
   disabledExtensions: [],

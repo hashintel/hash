@@ -24,6 +24,14 @@ The dev server runs at [http://localhost:5173](http://localhost:5173). A plugin 
 In production, the functions in the `api` folder are automatically deployed as
 Vercel Functions.
 
+## Starting a new net
+
+`/new` creates an empty net in local storage and redirects to the editable demo,
+which opens the most recently modified net. The redirect replaces, so a reload
+cannot make a second net and Back skips the route. Empty nets earlier visits
+left behind are dropped, matching the editor's own rule when a visitor switches
+away from an untouched net.
+
 ## Example embeds and oEmbed
 
 Canonical example pages live below `/examples`. The JSON oEmbed endpoint at
