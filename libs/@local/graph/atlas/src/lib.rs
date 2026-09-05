@@ -82,6 +82,7 @@
 
     // Library Features
     allocator_api,
+    arc_is_unique,
     clone_from_ref,
     clone_to_uninit,
     const_array,
@@ -95,7 +96,9 @@
     const_option_ops,
     const_try,
     exact_size_is_empty,
+    file_buffered,
     generic_atomic,
+    get_mut_unchecked,
     impl_trait_in_assoc_type,
     integer_casts,
     iter_map_windows,
@@ -109,7 +112,7 @@
     sync_nonpoison,
     time_saturating_systemtime,
     variant_count,
-    file_buffered,
+    unwrap_infallible,
 )]
 #![cfg_attr(feature = "cli", feature(exitcode_exit_method))]
 #![cfg_attr(test, feature(iter_intersperse))]

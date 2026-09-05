@@ -5862,6 +5862,7 @@ dependencies = [
  "harpc-server",
  "hash-codec",
  "hash-graph-api",
+ "hash-graph-atlas",
  "hash-graph-authorization",
  "hash-graph-embeddings",
  "hash-graph-postgres-store",

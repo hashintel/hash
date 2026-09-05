@@ -22,10 +22,10 @@ use crate::{
     api::{self, problem::IntoProblemLayer},
     device::PinnedDevice,
     file::generation::{CurrentError, GenerationRoot},
-    integrity::SecretHexBytesValueParser,
+    integrity::{SecretHexBytesValueParser, SecretString},
     serve::{
         Atlas, DeltaCell, DeltaConsumer, DeltaEpoch, DeltaPolling, DeltaRegister, EdgesLimits,
-        EmbeddingEnsure, GraphDatabaseClient, LocateLimits, OpenAtlasError, OpenOptions,
+        EmbeddingWorkflow, GraphDatabaseClient, LocateLimits, OpenAtlasError, OpenOptions,
         PlacementError, ServeLimits, StagingArm, TileLimits, TranslateLimits, VisibilityLimits,
         WireSecret,
     },
@@ -267,12 +267,13 @@ impl Error for ServeError {
 /// probe answered every few seconds per task only inflate the metrics derived from them.
 const STATUS_PATH: &str = "/status";
 
-/// The request-handling inputs the hosting binary supplies.
+/// Everything the hosting binary supplies for one serve.
 ///
-/// [`ServeCommand::run`] composes them into the router's request middlewares, so every route it
-/// returns sits behind the per-address limiter, credential resolution, and the per-principal
-/// budget, with request tracing outermost. The liveness route alone answers outside the budgets.
-pub struct RequestFacilities<P> {
+/// [`ServeCommand::run`] composes the credential verifier, the service secret and the budgets
+/// into the router's request middlewares. Store reads dial through `pool`, and the staging arm
+/// takes its ensure client from `ensure`. The listener and the lifecycle stay the hosting
+/// binary's own.
+pub struct ServeOptions<P> {
     /// The credential verifier chain resolving each request's headers to an actor.
     ///
     /// A request without a recognized credential refuses before any handler.
@@ -280,11 +281,24 @@ pub struct RequestFacilities<P> {
 
     /// The secret internal services present to delegate an actor and to pass the budgets
     /// unmetered.
-    pub service_secret: Arc<str>,
+    pub service_secret: SecretString,
 
     /// The request budgets, keyed per client address ahead of authentication and per principal
     /// behind it.
     pub rate_limit: RateLimitConfig,
+
+    /// The store connection every read the serving process makes goes through, detail trailers
+    /// and permission resolution alike.
+    pub pool: Arc<PostgresStorePool>,
+
+    /// The window over which the router reuses a resolved scope.
+    pub visibility: VisibilityLimits,
+
+    /// The client half of the deduplicated embedding ensure.
+    ///
+    /// A deployment with no Temporal client configured supplies [`None`]: its arrivals stage and
+    /// never ensure, which fails closed.
+    pub workflow: Option<EmbeddingWorkflow>,
 }
 
 /// One serve invocation, resolved: the enforced limits and the wire secret over an opened root.
@@ -313,19 +327,19 @@ impl ServeCommand {
     /// Opens the root's active generation and builds the read-API router over it.
     ///
     /// The router carries its own request middlewares, composed from the supplied
-    /// [`RequestFacilities`]. A request clears the per-address limiter and credential resolution
+    /// [`ServeOptions`]. A request clears the per-address limiter and credential resolution
     /// before the per-principal budget meters it, and request tracing wraps the whole router.
     /// The `/status` liveness route answers outside the budgets, and tracing opens no span for
     /// it.
     ///
     /// The hosting binary owns the listener and the lifecycle, and supplies everything else
-    /// through [`RequestFacilities`]. The router carries everything the atlas serves.
+    /// through [`ServeOptions`]. The router carries everything the atlas serves.
     ///
     /// When the generation records temporal axes and the delta opt-out is unset, the invocation
     /// also spawns the delta consumer and the staging arm onto the caller's runtime. The
     /// consumer polls the entity feed through the same pool for the process's lifetime, and the
     /// staging arm walks classified arrivals toward placement, ensuring embeddings when the
-    /// caller supplies `ensure` and staging without ensures otherwise. Consumer initialization
+    /// caller supplies `workflow` and staging without ensures otherwise. Consumer initialization
     /// draws a fresh delta epoch, which every authority token seals, so the tokens issued beside
     /// an earlier register lifetime refuse uniformly and their sessions bootstrap again.
     ///
@@ -343,14 +357,14 @@ impl ServeCommand {
     /// onto the caller's runtime, as does the delta consumer where one runs.
     pub fn run<P>(
         self,
-        pool: Arc<PostgresStorePool>,
-        visibility: VisibilityLimits,
-        ensure: Option<EmbeddingEnsure>,
-        RequestFacilities {
+        ServeOptions {
             provider,
             service_secret,
             rate_limit,
-        }: RequestFacilities<P>,
+            pool,
+            visibility,
+            workflow,
+        }: ServeOptions<P>,
     ) -> Result<Router, ServeError>
     where
         P: AuthenticationProvider<ActorId> + 'static,
@@ -367,8 +381,10 @@ impl ServeCommand {
         let options = OpenOptions {
             wire_secret: self.secret,
         };
-        let atlas =
-            Arc::new(Atlas::open(&self.root, generation, options).map_err(ServeError::Open)?);
+
+        let atlas = Atlas::open(&self.root, generation, options).map_err(ServeError::Open)?;
+        let atlas = Arc::new(atlas);
+
         tracing::info!(
             root = %self.root.path(),
             generation = %atlas.generation(),
@@ -413,7 +429,7 @@ impl ServeCommand {
                 Arc::clone(&pool),
                 Arc::clone(&cell),
                 polling,
-                ensure,
+                workflow,
                 placer,
                 placements_tx,
             );
@@ -429,6 +445,8 @@ impl ServeCommand {
 
         let meter = opentelemetry::global::meter("hash-graph-atlas");
         let limiters = RateLimiters::start(&rate_limit, &meter);
+
+        let service_secret = service_secret.into_unguarded();
 
         let router = api::router(atlas, self.limits, details, pool, visibility, epoch, cell)
             .route_layer(

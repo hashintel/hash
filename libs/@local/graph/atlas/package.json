@@ -9,7 +9,7 @@
     "lint:clippy": "just clippy",
     "start": "cargo run -p hash-graph-atlas --bin hash-graph-atlas --",
     "test:integration": "cargo nextest run --package hash-graph-atlas --all-features --filterset 'kind(test)'",
-    "test:miri": "cargo miri nextest run -P miri --lib",
+    "test:miri": "cargo miri test --lib -- ::miri::",
     "test:unit": "mise run test:unit @rust/hash-graph-atlas -- --filterset 'not kind(test)'"
   },
   "dependencies": {
