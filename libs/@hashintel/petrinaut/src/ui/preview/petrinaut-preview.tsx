@@ -13,6 +13,7 @@ import {
   useId,
   useMemo,
   useRef,
+  useState,
   type FunctionComponent,
 } from "react";
 
@@ -243,12 +244,26 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
   useEffect(() => () => instance.dispose(), [instance]);
 
   /**
+   * `handle` is rebuilt whenever the host swaps the model, while `handle.id`
+   * stays the host's own, so handle identity is what marks a swap. Counting
+   * swaps gives the document a key that changes with the model: the providers
+   * below remount, and the simulation built from the previous net is disposed
+   * instead of staying applied to the new one.
+   */
+  const [handleAtLastSwap, setHandleAtLastSwap] = useState(handle);
+  const [modelGeneration, setModelGeneration] = useState(0);
+  if (handleAtLastSwap !== handle) {
+    setHandleAtLastSwap(handle);
+    setModelGeneration((generation) => generation + 1);
+  }
+  const documentKey = `${handle.id}:${modelGeneration}`;
+
+  /**
    * The simulation and playback providers read their initial configuration
    * once, on mount, and the document id does not change when a host swaps the
-   * model or its run settings in place: `documentId` is the host's own, and
-   * the generated fallback is generated once. Keying on the settings
-   * themselves is what makes a swap take, instead of leaving the previous dt,
-   * horizon and speed running against the new artifacts.
+   * run settings in place. Keying on the settings themselves is what makes
+   * such a swap take, instead of leaving the previous dt, horizon and speed
+   * running against the same net.
    */
   const runSettingsKey = [
     handle.id,
@@ -296,7 +311,7 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
   return (
     <PortalContainerContext value={portalContainerRef}>
       <PetrinautDocumentProvider
-        key={instance.handle.id}
+        key={documentKey}
         instance={instance}
         netManagement={netManagement}
       >
