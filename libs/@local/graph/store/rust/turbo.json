@@ -2,8 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "build:types": {
-      // TODO(SRE-989): replace with a build-free upstream dependency
-      "dependsOn": ["^build"],
+      "dependsOn": ["^manifest"],
       "outputs": ["types/**"]
     }
   }
