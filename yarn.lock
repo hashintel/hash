@@ -9521,6 +9521,7 @@ __metadata:
     "@local/hash-graph-client": "workspace:*"
     "@local/hash-graph-sdk": "workspace:*"
     "@local/hash-graph-store": "workspace:*"
+    "@local/status": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@sentry/browser": "npm:10.64.0"
     "@sindresorhus/slugify": "npm:3.0.0"

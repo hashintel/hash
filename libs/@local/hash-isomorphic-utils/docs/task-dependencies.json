@@ -8,6 +8,7 @@
     "@local/hash-graph-client",
     "@local/hash-graph-sdk",
     "@local/hash-graph-store",
+    "@local/status",
     "@local/tsconfig"
   ],
   "tasks": {
@@ -21,7 +22,8 @@
       "@local/eslint#build",
       "@local/hash-graph-client#build",
       "@local/hash-graph-sdk#build",
-      "@local/hash-graph-store#build"
+      "@local/hash-graph-store#build",
+      "@local/status#build"
     ],
     "fix:eslint": [
       "@local/eslint#build",
@@ -42,7 +44,8 @@
       "@local/hash-graph-client#build",
       "@local/hash-graph-sdk#build",
       "@local/hash-graph-store#build",
-      "@local/hash-isomorphic-utils#codegen"
+      "@local/hash-isomorphic-utils#codegen",
+      "@local/status#build"
     ]
   }
 }
