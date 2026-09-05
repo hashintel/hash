@@ -9,6 +9,8 @@ import {
 } from "../Button/button";
 import { Icon } from "../Icon/icon";
 import { Menu, type MenuItem } from "../Menu/menu";
+import { SelectableListSearch } from "../Menu/SelectableList/selectable-list-search";
+import { searchEmpty } from "../Menu/SelectableList/selectable-list-search.recipe";
 import {
   readSavedSort,
   type SortDirection,
@@ -23,58 +25,12 @@ import {
   directionToggle,
   menuContent,
   placeholderLabel,
-  searchEmpty,
-  searchIcon,
-  searchInput,
-  searchRow,
   triggerButton,
   triggerDirectionToggle,
   triggerIcon,
 } from "./sort-menu.recipe";
 
 import type { DistributedOmit } from "type-fest";
-
-const SearchField = ({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (next: string) => void;
-}) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Focus when the (lazily mounted) dropdown opens. Double rAF so the focus
-  // lands after ark moves focus to the menu content (mirrors Filter).
-  useEffect(() => {
-    let cancelled = false;
-    const raf = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (!cancelled) {
-          inputRef.current?.focus();
-        }
-      });
-    });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  return (
-    <div className={searchRow()}>
-      <Icon name="search" size="sm" className={searchIcon()} />
-      <input
-        ref={inputRef}
-        type="text"
-        className={searchInput()}
-        value={value}
-        onChange={(event) => onChange(event.currentTarget.value)}
-        placeholder="Search…"
-        aria-label="Search sort options"
-      />
-    </div>
-  );
-};
 
 export const SortMenu = <SortKey extends string = string>({
   items = [],
@@ -279,7 +235,13 @@ export const SortMenu = <SortKey extends string = string>({
     ? [
         {
           id: "sort-menu-search",
-          custom: <SearchField value={search} onChange={setSearch} />,
+          custom: (
+            <SelectableListSearch
+              value={search}
+              onChange={setSearch}
+              aria-label="Search sort options"
+            />
+          ),
         },
         ...sorterItems,
         ...(visibleSorters.length === 0
