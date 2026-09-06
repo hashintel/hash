@@ -367,3 +367,147 @@ gh run view 33903037522 \
 
 Expected: use the log's first underlying test failure, not the aggregate
 `Tests passed` job, as the next root-cause investigation input.
+
+### Task 3: Keep queued canonical speech in the waiting state
+
+**Files:**
+
+- Modify: `apps/petrinaut-website/src/main/app/voice-interview/voice-turn-controller.ts:684-698`
+- Test: `apps/petrinaut-website/src/main/app/voice-interview/voice-turn-controller.test.ts:829-939`
+
+**Interfaces:**
+
+- Consumes: the existing `canonical-speech-requested` session event
+- Produces: `waiting-for-tool` output state until the requested response starts
+
+- [ ] **Step 1: Add a failing queued-speech regression test**
+
+```ts
+test("keeps capture closed when more canonical speech starts at settlement", async () => {
+  const harness = createHarness();
+  const finalSegment = markedQuestion("ask-final", "Who acts next?");
+  await harness.controller.start();
+  harness.emitBridge({
+    answer: "The supervisor approves it.",
+    deliveryId: "call-queued",
+    type: "submission-started",
+  });
+  harness.emitSession({
+    connectionEpoch: 1,
+    speechRequestId: "speech-early",
+    type: "canonical-speech-requested",
+  });
+  harness.emitSession({
+    connectionEpoch: 1,
+    responseId: "response-early",
+    speechRequestId: "speech-early",
+    type: "output-started",
+  });
+  harness.emitSession({
+    connectionEpoch: 1,
+    responseId: "response-early",
+    status: "completed",
+    type: "response-terminal",
+  });
+  harness.emitSession({
+    connectionEpoch: 1,
+    responseId: "response-early",
+    type: "output-stopped",
+  });
+  harness.session.setMicrophoneEnabled.mockClear();
+
+  harness.emitSession({
+    connectionEpoch: 1,
+    speechRequestId: "speech-final",
+    type: "canonical-speech-requested",
+  });
+  harness.emitBridge({
+    deliveryId: "call-queued",
+    questionSegment: finalSegment,
+    segments: [finalSegment],
+    type: "canonical-response-ready",
+  });
+
+  expect(harness.controller.getSnapshot()).toMatchObject({
+    canReadFullResponse: false,
+    canRepeatQuestion: false,
+    input: "listening",
+    output: "waiting-for-tool",
+  });
+  expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(true);
+
+  harness.emitSession({
+    connectionEpoch: 1,
+    responseId: "response-final",
+    speechRequestId: "speech-final",
+    type: "output-started",
+  });
+  harness.emitSession({
+    connectionEpoch: 1,
+    responseId: "response-final",
+    status: "completed",
+    type: "response-terminal",
+  });
+  harness.emitSession({
+    connectionEpoch: 1,
+    responseId: "response-final",
+    type: "output-stopped",
+  });
+
+  expect(harness.controller.getSnapshot()).toMatchObject({
+    canReadFullResponse: true,
+    canRepeatQuestion: true,
+    output: "idle",
+  });
+  expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+});
+```
+
+- [ ] **Step 2: Run the focused test and verify RED**
+
+```bash
+yarn workspace @apps/petrinaut-website test:unit src/main/app/voice-interview/voice-turn-controller.test.ts
+```
+
+Expected: the new test fails because canonical settlement preserves `idle`,
+enables replay, and reopens capture after the second speech request.
+
+- [ ] **Step 3: Mark requested canonical speech as waiting**
+
+Update the existing `canonical-speech-requested` snapshot transition:
+
+```ts
+this.#update({ output: "waiting-for-tool", partialText: "" });
+```
+
+This event is emitted when the realtime session sends `response.create`, so it
+closes the output-state gap between queued speech and `output-started`.
+
+- [ ] **Step 4: Run focused verification**
+
+```bash
+yarn workspace @apps/petrinaut-website test:unit src/main/app/voice-interview/voice-turn-controller.test.ts
+yarn workspace @apps/petrinaut-website lint:tsc
+yarn workspace @apps/petrinaut-website lint:eslint
+git diff --check
+```
+
+Expected: all commands exit with status 0.
+
+- [ ] **Step 5: Commit, push, and resolve the new bot thread**
+
+```bash
+git add \
+  apps/petrinaut-website/src/main/app/voice-interview/voice-turn-controller.ts \
+  apps/petrinaut-website/src/main/app/voice-interview/voice-turn-controller.test.ts \
+  docs/superpowers/plans/2026-09-06-voice-turn-settlement-reconciliation.md
+git commit -m "Keep capture closed for queued Voice speech"
+git push origin kostandin/fe-1580-harden-voice-safety-and-ux-on-the-unified-flue-route
+gh api \
+  --method POST \
+  repos/hashintel/hash/pulls/9531/comments/3943758254/replies \
+  -f body='Fixed. canonical-speech-requested now moves output to waiting-for-tool, so queued settlement speech keeps replay disabled and capture closed until playback settles.'
+gh api graphql \
+  -f threadId='PRRT_kwDOC75-is6frNee' \
+  -f query='mutation($threadId:ID!){resolveReviewThread(input:{threadId:$threadId}){thread{isResolved}}}'
+```

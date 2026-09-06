@@ -932,6 +932,85 @@ describe("VoiceTurnController", () => {
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
   });
 
+  test("keeps capture closed when more canonical speech starts at settlement", async () => {
+    const harness = createHarness();
+    const finalSegment = markedQuestion("ask-final", "Who acts next?");
+    await harness.controller.start();
+    harness.emitBridge({
+      answer: "The supervisor approves it.",
+      deliveryId: "call-queued",
+      type: "submission-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-early",
+      type: "canonical-speech-requested",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-early",
+      speechRequestId: "speech-early",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-early",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-early",
+      type: "output-stopped",
+    });
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-final",
+      type: "canonical-speech-requested",
+    });
+    harness.emitBridge({
+      deliveryId: "call-queued",
+      questionSegment: finalSegment,
+      segments: [finalSegment],
+      type: "canonical-response-ready",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: false,
+      canRepeatQuestion: false,
+      input: "listening",
+      output: "waiting-for-tool",
+    });
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(true);
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-final",
+      speechRequestId: "speech-final",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-final",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-final",
+      type: "output-stopped",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
+      output: "idle",
+    });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+  });
+
   test("preserves speaking output when canonical settlement arrives during playback", async () => {
     const harness = createHarness();
     const nextQuestion = markedQuestion("ask-playing", "Who acts next?");

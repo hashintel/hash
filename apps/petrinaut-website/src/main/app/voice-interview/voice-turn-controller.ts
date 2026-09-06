@@ -684,7 +684,7 @@ export class VoiceTurnController {
       this.#inputTurnPending = false;
       this.#transcriptItemId = null;
       this.#transcriptKey = null;
-      this.#update({ partialText: "" });
+      this.#update({ output: "waiting-for-tool", partialText: "" });
       if (
         this.#latencyCorrelationId !== null &&
         this.#ttsSpeechRequestId === null
