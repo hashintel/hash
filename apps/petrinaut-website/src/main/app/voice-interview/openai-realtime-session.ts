@@ -64,6 +64,7 @@ export type OpenAIRealtimeSessionEvent =
   | {
       readonly connectionEpoch: number;
       readonly responseId: string;
+      readonly speechRequestId?: string;
       readonly status: "cancelled" | "completed" | "failed" | "incomplete";
       readonly type: "response-terminal";
     }
@@ -119,6 +120,10 @@ type PendingClientEvent =
     };
 
 type SessionListener = (event: OpenAIRealtimeSessionEvent) => void;
+type ResponseTerminalStatus = Extract<
+  OpenAIRealtimeSessionEvent,
+  { type: "response-terminal" }
+>["status"];
 
 const CANONICAL_RESPONSE_INSTRUCTIONS =
   "Speak only the response_text strings supplied by Petrinaut, in array order and verbatim. Deliver them as a warm, calm, curious, confident, concise, and professionally neutral expert interviewer, at a measured conversational pace with natural emphasis. Never sound robotic, fawning, rushed, overenthusiastic, or patronizing. Do not add, remove, paraphrase, acknowledge, or explain anything.";
@@ -194,6 +199,7 @@ export class OpenAIRealtimeSession {
   readonly #remoteStreams = new Set<MediaStream>();
   readonly #speechRequestIds = new Map<string, string>();
   readonly #speechTimings = new Map<string, RequestTiming>();
+  readonly #terminalCanonicalResponseIds = new Set<string>();
   readonly #transcriptionTimings = new Map<string, RequestTiming>();
   #abortController: AbortController | null = null;
   #activeEpoch: number | null = null;
@@ -203,7 +209,7 @@ export class OpenAIRealtimeSession {
   #connectedAt: number | null = null;
   #clientEventSequence = 0;
   #cancelOutputAwaitingInputBufferClear = false;
-  #cancelOutputAwaitingOutputBufferResponseId: string | null = null;
+  #cancelOutputAwaitingOutputBufferClear = false;
   #cancelOutputPromise: Promise<void> | null = null;
   #cancelOutputResolve: (() => void) | null = null;
   #connectionRequestId: string | null = null;
@@ -407,7 +413,9 @@ export class OpenAIRealtimeSession {
     });
     this.#cancelOutputPromise = cancelOutputPromise;
     this.#cancelOutputAwaitingInputBufferClear = true;
-    this.#cancelOutputAwaitingOutputBufferResponseId = this.#speakingResponseId;
+    this.#cancelOutputAwaitingOutputBufferClear =
+      this.#speakingResponseId !== null ||
+      this.#terminalCanonicalResponseIds.size > 0;
     for (const itemId of this.#acceptedInputItemIds) {
       this.#playbackOverlappingInputItemIds.add(itemId);
     }
@@ -807,12 +815,21 @@ export class OpenAIRealtimeSession {
       this.#handleConnectionFailure("invalid-response", "connection");
       return;
     }
+    const terminalStatus = status as ResponseTerminalStatus;
     this.#responseTerminalSequence += 1;
     this.#activeResponseIds.delete(responseId);
     this.#cancelOutputAwaitingResponseIds.delete(responseId);
     this.#finishOutputCancellation();
     this.#clearResponseCancelEvents(responseId);
     this.#waitingForResponseTerminal = false;
+    const speechRequestId = this.#speechRequestIds.get(responseId);
+    const terminalEvent = {
+      connectionEpoch,
+      responseId,
+      ...(speechRequestId === undefined ? {} : { speechRequestId }),
+      status: terminalStatus,
+      type: "response-terminal" as const,
+    };
 
     if (this.#cancelledCanonicalResponseIds.delete(responseId)) {
       if (this.#speakingResponseId === responseId) {
@@ -822,18 +839,13 @@ export class OpenAIRealtimeSession {
           type: "output-interrupted",
         });
       }
-      this.#emit({
-        connectionEpoch,
-        responseId,
-        status,
-        type: "response-terminal",
-      });
+      this.#emit(terminalEvent);
       this.#finishSpeech(responseId, "request-aborted");
       this.#resumeCanonicalSpeechQueue();
       return;
     }
 
-    if (status === "completed") {
+    if (terminalStatus === "completed") {
       const output = response.output;
       if (!Array.isArray(output)) {
         this.#handleConnectionFailure("invalid-response", "connection");
@@ -843,16 +855,14 @@ export class OpenAIRealtimeSession {
         this.#handleConnectionFailure("invalid-response", "connection");
         return;
       }
-      this.#emit({
-        connectionEpoch,
-        responseId,
-        status,
-        type: "response-terminal",
-      });
+      if (this.#authorizedResponseIds.has(responseId)) {
+        this.#terminalCanonicalResponseIds.add(responseId);
+      }
+      this.#emit(terminalEvent);
       this.#resumeCanonicalSpeechQueue();
       return;
     }
-    if (status === "cancelled") {
+    if (terminalStatus === "cancelled") {
       if (this.#speakingResponseId === responseId) {
         this.#emit({
           connectionEpoch,
@@ -860,22 +870,12 @@ export class OpenAIRealtimeSession {
           type: "output-interrupted",
         });
       }
-      this.#emit({
-        connectionEpoch,
-        responseId,
-        status,
-        type: "response-terminal",
-      });
+      this.#emit(terminalEvent);
       this.#finishSpeech(responseId, "request-aborted");
       this.#resumeCanonicalSpeechQueue();
       return;
     }
-    this.#emit({
-      connectionEpoch,
-      responseId,
-      status,
-      type: "response-terminal",
-    });
+    this.#emit(terminalEvent);
     if (this.#authorizedResponseIds.has(responseId)) {
       this.#finishSpeech(responseId, "invalid-response");
     }
@@ -911,7 +911,7 @@ export class OpenAIRealtimeSession {
     if (event.type === "output_audio_buffer.started") {
       if (this.#cancelledCanonicalResponseIds.has(responseId)) {
         if (this.#cancelOutputPromise) {
-          this.#cancelOutputAwaitingOutputBufferResponseId = responseId;
+          this.#cancelOutputAwaitingOutputBufferClear = true;
         }
         this.#send({ type: "output_audio_buffer.clear" });
         return;
@@ -948,6 +948,11 @@ export class OpenAIRealtimeSession {
         ? "request-aborted"
         : undefined,
     );
+    if (wasCleared && this.#cancelOutputAwaitingOutputBufferClear) {
+      for (const terminalResponseId of this.#terminalCanonicalResponseIds) {
+        this.#finishSpeech(terminalResponseId, "request-aborted");
+      }
+    }
     if (wasSpeaking) {
       this.#emit({
         connectionEpoch,
@@ -955,8 +960,8 @@ export class OpenAIRealtimeSession {
         type: wasCleared ? "output-interrupted" : "output-stopped",
       });
     }
-    if (this.#cancelOutputAwaitingOutputBufferResponseId === responseId) {
-      this.#cancelOutputAwaitingOutputBufferResponseId = null;
+    if (wasCleared && this.#cancelOutputAwaitingOutputBufferClear) {
+      this.#cancelOutputAwaitingOutputBufferClear = false;
       this.#finishOutputCancellation();
     }
   }
@@ -1043,10 +1048,11 @@ export class OpenAIRealtimeSession {
     }
     this.#speechRequestIds.delete(responseId);
     this.#authorizedResponseIds.delete(responseId);
+    this.#terminalCanonicalResponseIds.delete(responseId);
     if (this.#speakingResponseId === responseId) {
       this.#speakingResponseId = null;
-      this.#syncMicrophoneTrack();
     }
+    this.#syncMicrophoneTrack();
   }
 
   #finishOutputCancellation(force = false): void {
@@ -1054,7 +1060,7 @@ export class OpenAIRealtimeSession {
       !this.#cancelOutputPromise ||
       (!force &&
         (this.#cancelOutputAwaitingInputBufferClear ||
-          this.#cancelOutputAwaitingOutputBufferResponseId !== null ||
+          this.#cancelOutputAwaitingOutputBufferClear ||
           this.#cancelOutputAwaitingRequestIds.size > 0 ||
           this.#cancelOutputAwaitingResponseIds.size > 0))
     ) {
@@ -1065,7 +1071,7 @@ export class OpenAIRealtimeSession {
     this.#cancelOutputPromise = null;
     this.#cancelOutputResolve = null;
     this.#cancelOutputAwaitingInputBufferClear = false;
-    this.#cancelOutputAwaitingOutputBufferResponseId = null;
+    this.#cancelOutputAwaitingOutputBufferClear = false;
     this.#cancelOutputAwaitingRequestIds.clear();
     this.#cancelOutputAwaitingResponseIds.clear();
     this.#syncMicrophoneTrack();
@@ -1258,6 +1264,8 @@ export class OpenAIRealtimeSession {
       this.#microphoneRequested &&
       this.#connected &&
       this.#cancelOutputPromise === null &&
+      this.#authorizedResponseIds.size === 0 &&
+      this.#canonicalSpeechQueue.length === 0 &&
       this.#responseCreateEventId === null &&
       this.#speakingResponseId === null;
     this.#microphoneTrack.enabled = enabled;
@@ -1370,6 +1378,7 @@ export class OpenAIRealtimeSession {
     this.#playbackOverlappingInputItemIds.clear();
     this.#speechTimings.clear();
     this.#speechRequestIds.clear();
+    this.#terminalCanonicalResponseIds.clear();
     this.#authorizedResponseIds.clear();
     this.#canonicalResponseIds.clear();
     this.#responseCreateEventId = null;

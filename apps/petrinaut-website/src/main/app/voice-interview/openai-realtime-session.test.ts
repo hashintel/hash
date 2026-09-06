@@ -654,6 +654,133 @@ describe("OpenAIRealtimeSession", () => {
     });
   });
 
+  test("keeps the microphone closed when an earlier stop follows a queued response request", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("early", "First canonical segment."),
+    ]);
+    authorizeLatestSpeechResponse(channel, "response-early");
+    channel.receive({
+      response_id: "response-early",
+      type: "output_audio_buffer.started",
+    });
+    harness.session.speakCanonical([
+      canonicalSegment("follow-on", "Second canonical segment."),
+    ]);
+
+    channel.receive({
+      response: {
+        id: "response-early",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+    expect(harness.events.at(-1)).toMatchObject({
+      speechRequestId: "canonical-1-2",
+      type: "canonical-speech-requested",
+    });
+    authorizeLatestSpeechResponse(channel, "response-follow-on");
+    channel.receive({
+      response: {
+        id: "response-follow-on",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    channel.receive({
+      response_id: "response-early",
+      type: "output_audio_buffer.stopped",
+    });
+
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+
+    channel.receive({
+      response_id: "response-follow-on",
+      type: "output_audio_buffer.started",
+    });
+    channel.receive({
+      response_id: "response-follow-on",
+      type: "output_audio_buffer.stopped",
+    });
+    expect(harness.events).toContainEqual({
+      connectionEpoch: 1,
+      responseId: "response-follow-on",
+      speechRequestId: "canonical-1-2",
+      status: "completed",
+      type: "response-terminal",
+    });
+    expect(harness.localTracks[0]!.enabled).toBe(true);
+  });
+
+  test("releases active canonical ownership after acknowledged cancellation", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("cancelled", "Cancel this canonical segment."),
+    ]);
+    authorizeLatestSpeechResponse(channel, "response-cancelled");
+
+    const cancellation = harness.session.cancelOutput();
+    channel.receive({ type: "input_audio_buffer.cleared" });
+    channel.receive({
+      response: {
+        id: "response-cancelled",
+        output: [],
+        status: "cancelled",
+      },
+      type: "response.done",
+    });
+    await cancellation;
+
+    expect(harness.localTracks[0]!.enabled).toBe(true);
+  });
+
+  test("waits for output clear when cancelling generated audio before playback", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("generated", "Generated canonical segment."),
+    ]);
+    authorizeLatestSpeechResponse(channel, "response-generated");
+    channel.receive({
+      response: {
+        id: "response-generated",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    const cancellation = harness.session.cancelOutput();
+    let settled = false;
+    void cancellation.then(() => {
+      settled = true;
+    });
+    channel.receive({ type: "input_audio_buffer.cleared" });
+    await Promise.resolve();
+
+    expect(settled).toBe(false);
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+
+    channel.receive({
+      response_id: "response-generated",
+      type: "output_audio_buffer.cleared",
+    });
+    await cancellation;
+
+    expect(harness.localTracks[0]!.enabled).toBe(true);
+  });
+
   test("cancels canonical speech before the response starts", async () => {
     const harness = createHarness();
     await harness.session.connect();
