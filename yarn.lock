@@ -541,6 +541,7 @@ __metadata:
     tsconfig-paths-webpack-plugin: "npm:4.2.0"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
+    vite: "npm:8.1.0"
     vitest: "npm:4.1.10"
     wait-on: "npm:9.0.1"
   languageName: unknown

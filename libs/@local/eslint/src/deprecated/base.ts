@@ -55,6 +55,7 @@ export const create = (projectDirectory: string) =>
       plugins: {
         "@typescript-eslint": typescriptEslint,
         canonical,
+        "import-declared": importPlugin,
         "react-hooks": reactHooks,
         "simple-import-sort": simpleImportSort,
         unicorn,
@@ -125,35 +126,10 @@ export const create = (projectDirectory: string) =>
         "import/no-cycle": "error",
         "import/named": "off",
         "import/prefer-default-export": "off",
-        // The `devDependencies` globs are the ones `eslint-config-airbnb-base` ships.
-        "import/no-extraneous-dependencies": [
+        "import-declared/no-extraneous-dependencies": [
           "error",
           {
-            devDependencies: [
-              "test/**",
-              "tests/**",
-              "spec/**",
-              "**/__tests__/**",
-              "**/__mocks__/**",
-              "test.{js,jsx}",
-              "test-*.{js,jsx}",
-              "**/*{.,_}{test,spec}.{js,jsx}",
-              "**/jest.config.js",
-              "**/jest.setup.js",
-              "**/vue.config.js",
-              "**/webpack.config.js",
-              "**/webpack.config.*.js",
-              "**/rollup.config.js",
-              "**/rollup.config.*.js",
-              "**/gulpfile.js",
-              "**/gulpfile.*.js",
-              "**/Gruntfile{,.js}",
-              "**/protractor.conf.js",
-              "**/protractor.conf.*.js",
-              "**/karma.conf.js",
-              "**/.eslintrc.js",
-            ],
-            optionalDependencies: false,
+            devDependencies: true,
             includeTypes: true,
           },
         ],
@@ -430,7 +406,6 @@ export const create = (projectDirectory: string) =>
           "error",
           {
             devDependencies: true,
-            includeTypes: true,
           },
         ],
       },
@@ -443,7 +418,6 @@ export const create = (projectDirectory: string) =>
           "error",
           {
             devDependencies: true,
-            includeTypes: true,
           },
         ],
       },
@@ -458,7 +432,6 @@ export const create = (projectDirectory: string) =>
           "error",
           {
             devDependencies: true,
-            includeTypes: true,
           },
         ],
       },
