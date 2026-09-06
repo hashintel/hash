@@ -365,6 +365,10 @@ describe("OpenAIRealtimeSession", () => {
     ).toBe(false);
 
     const handoff = harness.session.cancelOutput();
+    let handoffSettled = false;
+    void handoff.then(() => {
+      handoffSettled = true;
+    });
     authorizeLatestSpeechResponse(channel, "response-before-output");
     channel.receive({ type: "input_audio_buffer.cleared" });
     channel.receive({
@@ -375,6 +379,11 @@ describe("OpenAIRealtimeSession", () => {
       },
       type: "response.done",
     });
+    await Promise.resolve();
+
+    expect(handoffSettled).toBe(false);
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+
     channel.receive({
       response_id: "response-before-output",
       type: "output_audio_buffer.cleared",
@@ -437,6 +446,28 @@ describe("OpenAIRealtimeSession", () => {
     });
 
     expect(harness.localTracks[0]!.enabled).toBe(false);
+  });
+
+  test("settles idle cancellation after input clear without response-scoped output", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+
+    const cancellation = harness.session.cancelOutput();
+    let settled = false;
+    void cancellation.then(() => {
+      settled = true;
+    });
+    channel.receive({ type: "input_audio_buffer.cleared" });
+    await Promise.resolve();
+
+    expect(settled).toBe(true);
+    expect(harness.localTracks[0]!.enabled).toBe(true);
+    expect(sentEvents(channel)).toEqual([
+      { type: "input_audio_buffer.clear" },
+      { type: "output_audio_buffer.clear" },
+    ]);
   });
 
   test("waits for input, output, and response settlement before completing handoff", async () => {

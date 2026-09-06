@@ -413,7 +413,10 @@ export class OpenAIRealtimeSession {
     });
     this.#cancelOutputPromise = cancelOutputPromise;
     this.#cancelOutputAwaitingInputBufferClear = true;
-    this.#cancelOutputAwaitingOutputBufferClear = true;
+    this.#cancelOutputAwaitingOutputBufferClear =
+      this.#authorizedResponseIds.size > 0 ||
+      this.#terminalCanonicalResponseIds.size > 0 ||
+      this.#speakingResponseId !== null;
     for (const itemId of this.#acceptedInputItemIds) {
       this.#playbackOverlappingInputItemIds.add(itemId);
     }
@@ -463,6 +466,9 @@ export class OpenAIRealtimeSession {
   }
 
   #cancelOutputResponse(responseId: string): void {
+    if (this.#cancelOutputPromise) {
+      this.#cancelOutputAwaitingOutputBufferClear = true;
+    }
     this.#cancelResponse(responseId);
     this.#send({ type: "output_audio_buffer.clear" });
   }
