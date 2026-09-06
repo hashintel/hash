@@ -562,12 +562,64 @@ describe("VoiceTurnController", () => {
       type: "canonical-response-ready",
     });
 
-    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalled();
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "listening",
       microphoneEnabled: true,
       output: "interrupted",
     });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+  });
+
+  test("restores capture when cancelled settlement arrives after interrupted early speech", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitBridge({
+      answer: "The supervisor approves it.",
+      deliveryId: "call-interrupted-early",
+      type: "submission-started",
+    });
+    harness.emitBridge({
+      answer: "The supervisor approves it.",
+      deliveryId: "call-interrupted-early",
+      type: "submission-accepted",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-interrupted-early",
+      type: "canonical-speech-requested",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-interrupted-early",
+      speechRequestId: "speech-interrupted-early",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-interrupted-early",
+      type: "output-interrupted",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-interrupted-early",
+      status: "cancelled",
+      type: "response-terminal",
+    });
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    harness.emitBridge({
+      deliveryId: "call-interrupted-early",
+      segments: [],
+      speechCancelled: true,
+      type: "canonical-response-ready",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: true,
+      output: "interrupted",
+    });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
   });
 
   test("replays exact canonical response segments but does not infer a question from the final segment", async () => {
