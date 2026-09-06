@@ -413,9 +413,7 @@ export class OpenAIRealtimeSession {
     });
     this.#cancelOutputPromise = cancelOutputPromise;
     this.#cancelOutputAwaitingInputBufferClear = true;
-    this.#cancelOutputAwaitingOutputBufferClear =
-      this.#speakingResponseId !== null ||
-      this.#terminalCanonicalResponseIds.size > 0;
+    this.#cancelOutputAwaitingOutputBufferClear = true;
     for (const itemId of this.#acceptedInputItemIds) {
       this.#playbackOverlappingInputItemIds.add(itemId);
     }

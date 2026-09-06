@@ -132,6 +132,35 @@ describe("RealtimeBrunchBridge", () => {
     expect(harness.events).toEqual([]);
   });
 
+  test("does not dispatch canonical updates that arrive during output cancellation", () => {
+    const harness = createHarness();
+    startReady(harness);
+    const cancelledSegment = segment(
+      "cancelled-update",
+      "Do not speak this cancelled update.",
+    );
+
+    harness.bridge.cancelPendingSpeech();
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [cancelledSegment],
+      status: "streaming",
+    });
+
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+
+    harness.bridge.completeTurnHandoff();
+    const laterSegment = segment("later-update", "Speak this later update.");
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [cancelledSegment, laterSegment],
+      status: "ready",
+    });
+
+    expect(harness.session.speakCanonical).toHaveBeenCalledOnce();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([laterSegment]);
+  });
+
   test("submits only a completed transcript through the user admission target", async () => {
     const harness = createHarness();
     startReady(harness, 7);

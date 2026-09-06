@@ -375,6 +375,10 @@ describe("OpenAIRealtimeSession", () => {
       },
       type: "response.done",
     });
+    channel.receive({
+      response_id: "response-before-output",
+      type: "output_audio_buffer.cleared",
+    });
     await handoff;
     expect(harness.localTracks[0]!.enabled).toBe(true);
 
@@ -729,6 +733,10 @@ describe("OpenAIRealtimeSession", () => {
     authorizeLatestSpeechResponse(channel, "response-cancelled");
 
     const cancellation = harness.session.cancelOutput();
+    let settled = false;
+    void cancellation.then(() => {
+      settled = true;
+    });
     channel.receive({ type: "input_audio_buffer.cleared" });
     channel.receive({
       response: {
@@ -737,6 +745,15 @@ describe("OpenAIRealtimeSession", () => {
         status: "cancelled",
       },
       type: "response.done",
+    });
+    await Promise.resolve();
+
+    expect(settled).toBe(false);
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+
+    channel.receive({
+      response_id: "response-cancelled",
+      type: "output_audio_buffer.cleared",
     });
     await cancellation;
 
@@ -779,6 +796,26 @@ describe("OpenAIRealtimeSession", () => {
     await cancellation;
 
     expect(harness.localTracks[0]!.enabled).toBe(true);
+  });
+
+  test("force-settles cancellation when the provider fails before output clear", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const cancellation = harness.session.cancelOutput();
+
+    harness.channels[0]!.receive({
+      error: { message: "private provider detail" },
+      type: "error",
+    });
+
+    await expect(cancellation).resolves.toBeUndefined();
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+    expect(harness.localTracks[0]!.stop).toHaveBeenCalledOnce();
+    expect(harness.events.at(-1)).toMatchObject({
+      code: "invalid-response",
+      type: "error",
+    });
   });
 
   test("cancels canonical speech before the response starts", async () => {
