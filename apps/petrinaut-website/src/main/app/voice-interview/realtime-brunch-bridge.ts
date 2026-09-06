@@ -425,10 +425,7 @@ export class RealtimeBrunchBridge {
       return;
     }
     if (event.type === "response-terminal") {
-      if (
-        event.status !== "completed" &&
-        event.speechRequestId !== undefined
-      ) {
+      if (event.status !== "completed" && event.speechRequestId !== undefined) {
         this.#pendingSpeechRequestIds.delete(event.speechRequestId);
       }
       return;
