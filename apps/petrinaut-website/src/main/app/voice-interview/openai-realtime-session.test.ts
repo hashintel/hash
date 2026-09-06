@@ -177,6 +177,151 @@ describe("OpenAIRealtimeSession", () => {
     vi.useRealTimers();
   });
 
+  test.each([
+    [
+      "SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet, scenario, and metric.",
+      "prompt-regurgitation",
+    ],
+    [
+      "The supervisor reviews the request before the manager approves it.",
+      "self-echo",
+    ],
+    ["stop", null],
+    ["no", null],
+    ["wait", null],
+    ["The reviewer sends the signed form to the accounts department.", null],
+    ["The applicant receives an email after the review is complete.", null],
+    [
+      "The auditor reviews all requests before the manager receives them.",
+      null,
+    ],
+  ])(
+    "cancels immediately and validates completed interruption through the real stack: %s",
+    async (text, rejectionReason) => {
+      const harness = createHarness();
+      const submitInterviewAnswer = vi.fn<
+        ConstructorParameters<
+          typeof RealtimeBrunchBridge
+        >[0]["submitInterviewAnswer"]
+      >(async (input) => ({ kind: "message", messageId: input.id }));
+      const reportDiagnostic = vi.fn();
+      const bridge = new RealtimeBrunchBridge({
+        session: harness.session,
+        submitInterviewAnswer,
+        reportDiagnostic,
+      });
+      const controller = new VoiceTurnController({
+        bridge,
+        session: harness.session,
+        submitText: vi.fn(async () => undefined),
+      });
+      controller.setInterruptionBySpeaking(true);
+      const history = canonicalSegment(
+        "history",
+        "The reviewer sends the signed form to the accounts department.",
+      );
+      controller.updateChat({
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: [history],
+        status: "ready",
+      });
+      await controller.start();
+      const channel = harness.channels.at(-1)!;
+      controller.updateChat({
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: [
+          history,
+          canonicalSegment(
+            "playing",
+            "The supervisor reviews the request before the manager approves it.",
+          ),
+        ],
+        status: "ready",
+      });
+      authorizeLatestSpeechResponse(channel, "playing-response");
+      channel.receive({
+        type: "output_audio_buffer.started",
+        response_id: "playing-response",
+      });
+      harness.session.speakCanonical([
+        canonicalSegment(
+          "queued",
+          "The applicant receives an email after the review is complete.",
+        ),
+      ]);
+      channel.send.mockClear();
+      channel.receive({
+        type: "input_audio_buffer.speech_started",
+        item_id: "interruption",
+        audio_start_ms: 100,
+      });
+      expect(sentEvents(channel).map(({ type }) => type)).toEqual([
+        "response.cancel",
+        "output_audio_buffer.clear",
+      ]);
+      expect(submitInterviewAnswer).not.toHaveBeenCalled();
+      expect(reportDiagnostic).not.toHaveBeenCalled();
+      channel.receive({
+        type: "conversation.item.input_audio_transcription.delta",
+        item_id: "interruption",
+        content_index: 0,
+        delta: text,
+      });
+      expect(submitInterviewAnswer).not.toHaveBeenCalled();
+      channel.receive({
+        type: "response.done",
+        response: { id: "playing-response", status: "cancelled", output: [] },
+      });
+      channel.receive({
+        type: "output_audio_buffer.cleared",
+        response_id: "playing-response",
+      });
+      const completed = {
+        type: "conversation.item.input_audio_transcription.completed",
+        item_id: "interruption",
+        content_index: 0,
+        transcript: text,
+      };
+      channel.receive(completed);
+      channel.receive(completed);
+      if (rejectionReason) {
+        expect(submitInterviewAnswer).not.toHaveBeenCalled();
+        expect(controller.getSnapshot()).toMatchObject({
+          connection: "connected",
+          errorCode: null,
+          inputNotice: "none",
+          lastAnswerDelivery: "none",
+          lastCommittedText: "",
+          partialText: "",
+        });
+        expect(reportDiagnostic).toHaveBeenCalledOnce();
+        expect(reportDiagnostic).toHaveBeenCalledWith({
+          durationMs: expect.any(Number) as unknown,
+          operation: "transcription",
+          outcome: "rejected",
+          rejectionReason,
+          requestId: expect.any(String) as unknown,
+          stage: "browser",
+        });
+        expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain(text);
+      } else {
+        expect(submitInterviewAnswer).toHaveBeenCalledOnce();
+        expect(submitInterviewAnswer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            text,
+            id: "voice-realtime:1:interruption:0",
+          }),
+        );
+      }
+      expect(
+        sentEvents(channel).some(
+          ({ type }) => type === "input_audio_buffer.clear",
+        ),
+      ).toBe(false);
+      await controller.end();
+    },
+  );
+
   test.each(["playing", "generated", "creating"] as const)(
     "preserves an interrupting answer through the real Voice stack while %s",
     async (phase) => {

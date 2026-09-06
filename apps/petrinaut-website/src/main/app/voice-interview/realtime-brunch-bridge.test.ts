@@ -89,6 +89,7 @@ const createHarness = () => {
   const bridge = new RealtimeBrunchBridge({
     session,
     submitInterviewAnswer,
+    reportDiagnostic: vi.fn(),
   });
   const events: RealtimeBrunchBridgeEvent[] = [];
   bridge.subscribe((event) => events.push(event));
@@ -115,6 +116,254 @@ const startReady = (
 };
 
 describe("RealtimeBrunchBridge", () => {
+  const vocabularyLeak =
+    "SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet, scenario, and metric.";
+  const assistantText =
+    "The supervisor reviews the request before the manager approves it.";
+
+  test.each([
+    ["prompt-regurgitation", vocabularyLeak],
+    ["prompt-regurgitation", vocabularyLeak.normalize("NFKC").toUpperCase()],
+    [
+      "prompt-regurgitation",
+      "place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet",
+    ],
+    ["self-echo", assistantText],
+    [
+      "self-echo",
+      "ＴＨＥ supervisor—reviews the request, before\n the manager approves it!",
+    ],
+    ["self-echo", "reviews the request before the manager approves it"],
+  ])("silently discards %s before pending admission: %s", (reason, text) => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "streaming",
+    });
+    harness.emit({
+      type: "output-started",
+      connectionEpoch: 3,
+      responseId: "playing",
+      speechRequestId: "speech",
+      canonicalText: [assistantText],
+    });
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "false-vad",
+      interruptionBySpeaking: true,
+    });
+    // Output and canonical chat may change before transcription completes.
+    harness.emit({
+      type: "output-interrupted",
+      connectionEpoch: 3,
+      responseId: "playing",
+    });
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [
+        segment("later", "Which department handles the invoice?"),
+      ],
+      status: "streaming",
+    });
+    // Repeated starts cannot replace the original playback snapshot.
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "false-vad",
+      interruptionBySpeaking: true,
+    });
+    harness.emit(completedTranscript(3, text, "false-vad"));
+    expect(harness.events).toEqual([{ type: "transcript-rejected", reason }]);
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+    harness.emit(completedTranscript(3, text, "false-vad"));
+    expect(harness.events.at(-1)).toEqual({
+      type: "transcript-rejected",
+      reason: "duplicate",
+    });
+
+    // A false transcript must not occupy the single pending-answer slot.
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "real",
+      interruptionBySpeaking: true,
+    });
+    harness.emit(completedTranscript(3, "wait", "real"));
+    expect(harness.events.at(-1)).toEqual({
+      type: "transcript-retained",
+      answer: "wait",
+    });
+    const ready = {
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      status: "ready" as const,
+    };
+    harness.bridge.updateChat(ready);
+    harness.bridge.updateChat(ready);
+    harness.emit(completedTranscript(3, "wait", "real"));
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "wait" }),
+    );
+  });
+
+  test.each([
+    "stop",
+    "no",
+    "wait",
+    "ＳＴＯＰ!",
+    "place",
+    "transition",
+    "The supervisor does not approve it; the auditor makes that decision.",
+    "Use a place and transition with a token and a guard for approval.",
+    "metric scenario subnet parameter distribution rate guard marking token arc transition place net Petri stochastic SDCPN",
+  ])(
+    "admits novel interruption exactly once without changing its text: %s",
+    (text) => {
+      const harness = createHarness();
+      startReady(harness);
+      harness.emit({
+        type: "output-started",
+        connectionEpoch: 3,
+        responseId: "playing",
+        speechRequestId: "speech",
+        canonicalText: [assistantText],
+      });
+      harness.emit({
+        type: "input-speech-started",
+        connectionEpoch: 3,
+        itemId: "real",
+        interruptionBySpeaking: true,
+      });
+      harness.emit(completedTranscript(3, text, "real"));
+      harness.emit(completedTranscript(3, text, "real"));
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+        expect.objectContaining({ text }),
+      );
+    },
+  );
+
+  test.each([vocabularyLeak, assistantText])(
+    "leaves ordinary transcripts unchanged: %s",
+    (text) => {
+      const harness = createHarness();
+      startReady(harness);
+      harness.emit(completedTranscript(3, text));
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+        expect.objectContaining({ text }),
+      );
+    },
+  );
+
+  test("does not classify ordinary capture merely because interruption is enabled", () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "ordinary",
+      interruptionBySpeaking: true,
+    });
+    harness.emit(completedTranscript(3, vocabularyLeak, "ordinary"));
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+  });
+
+  test.each(["stop", "cancelPendingSpeech", "failure", "reconnect"] as const)(
+    "cleans playback snapshots on %s",
+    (action) => {
+      const harness = createHarness();
+      startReady(harness);
+      harness.emit({
+        type: "output-started",
+        connectionEpoch: 3,
+        responseId: "old",
+        speechRequestId: "speech",
+        canonicalText: [assistantText],
+      });
+      harness.emit({
+        type: "input-speech-started",
+        connectionEpoch: 3,
+        itemId: "unfinished",
+        interruptionBySpeaking: true,
+      });
+      if (action === "failure")
+        harness.bridge.updateChat({
+          canAcceptInterviewAnswer: false,
+          canonicalSegments: [],
+          status: "error",
+        });
+      else if (action === "reconnect") harness.bridge.start(4);
+      else harness.bridge[action]();
+      if (action === "cancelPendingSpeech")
+        harness.bridge.completeTurnHandoff();
+      else harness.bridge.start(4);
+      harness.bridge.updateChat({
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: [],
+        status: "ready",
+      });
+      const epoch = action === "cancelPendingSpeech" ? 3 : 4;
+      harness.emit({
+        type: "input-speech-started",
+        connectionEpoch: epoch,
+        itemId: "unfinished",
+        interruptionBySpeaking: true,
+      });
+      harness.emit(completedTranscript(epoch, assistantText, "unfinished"));
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+    },
+  );
+
+  test("filters a prompt leak while playback creation is still pending", () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.emit({
+      type: "canonical-speech-requested",
+      connectionEpoch: 3,
+      speechRequestId: "creating",
+    });
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "false-vad",
+      interruptionBySpeaking: true,
+    });
+    harness.emit(completedTranscript(3, vocabularyLeak, "false-vad"));
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+    expect(harness.events).toEqual([
+      { type: "transcript-rejected", reason: "prompt-regurgitation" },
+    ]);
+  });
+
+  test.each(["output-stopped", "output-interrupted"] as const)(
+    "does not compare against playback that already %s",
+    (type) => {
+      const harness = createHarness();
+      startReady(harness);
+      harness.emit({
+        type: "output-started",
+        connectionEpoch: 3,
+        responseId: "old",
+        speechRequestId: "speech",
+        canonicalText: [assistantText],
+      });
+      harness.emit({ type, connectionEpoch: 3, responseId: "old" });
+      harness.emit({
+        type: "input-speech-started",
+        connectionEpoch: 3,
+        itemId: "real",
+        interruptionBySpeaking: true,
+      });
+      harness.emit(completedTranscript(3, assistantText, "real"));
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+    },
+  );
+
   test("retains an interrupting transcript until the previous Brunch submission settles", async () => {
     const harness = createHarness();
     startReady(harness);
