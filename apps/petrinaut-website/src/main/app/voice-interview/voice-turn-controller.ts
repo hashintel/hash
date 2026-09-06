@@ -623,6 +623,16 @@ export class VoiceTurnController {
       if (event.reason === "duplicate" || event.reason === "unavailable") {
         return;
       }
+      if (
+        event.reason === "prompt-regurgitation" ||
+        event.reason === "self-echo"
+      ) {
+        this.#inputTurnPending = false;
+        this.#transcriptItemId = null;
+        this.#transcriptKey = null;
+        this.#update({ inputNotice: "none", partialText: "" });
+        return;
+      }
       this.#transcriptItemId = null;
       this.#transcriptKey = null;
       this.#update({

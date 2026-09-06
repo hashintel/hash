@@ -1,5 +1,13 @@
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 
+import {
+  createVoiceRequestId,
+  reportVoiceDiagnostic,
+  voiceDurationMs,
+  type VoiceDiagnosticReporter,
+} from "../../../voice-diagnostics";
+import { classifyInterruption } from "./realtime-brunch-bridge/classify-interruption";
+
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type {
   OpenAIRealtimeSessionEvent,
@@ -61,6 +69,7 @@ type SubmitInterviewAnswerResult =
     });
 
 interface RealtimeBrunchBridgeDependencies {
+  readonly reportDiagnostic?: VoiceDiagnosticReporter;
   readonly session: RealtimeBridgeSession;
   readonly submitInterviewAnswer: (
     input: SubmitInterviewAnswerInput,
@@ -104,6 +113,8 @@ export type RealtimeTranscriptRejectionReason =
   | "failed"
   | "over-limit"
   | "pending"
+  | "prompt-regurgitation"
+  | "self-echo"
   | "unavailable";
 
 export type RealtimeBrunchBridgeEvent =
@@ -205,17 +216,22 @@ const admissionErrorCode = (
 
 export class RealtimeBrunchBridge {
   readonly #acceptedInputItemIds = new Set<string>();
-  readonly #activeOutputResponseIds = new Set<string>();
+  readonly #activePlaybackText = new Map<string, readonly string[]>();
   readonly #listeners = new Set<BridgeListener>();
   readonly #pendingSpeechRequestIds = new Set<string>();
   readonly #playbackOverlappingInputItemIds = new Set<string>();
   readonly #processedTranscripts = new Set<string>();
+  readonly #reportDiagnostic: VoiceDiagnosticReporter;
   readonly #session: RealtimeBridgeSession;
   readonly #submitInterviewAnswer: (
     input: SubmitInterviewAnswerInput,
   ) => Promise<SubmitInterviewAnswerResult>;
   readonly #seenSegmentIds = new Set<string>();
-  readonly #interruptionInputItemIds = new Set<string>();
+  // null preserves enabled-mode admission without classifying ordinary capture.
+  readonly #interruptionPlaybackText = new Map<
+    string,
+    readonly string[] | null
+  >();
   #pendingInterruption: { answer: string; deliveryId: string } | null = null;
   #activeEpoch: number | null = null;
   #activeSubmission: ActiveSubmission | null = null;
@@ -228,9 +244,11 @@ export class RealtimeBrunchBridge {
   #outputCancellationPending = false;
 
   public constructor({
+    reportDiagnostic = reportVoiceDiagnostic,
     session,
     submitInterviewAnswer,
   }: RealtimeBrunchBridgeDependencies) {
+    this.#reportDiagnostic = reportDiagnostic;
     this.#session = session;
     this.#submitInterviewAnswer = submitInterviewAnswer;
     session.subscribe((event) => this.#handleSessionEvent(event));
@@ -244,14 +262,17 @@ export class RealtimeBrunchBridge {
   public cancelPendingSpeech(): void {
     this.#outputCancellationPending = true;
     this.#pendingInterruption = null;
-    this.#interruptionInputItemIds.clear();
+    this.#interruptionPlaybackText.clear();
+    for (const responseId of this.#activePlaybackText.keys()) {
+      this.#activePlaybackText.set(responseId, []);
+    }
     if (this.#activeSubmission) {
       this.#activeSubmission.speechCancelled = true;
     }
   }
 
   public completeTurnHandoff(): void {
-    this.#activeOutputResponseIds.clear();
+    this.#activePlaybackText.clear();
     this.#outputCancellationPending = false;
     this.#pendingSpeechRequestIds.clear();
   }
@@ -301,11 +322,11 @@ export class RealtimeBrunchBridge {
     this.#activeEpoch = connectionEpoch;
     this.#activeSubmission = null;
     this.#acceptedInputItemIds.clear();
-    this.#interruptionInputItemIds.clear();
+    this.#interruptionPlaybackText.clear();
     this.#pendingInterruption = null;
     this.#playbackOverlappingInputItemIds.clear();
     this.#processedTranscripts.clear();
-    this.#activeOutputResponseIds.clear();
+    this.#activePlaybackText.clear();
     this.#outputCancellationPending = false;
     this.#pendingSpeechRequestIds.clear();
     this.#seenSegmentIds.clear();
@@ -320,11 +341,11 @@ export class RealtimeBrunchBridge {
     this.#activeEpoch = null;
     this.#activeSubmission = null;
     this.#acceptedInputItemIds.clear();
-    this.#interruptionInputItemIds.clear();
+    this.#interruptionPlaybackText.clear();
     this.#pendingInterruption = null;
     this.#playbackOverlappingInputItemIds.clear();
     this.#processedTranscripts.clear();
-    this.#activeOutputResponseIds.clear();
+    this.#activePlaybackText.clear();
     this.#outputCancellationPending = false;
     this.#pendingSpeechRequestIds.clear();
   }
@@ -393,7 +414,8 @@ export class RealtimeBrunchBridge {
     this.#activeSubmission?.abortController.abort();
     this.#activeSubmission = null;
     this.#pendingInterruption = null;
-    this.#interruptionInputItemIds.clear();
+    this.#interruptionPlaybackText.clear();
+    this.#activePlaybackText.clear();
     this.#emit({ code, message, type: "error" });
   }
 
@@ -402,7 +424,8 @@ export class RealtimeBrunchBridge {
     this.#activeSubmission?.abortController.abort();
     this.#activeSubmission = null;
     this.#pendingInterruption = null;
-    this.#interruptionInputItemIds.clear();
+    this.#interruptionPlaybackText.clear();
+    this.#activePlaybackText.clear();
     this.#emit({
       code: admissionErrorCode(error.failure),
       failure: error.failure,
@@ -420,7 +443,16 @@ export class RealtimeBrunchBridge {
     }
     if (event.type === "input-speech-started") {
       if (event.interruptionBySpeaking) {
-        this.#interruptionInputItemIds.add(event.itemId);
+        // The session has already sent output cancellation. Snapshot only text
+        // whose playback started, not queued speech or canonical chat history.
+        if (!this.#interruptionPlaybackText.has(event.itemId)) {
+          this.#interruptionPlaybackText.set(
+            event.itemId,
+            this.#ownsOutputTurn()
+              ? Array.from(this.#activePlaybackText.values()).flat()
+              : null,
+          );
+        }
         if (this.#activeSubmission) {
           this.#activeSubmission.speechCancelled = true;
         }
@@ -442,9 +474,9 @@ export class RealtimeBrunchBridge {
     }
     if (event.type === "output-started") {
       this.#pendingSpeechRequestIds.delete(event.speechRequestId);
-      this.#activeOutputResponseIds.add(event.responseId);
+      this.#activePlaybackText.set(event.responseId, event.canonicalText ?? []);
       for (const itemId of this.#acceptedInputItemIds) {
-        if (!this.#interruptionInputItemIds.has(itemId)) {
+        if (!this.#interruptionPlaybackText.has(itemId)) {
           this.#playbackOverlappingInputItemIds.add(itemId);
           this.#acceptedInputItemIds.delete(itemId);
         }
@@ -455,7 +487,7 @@ export class RealtimeBrunchBridge {
       event.type === "output-stopped" ||
       event.type === "output-interrupted"
     ) {
-      this.#activeOutputResponseIds.delete(event.responseId);
+      this.#activePlaybackText.delete(event.responseId);
       return;
     }
     if (event.type === "response-terminal") {
@@ -478,6 +510,10 @@ export class RealtimeBrunchBridge {
     }
     this.#processedTranscripts.add(keyId);
     this.#acceptedInputItemIds.delete(event.key.itemId);
+    const interruptionPlaybackText = this.#interruptionPlaybackText.get(
+      event.key.itemId,
+    );
+    this.#interruptionPlaybackText.delete(event.key.itemId);
 
     if (this.#playbackOverlappingInputItemIds.has(event.key.itemId)) {
       this.#rejectTranscript("unavailable");
@@ -491,10 +527,7 @@ export class RealtimeBrunchBridge {
 
     // An interrupting utterance is retained rather than refused when Brunch is
     // still busy, so only ordinary capture answers a closed submission window.
-    const interruptionBySpeaking = this.#interruptionInputItemIds.delete(
-      event.key.itemId,
-    );
-    if (!interruptionBySpeaking && !this.#canSubmitAnswerNow()) {
+    if (interruptionPlaybackText === undefined && !this.#canSubmitAnswerNow()) {
       this.#rejectTranscript("unavailable");
       return;
     }
@@ -507,6 +540,29 @@ export class RealtimeBrunchBridge {
     if (Array.from(answer).length > ANSWER_LIMIT) {
       this.#rejectTranscript("over-limit");
       return;
+    }
+
+    if (
+      interruptionPlaybackText !== undefined &&
+      interruptionPlaybackText !== null
+    ) {
+      const startedAt = performance.now();
+      const rejectionReason = classifyInterruption(
+        answer,
+        interruptionPlaybackText,
+      );
+      if (rejectionReason !== null) {
+        this.#reportDiagnostic({
+          durationMs: voiceDurationMs(startedAt, performance.now()),
+          operation: "transcription",
+          outcome: "rejected",
+          rejectionReason,
+          requestId: createVoiceRequestId(),
+          stage: "browser",
+        });
+        this.#rejectTranscript(rejectionReason);
+        return;
+      }
     }
 
     const deliveryId = createRealtimeSubmissionId(event.key);
@@ -560,7 +616,7 @@ export class RealtimeBrunchBridge {
 
   #ownsOutputTurn(): boolean {
     return (
-      this.#activeOutputResponseIds.size > 0 ||
+      this.#activePlaybackText.size > 0 ||
       this.#pendingSpeechRequestIds.size > 0
     );
   }

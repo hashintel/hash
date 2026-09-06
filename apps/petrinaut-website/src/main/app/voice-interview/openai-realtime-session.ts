@@ -46,6 +46,8 @@ export type OpenAIRealtimeSessionEvent =
       readonly connectionEpoch: number;
       readonly responseId: string;
       readonly speechRequestId: string;
+      /** Exact canonical text for this playback, never generated audio text. */
+      readonly canonicalText?: readonly string[];
       readonly type: "output-started";
     }
   | {
@@ -103,6 +105,10 @@ interface OpenAIRealtimeSessionDependencies {
 interface RequestTiming {
   readonly requestId: string;
   readonly startedAt: number;
+}
+
+interface SpeechTiming extends RequestTiming {
+  readonly canonicalText: readonly string[];
 }
 
 interface CanonicalSpeechRequest {
@@ -196,11 +202,11 @@ export class OpenAIRealtimeSession {
   readonly #canonicalSpeechQueue: CanonicalSpeechRequest[] = [];
   readonly #completedResponseCancelEventIds = new Set<string>();
   readonly #pendingClientEvents = new Map<string, PendingClientEvent>();
-  readonly #pendingSpeechRequests = new Map<string, RequestTiming>();
+  readonly #pendingSpeechRequests = new Map<string, SpeechTiming>();
   readonly #playbackOverlappingInputItemIds = new Set<string>();
   readonly #remoteStreams = new Set<MediaStream>();
   readonly #speechRequestIds = new Map<string, string>();
-  readonly #speechTimings = new Map<string, RequestTiming>();
+  readonly #speechTimings = new Map<string, SpeechTiming>();
   readonly #terminalCanonicalResponseIds = new Set<string>();
   readonly #transcriptionTimings = new Map<string, RequestTiming>();
   #abortController: AbortController | null = null;
@@ -534,6 +540,7 @@ export class OpenAIRealtimeSession {
     const responseText = this.#canonicalResponseText(segments);
     const speechRequestId = `canonical-${this.#activeEpoch}-${++this.#speechRequestSequence}`;
     this.#pendingSpeechRequests.set(speechRequestId, {
+      canonicalText: responseText,
       requestId:
         this.#dependencies.createRequestId?.() ?? createVoiceRequestId(),
       startedAt: this.#now(),
@@ -991,6 +998,7 @@ export class OpenAIRealtimeSession {
         return;
       }
       this.#emit({
+        canonicalText: this.#speechTimings.get(responseId)?.canonicalText ?? [],
         connectionEpoch,
         responseId,
         speechRequestId,

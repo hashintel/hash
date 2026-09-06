@@ -116,7 +116,8 @@ The text composer remains available. Sending typed text ends Voice mode first,
 then submits the draft exactly once through the same conversation; a failed
 handoff restores the draft. Closing the assistant pauses capture and speech
 before hiding it. Reopening preserves the mounted session in **Paused** state.
-The dock exposes **Your turn** while canonical audio owns the turn. That action
+With **Interruption by speaking** disabled, the dock exposes **Your turn** while
+canonical audio owns the turn. That action
 clears pending input and output, waits for the provider's matching
 acknowledgements and response terminal event, and only then opens the
 microphone for fresh capture. Its playback menu offers **Repeat question** and
@@ -131,7 +132,8 @@ action stays disabled rather than guessing from the final segment.
 The browser sends its SDP offer to this app; the server initializes a trusted
 `gpt-realtime-2` audio-input/audio-output session through OpenAI's unified
 Realtime call endpoint. The provider key, model, instructions, language, and
-vocabulary policy stay server-side. Realtime exposes no tools, uses
+session configuration stay server-side; the transcription vocabulary is shared
+with the browser's local admission filter. Realtime exposes no tools, uses
 `tool_choice: "none"`, and configures semantic VAD to detect an input boundary
 without creating a model response.
 
@@ -145,21 +147,33 @@ Petrinaut's shared composer path. Connection epoch, item id, and content index
 form its stable identity. Duplicate, empty, failed, unavailable, and over-limit
 transcripts never submit; recoverable failures leave a not-heard or too-long
 notice in the dock. Provisional transcription remains display-only.
+Only interruption-originated completions receive local prompt-regurgitation
+and self-echo checks before admission or pending-answer retention. Comparison
+uses NFKC, lowercase, punctuation removal, and whitespace collapse, with at least
+80% ordered bigram overlap and minimum lengths of eight tokens for the vocabulary
+prompt or six for active canonical playback. The playback reference is captured
+when interruption starts, excludes queued speech and history, and is released on
+completion or lifecycle cleanup. Rejections produce only content-free diagnostics;
+they create no answer, error, or pending-answer notice. Short novel answers remain
+valid and the admitted payload keeps its original casing and punctuation.
 
 The bridge waits for the correlated Brunch turn before returning canonical
 speech segments to Realtime. It instructs Realtime to speak only those
 segments. Generated audio is not a verbatim recording: canonical Brunch text
-remains visible and authoritative. Voice is half-duplex: the physical
-microphone is closed while the interviewer speaks, while Brunch is working, and
-through cancellation. Audio captured before a **Your turn** handoff is
-discarded and cannot become a later answer.
+remains visible and authoritative. **Interruption by speaking** is enabled by
+default: speech detection immediately cancels generation and clears output audio,
+never the input buffer. The completed answer waits if Brunch is still busy.
+False speech detection may still stop playback even if the transcript is later
+discarded. Disable this browser-saved preference for half-duplex capture: the
+microphone closes during assistant output, and audio captured before a completed
+**Your turn** handoff cannot become a later answer.
 
 The local Brunch preview reaches the mounted route through its same-origin, protocol-preserving proxy; this does not establish remote authentication or public ingress. Denying microphone permission leaves the text composer available and submits nothing to Brunch. When Voice mode cannot continue, the inline recovery state distinguishes microphone, connection, and other Voice failures, explains the next action, and offers **Reconnect** where appropriate. Sanitized error codes and diagnostic references remain collapsed under **Technical details**.
 
 Realtime connection, transcription, and canonical speech timings use random
 request IDs, and the existing Brunch transport provides its own request
 correlation. Browser and server diagnostics report only operation, stage,
-outcome, duration, request ID, and—where applicable—status or a sanitized error
+outcome, duration, request ID, and—where applicable—status, rejection reason, or a sanitized error
 code. Voice responses also expose privacy-safe `Server-Timing` metrics. These
 diagnostics never record audio, SDP, transcript or prompt contents, canonical
 speech text, credentials, or provider response bodies. This controlled-preview

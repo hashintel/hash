@@ -74,6 +74,10 @@ If speaker playback causes unwanted interruptions, use headphones or switch to m
 Semantic voice detection finishes your answer automatically after a natural pause, so there is no
 required done-speaking action. Duplicate, empty, failed, or unavailable transcripts are not submitted.
 An empty or failed transcript asks you to try again, and an overlong answer asks for a shorter response.
+Completed interruptions that strongly repeat the transcription vocabulary or the assistant's active
+speech are silently discarded rather than sent as your answer. Short answers such as “stop”, “no”,
+and “wait” remain valid. A false speech detection can still stop playback even when its transcript
+is discarded.
 Provisional words remain display-only until the provider completes their transcript.
 
 Every session control lives in the dock: **Collapse voice session** / **Expand voice session** and

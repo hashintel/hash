@@ -1,3 +1,5 @@
+import { voiceTranscriptionPrompt } from "../../shared/voice-transcription";
+
 export const OPENAI_REALTIME_CONNECTION_TIMEOUT_MS = 15_000;
 export const OPENAI_REALTIME_POLICY_VERSION = "brunch-control-plane-v3";
 
@@ -63,8 +65,7 @@ export const createOpenAIRealtimeSession = () => ({
       transcription: {
         model: "gpt-4o-transcribe",
         language: "en",
-        prompt:
-          "Expect English process-modeling vocabulary including SDCPN, stochastic Petri net, place, transition, arc, token, marking, guard, rate, distribution, parameter, subnet, scenario, and metric.",
+        prompt: voiceTranscriptionPrompt,
       },
       turn_detection: {
         type: "semantic_vad" as const,
