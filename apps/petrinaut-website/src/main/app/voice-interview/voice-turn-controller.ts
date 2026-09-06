@@ -632,14 +632,11 @@ export class VoiceTurnController {
       if (paused) {
         this.#inputStateOnResume = "listening";
       }
-      const wasInterrupted = this.#snapshot.output === "interrupted";
       this.#update({
         input: paused ? "paused" : "listening",
         output: "interrupted",
       });
-      if (!wasInterrupted) {
-        this.#restoreMicrophoneIfCaptureAvailable();
-      }
+      this.#restoreMicrophoneIfCaptureAvailable();
       if (responseEnd) this.#recordLatency("answer-ready", responseEnd.id);
       return;
     }
@@ -652,7 +649,7 @@ export class VoiceTurnController {
       this.#snapshot.output === "speaking" ||
       this.#snapshot.output === "waiting-for-tool" ||
       (this.#snapshot.output === "idle" &&
-        this.#latencyCorrelationId !== null);
+        this.#snapshot.input === "submitting");
     this.#update({
       input: paused ? "paused" : "listening",
       output: paused
