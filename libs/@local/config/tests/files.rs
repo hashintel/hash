@@ -49,7 +49,7 @@ fn assert_report(name: &str, report: &Report<LoadError>, jail: &Jail) {
 #[test]
 fn file_deferred_read() {
     Jail::expect_with(|jail| {
-        let loader = Loader::new().with_file("config.toml");
+        let loader = Loader::new().with_toml_file("config.toml");
         jail.create_file(
             "config.toml",
             "routes = ['api']\n[store]\nhost = 'localhost'\nport = 5432\n",
@@ -89,12 +89,12 @@ fn file_defaults_precedence() {
             });
             let loader = if file_first {
                 Loader::new()
-                    .with_file("config.toml")
+                    .with_toml_file("config.toml")
                     .with_defaults(defaults)
             } else {
                 Loader::new()
                     .with_defaults(defaults)
-                    .with_file("config.toml")
+                    .with_toml_file("config.toml")
             };
             let config = loader
                 .load::<Config>()
@@ -133,7 +133,7 @@ fn files_order_and_merge() {
         ] {
             let config = files
                 .into_iter()
-                .fold(Loader::new(), Loader::with_file)
+                .fold(Loader::new(), Loader::with_toml_file)
                 .load::<Config>()
                 .expect("the partial TOML files should compose");
 
@@ -154,13 +154,87 @@ fn files_order_and_merge() {
     });
 }
 
+/// Only the merged configuration must fit the target type, so a later file can correct a value.
+#[test]
+fn files_overridden_invalid_value() {
+    Jail::expect_with(|jail| {
+        jail.create_file(
+            "invalid.toml",
+            "routes = ['api']\n[store]\nhost = 'localhost'\nport = 'not-a-number'\n",
+        )?;
+        jail.create_file("correction.toml", "[store]\nport = 5432\n")?;
+
+        let report = Loader::new()
+            .with_toml_file("invalid.toml")
+            .load::<Config>()
+            .expect_err("the uncorrected port should fail deserialization");
+        assert_eq!(
+            report.current_context(),
+            &LoadError::Invalid,
+            "the error should identify an invalid configuration"
+        );
+
+        let config = Loader::new()
+            .with_toml_file("invalid.toml")
+            .with_toml_file("correction.toml")
+            .load::<Config>()
+            .expect("the later file should correct the port");
+
+        assert_eq!(
+            config,
+            Config {
+                store: Store {
+                    host: "localhost".to_owned(),
+                    port: 5432,
+                },
+                routes: vec!["api".to_owned()],
+            },
+            "the corrected port and untouched values should survive the merge"
+        );
+        Ok(())
+    });
+}
+
+/// An empty file contributes no values, regardless of its position among the file layers.
+#[test]
+fn files_empty_layer() {
+    Jail::expect_with(|jail| {
+        jail.create_file("empty.toml", "")?;
+        jail.create_file(
+            "config.toml",
+            "routes = ['api']\n[store]\nhost = 'localhost'\nport = 5432\n",
+        )?;
+
+        for files in [["empty.toml", "config.toml"], ["config.toml", "empty.toml"]] {
+            let config = files
+                .into_iter()
+                .fold(Loader::new(), Loader::with_toml_file)
+                .load::<Config>()
+                .expect("the empty file should compose with the configuration file");
+
+            assert_eq!(
+                config,
+                Config {
+                    store: Store {
+                        host: "localhost".to_owned(),
+                        port: 5432,
+                    },
+                    routes: vec!["api".to_owned()],
+                },
+                "the empty file should preserve the complete configuration in either position"
+            );
+        }
+        Ok(())
+    });
+}
+
 /// Explicitly naming an absent file is an error even when defaults are complete.
 #[test]
 fn file_missing() {
     Jail::expect_with(|jail| {
         let report = Loader::new()
             .with_defaults(json!({ "store": { "host": "localhost", "port": 5432 }, "routes": [] }))
-            .with_file("missing.toml")
+            .with_toml_file("missing.toml")
             .load::<Config>()
             .expect_err("the absent required file should fail the load");
 
@@ -186,7 +260,7 @@ fn file_missing() {
 fn file_directory() {
     Jail::expect_with(|jail| {
         let report = Loader::new()
-            .with_file(jail.directory())
+            .with_toml_file(jail.directory())
             .load::<Config>()
             .expect_err("the directory should fail as a configuration file");
 
@@ -216,7 +290,7 @@ fn file_non_utf8() {
         fs::write("config.toml", contents).expect("the invalid UTF-8 fixture should be written");
 
         let report = Loader::new()
-            .with_file("config.toml")
+            .with_toml_file("config.toml")
             .load::<Config>()
             .expect_err("the non-UTF-8 file should fail the load");
         assert_eq!(
@@ -243,7 +317,7 @@ fn file_malformed_redaction() {
         jail.create_file("config.toml", &format!("# ü\npassword = \"{SECRET}\n"))?;
 
         let report = Loader::new()
-            .with_file("config.toml")
+            .with_toml_file("config.toml")
             .load::<Config>()
             .expect_err("the unterminated string should fail TOML parsing");
         assert_eq!(
@@ -267,7 +341,7 @@ fn file_invalid_value() {
         jail.create_file("config.toml", &format!("[store]\nport = '{SECRET}'\n"))?;
         let report = Loader::new()
             .with_defaults(json!({ "store": { "host": "localhost" }, "routes": [] }))
-            .with_file("config.toml")
+            .with_toml_file("config.toml")
             .load::<Config>()
             .expect_err("the string should not deserialize as a port");
         assert_eq!(
@@ -286,7 +360,7 @@ fn file_missing_required_value() {
     Jail::expect_with(|jail| {
         jail.create_file("config.toml", "routes = []\n[store]\nhost = 'localhost'\n")?;
         let report = Loader::new()
-            .with_file("config.toml")
+            .with_toml_file("config.toml")
             .load::<Config>()
             .expect_err("the absent port should fail the load");
         assert_eq!(

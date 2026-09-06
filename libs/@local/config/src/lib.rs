@@ -96,7 +96,7 @@ impl Loader {
     /// # jail.create_file("hash-graph.toml", "host = 'localhost'\n")?;
     /// let config = hash_config::Loader::new()
     ///     .with_defaults(serde_json::json!({ "port": 5432 }))
-    ///     .with_file("hash-graph.toml")
+    ///     .with_toml_file("hash-graph.toml")
     ///     .load::<Config>()
     ///     .expect("the configuration file should load");
     ///
@@ -106,7 +106,7 @@ impl Loader {
     /// # });
     /// ```
     #[must_use]
-    pub fn with_file(mut self, path: impl Into<PathBuf>) -> Self {
+    pub fn with_toml_file(mut self, path: impl Into<PathBuf>) -> Self {
         self.files.push(path.into());
         self
     }
