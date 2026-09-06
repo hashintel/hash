@@ -12,13 +12,13 @@
       "@local/eslint#build"
     ],
     "lint:eslint": [
-      "@local/effect-dns-hickory#build"
+      "build"
     ],
     "lint:tsc": [
-      "@local/effect-dns-hickory#build"
+      "build"
     ],
     "test:unit": [
-      "@local/effect-dns-hickory#build"
+      "build"
     ]
   }
 }

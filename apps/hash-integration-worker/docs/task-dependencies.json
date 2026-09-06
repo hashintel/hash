@@ -64,14 +64,14 @@
       "@local/status#build"
     ],
     "sentry:sourcemaps": [
-      "@apps/hash-integration-worker#build"
+      "build"
     ],
     "start": [
-      "@apps/hash-integration-worker#build"
+      "build"
     ],
     "start:healthcheck": [],
     "start:test": [
-      "@apps/hash-integration-worker#build"
+      "build"
     ],
     "start:test:healthcheck": []
   }

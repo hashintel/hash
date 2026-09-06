@@ -1,7 +1,8 @@
 //! Generation of the checked-in `task-dependencies.json` files.
 //!
 //! One document per package records the package's direct dependencies and, per task, the
-//! tasks turbo runs before it.
+//! tasks turbo runs before it. A task of the package itself is listed by its bare name, a
+//! task of another package by its id.
 //!
 //! Only tasks turbo reports a command for are recorded: a task without a command never
 //! executes — turbo folds its hash into its dependents and skips it. An edge to such a task
@@ -330,6 +331,17 @@ fn executed_dependencies<'graph>(
     Ok(executed)
 }
 
+/// A task of `package` by its bare name, any other task by its id.
+fn local_name(package: &str, id: String) -> String {
+    if let Some(name) = id
+        .strip_prefix(package)
+        .and_then(|rest| rest.strip_prefix('#'))
+    {
+        return name.to_owned();
+    }
+    id
+}
+
 fn documents(
     packages: Vec<Package>,
     tasks: &[DryRunTask],
@@ -376,7 +388,10 @@ fn documents(
 
         document.tasks.insert(
             task.task.clone(),
-            executed_dependencies(&task.dependencies, &by_id)?,
+            executed_dependencies(&task.dependencies, &by_id)?
+                .into_iter()
+                .map(|id| local_name(&task.package, id))
+                .collect(),
         );
     }
 

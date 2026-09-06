@@ -6,10 +6,10 @@
   "tasks": {
     "build": [],
     "fix:eslint": [
-      "@local/eslint#build"
+      "build"
     ],
     "lint:eslint": [
-      "@local/eslint#build"
+      "build"
     ]
   }
 }

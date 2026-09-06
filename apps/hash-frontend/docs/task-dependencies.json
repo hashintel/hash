@@ -22,7 +22,6 @@
   ],
   "tasks": {
     "build": [
-      "@apps/hash-frontend#codegen",
       "@blockprotocol/graph#build",
       "@blockprotocol/type-system#build",
       "@hashintel/ds-components#build",
@@ -34,7 +33,8 @@
       "@local/hash-graph-sdk#build",
       "@local/hash-graph-store#build",
       "@local/hash-isomorphic-utils#build",
-      "@local/status#build"
+      "@local/status#build",
+      "codegen"
     ],
     "build:docker": [],
     "codegen": [
@@ -52,29 +52,28 @@
       "@local/status#build"
     ],
     "dev": [
-      "@apps/hash-frontend#codegen"
+      "codegen"
     ],
     "fix:eslint": [
-      "@apps/hash-frontend#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:eslint": [
-      "@apps/hash-frontend#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:tsc": [
-      "@apps/hash-frontend#codegen"
+      "codegen"
     ],
     "start": [
-      "@apps/hash-frontend#build"
+      "build"
     ],
     "start:healthcheck": [],
     "start:test": [
-      "@apps/hash-frontend#build"
+      "build"
     ],
     "start:test:healthcheck": [],
     "test:unit": [
-      "@apps/hash-frontend#codegen",
       "@blockprotocol/graph#build",
       "@blockprotocol/type-system#build",
       "@hashintel/ds-components#build",
@@ -86,7 +85,8 @@
       "@local/hash-graph-sdk#build",
       "@local/hash-graph-store#build",
       "@local/hash-isomorphic-utils#build",
-      "@local/status#build"
+      "@local/status#build",
+      "codegen"
     ]
   }
 }

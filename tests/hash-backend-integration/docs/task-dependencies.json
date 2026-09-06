@@ -37,21 +37,21 @@
     ],
     "fix:eslint": [
       "@local/eslint#build",
-      "@tests/hash-backend-integration#codegen"
+      "codegen"
     ],
     "lint:eslint": [
       "@local/eslint#build",
-      "@tests/hash-backend-integration#codegen"
+      "codegen"
     ],
     "lint:tsc": [
-      "@tests/hash-backend-integration#codegen"
+      "codegen"
     ],
     "test:integration": [
       "@apps/hash-ai-worker-ts#start:test:healthcheck",
       "@apps/hash-api#start:test:healthcheck",
       "@apps/hash-graph#start:test:healthcheck",
       "@apps/hash-integration-worker#start:test:healthcheck",
-      "@tests/hash-backend-integration#codegen"
+      "codegen"
     ]
   }
 }

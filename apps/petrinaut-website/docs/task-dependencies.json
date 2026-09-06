@@ -11,14 +11,14 @@
   ],
   "tasks": {
     "build": [
-      "@apps/petrinaut-website#codegen",
-      "@apps/petrinaut-website#examples:generate",
       "@hashintel/brunch-agent#build",
       "@hashintel/brunch-agent-transport-aisdk#build",
       "@hashintel/ds-components#build",
       "@hashintel/petrinaut#build",
       "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build"
+      "@local/petrinaut-optimizer-client#build",
+      "codegen",
+      "examples:generate"
     ],
     "codegen": [
       "@hashintel/brunch-agent#build",
@@ -29,7 +29,7 @@
       "@local/petrinaut-optimizer-client#build"
     ],
     "dev": [
-      "@apps/petrinaut-website#codegen"
+      "codegen"
     ],
     "examples:generate": [
       "@hashintel/brunch-agent#build",
@@ -40,32 +40,32 @@
       "@local/petrinaut-optimizer-client#build"
     ],
     "fix:eslint": [
-      "@apps/petrinaut-website#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:eslint": [
-      "@apps/petrinaut-website#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:tsc": [
-      "@apps/petrinaut-website#codegen",
-      "@apps/petrinaut-website#examples:generate",
       "@hashintel/brunch-agent#build",
       "@hashintel/brunch-agent-transport-aisdk#build",
       "@hashintel/ds-components#build",
       "@hashintel/petrinaut#build",
       "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build"
+      "@local/petrinaut-optimizer-client#build",
+      "codegen",
+      "examples:generate"
     ],
     "test:unit": [
-      "@apps/petrinaut-website#codegen",
-      "@apps/petrinaut-website#examples:generate",
       "@hashintel/brunch-agent#build",
       "@hashintel/brunch-agent-transport-aisdk#build",
       "@hashintel/ds-components#build",
       "@hashintel/petrinaut#build",
       "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build"
+      "@local/petrinaut-optimizer-client#build",
+      "codegen",
+      "examples:generate"
     ]
   }
 }

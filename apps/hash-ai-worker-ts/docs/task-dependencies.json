@@ -77,16 +77,16 @@
       "@local/status#build"
     ],
     "sentry:sourcemaps": [
-      "@apps/hash-ai-worker-ts#build"
+      "build"
     ],
     "start": [
-      "@apps/hash-ai-worker-ts#build",
-      "@apps/hash-graph#start:healthcheck"
+      "@apps/hash-graph#start:healthcheck",
+      "build"
     ],
     "start:healthcheck": [],
     "start:test": [
-      "@apps/hash-ai-worker-ts#build",
-      "@apps/hash-graph#start:test:healthcheck"
+      "@apps/hash-graph#start:test:healthcheck",
+      "build"
     ],
     "start:test:healthcheck": [],
     "test:unit": [

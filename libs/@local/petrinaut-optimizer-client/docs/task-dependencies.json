@@ -8,17 +8,17 @@
   "tasks": {
     "build": [
       "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#codegen"
+      "codegen"
     ],
     "codegen": [],
     "lint:tsc": [
       "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#codegen"
+      "codegen"
     ],
     "test:unit": [
       "@apps/petrinaut-opt#codegen",
       "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#codegen"
+      "codegen"
     ]
   }
 }

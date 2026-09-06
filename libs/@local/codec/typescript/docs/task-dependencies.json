@@ -5,13 +5,13 @@
   ],
   "tasks": {
     "build": [
-      "@local/hash-codec#codegen"
+      "codegen"
     ],
     "codegen": [
       "@rust/hash-codec#build:types"
     ],
     "lint:tsc": [
-      "@local/hash-codec#codegen"
+      "codegen"
     ]
   }
 }
