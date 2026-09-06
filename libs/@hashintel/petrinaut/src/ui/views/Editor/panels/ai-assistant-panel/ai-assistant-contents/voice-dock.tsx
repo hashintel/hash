@@ -6,6 +6,7 @@ import {
   useVoiceSessionCanReadFullResponse,
   useVoiceSessionCanRepeatQuestion,
   useVoiceSessionCanTakeTurn,
+  useVoiceSessionInterruptionBySpeaking,
   useVoiceSessionMicrophoneMuted,
   useVoiceSessionNotice,
   useVoiceSessionPhase,
@@ -111,6 +112,7 @@ export type VoiceDockProps = {
   collapsed: boolean;
   /** Rendered instead of the live indicator when the caller supplies one. */
   indicator?: ReactNode;
+  interruptionBySpeaking?: boolean;
   microphoneMuted: boolean;
   notice: string | null;
   onCollapsedEnd?: () => void;
@@ -130,6 +132,7 @@ export const VoiceDock = ({
   canTakeTurn,
   collapsed,
   indicator,
+  interruptionBySpeaking = false,
   microphoneMuted,
   notice,
   onCollapsedEnd,
@@ -174,6 +177,7 @@ export const VoiceDock = ({
             actions={actions}
             canReadFullResponse={canReadFullResponse}
             canRepeatQuestion={canRepeatQuestion}
+            interruptionBySpeaking={interruptionBySpeaking}
           />
         )}
       </span>
@@ -188,7 +192,7 @@ export const VoiceDock = ({
       <span className={`${sideStyle} ${actionsStyle}`}>
         {actions !== null && (
           <>
-            {canTakeTurn && actions.takeTurn && (
+            {!interruptionBySpeaking && canTakeTurn && actions.takeTurn && (
               <Button
                 aria-label={voiceSessionActionLabels.takeTurn}
                 iconName="arrowsLeftRight"
@@ -278,6 +282,7 @@ export const LiveVoiceDock = ({
   const canReadFullResponse = useVoiceSessionCanReadFullResponse();
   const canRepeatQuestion = useVoiceSessionCanRepeatQuestion();
   const canTakeTurn = useVoiceSessionCanTakeTurn();
+  const interruptionBySpeaking = useVoiceSessionInterruptionBySpeaking();
   const microphoneMuted = useVoiceSessionMicrophoneMuted();
   const notice = useVoiceSessionNotice();
   const phase = useVoiceSessionPhase();
@@ -293,6 +298,7 @@ export const LiveVoiceDock = ({
       canRepeatQuestion={canRepeatQuestion}
       canTakeTurn={canTakeTurn}
       collapsed={collapsed}
+      interruptionBySpeaking={interruptionBySpeaking}
       microphoneMuted={microphoneMuted}
       notice={notice}
       onCollapsedEnd={onCollapsedEnd}

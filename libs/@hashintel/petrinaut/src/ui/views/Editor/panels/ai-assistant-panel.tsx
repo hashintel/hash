@@ -624,6 +624,12 @@ const ConversationAiAssistantPanel = ({
           ? { repeatQuestion: () => controls.repeatQuestion?.() }
           : {}),
         resume: () => controls.resume(),
+        ...(controls.setInterruptionBySpeaking
+          ? {
+              setInterruptionBySpeaking: (enabled: boolean) =>
+                controls.setInterruptionBySpeaking?.(enabled),
+            }
+          : {}),
         setMicrophoneMuted: (muted) => controls.setMicrophoneMuted(muted),
         ...(controls.takeTurn ? { takeTurn: () => controls.takeTurn?.() } : {}),
       });

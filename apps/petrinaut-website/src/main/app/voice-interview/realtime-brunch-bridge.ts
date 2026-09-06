@@ -105,9 +105,11 @@ export type RealtimeTranscriptRejectionReason =
   | "empty"
   | "failed"
   | "over-limit"
+  | "pending"
   | "unavailable";
 
 export type RealtimeBrunchBridgeEvent =
+  | { readonly answer: string; readonly type: "transcript-retained" }
   | {
       readonly answer: string;
       readonly deliveryId: string;
@@ -214,6 +216,8 @@ export class RealtimeBrunchBridge {
     input: SubmitInterviewAnswerInput,
   ) => Promise<SubmitInterviewAnswerResult>;
   readonly #seenSegmentIds = new Set<string>();
+  readonly #interruptionInputItemIds = new Set<string>();
+  #pendingInterruption: { answer: string; deliveryId: string } | null = null;
   #activeEpoch: number | null = null;
   #activeSubmission: ActiveSubmission | null = null;
   #chat: ChatUpdate = {
@@ -240,6 +244,8 @@ export class RealtimeBrunchBridge {
 
   public cancelPendingSpeech(): void {
     this.#outputCancellationPending = true;
+    this.#pendingInterruption = null;
+    this.#interruptionInputItemIds.clear();
     if (this.#activeSubmission) {
       this.#activeSubmission.speechCancelled = true;
     }
@@ -296,6 +302,8 @@ export class RealtimeBrunchBridge {
     this.#activeEpoch = connectionEpoch;
     this.#activeSubmission = null;
     this.#acceptedInputItemIds.clear();
+    this.#interruptionInputItemIds.clear();
+    this.#pendingInterruption = null;
     this.#playbackOverlappingInputItemIds.clear();
     this.#processedTranscripts.clear();
     this.#activeOutputResponseIds.clear();
@@ -313,6 +321,8 @@ export class RealtimeBrunchBridge {
     this.#activeEpoch = null;
     this.#activeSubmission = null;
     this.#acceptedInputItemIds.clear();
+    this.#interruptionInputItemIds.clear();
+    this.#pendingInterruption = null;
     this.#playbackOverlappingInputItemIds.clear();
     this.#processedTranscripts.clear();
     this.#activeOutputResponseIds.clear();
@@ -348,6 +358,7 @@ export class RealtimeBrunchBridge {
     if (update.status !== "ready") {
       return;
     }
+    if (this.#drainPendingInterruption()) return;
 
     const newSegments = update.canonicalSegments.filter(
       ({ id }) => !this.#seenSegmentIds.has(id),
@@ -382,6 +393,8 @@ export class RealtimeBrunchBridge {
     ++this.#generation;
     this.#activeSubmission?.abortController.abort();
     this.#activeSubmission = null;
+    this.#pendingInterruption = null;
+    this.#interruptionInputItemIds.clear();
     this.#emit({ code, message, type: "error" });
   }
 
@@ -389,6 +402,8 @@ export class RealtimeBrunchBridge {
     ++this.#generation;
     this.#activeSubmission?.abortController.abort();
     this.#activeSubmission = null;
+    this.#pendingInterruption = null;
+    this.#interruptionInputItemIds.clear();
     this.#emit({
       code: admissionErrorCode(error.failure),
       failure: error.failure,
@@ -405,7 +420,13 @@ export class RealtimeBrunchBridge {
       return;
     }
     if (event.type === "input-speech-started") {
-      if (this.#ownsOutputTurn()) {
+      if (event.interruptionBySpeaking) {
+        this.#interruptionInputItemIds.add(event.itemId);
+        if (this.#activeSubmission) {
+          this.#activeSubmission.speechCancelled = true;
+        }
+      }
+      if (!event.interruptionBySpeaking && this.#ownsOutputTurn()) {
         this.#playbackOverlappingInputItemIds.add(event.itemId);
       } else {
         this.#acceptedInputItemIds.add(event.itemId);
@@ -424,9 +445,11 @@ export class RealtimeBrunchBridge {
       this.#pendingSpeechRequestIds.delete(event.speechRequestId);
       this.#activeOutputResponseIds.add(event.responseId);
       for (const itemId of this.#acceptedInputItemIds) {
-        this.#playbackOverlappingInputItemIds.add(itemId);
+        if (!this.#interruptionInputItemIds.has(itemId)) {
+          this.#playbackOverlappingInputItemIds.add(itemId);
+          this.#acceptedInputItemIds.delete(itemId);
+        }
       }
-      this.#acceptedInputItemIds.clear();
       return;
     }
     if (
@@ -466,11 +489,13 @@ export class RealtimeBrunchBridge {
       this.#rejectTranscript("failed");
       return;
     }
-    if (
-      this.#activeSubmission ||
-      !this.#chat.canAcceptInterviewAnswer ||
-      this.#chat.status !== "ready"
-    ) {
+
+    // An interrupting utterance is retained rather than refused when Brunch is
+    // still busy, so only ordinary capture answers a closed submission window.
+    const interruptionBySpeaking = this.#interruptionInputItemIds.delete(
+      event.key.itemId,
+    );
+    if (!interruptionBySpeaking && !this.#canSubmitAnswerNow()) {
       this.#rejectTranscript("unavailable");
       return;
     }
@@ -486,6 +511,36 @@ export class RealtimeBrunchBridge {
     }
 
     const deliveryId = createRealtimeSubmissionId(event.key);
+    if (this.#pendingInterruption) {
+      this.#rejectTranscript("pending");
+      return;
+    }
+    if (!this.#canSubmitAnswerNow()) {
+      this.#pendingInterruption = { answer, deliveryId };
+      this.#emit({ answer, type: "transcript-retained" });
+      return;
+    }
+    this.#submitAnswer(answer, deliveryId);
+  }
+
+  #canSubmitAnswerNow(): boolean {
+    return (
+      !this.#activeSubmission &&
+      this.#chat.canAcceptInterviewAnswer &&
+      this.#chat.status === "ready"
+    );
+  }
+
+  #drainPendingInterruption(): boolean {
+    const pending = this.#pendingInterruption;
+    if (!pending) return false;
+    if (this.#activeEpoch === null || !this.#canSubmitAnswerNow()) return true;
+    this.#pendingInterruption = null;
+    this.#submitAnswer(pending.answer, pending.deliveryId);
+    return true;
+  }
+
+  #submitAnswer(answer: string, deliveryId: string): void {
     const generation = this.#generation;
     this.#activeSubmission = {
       abortController: new AbortController(),
@@ -728,6 +783,7 @@ export class RealtimeBrunchBridge {
       ...(active.speechCancelled ? { speechCancelled: true as const } : {}),
       type: "canonical-response-ready",
     });
+    this.#drainPendingInterruption();
   }
 
   /**
@@ -754,5 +810,6 @@ export class RealtimeBrunchBridge {
       outcome: settlement.outcome,
       type: "submission-stopped",
     });
+    this.#drainPendingInterruption();
   }
 }

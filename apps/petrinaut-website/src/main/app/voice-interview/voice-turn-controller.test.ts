@@ -19,6 +19,7 @@ const createHarness = () => {
     cancelOutput: vi.fn<() => Promise<void>>(async () => undefined),
     connect: vi.fn(async () => ++epoch),
     disconnect: vi.fn(async () => undefined),
+    setInterruptionBySpeaking: vi.fn(),
     setMicrophoneEnabled: vi.fn(),
     speakCanonical: vi.fn(),
     subscribe: vi.fn(
@@ -89,6 +90,35 @@ const markedQuestion = (
 });
 
 describe("VoiceTurnController", () => {
+  test("keeps interruption preference through end and reconnect and disables manual handover", async () => {
+    const harness = createHarness();
+    harness.controller.setInterruptionBySpeaking(true);
+    await harness.controller.start();
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      questionSegment: markedQuestion("question"),
+      status: "ready",
+    });
+    harness.emitSession({
+      type: "output-started",
+      connectionEpoch: 1,
+      responseId: "response",
+      speechRequestId: "speech",
+    });
+    await harness.controller.takeTurn();
+    expect(harness.session.cancelOutput).not.toHaveBeenCalled();
+    await harness.controller.reconnect();
+    expect(harness.controller.getSnapshot().interruptionBySpeaking).toBe(true);
+    await harness.controller.end();
+    await harness.controller.start();
+    expect(harness.controller.getSnapshot().interruptionBySpeaking).toBe(true);
+    harness.controller.setInterruptionBySpeaking(false);
+    expect(harness.session.setInterruptionBySpeaking).toHaveBeenLastCalledWith(
+      false,
+    );
+  });
+
   test("records the content-free Voice lifecycle once in causal order", async () => {
     const harness = createHarness();
     await harness.controller.start();
