@@ -833,6 +833,80 @@ describe("VoiceTurnController", () => {
     ]);
   });
 
+  test.each(["resolved", "rejected"] as const)(
+    "keeps replay disabled until generic cancellation is %s",
+    async (cancellationOutcome) => {
+      const harness = createHarness();
+      const replayQuestion = markedQuestion(
+        "replay-after-cancellation",
+        "Who approves release?",
+      );
+      let finishCancellation: (() => void) | undefined;
+      harness.session.cancelOutput.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve, reject) => {
+            finishCancellation = () => {
+              if (cancellationOutcome === "resolved") {
+                resolve();
+              } else {
+                reject(new Error("Cancellation failed."));
+              }
+            };
+          }),
+      );
+      await harness.controller.start();
+      harness.emitBridge({
+        deliveryId: "voice-replay",
+        questionSegment: replayQuestion,
+        segments: [replayQuestion],
+        type: "canonical-response-ready",
+      });
+      harness.emitSession({
+        connectionEpoch: 1,
+        responseId: "response-replay",
+        speechRequestId: "speech-replay",
+        type: "output-started",
+      });
+      harness.emitSession({
+        connectionEpoch: 1,
+        responseId: "response-replay",
+        type: "output-stopped",
+      });
+      harness.emitSession({
+        connectionEpoch: 1,
+        responseId: "response-replay",
+        status: "completed",
+        type: "response-terminal",
+      });
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        canReadFullResponse: true,
+        canRepeatQuestion: true,
+        input: "listening",
+        output: "idle",
+      });
+
+      harness.controller.cancelPendingSpeech();
+
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        canReadFullResponse: false,
+        canRepeatQuestion: false,
+      });
+      harness.controller.readFullResponse();
+      harness.controller.repeatQuestion();
+      expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+
+      finishCancellation?.();
+      await vi.waitFor(() =>
+        expect(harness.controller.getSnapshot()).toMatchObject({
+          canReadFullResponse: true,
+          canRepeatQuestion: true,
+          input: "listening",
+          output: "idle",
+        }),
+      );
+    },
+  );
+
   test("disables replay while the user is capturing input", async () => {
     const harness = createHarness();
     const segment = question("ask-capture");

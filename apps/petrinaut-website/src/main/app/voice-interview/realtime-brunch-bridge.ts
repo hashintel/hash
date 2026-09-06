@@ -221,6 +221,7 @@ export class RealtimeBrunchBridge {
     status: "ready",
   };
   #generation = 0;
+  #outputCancellationPending = false;
 
   public constructor({
     session,
@@ -237,6 +238,7 @@ export class RealtimeBrunchBridge {
   }
 
   public cancelPendingSpeech(): void {
+    this.#outputCancellationPending = true;
     if (this.#activeSubmission) {
       this.#activeSubmission.speechCancelled = true;
     }
@@ -244,6 +246,7 @@ export class RealtimeBrunchBridge {
 
   public completeTurnHandoff(): void {
     this.#activeOutputResponseIds.clear();
+    this.#outputCancellationPending = false;
     this.#pendingSpeechRequestIds.clear();
   }
 
@@ -295,6 +298,7 @@ export class RealtimeBrunchBridge {
     this.#playbackOverlappingInputItemIds.clear();
     this.#processedTranscripts.clear();
     this.#activeOutputResponseIds.clear();
+    this.#outputCancellationPending = false;
     this.#pendingSpeechRequestIds.clear();
     this.#seenSegmentIds.clear();
     for (const segment of this.#chat.canonicalSegments) {
@@ -311,6 +315,7 @@ export class RealtimeBrunchBridge {
     this.#playbackOverlappingInputItemIds.clear();
     this.#processedTranscripts.clear();
     this.#activeOutputResponseIds.clear();
+    this.#outputCancellationPending = false;
     this.#pendingSpeechRequestIds.clear();
   }
 
@@ -331,6 +336,12 @@ export class RealtimeBrunchBridge {
         this.#activeSubmission.sawBusyChatStatus = true;
       }
       this.#completeCorrelatedSubmission();
+      return;
+    }
+    if (this.#outputCancellationPending) {
+      for (const segment of update.canonicalSegments) {
+        this.#seenSegmentIds.add(segment.id);
+      }
       return;
     }
     if (update.status !== "ready") {

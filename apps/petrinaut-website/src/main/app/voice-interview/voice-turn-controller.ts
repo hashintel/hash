@@ -533,6 +533,7 @@ export class VoiceTurnController {
       .finally(() => {
         if (this.#takingTurnPromise === takingTurnPromise) {
           this.#takingTurnPromise = null;
+          this.#update({});
         }
       });
     this.#takingTurnPromise = takingTurnPromise;
@@ -868,6 +869,7 @@ export class VoiceTurnController {
   #cancelOutput(): Promise<void> {
     const cancellationPromise = this.#session.cancelOutput();
     this.#outputCancellationPromise = cancellationPromise;
+    this.#update({});
     void cancellationPromise.then(
       () => {
         if (this.#outputCancellationPromise === cancellationPromise) {
@@ -876,18 +878,19 @@ export class VoiceTurnController {
           this.#terminalSpeechRequestIds.clear();
           this.#clearSettledSpeech();
           this.#bridge.completeTurnHandoff();
-          if (
+          const output =
             this.#snapshot.output === "waiting-for-tool" ||
             this.#snapshot.output === "speaking"
-          ) {
-            this.#update({ output: "interrupted" });
-          }
+              ? "interrupted"
+              : this.#snapshot.output;
+          this.#update({ output });
           this.#restoreMicrophoneIfCaptureAvailable();
         }
       },
       () => {
         if (this.#outputCancellationPromise === cancellationPromise) {
           this.#outputCancellationPromise = null;
+          this.#update({});
           this.#restoreMicrophoneIfCaptureAvailable();
         }
       },
@@ -982,6 +985,8 @@ export class VoiceTurnController {
       !this.#inputTurnPending &&
       this.#activeSpeechResponseId === null &&
       this.#pendingSpeechRequestIds.size === 0 &&
+      this.#outputCancellationPromise === null &&
+      this.#takingTurnPromise === null &&
       (snapshot.output === "idle" || snapshot.output === "interrupted")
     );
   }
