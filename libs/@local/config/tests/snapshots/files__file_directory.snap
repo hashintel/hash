@@ -2,9 +2,8 @@
 source: libs/@local/config/tests/files.rs
 expression: rendered
 ---
-the configuration file could not be read
+the configuration file `[config-dir]` could not be read
 ├╴at libs/@local/config/src/file.rs:[line]:[column]
-├╴[config-dir]
 │
 ╰─▶ Is a directory (os error 21)
     ╰╴at libs/@local/config/src/file.rs:[line]:[column]

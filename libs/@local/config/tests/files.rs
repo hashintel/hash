@@ -3,7 +3,10 @@
     reason = "Figment's Jail fixes the test closures' error type"
 )]
 
-use std::fs;
+use core::assert_matches;
+#[cfg(unix)]
+use std::{ffi::OsString, os::unix::ffi::OsStringExt as _, path::PathBuf};
+use std::{fs, path::Path};
 
 use error_stack::{
     Report,
@@ -168,9 +171,9 @@ fn files_overridden_invalid_value() {
             .with_toml_file("invalid.toml")
             .load::<Config>()
             .expect_err("the uncorrected port should fail deserialization");
-        assert_eq!(
+        assert_matches!(
             report.current_context(),
-            &LoadError::Invalid,
+            LoadError::Invalid,
             "the error should identify an invalid configuration"
         );
 
@@ -238,10 +241,10 @@ fn file_missing() {
             .load::<Config>()
             .expect_err("the absent required file should fail the load");
 
-        assert_eq!(
+        assert_matches!(
             report.current_context(),
-            &LoadError::ReadFile,
-            "the error should identify a read failure"
+            LoadError::ReadFile { path } if path == Path::new("missing.toml"),
+            "the error should identify a read failure and retain the original path"
         );
         assert_eq!(
             report
@@ -264,10 +267,10 @@ fn file_directory() {
             .load::<Config>()
             .expect_err("the directory should fail as a configuration file");
 
-        assert_eq!(
+        assert_matches!(
             report.current_context(),
-            &LoadError::ReadFile,
-            "the error should identify a read failure"
+            LoadError::ReadFile { path } if path == jail.directory(),
+            "the error should identify a read failure and retain the original path"
         );
         assert_eq!(
             report
@@ -293,10 +296,10 @@ fn file_non_utf8() {
             .with_toml_file("config.toml")
             .load::<Config>()
             .expect_err("the non-UTF-8 file should fail the load");
-        assert_eq!(
+        assert_matches!(
             report.current_context(),
-            &LoadError::ReadFile,
-            "the error should identify a read failure"
+            LoadError::ReadFile { path } if path == Path::new("config.toml"),
+            "the error should identify a read failure and retain the original path"
         );
         assert_eq!(
             report
@@ -320,16 +323,35 @@ fn file_malformed_redaction() {
             .with_toml_file("config.toml")
             .load::<Config>()
             .expect_err("the unterminated string should fail TOML parsing");
-        assert_eq!(
+        assert_matches!(
             report.current_context(),
-            &LoadError::ParseFile,
-            "the error should identify malformed TOML"
+            LoadError::ParseFile { path } if path == Path::new("config.toml"),
+            "the error should identify malformed TOML and retain the original path"
         );
         assert!(
             !report.contains::<toml::de::Error>(),
             "the report should not retain the source-bearing TOML error"
         );
         assert_report("file_malformed_redaction", &report, jail);
+        Ok(())
+    });
+}
+
+/// Read errors retain the original path even when its bytes are not valid UTF-8.
+#[cfg(unix)]
+#[test]
+fn file_non_utf8_path() {
+    Jail::expect_with(|_jail| {
+        let path = PathBuf::from(OsString::from_vec(b"config-\xFF.toml".to_vec()));
+        let report = Loader::new()
+            .with_toml_file(&path)
+            .load::<Config>()
+            .expect_err("the unreadable file path should fail the load");
+        assert_matches!(
+            report.current_context(),
+            LoadError::ReadFile { path: actual_path } if actual_path == &path,
+            "the error should identify a read failure and preserve the original path bytes"
+        );
         Ok(())
     });
 }
@@ -344,9 +366,9 @@ fn file_invalid_value() {
             .with_toml_file("config.toml")
             .load::<Config>()
             .expect_err("the string should not deserialize as a port");
-        assert_eq!(
+        assert_matches!(
             report.current_context(),
-            &LoadError::Invalid,
+            LoadError::Invalid,
             "the error should identify invalid configuration"
         );
         assert_report("file_invalid_value", &report, jail);
@@ -363,9 +385,9 @@ fn file_missing_required_value() {
             .with_toml_file("config.toml")
             .load::<Config>()
             .expect_err("the absent port should fail the load");
-        assert_eq!(
+        assert_matches!(
             report.current_context(),
-            &LoadError::Invalid,
+            LoadError::Invalid,
             "the error should identify incomplete configuration"
         );
         assert_report("file_missing_required_value", &report, jail);

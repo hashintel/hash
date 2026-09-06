@@ -18,12 +18,11 @@ pub(crate) struct File {
 impl File {
     pub(crate) fn read(path: PathBuf) -> Result<Self, Report<LoadError>> {
         let text = fs::read_to_string(&path)
-            .change_context(LoadError::ReadFile)
-            .attach_with(|| path.display().to_string())?;
+            .change_context_lazy(|| LoadError::ReadFile { path: path.clone() })?;
         let values = toml::from_str(&text).map_err(|error: toml::de::Error| {
             // TOML errors retain the source document and may quote its values. Keep only the
             // position so neither the report nor its underlying frames can expose that input.
-            let mut report = Report::new(LoadError::ParseFile).attach(path.display().to_string());
+            let mut report = Report::new(LoadError::ParseFile { path: path.clone() });
             if let Some(prefix) = error.span().and_then(|span| text.get(..span.start)) {
                 let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
                 let column = prefix
