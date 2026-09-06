@@ -272,6 +272,120 @@ describe("RealtimeBrunchBridge", () => {
     );
   });
 
+  test("retains follow-on output ownership across an earlier response stop", async () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.emit({
+      connectionEpoch: 3,
+      speechRequestId: "speech-early",
+      type: "canonical-speech-requested",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      responseId: "response-early",
+      speechRequestId: "speech-early",
+      type: "output-started",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      responseId: "response-early",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      speechRequestId: "speech-follow-on",
+      type: "canonical-speech-requested",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      responseId: "response-follow-on",
+      speechRequestId: "speech-follow-on",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      responseId: "response-early",
+      type: "output-stopped",
+    });
+
+    harness.emit({
+      connectionEpoch: 3,
+      itemId: "item-during-follow-on",
+      type: "input-speech-started",
+    });
+    harness.emit(
+      completedTranscript(
+        3,
+        "This overlaps pending follow-on output.",
+        "item-during-follow-on",
+      ),
+    );
+
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+    expect(harness.events).toContainEqual({
+      reason: "unavailable",
+      type: "transcript-rejected",
+    });
+
+    harness.bridge.completeTurnHandoff();
+    harness.emit({
+      connectionEpoch: 3,
+      itemId: "item-after-handoff",
+      type: "input-speech-started",
+    });
+    harness.emit(
+      completedTranscript(3, "This is fresh.", "item-after-handoff"),
+    );
+
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "This is fresh." }),
+    );
+  });
+
+  test("releases pending output ownership when cancellation settles before playback", async () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.emit({
+      connectionEpoch: 3,
+      speechRequestId: "speech-cancelled",
+      type: "canonical-speech-requested",
+    });
+
+    harness.emit({
+      connectionEpoch: 3,
+      responseId: "response-cancelled",
+      speechRequestId: "speech-cancelled",
+      status: "cancelled",
+      type: "response-terminal",
+    } as OpenAIRealtimeSessionEvent);
+    harness.emit({
+      connectionEpoch: 3,
+      itemId: "item-after-cancellation",
+      type: "input-speech-started",
+    });
+    harness.emit(
+      completedTranscript(
+        3,
+        "This follows acknowledged cancellation.",
+        "item-after-cancellation",
+      ),
+    );
+
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "This follows acknowledged cancellation.",
+      }),
+    );
+  });
+
   test("derives stable delivery identity from epoch, item, and content index", () => {
     expect(
       createRealtimeSubmissionId(transcriptKey(12, "item/with spaces", 4)),

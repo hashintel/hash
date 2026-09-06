@@ -203,7 +203,9 @@ const admissionErrorCode = (
 
 export class RealtimeBrunchBridge {
   readonly #acceptedInputItemIds = new Set<string>();
+  readonly #activeOutputResponseIds = new Set<string>();
   readonly #listeners = new Set<BridgeListener>();
+  readonly #pendingSpeechRequestIds = new Set<string>();
   readonly #playbackOverlappingInputItemIds = new Set<string>();
   readonly #processedTranscripts = new Set<string>();
   readonly #session: RealtimeBridgeSession;
@@ -219,7 +221,6 @@ export class RealtimeBrunchBridge {
     status: "ready",
   };
   #generation = 0;
-  #outputActive = false;
 
   public constructor({
     session,
@@ -242,7 +243,8 @@ export class RealtimeBrunchBridge {
   }
 
   public completeTurnHandoff(): void {
-    this.#outputActive = false;
+    this.#activeOutputResponseIds.clear();
+    this.#pendingSpeechRequestIds.clear();
   }
 
   public notifyResponseMessageCompleted(
@@ -292,7 +294,8 @@ export class RealtimeBrunchBridge {
     this.#acceptedInputItemIds.clear();
     this.#playbackOverlappingInputItemIds.clear();
     this.#processedTranscripts.clear();
-    this.#outputActive = false;
+    this.#activeOutputResponseIds.clear();
+    this.#pendingSpeechRequestIds.clear();
     this.#seenSegmentIds.clear();
     for (const segment of this.#chat.canonicalSegments) {
       this.#seenSegmentIds.add(segment.id);
@@ -307,7 +310,8 @@ export class RealtimeBrunchBridge {
     this.#acceptedInputItemIds.clear();
     this.#playbackOverlappingInputItemIds.clear();
     this.#processedTranscripts.clear();
-    this.#outputActive = false;
+    this.#activeOutputResponseIds.clear();
+    this.#pendingSpeechRequestIds.clear();
   }
 
   public updateChat(update: ChatUpdate): void {
@@ -389,18 +393,24 @@ export class RealtimeBrunchBridge {
       return;
     }
     if (event.type === "input-speech-started") {
-      if (this.#outputActive) {
+      if (this.#ownsOutputTurn()) {
         this.#playbackOverlappingInputItemIds.add(event.itemId);
       } else {
         this.#acceptedInputItemIds.add(event.itemId);
       }
       return;
     }
-    if (
-      event.type === "canonical-speech-requested" ||
-      event.type === "output-started"
-    ) {
-      this.#outputActive = true;
+    if (event.type === "canonical-speech-requested") {
+      this.#pendingSpeechRequestIds.add(event.speechRequestId);
+      for (const itemId of this.#acceptedInputItemIds) {
+        this.#playbackOverlappingInputItemIds.add(itemId);
+      }
+      this.#acceptedInputItemIds.clear();
+      return;
+    }
+    if (event.type === "output-started") {
+      this.#pendingSpeechRequestIds.delete(event.speechRequestId);
+      this.#activeOutputResponseIds.add(event.responseId);
       for (const itemId of this.#acceptedInputItemIds) {
         this.#playbackOverlappingInputItemIds.add(itemId);
       }
@@ -411,7 +421,16 @@ export class RealtimeBrunchBridge {
       event.type === "output-stopped" ||
       event.type === "output-interrupted"
     ) {
-      this.#outputActive = false;
+      this.#activeOutputResponseIds.delete(event.responseId);
+      return;
+    }
+    if (event.type === "response-terminal") {
+      if (
+        event.status !== "completed" &&
+        event.speechRequestId !== undefined
+      ) {
+        this.#pendingSpeechRequestIds.delete(event.speechRequestId);
+      }
       return;
     }
     if (event.type !== "completed" && event.type !== "transcription-failed") {
@@ -474,6 +493,13 @@ export class RealtimeBrunchBridge {
     };
     this.#emit({ answer, deliveryId, type: "submission-started" });
     void this.#submit(answer, deliveryId, generation);
+  }
+
+  #ownsOutputTurn(): boolean {
+    return (
+      this.#activeOutputResponseIds.size > 0 ||
+      this.#pendingSpeechRequestIds.size > 0
+    );
   }
 
   async #submit(

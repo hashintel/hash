@@ -155,12 +155,14 @@ export class VoiceTurnController {
   #lastResponseSegments: CanonicalSpeechSegment[] = [];
   #outputCancellationPromise: Promise<void> | null = null;
   #pauseRequested = false;
+  readonly #pendingSpeechRequestIds = new Set<string>();
   #pendingSubmissionSettlement: PendingSubmissionSettlement | null = null;
   readonly #recordedLatencyEvents = new Set<string>();
   #snapshot = initialSnapshot;
   #submittingQuestionId: string | null = null;
   #takingTurnPromise: Promise<void> | null = null;
   #teardownPromise: Promise<void> | null = null;
+  readonly #terminalSpeechRequestIds = new Set<string>();
   #transcriptItemId: string | null = null;
   #transcriptKey: string | null = null;
   #ttsSpeechRequestId: string | null = null;
@@ -222,6 +224,8 @@ export class VoiceTurnController {
     this.#inputTurnPending = false;
     this.#outputCancellationPromise = null;
     this.#pauseRequested = false;
+    this.#pendingSpeechRequestIds.clear();
+    this.#terminalSpeechRequestIds.clear();
     this.#completeSubmissionSettlement();
     this.#bridgeStarted = false;
     this.#activeSpeechOutputEnded = false;
@@ -277,9 +281,11 @@ export class VoiceTurnController {
     this.#lastResponseQuestion = null;
     this.#lastResponseSegments = [];
     this.#outputCancellationPromise = null;
+    this.#pendingSpeechRequestIds.clear();
     this.#recordedLatencyEvents.clear();
     this.#submittingQuestionId = null;
     this.#takingTurnPromise = null;
+    this.#terminalSpeechRequestIds.clear();
     this.#completeSubmissionSettlement();
     this.#pauseRequested = false;
     this.#transcriptItemId = null;
@@ -506,6 +512,8 @@ export class VoiceTurnController {
         this.#activeSpeechOutputEnded = false;
         this.#activeSpeechResponseId = null;
         this.#activeSpeechResponseTerminal = false;
+        this.#pendingSpeechRequestIds.clear();
+        this.#terminalSpeechRequestIds.clear();
         this.#bridge.completeTurnHandoff();
         this.#session.setMicrophoneEnabled(this.#snapshot.microphoneEnabled);
         this.#update({ output: "interrupted" });
@@ -680,6 +688,7 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "canonical-speech-requested") {
+      this.#pendingSpeechRequestIds.add(event.speechRequestId);
       this.#session.setMicrophoneEnabled(false);
       this.#inputTurnPending = false;
       this.#transcriptItemId = null;
@@ -695,9 +704,11 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "output-started") {
+      this.#pendingSpeechRequestIds.delete(event.speechRequestId);
       this.#activeSpeechOutputEnded = false;
       this.#activeSpeechResponseId = event.responseId;
-      this.#activeSpeechResponseTerminal = false;
+      this.#activeSpeechResponseTerminal =
+        this.#terminalSpeechRequestIds.delete(event.speechRequestId);
       this.#inputTurnPending = false;
       this.#transcriptItemId = null;
       this.#transcriptKey = null;
@@ -725,7 +736,7 @@ export class VoiceTurnController {
         this.#clearSettledSpeech();
       }
       this.#update({
-        output: this.#takingTurnPromise ? "cancelling" : "idle",
+        output: this.#outputAfterPlaybackEnds("idle"),
       });
       this.#restoreMicrophoneIfCaptureAvailable();
       if (this.#currentQuestionId) {
@@ -740,7 +751,7 @@ export class VoiceTurnController {
         this.#clearSettledSpeech();
       }
       this.#update({
-        output: this.#takingTurnPromise ? "cancelling" : "interrupted",
+        output: this.#outputAfterPlaybackEnds("interrupted"),
       });
       this.#restoreMicrophoneIfCaptureAvailable();
       return;
@@ -768,6 +779,16 @@ export class VoiceTurnController {
         }
         this.#update({});
         this.#restoreMicrophoneIfCaptureAvailable();
+      } else if (
+        event.speechRequestId !== undefined &&
+        this.#pendingSpeechRequestIds.has(event.speechRequestId)
+      ) {
+        if (event.status === "completed") {
+          this.#terminalSpeechRequestIds.add(event.speechRequestId);
+        } else {
+          this.#pendingSpeechRequestIds.delete(event.speechRequestId);
+          this.#terminalSpeechRequestIds.delete(event.speechRequestId);
+        }
       }
       return;
     }
@@ -815,8 +836,10 @@ export class VoiceTurnController {
     this.#inputTurnPending = false;
     this.#latencyCorrelationId = null;
     this.#outputCancellationPromise = null;
+    this.#pendingSpeechRequestIds.clear();
     this.#recordedLatencyEvents.clear();
     this.#takingTurnPromise = null;
+    this.#terminalSpeechRequestIds.clear();
     this.#completeSubmissionSettlement();
     this.#bridgeStarted = false;
     this.#transcriptItemId = null;
@@ -849,6 +872,16 @@ export class VoiceTurnController {
       () => {
         if (this.#outputCancellationPromise === cancellationPromise) {
           this.#outputCancellationPromise = null;
+          this.#pendingSpeechRequestIds.clear();
+          this.#terminalSpeechRequestIds.clear();
+          this.#clearSettledSpeech();
+          this.#bridge.completeTurnHandoff();
+          if (
+            this.#snapshot.output === "waiting-for-tool" ||
+            this.#snapshot.output === "speaking"
+          ) {
+            this.#update({ output: "interrupted" });
+          }
           this.#restoreMicrophoneIfCaptureAvailable();
         }
       },
@@ -889,11 +922,28 @@ export class VoiceTurnController {
     this.#activeSpeechResponseTerminal = false;
   }
 
+  #outputAfterPlaybackEnds(
+    settledOutput: Extract<VoiceOutputState, "idle" | "interrupted">,
+  ): VoiceOutputState {
+    if (this.#takingTurnPromise) {
+      return "cancelling";
+    }
+    if (
+      this.#pendingSpeechRequestIds.size > 0 &&
+      this.#outputCancellationPromise === null &&
+      this.#snapshot.input !== "paused"
+    ) {
+      return "waiting-for-tool";
+    }
+    return settledOutput;
+  }
+
   #restoreMicrophoneIfCaptureAvailable(): void {
     if (
       this.#snapshot.connection === "connected" &&
       this.#snapshot.input === "listening" &&
       this.#activeSpeechResponseId === null &&
+      this.#pendingSpeechRequestIds.size === 0 &&
       this.#takingTurnPromise === null &&
       this.#outputCancellationPromise === null &&
       (this.#snapshot.output === "idle" ||
@@ -931,6 +981,7 @@ export class VoiceTurnController {
       snapshot.input === "listening" &&
       !this.#inputTurnPending &&
       this.#activeSpeechResponseId === null &&
+      this.#pendingSpeechRequestIds.size === 0 &&
       (snapshot.output === "idle" || snapshot.output === "interrupted")
     );
   }
@@ -941,10 +992,6 @@ export class VoiceTurnController {
       snapshot.input !== "paused" &&
       (snapshot.output === "waiting-for-tool" ||
         snapshot.output === "speaking") &&
-      this.#currentQuestionId !== null &&
-      this.#currentQuestionId !== this.#answeredQuestionId &&
-      this.#currentQuestionId !== this.#submittingQuestionId &&
-      Boolean(snapshot.currentQuestion) &&
       this.#takingTurnPromise === null
     );
   }
