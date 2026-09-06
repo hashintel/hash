@@ -380,6 +380,69 @@ describe("AiAssistantContents", () => {
     expect(onVoiceDockCollapsedChange).toHaveBeenCalledWith(false);
   });
 
+  test("toggles interruption by speaking in the playback menu and reveals manual handover", async () => {
+    const store = createVoiceSessionStore();
+    const state = {
+      canTakeTurn: true,
+      interruptionBySpeaking: true,
+      errorMessage: null,
+      microphoneLevel: 0,
+      microphoneMuted: false,
+      phase: "speaking" as const,
+    };
+    const setInterruptionBySpeaking = vi.fn((enabled: boolean) =>
+      store.setState({ ...state, interruptionBySpeaking: enabled }),
+    );
+    store.setActions({
+      end: vi.fn(),
+      pause: vi.fn(),
+      reconnect: vi.fn(),
+      resume: vi.fn(),
+      setMicrophoneMuted: vi.fn(),
+      takeTurn: vi.fn(),
+      setInterruptionBySpeaking,
+    });
+    store.setState(state);
+    render(
+      <VoiceSessionContext.Provider value={store}>
+        <AiAssistantContents
+          input=""
+          messages={[]}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          status="ready"
+        />
+      </VoiceSessionContext.Provider>,
+    );
+    expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Voice playback options" }),
+    );
+    const preference = await screen.findByRole("menuitem", {
+      name: "Interruption by speaking",
+    });
+    expect(preference.hasAttribute("data-selected")).toBe(true);
+    const menu = screen.getByRole("menu");
+    fireEvent.keyDown(menu, { key: "End" });
+    await waitFor(() =>
+      expect(menu.getAttribute("aria-activedescendant")).toBe(preference.id),
+    );
+    fireEvent.keyDown(menu, { key: "Enter" });
+    await waitFor(() =>
+      expect(setInterruptionBySpeaking).toHaveBeenCalledWith(false),
+    );
+    expect(screen.getByRole("menu")).not.toBeNull();
+    expect(preference.hasAttribute("data-selected")).toBe(false);
+    expect(screen.getByRole("button", { name: "Your turn" })).not.toBeNull();
+    fireEvent.keyDown(menu, { key: "Enter" });
+    await waitFor(() =>
+      expect(setInterruptionBySpeaking).toHaveBeenLastCalledWith(true),
+    );
+    expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
+  });
+
   test("keeps handoff and canonical playback controls in the Voice dock", async () => {
     const store = createVoiceSessionStore();
     const actions = {

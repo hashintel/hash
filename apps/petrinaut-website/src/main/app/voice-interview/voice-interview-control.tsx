@@ -149,6 +149,36 @@ const getVoiceInterviewDisclosureStorage = (): Storage | null => {
   }
 };
 
+const interruptionBySpeakingStorageKey =
+  "petrinaut:interruption-by-speaking:v1";
+
+export const readInterruptionBySpeakingPreference = (
+  storage: Pick<
+    Storage,
+    "getItem"
+  > | null = getVoiceInterviewDisclosureStorage(),
+): boolean => {
+  try {
+    return storage?.getItem(interruptionBySpeakingStorageKey) !== "false";
+  } catch {
+    return true;
+  }
+};
+
+export const saveInterruptionBySpeakingPreference = (
+  enabled: boolean,
+  storage: Pick<
+    Storage,
+    "setItem"
+  > | null = getVoiceInterviewDisclosureStorage(),
+): void => {
+  try {
+    storage?.setItem(interruptionBySpeakingStorageKey, String(enabled));
+  } catch {
+    // The preference still applies to this session when storage is unavailable.
+  }
+};
+
 export const isVoiceInterviewDisclosureAcknowledged = (
   storage: Pick<
     Storage,
@@ -485,6 +515,9 @@ const AvailableVoiceInterviewControl = ({
       session,
       submitText: (input) => latestSubmitVoiceInput(input),
     });
+    controller.setInterruptionBySpeaking(
+      readInterruptionBySpeakingPreference(),
+    );
     return {
       bridge,
       controller,
@@ -596,6 +629,10 @@ const AvailableVoiceInterviewControl = ({
         repeatQuestion: () => store.controller.repeatQuestion(),
         resume: () => {
           void store.controller.resume();
+        },
+        setInterruptionBySpeaking: (enabled) => {
+          store.controller.setInterruptionBySpeaking(enabled);
+          saveInterruptionBySpeakingPreference(enabled);
         },
         setMicrophoneMuted: (muted) =>
           store.controller.setMicrophoneMuted(muted),

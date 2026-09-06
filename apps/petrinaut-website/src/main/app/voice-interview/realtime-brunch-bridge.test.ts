@@ -115,6 +115,200 @@ const startReady = (
 };
 
 describe("RealtimeBrunchBridge", () => {
+  test("retains an interrupting transcript until the previous Brunch submission settles", async () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.emit(completedTranscript(3));
+    await vi.waitFor(() =>
+      expect(
+        harness.events.some(({ type }) => type === "submission-accepted"),
+      ).toBe(true),
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "streaming",
+    });
+    harness.emit({
+      type: "canonical-speech-requested",
+      connectionEpoch: 3,
+      speechRequestId: "speech-1",
+    });
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "interruption",
+      interruptionBySpeaking: true,
+    });
+    harness.emit(
+      completedTranscript(
+        3,
+        "Actually, the manager approves it.",
+        "interruption",
+      ),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+    const update = {
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [
+        segment("reply", "Who is informed?", "submission-voice-1"),
+      ],
+      status: "ready" as const,
+    };
+    harness.bridge.updateChat(update);
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledTimes(2),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        id: "voice-realtime:3:interruption:0",
+        text: "Actually, the manager approves it.",
+      }),
+    );
+    harness.emit(
+      completedTranscript(
+        3,
+        "Actually, the manager approves it.",
+        "interruption",
+      ),
+    );
+    harness.bridge.updateChat(update);
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledTimes(2);
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+  });
+
+  test.each(["stop", "cancelPendingSpeech", "reconnect"] as const)(
+    "clears a retained interruption on %s",
+    (action) => {
+      const harness = createHarness();
+      startReady(harness);
+      harness.bridge.updateChat({
+        canAcceptInterviewAnswer: false,
+        canonicalSegments: [],
+        status: "streaming",
+      });
+      harness.emit({
+        type: "input-speech-started",
+        connectionEpoch: 3,
+        itemId: "pending",
+        interruptionBySpeaking: true,
+      });
+      harness.emit(completedTranscript(3, "Pending answer", "pending"));
+      expect(harness.events).toContainEqual({
+        type: "transcript-retained",
+        answer: "Pending answer",
+      });
+      if (action === "reconnect") harness.bridge.start(4);
+      else harness.bridge[action]();
+      harness.bridge.updateChat({
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: [],
+        status: "ready",
+      });
+      expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+    },
+  );
+
+  test("drains a retained interruption once the panel reopens voice input", async () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "streaming",
+    });
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "interruption",
+      interruptionBySpeaking: true,
+    });
+    harness.emit(
+      completedTranscript(3, "The auditor approves it.", "interruption"),
+    );
+
+    // The panel reports ready before it releases the queued voice input, so
+    // the first ready update cannot deliver the retained answer.
+    const heldSegments = [
+      segment("held", "Who signs it off?", "submission-held"),
+    ];
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: heldSegments,
+      status: "ready",
+    });
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: heldSegments,
+      status: "ready",
+    });
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "The auditor approves it." }),
+    );
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+  });
+
+  test("refuses ordinary capture while a submission is active", async () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.emit(completedTranscript(3));
+    await vi.waitFor(() =>
+      expect(
+        harness.events.some(({ type }) => type === "submission-accepted"),
+      ).toBe(true),
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "streaming",
+    });
+
+    harness.emit(completedTranscript(3, "   ", "second-item"));
+
+    expect(harness.events).toContainEqual({
+      type: "transcript-rejected",
+      reason: "unavailable",
+    });
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+  });
+
+  test("retains only the first pending interruption and reports the extra utterance", () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "streaming",
+    });
+    for (const itemId of ["first", "second"]) {
+      harness.emit({
+        type: "input-speech-started",
+        connectionEpoch: 3,
+        itemId,
+        interruptionBySpeaking: true,
+      });
+      harness.emit(completedTranscript(3, itemId, itemId));
+    }
+    expect(harness.events).toContainEqual({
+      type: "transcript-rejected",
+      reason: "pending",
+    });
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      status: "ready",
+    });
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "first" }),
+    );
+  });
+
   test("rehydrates settled canonical speech without submission or playback", () => {
     const harness = createHarness();
     harness.bridge.updateChat({

@@ -71,6 +71,8 @@ export type PetrinautAiVoiceModeControls = {
    * whole session when Petrinaut closes the panel.
    */
   setMicrophoneMuted: (muted: boolean) => void;
+  /** Allows speech to interrupt assistant playback without clearing input. */
+  setInterruptionBySpeaking?: (enabled: boolean) => void;
   /** Cancels Voice output and hands the live microphone turn to the user. */
   takeTurn?: () => Promise<void> | void;
 };

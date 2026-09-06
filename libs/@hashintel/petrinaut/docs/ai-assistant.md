@@ -60,13 +60,20 @@ transcription and Realtime audio are ephemeral. Finalized spoken user messages c
 carries the same chip, so Voice provenance remains visible without duplicating an answer while the
 session is mounted.
 
-Voice is half-duplex. The microphone is closed while the interviewer speaks or the assistant is
-working, which prevents playback from becoming a false answer. Select **Your turn** to interrupt:
-the dock shows the handoff as thinking while it clears pending audio and waits for the provider to
-finish cancellation, then opens a fresh input turn. Audio captured before that completed handoff is
-discarded. Semantic voice detection finishes your answer automatically after a natural pause, so
-there is no required done-speaking action. Duplicate, empty, failed, or unavailable transcripts are
-not submitted; the dock asks you to try again. An overlong answer instead asks for a shorter response.
+**Interruption by speaking** is on by default. Start speaking while Brunch is talking to stop its
+audio and give your answer. Your interrupting words are captured; you do not need to repeat them.
+If Brunch is still finishing its previous turn, the dock shows **Answer captured. Waiting for Brunch.**
+and sends that answer when it is ready. Wait for that answer to be sent before giving another one.
+
+Open **Voice playback options** and uncheck **Interruption by speaking** to use manual handover.
+This preference is remembered in your browser. In manual mode the microphone closes during
+assistant output. Select **Your turn**, wait for cancellation to finish, then speak; audio before
+that handover is discarded. The **Your turn** control is hidden when interruption by speaking is on.
+If speaker playback causes unwanted interruptions, use headphones or switch to manual handover.
+
+Semantic voice detection finishes your answer automatically after a natural pause, so there is no
+required done-speaking action. Duplicate, empty, failed, or unavailable transcripts are not submitted.
+An empty or failed transcript asks you to try again, and an overlong answer asks for a shorter response.
 Provisional words remain display-only until the provider completes their transcript.
 
 Every session control lives in the dock: **Collapse voice session** / **Expand voice session** and

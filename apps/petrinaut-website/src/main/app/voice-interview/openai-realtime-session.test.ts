@@ -4,6 +4,8 @@ import {
   OpenAIRealtimeSession,
   type OpenAIRealtimeSessionEvent,
 } from "./openai-realtime-session";
+import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
+import { VoiceTurnController } from "./voice-turn-controller";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 
@@ -173,6 +175,236 @@ const authorizeLatestSpeechResponse = (
 describe("OpenAIRealtimeSession", () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  test.each(["playing", "generated", "creating"] as const)(
+    "preserves an interrupting answer through the real Voice stack while %s",
+    async (phase) => {
+      const harness = createHarness();
+      const submitInterviewAnswer = vi.fn<
+        ConstructorParameters<
+          typeof RealtimeBrunchBridge
+        >[0]["submitInterviewAnswer"]
+      >(async (input) => ({ kind: "message", messageId: input.id }));
+      const bridge = new RealtimeBrunchBridge({
+        session: harness.session,
+        submitInterviewAnswer,
+      });
+      const controller = new VoiceTurnController({
+        bridge,
+        session: harness.session,
+        submitText: vi.fn(async () => undefined),
+      });
+      controller.setInterruptionBySpeaking(true);
+      await controller.start();
+      const channel = harness.channels.at(-1)!;
+      const question = canonicalSegment("question", "Who approves this?");
+      controller.updateChat({
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: [question],
+        questionSegment: question,
+        status: "ready",
+      });
+      if (phase !== "creating") {
+        authorizeLatestSpeechResponse(channel, "question-response");
+        channel.receive({
+          type: "output_audio_buffer.started",
+          response_id: "question-response",
+        });
+      }
+      if (phase === "generated") {
+        channel.receive({
+          type: "response.done",
+          response: {
+            id: "question-response",
+            status: "completed",
+            output: [],
+          },
+        });
+      }
+      expect(harness.localTracks.at(-1)?.enabled).toBe(true);
+      const pendingResponse = sentEvents(channel).findLast(
+        ({ type }) => type === "response.create",
+      )?.response as Record<string, unknown>;
+      harness.session.speakCanonical([
+        canonicalSegment("queued", "This must not play."),
+      ]);
+      channel.send.mockClear();
+      channel.receive({
+        type: "input_audio_buffer.speech_started",
+        item_id: "interrupting-answer",
+        audio_start_ms: 100,
+      });
+      if (phase !== "creating") {
+        expect(sentEvents(channel).map(({ type }) => type)).toEqual([
+          "response.cancel",
+          "output_audio_buffer.clear",
+        ]);
+      }
+      expect(harness.localTracks.at(-1)?.enabled).toBe(true);
+      channel.receive({
+        type: "conversation.item.input_audio_transcription.delta",
+        item_id: "interrupting-answer",
+        content_index: 0,
+        delta: "The supervisor",
+      });
+      expect(controller.getSnapshot().partialText).toBe("The supervisor");
+      if (phase === "creating") {
+        channel.receive({
+          type: "response.created",
+          response: {
+            id: "question-response",
+            metadata: pendingResponse.metadata,
+          },
+        });
+        expect(sentEvents(channel).map(({ type }) => type)).toEqual([
+          "response.cancel",
+          "output_audio_buffer.clear",
+        ]);
+      }
+      const terminal = {
+        type: "response.done",
+        response: { id: "question-response", status: "cancelled", output: [] },
+      };
+      const cleared = {
+        type: "output_audio_buffer.cleared",
+        response_id: "question-response",
+      };
+      channel.receive(phase === "playing" ? terminal : cleared);
+      channel.receive(phase === "playing" ? cleared : terminal);
+      channel.receive({
+        type: "output_audio_buffer.started",
+        response_id: "question-response",
+      });
+      expect(controller.getSnapshot().connection).toBe("connected");
+      expect(harness.localTracks.at(-1)?.enabled).toBe(true);
+      expect(
+        sentEvents(channel).some(({ type }) => type === "response.create"),
+      ).toBe(false);
+      channel.receive({
+        type: "conversation.item.input_audio_transcription.completed",
+        item_id: "interrupting-answer",
+        content_index: 0,
+        transcript: "The supervisor approves it.",
+      });
+      await vi.waitFor(() =>
+        expect(submitInterviewAnswer).toHaveBeenCalledOnce(),
+      );
+      expect(submitInterviewAnswer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "voice-realtime:1:interrupting-answer:0",
+          text: "The supervisor approves it.",
+        }),
+      );
+      expect(
+        sentEvents(channel).some(
+          ({ type }) => type === "input_audio_buffer.clear",
+        ),
+      ).toBe(false);
+      expect(controller.getSnapshot().lastCommittedText).toBe(
+        "The supervisor approves it.",
+      );
+      await controller.end();
+    },
+  );
+
+  test("reopens capture for a streamed reply and submits the retained interruption after settlement", async () => {
+    const harness = createHarness();
+    const submitInterviewAnswer = vi.fn<
+      ConstructorParameters<
+        typeof RealtimeBrunchBridge
+      >[0]["submitInterviewAnswer"]
+    >(async (input) => {
+      input.onAdmission("submission-1");
+      return {
+        kind: "message",
+        messageId: input.id,
+        submissionId: "submission-1",
+      };
+    });
+    const bridge = new RealtimeBrunchBridge({
+      session: harness.session,
+      submitInterviewAnswer,
+    });
+    const controller = new VoiceTurnController({
+      bridge,
+      session: harness.session,
+      submitText: vi.fn(async () => undefined),
+    });
+    controller.setInterruptionBySpeaking(true);
+    await controller.start();
+    controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      status: "ready",
+    });
+    const channel = harness.channels.at(-1)!;
+    channel.receive({
+      type: "input_audio_buffer.speech_started",
+      item_id: "first-answer",
+      audio_start_ms: 0,
+    });
+    channel.receive({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "first-answer",
+      content_index: 0,
+      transcript: "We need an approval.",
+    });
+    await vi.waitFor(() =>
+      expect(controller.getSnapshot().lastAnswerDelivery).toBe("delivered"),
+    );
+    const reply = {
+      ...canonicalSegment("reply", "Who approves this?"),
+      submissionIds: ["submission-1"],
+    };
+    bridge.notifyResponseMessageCompleted({
+      messageId: reply.messageId,
+      submissionId: "submission-1",
+      position: { batch: 1, index: 0 },
+    });
+    controller.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [reply],
+      status: "streaming",
+    });
+    authorizeLatestSpeechResponse(channel, "streamed-reply");
+    channel.receive({
+      type: "output_audio_buffer.started",
+      response_id: "streamed-reply",
+    });
+    expect(harness.localTracks.at(-1)?.enabled).toBe(true);
+    controller.setMicrophoneMuted(true);
+    expect(harness.localTracks.at(-1)?.enabled).toBe(false);
+    controller.setMicrophoneMuted(false);
+    expect(harness.localTracks.at(-1)?.enabled).toBe(true);
+    channel.receive({
+      type: "input_audio_buffer.speech_started",
+      item_id: "second-answer",
+      audio_start_ms: 100,
+    });
+    channel.receive({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "second-answer",
+      content_index: 0,
+      transcript: "The supervisor approves it.",
+    });
+    expect(submitInterviewAnswer).toHaveBeenCalledOnce();
+    expect(controller.getSnapshot().inputNotice).toBe("answer-pending");
+    controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [reply],
+      status: "ready",
+    });
+    await vi.waitFor(() =>
+      expect(submitInterviewAnswer).toHaveBeenCalledTimes(2),
+    );
+    expect(submitInterviewAnswer).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        id: "voice-realtime:1:second-answer:0",
+        text: "The supervisor approves it.",
+      }),
+    );
+    await controller.end();
   });
 
   test("negotiates duplex WebRTC, attaches remote audio, and cleans all media", async () => {

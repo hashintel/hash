@@ -29,6 +29,7 @@ export const voiceSessionActionLabels = {
   collapse: "Collapse voice session",
   end: "End voice mode",
   expand: "Expand voice session",
+  interruptionBySpeaking: "Interruption by speaking",
   mute: "Mute microphone",
   pause: "Pause voice mode",
   playbackOptions: "Voice playback options",
