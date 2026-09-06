@@ -16,7 +16,6 @@
       "codegen"
     ],
     "test:unit": [
-      "@apps/petrinaut-opt#codegen",
       "@hashintel/petrinaut-core#build",
       "codegen"
     ]

@@ -7,27 +7,29 @@
   ],
   "tasks": {
     "build": [
+      "@local/hash-codec#build",
       "codegen"
     ],
     "codegen": [
       "@blockprotocol/type-system-rs#build:types",
-      "@blockprotocol/type-system-rs#build:wasm",
-      "@local/eslint#build",
-      "@local/hash-codec#build"
+      "@blockprotocol/type-system-rs#build:wasm"
     ],
     "fix:eslint": [
       "@local/eslint#build",
+      "@local/hash-codec#build",
       "codegen"
     ],
     "lint:eslint": [
       "@local/eslint#build",
+      "@local/hash-codec#build",
       "codegen"
     ],
     "lint:tsc": [
+      "@local/eslint#build",
+      "@local/hash-codec#build",
       "codegen"
     ],
     "test:unit": [
-      "@local/eslint#build",
       "@local/hash-codec#build",
       "codegen"
     ]

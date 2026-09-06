@@ -3,7 +3,6 @@
   "tasks": {
     "codegen": {
       "dependsOn": [
-        "^build",
         "@blockprotocol/type-system-rs#build:types",
         "@blockprotocol/type-system-rs#build:wasm"
       ],
@@ -21,7 +20,11 @@
       "outputs": ["src/generated/**"]
     },
     "build": {
+      "dependsOn": ["codegen", "@local/hash-codec#build", "^manifest"],
       "outputs": ["dist/**"]
+    },
+    "test:unit": {
+      "dependsOn": ["codegen", "@local/hash-codec#build", "^manifest"]
     }
   }
 }

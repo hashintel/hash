@@ -5,9 +5,7 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "@local/eslint#build"
-    ],
+    "build": [],
     "fix:eslint": [
       "@local/eslint#build"
     ],

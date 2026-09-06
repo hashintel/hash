@@ -3,6 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
+      "dependsOn": ["codegen", "^build"],
       "outputs": ["dist/**"]
     },
     "build:buildinfo": {
@@ -10,35 +11,30 @@
       "outputs": ["dist/panda.buildinfo.json"]
     },
     "build:ladle": {
-      "dependsOn": ["codegen"],
+      "dependsOn": ["codegen", "^build"],
       "outputs": [".build/ladle/**"]
     },
     "build:lib": {
-      "dependsOn": ["codegen"],
+      "dependsOn": ["codegen", "^build"],
       "outputs": ["dist/**"]
     },
     "codegen": {
-      "dependsOn": ["^build"],
       "outputs": ["src/preset/**/*.gen.ts", "../ds-helpers/styled-system/**"]
     },
     "dev": {
       "cache": false,
-      "dependsOn": ["codegen"],
+      "dependsOn": ["codegen", "^build"],
       "persistent": true
     },
     "dev:ladle": {
       "cache": false,
-      "dependsOn": ["codegen"],
+      "dependsOn": ["codegen", "^build"],
       "persistent": true
     },
-    "lint:eslint": {
-      "dependsOn": ["codegen", "@local/eslint#build"],
-      "env": ["CHECK_TEMPORARILY_DISABLED_RULES"]
-    },
-    "lint:tsc": {
+    "fix": {
       "dependsOn": ["codegen"]
     },
-    "fix": {
+    "lint": {
       "dependsOn": ["codegen"]
     },
     "preview:ladle": {

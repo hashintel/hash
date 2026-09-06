@@ -17,8 +17,6 @@
   "tasks": {
     "fix:clippy": [],
     "lint:clippy": [],
-    "test:integration": [
-      "@local/status#build"
-    ]
+    "test:integration": []
   }
 }

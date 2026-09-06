@@ -7,7 +7,7 @@
       "dependsOn": ["@apps/hash-graph#start:test:migrate"]
     },
     "test:integration": {
-      "dependsOn": ["@rust/hash-graph-migrations#start:migrate:up"]
+      "dependsOn": ["^manifest", "@rust/hash-graph-migrations#start:migrate:up"]
     }
   }
 }

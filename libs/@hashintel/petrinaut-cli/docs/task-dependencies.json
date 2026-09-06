@@ -11,14 +11,17 @@
       "@hashintel/petrinaut-core#build"
     ],
     "fix:eslint": [
+      "@hashintel/petrinaut-core#build",
       "@local/eslint#build",
       "codegen"
     ],
     "lint:eslint": [
+      "@hashintel/petrinaut-core#build",
       "@local/eslint#build",
       "codegen"
     ],
     "lint:tsc": [
+      "@hashintel/petrinaut-core#build",
       "codegen"
     ],
     "test:unit": [

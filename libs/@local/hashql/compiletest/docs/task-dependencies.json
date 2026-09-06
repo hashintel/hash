@@ -16,8 +16,6 @@
     ],
     "fix:clippy": [],
     "lint:clippy": [],
-    "test:unit": [
-      "@local/status#build"
-    ]
+    "test:unit": []
   }
 }

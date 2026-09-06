@@ -20,16 +20,16 @@
       "codegen",
       "examples:generate"
     ],
-    "codegen": [
+    "codegen": [],
+    "dev": [
       "@hashintel/brunch-agent#build",
       "@hashintel/brunch-agent-transport-aisdk#build",
       "@hashintel/ds-components#build",
       "@hashintel/petrinaut#build",
       "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-optimizer-client#build"
-    ],
-    "dev": [
-      "codegen"
+      "@local/petrinaut-optimizer-client#build",
+      "codegen",
+      "examples:generate"
     ],
     "examples:generate": [
       "@hashintel/brunch-agent#build",
@@ -40,11 +40,23 @@
       "@local/petrinaut-optimizer-client#build"
     ],
     "fix:eslint": [
+      "@hashintel/brunch-agent#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
       "@local/eslint#build",
+      "@local/petrinaut-optimizer-client#build",
       "codegen"
     ],
     "lint:eslint": [
+      "@hashintel/brunch-agent#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
       "@local/eslint#build",
+      "@local/petrinaut-optimizer-client#build",
       "codegen"
     ],
     "lint:tsc": [

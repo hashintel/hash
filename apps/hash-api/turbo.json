@@ -4,13 +4,45 @@
     "codegen": {
       // Outputs of GraphQL generation
       "outputs": ["./src/**/*.gen.*"],
-      // The optimizer handler imports runtime modules whose workspace exports
-      // resolve from dist.
+      // graphql-codegen loads its config from the isomorphic utils' dist, and the optimizer
+      // handler imports runtime modules whose workspace exports resolve from dist.
       "dependsOn": [
-        "^codegen",
+        "@local/hash-isomorphic-utils#build",
         "@hashintel/petrinaut-core#build",
         "@local/petrinaut-optimizer-client#build"
       ]
+    },
+    // The service starts from its sources, so this runs nothing of its own and gathers the
+    // generated code and the dependencies' builds a checkout needs to run it.
+    "build": {
+      "dependsOn": ["codegen", "^build"]
+    },
+    // The image copies the repository and generates and builds inside it, so the host
+    // only contributes sources.
+    "build:docker": {
+      "dependsOn": ["^manifest"]
+    },
+    "dev": {
+      "dependsOn": ["codegen", "^build"]
+    },
+    "test:unit": {
+      "dependsOn": ["codegen", "^build"]
+    },
+    "start:migrate": {
+      "dependsOn": ["codegen", "^build", "@apps/hash-graph#start:healthcheck"]
+    },
+    "start": {
+      "dependsOn": ["start:migrate"]
+    },
+    "start:test:migrate": {
+      "dependsOn": [
+        "codegen",
+        "^build",
+        "@apps/hash-graph#start:test:healthcheck"
+      ]
+    },
+    "start:test": {
+      "dependsOn": ["start:test:migrate"]
     }
   }
 }

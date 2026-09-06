@@ -12,39 +12,26 @@
   "tasks": {
     "doc:architecture": [],
     "fix:eslint": [
-      "@apps/petrinaut-opt#codegen",
       "@apps/petrinaut-website#build",
       "@hashintel/petrinaut#build",
       "@hashintel/petrinaut-cli#build",
       "@hashintel/petrinaut-core#build",
-      "@local/eslint#build",
-      "@local/petrinaut-python#codegen"
+      "@local/eslint#build"
     ],
     "lint:arch-docs": [],
     "lint:eslint": [
-      "@apps/petrinaut-opt#codegen",
       "@apps/petrinaut-website#build",
       "@hashintel/petrinaut#build",
       "@hashintel/petrinaut-cli#build",
       "@hashintel/petrinaut-core#build",
-      "@local/eslint#build",
-      "@local/petrinaut-python#codegen"
+      "@local/eslint#build"
     ],
     "lint:tsc": [
-      "@apps/petrinaut-opt#codegen",
       "@apps/petrinaut-website#build",
       "@hashintel/petrinaut#build",
       "@hashintel/petrinaut-cli#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-python#codegen"
+      "@hashintel/petrinaut-core#build"
     ],
-    "test:unit": [
-      "@apps/petrinaut-opt#codegen",
-      "@apps/petrinaut-website#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-cli#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/petrinaut-python#codegen"
-    ]
+    "test:unit": []
   }
 }

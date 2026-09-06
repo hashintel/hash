@@ -16,16 +16,12 @@
   ],
   "tasks": {
     "bench:integration": [
-      "@apps/hash-graph#start:healthcheck",
-      "@local/status#build",
-      "@rust/hash-repo-chores#build"
+      "@apps/hash-graph#start:healthcheck"
     ],
     "fix:clippy": [],
     "lint:clippy": [],
     "test:integration": [
-      "@apps/hash-graph#start:test:healthcheck",
-      "@local/status#build",
-      "@rust/hash-repo-chores#build"
+      "@apps/hash-graph#start:test:healthcheck"
     ]
   }
 }

@@ -38,6 +38,11 @@
     ],
     "build:docker": [],
     "codegen": [
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@local/hash-isomorphic-utils#build"
+    ],
+    "dev": [
       "@blockprotocol/graph#build",
       "@blockprotocol/type-system#build",
       "@hashintel/ds-components#build",
@@ -49,27 +54,61 @@
       "@local/hash-graph-sdk#build",
       "@local/hash-graph-store#build",
       "@local/hash-isomorphic-utils#build",
-      "@local/status#build"
-    ],
-    "dev": [
+      "@local/status#build",
       "codegen"
     ],
     "fix:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/advanced-types#build",
       "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-graph-store#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build",
       "codegen"
     ],
     "lint:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/advanced-types#build",
       "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-graph-store#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build",
       "codegen"
     ],
     "lint:tsc": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-graph-store#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build",
       "codegen"
     ],
     "start": [
+      "@apps/hash-api#start:healthcheck",
       "build"
     ],
     "start:healthcheck": [],
     "start:test": [
+      "@apps/hash-api#start:test:healthcheck",
       "build"
     ],
     "start:test:healthcheck": [],

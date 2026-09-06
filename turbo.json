@@ -11,13 +11,14 @@
     // Development commands
     "dev": {
       "cache": false,
-      "persistent": true,
-      "dependsOn": ["codegen"]
+      "persistent": true
     },
     // Build commands
-    "codegen": {
-      "dependsOn": ["^build"]
-    },
+    //
+    // `codegen`, `build`, `test:*` and `start:*` are shared between the JavaScript packages
+    // and the Rust crates, and what each of them consumes differs per package, so the edges
+    // are declared where they hold. A name only one toolchain uses carries its defaults here.
+    "codegen": {},
     "doc:dependency-diagram": {
       "cache": false,
       "dependsOn": ["@rust/hash-repo-chores#build"]
@@ -29,14 +30,13 @@
       "cache": false,
       "dependsOn": ["//#sync:turborepo"]
     },
-    "build": {
-      "dependsOn": ["codegen"]
-    },
+    "build": {},
     "build:docker": {
       "cache": false
     },
     "build:codspeed": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^manifest"]
     },
     "compile": {
       "cache": false
@@ -46,77 +46,81 @@
     },
     // Run commands
     "start:migrate": {
-      "cache": false,
-      "dependsOn": ["build", "^start:healthcheck"]
+      "cache": false
     },
     "start": {
       "cache": false,
-      "persistent": true,
-      "dependsOn": ["start:migrate"]
+      "persistent": true
     },
     "start:healthcheck": {
-      "cache": false,
-      "dependsOn": ["compile:release"]
+      "cache": false
     },
     "start:test:migrate": {
-      "cache": false,
-      "dependsOn": ["build", "^start:test:healthcheck"]
+      "cache": false
     },
     "start:test": {
       "cache": false,
-      "persistent": true,
-      "dependsOn": ["start:test:migrate"]
+      "persistent": true
     },
     "start:test:healthcheck": {
-      "cache": false,
-      "dependsOn": ["compile"]
+      "cache": false
     },
     // Test commands
+    //
+    // A test reads its dependencies' sources through the toolchain, so their inputs belong
+    // in its hash whether or not a build runs first. Packages that import from `dist` add
+    // `^build` themselves.
     "test:unit": {
-      "dependsOn": ["codegen", "^build"],
+      "dependsOn": ["^manifest"],
       "env": ["TEST_COVERAGE"]
     },
     "test:integration": {
-      "dependsOn": ["codegen", "^start:test:healthcheck"],
+      "dependsOn": ["^manifest"],
       "env": ["TEST_COVERAGE"]
     },
     "test:codspeed": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^manifest"]
     },
-    "test:miri": {},
+    "test:miri": {
+      "dependsOn": ["^manifest"]
+    },
     // Benchmarks
     "bench:unit": {
-      "dependsOn": ["codegen"],
+      "dependsOn": ["^manifest"],
       "cache": false
     },
     "bench:integration": {
-      "dependsOn": ["codegen", "^start:healthcheck"],
+      "dependsOn": ["^manifest"],
       "cache": false
     },
     // Linting and formatting
-    "lint": {
-      "dependsOn": ["codegen"]
-    },
+    "lint": {},
     // The clippy invocation differs between pull requests (`--all-features`) and other runs
     // such as the merge queue (`cargo hack --feature-powerset`), selected via
     // `GITHUB_EVENT_NAME` in the `.justfile`. Include it in the hash so the two run modes
     // cannot share caches.
     "lint:clippy": {
-      "env": ["GITHUB_EVENT_NAME"]
+      "env": ["GITHUB_EVENT_NAME"],
+      "dependsOn": ["^manifest"]
     },
+    // Type-aware linting resolves workspace imports from the dependencies' dist.
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
-      "dependsOn": ["codegen", "@local/eslint#build"]
+      "dependsOn": ["codegen", "^build", "@local/eslint#build"]
     },
     "lint:tsc": {
-      "dependsOn": ["codegen"]
+      "dependsOn": ["codegen", "^build"]
     },
     // Python linting and type checking. `uv run` syncs the package's
-    // environment from its own lockfile, so neither needs a prior task.
+    // environment from its own lockfile. Ruff reads the sources as text, while
+    // type checking resolves the package's own generated modules.
     "lint:ruff": {},
-    "lint:types": {},
+    "lint:types": {
+      "dependsOn": ["codegen"]
+    },
     "fix:eslint": {
-      "dependsOn": ["codegen", "@local/eslint#build"]
+      "dependsOn": ["codegen", "^build", "@local/eslint#build"]
     },
     "fix:clippy": {},
     "sentry:sourcemaps": {

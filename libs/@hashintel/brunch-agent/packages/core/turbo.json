@@ -9,7 +9,6 @@
       "cache": false
     },
     "test:unit": {
-      "dependsOn": ["codegen", "^build"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/libs/@hashintel/brunch-agent/**",
