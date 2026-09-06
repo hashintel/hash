@@ -29,6 +29,15 @@ export const MAX_LEFT_SIDEBAR_WIDTH = 500;
 export const MIN_PROPERTIES_PANEL_WIDTH = 250;
 export const MAX_PROPERTIES_PANEL_WIDTH = 800;
 
+// Viewport controls — the button column at the bottom right of the canvas.
+// The width is one `xs` icon button, rounded up from its rendered 21px.
+export const VIEWPORT_CONTROLS_OFFSET = 12;
+export const VIEWPORT_CONTROLS_WIDTH = 24;
+
+/** What a control sharing the column's row has to leave free of it. */
+export const VIEWPORT_CONTROLS_CLEARANCE =
+  VIEWPORT_CONTROLS_OFFSET + VIEWPORT_CONTROLS_WIDTH;
+
 // Bottom Panel (DEFAULT_BOTTOM_PANEL_HEIGHT in react/state/panel-defaults)
 export const MIN_BOTTOM_PANEL_HEIGHT = 100;
 export const MAX_BOTTOM_PANEL_HEIGHT = 600;

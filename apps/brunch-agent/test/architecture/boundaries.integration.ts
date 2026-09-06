@@ -19,7 +19,6 @@ import {
   AGENT_DIRECTIVE_STATEMENT,
   agentModules,
   allDependencies,
-  CONTEXT_ROOT,
   importedPackages,
   MODEL_KEY_NAME,
   packageOf,
@@ -34,44 +33,14 @@ import {
 const PACKAGES = workspacePackages();
 
 const CORE = "@hashintel/brunch-agent";
-/** Any substrate package. The harness may never name one; a binding must. */
+/** Flue is the selected agent runtime; lower-level Pi packages remain binding/test concerns. */
 const SUBSTRATE_SCOPES = ["@flue/", "@earendil-works/"];
+const FLUE_RUNTIME = "@flue/runtime";
 
 const isSubstrate = (name: string): boolean =>
   SUBSTRATE_SCOPES.some((scope) => name.startsWith(scope));
 const byRole = (role: string): WorkspacePackage[] =>
   PACKAGES.filter((pkg) => pkg.dir.startsWith(`${role}-`));
-
-test("every workspace package is one the spec topology names", () => {
-  // Derived from the spec's own §12.2 topology block instead of a second
-  // hand-written list here. The spec names *intended* structure — some
-  // entries are not scaffolded yet — so the direction checked is disk ⊆
-  // spec: a package the spec does not name is loud, while an
-  // intended-but-unbuilt one is not a failure. (The old hardcoded equality
-  // would have failed the next legitimate package instead of governing it.)
-  const spec = readFileSync(
-    join(CONTEXT_ROOT, "docs/specs/elicitation-kernel.md"),
-    "utf8",
-  );
-  const topology = /### 12\.2[^\n]*\n[\s\S]*?```text\n([\s\S]*?)```/.exec(
-    spec,
-  )?.[1];
-  expect(topology).toBeDefined();
-  const named = new Set(
-    [...topology!.matchAll(/^((?:packages|apps)\/[\w-]+)(?=\s|$)/gm)].map(
-      (match) => match[1]!,
-    ),
-  );
-  expect(named.size).toBeGreaterThan(0);
-  for (const pkg of PACKAGES) {
-    const standalonePath =
-      pkg.kind === "app" ? "apps/dev" : `packages/${pkg.dir}`;
-    expect({ pkg: pkg.relPath, inSpec: named.has(standalonePath) }).toEqual({
-      pkg: pkg.relPath,
-      inSpec: true,
-    });
-  }
-});
 
 test("every package is actually scanned", () => {
   // Without this, a package the file walker misses passes every file-level
@@ -116,18 +85,22 @@ describe("role prefixes name what a package is architecturally (spec §12.2)", (
   });
 });
 
-describe("dependency direction (spec §4, §12.2)", () => {
-  test("the harness imports no substrate", () => {
+describe("dependency direction", () => {
+  test("core's only agent-runtime dependency is Flue", () => {
     const core = PACKAGES.find((pkg) => pkg.name === CORE);
     expect(core).toBeDefined();
-    expect(allDependencies(core!).filter(isSubstrate)).toEqual([]);
+    expect(allDependencies(core!).filter(isSubstrate)).toEqual([FLUE_RUNTIME]);
     for (const file of sourceFiles(core!)) {
-      const substrateImports = importedPackages(file).filter((s) =>
-        isSubstrate(packageOf(s)),
+      const substrateImports = importedPackages(file).filter((specifier) =>
+        isSubstrate(packageOf(specifier)),
       );
       expect({ file: file.relPath, substrateImports }).toEqual({
         file: file.relPath,
-        substrateImports: [],
+        substrateImports:
+          file.relPath.endsWith("/src/flue.ts") ||
+          file.relPath.endsWith("/src/skills/skill-markdown.ts")
+            ? [FLUE_RUNTIME]
+            : [],
       });
     }
   });
@@ -141,7 +114,7 @@ describe("dependency direction (spec §4, §12.2)", () => {
     }
   });
 
-  test("plugins resolve core only — never the binding, never Flue", () => {
+  test("plugins depend inward on core and may contribute through Flue directly", () => {
     const plugins = byRole("plugin");
     expect(plugins.length).toBeGreaterThan(0);
     for (const plugin of plugins) {
@@ -149,17 +122,21 @@ describe("dependency direction (spec §4, §12.2)", () => {
         dependency.startsWith("@hashintel/brunch-agent"),
       );
       expect(workspaceDeps).toEqual([CORE]);
-      expect(allDependencies(plugin).filter(isSubstrate)).toEqual([]);
+      expect(
+        allDependencies(plugin).filter(
+          (dependency) =>
+            isSubstrate(dependency) && dependency !== FLUE_RUNTIME,
+        ),
+      ).toEqual([]);
 
       for (const file of sourceFiles(plugin)) {
         for (const specifier of importedPackages(file)) {
           const pkg = packageOf(specifier);
-          expect(isSubstrate(pkg)).toBe(false);
+          expect(isSubstrate(pkg) && pkg !== FLUE_RUNTIME).toBe(false);
           expect(pkg.startsWith("@hashintel/brunch-agent") ? pkg : CORE).toBe(
             CORE,
           );
           expect(specifier).not.toBe(`${CORE}/storage`);
-          expect(specifier).not.toBe(`${CORE}/prompts`);
         }
       }
     }
@@ -183,36 +160,11 @@ describe("dependency direction (spec §4, §12.2)", () => {
     }
   });
 
-  test("repertoire defaults are guarded core prompt data (ADR-0008)", () => {
-    expect(PACKAGES.map((pkg) => pkg.dir)).not.toContain("repertoire");
-
-    const promptImporters = PACKAGES.flatMap((pkg) =>
-      sourceFiles(pkg)
-        .filter((file) => importedPackages(file).includes(`${CORE}/prompts`))
-        .map((file) => ({ pkg: pkg.dir, file: file.relPath })),
-    );
-    expect(promptImporters.length).toBeGreaterThan(0);
-    for (const importer of promptImporters) {
-      expect(importer.pkg).toMatch(/^binding-/u);
-    }
-
-    // Plugin-only CI lints the plugin and does not run this suite. The
-    // oxlint path ban is the gate that fires then; this assertion keeps
-    // that gate from disappearing while the suite still runs.
-    for (const plugin of byRole("plugin")) {
-      expect(
-        readFileSync(join(plugin.path, ".oxlintrc.json"), "utf8"),
-      ).toContain(`"name": "${CORE}/prompts"`);
-    }
-  });
-
   test("transports consume their wire encoder only — never core, a binding, or Flue", () => {
     const transports = byRole("transport");
     expect(transports.length).toBeGreaterThan(0);
     for (const transport of transports) {
-      expect(runtimeDependencies(transport).sort()).toEqual(
-        ["ai", "valibot"].sort(),
-      );
+      expect(runtimeDependencies(transport).sort()).toEqual(["ai", "valibot"]);
       for (const file of sourceFiles(transport).filter((file) =>
         file.path.startsWith(join(transport.path, "src")),
       )) {
@@ -423,33 +375,15 @@ describe("recorded Flue constraints hold by construction (spec §10)", () => {
   });
 });
 
-describe("core auxiliary subpaths stay in their assigned lanes (spec §12.2)", () => {
-  test("core exposes browser contracts, prompts, storage support and testing as explicit subpaths", () => {
+describe("core auxiliary subpaths stay in their assigned lanes", () => {
+  test("core exposes Flue composition, browser contracts, and storage support as explicit subpaths", () => {
     const core = PACKAGES.find((pkg) => pkg.name === CORE)!;
     expect(Object.keys(core.manifest.exports ?? {})).toEqual([
       ".",
       "./client-tools",
-      "./prompts",
+      "./flue",
       "./storage",
-      "./testing",
     ]);
-    expect(core.manifest.exports?.["./prompts"]).toEqual({
-      types: "./src/prompts.ts",
-      import: "./dist/prompts.js",
-    });
-
-    const rootEntry = readFileSync(join(core.path, "src/index.ts"), "utf8");
-    expect(rootEntry).not.toMatch(/\bfrom\s+["']\.\/prompts["']/u);
-  });
-
-  test("no package source imports core/testing", () => {
-    // Fixtures, arbitraries and the replay driver belong to tests; production
-    // bundles stay clean.
-    for (const pkg of PACKAGES) {
-      for (const file of sourceFiles(pkg)) {
-        expect(importedPackages(file)).not.toContain(`${CORE}/testing`);
-      }
-    }
   });
 
   test("only bindings import core/storage", () => {
@@ -486,20 +420,22 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
    * path enters here by review only.
    */
   const SUBSTRATE_INTEGRATION_ENTRY_POINTS: Readonly<Record<string, string>> = {
+    "apps/brunch-agent/test/brunch-turn.test.ts":
+      "Types Flue's client, admission, and conversation snapshot and constructs FlueExecutionError so the persona bridge can be unit-tested against a stubbed client — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/flue-transcript.test.ts":
       "Types Flue's public conversation snapshot so the transcript projector can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/flue-ui-stream.test.ts":
       "Types Flue conversation-stream chunks so the AI SDK projector can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/petrinaut-chat.integration.ts":
       "Boots the plain Flue chat agent on Flue's node runtime with pi-ai's faux provider, drives the committed /api/chat door over app.fetch, and proves streamed reasoning/text, one server tool, one stub skill activation, one read-only client-tool resume, GET history ownership, SQLite restart, and harness-side idempotent apply-sweep into a capture store keyed by Flue conversation identity — no provider key, no socket, no extraction model call. Run as a child process by petrinaut-chat.test.ts.",
+    "apps/brunch-agent/test/proof-artifacts.test.ts":
+      "Types Flue's public conversation snapshot so canonical trace derivation, workpiece binding, and atomic evidence retention can be unit-tested against an in-memory fixture — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/runbook-artifacts.test.ts":
       "Types Flue's public conversation snapshot so runbook artifact recovery can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/runbook-elicitation-faux-provider.ts":
       "Defines the scripted pi-ai faux provider loaded only by the hermetic prospective-runner test — no provider key, no socket, and no network model call.",
     "apps/brunch-agent/test/runbook-headless.integration.ts":
       "Boots the built Flue ChatAgent with pi-ai's faux provider and a headless Petrinaut client to prove validated construct-only tool flow without a provider key, socket, or network model call.",
-    "apps/brunch-agent/test/turn-timing.test.ts":
-      "Types recorded Flue observations and model requests so the condition-5 purpose splitter can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
   };
 
   test("no test file carries a live model credential", () => {

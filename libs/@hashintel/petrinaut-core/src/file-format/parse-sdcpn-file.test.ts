@@ -290,6 +290,112 @@ describe("parseSDCPNFile", () => {
     });
   });
 
+  describe("description and metadata", () => {
+    it("preserves description and metadata on every element that carries them", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        description: "A test net",
+        metadata: { source: "flow-1", tags: ["a", "b"], nested: { n: 1 } },
+        places: [{ ...minimalPlace, description: "A place" }],
+        transitions: [
+          {
+            ...minimalTransition,
+            description: "A transition",
+            metadata: { stepKind: "action" },
+          },
+        ],
+        types: [
+          {
+            id: "c1",
+            name: "Colour 1",
+            description: "A colour",
+            iconSlug: "circle",
+            displayColor: "#FF0000",
+            elements: [],
+          },
+        ],
+        componentInstances: [
+          {
+            id: "instance-1",
+            name: "Instance1",
+            description: "An instance",
+            metadata: { origin: "imported" },
+            subnetId: "subnet-1",
+            parameterValues: {},
+            x: 0,
+            y: 0,
+          },
+        ],
+        subnets: [
+          {
+            id: "subnet-1",
+            name: "Subnet 1",
+            description: "A subnet",
+            metadata: { origin: "imported" },
+            places: [],
+            transitions: [],
+            types: [],
+            differentialEquations: [],
+            parameters: [],
+          },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.description).toBe("A test net");
+      expect(result.sdcpn.metadata).toEqual({
+        source: "flow-1",
+        tags: ["a", "b"],
+        nested: { n: 1 },
+      });
+      expect(result.sdcpn.places[0]?.description).toBe("A place");
+      expect(result.sdcpn.transitions[0]?.description).toBe("A transition");
+      expect(result.sdcpn.transitions[0]?.metadata).toEqual({
+        stepKind: "action",
+      });
+      expect(result.sdcpn.types[0]?.description).toBe("A colour");
+      expect(result.sdcpn.componentInstances?.[0]).toMatchObject({
+        description: "An instance",
+        metadata: { origin: "imported" },
+      });
+      expect(result.sdcpn.subnets?.[0]).toMatchObject({
+        description: "A subnet",
+        metadata: { origin: "imported" },
+      });
+    });
+
+    it("parses files without description or metadata", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.description).toBeUndefined();
+      expect(result.sdcpn.metadata).toBeUndefined();
+      expect(result.sdcpn.places[0]?.description).toBeUndefined();
+      expect(result.sdcpn.transitions[0]?.metadata).toBeUndefined();
+    });
+
+    it("preserves description and metadata in the legacy format", () => {
+      const result = parseSDCPNFile({
+        ...minimalSDCPN,
+        description: "A test net",
+        metadata: { source: "flow-1" },
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.description).toBe("A test net");
+      expect(result.sdcpn.metadata).toEqual({ source: "flow-1" });
+    });
+  });
+
   describe("legacy format (no version)", () => {
     it("parses a valid legacy file", () => {
       const result = parseSDCPNFile(minimalSDCPN);

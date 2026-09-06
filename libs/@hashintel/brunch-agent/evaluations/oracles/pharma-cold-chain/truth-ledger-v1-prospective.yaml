@@ -1,0 +1,723 @@
+version: 1-prospective
+case: virelia-pharma-cold-chain
+source: evaluations/cases/pharma-cold-chain/situation-pack.md
+provenance:
+  authored_after_historical_runs: false
+  calibrated_against_historical_runs: false
+  frozen_before_prospective_runs: true
+use: prospective baseline and variant grading only
+warning: >-
+  This is a prospective oracle sourced only from the explicitly synthetic situation pack. Every
+  organization, person, product, shipment, event, value, and operational outcome is fictional
+  benchmark truth, not empirical evidence, pharmaceutical guidance, or a claim about real operators.
+importance_weights:
+  load-bearing: 3
+  useful: 2
+  incidental: 1
+
+calibration_rules:
+  transcript_precedence: >-
+    Grade what the simulated expert actually disclosed. Ledger truth may identify a distinction,
+    but it does not erase hedges, narrower examples, corrections, or nondisclosure in the transcript.
+  interviewer_proposals: >-
+    A value or interpretation appearing only in an interviewer question is not user evidence unless
+    the expert explicitly adopts it.
+  relevant_absences: >-
+    Entries whose epistemic_character is relevant-absence describe a relation the pack does not
+    settle. Credit elicitation that identifies the gap; do not expect the expert or IR to fill it.
+  hard_stop: >-
+    When the expert ends elicitation, distinguish unanswered suitable questions from earlier missed
+    opportunities. Do not convert turn-budget truncation into an ordinary acquisition miss.
+  partial_disclosure: >-
+    A concrete example inside a ledger range is partial evidence, not simulator failure by itself.
+    Penalize only unsupported generalization beyond the disclosed example.
+
+facts:
+  - id: objective-compare-normal-and-recovery
+    importance: load-bearing
+    epistemic_character: explicit-goal
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Compare the chance of on-time, temperature-compliant delivery under the normal plan and under
+      hold, reroute, and expedite choices.
+    expected_ir_homes: [purpose, goals, scenarios, validation]
+    traps: [reducing the objective to journey-time prediction]
+
+  - id: objective-early-recovery-spend
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Decide when to spend money early rather than wait until only expensive recovery remains.
+    expected_ir_homes: [purpose, goals, decisions, validation]
+    traps: [hard-coding the decision rule the simulation is meant to test]
+
+  - id: objective-delay-propagation
+    importance: load-bearing
+    epistemic_character: explicit-goal
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Show how customs delay propagates into pack-out risk, missed delivery, quarantine,
+      replacement, and the clinic's first-dose date.
+    expected_ir_homes: [purpose, flow, failures, consequences]
+    traps: [stopping the model boundary at customs release]
+
+  - id: objective-operational-reconstruction
+    importance: load-bearing
+    epistemic_character: explicit-goal
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Reconstruct bad runs in operational terms: where the shipment waited, who had custody, what
+      temperature did, which decision was available, and why the outcome followed.
+    expected_ir_homes: [purpose, participants-resources, flow, validation]
+    traps: [producing only an aggregate success probability]
+
+  - id: objective-earlier-escalation-trigger
+    importance: load-bearing
+    epistemic_character: tacit-goal
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked about unwritten practice, escalation, or what decision the current process gets wrong
+    truth: >-
+      Mara wants an earlier escalation trigger because waiting for an actual 8 °C reading may be
+      too late when the trace is climbing and cooler space is scarce.
+    expected_ir_homes: [purpose, policies, decisions, situation-notes]
+    traps: [presenting Mara's instinct as a validated universal threshold]
+
+  - id: reference-shipment-shape
+    importance: useful
+    epistemic_character: explicit-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The reference Nivora-8 shipment contains 4,800 prefilled syringes in 24 sealed passive
+      shippers, with one batch and one master airway bill.
+    expected_ir_homes: [boundary, entities, quantities]
+    traps: [treating the 24 shippers as independent shipments]
+
+  - id: validated-lane
+    importance: load-bearing
+    epistemic_character: explicit-route
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The lane runs Cambridge warehouse to Heathrow cargo terminal, by air to Frankfurt, through
+      Frankfurt import clearance, then by refrigerated road to the Mazovia Trial Pharmacy in Warsaw.
+    expected_ir_homes: [boundary, activities, flow, participants-resources]
+    traps:
+      [omitting import clearance or treating Frankfurt as only a connection]
+
+  - id: sla-clock-and-accepted-delivery
+    importance: load-bearing
+    epistemic_character: explicit-success-rule
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The 54-hour customer SLA runs from signed Cambridge pickup to accepted Warsaw proof of
+      delivery; gate arrival is insufficient because the pharmacy must accept seals and documents,
+      sign, and timestamp proof of delivery.
+    expected_ir_homes: [goals, boundary, time, validation]
+    traps: [starting the SLA at lid closure, stopping it at gate arrival]
+
+  - id: shipment-success-composite
+    importance: load-bearing
+    epistemic_character: explicit-success-rule
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Success requires delivery within 54 hours, no logger reading below 2 °C or above 8 °C,
+      complete custody and document evidence, and pharmacy acceptance; Mazovia may refuse broken
+      seals, incomplete documents, or missing logger evidence and issues final proof of delivery.
+    expected_ir_homes: [goals, constraints, decisions, evidence, validation]
+    traps:
+      [
+        equating on-time arrival with success,
+        ignoring do-not-freeze,
+        assuming physical arrival compels acceptance,
+      ]
+
+  - id: packout-qualification-scope
+    importance: load-bearing
+    epistemic_character: qualified-engineering-claim
+    discoverability: tension-probe
+    expert_can_answer: true
+    reveal_when: asked what the 72-hour qualification guarantees or how thermal margin should be used
+    truth: >-
+      Pack-out is qualified for 72 hours from lid closure only under Virelia's benchmark summer
+      profile, while sealed and correctly conditioned; it is not a guarantee that every shipper
+      remains below 8 °C for 72 hours under any exposure.
+    expected_ir_homes: [constraints, time, assumptions, validation]
+    traps:
+      [
+        treating 72 hours as a universal countdown guarantee,
+        starting qualification at pickup,
+      ]
+
+  - id: excursion-quarantine-and-disposition-authority
+    importance: load-bearing
+    epistemic_character: explicit-policy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Any logger excursion outside 2–8 °C causes quarantine on arrival; the site QA duty manager
+      decides release or rejection after stability review, and Mara cannot waive that review.
+    expected_ir_homes: [policies, failures, decisions, authority]
+    traps:
+      [making quarantine equivalent to rejection, giving Mara release authority]
+
+  - id: cambridge-packout-and-handoff
+    importance: useful
+    epistemic_character: explicit-responsibility
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The Cambridge warehouse conditions shippers, loads product, activates loggers, applies
+      numbered seals, closes pack-out, and signs custody to the collection driver.
+    expected_ir_homes: [participants-resources, activities, custody, triggers]
+    traps: [placing logger activation or lid closure at carrier pickup]
+
+  - id: northstar-operational-control-boundary
+    importance: load-bearing
+    epistemic_character: explicit-authority-boundary
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Northstar is lead logistics provider and control tower, collects in a refrigerated vehicle,
+      arranges final delivery, may choose routine contractual recovery, and owns vehicle assignment;
+      it does not own customs release or product-quality decisions.
+    expected_ir_homes: [participants-resources, custody, decisions, authority]
+    traps: [making the control tower sovereign over customs or QA]
+
+  - id: airline-handler-broker-customs-roles
+    importance: load-bearing
+    epistemic_character: explicit-responsibility-boundary
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      AeroLynx holds custody from Heathrow airline acceptance to RheinGate acceptance; RheinGate
+      unloads, scans, stages, and may move freight to its validated cooler; Kestrel submits and
+      corrects entries without physical custody; German customs alone authorizes release and any
+      transfer under customs control.
+    expected_ir_homes: [participants-resources, custody, activities, authority]
+    traps:
+      [
+        giving Kestrel physical custody,
+        allowing a carrier-directed move before authorization,
+      ]
+
+  - id: custody-evidence-versus-temperature-evidence
+    importance: load-bearing
+    epistemic_character: explicit-evidence-distinction
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Signed handoff scans evidence custody at pickup, airline acceptance, handler receipt, road
+      release, and Warsaw receipt; logger evidence is separate, so a clean custody chain does not
+      prove acceptable temperature.
+    expected_ir_homes: [custody, evidence, validation]
+    traps: [using custody completeness as a proxy for thermal compliance]
+
+  - id: recovery-spend-and-decision-rights
+    importance: load-bearing
+    epistemic_character: explicit-authority-boundary
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Mara may request hold, reroute, or expedite and approve recovery spend up to €7,500; Omar
+      approves higher spend, while the site QA duty manager owns quarantine and disposition.
+    expected_ir_homes: [decisions, authority, policies, costs]
+    traps:
+      [
+        equating request authority with execution or product-disposition authority,
+      ]
+
+  - id: origin-road-timing
+    importance: useful
+    epistemic_character: explicit-time-range
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Pack-out closes around 05:30 Tuesday with planned pickup at 06:00; Cambridge to Heathrow takes
+      2.5–3.5 hours typically and about 5 hours on a bad traffic day.
+    expected_ir_homes: [activities, flow, time]
+    traps:
+      [
+        using pickup and lid closure interchangeably,
+        replacing the range with an instantaneous average,
+      ]
+
+  - id: export-and-flight-timing
+    importance: load-bearing
+    epistemic_character: explicit-time-range
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Export acceptance and build-up take 2–5 hours, up to 7 with screening or a missed cut-off;
+      scheduled flight time is about 1.75 hours, while delay, offload, or a missed connection can
+      add 4–16 hours.
+    expected_ir_homes: [activities, failures, flow, time]
+    traps:
+      [
+        using only average flight duration,
+        adding missed-cut-off delay without changing the departure opportunity,
+      ]
+
+  - id: handler-and-clearance-timing
+    importance: load-bearing
+    epistemic_character: explicit-time-range
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Frankfurt unload and receipt take 2–4 hours, up to 6 on a bad shift; clearance takes 3–8
+      hours normally, 18–36 with an uncommon document query, and beyond 48 for an unresolved conflict.
+    expected_ir_homes: [activities, failures, flow, time]
+    traps:
+      [
+        collapsing handler receipt and customs release,
+        treating the ranges as exact distributions,
+      ]
+
+  - id: final-road-and-receipt-timing
+    importance: load-bearing
+    epistemic_character: explicit-time-range
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Frankfurt to Warsaw takes 9–11 driving hours plus a break, or 13–16 under severe disruption;
+      pharmacy receipt takes 30–60 minutes, sometimes 2 hours when the pharmacist is occupied or
+      paperwork mismatches.
+    expected_ir_homes: [activities, failures, flow, time]
+    traps: [omitting the driving break or receipt process from end-to-end time]
+
+  - id: delay-contention-and-propagation
+    importance: load-bearing
+    epistemic_character: explicit-process-dynamics
+    discoverability: tension-probe
+    expert_can_answer: true
+    reveal_when: asked whether stage delays simply add or what becomes unavailable after a delay
+    truth: >-
+      Stages contend for cut-offs, cooler positions, drivers, and flights; delay can miss a
+      departure, consume qualified pack-out time, or leave the next driver unavailable rather than
+      merely adding at journey end.
+    expected_ir_homes: [flow, resources, time, failures]
+    traps: [modeling every delay as an independent additive duration]
+
+  - id: customs-query-probability-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Mara has no defensible customs-clearance probability curve; Kestrel's monthly medians mix
+      products and lanes and do not establish a distribution for this case.
+    expected_ir_homes: [unknowns, data-sources, assumptions, validation]
+    traps:
+      [
+        fitting a distribution from the typical and bad-day ranges,
+        treating mixed medians as lane-specific evidence,
+      ]
+
+  - id: temperature-environment-dynamics
+    importance: load-bearing
+    epistemic_character: explicit-process-dynamics
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Product temperature changes throughout the journey, tends toward 4–6 °C in working
+      refrigerated vehicles or validated coolers, and tends to rise in uncontrolled areas with
+      ambient conditions, pack age, and door opening; the rise is neither instantaneous nor
+      reliably linear.
+    expected_ir_homes: [state, flow, resources, time]
+    traps:
+      [using instantaneous temperature jumps, assuming a linear warming rate]
+
+  - id: thermal-response-model-absence
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not provide quantitative warming or cooling response curves across ambient
+      exposure, pack age, door opening, validated storage, or refrigerated transport, nor the
+      exposure profiles needed to predict temperature compliance.
+    expected_ir_homes: [state, time, unknowns, data-sources, validation]
+    traps:
+      [
+        deriving a linear thermal-response model from the incident trace,
+        assigning ambient exposure profiles that the pack does not contain,
+      ]
+
+  - id: validated-storage-location-boundary
+    importance: load-bearing
+    epistemic_character: explicit-resource-qualification
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Validated 2–8 °C locations are Cambridge warehouse, Northstar's collection vehicle,
+      Heathrow's booked pharma cooler, RheinGate's GDP cooler, the Frankfurt–Warsaw refrigerated
+      vehicle, and Mazovia's refrigerator; an airline hold or general handling bay is not validated
+      merely because it is indoors.
+    expected_ir_homes: [participants-resources, constraints, policies]
+    traps: [treating every indoor or controlled area as validated storage]
+
+  - id: centre-logger-representativeness-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      The five-minute centre logger is the operational first-review reference but does not establish
+      the warmest syringe in every shipper; QA may later use shipper position and qualification studies
+      to bound it.
+    expected_ir_homes: [evidence, unknowns, data-sources, validation]
+    traps: [treating one centre logger as every product unit's temperature]
+
+  - id: potency-and-release-rule-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Mara cannot convert duration above 8 °C directly into potency loss, and operations has no
+      generic time-temperature or automatic-release rule; the stability group owns that assessment.
+    expected_ir_homes: [unknowns, data-sources, policies, validation]
+    traps:
+      [
+        inventing a potency equation,
+        converting any excursion directly to rejection,
+      ]
+
+  - id: rising-trace-thermal-margin-belief
+    importance: load-bearing
+    epistemic_character: belief-with-qualification
+    discoverability: tension-probe
+    expert_can_answer: true
+    reveal_when: asked how operations interprets thermal margin, rising traces, or the 72-hour claim
+    truth: >-
+      Mara believes a centre logger above 6.5 °C and rising after a long delay leaves less safe
+      decision time than the nominal qualification suggests; the control tower tends to treat 72
+      hours as hard protection, but this is Mara's qualified operational view.
+    expected_ir_homes: [beliefs, conflicts, decisions, situation-notes]
+    traps:
+      [
+        making 6.5 °C a proven product limit,
+        erasing the control-tower disagreement,
+      ]
+
+  - id: recovery-hold-at-origin
+    importance: load-bearing
+    epistemic_character: explicit-recovery-branch
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      If disruption is known before collection, holding in Cambridge's validated refrigerator and
+      delaying pack-out or pickup costs about €350 and preserves the most thermal margin, but may
+      miss the booked flight and 54-hour SLA.
+    expected_ir_homes: [decisions, scenarios, costs, consequences]
+    traps:
+      [allowing origin hold after collection, claiming it preserves the SLA]
+
+  - id: recovery-hold-at-frankfurt
+    importance: load-bearing
+    epistemic_character: explicit-recovery-branch
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      After handler receipt, RheinGate's validated cooler costs €420 per started day and protects
+      temperature while clearance proceeds, but does not stop the SLA clock; space is not guaranteed
+      and customs may require the current controlled area until a move is recorded.
+    expected_ir_homes: [decisions, resources, costs, constraints]
+    traps: [pausing the SLA clock, assuming cooler access or movement authority]
+
+  - id: recovery-bonded-reroute
+    importance: load-bearing
+    epistemic_character: explicit-recovery-branch
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Kestrel may request a customs-controlled transfer to RheinGate's Leipzig partner; authorization
+      and road transfer add 8–14 hours and about €4,800, and the branch is useful for Frankfurt
+      capacity problems rather than when release is expected shortly.
+    expected_ir_homes: [decisions, scenarios, authority, costs]
+    traps: [treating reroute as release-independent or always beneficial]
+
+  - id: reroute-availability-odds-unknown
+    importance: useful
+    epistemic_character: explicit-unknown
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Night-time bonded-transfer authorization frequency and Leipzig cooler availability are not
+      measured well enough to assign trustworthy odds.
+    expected_ir_homes: [unknowns, assumptions, validation]
+    traps:
+      [
+        assigning reroute success probabilities from the fact that the option exists,
+      ]
+
+  - id: recovery-post-release-expedite
+    importance: load-bearing
+    epistemic_character: explicit-recovery-branch
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      After release, a two-driver dedicated refrigerated vehicle costs €6,200 instead of €1,400 and
+      usually saves 5–7 hours; it cannot recover pre-release time or erase a temperature excursion.
+    expected_ir_homes: [decisions, scenarios, time, costs]
+    traps: [using expedite before customs release, resetting thermal history]
+
+  - id: recovery-emergency-replacement
+    importance: load-bearing
+    epistemic_character: explicit-recovery-branch
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      A second Cambridge pack-out and premium movement costs about €38,000, requires Omar's approval,
+      and is inventory-limited to one replacement; early start risks two valid shipments while late
+      start risks the clinic date.
+    expected_ir_homes: [decisions, resources, authority, costs]
+    traps:
+      [
+        treating replacement inventory as unlimited,
+        ignoring duplicate-valid-shipment risk,
+      ]
+
+  - id: rejection-and-clinic-consequence
+    importance: load-bearing
+    epistemic_character: explicit-consequence
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The reference shipment's authored replacement value is €620,000, and rejection or delivery
+      more than 12 hours beyond SLA can delay Warsaw's first patient dose by a week, requiring
+      clinical-supply escalation even when insured.
+    expected_ir_homes: [consequences, costs, goals, escalation]
+    traps: [reducing consequence to insured replacement value]
+
+  - id: incident-origin-through-flight
+    importance: useful
+    epistemic_character: explicit-incident-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      VRB-240618-03 closed at 05:28 Tuesday, left Cambridge at 06:10, was 4.6 °C at closure, and
+      remained between 4.2 and 5.3 °C through the flight.
+    expected_ir_homes: [scenario, evidence, flow, time]
+    traps: [generalizing this incident trace to normal shipments]
+
+  - id: incident-hold-start-event-conflict
+    importance: load-bearing
+    epistemic_character: explicit-semantic-tension
+    discoverability: tension-probe
+    expert_can_answer: true
+    reveal_when: asked when the incident hold began or to reconcile handler, broker, and customs timestamps
+    truth: >-
+      RheinGate receipt at 16:52 Tuesday, Kestrel's hold start at 17:10 for the commodity-code
+      mismatch, and customs acknowledgement at 18:05 are distinct events, although staff sometimes
+      call each one the start of the hold.
+    expected_ir_homes: [scenario, time, conflicts, evidence]
+    traps:
+      [silently choosing one timestamp as the universally correct hold start]
+
+  - id: incident-uncontrolled-bay-and-rise
+    importance: load-bearing
+    epistemic_character: explicit-incident-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      RheinGate's booked cooler was full, so the sealed shipment remained in a general handling bay;
+      at 01:50 Thursday its logger began a sustained rise from 5.9 °C.
+    expected_ir_homes: [scenario, resources, failures, state]
+    traps:
+      [
+        treating the general bay as validated storage,
+        moving the rise start to hold start,
+      ]
+
+  - id: incident-bay-ambient-evidence-absent
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      RheinGate has no usable ambient trace for the general bay, so Mara cannot compare the
+      incident exposure with the benchmark 72-hour qualification profile.
+    expected_ir_homes: [unknowns, evidence, data-sources, validation]
+    traps:
+      [
+        inferring bay ambient temperature from the product logger,
+        claiming qualification equivalence,
+      ]
+
+  - id: incident-excursion-and-cooler-move
+    importance: load-bearing
+    epistemic_character: explicit-incident-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The logger crossed 8.0 °C at 03:42 Thursday, peaked at 10.6 °C at 04:18, and fell below 8.0 °C
+      at 05:05, totaling 83 minutes above 8 °C; RheinGate moved the shipment to the validated cooler
+      at 04:31 and cooling lagged the move.
+    expected_ir_homes: [scenario, state, activities, time]
+    traps:
+      [
+        ending the excursion at the cooler move,
+        treating cooling as instantaneous,
+      ]
+
+  - id: incident-release-delivery-and-quarantine
+    importance: load-bearing
+    epistemic_character: explicit-incident-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Customs released the shipment at 19:20 Thursday after invoice and entry alignment; Northstar
+      expedited it, and Mazovia signed at 05:14 Friday, 71 hours 4 minutes after pickup, then
+      immediately quarantined it.
+    expected_ir_homes: [scenario, flow, time, consequences]
+    traps:
+      [claiming expedite restored SLA compliance, omitting arrival quarantine]
+
+  - id: clock-conflict-stability-impact-unknown
+    importance: load-bearing
+    epistemic_character: relevant-unknown
+    discoverability: tension-probe
+    expert_can_answer: false
+    reveal_when: asked whether or how the 17-minute discrepancy should change the incident timeline or disposition
+    truth: >-
+      The logger clock was 17 minutes behind RheinGate's scan system, and no one has established
+      whether that conflict changes the stability decision; neither record should be silently corrected.
+    expected_ir_homes: [conflicts, unknowns, evidence, validation]
+    traps:
+      [silently shifting either timeline, declaring the discrepancy immaterial]
+
+  - id: incident-rejection-nongeneralization
+    importance: load-bearing
+    epistemic_character: qualified-incident-outcome
+    discoverability: tension-probe
+    expert_can_answer: true
+    reveal_when: asked what the incident's rejection implies for future excursions
+    truth: >-
+      The site QA duty manager rejected this authored shipment after a later stability review, but
+      operations cannot reproduce that review and the model must not infer that every 83-minute
+      excursion, or every excursion, is rejected.
+    expected_ir_homes: [scenario, policies, validation, constraints]
+    traps: [turning one rejection into a universal disposition rule]
+
+  - id: escalation-written-versus-practiced
+    importance: load-bearing
+    epistemic_character: tacit-policy-practice-divergence
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked about unwritten escalation, bad days, or what Mara does before the written trigger
+    truth: >-
+      The written instruction escalates at confirmed excursion or under 12 hours of qualified
+      duration remaining; Mara instead calls QA at 6.5 °C and rising or after four hours of customs
+      uncertainty because night cooler space may disappear first.
+    expected_ir_homes: [policies, escalation, conflicts, situation-notes]
+    traps:
+      [
+        collapsing written policy and Mara's practice,
+        treating her trigger as universal validated policy,
+      ]
+
+  - id: relationship-based-cooler-escalation
+    importance: useful
+    epistemic_character: tacit-practice
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked how cooler moves are expedited in practice or what a newcomer would miss
+    truth: >-
+      Kestrel's night supervisor can often get a customs-controlled cooler move considered faster
+      when Mara calls directly, but this is relationship-based, has no contractual response time,
+      and does not always work.
+    expected_ir_homes:
+      [participants-resources, escalation, policies, situation-notes]
+    traps:
+      [modeling the call as guaranteed authorization or a fixed service time]
+
+  - id: incident-cooler-request-causal-conflict
+    importance: load-bearing
+    epistemic_character: unresolved-belief-conflict
+    discoverability: tension-probe
+    expert_can_answer: true
+    reveal_when: asked whether an earlier cooler request would have prevented the incident
+    truth: >-
+      Mara believes a 22:00 Wednesday cooler request probably would have avoided the excursion;
+      RheinGate disputes this because it says no qualified position opened before 04:20 Thursday.
+      The causal claim is unresolved.
+    expected_ir_homes: [beliefs, conflicts, scenario, validation]
+    traps: [adopting either party's account as proven causation]
+
+  - id: commercial-pressure-versus-qa-authority
+    importance: load-bearing
+    epistemic_character: organizational-tension
+    discoverability: tension-probe
+    expert_can_answer: true
+    reveal_when: asked who disagrees during a warming trace or who can overrule continued delivery
+    truth: >-
+      Commercial staff sometimes press to continue before the logger crosses 8 °C, but QA can
+      overrule them; Northstar may advise recovery but cannot declare product safe.
+    expected_ir_homes: [participants-resources, conflicts, decisions, authority]
+    traps:
+      [
+        making commercial pressure a decision right,
+        giving Northstar safety authority,
+      ]
+
+  - id: invoice-mismatch-control-unknown
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: false
+    reveal_when: asked why a visible document mismatch escaped or what control should prevent recurrence
+    truth: >-
+      The commodity-code mismatch was visible before pickup, but warehouse release, broker-entry
+      preparation, and transport booking sit in different teams; Mara does not know the base error
+      rate or which single control would prevent the most delays.
+    expected_ir_homes:
+      [participants-resources, failures, unknowns, data-sources]
+    traps:
+      [
+        inventing a single accountable team,
+        claiming a preventive control is established,
+      ]
+
+  - id: early-replacement-economics-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown-objective
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Mara does not know whether early replacement is economically best across all disruption
+      types; resolving that trade-off is part of the simulation objective.
+    expected_ir_homes: [purpose, unknowns, assumptions, validation]
+    traps: [recording early replacement as an established optimal policy]
+
+  - id: logger-clock-drift-origin-unknown
+    importance: useful
+    epistemic_character: explicit-unknown
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      No one has established whether the incident logger's 17-minute drift existed at activation or
+      developed in transit.
+    expected_ir_homes: [unknowns, evidence, data-sources]
+    traps: [assigning the drift to activation or transit without evidence]
+
+  - id: disruption-distributions-unknown
+    importance: useful
+    epistemic_character: explicit-unknown
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Mara lacks defensible distributions for flight disruption, bonded-transfer approval, and
+      alternate-cooler availability in addition to the lane-specific customs-query gap.
+    expected_ir_homes: [unknowns, data-sources, assumptions, validation]
+    traps:
+      [
+        turning narrated ranges or operational beliefs into probability distributions,
+      ]

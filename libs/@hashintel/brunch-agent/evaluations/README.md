@@ -11,17 +11,45 @@
 
 Current process-model-elicitation assets:
 
-- `cases/vestera-scheduling/` — the Vestera case.
-- `oracles/vestera-scheduling/` — case-specific retrospective and prospective ledgers.
+- `cases/vestera-scheduling/` and `oracles/vestera-scheduling/` — the executed Vestera exemplar
+  and its case-specific retrospective and prospective ledgers.
+- `cases/industrial-gas-vmi/` and `oracles/industrial-gas-vmi/` — a greenfield synthetic
+  composite based on model-design reference material for telemetry-driven bulk-gas replenishment.
+- `cases/truck-fleet-maintenance/` and `oracles/truck-fleet-maintenance/` — a greenfield
+  synthetic composite based on the fleet-maintenance use case and model-design references.
+- `cases/semiconductor-fab-operations/` and `oracles/semiconductor-fab-operations/` — a
+  greenfield synthetic composite based on the semiconductor model-design references.
+- `cases/data-centre-thermal-operations/` and `oracles/data-centre-thermal-operations/` — a
+  greenfield synthetic composite based on the data-centre model-design use case.
+- `cases/pharma-cold-chain/` and `oracles/pharma-cold-chain/` — a greenfield, explicitly
+  synthetic benchmark whose domain spine comes from the logistics/pharma use-case sketch.
 - `oracles/ir-quality-ruler-v1.md` — frozen general IR-quality ruler.
-- `protocols/prospective-runbook-v1/` — the frozen prospective baseline, run with `yarn workspace @apps/brunch-agent runbook:elicit`.
+- `oracles/mission-4-activation-and-restraint-ruler-v1.md` — owner-accepted v1 proof-of-life oracle, retained unchanged with the retired v1 campaign.
+- `oracles/mission-4-activation-and-restraint-ruler-v2.md` — v2 freeze candidate preserving v1's semantic checks while moving first-Substantive detection from the isolated persona to post-settlement adjudication over fixed three-submission probes.
+- `protocols/mission-4-proof-of-life-v1/` — owner-frozen Mission 4 instrument at `cc9a68497d`, retired after both Vestera attempts exposed an undefined persona-side semantic stop; retain unchanged and do not rerun.
+- `protocols/mission-4-proof-of-life-v2/` — owner-frozen instrument whose fixed three-submission probes and S3 review passed; execution stopped on the technically valid S4 item 4e failure before Industrial Gas. Do not resume or use the reserved replacement.
+- `protocols/prospective-runbook-v1/` — frozen executed Mission 3 control; its runner was retired after evidence capture.
+- `protocols/prospective-runbook-v2/` and `protocols/prospective-runbook-v3/` — frozen failed/invalid Mission 4 attempts retained only because their hashes are part of observed evidence; do not rerun. On 2026-09-02 the owner discarded every campaign design and output after v3 (v4 protocol and evidence, v5 protocol, product-witness-v2); a new evaluation approach replaces them.
 - `protocols/ir-quality-ruler-v1/` — the independent omniscient and cold-review procedures.
 - `protocols/legacy-baseline/` — retained historical instrument; do not use it for new runs.
 
-The prospective ruler was calibrated and the baseline campaign closed after three paid
-invocations: one runtime-invalid member and two complete, independently graded members. Its
-adjudication lives with the observed evidence.
+Vestera v1 has three paid invocations: one invalid runtime member and two complete, independently
+graded members. The five additional cases have prospective ledgers frozen before their first run,
+but they have not yet been validated under a frozen versioned protocol.
+
+For a 6–10-turn persona run, select one bounded incident objective rather than attempting
+whole-pack acquisition: Alder outage response for industrial gas, the Monday pilot schedule for
+truck fleet, the current technician/quarantine decision for semiconductor, the live
+CH-2/CH-4/Aurora decision for data centre, or customs-delay recovery for pharma. A suitable
+eight-turn instruction is:
+
+> Establish enough to represent the named incident and compare its immediate options while
+> preserving unresolved parameters; do not attempt exhaustive domain capture.
 
 When an instrument ceases to be supported, archive a short record under
 `docs/archive/evaluations/`, retain its observed output, and remove its executable source rather
 than leaving a live-looking compatibility copy.
+
+## Evidence identity across restacks
+
+A campaign's durable instrument identity is its manifest SHA-256 and ordered path/content hashes. Commit SHAs in manifests and run records are informational execution-time provenance, not primary keys or current-ancestry requirements. After a rebase or Graphite restack, verify content against the accepted manifest and optionally record a patch-equivalent navigation map; do not refreeze solely because commit identities changed, and do not require historical Git objects to remain reachable. If permanent commit retention is genuinely required, name an explicit durable ref or archived bundle.

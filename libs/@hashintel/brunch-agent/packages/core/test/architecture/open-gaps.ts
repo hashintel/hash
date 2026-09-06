@@ -42,12 +42,4 @@ export const OPEN_GAPS: readonly OpenGap[] = [
     proof:
       "A test under libs/@hashintel/brunch-agent/packages/binding-flue/test driving one genuine compaction, deep-comparing complete public messages and settlements aside from offset/incarnation, verifying persistent state, and asserting an FE-1391 archive pointer still resolves.",
   },
-  {
-    id: "interpretation-render-plugin-seam",
-    spec: "§7.6, §14.5",
-    ticket: "FE-1394",
-    gap: "The plugin-supplied renderer seam for the interpretation render has never been exercised, because no real pack exists yet.",
-    proof:
-      "A plugin supplying a renderer definition typed against its own payload shapes, with a test driving the interpretation render through it — an exported symbol alone leaves the seam uncrossed.",
-  },
 ];

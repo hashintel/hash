@@ -1,5 +1,4 @@
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
-
+import { openHomeReadyToCreatePage } from "../shared/open-home-ready-to-create-page";
 import { expect, test } from "../shared/runtime";
 
 const placeholderSelector =
@@ -12,8 +11,7 @@ const placeholderSelector =
 test.skip("user can view page in read-only mode but not update", async ({
   page,
 }) => {
-  // TODO: investigate why delay is required for create page button to work
-  await sleep(500);
+  await openHomeReadyToCreatePage(page);
   await page.locator('[data-testid="create-page-btn"]').click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));

@@ -4,7 +4,10 @@ import {
   createJsonDocHandle,
   PETRINAUT_EXTENSION_NAMES,
 } from "@hashintel/petrinaut-core";
-import { ActualModeContext } from "@hashintel/petrinaut/react";
+import {
+  ActualModeContext,
+  type PetrinautNavigationController,
+} from "@hashintel/petrinaut/react";
 import { Petrinaut, type ViewportAction } from "@hashintel/petrinaut/ui";
 
 import { BrunchStatusPage } from "./brunch-status-page";
@@ -20,11 +23,13 @@ const getSourceKey = (source: ActualModeSource): string =>
 
 const BrunchPetrinautWithHandle = ({
   definition,
+  navigation,
   source,
   title,
   viewportActions,
 }: {
   definition: SDCPN;
+  navigation: PetrinautNavigationController;
   source: ActualModeSource;
   title: string;
   viewportActions: ViewportAction[];
@@ -46,6 +51,7 @@ const BrunchPetrinautWithHandle = ({
       <Petrinaut
         handle={handle}
         hideNetManagementControls="except-title"
+        navigation={navigation}
         readonly
         setTitle={() => {}}
         title={title}
@@ -56,8 +62,10 @@ const BrunchPetrinautWithHandle = ({
 };
 
 export const BrunchPetrinaut = ({
+  navigation,
   viewportActions,
 }: {
+  navigation: PetrinautNavigationController;
   viewportActions: ViewportAction[];
 }) => {
   const actualMode = use(ActualModeContext);
@@ -102,6 +110,7 @@ export const BrunchPetrinaut = ({
     <BrunchPetrinautWithHandle
       definition={definition}
       key={sourceKey}
+      navigation={navigation}
       source={source}
       title={
         actualMode.title ??

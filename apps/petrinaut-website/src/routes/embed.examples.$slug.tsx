@@ -6,26 +6,34 @@ import {
   useSearch,
 } from "@tanstack/react-router";
 
-import { isExampleSlug, loadExample } from "../examples/catalog";
+import {
+  isExampleSlug,
+  loadExample,
+  loadExampleRuntime,
+} from "../examples/catalog";
 import { EmbeddedExamplePage } from "../examples/embedded-example-page";
 import { validateSharedExampleSearch } from "../examples/example-search";
+import { applyPreviewNavigationUpdate } from "../examples/navigation-search";
 import { EmbedStatusPanel } from "./-embed-status-panel";
 
 const routePath = "/embed/examples/$slug" as const;
 
 function EmbeddedExampleRoute() {
   const navigate = useNavigate({ from: routePath });
-  const example = useLoaderData({ from: routePath });
+  const { example, runtime } = useLoaderData({ from: routePath });
 
   return (
     <EmbeddedExamplePage
-      // The page holds URL-unrepresentable location in state; remount per
-      // example so one model's state cannot leak into the next.
+      // Remount per example so one model's state cannot leak into the next.
       key={example.catalog.slug}
       example={example}
-      onSearchChange={(search, history) => {
-        void navigate({ replace: history === "replace", search });
+      onNavigate={(update, { history }) => {
+        void navigate({
+          replace: history === "replace",
+          search: (previous) => applyPreviewNavigationUpdate(previous, update),
+        });
       }}
+      runtime={runtime}
       search={useSearch({ from: routePath })}
     />
   );
@@ -38,20 +46,26 @@ export const Route = createFileRoute("/embed/examples/$slug")({
     }
   },
   component: EmbeddedExampleRoute,
-  // The editor is imported lazily, so a chunk that fails to load throws after
-  // mount. Without a boundary here the root unmounts and the frame goes blank
-  // on someone else's page.
+  // The Preview is imported lazily, so a chunk that fails to load throws
+  // after mount. Without a boundary here the root unmounts and the frame goes
+  // blank on someone else's page.
   errorComponent: () => (
     <EmbedStatusPanel
       body="Reload the page to try again."
       title="This Petrinaut embed failed to load"
     />
   ),
-  loader: ({ params }) => {
+  loader: async ({ params }) => {
     if (!isExampleSlug(params.slug)) {
       throw notFound();
     }
-    return loadExample(params.slug);
+
+    const [example, runtime] = await Promise.all([
+      loadExample(params.slug),
+      loadExampleRuntime(params.slug),
+    ]);
+
+    return { example, runtime };
   },
   // The site-wide not-found page is a full viewport panel with a link that
   // would navigate the embedder's frame, so the embed answers for itself.

@@ -18,6 +18,9 @@ import { applyBundleDiff } from "./diff/bundle-diff";
 import { canRenderDiagrams, renderD2 } from "./emit/d2";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+
+/** This package's own root, which is where the render fonts are vendored. */
+const packageRoot = fileURLToPath(new URL("../", import.meta.url));
 const bundleRoot = join(repoRoot, config.outputDirectory);
 
 const supportsColour = process.stdout.isTTY === true;
@@ -177,7 +180,7 @@ const writeBundle = async (
   for (const name of bundle.diagramSources.keys()) {
     const source = join(bundleRoot, `diagrams/${name}.d2`);
     const output = join(bundleRoot, `diagrams/${name}.svg`);
-    const result = renderD2(repoRoot, source, output);
+    const result = renderD2(repoRoot, source, output, packageRoot);
 
     if (!result.ok) {
       // The pages were emitted expecting this SVG, because `d2` answered the

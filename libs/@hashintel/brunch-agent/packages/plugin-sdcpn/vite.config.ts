@@ -7,12 +7,20 @@ const packageRoot = fileURLToPath(new URL(".", import.meta.url));
 export default defineConfig({
   build: {
     lib: {
-      entry: fileURLToPath(new URL("src/index.ts", import.meta.url)),
-      fileName: "index",
+      entry: {
+        flue: fileURLToPath(new URL("src/flue.ts", import.meta.url)),
+        index: fileURLToPath(new URL("src/index.ts", import.meta.url)),
+      },
+      fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],
     },
     rolldownOptions: {
-      external: [/^@hashintel\/brunch-agent(?:\/.*)?$/u, "valibot"],
+      external: [
+        /^@flue\/runtime(?:\/.*)?$/u,
+        /^@hashintel\/brunch-agent(?:\/.*)?$/u,
+        /^@hashintel\/petrinaut-core(?:\/.*)?$/u,
+        "valibot",
+      ],
     },
     sourcemap: true,
   },

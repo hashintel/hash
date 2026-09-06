@@ -62,10 +62,13 @@ function toComputePlayMode(mode: PlayMode): ComputePlayMode {
   return mode;
 }
 
-type PlaybackProviderProps = React.PropsWithChildren;
+type PlaybackProviderProps = React.PropsWithChildren<{
+  initialSpeed?: PlaybackSpeed;
+}>;
 
 export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   children,
+  initialSpeed,
 }) => {
   const {
     dt,
@@ -84,7 +87,10 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   // Pure timing model lives in /core. The provider drives ticks via rAF and
   // coordinates simulation lifecycle (init / run / pause / ack / backpressure).
   const [playback] = useState<Playback>(() =>
-    createPlayback({ mode: playMode }),
+    createPlayback({
+      mode: playMode,
+      ...(initialSpeed === undefined ? {} : { speed: initialSpeed }),
+    }),
   );
   // Playback only owns in-memory state; its rAF and store subscriptions are
   // cleaned up by their respective effects. Disposing this handle from an

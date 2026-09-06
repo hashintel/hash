@@ -6,13 +6,61 @@ import {
 } from "@flue/sdk";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
-import { flueConversationIdWeb } from "../conversation-identity-web.ts";
+import { flueConversationIdWeb } from "../conversation/identity-web.ts";
 import {
   BRUNCH_CONVERSATION_HEADER,
   BRUNCH_PRINCIPAL_HEADER,
   LOCAL_UI_PRINCIPAL,
-} from "../conversation-payload.ts";
-import { CHAT_AGENT_ROUTE } from "../routes.ts";
+} from "../conversation/payload.ts";
+import { CHAT_AGENT_ROUTE } from "../http/routes.ts";
+
+type ChatConfiguration =
+  | {
+      readonly mode: "writable";
+      readonly principalKey: typeof LOCAL_UI_PRINCIPAL;
+      readonly conversationId: string;
+    }
+  | {
+      readonly mode: "observe";
+      readonly principalKey: typeof LOCAL_UI_PRINCIPAL;
+      readonly conversationId: string;
+    }
+  | {
+      readonly mode: "observer-error";
+      readonly message: string;
+    };
+
+const chatConfiguration = (): ChatConfiguration => {
+  const parameters = new URLSearchParams(window.location.search);
+  if (parameters.get("mode") !== "observe") {
+    return {
+      mode: "writable",
+      principalKey: LOCAL_UI_PRINCIPAL,
+      conversationId: crypto.randomUUID(),
+    };
+  }
+
+  const principalKey = parameters.get("principal");
+  const conversationId = parameters.get("id")?.trim();
+  if (principalKey !== LOCAL_UI_PRINCIPAL) {
+    return {
+      mode: "observer-error",
+      message: `Observer principal must be "${LOCAL_UI_PRINCIPAL}".`,
+    };
+  }
+  if (!conversationId) {
+    return {
+      mode: "observer-error",
+      message: "Observer conversation id is required.",
+    };
+  }
+
+  return {
+    mode: "observe",
+    principalKey: LOCAL_UI_PRINCIPAL,
+    conversationId,
+  };
+};
 
 function VisibleMessage({ message }: { message: FlueConversationMessage }) {
   if (
@@ -42,7 +90,13 @@ function VisibleMessage({ message }: { message: FlueConversationMessage }) {
   );
 }
 
-function ChatConversation({ client }: { client: FlueClient }) {
+function ChatConversation({
+  client,
+  readOnly,
+}: {
+  client: FlueClient;
+  readOnly: boolean;
+}) {
   const [input, setInput] = useState("");
   const agent = useFlueAgent({ client });
 
@@ -63,10 +117,16 @@ function ChatConversation({ client }: { client: FlueClient }) {
     <main className="shell">
       <header className="masthead">
         <div>
-          <p className="eyebrow">Brunch / Flue chat</p>
-          <h1>Plain Flue conversation</h1>
+          <p className="eyebrow">
+            {readOnly ? "Brunch / Flue observer" : "Brunch / Flue chat"}
+          </p>
+          <h1>
+            {readOnly ? "Canonical conversation" : "Plain Flue conversation"}
+          </h1>
         </div>
-        <span className={`status status--${agent.status}`}>{agent.status}</span>
+        <span className={`status status--${agent.status}`}>
+          {readOnly ? `read-only · ${agent.status}` : agent.status}
+        </span>
       </header>
 
       <section className="transcript" aria-live="polite" aria-busy={busy}>
@@ -76,63 +136,102 @@ function ChatConversation({ client }: { client: FlueClient }) {
         {agent.error ? <p className="error">{agent.error.message}</p> : null}
       </section>
 
-      <form className="composer" onSubmit={submit}>
-        <label htmlFor="reply">Your message</label>
-        <div className="composer__row">
-          <textarea
-            id="reply"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Ask something."
-            rows={3}
-          />
-          <button type="submit" disabled={busy || input.trim().length === 0}>
-            Send
-          </button>
-        </div>
-      </form>
+      {readOnly ? null : (
+        <form className="composer" onSubmit={submit}>
+          <label htmlFor="reply">Your message</label>
+          <div className="composer__row">
+            <textarea
+              id="reply"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="Ask something."
+              rows={3}
+            />
+            <button type="submit" disabled={busy || input.trim().length === 0}>
+              Send
+            </button>
+          </div>
+        </form>
+      )}
     </main>
   );
 }
 
 export function Chat() {
-  const conversationId = useMemo(() => crypto.randomUUID(), []);
+  const configuration = useMemo(chatConfiguration, []);
   const [client, setClient] = useState<FlueClient>();
 
   useEffect(() => {
+    if (configuration.mode === "observer-error") return;
+
     let cancelled = false;
-    void flueConversationIdWeb(LOCAL_UI_PRINCIPAL, conversationId).then(
-      (instanceId) => {
-        if (cancelled) return;
-        setClient(
-          createFlueClient({
-            url: `/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
-            headers: {
-              [BRUNCH_PRINCIPAL_HEADER]: LOCAL_UI_PRINCIPAL,
-              [BRUNCH_CONVERSATION_HEADER]: conversationId,
-            },
-          }),
-        );
-      },
-    );
+    void flueConversationIdWeb(
+      configuration.principalKey,
+      configuration.conversationId,
+    ).then((instanceId) => {
+      if (cancelled) return;
+      setClient(
+        createFlueClient({
+          url: `/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
+          headers: {
+            [BRUNCH_PRINCIPAL_HEADER]: configuration.principalKey,
+            [BRUNCH_CONVERSATION_HEADER]: configuration.conversationId,
+          },
+        }),
+      );
+    });
     return () => {
       cancelled = true;
     };
-  }, [conversationId]);
+  }, [configuration]);
+
+  if (configuration.mode === "observer-error") {
+    return (
+      <main className="shell">
+        <header className="masthead">
+          <div>
+            <p className="eyebrow">Brunch / Flue observer</p>
+            <h1>Observer unavailable</h1>
+          </div>
+          <span className="status status--error">read-only · error</span>
+        </header>
+        <section className="transcript">
+          <p className="error">{configuration.message}</p>
+        </section>
+      </main>
+    );
+  }
 
   if (client === undefined) {
     return (
       <main className="shell">
         <header className="masthead">
           <div>
-            <p className="eyebrow">Brunch / Flue chat</p>
-            <h1>Plain Flue conversation</h1>
+            <p className="eyebrow">
+              {configuration.mode === "observe"
+                ? "Brunch / Flue observer"
+                : "Brunch / Flue chat"}
+            </p>
+            <h1>
+              {configuration.mode === "observe"
+                ? "Canonical conversation"
+                : "Plain Flue conversation"}
+            </h1>
           </div>
-          <span className="status status--connecting">connecting</span>
+          <span className="status status--connecting">
+            {configuration.mode === "observe"
+              ? "read-only · connecting"
+              : "connecting"}
+          </span>
         </header>
       </main>
     );
   }
 
-  return <ChatConversation client={client} />;
+  return (
+    <ChatConversation
+      client={client}
+      readOnly={configuration.mode === "observe"}
+    />
+  );
 }

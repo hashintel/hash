@@ -12,17 +12,19 @@
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
-    "runbook:elicit": "vite build && node --experimental-strip-types src/runbook-elicitation-run.ts",
-    "runbook:headless": "vite build && node --experimental-strip-types src/runbook-headless-run.ts",
+    "proof:manifest": "node --experimental-strip-types src/evaluations/persona/refresh-proof-manifest.ts",
+    "runbook:headless": "vite build && node --experimental-strip-types src/evaluations/runbook/construction-run.ts",
     "test:unit": "vitest run --config vitest.config.ts",
-    "transcript": "node --experimental-strip-types src/transcript-cli.ts"
+    "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"
   },
   "dependencies": {
     "@flue/opentelemetry": "2.0.3",
     "@flue/react": "2.0.3",
     "@flue/runtime": "2.0.3",
     "@flue/sdk": "2.0.3",
+    "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/brunch-agent-binding-flue": "workspace:*",
+    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*",
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
     "@opentelemetry/api": "1.9.1",
@@ -32,7 +34,9 @@
     "valibot": "1.4.2"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "0.74.0",
     "@earendil-works/pi-ai": "0.83.0",
+    "@earendil-works/pi-tui": "0.84.3",
     "@flue/vite": "2.0.3",
     "@types/node": "22.18.13",
     "@types/react": "19.2.14",
@@ -41,6 +45,7 @@
     "ai": "6.0.182",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
+    "typebox": "1.3.7",
     "vite": "8.1.0",
     "vitest": "4.1.10"
   }

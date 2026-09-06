@@ -37,6 +37,10 @@
       "types": "./dist/ui.d.ts",
       "default": "./dist/ui.js"
     },
+    "./preview": {
+      "types": "./dist/preview.d.ts",
+      "default": "./dist/preview.js"
+    },
     "./styles.css": "./dist/main.css",
     "./dist/main.css": "./dist/main.css",
     "./panda-preset": {

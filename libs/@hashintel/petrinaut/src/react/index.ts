@@ -28,6 +28,14 @@ export type { ActualModeContextValue } from "./actual-mode-context";
 export { PetrinautProvider } from "./petrinaut-provider";
 export type { PetrinautProviderProps } from "./petrinaut-provider";
 export {
+  PetrinautCanvasProvider,
+  PetrinautDocumentProvider,
+} from "./petrinaut-provider-layers";
+export type {
+  PetrinautCanvasProviderProps,
+  PetrinautDocumentProviderProps,
+} from "./petrinaut-provider-layers";
+export {
   defaultPetrinautNavigationHistoryPolicy,
   defaultPetrinautNavigationState,
   openPetrinautSimulationResource,
@@ -49,6 +57,13 @@ export type {
   PetrinautNavigationUpdater,
   PetrinautSimulateResource,
 } from "./navigation";
+// The vocabularies two navigation fields are drawn from. A host encoding the
+// location into a router needs to spell them, and to fail its own build when
+// either gains a member.
+export type {
+  EditorGlobalMode,
+  SimulateViewMode,
+} from "./state/editor-context";
 export {
   NetManagementContext,
   type NetManagement,
@@ -85,6 +100,11 @@ export type {
   NotificationTone,
 } from "./notifications/context";
 export { NotificationsProvider } from "./notifications/provider";
+export { SimulationProvider } from "./simulation/provider";
+export type {
+  SimulationCompiler,
+  SimulationProviderProps,
+} from "./simulation/provider";
 
 // --- Error tracker DI ---
 export { ErrorTrackerContext } from "./error-tracker-context";

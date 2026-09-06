@@ -1,8 +1,9 @@
 ---
 /**
- * Starlight's head, plus the font faces and preload links for the code font.
+ * Starlight's head, plus the font faces and preload links for the two families
+ * the site uses.
  *
- * Astro's `<Font>` emits both, so the family has to be requested from a
+ * Astro's `<Font>` emits both, so each family has to be requested from a
  * component in the head rather than from configuration alone.
  */
 
@@ -11,4 +12,5 @@ import { Font } from "astro:assets";
 ---
 
 <Default><slot /></Default>
+<Font cssVariable="--pnd-font-sans" preload />
 <Font cssVariable="--pnd-font-mono" preload />

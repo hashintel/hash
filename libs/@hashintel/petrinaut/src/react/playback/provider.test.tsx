@@ -13,6 +13,7 @@ import {
 import {
   DEFAULT_COMPUTE_MODE,
   PlaybackContext,
+  type PlaybackSpeed,
   type PlaybackContextValue,
 } from "./context";
 import { PlaybackProvider } from "./provider";
@@ -129,13 +130,15 @@ const PlaybackContextConsumer = ({
 // Component wrapper for testing - defined outside to avoid closure issues with React Compiler
 const TestWrapper = ({
   simContext,
+  initialSpeed,
   onContextValue,
 }: {
   simContext: SimulationContextValue;
+  initialSpeed?: PlaybackSpeed;
   onContextValue: (value: PlaybackContextValue) => void;
 }) => (
   <SimulationContext.Provider value={simContext}>
-    <PlaybackProvider>
+    <PlaybackProvider initialSpeed={initialSpeed}>
       <PlaybackContextConsumer onContextValue={onContextValue} />
     </PlaybackProvider>
   </SimulationContext.Provider>
@@ -145,7 +148,10 @@ const TestWrapper = ({
  * Renders the PlaybackProvider with a mock SimulationContext and returns
  * a function to get the current PlaybackContext value.
  */
-function renderPlaybackProvider(simulationContext: SimulationContextValue): {
+function renderPlaybackProvider(
+  simulationContext: SimulationContextValue,
+  initialSpeed?: PlaybackSpeed,
+): {
   getPlaybackValue: () => PlaybackContextValue;
   renderResult: RenderResult;
   rerender: (newSimulationContext: SimulationContextValue) => void;
@@ -159,6 +165,7 @@ function renderPlaybackProvider(simulationContext: SimulationContextValue): {
   const renderResult = render(
     <TestWrapper
       simContext={simulationContext}
+      initialSpeed={initialSpeed}
       onContextValue={captureValue}
     />,
   );
@@ -170,6 +177,7 @@ function renderPlaybackProvider(simulationContext: SimulationContextValue): {
       renderResult.rerender(
         <TestWrapper
           simContext={newSimulationContext}
+          initialSpeed={initialSpeed}
           onContextValue={captureValue}
         />,
       );
@@ -225,6 +233,16 @@ describe("PlaybackProvider", () => {
       expect(playbackValue.playMode).toBe(DEFAULT_COMPUTE_MODE);
       expect(playbackValue.isViewOnlyAvailable).toBe(false);
       expect(playbackValue.isComputeAvailable).toBe(true);
+    });
+
+    it("should honor a host-provided initial playback speed", () => {
+      const simulationContext = createMockSimulationContext();
+      const { getPlaybackValue } = renderPlaybackProvider(
+        simulationContext,
+        10,
+      );
+
+      expect(getPlaybackValue().playbackSpeed).toBe(10);
     });
 
     it("should have viewOnly available when there are frames", () => {

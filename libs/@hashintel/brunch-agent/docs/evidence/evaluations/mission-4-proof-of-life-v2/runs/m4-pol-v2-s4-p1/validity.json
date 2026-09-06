@@ -1,0 +1,22 @@
+{
+  "status": "valid-behavioral-failure",
+  "technicallyValid": true,
+  "mechanicalChecks": {
+    "settledOutcome": "completed",
+    "runtimeOrTransportError": false,
+    "unresolvedClientToolSuspension": false,
+    "emptyElicitorResponse": false,
+    "openingPromptSha256Matched": true,
+    "visibleUserSubmissions": 1
+  },
+  "stopReason": "Exact S4 prompt settled after one visible submission.",
+  "semanticClassification": {
+    "item4e": "fail",
+    "elicitationActivated": false,
+    "missingOperationalKnowledgeIdentified": true,
+    "inventedRule": false,
+    "failureReason": "First Substantive gap statement was not preceded by successful elicitation activation."
+  },
+  "replacementPermitted": false,
+  "campaignConsequence": "Stop for owner adjudication; do not run S4 replacement or Industrial Gas."
+}

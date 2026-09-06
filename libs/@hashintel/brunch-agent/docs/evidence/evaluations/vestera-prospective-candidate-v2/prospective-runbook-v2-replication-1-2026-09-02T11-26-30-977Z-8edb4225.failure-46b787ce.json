@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "protocolId": "prospective-runbook-v2",
+  "outputNamespaceId": "vestera-prospective-candidate-v2",
+  "campaignFingerprint": "302a264c244bc71adad3d4df344da073f70a3da6b4e2e7536d859b951895907e",
+  "replication": 1,
+  "runId": "prospective-runbook-v2-replication-1-2026-09-02T11-26-30-977Z-8edb4225",
+  "status": "invalid",
+  "invalidReason": "runtime-failure",
+  "startedAt": "2026-09-02T11:26:30.977Z",
+  "failedAt": "2026-09-02T11:26:31.350Z",
+  "interviewerModel": "claude-sonnet-4-5",
+  "expertModel": "claude-sonnet-4-5",
+  "hardStop": 8,
+  "latencyStopMs": 180000,
+  "finalizationMessage": "[Evaluation stop instruction; not expert evidence] The interview turn budget is exhausted. Emit the full current Markdown runbook IR in one `runbook-ir` fenced block. Do not ask another question, construct the Petri net, or read construction resources. Preserve every unresolved unknown, not-yet-asked item, declined or deferred item, assumption, conflict, correction, contextual coexistence, omission, and loss.",
+  "modelCalls": [
+    {
+      "durationMs": 255,
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "api": "anthropic-messages",
+      "requestedModel": "claude-sonnet-4-5",
+      "observedModel": null,
+      "observedModelSource": "unavailable",
+      "stopReason": "error",
+      "providerStopReason": null,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "cost": 0
+    }
+  ],
+  "expertUsage": {
+    "calls": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "cacheReadTokens": 0,
+    "cacheWriteTokens": 0
+  },
+  "expertCalls": [],
+  "expertMessages": [],
+  "violations": [
+    {
+      "code": "missing-workpiece",
+      "detail": "No recoverable runbook-ir workpiece was emitted."
+    }
+  ],
+  "wroteCaptureStore": false,
+  "instrument": {
+    "sourceCommit": "605e681cebfaeaa3fcdd0502f50ab28adc7ac63d",
+    "instrumentStatus": "",
+    "fileSha256": {
+      "yarn.lock": "3f445d255ef7893c1941f5610e2a813a903d5b9053c9831012c3d7c3875571dc",
+      "apps/brunch-agent/package.json": "128b3fd6c9624c35b226b91d39e27cf1a9cdfbdafc0314b380b7d51e1de92b46",
+      "apps/brunch-agent/vite.config.ts": "f1a50233829599dff2d5ef7ee0cd10bdb55d7fe65a52a6e85913e00a33a5300d",
+      "apps/brunch-agent/src/app.ts": "979efb9172c82df7499b218125735929a9586a0d9355e042e9ff2402955f385e",
+      "apps/brunch-agent/src/db.ts": "9f3a2598df3ce6737de1348afa8baf7deeeeac51b8202bf87adb76dc96374481",
+      "apps/brunch-agent/src/agents/chat-agent/agent.ts": "e87ebbd611dd87f897c0ab15c704e6604bc032f99a96ee1a3bb827c03344300e",
+      "apps/brunch-agent/src/agents/chat-agent/tools/ping.ts": "a6f50f65f1bb4f1b62a2bf5fa23b343b973dd007be720a33dfbf5cd4a0595744",
+      "apps/brunch-agent/src/conversation/identity.ts": "b52f764ba6e6bb50602d477eb93234aa6a900c843412551de40ea6ad3050e5e6",
+      "apps/brunch-agent/src/conversation/transcript.ts": "b96cf8d2b8352d414f674985b7071c9570323ccaf862f7e77ec76311e4b11d44",
+      "apps/brunch-agent/src/http/routes.ts": "7d8389931c57671ad8376d0a0ab497413013d47b012ffbf531339d0d1ce3a0cd",
+      "apps/brunch-agent/src/evaluations/runbook/artifacts.ts": "15951ab3705b126d64a2593731b50775a16915298dae87b8cf7c99e265e2c2f4",
+      "apps/brunch-agent/src/evaluations/runbook/campaign-integrity.ts": "60215179f5d48bacbf4da7b0876d049ed8b15b4b774d99eab092a1297502a3b4",
+      "apps/brunch-agent/src/evaluations/runbook/load-built-application.ts": "c4b28985ad98dd1dde5afb8838ba6f9445692d208adde05c22f30f6074365056",
+      "apps/brunch-agent/src/evaluations/runbook/prospective-runbook-v2-run.ts": "c5bfd41fb727da4fb07a6e2c15c1c66abacad7c9867983cf19377475117d88b1",
+      "libs/@hashintel/brunch-agent/packages/core/package.json": "e12d9cc79d38c43e5543a5667753e5049dfbf21bec425c25942f1c4cbb922a1f",
+      "libs/@hashintel/brunch-agent/packages/core/src/SYSTEM.md": "82b035268c07cc8ee4736b5ffdd392c8f153793d2ca6b9ed57271c9b6146de10",
+      "libs/@hashintel/brunch-agent/packages/core/src/agent/index.ts": "0bd463eaab4eb68b86431bf26e0e01f90c89437b2888c86f4da53d7a0f39ec13",
+      "libs/@hashintel/brunch-agent/packages/core/src/universal-elicitation.md": "a4aedd68317bcde4b98490ea73efa4ee7881e2fe3cbcf3363e3db26e29180716",
+      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/package.json": "dca0db144c530bcf66c5400c029efa5e1136c9d7f81ed174343e891985200c33",
+      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/APPEND_SYSTEM.md": "9915751f11baf06de31b237ee8df57b5217f2e7f0531090370a7e08d0282b6c2",
+      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/flue.ts": "d5bac87a192b92fb6b7d749ec3d58116f9e39527b59e425c60aaeedf5cc13bd0",
+      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/skill.ts": "a283342146c8d2c2cb8056c588e76c1c3094f1e21e731be251c8fcdb335ed1b2",
+      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/instructions.md": "ea3a8755a576e98d35fce6a1e1f928a61148eb713f0bc2c2f818d104eb5f3832",
+      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/profile.md": "11e5547ea055bb390d7ff96f3469a39a36c84a4ed8a182153965e6d841b5e4bf",
+      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/workpiece-template.md": "6c26ed3808ccbb7133ea7c370779e63885dfdc342c6594f5cb3730b467e2b1da",
+      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/pn-construction.md": "57edbdfebd733ed6c1d5eb02f81dc13e6d5b9c7357f00018c1d0f2b1b1a3f694",
+      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/checks.md": "43dbc9adc9168ae9984321895fca441386ee3c44ab8691ba92baec0f7c43f400",
+      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/petrinaut-construction.ts": "7a4a03b62267531ba65b0f27128d804ad7fc70acf333266910010cc999f19d40",
+      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/read-petrinaut-doc.ts": "9e020d8bee5e6c9902b5e5b609abc5930d3e27647d0f4d0d4679f3e31097dfbb",
+      "libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/opening-message.md": "84ec5faa5fd46699c008b3b2aad49eb9988b8c2ab039c8e147fdb077d562ef54",
+      "libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/situation-pack.md": "4dbeb44a881c4675ec0ce7a5f068ea46ce1a4968a405b2dd692f92816d33e083",
+      "libs/@hashintel/brunch-agent/evaluations/oracles/vestera-scheduling/truth-ledger-v1-prospective.yaml": "6be9753bcbeb31a4bcb839be1acd4de4a15b1754af25d2cdd0b75fe63dd3d860",
+      "libs/@hashintel/brunch-agent/evaluations/oracles/ir-quality-ruler-v1.md": "817e43d15848bcec3c720a3e8b1104d31faf3035fd7ae8269d0a97ee43ef4a9a",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/ir-quality-ruler-v1/omniscient-grader.md": "a0ab12ceb3fc26d314b3f674ed6728a6bf5a6a24d2325ed32336020a605d96e5",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/ir-quality-ruler-v1/cold-ir-reviewer.md": "ddd2620f17c5311a4a186b5bc229ae3f916d811e4aeb35f215ed7502c31fc8f5",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v2/protocol.md": "5f11b043fb0ec18c9c7afba3b729ea1212fe0f88e06220efead48dfd250af562"
+    },
+    "builtArtifactManifest": [
+      {
+        "path": "apps/brunch-agent/dist/app.mjs",
+        "sha256": "5ce74b2646c00b959b3ee847b47e006717ccc21e1fba769ce818566cba6da62e"
+      },
+      {
+        "path": "apps/brunch-agent/dist/node-server-BWNSXBme.mjs",
+        "sha256": "90343929bc5274e0644003e8d7ea69b02003ac4d3b364a0afdb0be0e1032c066"
+      },
+      {
+        "path": "apps/brunch-agent/dist/server.mjs",
+        "sha256": "c2d4ccb5aa999e33d33530ba87280e4bb6d6aacd41df630876297bfabea8f04e"
+      }
+    ],
+    "builtArtifactManifestSha256": "5bb67f5cbb1315e789426d83780ed9af23c58b1a04cf14a4b62a831cae435cd0"
+  },
+  "failure": {
+    "name": "FlueExecutionError",
+    "message": "Agent submission sub_01M1GXXQMP7D5C77PD149F1ZJD failed: direct(sub_01M1GXXQMP7D5C77PD149F1ZJD) failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"API key is invalid.\"},\"request_id\":null}",
+    "stack": "FlueExecutionError: Agent submission sub_01M1GXXQMP7D5C77PD149F1ZJD failed: direct(sub_01M1GXXQMP7D5C77PD149F1ZJD) failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"API key is invalid.\"},\"request_id\":null}\n    at waitForAgentSubmission (file:///Users/lunelson/.herdr/worktrees/hash/bravo/node_modules/@flue/sdk/dist/index.mjs:1028:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async dispatch (file:///Users/lunelson/.herdr/worktrees/hash/bravo/apps/brunch-agent/src/evaluations/runbook/prospective-runbook-v2-run.ts:538:5)\n    at async file:///Users/lunelson/.herdr/worktrees/hash/bravo/apps/brunch-agent/src/evaluations/runbook/prospective-runbook-v2-run.ts:548:3"
+  },
+  "transcript": "## User\nI'm the master scheduler at a coatings plant. My boss wants a simulation model of how we\nschedule production, so we can test scheduling decisions before making them. We have tooling\nthat runs Petri-net-style process models, so the end product should be a model I can hand to\nthat — but I can't tell you much about the format, I'm not the modelling person.\n\nPlease interview me about how our operation works, and then produce the model.",
+  "rawConversationSnapshot": {
+    "v": 1,
+    "conversationId": "conv_01M1GXXQMRF5G7XJW11P21BVJR",
+    "offset": "0000000000000000_0000000000000006",
+    "messages": [
+      {
+        "id": "entry_direct_c3ViXzAxTTFHWFhRTVA3RDVDNzdQRDE0OUYxWkpE",
+        "role": "user",
+        "purpose": "user",
+        "display": "visible",
+        "submissionId": "sub_01M1GXXQMP7D5C77PD149F1ZJD",
+        "parts": [
+          {
+            "type": "text",
+            "text": "I'm the master scheduler at a coatings plant. My boss wants a simulation model of how we\nschedule production, so we can test scheduling decisions before making them. We have tooling\nthat runs Petri-net-style process models, so the end product should be a model I can hand to\nthat — but I can't tell you much about the format, I'm not the modelling person.\n\nPlease interview me about how our operation works, and then produce the model.",
+            "state": "done"
+          }
+        ]
+      },
+      {
+        "id": "entry_01M1GXXQXDAQW5JNNR8ZK2CK20",
+        "role": "assistant",
+        "purpose": "assistant",
+        "display": "visible",
+        "submissionId": "sub_01M1GXXQMP7D5C77PD149F1ZJD",
+        "turnId": "turn_01M1GXXQNF4V3611A3GPHX3V0Y",
+        "parts": []
+      }
+    ],
+    "settlements": [
+      {
+        "submissionId": "sub_01M1GXXQMP7D5C77PD149F1ZJD",
+        "outcome": "failed",
+        "error": {
+          "name": "FlueError",
+          "message": "direct(sub_01M1GXXQMP7D5C77PD149F1ZJD) failed: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"API key is invalid.\"},\"request_id\":null}",
+          "type": "operation_failed",
+          "details": "",
+          "meta": {
+            "operation": "direct(sub_01M1GXXQMP7D5C77PD149F1ZJD)",
+            "reason": "401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"API key is invalid.\"},\"request_id\":null}"
+          }
+        },
+        "answeredBySubmissionId": "sub_01M1GXXQMP7D5C77PD149F1ZJD"
+      }
+    ],
+    "incarnation": "inc_01M1GXXQMP0D9RWF9JFA1N396D"
+  },
+  "rawConversationSnapshotSha256": "c6df4476975908b24412df5c5d4354ad5ab309da882be8a72a16a39f03d26283"
+}

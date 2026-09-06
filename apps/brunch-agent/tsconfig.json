@@ -17,5 +17,5 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["src", "test", "*.config.ts"]
+  "include": [".pi", "src", "test", "*.config.ts"]
 }

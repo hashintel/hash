@@ -1,0 +1,149 @@
+{
+  "sideQuestId": "flue-skill-composition-side-quest-v3",
+  "sourceCommit": "5249a73f09977ad2ef007e08de7b7314f94568e1",
+  "sourceState": "dirty side-quest instrument; every instrument file is content-addressed below",
+  "model": "anthropic/claude-haiku-4-5",
+  "runtime": {
+    "boundary": "built production ChatAgent loaded from apps/brunch-agent/dist/app.mjs",
+    "flue": "2.0.3",
+    "hermeticProvider": "@earendil-works/pi-ai faux provider 0.83.0",
+    "constructionToolsMounted": false,
+    "stop": "first consequential question, finding, or construction decision"
+  },
+  "candidateRenderedText": {
+    "corePrompt": "runs/hermetic/independent-S1.json#/instrument/renderedSha256/candidateCorePrompt",
+    "sharedSdcpnAppend": "runs/hermetic/independent-S1.json#/instrument/renderedSha256/v3SdcpnAppend",
+    "independentPluginActivation": "runs/hermetic/independent-S1.json#/toolCalls/0/output",
+    "independentElicitationActivation": "runs/hermetic/independent-S1.json#/toolCalls/1/output",
+    "packagedPluginActivation": "runs/hermetic/packaged-S1.json#/toolCalls/0/output",
+    "packagedUniversalResource": "runs/hermetic/packaged-S1.json#/toolCalls/1/output"
+  },
+  "sourceSha256": {
+    "apps/brunch-agent/src/agents/chat-agent/agent.ts": "d2d42344c40ddeb2471eeeba437032079bd2c7083afdbc2f9de5e823f841d5b8",
+    "apps/brunch-agent/src/evaluations/skill-composition/candidate-contract.ts": "ebec2ac5faab6cbbbe26eeeebc2d7ac0ba7dc637fd43ea9b5917f8e0277f5515",
+    "apps/brunch-agent/src/evaluations/skill-composition/candidates.ts": "c7cb5b2222b0d1b5aff861c4056f41ba8825aca284ec774d8e4f0fbf12807314",
+    "apps/brunch-agent/src/evaluations/skill-composition/run.ts": "321f8405c12374315d61caf466001d6b4b5cf68b04325df77a7948daaa680de1",
+    "libs/@hashintel/brunch-agent/evaluations/cases/flue-skill-composition-side-quest-v3/scenarios.json": "1844df940b8de9d10d28e9537f966920aba581b36956a9ac26a3767824ca96cb",
+    "libs/@hashintel/brunch-agent/evaluations/protocols/flue-skill-composition-side-quest-v3/protocol.md": "ef1443bb02c6c26d4ded6edf9e023579bc32cdc394f90490edfb34eaf32b8ed2",
+    "libs/@hashintel/brunch-agent/evaluations/oracles/flue-skill-composition-side-quest-v3.md": "8cd2749c8292f01045ab4282fc7248c07046cecaf14a586a9ef286e2876cf8bf",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/core/universal-elicitation.md": "a4aedd68317bcde4b98490ea73efa4ee7881e2fe3cbcf3363e3db26e29180716",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/core/SYSTEM.md": "82b035268c07cc8ee4736b5ffdd392c8f153793d2ca6b9ed57271c9b6146de10",
+    "libs/@hashintel/brunch-agent/packages/core/src/SYSTEM.md": "527fc0b3472b5c1953a89b691da0883dc2eb93dad1cdaed21b1cc7e1db0c8187",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/APPEND_SYSTEM.md": "8826b85d32d6c24fbc8f678ec394600676ec61c4a0b83d0a9cfa16be87fc5d76",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/SKILL.md": "b09a02e92602bf67f54ce3988a4e1af438b344fb7dd654936e127905451f0025",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/checks.md": "9487f40c73398e2008c10cd6f85c60735c34e59ab2f5bb4f59dddf863552f2a5",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/instructions.md": "b6d632a0e9ad5b21253fdbae792e1546ce5bd9cb0a0c999befc7e3dfd2f3e7f4",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/pn-construction.md": "57edbdfebd733ed6c1d5eb02f81dc13e6d5b9c7357f00018c1d0f2b1b1a3f694",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/sdcpn-elicitation.md": "11e5547ea055bb390d7ff96f3469a39a36c84a4ed8a182153965e6d841b5e4bf",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/workpiece-template.md": "4ee0dad11d802ff7918ef8660c42e3be8caef0eb923e92ab4084b70f2f110ec9",
+    "libs/@hashintel/brunch-agent/packages/core/src/agent/index.ts": "18ff63996ea2c0656f246e3e36a30962de3e03c106a25305614eb66ebf0f5717",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/flue.ts": "1a2417cc5f9649d459c5efbc87cd3242db99a9717622a6d86073c72835818865"
+  },
+  "renderedSha256": {
+    "candidateCorePrompt": "6a458c0bbbc9dee5b4454a54b032818227ab681ba9f7beaa60d4fe9628f6eb41",
+    "v3SdcpnAppend": "73cac46487d33051a90cc487ea7abfc11fec4b049af11a108396ec08d44569fb",
+    "elicitationInstructions": "a4aedd68317bcde4b98490ea73efa4ee7881e2fe3cbcf3363e3db26e29180716",
+    "independentPluginInstructions": "0c10c1e3bc61fb39fc799584d050e1170c7b7befd07f74dd6ebca8921f3398fd",
+    "packagedPluginInstructions": "4a2410540717af8c740c57d7e74efd290f74cf3a23590d41acb632bd3f31a0f5",
+    "packagedUniversalResource": "a4aedd68317bcde4b98490ea73efa4ee7881e2fe3cbcf3363e3db26e29180716"
+  },
+  "promptSelection": {
+    "candidateCorePromptIncluded": true,
+    "v3SdcpnAppendIncluded": true,
+    "legacyCorePromptIncluded": false,
+    "legacyRoleMarkerIncluded": false
+  },
+  "parity": {
+    "universalSubstanceByteIdentical": true,
+    "normalizedPluginInstructionsByteIdentical": true,
+    "promptAppendScenarioByteIdenticalBetweenCandidates": true,
+    "intentionalDifferences": [
+      "Candidate A mounts elicitation independently; Candidate B packages universal-elicitation.md.",
+      "The required-action line uses activate_skill for A and read_skill_resource for B.",
+      "Candidate A adds the mechanically required elicitation skill name and activation-cue description."
+    ]
+  },
+  "plannedPaidRunOrder": [
+    "S1-independent-r1",
+    "S1-packaged-r1",
+    "S1-packaged-r2",
+    "S1-independent-r2",
+    "S1-independent-r3",
+    "S1-packaged-r3",
+    "S2-packaged-r1",
+    "S2-independent-r1",
+    "S2-independent-r2",
+    "S2-packaged-r2",
+    "S3-packaged-r1",
+    "S3-independent-r1",
+    "S3-independent-r2",
+    "S3-packaged-r2",
+    "S4-packaged-r1",
+    "S4-independent-r1",
+    "S4-independent-r2",
+    "S4-packaged-r2",
+    "S4-packaged-r3",
+    "S4-independent-r3"
+  ],
+  "budget": {
+    "authorizedAdditionalModelInvocations": 60,
+    "authorizedAdditionalUsd": 1,
+    "usedModelInvocations": 37,
+    "usedUsd": 0.2399051,
+    "stopReason": "The first revised-S4 pair bypassed sdcpn-modelling and universal disclosure in both candidates. This symmetric shared-router failure triggered the frozen stop rule before the remaining S4 pairs."
+  },
+  "routingCounts": {
+    "S1": {
+      "independent": "0/3",
+      "packaged": "2/3"
+    },
+    "S4": {
+      "independent": "0/1",
+      "packaged": "0/1"
+    },
+    "restraint": {
+      "independentUniversalDisclosure": "0/4",
+      "packagedUniversalDisclosure": "0/4"
+    }
+  },
+  "hermeticRuns": [
+    "runs/hermetic/independent-S1.json",
+    "runs/hermetic/packaged-S1.json",
+    "runs/hermetic/independent-S2.json",
+    "runs/hermetic/packaged-S2.json",
+    "runs/hermetic/independent-S3.json",
+    "runs/hermetic/packaged-S3.json",
+    "runs/hermetic/independent-S4.json",
+    "runs/hermetic/packaged-S4.json"
+  ],
+  "paidRuns": [
+    "runs/paid/S1-independent-r1.json",
+    "runs/paid/S1-packaged-r1.json",
+    "runs/paid/S1-packaged-r2.json",
+    "runs/paid/S1-independent-r2.json",
+    "runs/paid/S1-independent-r3.json",
+    "runs/paid/S1-packaged-r3.json",
+    "runs/paid/S2-packaged-r1.json",
+    "runs/paid/S2-independent-r1.json",
+    "runs/paid/S2-independent-r2.json",
+    "runs/paid/S2-packaged-r2.json",
+    "runs/paid/S3-packaged-r1.json",
+    "runs/paid/S3-independent-r1.json",
+    "runs/paid/S3-independent-r2.json",
+    "runs/paid/S3-packaged-r2.json",
+    "runs/paid/S4-packaged-r1.json",
+    "runs/paid/S4-independent-r1.json"
+  ],
+  "paidTotals": {
+    "scenarioRuns": 16,
+    "modelInvocations": 37,
+    "inputTokens": 63542,
+    "outputTokens": 18373,
+    "cacheReadTokens": 28531,
+    "cacheWriteTokens": 65316,
+    "totalTokens": 175762,
+    "summedModelLatencyMs": 228135,
+    "providerCostUsd": 0.2399051
+  },
+  "outcome": "invalid-or-both-behaviorally-weak"
+}

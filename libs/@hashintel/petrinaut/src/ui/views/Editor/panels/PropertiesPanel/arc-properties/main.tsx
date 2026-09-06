@@ -172,6 +172,7 @@ const arcMainContentSubView: SubView = {
   main: true,
   component: ArcMainContent,
   renderHeaderAction: () => <DeleteArcAction />,
+  headerActionMutates: true,
   alwaysShowHeaderAction: true,
 };
 

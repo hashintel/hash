@@ -11,7 +11,9 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
+import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { usePetrinautPresentation } from "../../../../../../shared/presentation-context";
 import { usePlacePropertiesContext } from "../../context";
 import { InitialStateEditor } from "./initial-state-editor";
 
@@ -38,6 +40,7 @@ const scenarioInfoStyle = css({
  * Only shown when not in simulation mode and there's data to clear.
  */
 const ClearStateHeaderAction: React.FC = () => {
+  const presentation = usePetrinautPresentation();
   const { place, placeType } = usePlacePropertiesContext();
   const { state, initialMarking, setInitialMarking, selectedScenarioId } =
     use(SimulationContext);
@@ -62,6 +65,13 @@ const ClearStateHeaderAction: React.FC = () => {
 
   // Hide when simulation has run or when there's no data to clear.
   if (!isSimulationNotRun || !hasData) {
+    return null;
+  }
+
+  // This slot carries a status above and a mutation here, so the sub-view
+  // cannot declare itself one or the other: only the button goes when a
+  // presentation hides mutation actions.
+  if (!presentation.showMutationActions) {
     return null;
   }
 
@@ -91,6 +101,9 @@ const ClearStateHeaderAction: React.FC = () => {
  */
 const PlaceInitialStateContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
+  // A read-only document reaches this editor through the embedded Preview as
+  // well as a read-only host, and the initial marking is authored data.
+  const isReadOnly = useIsReadOnly();
 
   const { initialMarking, setInitialMarking, selectedScenarioId } =
     use(SimulationContext);
@@ -160,11 +173,11 @@ const PlaceInitialStateContent: React.FC = () => {
         className={stateFieldStyle}
         label="Token count"
         size="sm"
-        disabled={hasSimulationFrames}
+        disabled={hasSimulationFrames || isReadOnly}
       >
         <Tooltip
           content={UI_MESSAGES.READ_ONLY_MODE}
-          disableTooltip={!hasSimulationFrames}
+          disableTooltip={!hasSimulationFrames && !isReadOnly}
         >
           <NumberInput
             min={0}
@@ -172,7 +185,7 @@ const PlaceInitialStateContent: React.FC = () => {
             onChange={(tokenCount) => {
               setInitialMarking(place.id, Math.max(0, tokenCount ?? 0));
             }}
-            disabled={hasSimulationFrames}
+            disabled={hasSimulationFrames || isReadOnly}
           />
         </Tooltip>
       </Form.Field>
@@ -180,7 +193,12 @@ const PlaceInitialStateContent: React.FC = () => {
   }
 
   return (
-    <InitialStateEditor key={place.id} place={place} placeType={placeType} />
+    <InitialStateEditor
+      key={place.id}
+      place={place}
+      placeType={placeType}
+      readOnly={isReadOnly}
+    />
   );
 };
 

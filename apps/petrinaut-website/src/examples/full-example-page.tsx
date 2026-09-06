@@ -72,6 +72,7 @@ export const FullExamplePage = ({
         handle={handle}
         hideNetManagementControls="all"
         navigation={navigation}
+        presentationProfile="review"
         readonly
         slots={{
           topBarStart: (

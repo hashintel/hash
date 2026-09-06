@@ -3,6 +3,7 @@
     {
       "id": "place__fab_entrance",
       "name": "FabEntrance",
+      "description": "Lots created by demand but not yet released into the fab; they wait here for a WIP permit.",
       "colorId": "type__lot",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__aging",
@@ -13,6 +14,7 @@
     {
       "id": "place__wip_queue",
       "name": "WIPQueue",
+      "description": "Released lots waiting for a chamber. The urgency dynamics raise priority as the due date approaches, and wait_time drives the periodic priority updates.",
       "colorId": "type__lot",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__aging",
@@ -23,6 +25,7 @@
     {
       "id": "place__batch_queue",
       "name": "BatchQueue",
+      "description": "Lots at a furnace layer waiting to be loaded into a batch. batch_wait accumulates so a partial batch can start on timeout.",
       "colorId": "type__lot",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__batch_wait",
@@ -33,6 +36,7 @@
     {
       "id": "place__in_process",
       "name": "InProcess",
+      "description": "Lots inside a chamber. process_remaining counts down to zero, at which point the chamber holding the lot releases it.",
       "colorId": "type__lot",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__processing",
@@ -43,6 +47,7 @@
     {
       "id": "place__post_process",
       "name": "PostProcess",
+      "description": "Lots that have just finished a step, one layer further on, before routing back to the queue or, at layer 28, to final test.",
       "colorId": "type__lot",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__aging",
@@ -53,6 +58,7 @@
     {
       "id": "place__in_inspection",
       "name": "InInspection",
+      "description": "Lots on an inspection chamber. The inspection countdown runs like a process step but adds no defects.",
       "colorId": "type__lot",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__processing",
@@ -63,6 +69,7 @@
     {
       "id": "place__finished",
       "name": "Finished",
+      "description": "Lots that completed all 28 layers with a defect count under scrap_threshold.",
       "colorId": "type__lot",
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -73,6 +80,7 @@
     {
       "id": "place__scrapped",
       "name": "Scrapped",
+      "description": "Lots lost, either failing final test with too many defects or destroyed when their chamber broke down mid-process.",
       "colorId": "type__lot",
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -83,6 +91,7 @@
     {
       "id": "place__wip_permits",
       "name": "WIPPermits",
+      "description": "Release permits capping work in progress at wip_cap lots. A release takes one; a finished or scrapped lot returns one.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -93,6 +102,7 @@
     {
       "id": "place__chambers_available",
       "name": "ChambersAvailable",
+      "description": "Idle chambers ready to accept a lot, or furnaces still filling a batch. Each carries its condition, particle count, drift, and product qualification.",
       "colorId": "type__chamber",
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -103,6 +113,7 @@
     {
       "id": "place__chambers_processing",
       "name": "ChambersProcessing",
+      "description": "Chambers running a lot or batch. The wear dynamics raise condition and particle count while they run, and the diffusion step injects process noise.",
       "colorId": "type__chamber",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__chamber_processing",
@@ -113,6 +124,7 @@
     {
       "id": "place__chambers_in_maintenance",
       "name": "ChambersInMaintenance",
+      "description": "Chambers with a crew member assigned, counting maintenance_remaining down to recalibration.",
       "colorId": "type__chamber",
       "dynamicsEnabled": true,
       "differentialEquationId": "de__chamber_maintenance",
@@ -123,6 +135,7 @@
     {
       "id": "place__chambers_broken",
       "name": "ChambersBroken",
+      "description": "Chambers that need maintenance or failed while no crew member was free; they wait here until one is released.",
       "colorId": "type__chamber",
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -133,6 +146,7 @@
     {
       "id": "place__maintenance_crew",
       "name": "MaintenanceCrew",
+      "description": "Technicians free to service or repair a chamber. Each maintenance holds one until it completes.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -143,6 +157,7 @@
     {
       "id": "place__maintenance_events",
       "name": "MaintenanceEvents",
+      "description": "Cumulative count of maintenance visits, whether preventive or forced by a chamber's condition at the end of a step.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -153,6 +168,7 @@
     {
       "id": "place__breakdown_events",
       "name": "BreakdownEvents",
+      "description": "Cumulative count of chamber breakdowns.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -163,6 +179,7 @@
     {
       "id": "place__lots_released",
       "name": "LotsReleased",
+      "description": "Cumulative count of lots released into the fab.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -173,6 +190,7 @@
     {
       "id": "place__lots_completed",
       "name": "LotsCompleted",
+      "description": "Cumulative count of lots that passed final test.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -183,6 +201,7 @@
     {
       "id": "place__calibrations",
       "name": "Calibrations",
+      "description": "Cumulative count of completed maintenances, each of which resets condition and re-centres process drift.",
       "colorId": null,
       "dynamicsEnabled": false,
       "differentialEquationId": null,
@@ -195,6 +214,7 @@
     {
       "id": "transition__demand_logic",
       "name": "Demand arrives (logic)",
+      "description": "Logic lots arrive at half of demand_rate with a 200 hour due date and enter FabEntrance at layer 0.",
       "inputArcs": [],
       "outputArcs": [
         {
@@ -211,6 +231,7 @@
     {
       "id": "transition__demand_memory",
       "name": "Demand arrives (memory)",
+      "description": "Memory lots arrive at 35% of demand_rate with a 180 hour due date.",
       "inputArcs": [],
       "outputArcs": [
         {
@@ -227,6 +248,7 @@
     {
       "id": "transition__demand_analog",
       "name": "Demand arrives (analog)",
+      "description": "Analog lots arrive at 15% of demand_rate with a 250 hour due date.",
       "inputArcs": [],
       "outputArcs": [
         {
@@ -243,6 +265,7 @@
     {
       "id": "transition__release_lot",
       "name": "Release lot into fab",
+      "description": "Moves a waiting lot into the WIP queue once a WIP permit is free and counts a release.",
       "inputArcs": [
         {
           "placeId": "place__fab_entrance",
@@ -274,6 +297,7 @@
     {
       "id": "transition__priority_update",
       "name": "Update lot priority toward deadline",
+      "description": "After priority_update_interval hours of waiting, recomputes a queued lot's priority as target_cycle_time over the time left to its due date (10 once overdue, never below 1) and resets its wait clock.",
       "inputArcs": [
         {
           "placeId": "place__wip_queue",
@@ -296,6 +320,7 @@
     {
       "id": "transition__extend_deadline",
       "name": "Renegotiate deadline (lot past due)",
+      "description": "A lot more than deadline_grace_period hours past its due date gets a new due date one target_cycle_time ahead and its priority reset to 1.",
       "inputArcs": [
         {
           "placeId": "place__wip_queue",
@@ -318,6 +343,7 @@
     {
       "id": "transition__dispatch_litho",
       "name": "Dispatch lot to litho chamber",
+      "description": "Sends a queued lot at a litho layer (0, 4, 9, 12, 16, 20, 24) to an idle litho chamber qualified for its product type, drawing a lognormal process time around litho_time scaled by product type.",
       "inputArcs": [
         {
           "placeId": "place__wip_queue",
@@ -349,6 +375,7 @@
     {
       "id": "transition__dispatch_etch",
       "name": "Dispatch lot to etch chamber",
+      "description": "Sends a queued lot at an etch layer to an idle etch chamber qualified for its product type, drawing a lognormal process time around etch_time scaled by product type.",
       "inputArcs": [
         {
           "placeId": "place__wip_queue",
@@ -380,6 +407,7 @@
     {
       "id": "transition__enter_batch_queue",
       "name": "Lot enters furnace batch queue",
+      "description": "A queued lot at a furnace layer (2, 7, 14, 19, 22, 26) moves to the batch queue instead of being dispatched on its own.",
       "inputArcs": [
         {
           "placeId": "place__wip_queue",
@@ -402,6 +430,7 @@
     {
       "id": "transition__load_furnace",
       "name": "Load lot into furnace batch",
+      "description": "Loads a batch-queued lot into a qualified furnace chamber with room under batch_size. The chamber stays available while its batch fills; the lot's process time is lognormal around furnace_time.",
       "inputArcs": [
         {
           "placeId": "place__batch_queue",
@@ -433,6 +462,7 @@
     {
       "id": "transition__start_furnace_full",
       "name": "Start furnace (batch full)",
+      "description": "A furnace whose batch_count has reached batch_size starts processing.",
       "inputArcs": [
         {
           "placeId": "place__chambers_available",
@@ -455,6 +485,7 @@
     {
       "id": "transition__start_furnace_timeout",
       "name": "Start furnace (batch timeout)",
+      "description": "A furnace holding a partial batch starts anyway once one of its loaded lots has waited batch_timeout hours.",
       "inputArcs": [
         {
           "placeId": "place__chambers_available",
@@ -482,6 +513,7 @@
     {
       "id": "transition__dispatch_inspect",
       "name": "Dispatch lot to inspection",
+      "description": "Sends a queued lot at an inspection layer (3, 6, 11, 18, 23) to an idle inspection chamber with a lognormal time around inspect_time.",
       "inputArcs": [
         {
           "placeId": "place__wip_queue",
@@ -513,6 +545,7 @@
     {
       "id": "transition__process_complete_ok",
       "name": "Processing complete, chamber ok",
+      "description": "When a lot's countdown ends in its chamber, the lot advances one layer with defects added at base_defect_rate scaled up by the chamber's condition, particle count, and drift, and inherits the chamber's drift as process bias. The chamber returns to available with lots_processed incremented. Fires only while the chamber's condition is under maintenance_threshold.",
       "inputArcs": [
         {
           "placeId": "place__in_process",
@@ -544,6 +577,7 @@
     {
       "id": "transition__furnace_batch_continues",
       "name": "Furnace lot completes (batch continues)",
+      "description": "A finished lot leaves a furnace that still holds other lots of its batch; the chamber keeps processing with batch_count reduced by one.",
       "inputArcs": [
         {
           "placeId": "place__in_process",
@@ -575,6 +609,7 @@
     {
       "id": "transition__process_complete_maintenance",
       "name": "Processing complete, chamber needs maintenance",
+      "description": "As for a healthy chamber, except that condition has reached maintenance_threshold: the lot advances and the chamber goes to ChambersBroken to wait for crew, counting a maintenance event.",
       "inputArcs": [
         {
           "placeId": "place__in_process",
@@ -610,6 +645,7 @@
     {
       "id": "transition__route_to_queue",
       "name": "Route lot back to WIP queue",
+      "description": "A lot below layer 28 returns to the WIP queue for its next step.",
       "inputArcs": [
         {
           "placeId": "place__post_process",
@@ -632,6 +668,7 @@
     {
       "id": "transition__lot_passes",
       "name": "Lot passes final test",
+      "description": "A lot at layer 28 with defect_count under scrap_threshold is finished; its WIP permit is released and a completion counted.",
       "inputArcs": [
         {
           "placeId": "place__post_process",
@@ -662,6 +699,7 @@
     {
       "id": "transition__lot_fails",
       "name": "Lot fails final test",
+      "description": "A lot at layer 28 with defect_count at or above scrap_threshold is scrapped and its WIP permit released.",
       "inputArcs": [
         {
           "placeId": "place__post_process",
@@ -688,6 +726,7 @@
     {
       "id": "transition__inspection_complete",
       "name": "Inspection complete",
+      "description": "The inspection countdown ends: the lot advances a layer back to the WIP queue and the chamber returns to available.",
       "inputArcs": [
         {
           "placeId": "place__in_inspection",
@@ -719,6 +758,7 @@
     {
       "id": "transition__start_maintenance",
       "name": "Start preventive maintenance",
+      "description": "An idle chamber whose condition has reached maintenance_threshold takes a crew member and begins a lognormal maintenance_duration.",
       "inputArcs": [
         {
           "placeId": "place__chambers_available",
@@ -750,6 +790,7 @@
     {
       "id": "transition__maintenance_complete",
       "name": "Maintenance complete (drift recalibrated)",
+      "description": "Maintenance ends: condition resets to 0, particles to 0.05, and process_drift is re-centred within calibration_residual. The crew member is freed and a calibration counted.",
       "inputArcs": [
         {
           "placeId": "place__chambers_in_maintenance",
@@ -780,6 +821,7 @@
     {
       "id": "transition__breakdown",
       "name": "Chamber breakdown",
+      "description": "A litho, etch, or inspection chamber fails mid-run at breakdown_base_rate grown exponentially with condition. The lot inside is scrapped and its WIP permit released; a free crew member starts a lognormal breakdown_repair_time repair at once.",
       "inputArcs": [
         {
           "placeId": "place__chambers_processing",
@@ -824,6 +866,7 @@
     {
       "id": "transition__breakdown_no_crew",
       "name": "Chamber breakdown (no crew available)",
+      "description": "The same failure hazard when no crew member is free: the lot is scrapped and the chamber waits in ChambersBroken.",
       "inputArcs": [
         {
           "placeId": "place__chambers_processing",
@@ -868,6 +911,7 @@
     {
       "id": "transition__crew_reaches_broken",
       "name": "Crew reaches broken chamber",
+      "description": "A freed crew member takes on a broken chamber and starts its repair, keeping any repair time already assigned.",
       "inputArcs": [
         {
           "placeId": "place__chambers_broken",
@@ -895,6 +939,7 @@
     {
       "id": "transition__drift_diffusion",
       "name": "Process noise injection (diffusion step)",
+      "description": "Every diffusion_step hours a processing chamber's particle count and process drift take a Gaussian step scaled by their volatilities, the stochastic half of the drift that the wear dynamics revert.",
       "inputArcs": [
         {
           "placeId": "place__chambers_processing",
@@ -919,6 +964,7 @@
     {
       "id": "type__lot",
       "name": "Lot",
+      "description": "A wafer lot: product type (0 logic, 1 memory, 2 analog), current layer of 28, priority, age, accumulated defects, remaining process time, wait and batch clocks, due date, process bias, and the chamber holding it (tool_id times 100 plus chamber index, or -1).",
       "iconSlug": "circle",
       "displayColor": "#8b5cf6",
       "elements": [
@@ -982,6 +1028,7 @@
     {
       "id": "type__chamber",
       "name": "Chamber",
+      "description": "A process chamber within a tool: machine group (0 litho, 1 etch, 2 furnace, 3 inspection), tool and chamber index, product qualification, and its state: condition, particle count, hours since maintenance, maintenance countdown, diffusion clock, lots processed, process drift, and furnace batch count.",
       "iconSlug": "circle",
       "displayColor": "#06b6d4",
       "elements": [
@@ -1541,5 +1588,6 @@
   "meta": {
     "generator": "Petrinaut"
   },
-  "title": "Semiconductor fab \u2014 process drift & multi-chamber tools (v3)"
+  "title": "Semiconductor fab — process drift & multi-chamber tools (v3)",
+  "description": "A wafer fab as a dynamic coloured net: lots of three product types cycle through 28 layers across litho, etch, furnace, and inspection chambers grouped into multi-chamber tools. Chambers degrade, gather particles, and drift continuously; the defects a step adds scale with that state, and maintenance recalibrates a chamber at the cost of taking it and a crew member out of service."
 }

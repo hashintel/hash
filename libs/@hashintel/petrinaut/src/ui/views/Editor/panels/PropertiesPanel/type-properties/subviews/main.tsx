@@ -16,10 +16,12 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { SectionList } from "../../../../../../components/section";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
 import { ColorSelect } from "../color-select";
 import { useTypePropertiesContext } from "../context";
 
@@ -184,6 +186,7 @@ const TypeMainContent: React.FC = () => {
     moveTypeElement,
   } = useTypePropertiesContext();
   const isDisabled = useIsReadOnly();
+  const presentation = usePetrinautPresentation();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [elementNameInputs, setElementNameInputs] =
@@ -340,6 +343,19 @@ const TypeMainContent: React.FC = () => {
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
 
+        <DescriptionField
+          sourceId={type.id}
+          sourceValue={type.description}
+          onCommit={(description) =>
+            updateType({
+              typeId: type.id,
+              update: { description },
+            })
+          }
+          disabled={isDisabled}
+          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
+
         <Form.Field label="Color" size="sm" disabled={isDisabled}>
           <Tooltip
             content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : ""}
@@ -367,29 +383,33 @@ const TypeMainContent: React.FC = () => {
           disabled={isDisabled}
           labelTooltip="A type is an ordered tuple of token attributes. Real attributes can be updated by dynamics; integer and boolean attributes are discrete."
           labelActions={
-            <Button
-              onClick={handleAddElement}
-              disabled={isDisabled}
-              size="xs"
-              variant="ghost"
-              aria-label="Add dimension"
-              tooltip={
-                isDisabled ? UI_MESSAGES.READ_ONLY_MODE : "Add dimension"
-              }
-              iconName="plus"
-            />
+            presentation.showMutationActions ? (
+              <Button
+                onClick={handleAddElement}
+                disabled={isDisabled}
+                size="xs"
+                variant="ghost"
+                aria-label="Add dimension"
+                tooltip={
+                  isDisabled ? UI_MESSAGES.READ_ONLY_MODE : "Add dimension"
+                }
+                iconName="plus"
+              />
+            ) : undefined
           }
         >
           {type.elements.length === 0 ? (
             <div className={emptyDimensionsStyle}>
-              No dimensions defined. Click + to add.
+              {presentation.showMutationActions
+                ? "No dimensions defined. Click + to add."
+                : "No dimensions defined."}
             </div>
           ) : (
             <div className={dimensionsListStyle}>
               {type.elements.map((element, index) => (
                 <div
                   key={element.elementId}
-                  draggable={!isDisabled}
+                  draggable={presentation.showMutationActions && !isDisabled}
                   onDragStart={() => {
                     handleDragStart(index);
                   }}
@@ -407,11 +427,13 @@ const TypeMainContent: React.FC = () => {
                   })}
                 >
                   {/* Drag handle */}
-                  <div className={dragHandleStyle({ isDisabled })}>
-                    <div className={dragHandleLineStyle} />
-                    <div className={dragHandleLineStyle} />
-                    <div className={dragHandleLineStyle} />
-                  </div>
+                  {presentation.showMutationActions && (
+                    <div className={dragHandleStyle({ isDisabled })}>
+                      <div className={dragHandleLineStyle} />
+                      <div className={dragHandleLineStyle} />
+                      <div className={dragHandleLineStyle} />
+                    </div>
+                  )}
 
                   <div className={dimensionFieldGroupStyle}>
                     <Tooltip
@@ -458,22 +480,24 @@ const TypeMainContent: React.FC = () => {
                   </div>
 
                   {/* Delete button */}
-                  <Button
-                    onClick={() => {
-                      handleDeleteElement(element.elementId);
-                    }}
-                    disabled={isDisabled || type.elements.length === 1}
-                    size="xxs"
-                    variant="ghost"
-                    className={deleteDimensionButtonStyle}
-                    aria-label={`Delete dimension ${element.name}`}
-                    tooltip={
-                      isDisabled
-                        ? UI_MESSAGES.READ_ONLY_MODE
-                        : `Delete dimension ${element.name}`
-                    }
-                    iconName="close"
-                  />
+                  {presentation.showMutationActions && (
+                    <Button
+                      onClick={() => {
+                        handleDeleteElement(element.elementId);
+                      }}
+                      disabled={isDisabled || type.elements.length === 1}
+                      size="xxs"
+                      variant="ghost"
+                      className={deleteDimensionButtonStyle}
+                      aria-label={`Delete dimension ${element.name}`}
+                      tooltip={
+                        isDisabled
+                          ? UI_MESSAGES.READ_ONLY_MODE
+                          : `Delete dimension ${element.name}`
+                      }
+                      iconName="close"
+                    />
+                  )}
                 </div>
               ))}
             </div>

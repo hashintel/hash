@@ -26,10 +26,14 @@ export const supplyChainProfit: {
 } = {
   title: "Supply Chain Profit Model",
   petriNetDefinition: {
+    description:
+      "Single-stage supply chain framed as a profit-optimization problem: a reorder policy replenishes raw inventory, production converts it into finished goods, and arriving demand is either sold from stock or lost to a stockout. Six decision parameters feed a single profit metric.",
     places: [
       {
         id: "place_raw_inventory",
         name: "RawInventory",
+        description:
+          "Raw-material stock on hand, replenished in batches by the reorder policy and consumed one unit per production run.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -41,6 +45,8 @@ export const supplyChainProfit: {
       {
         id: "place_finished_goods",
         name: "FinishedGoods",
+        description:
+          "Sellable stock produced from raw material; demand arriving while this is empty becomes a lost sale.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -52,6 +58,8 @@ export const supplyChainProfit: {
       {
         id: "place_customer_demand",
         name: "CustomerDemand",
+        description:
+          "Open customer orders waiting to be fulfilled from stock; each accrues a backlog cost in the profit metric until it is sold or lost.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -63,6 +71,8 @@ export const supplyChainProfit: {
       {
         id: "place_sold_orders",
         name: "SoldOrders",
+        description:
+          "Cumulative count of orders fulfilled from stock; the revenue side of the profit metric.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -74,6 +84,8 @@ export const supplyChainProfit: {
       {
         id: "place_lost_sales",
         name: "LostSales",
+        description:
+          "Cumulative count of demand lost to stockouts; each carries a penalty cost in the profit metric.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -87,6 +99,8 @@ export const supplyChainProfit: {
       {
         id: "trans_replenish_raw",
         name: "Replenish raw inventory",
+        description:
+          "External supplier deliveries: each firing adds a batch of 10 raw units, at a rate set by the replenishment aggressiveness, batch size, and expedited-shipping fraction.",
         inputArcs: [],
         outputArcs: [
           {
@@ -112,6 +126,8 @@ return {};`,
       {
         id: "trans_produce_finished",
         name: "Produce finished goods",
+        description:
+          "Converts one unit of raw material into one finished good at the configured production rate.",
         inputArcs: [
           {
             placeId: "place_raw_inventory",
@@ -139,6 +155,8 @@ return {};`,
       {
         id: "trans_create_demand",
         name: "Customer demand arrives",
+        description:
+          "External demand source: arrival rate scales with the market demand multiplier and marketing spend, and falls as the selling price rises.",
         inputArcs: [],
         outputArcs: [
           {
@@ -163,6 +181,8 @@ return {};`,
       {
         id: "trans_sell_order",
         name: "Sell order",
+        description:
+          "Fulfils one open order from finished-goods stock; its high rate means selling wins over losing the sale whenever stock is available.",
         inputArcs: [
           {
             placeId: "place_finished_goods",
@@ -196,6 +216,8 @@ return {};`,
       {
         id: "trans_lost_sale",
         name: "Demand lost to stockout",
+        description:
+          "An open order goes unmet: the inhibitor arc from FinishedGoods lets this fire only while stock is zero, turning waiting demand into lost sales.",
         inputArcs: [
           {
             placeId: "place_customer_demand",

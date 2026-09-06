@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { createFlueUiStream } from "../src/flue-ui-stream.ts";
+import { createFlueUiStream } from "../src/conversation/ui-stream.ts";
 
 import type { ConversationStreamChunk } from "@flue/sdk";
 import type { UIMessageChunk } from "ai";

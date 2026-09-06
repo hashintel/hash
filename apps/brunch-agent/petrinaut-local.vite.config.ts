@@ -19,7 +19,7 @@ import {
 import {
   defaultChatOrigin,
   petrinautLocalServer,
-} from "./src/local-dev-origins.ts";
+} from "./src/http/local-origins.ts";
 
 const withoutIncumbentChatHandler = (
   plugins: readonly PluginOption[],

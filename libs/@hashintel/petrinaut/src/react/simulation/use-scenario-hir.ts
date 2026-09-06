@@ -85,6 +85,16 @@ const loweringKey = (
 const PENDING: ScenarioHirState = { hir: null, error: null };
 
 /**
+ * Lowers one scenario. The language client is the default; a host with
+ * precompiled artifacts supplies its own and looks the scenario up by id.
+ */
+export type ScenarioHirRequest = (
+  input: ScenarioLoweringInput,
+  adHocContext?: AdHocSynthesisContext,
+  scenarioId?: string,
+) => Promise<ScenarioHir>;
+
+/**
  * Lowers a scenario's expressions and code-mode body to HIR via the language
  * worker (where the TypeScript compiler lives), so `compileScenario` can
  * type-check and interpret synchronously during render. Re-lowers only when
@@ -94,10 +104,16 @@ const PENDING: ScenarioHirState = { hir: null, error: null };
  */
 export function useScenarioHir(
   scenario: Scenario | undefined,
-  /** The net context an `adhoc` initial state synthesizes against. */
-  adHocContext?: AdHocSynthesisContext,
+  options?: {
+    requestScenarioHir?: ScenarioHirRequest;
+    /** The net context an `adhoc` initial state synthesizes against. */
+    adHocContext?: AdHocSynthesisContext;
+  },
 ): ScenarioHirState {
-  const { requestScenarioHir } = use(LanguageClientContext);
+  const languageClient = use(LanguageClientContext);
+  const requestScenarioHir: ScenarioHirRequest =
+    options?.requestScenarioHir ?? languageClient.requestScenarioHir;
+  const adHocContext = options?.adHocContext;
   const key = scenario ? loweringKey(scenario, adHocContext) : null;
 
   const [entry, setEntry] = useState<{
@@ -111,7 +127,7 @@ export function useScenarioHir(
     }
     let cancelled = false;
     const payload = JSON.parse(key) as LoweringPayload;
-    requestScenarioHir(payload.scenario, payload.adHocContext)
+    requestScenarioHir(payload.scenario, payload.adHocContext, scenario?.id)
       .then((hir) => {
         if (!cancelled) {
           setEntry({ key, state: { hir, error: null } });
@@ -131,7 +147,7 @@ export function useScenarioHir(
     return () => {
       cancelled = true;
     };
-  }, [key, requestScenarioHir]);
+  }, [key, requestScenarioHir, scenario?.id]);
 
   if (key === null) {
     return PENDING;

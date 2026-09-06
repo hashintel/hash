@@ -5,6 +5,8 @@ Status: **accepted design input for Mission 3**. Live execution authority remain
 the first architecture to test; it is not evidence that the design works. Reorient the mission if
 the real Flue path contradicts it.
 
+Amended 2026-09-01 by Mission 4's accepted plugin-scope correction: each plugin profile couples a reusable domain typology with a target formalism while remaining independent of any concrete domain, situation, or scenario. Formalism-only language below is corrected accordingly.
+
 Unless explicitly identified as the existing typed three-register IR, **IR** below means the
 **runbook IR**: Mission 3's structurally typed Markdown workpiece.
 
@@ -19,10 +21,7 @@ The following decisions were reached before implementation.
    Markdown hierarchy and repeated entry shapes may be strict while their contents remain prose.
    Mission 3 does not require captures, IR fields, or runbook entries to participate in a closed
    semantic type system.
-3. **The reusable split is universal repertoire versus target-formalism runbook.** Universal
-   teaching explains generally useful elicitation judgment. A target-formalism runbook says what
-   that judgment should attend to, pursue, preserve, transform, and check for SDCPN modelling. It
-   is not keyed to a concrete situation such as a truck fleet or semiconductor fab.
+3. **The reusable split is universal repertoire versus plugin profile.** Universal teaching explains generally useful elicitation judgment. A plugin profile couples a reusable domain typology with a target formalism and says what that judgment should recognize, pursue, preserve, transform, and check for the pairing. It is not keyed to a concrete situation such as a particular truck fleet or semiconductor fab.
 4. **The two authored layers may merge into one model-facing projection.** Mission 3 will author
    that first projection directly. It will not build a compiler or revive the old plugin renderer
    before a second real consumer creates strain.
@@ -60,7 +59,7 @@ Rejected first shapes:
 Deferred decisions:
 
 - the final heading catalogue and exact resource boundaries;
-- whether repeated use earns an automated repertoire + target-formalism projection;
+- whether repeated use earns automated composition of the repertoire and plugin profile;
 - which, if any, runbook or IR concepts later become semantically typed;
 - whether later lifecycle phases warrant distinct skills or agents under observed strain;
 - canvas mutation and programmatic PN loading;
@@ -105,10 +104,10 @@ The harness repertoire and its research sources already establish useful general
 Primary local syntheses include
 [`elicitation-strategy-literature.md`](../research/elicitation/elicitation-strategy-literature.md),
 [`frontier-model-elicitor-failure-catalogue.md`](../research/elicitation/frontier-model-elicitor-failure-catalogue.md),
-and the current [`repertoire.yaml`](../../packages/core/src/repertoire.yaml). Their content is
+and the current [`repertoire.yaml`](../../packages/core/src/teaching/repertoire.yaml). Their content is
 source material; Mission 3 does not restore the repertoire runtime.
 
-### Target-formalism teaching
+### Plugin teaching: domain typology and target formalism
 
 The SDCPN material already identifies reusable typologies of modelling situations rather than
 concrete scenario facts:
@@ -121,13 +120,12 @@ concrete scenario facts:
 - shared-resource contention and practiced policies;
 - discrete events, continuous dynamics, mode changes, thresholds, and probabilistic outcomes;
 - recurring PN construction patterns for timed work, branching, and related structures;
-- formalism-specific caveats, failure modes, losses, and validity checks.
+- domain-typology- and formalism-specific caveats, failure modes, losses, and validity checks.
 
 The current [`plugin-sdcpn/plugin.yaml`](../../packages/plugin-sdcpn/plugin.yaml), its archived CPS
 guidance and replays, and the independently written process-to-PN notes converge on this shape.
 The archived guidance also records the important correction that its former `domain` tag was a
-mis-tag: the useful cards describe model-situation types that lift to the target-formalism level
-without naming an operational domain.
+mis-tag: the useful cards describe model-situation types that belong to the plugin's reusable domain typology without naming a concrete operational domain.
 
 ### External resonance
 
@@ -148,16 +146,16 @@ organization, not evidence that models secretly parse a fixed heading schema.
 
 | Term | Definition |
 | --- | --- |
-| **Universal repertoire** | Generally applicable elicitation concepts, directives, procedures, judgment activations, caveats, and failure knowledge. It teaches *how to elicit* without naming a target formalism or concrete scenario. |
-| **Target-formalism runbook** | Human-readable guidance for eliciting and constructing one artifact family, initially SDCPN: what to investigate, notice, deepen, preserve, transform, and check. |
-| **Rendered runbook** | The model-facing combination of universal repertoire and target-formalism content, organized by a known Markdown hierarchy. In Mission 3 it is authored directly rather than compiled. |
+| **Universal repertoire** | Generally applicable elicitation concepts, directives, procedures, judgment activations, caveats, and failure knowledge. It teaches *how to elicit* without naming a domain typology, target formalism, or concrete scenario. |
+| **Plugin profile** | Human-readable guidance coupling one reusable domain typology with one target formalism, initially operational processes / SDCPN: what to investigate, notice, deepen, preserve, transform, and check. |
+| **Rendered runbook** | The model-facing combination of universal repertoire and plugin-profile content, organized by a known Markdown hierarchy. In Mission 3 it is authored directly rather than compiled. |
 | **Runbook skill** | The one Flue skill package that delivers the rendered runbook, lifecycle procedure, IR template, construction guidance, and checks through progressive disclosure. |
 | **Legacy YAML runbook cells** | The existing schema field named `runbooks`, containing `kickoff`, `trajectory`, and `close` cells per job. It keeps its code-level name but represents only the lifecycle region of the broader runbook concept. |
 | **Structural typing** | Required heading families, nesting, repeated entry shapes, and completion fields whose contents may remain prose. Structure determines where meaning belongs without closing its semantic vocabulary. |
 | **Semantic typing** | Closed kinds, slots, values, proposal types, grades, firing predicates, or fold rules that require content to be classified into a formal semantic system. Deferred in Mission 3. |
 | **Runbook IR** | The structurally typed Markdown workpiece filled from the conversation and consumed by PN generation. It can represent unknowns, assumptions, caveats, and unresolved questions without typed capture claims. It is an experiment in an intermediate representation, distinct from the existing typed three-register **IR**. |
 | **Lifecycle phase** | A mode of work performed by the same agent: orient, elicit, maintain/review the IR, construct the PN, and check/deliver. A phase selects relevant runbook material; it is not a separate agent. |
-| **Situation typology** | A recurring model-relevant shape—timed work, probabilistic outcome, contended resource, threshold trigger—applicable across concrete operational domains. |
+| **Situation typology** | One recurring model-relevant shape within a plugin's domain typology—timed work, probabilistic outcome, contended resource, threshold trigger—applicable across concrete domains. |
 
 ## Architecture
 
@@ -173,13 +171,13 @@ that return path without inventing a state machine.
 
 ### Two authored knowledge layers
 
-The universal repertoire and target-formalism runbook remain conceptually separate because their
+The universal repertoire and plugin profile remain conceptually separate because their
 ownership and reuse differ:
 
 ```text
 universal repertoire: how elicitation goes well
 +
-target-formalism runbook: what SDCPN elicitation and construction require
+plugin profile: what the operational-process typology and SDCPN formalism require
 =
 rendered runbook: what this agent reads
 ```
@@ -291,7 +289,7 @@ What to investigate
 ├─ policies, exceptions, and practiced rules
 └─ validation criteria
 
-Target-formalism guidance
+Plugin guidance
 ├─ lenses and heuristics
 ├─ situation typologies and patterns
 ├─ caveats and rabbit holes
@@ -425,7 +423,7 @@ over the real Flue path to produce a validatable PN. It does not establish:
 - Activation yields the lifecycle procedure.
 - Supporting resources are listed and readable through Flue's native resource affordance.
 - Each required runbook responsibility and IR section has one authoritative home.
-- Universal and target-formalism material are distinguishable by content and provenance even where
+- Universal and plugin-profile material are distinguishable by content and provenance even where
   rendered together.
 
 ### Behavioral checks
@@ -446,7 +444,7 @@ The runbook is improved empirically:
 
 1. run a fixed elicitation situation through the headless path;
 2. inspect the conversation, resource reads, filled IR, PN, and checks;
-3. classify the miss as universal teaching, target-formalism guidance, IR structure, construction
+3. classify the miss as universal teaching, plugin-profile guidance, IR structure, construction
    guidance, or tool/runtime behavior;
 4. edit the single owning location;
 5. rerun without adding semantic machinery unless the miss requires it.
@@ -463,7 +461,7 @@ Mission 3's runbook design is successfully exercised when:
 3. The skill progressively exposes lifecycle procedure, elicitation teaching, IR template, PN
    construction guidance, and checks using Flue's native skill/resource surfaces.
 4. The runbook has the structural responsibilities defined above and incorporates both universal
-   elicitation teaching and SDCPN target-formalism content.
+   elicitation teaching and operational-process/SDCPN plugin-profile content.
 5. A headless conversation yields a recoverable, structured-but-not-strictly-semantically-typed IR.
 6. The same agent can use that IR and disclosed construction guidance to produce PN JSON.
 7. Petrinaut accepts the output at the parser/validation boundary selected by the mission.
@@ -477,7 +475,7 @@ Mission 3's runbook design is successfully exercised when:
 - One runbook skill; no speculative skill catalog.
 - Flue's system instruction, skill activation, supporting-resource, and tool happy paths.
 - Direct Markdown authoring before automated projection.
-- Target-formalism content, not concrete scenario content.
+- Reusable domain-typology and target-formalism content, not concrete scenario content.
 - Expert vocabulary during elicitation; PN vocabulary during construction.
 - Structurally typed IR; no requirement for typed capture claims.
 - No join to Mission 2's capture store.
@@ -496,7 +494,7 @@ Mission 3's runbook design is successfully exercised when:
 | Flue supporting resources provide sufficient phase disclosure. | high for mechanism, medium for behavior | One package with lazy reference. | Observe `read_skill_resource` use and phase relevance. |
 | Separating construction reference reduces schema-shaped interviewing. | medium | Elicitation/construction resource boundary. | Compare interview questions with resource reads and PN vocabulary leakage. |
 | A structured prose IR contains enough information for inferred PN generation. | low-to-medium | Deferral of strict semantic typing. | Generate and validate the Mission 3 PN. |
-| Universal versus target-formalism ownership can be discovered through co-authoring. | medium | Direct merged authoring before a compiler. | Record entries that migrate after real use. |
+| Universal versus plugin-profile ownership can be discovered through co-authoring. | medium | Direct merged authoring before a compiler. | Record entries that migrate after real use. |
 | One agent can loop between elicitation and construction coherently. | medium | Single-agent lifecycle. | Exercise at least one construction-discovered gap and return path if the fixed scenario exposes one. |
 
 ## Resolved questions
@@ -505,7 +503,7 @@ Mission 3's runbook design is successfully exercised when:
 No. Those are lifecycle subheadings inside a broader agent definition.
 
 **Is the runbook universal or target-specific?**  
-The universal repertoire and target-formalism content have separate authorship semantics and may
+The universal repertoire and plugin-profile content have separate authorship semantics and may
 merge in the rendered runbook. Concrete scenario facts belong in the IR instance.
 
 **Must the runbook revive the typed plugin contract?**  

@@ -383,6 +383,7 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `existingNets`, `createNewNet`, `loadPetriNet`                           | Multi-net management hooks backing the burger menu. Omit them when the host owns navigation.                                             |
 | `aiAssistant`                                                            | Transport, message store, and interactive tools for the AI assistant panel. Omitting it hides the panel.                                 |
 | `viewportActions`                                                        | Extra buttons appended to the canvas zoom/fit controls.                                                                                  |
+| `navigation`                                                             | Host-controlled, router-neutral app location. Omitted: Petrinaut keeps its location internally. See Router integration.                  |
 | `slots`                                                                  | Host components injected into the top bar (`topBarStart`, `topBarEnd`) plus `titleStyle`.                                                |
 | `simulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
 

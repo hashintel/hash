@@ -3,7 +3,7 @@
  * @role Editable demo shell: nets in local storage, one live document handle
  */
 
-import { produce } from "immer";
+import { castDraft, produce } from "immer";
 import { useEffect, useMemo, useState } from "react";
 
 import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
@@ -27,6 +27,10 @@ import {
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
+import {
+  useSharedSearchNavigation,
+  withClearedSharedLocation,
+} from "../../../examples/use-shared-search-navigation";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { CommandPalette } from "../command-palette";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
@@ -43,29 +47,15 @@ import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import {
+  createLocalStorageNetRecord,
+  emptySDCPN,
+  isEmptySDCPN,
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
-const isEmptySDCPN = (sdcpn: SDCPN) =>
-  sdcpn.places.length === 0 &&
-  sdcpn.transitions.length === 0 &&
-  sdcpn.types.length === 0 &&
-  sdcpn.parameters.length === 0 &&
-  sdcpn.differentialEquations.length === 0 &&
-  (sdcpn.subnets ?? []).length === 0 &&
-  (sdcpn.componentInstances ?? []).length === 0 &&
-  (sdcpn.scenarios ?? []).length === 0 &&
-  (sdcpn.metrics ?? []).length === 0;
-
-const emptySDCPN: SDCPN = {
-  places: [],
-  transitions: [],
-  types: [],
-  parameters: [],
-  differentialEquations: [],
-};
+import type { SharedExampleSearch } from "../../../examples/example-search";
 
 const createDefaultStoredSDCPN = (): SDCPNInLocalStorage => ({
   id: "net-1",
@@ -73,24 +63,6 @@ const createDefaultStoredSDCPN = (): SDCPNInLocalStorage => ({
   sdcpn: emptySDCPN,
   lastUpdated: new Date(0).toISOString(),
 });
-
-/**
- * Creates the localStorage record for a newly created net, keeping the generated
- * id and last-updated timestamp in sync.
- */
-const createLocalStorageNetRecord = (params: {
-  petriNetDefinition: SDCPN;
-  title: string;
-}): SDCPNInLocalStorage => {
-  const now = new Date();
-
-  return {
-    id: `net-${now.getTime()}`,
-    title: params.title,
-    sdcpn: params.petriNetDefinition,
-    lastUpdated: now.toISOString(),
-  };
-};
 
 const DEMO_CAPABILITIES = {
   disabledExtensions: [],
@@ -183,10 +155,45 @@ const DemoCommands = ({
  * Switching files replaces the active handle instead of keeping handles alive
  * for background nets.
  */
-export const LocalStorageDemoApp = () => {
+export const LocalStorageDemoApp = ({
+  onSearchChange,
+  search,
+}: {
+  onSearchChange: (
+    search: SharedExampleSearch,
+    history: "push" | "replace",
+  ) => void;
+  search: SharedExampleSearch;
+}) => {
   const sentryFeedbackAction = useSentryFeedbackAction();
   const [openAIVoiceConfig, setOpenAIVoiceConfig] =
     useState<OpenAIVoiceConfig | null>();
+  /**
+   * History is left to the library's default on purpose. That default already
+   * replaces rather than pushes while an intent continues, so a drag-select
+   * records one entry instead of one per intermediate selection, and a discrete
+   * click is the only thing that pushes. Making selections replace as well
+   * removed every entry this page can produce, which left the first Back press
+   * leaving the site instead of retracing the net.
+   */
+  const navigation = useSharedSearchNavigation(search, onSearchChange);
+
+  /**
+   * The location belongs to the net that was open. Petrinaut resets its own
+   * location per document by keying on the handle id, but that only resets an
+   * uncontrolled location, so the host clears this one.
+   *
+   * Cleared through the controller rather than by writing an empty search: the
+   * shared projection is lossy, so a location the URL already renders as empty
+   * leaves the search prop unchanged and the in-memory selection would survive
+   * into the next net.
+   */
+  const clearSharedLocation = () => {
+    navigation.onNavigate(withClearedSharedLocation, {
+      history: "replace",
+      intent: { cause: "normalization", action: "selection" },
+    });
+  };
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
@@ -253,13 +260,14 @@ export const LocalStorageDemoApp = () => {
 
       setStoredSDCPNs((prev) => {
         const stored = prev[netId] ?? fallbackNet;
+        const next: SDCPNInLocalStorage = {
+          ...stored,
+          sdcpn: event.next,
+          lastUpdated,
+        };
 
         return produce(prev, (draft) => {
-          draft[netId] = {
-            ...stored,
-            sdcpn: event.next,
-            lastUpdated,
-          };
+          draft[netId] = castDraft(next);
         });
       });
     });
@@ -301,6 +309,7 @@ export const LocalStorageDemoApp = () => {
     });
     setActiveHandle(createActiveHandle(newNet));
     setCurrentNetId(newNet.id);
+    clearSharedLocation();
   };
 
   const loadPetriNet = (petriNetId: string) => {
@@ -329,6 +338,9 @@ export const LocalStorageDemoApp = () => {
     }
     setActiveHandle(createActiveHandle(netToLoad));
     setCurrentNetId(petriNetId);
+    if (petriNetId !== currentNetId) {
+      clearSharedLocation();
+    }
   };
 
   const setTitle = (title: string) => {
@@ -340,11 +352,18 @@ export const LocalStorageDemoApp = () => {
 
     setStoredSDCPNs((prev) =>
       produce(prev, (draft) => {
-        draft[currentNetId] = {
-          ...(draft[currentNetId] ?? currentNet),
-          title,
-          lastUpdated,
-        };
+        const existing = draft[currentNetId];
+        if (existing) {
+          existing.title = title;
+          existing.lastUpdated = lastUpdated;
+        } else {
+          const next: SDCPNInLocalStorage = {
+            ...currentNet,
+            title,
+            lastUpdated,
+          };
+          draft[currentNetId] = castDraft(next);
+        }
       }),
     );
   };
@@ -432,6 +451,7 @@ export const LocalStorageDemoApp = () => {
             existingNets={existingNets}
             createNewNet={createNewNet}
             loadPetriNet={loadPetriNet}
+            navigation={navigation}
             readonly={false}
             setTitle={setTitle}
             title={currentNet.title}

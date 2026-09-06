@@ -30,6 +30,15 @@ export const idSchema = z.string().min(1).meta({
     "Stable identifier for an SDCPN entity. Use unique IDs within the net.",
 });
 
+export const descriptionSchema = z.string().optional().meta({
+  description: "Optional human-readable summary shown to users.",
+});
+
+export const metadataSchema = z.record(z.string(), z.json()).optional().meta({
+  description:
+    "Optional host-defined data. Petrinaut treats it as opaque and never renders it.",
+});
+
 export const positionSchema = z
   .strictObject({
     x: z.number().meta({
@@ -188,6 +197,7 @@ export const placeSchema = z
       description:
         "PascalCase identifier used DIRECTLY in user code: lambdas and kernels reference input/output places as `input.PlaceName` and `{ PlaceName: [...] }`, metrics access them as `state.places.PlaceName.count`, scenario code-mode initial state keys are place names, and visualizer scope is implicitly per-place. Renaming a place breaks every code reference, so rename only when you also update dependent lambda/kernel/dynamics/metric/visualizer/scenario code in the same batch.",
     }),
+    description: descriptionSchema,
     colorId: idSchema.nullable().meta({
       description:
         "ID of the token colour/type accepted by this place, or null for uncoloured token counts. Uncoloured places have no token attributes and do not appear in lambda/kernel `input` objects.",
@@ -234,6 +244,8 @@ export const transitionSchema = z
     name: displayNameSchema.meta({
       description: "Human-readable transition name.",
     }),
+    description: descriptionSchema,
+    metadata: metadataSchema,
     inputArcs: z.array(inputArcSchema).meta({
       description:
         "Input arcs that gate transition firing. Standard arcs consume tokens, read arcs observe tokens without consuming them, and inhibitor arcs block firing based on token counts.",
@@ -289,6 +301,7 @@ export const colorSchema = z
     name: displayNameSchema.meta({
       description: "Human-readable colour/type name.",
     }),
+    description: descriptionSchema,
     iconSlug: z.string().min(1).meta({
       description:
         'Short icon identifier used by the UI for this colour/type. Typical values are `"circle"` or `"square"`; the UI defaults to `"circle"`.',
@@ -377,6 +390,8 @@ export const componentInstanceSchema = z
       description:
         "PascalCase name for the component instance (e.g. MainProcessor, Ward2). Used as a code-level identifier.",
     }),
+    description: descriptionSchema,
+    metadata: metadataSchema,
     subnetId: idSchema.meta({
       description: "ID of the subnet definition this component instantiates.",
     }),
@@ -402,6 +417,8 @@ export const subnetSchema = z
     name: displayNameSchema.meta({
       description: "Human-readable subnet name.",
     }),
+    description: descriptionSchema,
+    metadata: metadataSchema,
     places: z.array(placeSchema).meta({
       description: "Places local to this subnet.",
     }),

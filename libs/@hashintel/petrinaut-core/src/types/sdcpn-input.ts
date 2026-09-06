@@ -12,6 +12,7 @@ import type {
   Scenario,
   SDCPN,
   Subnet,
+  Transition,
 } from "./sdcpn";
 
 /**
@@ -32,6 +33,8 @@ import type {
  * so existing callers are unaffected.
  */
 export type SDCPNInput = {
+  description?: string;
+  metadata?: SDCPN["metadata"];
   places: SDCPNPlaceInput[];
   transitions: SDCPNTransitionInput[];
   /** @default [] */
@@ -49,6 +52,7 @@ export type SDCPNInput = {
 export type SDCPNPlaceInput = {
   id: ID;
   name: string;
+  description?: string;
   x: number;
   y: number;
   /** @default null */
@@ -87,6 +91,8 @@ export type SDCPNOutputArcInput = SDCPNArcEndpointInput & {
 export type SDCPNTransitionInput = {
   id: ID;
   name: string;
+  description?: string;
+  metadata?: Transition["metadata"];
   inputArcs: SDCPNInputArcInput[];
   outputArcs: SDCPNOutputArcInput[];
   x: number;
@@ -137,6 +143,9 @@ export function normalizeSDCPN(input: SDCPNInput): SDCPN {
         x: place.x,
         y: place.y,
       };
+      if (place.description !== undefined) {
+        normalized.description = place.description;
+      }
       if (place.isPort !== undefined) {
         normalized.isPort = place.isPort;
       }
@@ -148,33 +157,48 @@ export function normalizeSDCPN(input: SDCPNInput): SDCPN {
       }
       return normalized;
     }),
-    transitions: input.transitions.map((transition) => ({
-      id: transition.id,
-      name: transition.name,
-      inputArcs: transition.inputArcs.map(
-        (arc): InputArc => ({
-          ...arcEndpointFields(arc),
-          weight: arc.weight ?? 1,
-          type: arc.type ?? "standard",
-        }),
-      ),
-      outputArcs: transition.outputArcs.map(
-        (arc): OutputArc => ({
-          ...arcEndpointFields(arc),
-          weight: arc.weight ?? 1,
-        }),
-      ),
-      lambdaType: transition.lambdaType ?? "predicate",
-      lambdaCode: transition.lambdaCode ?? "",
-      transitionKernelCode: transition.transitionKernelCode ?? "",
-      x: transition.x,
-      y: transition.y,
-    })),
+    transitions: input.transitions.map((transition) => {
+      const normalized: SDCPN["transitions"][number] = {
+        id: transition.id,
+        name: transition.name,
+        inputArcs: transition.inputArcs.map(
+          (arc): InputArc => ({
+            ...arcEndpointFields(arc),
+            weight: arc.weight ?? 1,
+            type: arc.type ?? "standard",
+          }),
+        ),
+        outputArcs: transition.outputArcs.map(
+          (arc): OutputArc => ({
+            ...arcEndpointFields(arc),
+            weight: arc.weight ?? 1,
+          }),
+        ),
+        lambdaType: transition.lambdaType ?? "predicate",
+        lambdaCode: transition.lambdaCode ?? "",
+        transitionKernelCode: transition.transitionKernelCode ?? "",
+        x: transition.x,
+        y: transition.y,
+      };
+      if (transition.description !== undefined) {
+        normalized.description = transition.description;
+      }
+      if (transition.metadata !== undefined) {
+        normalized.metadata = transition.metadata;
+      }
+      return normalized;
+    }),
     types: input.types ?? [],
     parameters: input.parameters ?? [],
     differentialEquations: input.differentialEquations ?? [],
   };
 
+  if (input.description !== undefined) {
+    result.description = input.description;
+  }
+  if (input.metadata !== undefined) {
+    result.metadata = input.metadata;
+  }
   if (input.scenarios !== undefined) {
     result.scenarios = input.scenarios;
   }

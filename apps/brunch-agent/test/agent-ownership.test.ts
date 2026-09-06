@@ -7,13 +7,13 @@
 import { Hono } from "hono";
 import { expect, test } from "vitest";
 
-import { agentOwnershipGuard } from "../src/agent-ownership.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation-identity.ts";
-import { BRUNCH_CONVERSATION_HEADER } from "../src/conversation-payload.ts";
-import { CHAT_AGENT_ROUTE } from "../src/routes.ts";
+} from "../src/conversation/identity.ts";
+import { BRUNCH_CONVERSATION_HEADER } from "../src/conversation/payload.ts";
+import { agentOwnershipGuard } from "../src/http/ownership.ts";
+import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
 
 const mount = `/agents/${CHAT_AGENT_ROUTE}`;
 const app = new Hono();

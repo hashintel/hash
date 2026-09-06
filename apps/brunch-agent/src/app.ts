@@ -14,15 +14,18 @@ import { instrument } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
-import { agentOwnershipGuard } from "./agent-ownership.ts";
-import { ChatAgent } from "./agents/chat-agent.ts";
-import { assetHandler } from "./assets.ts";
-import { petrinautChatHandler } from "./petrinaut-chat.ts";
-import { CHAT_AGENT_ROUTE, PETRINAUT_CHAT_ROUTE } from "./routes.ts";
+import { ChatAgent } from "./agents/chat-agent/agent.ts";
+import { assetHandler } from "./http/assets.ts";
+import { agentOwnershipGuard } from "./http/ownership.ts";
+import { createPetrinautChatHandler } from "./http/petrinaut-chat.ts";
+import { CHAT_AGENT_ROUTE, PETRINAUT_CHAT_ROUTE } from "./http/routes.ts";
 
 instrument(createOpenTelemetryInstrumentation({ content: false }));
 
 const app = new Hono();
+const appTransport: typeof fetch = async (input, init) =>
+  app.fetch(input instanceof Request ? input : new Request(input, init));
+const petrinautChatHandler = createPetrinautChatHandler(appTransport);
 
 const chatAgentMount = `/agents/${CHAT_AGENT_ROUTE}`;
 app.use(`${chatAgentMount}/*`, agentOwnershipGuard(`${chatAgentMount}/`));

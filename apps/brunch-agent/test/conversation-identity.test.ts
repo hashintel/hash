@@ -1,11 +1,11 @@
 import { expect, test } from "vitest";
 
-import { flueConversationIdWeb } from "../src/conversation-identity-web.ts";
+import { flueConversationIdWeb } from "../src/conversation/identity-web.ts";
 import {
   flueConversationId,
   flueConversationIdFrom,
   ownsFlueInstance,
-} from "../src/conversation-identity.ts";
+} from "../src/conversation/identity.ts";
 
 test("the same principal and conversation id always hash to the same Flue instance", () => {
   expect(flueConversationId("principal-a", "conversation-1")).toBe(

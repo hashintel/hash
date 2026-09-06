@@ -13,17 +13,19 @@ import {
 import { setProvider } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
-import { applyCaptureSweep } from "../src/capture-sweep.ts";
-import { CLIENT_TOOL_RESULT_SIGNAL } from "../src/client-tool.ts";
+import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { ELICITATION_SKILL_NAME } from "@hashintel/brunch-agent/flue";
+
+import { PING_TOOL_NAME } from "../src/agents/chat-agent/tools/ping.ts";
+import { applyCaptureSweep } from "../src/capture/apply-sweep.ts";
+import { CLIENT_TOOL_RESULT_SIGNAL } from "../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation-identity.ts";
-import { formatFlueTranscript } from "../src/flue-transcript.ts";
-import { loadBuiltBrunchApplication } from "../src/load-built-application.ts";
-import { CHAT_AGENT_ROUTE } from "../src/routes.ts";
-import { PING_TOOL_NAME } from "../src/tools/ping.ts";
-import { READ_PETRINAUT_DOC_TOOL_NAME } from "../src/tools/read-petrinaut-doc.ts";
+} from "../src/conversation/identity.ts";
+import { formatFlueTranscript } from "../src/conversation/transcript.ts";
+import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
 
 import type {
   PetrinautChatResult,
@@ -142,14 +144,28 @@ try {
         ],
         { stopReason: "toolUse" },
       ),
+      fauxAssistantMessage(
+        [
+          fauxThinking("The job skill routes universal judgment to core."),
+          fauxToolCall(
+            ACTIVATE_SKILL_TOOL_NAME,
+            { name: ELICITATION_SKILL_NAME },
+            { id: "tool-skill-2" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
       (context) =>
         fauxAssistantMessage(
           [
-            fauxThinking("Read elicitation teaching from the skill package."),
+            fauxThinking("Read the SDCPN-specific elicitation profile."),
             fauxToolCall(
               READ_SKILL_RESOURCE_TOOL_NAME,
               {
-                path: packagedSkillResourcePathFrom(context, "elicitation.md"),
+                path: packagedSkillResourcePathFrom(
+                  context,
+                  "references/profile.md",
+                ),
               },
               { id: "tool-resource-1" },
             ),

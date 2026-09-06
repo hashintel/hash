@@ -19,10 +19,14 @@ import type { SDCPN } from "../types/sdcpn";
 export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
   title: "SIR Epidemic Model",
   petriNetDefinition: {
+    description:
+      "Susceptible-Infected-Recovered (SIR) compartmental epidemic model as a stochastic Petri net. Infection follows mass-action S + I -> 2I dynamics; the infection and recovery rates are global parameters, so R0 can be explored by changing parameters alone.",
     places: [
       {
         id: "place__susceptible",
         name: "Susceptible",
+        description:
+          "Individuals who have not yet caught the disease and can be infected by contact with an infected individual.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -33,6 +37,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
       {
         id: "place__infected",
         name: "Infected",
+        description:
+          "Individuals currently carrying the disease and able to transmit it to susceptible contacts.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -43,6 +49,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
       {
         id: "place__recovered",
         name: "Recovered",
+        description:
+          "Individuals who have recovered and are immune; they never return to the susceptible or infected pools.",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -54,6 +62,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
       {
         id: "transition__infection",
         name: "Infection",
+        description:
+          "Contact between a susceptible and an infected individual infects the susceptible: consumes one of each and produces two infected (S + I -> 2I), firing at the infection_rate parameter.",
         inputArcs: [
           {
             placeId: "place__susceptible",
@@ -88,6 +98,8 @@ return {
       {
         id: "transition__recovery",
         name: "Recovery",
+        description:
+          "An infected individual recovers and becomes immune, moving to Recovered at the recovery_rate parameter.",
         inputArcs: [
           {
             placeId: "place__infected",

@@ -1,7 +1,7 @@
 # ADR-0006: Plugins are per target formalism, authored as sectioned Markdown
 
 Date: 2026-08-25
-Status: accepted
+Status: historical; superseded for current implementation by the final [Mission 4 architecture](../mission-archive/4-core-plugin-elicitation-proof-of-life.md). The historical target-formalism-only unit is replaced by one reusable domain-typology / target-formalism pairing, and the YAML/table/repertoire machinery is removed. The prohibition survives for concrete domains, organizations, situations, and scenarios.
 Amended by: [ADR-0007](0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) (2026-08-25),
 decisions 2 and 5 — the machine-read tables become schema-validated data, the prose becomes cells
 under harness-owned keys, and the harness-generic lift is designed there

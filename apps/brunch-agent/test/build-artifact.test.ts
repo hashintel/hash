@@ -41,7 +41,10 @@ beforeAll(() => {
 /** The pinned identity of every agent module in the app, read from source. */
 function declaredAgentIdentities(): string[] {
   const agentsDirectory = join(DEV_APP, "src/agents");
-  return readdirSync(agentsDirectory)
+  return readdirSync(agentsDirectory, {
+    recursive: true,
+    encoding: "utf8",
+  })
     .filter((entry) => entry.endsWith(".ts"))
     .flatMap((entry) =>
       Array.from(
@@ -106,9 +109,17 @@ describe("the emitted server bundle", () => {
   });
 
   test("packages the authored skill without the retired filesystem loader", () => {
-    expect(bundle).toContain("createSkillReference");
-    expect(bundle).toContain("skill:sdcpn-modelling:");
+    expect(bundle).toContain("defineSkill");
     expect(bundle).toContain("sdcpn-modelling");
+    expect(bundle).toContain("The registers are addresses, not a procedure");
+    expect(bundle).toContain("Operational-Process and SDCPN Elicitation");
+    expect(bundle).toContain(
+      "Every operational claim has one authoritative home",
+    );
+    expect(bundle).toContain("Capability-aware lifecycle");
+    expect(bundle).toContain("Activate the `elicitation` skill");
+    expect(bundle).not.toContain("## The role (core)");
+    expect(bundle).not.toContain("Completion is computed by the harness");
     expect(bundle).not.toContain("splitSkillMarkdown");
     expect(bundle).not.toContain("skillFileUrl");
     expect(bundle).not.toContain("./sdcpn-modelling/SKILL.md");

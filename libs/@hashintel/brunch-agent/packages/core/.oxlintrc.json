@@ -34,8 +34,8 @@
             "message": "Brunch libraries must not depend on Petrinaut implementations."
           },
           {
-            "group": ["@flue/*", "@earendil-works/*"],
-            "message": "The Brunch harness must remain substrate-independent."
+            "group": ["@earendil-works/*"],
+            "message": "Flue is Brunch's production runtime; lower-level Pi packages remain outside core."
           },
           {
             "group": ["@hashintel/brunch-agent-*"],

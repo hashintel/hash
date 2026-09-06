@@ -1,0 +1,19 @@
+{
+  "currency": "USD",
+  "persona": {
+    "model": "openai/gpt-5.6-sol",
+    "cost": 0.019,
+    "source": "Pi terminal usage display; rounded"
+  },
+  "elicitor": {
+    "model": "anthropic/claude-sonnet-4-6",
+    "cost": null,
+    "source": "Flue canonical history does not expose provider usage; reconcile from Anthropic billing before close"
+  },
+  "adjudicator": {
+    "model": "anthropic/claude-opus-4-6",
+    "cost": 0.279,
+    "source": "Pi terminal usage display; rounded"
+  },
+  "knownRoundedTotal": 0.298
+}

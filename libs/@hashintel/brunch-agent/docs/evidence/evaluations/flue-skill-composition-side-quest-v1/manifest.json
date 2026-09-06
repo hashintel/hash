@@ -1,0 +1,78 @@
+{
+  "sideQuestId": "flue-skill-composition-side-quest-v1",
+  "sourceCommit": "5249a73f09977ad2ef007e08de7b7314f94568e1",
+  "sourceState": "dirty side-quest instrument; every instrument file is content-addressed below",
+  "model": "anthropic/claude-haiku-4-5",
+  "runtime": {
+    "boundary": "built production ChatAgent loaded from apps/brunch-agent/dist/app.mjs",
+    "flue": "2.0.3",
+    "hermeticProvider": "@earendil-works/pi-ai faux provider 0.83.0",
+    "constructionToolsMounted": false,
+    "stop": "first consequential question, finding, or construction decision"
+  },
+  "candidateRenderedText": {
+    "independentPluginActivation": "runs/hermetic/independent-S1.json#/toolCalls/0/output",
+    "independentElicitationActivation": "runs/hermetic/independent-S1.json#/toolCalls/1/output",
+    "packagedPluginActivation": "runs/hermetic/packaged-S1.json#/toolCalls/0/output",
+    "packagedUniversalResource": "runs/hermetic/packaged-S1.json#/toolCalls/1/output"
+  },
+  "sourceSha256": {
+    "apps/brunch-agent/src/agents/chat-agent/agent.ts": "82356eb4e0aab1634c21d96a36e834394fe9987e7445a26b84c6fd1c497763ab",
+    "apps/brunch-agent/src/evaluations/skill-composition/candidate-contract.ts": "df514bda6fbedcbcf09b8bd8b148716cb8a3297293a8cd4e18ec47e566c46b62",
+    "apps/brunch-agent/src/evaluations/skill-composition/candidates.ts": "a67aa0c87bdc8e72c0bcbbe4cad603ed264809957b56b9c0ccef4032ae08cf0e",
+    "apps/brunch-agent/src/evaluations/skill-composition/run.ts": "21bf274423e833c1e4a4af5f747978a4c3c3db2815da973a4894c8e72dba88de",
+    "libs/@hashintel/brunch-agent/evaluations/cases/flue-skill-composition-side-quest-v1/scenarios.json": "10e5b6897319045485a33e556d1de05241cbdbe9ddf5e8fa6c72ef73199252c1",
+    "libs/@hashintel/brunch-agent/evaluations/protocols/flue-skill-composition-side-quest-v1/protocol.md": "476984da4bd65f21717dff1c450a82e86017ef0652b03b778c0691e585aabf0a",
+    "libs/@hashintel/brunch-agent/evaluations/oracles/flue-skill-composition-side-quest-v1.md": "c16d5faaa7a450a41d6888dd6d2b3eac88e4687779b0c8f8e6fe4eceeeb241c6",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/core/universal-elicitation.md": "a4aedd68317bcde4b98490ea73efa4ee7881e2fe3cbcf3363e3db26e29180716",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/SKILL.md": "b09a02e92602bf67f54ce3988a4e1af438b344fb7dd654936e127905451f0025",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/checks.md": "9487f40c73398e2008c10cd6f85c60735c34e59ab2f5bb4f59dddf863552f2a5",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/instructions.md": "b6d632a0e9ad5b21253fdbae792e1546ce5bd9cb0a0c999befc7e3dfd2f3e7f4",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/pn-construction.md": "57edbdfebd733ed6c1d5eb02f81dc13e6d5b9c7357f00018c1d0f2b1b1a3f694",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/sdcpn-elicitation.md": "11e5547ea055bb390d7ff96f3469a39a36c84a4ed8a182153965e6d841b5e4bf",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/workpiece-template.md": "4ee0dad11d802ff7918ef8660c42e3be8caef0eb923e92ab4084b70f2f110ec9",
+    "libs/@hashintel/brunch-agent/packages/core/src/SYSTEM.md": "527fc0b3472b5c1953a89b691da0883dc2eb93dad1cdaed21b1cc7e1db0c8187",
+    "libs/@hashintel/brunch-agent/packages/core/src/agent/index.ts": "18ff63996ea2c0656f246e3e36a30962de3e03c106a25305614eb66ebf0f5717",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/flue.ts": "b4959142f10c74e9b04a5d0c0dfb3b74dbab8c492a26e34d2c2c8ff9e3eb7cfa"
+  },
+  "renderedSha256": {
+    "elicitationInstructions": "a4aedd68317bcde4b98490ea73efa4ee7881e2fe3cbcf3363e3db26e29180716",
+    "independentPluginInstructions": "a4b0261917a6627172e83b87f31142fb905758a8a7f7a7f000781c1fba880f34",
+    "packagedPluginInstructions": "63adaa3aa89e11862add6537e33c87fdb548bd058c7dac54fa67a5a28cc20b3c",
+    "packagedUniversalResource": "a4aedd68317bcde4b98490ea73efa4ee7881e2fe3cbcf3363e3db26e29180716"
+  },
+  "parity": {
+    "universalSubstanceByteIdentical": true,
+    "normalizedPluginInstructionsByteIdentical": true,
+    "intentionalDifferences": [
+      "Candidate A mounts elicitation independently; Candidate B packages universal-elicitation.md.",
+      "The plugin routing sentence uses activate_skill for A and read_skill_resource for B.",
+      "Candidate A adds the mechanically required elicitation skill name and activation-cue description."
+    ]
+  },
+  "hermeticRuns": [
+    "runs/hermetic/independent-S1.json",
+    "runs/hermetic/packaged-S1.json",
+    "runs/hermetic/independent-S2.json",
+    "runs/hermetic/packaged-S2.json",
+    "runs/hermetic/independent-S3.json",
+    "runs/hermetic/packaged-S3.json",
+    "runs/hermetic/independent-S4.json",
+    "runs/hermetic/packaged-S4.json",
+    "runs/hermetic/independent-missing-S5.json"
+  ],
+  "paidRuns": ["runs/paid/independent-S1.json", "runs/paid/packaged-S1.json"],
+  "paidBudget": {
+    "plannedScenarioRuns": 4,
+    "completedScenarioRuns": 2,
+    "authorizedModelInvocations": 4,
+    "completedModelInvocations": 4,
+    "authorizedUsd": 1,
+    "observedUsd": 0.0241825,
+    "stopReason": "The two S1 runs reached the four-model-invocation ceiling. Both also ignored the required universal disclosure and produced opening questionnaires, so a shared-content failure made further topology comparison non-discriminating."
+  },
+  "artifactFieldNotes": {
+    "activatedSkills": "This raw-run field records activate_skill attempts. A successful activation requires an output that begins with the requested skill instructions; S5's missing elicitation attempt is not a disclosure."
+  },
+  "outcome": "invalid-or-inconclusive"
+}

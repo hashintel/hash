@@ -62,6 +62,8 @@ describe("Petrinaut oEmbed endpoint", () => {
   it("preserves only valid embed state from the source URL", async () => {
     const source = new URL("https://demo.petrinaut.org/examples/gases-2-spn");
     source.searchParams.set("mode", "simulate");
+    // Neither of these is a contract key, so both drop: the Simulate section
+    // is carried as `view`, and `section` is somebody else's spelling.
     source.searchParams.set("section", "metrics");
     source.searchParams.set("scenario", "scenario-1");
     source.searchParams.set("subnet", "subnet-1");
@@ -76,7 +78,7 @@ describe("Petrinaut oEmbed endpoint", () => {
 
     expect(response.status).toBe(200);
     expect(body.html).toBe(
-      '<iframe src="https://demo.petrinaut.org/embed/examples/gases-2-spn?itemId=transition-1&amp;itemType=transition&amp;scenario=scenario-1&amp;subnet=subnet-1" title="Gases 2 — Shared Tanker" width="800" height="450" style="border:0" loading="lazy" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" allowfullscreen></iframe>',
+      '<iframe src="https://demo.petrinaut.org/embed/examples/gases-2-spn?itemId=transition-1&amp;itemType=transition&amp;mode=simulate&amp;scenario=scenario-1&amp;subnet=subnet-1" title="Gases 2 — Shared Tanker" width="800" height="450" style="border:0" loading="lazy" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" allowfullscreen></iframe>',
     );
   });
 

@@ -57,6 +57,13 @@ jobs:
           UNIT_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:unit)
           INTEGRATION_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:integration)
 
+          if [[ "$GITHUB_EVENT_NAME" != "merge_group" ]]; then
+            INTEGRATION_TEST_PACKAGES=$(echo "$INTEGRATION_TEST_PACKAGES" | jq -c '
+              .name -= ["@tests/hash-playwright"]
+              | .include = [.include[] | select(.name != "@tests/hash-playwright")]
+            ')
+          fi
+
           PUBLISH_PACKAGES=[]
           while IFS= read -r file; do
             if [[ -n "$file" ]]; then

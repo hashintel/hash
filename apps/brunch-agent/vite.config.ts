@@ -1,7 +1,7 @@
 import { flue } from "@flue/vite";
 import { defineConfig } from "vite";
 
-import { localChatListen } from "./src/local-dev-origins.ts";
+import { localChatListen } from "./src/http/local-origins.ts";
 
 // No @vitejs/plugin-react: the flue plugin's dev controller owns the whole
 // request space and hands every request to app.ts, with no fall-through to

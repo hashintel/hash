@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildNeighbourhoodDiagram } from "./d2";
+import { buildNeighbourhoodDiagram, withThemeableColours } from "./d2";
 
 import type { Edge, Layer } from "../model";
 
@@ -149,5 +149,63 @@ describe("buildNeighbourhoodDiagram", () => {
       expect(diagram).toContain("hub -> elided");
       expect(diagram).not.toContain("elided -> hub");
     });
+  });
+});
+
+/**
+ * The rendered markup is `d2`'s output, not ours, so the theming hook is a
+ * contract against a format we do not control: it finds the drawing's scope
+ * class and matches the colours `d2` wrote. A change to either on `d2`'s side
+ * would stop every host override silently, with the diagrams still rendering in
+ * the palette they were drawn in, which is why this is pinned rather than left
+ * to the build.
+ */
+describe("withThemeableColours", () => {
+  const drawn = (body: string): string =>
+    `<svg xmlns="http://www.w3.org/2000/svg"><svg class="d2-123456789 d2-svg">${body}</svg></svg>`;
+
+  it("scopes its rules to the class d2 put on the drawing", () => {
+    const themed = withThemeableColours(drawn(""));
+
+    expect(themed).toContain(".d2-123456789 .fill-N1{");
+    expect(themed).not.toMatch(/(?<!d2-123456789 )\.fill-N1\{/u);
+  });
+
+  it("writes the drawn colour as each fallback, so an unthemed host is unchanged", () => {
+    const themed = withThemeableColours(drawn(""));
+
+    expect(themed).toContain(
+      ".d2-123456789 .fill-N1{fill:var(--pnd-diagram-n1,#0A0F25);}",
+    );
+    expect(themed).toContain(
+      '.d2-123456789 [fill="#dcecff"]{fill:var(--pnd-diagram-core-fill,#dcecff);}',
+    );
+  });
+
+  it("puts the rules inside the drawing", () => {
+    const themed = withThemeableColours(drawn(""));
+
+    expect(themed.indexOf("<style")).toBeLessThan(themed.indexOf("</svg>"));
+  });
+
+  it("leaves markup carrying no d2 scope alone", () => {
+    const plain = '<svg xmlns="http://www.w3.org/2000/svg"><rect /></svg>';
+
+    expect(withThemeableColours(plain)).toBe(plain);
+  });
+
+  /*
+   * `d2` masks its connections out from behind their labels with a white rect
+   * that shows and black rects that hide, so `white` and `black` there are not
+   * colours. Theming them by fill alone inverts the mask and every masked
+   * connection disappears. The badge rule therefore names a `path` carrying
+   * both a fill and a stroke, which a mask's stroke-less rects cannot be.
+   */
+  it("does not theme the fills d2 uses as mask channels", () => {
+    const themed = withThemeableColours(drawn(""));
+
+    expect(themed).not.toContain('[fill="white"]{');
+    expect(themed).not.toContain('[fill="black"]{');
+    expect(themed).toContain('path[fill="white"][stroke="#DEE1EB"]{');
   });
 });

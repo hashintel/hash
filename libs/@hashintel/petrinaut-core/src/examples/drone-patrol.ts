@@ -25,10 +25,14 @@ export const dronePatrol: {
 } = {
   title: "Drone Patrol",
   petriNetDefinition: {
+    description:
+      "A small drone fleet cycling between hangar and air. Drones launch at a rate scaled by their battery, drain charge while airborne so the pull back to base grows, and recharge on landing. Sweep launch_rate against drain_rate to trade patrol coverage against battery wear.",
     places: [
       {
         id: "place__hangar",
         name: "Hangar",
+        description:
+          "Drones on the ground ready to launch, each carrying its battery level; landing resets it to a full charge. Holds up to 16 drones.",
         colorId: "type__drone",
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -39,6 +43,8 @@ export const dronePatrol: {
       {
         id: "place__airborne",
         name: "Airborne",
+        description:
+          "Drones on patrol. The Flight Battery Drain dynamics lower each drone's battery at drain_rate while its cruise altitude holds. Holds up to 16 drones.",
         colorId: "type__drone",
         dynamicsEnabled: true,
         differentialEquationId: "de__flight_battery_drain",
@@ -51,6 +57,8 @@ export const dronePatrol: {
       {
         id: "transition__launch",
         name: "Launch",
+        description:
+          "A hangar drone lifts off at launch_rate scaled by its battery fraction, so a full battery launches at the full rate and a drained one not at all. The kernel keeps the battery and draws a cruise altitude around 100 units with a floor of 50.",
         inputArcs: [
           {
             placeId: "place__hangar",
@@ -90,6 +98,8 @@ export default TransitionKernel((tokens) => {
       {
         id: "transition__return_to_base",
         name: "ReturnToBase",
+        description:
+          "An airborne drone heads home at return_rate, rising as its battery drains: a full drone returns at the base rate, a fully drained one at five times that. Landing recharges it to 100 and sets its altitude to zero.",
         inputArcs: [
           {
             placeId: "place__airborne",
@@ -123,6 +133,8 @@ export default TransitionKernel(() => {
       {
         id: "type__drone",
         name: "Drone",
+        description:
+          "A patrol drone, tracked by its battery charge (100 when full) and its current altitude (0 on the ground).",
         iconSlug: "circle",
         displayColor: "#1E90FF",
         elements: [

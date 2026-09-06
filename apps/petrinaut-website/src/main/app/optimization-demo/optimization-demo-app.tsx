@@ -6,8 +6,12 @@
 import { LocalStorageDemoApp } from "../local-storage-demo/local-storage-demo-app";
 import { PetrinautOptOptimizationProvider } from "./petrinaut-opt-optimization-provider";
 
-export const OptimizationDemoApp = () => (
+import type { ComponentProps } from "react";
+
+export const OptimizationDemoApp = (
+  props: ComponentProps<typeof LocalStorageDemoApp>,
+) => (
   <PetrinautOptOptimizationProvider>
-    <LocalStorageDemoApp />
+    <LocalStorageDemoApp {...props} />
   </PetrinautOptOptimizationProvider>
 );

@@ -1,4 +1,3 @@
-import { useReactFlow } from "@xyflow/react";
 import { use } from "react";
 
 import { Button } from "@hashintel/ds-components";
@@ -6,12 +5,13 @@ import { cx, css, cva } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../react/navigation";
 import { EditorContext } from "../../../../react/state/editor-context";
-import { PANEL_MARGIN } from "../../../constants/ui";
+import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
+import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
+import { usePetrinautPresentation } from "../../shared/presentation-context";
+import { useCanvasController } from "../canvas-renderer";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
 import type { ViewportAction } from "../../../types/viewport-action";
-
-const BASE_OFFSET = 12;
 
 const containerStyle = css({
   position: "absolute",
@@ -37,6 +37,7 @@ const blurredBackground = css({ backdropFilter: "[blur(10px)]" });
 export const ViewportControls: React.FC<{
   viewportActions?: ViewportAction[];
 }> = ({ viewportActions }) => {
+  const presentation = usePetrinautPresentation();
   const navigation = usePetrinautNavigation();
   const isSettingsOpen = navigation.state.overlay?.type === "viewport-settings";
   const setIsSettingsOpen = (open: boolean) => {
@@ -45,22 +46,21 @@ export const ViewportControls: React.FC<{
       { cause: "user", action: "overlay" },
     );
   };
-  const { zoomIn, zoomOut } = useReactFlow();
-  const {
-    collapseAllPanels,
-    hasSelection,
-    propertiesPanelWidth,
-    isBottomPanelOpen,
-    bottomPanelHeight,
-    isPanelAnimating,
-  } = use(EditorContext);
+  const chromeBackground = presentation.blurredChrome
+    ? blurredBackground
+    : undefined;
+  // Fit view goes through the canvas controller like the zooms: these
+  // controls sit above the renderer contract and must not reach for a
+  // renderer's own API.
+  const { fitView, zoomIn, zoomOut } = useCanvasController();
+  const { collapseAllPanels, isPanelAnimating } = use(EditorContext);
 
-  const isPropertiesPanelVisible = hasSelection;
-  const rightOffset =
-    BASE_OFFSET +
-    (isPropertiesPanelVisible ? propertiesPanelWidth + PANEL_MARGIN : 0);
-  const bottomOffset =
-    BASE_OFFSET + (isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0);
+  // Shared with the bottom toolbar, so the two keep clear of the same panels
+  // by the same rules — the assistant panel included, which used to cover the
+  // column when it opened.
+  const insets = useCanvasInsets();
+  const rightOffset = VIEWPORT_CONTROLS_OFFSET + insets.right;
+  const bottomOffset = VIEWPORT_CONTROLS_OFFSET + insets.bottom;
 
   return (
     <div
@@ -76,9 +76,8 @@ export const ViewportControls: React.FC<{
         tooltip="Zoom in"
         tooltipOptions={{ position: "left" }}
         iconName="plus"
-        className={blurredBackground}
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        onClick={() => zoomIn()}
+        className={chromeBackground}
+        onClick={zoomIn}
       />
       <Button
         size="xs"
@@ -87,46 +86,59 @@ export const ViewportControls: React.FC<{
         tooltip="Zoom out"
         tooltipOptions={{ position: "left" }}
         iconName="dash"
-        className={blurredBackground}
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        onClick={() => zoomOut()}
+        className={chromeBackground}
+        onClick={zoomOut}
       />
       <Button
         size="xs"
         variant="subtle"
-        aria-label="Fullscreen"
-        tooltip="Fullscreen"
+        aria-label="Fit view"
+        tooltip="Fit view"
         tooltipOptions={{ position: "left" }}
-        iconName="expand"
-        className={blurredBackground}
-        onClick={collapseAllPanels}
+        iconName="collapse"
+        className={chromeBackground}
+        onClick={fitView}
       />
-      <Button
-        size="xs"
-        variant="subtle"
-        aria-label="Lock view"
-        tooltip="Lock view"
-        tooltipOptions={{ position: "left" }}
-        iconName="lockOpen"
-        className={blurredBackground}
-        onClick={() => {
-          // Placeholder for future lock view functionality
-        }}
-      />
-      <Button
-        size="xs"
-        variant="subtle"
-        aria-label="Settings"
-        tooltip="Settings"
-        tooltipOptions={{ position: "left" }}
-        iconName="gear"
-        className={blurredBackground}
-        onClick={() => setIsSettingsOpen(true)}
-      />
-      <ViewportSettingsDialog
-        open={isSettingsOpen}
-        onOpenChange={(details) => setIsSettingsOpen(details.open)}
-      />
+      {presentation.showViewportSettings && (
+        <>
+          <Button
+            size="xs"
+            variant="subtle"
+            aria-label="Fullscreen"
+            tooltip="Fullscreen"
+            tooltipOptions={{ position: "left" }}
+            iconName="expand"
+            className={chromeBackground}
+            onClick={collapseAllPanels}
+          />
+          <Button
+            size="xs"
+            variant="subtle"
+            aria-label="Lock view"
+            tooltip="Lock view"
+            tooltipOptions={{ position: "left" }}
+            iconName="lockOpen"
+            className={chromeBackground}
+            onClick={() => {
+              // Placeholder for future lock view functionality
+            }}
+          />
+          <Button
+            size="xs"
+            variant="subtle"
+            aria-label="Settings"
+            tooltip="Settings"
+            tooltipOptions={{ position: "left" }}
+            iconName="gear"
+            className={chromeBackground}
+            onClick={() => setIsSettingsOpen(true)}
+          />
+          <ViewportSettingsDialog
+            open={isSettingsOpen}
+            onOpenChange={(details) => setIsSettingsOpen(details.open)}
+          />
+        </>
+      )}
       {viewportActions?.map((action) => (
         <Button
           key={action.key}
@@ -137,7 +149,7 @@ export const ViewportControls: React.FC<{
           tooltip={action.tooltip}
           tooltipOptions={{ position: "left" }}
           onClick={action.onClick}
-          className={cx(action.className, blurredBackground)}
+          className={cx(action.className, chromeBackground)}
           prefix={action.icon}
         />
       ))}

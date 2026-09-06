@@ -7,6 +7,7 @@ import starlight from "@astrojs/starlight";
 import { defineConfig, fontProviders } from "astro/config";
 
 import { resolveDiffCompareContext } from "./src/diff-context";
+import { rehypeInlineDiagrams } from "./src/plugins/inline-diagrams.mjs";
 
 /**
  * Renders the architecture bundle produced by `@local/petrinaut-arch-docs`.
@@ -290,9 +291,27 @@ export default defineConfig({
     define: {
       __PND_DIFF_COMPARE__: JSON.stringify(diffCompareContext),
     },
+
+    /*
+     * Lightning CSS folds the animation longhands into the `animation`
+     * shorthand, and puts the timeline in it: `animation: linear both
+     * pnd-fade-grow scroll(root)`. No browser accepts a timeline there — it was
+     * dropped from the shorthand while the spec settled — so the whole
+     * declaration is invalid and `animation-name` computes to `none`. That
+     * killed the scroll-driven fade bands in built output only, while the
+     * unminified dev server kept working, and the header script had already
+     * stood down because the browser does support the feature.
+     *
+     * esbuild minifies these rules without rewriting them.
+     */
+    build: { cssMinify: "esbuild" },
   },
 
   ...(hasAuthoredIndex ? {} : { redirects: { "/": "/architecture" } }),
+
+  // Diagrams arrive as markdown images and are inlined so the page's palette
+  // reaches them; see the plugin.
+  markdown: { rehypePlugins: [rehypeInlineDiagrams] },
 
   // The bundle's inter-page links are relative and assume slugs map to URLs
   // without a trailing slash. `format: "file"` writes `views.html` rather than
@@ -303,11 +322,33 @@ export default defineConfig({
   build: { format: "file" },
 
   /*
-   * One variable file covers every weight the code blocks use, downloaded and
-   * subset at build time so a reader makes no request to a font host. Italic is
-   * left out: no code style in the docs uses it.
+   * One variable file per family covers every weight the site uses, downloaded
+   * and subset at build time so a reader makes no request to a font host.
+   * Italic is left out of both: no style in the docs uses it.
+   *
+   * Inter stands in for the grotesque the reference design uses, which is not
+   * licensed for redistribution. It is the closest freely available match on
+   * the details that carry that look: a tall x-height, flat terminals, and
+   * digits that hold their width.
    */
   fonts: [
+    {
+      provider: fontProviders.fontsource(),
+      name: "Inter",
+      cssVariable: "--pnd-font-sans",
+      weights: ["400 700"],
+      styles: ["normal"],
+      subsets: ["latin"],
+      fallbacks: [
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Roboto",
+        "Helvetica Neue",
+        "Arial",
+        "sans-serif",
+      ],
+    },
     {
       provider: fontProviders.fontsource(),
       name: "JetBrains Mono",
@@ -353,13 +394,6 @@ export default defineConfig({
   if (stored === "collapsed") document.documentElement.dataset.pndSidebar = stored;
   if (width) document.documentElement.style.setProperty("--pnd-sidebar-open-width", width);
 } catch {}`,
-        },
-      ],
-      social: [
-        {
-          icon: "github",
-          label: "GitHub",
-          href: "https://github.com/hashintel/hash/tree/main/libs/@hashintel/petrinaut",
         },
       ],
       sidebar: buildSidebar(),

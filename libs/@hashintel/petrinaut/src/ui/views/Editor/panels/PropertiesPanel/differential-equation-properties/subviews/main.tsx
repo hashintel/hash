@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 
 import {
   Button,
@@ -20,8 +20,7 @@ import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { CodeEditor } from "../../../../../../monaco/code-editor";
-import { getDocumentUri } from "../../../../../../monaco/editor-paths";
+import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
 import { useDiffEqPropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -32,18 +31,6 @@ const fieldsSectionStyle = css({
   flex: "[1]",
   minHeight: "[0]",
   gridTemplateRows: "[auto auto minmax(0, 1fr)]",
-});
-
-// the Code fieldset stretches to its grid row; hand the height to the editor
-const codeFieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  minHeight: "[0]",
-});
-
-const codeEditorBoxStyle = css({
-  flex: "[1]",
-  minHeight: "[0]",
 });
 
 const colorDotStyle = css({
@@ -83,12 +70,18 @@ const arcStyle = css({
   alignItems: "center",
 });
 
+const DeferredDifferentialEquationCodeField = lazy(async () => {
+  const { DifferentialEquationCodeField } = await import("./code-field");
+  return { default: DifferentialEquationCodeField };
+});
+
 const DiffEqMainContent: React.FC = () => {
   const { differentialEquation, types, places, updateDifferentialEquation } =
     useDiffEqPropertiesContext();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
   const isReadOnly = useIsReadOnly();
+  const presentation = usePetrinautPresentation();
 
   const placesUsingEquation = places.filter((place) => {
     if (!place.differentialEquationId) {
@@ -182,32 +175,11 @@ const DiffEqMainContent: React.FC = () => {
           </Tooltip>
         </Form.Field>
 
-        <Form.Field
-          as="legend"
-          label="Code"
-          size="sm"
-          className={codeFieldStyle}
-        >
-          <div className={codeEditorBoxStyle}>
-            <CodeEditor
-              path={getDocumentUri(
-                "differential-equation",
-                differentialEquation.id,
-              )}
-              language="typescript"
-              value={differentialEquation.code}
-              height="100%"
-              onChange={(newCode) => {
-                updateDifferentialEquation({
-                  equationId: differentialEquation.id,
-                  update: { code: newCode ?? "" },
-                });
-              }}
-              options={{ readOnly: isReadOnly }}
-              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-            />
-          </div>
-        </Form.Field>
+        {presentation.showSourceCode && (
+          <Suspense fallback={null}>
+            <DeferredDifferentialEquationCodeField />
+          </Suspense>
+        )}
       </Form.Section>
 
       {showConfirmDialog && (
@@ -334,5 +306,6 @@ export const diffEqMainContentSubView: SubView = {
   main: true,
   component: DiffEqMainContent,
   renderHeaderAction: () => <DiffEqCodeAction />,
+  headerActionMutates: true,
   alwaysShowHeaderAction: true,
 };

@@ -11,6 +11,7 @@ import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
+import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { RowActionCell } from "./row-action-cell";
 
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -138,13 +139,18 @@ const ROOT_STOP_ID = "root";
 const targetKey = (target: FocusStopTarget): string =>
   `${target.stopId}:${target.column}`;
 
-const NetsListContent: React.FC = () => {
+export const NetNavigationList: React.FC<{
+  /** Called after a net is picked, so a menu host can close itself. */
+  onSelect?: () => void;
+}> = ({ onSelect }) => {
+  const presentation = usePetrinautPresentation();
   const {
     petriNetDefinition: { subnets },
   } = use(SDCPNContext);
   const { activeSubnetId, setActiveSubnetId } = use(ActiveNetContext);
   const { updateSubnet, removeSubnet } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
+  const mutationActionsVisible = presentation.showMutationActions;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -190,6 +196,11 @@ const NetsListContent: React.FC = () => {
     }
   }, [editingId]);
 
+  const handleSelect = (subnetId: string | null) => {
+    setActiveSubnetId(subnetId);
+    onSelect?.();
+  };
+
   const startEditing = (subnetId: string, currentName: string) => {
     if (isReadOnly) return;
     setEditingId(subnetId);
@@ -233,7 +244,10 @@ const NetsListContent: React.FC = () => {
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
         stopId !== ROOT_STOP_ID &&
-        !isReadOnly
+        !isReadOnly &&
+        // A keyboard delete is a mutation, so a presentation that hides the
+        // delete button has to refuse the shortcut too.
+        mutationActionsVisible
       ) {
         event.preventDefault();
         event.stopPropagation();
@@ -270,8 +284,8 @@ const NetsListContent: React.FC = () => {
       <div
         {...rowFocusProps(ROOT_STOP_ID)}
         className={itemStyle({ active: activeSubnetId === null })}
-        onClick={() => setActiveSubnetId(null)}
-        onKeyDown={onRowKeyDown(ROOT_STOP_ID, () => setActiveSubnetId(null))}
+        onClick={() => handleSelect(null)}
+        onKeyDown={onRowKeyDown(ROOT_STOP_ID, () => handleSelect(null))}
         role="option"
         aria-selected={activeSubnetId === null}
         tabIndex={tabIndexFor({ stopId: ROOT_STOP_ID, column: 0 })}
@@ -293,13 +307,15 @@ const NetsListContent: React.FC = () => {
             className={itemStyle({ active: activeSubnetId === subnet.id })}
             onClick={() => {
               if (editingId !== subnet.id) {
-                setActiveSubnetId(subnet.id);
+                handleSelect(subnet.id);
               }
             }}
-            onDoubleClick={() => startEditing(subnet.id, subnet.name)}
-            onKeyDown={onRowKeyDown(subnet.id, () =>
-              setActiveSubnetId(subnet.id),
-            )}
+            onDoubleClick={() => {
+              if (mutationActionsVisible) {
+                startEditing(subnet.id, subnet.name);
+              }
+            }}
+            onKeyDown={onRowKeyDown(subnet.id, () => handleSelect(subnet.id))}
             role="option"
             aria-selected={activeSubnetId === subnet.id}
             tabIndex={tabIndexFor({ stopId: subnet.id, column: 0 })}
@@ -324,7 +340,7 @@ const NetsListContent: React.FC = () => {
             ) : (
               <span className={nameStyle}>{subnet.name}</span>
             )}
-            {editingId !== subnet.id && (
+            {mutationActionsVisible && editingId !== subnet.id && (
               <RowActionCell
                 registerButton={registerTarget(actionTarget)}
                 onArrowKeyDown={onStopsKeyDown(actionTarget)}
@@ -359,7 +375,8 @@ export const netsListSubView: SubView = {
   title: "Nets",
   tooltip:
     "View the root net and reusable subnets. Mark subnet places as ports, then instantiate subnets as components in the root net.",
-  component: NetsListContent,
+  component: NetNavigationList,
   renderHeaderAction: () => <NetsHeaderAction />,
+  headerActionMutates: true,
   defaultCollapsed: false,
 };

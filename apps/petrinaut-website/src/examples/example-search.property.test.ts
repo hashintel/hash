@@ -6,6 +6,10 @@ import {
   sharedSearchesMatch,
   validateSharedExampleSearch,
 } from "./example-search";
+import {
+  navigationStateToPreviewSearch,
+  previewSearchToNavigationState,
+} from "./navigation-search";
 
 const knownKeys = ["scenario", "subnet", "itemType", "itemId"] as const;
 
@@ -50,7 +54,7 @@ describe("example search contract laws", () => {
   });
 
   test.prop([searchInput])(
-    "validation is idempotent, so the embed entry redirect terminates",
+    "validation is idempotent, so re-validating a location is a no-op",
     (input) => {
       const once = validateSharedExampleSearch(input);
       const twice = validateSharedExampleSearch(once);
@@ -67,6 +71,18 @@ describe("example search contract laws", () => {
         Object.fromEntries(new URLSearchParams(canonicalSearchString(search))),
       );
       expect(sharedSearchesMatch(decoded, search)).toBe(true);
+    },
+  );
+});
+
+describe("preview codec", () => {
+  test.prop([searchInput])(
+    "the preview codec spells locations exactly like the shared contract",
+    (input) => {
+      const search = validateSharedExampleSearch(input);
+      expect(
+        navigationStateToPreviewSearch(previewSearchToNavigationState(search)),
+      ).toEqual(search);
     },
   );
 });

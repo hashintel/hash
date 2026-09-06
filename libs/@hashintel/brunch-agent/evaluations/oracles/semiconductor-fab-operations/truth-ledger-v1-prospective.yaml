@@ -1,0 +1,714 @@
+version: 1-prospective
+case: aster-vale-foundry-operations
+source: evaluations/cases/semiconductor-fab-operations/situation-pack.md
+provenance:
+  authored_after_historical_runs: false
+  calibrated_against_historical_runs: false
+  frozen_before_prospective_runs: true
+use: prospective baseline and variant grading only
+warning: >-
+  This greenfield ledger is sourced only from the completed situation pack and the frozen
+  evaluation design and ruler. It has not been informed by or calibrated against runs of this
+  case. Freeze the case, prompts, model configuration, protocol, and this ledger together before
+  prospective grading.
+importance_weights:
+  load-bearing: 3
+  useful: 2
+  incidental: 1
+
+calibration_rules:
+  transcript_precedence: >-
+    Grade what the simulated expert actually disclosed. Ledger truth may identify a distinction,
+    but it does not erase hedges, narrower examples, corrections, or nondisclosure in the transcript.
+  interviewer_proposals: >-
+    A value or interpretation appearing only in an interviewer question is not user evidence unless
+    the expert explicitly adopts it.
+  relevant_absences: >-
+    Entries whose epistemic_character is relevant-absence describe a relation the pack does not
+    settle. Credit elicitation that identifies the gap; do not expect the expert or IR to fill it.
+  hard_stop: >-
+    When the expert ends elicitation, distinguish unanswered suitable questions from earlier missed
+    opportunities. Do not convert turn-budget truncation into an ordinary acquisition miss.
+  partial_disclosure: >-
+    A concrete example inside a ledger range is partial evidence, not simulator failure by itself.
+    Penalize only unsupported generalization beyond the disclosed example.
+
+facts:
+  - id: objective-good-lots-per-week
+    importance: load-bearing
+    epistemic_character: explicit-goal
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Sustain 18 good lots per week without flooding the floor.
+    expected_ir_homes: [purpose, goals, measures, validation]
+    traps: [treating starts or completed-but-rejected lots as good lots]
+
+  - id: objective-due-date-service
+    importance: load-bearing
+    epistemic_character: explicit-goal
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Keep at least 92 percent of lots on or before committed due dates, with expedited logic lots
+      receiving especially close attention from customer planning.
+    expected_ir_homes: [purpose, goals, measures, validation]
+    traps:
+      [treating every family and urgency class as commercially interchangeable]
+
+  - id: objective-wip-band-and-ceiling
+    importance: load-bearing
+    epistemic_character: explicit-goal
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Keep total WIP below the hard ceiling of 50 lots and preferably in the 42 to 47 lot band so
+      there is room for an urgent release or a held lot returning to route.
+    expected_ir_homes: [goals, measures, constraints, validation]
+    traps: [turning the preferred band into a hard feasibility constraint]
+
+  - id: objective-final-inspection-yield
+    importance: load-bearing
+    epistemic_character: explicit-goal
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: Hold final-inspection yield at or above 94 percent.
+    expected_ir_homes: [purpose, goals, measures, validation]
+    traps: [substituting mid-flow inspection results for final-inspection yield]
+
+  - id: objective-maintenance-capacity-tradeoff
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Test when preventive work should outrank dispatch so breakdown and hidden-yield risk are
+      controlled without taking so much capacity down that queues and lateness surge.
+    expected_ir_homes: [purpose, goals, policies, validation]
+    traps: [hard-coding a maintenance priority the simulation is meant to test]
+
+  - id: objective-furnace-batch-waiting
+    importance: load-bearing
+    epistemic_character: explicit-decision-question
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Test whether waiting for full four-lot furnace batches remains worthwhile when due dates are
+      tight.
+    expected_ir_homes: [purpose, goals, policies, validation]
+    traps: [assuming either full batches or immediate starts are always optimal]
+
+  - id: objective-exchange-rates-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Leena does not know a defensible numerical exchange rate among a late lot, a lost lot, an
+      hour of technician overtime, and an hour of chamber downtime; finance and customer planning
+      have not agreed one.
+    expected_ir_homes: [unknowns, losses, goals, validation, data-sources]
+    traps: [inventing objective weights from the stated qualitative goals]
+
+  - id: product-families-and-lot-inputs
+    importance: load-bearing
+    epistemic_character: explicit-taxonomy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Aster Vale makes logic, memory, and analog products; uneven customer starts carry a family,
+      release time, committed due date, and recipe.
+    expected_ir_homes: [boundary, participants-resources, triggers, inputs]
+    traps:
+      [
+        inventing additional families or omitting due dates and recipes from lot state,
+      ]
+
+  - id: route-reentrant-28-positions
+    importance: load-bearing
+    epistemic_character: explicit-topology
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Every lot follows positions 0 through 27, and the route is re-entrant: the same chamber groups
+      are revisited, so early and nearly finished lots compete directly.
+    expected_ir_homes: [boundary, activities, flow, resources]
+    traps: [modeling the route as dedicated equipment at each position]
+
+  - id: route-position-sequence
+    importance: load-bearing
+    epistemic_character: explicit-topology
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    reveal_when: asked to walk the route, identify revisits, or explain where competition occurs
+    truth: >-
+      The position sequence is 0 Layer-0 pattern (lithography), 1 Layer-0 etch (etch), 2 base-film
+      deposition (TD), 3 plasma clean (etch), 4 Layer-4 pattern (lithography), 5 Layer-4 etch
+      (etch), 6 gate-film deposition (TD), 7 spacer etch (etch), 8 activation anneal (TD),
+      9 Layer-9 pattern (lithography), 10 Layer-9 etch (etch), 11 interlayer-film deposition (TD),
+      12 Layer-12 pattern (lithography), 13 Layer-12 etch (etch), 14 barrier-film deposition (TD),
+      15 mid-flow dimensional check (inspection), 16 Layer-16 pattern (lithography), 17 Layer-16
+      etch (etch), 18 contact-film deposition (TD), 19 contact etch (etch), 20 Layer-20 pattern
+      (lithography), 21 Layer-20 etch (etch), 22 metal-film deposition (TD), 23 metal anneal (TD),
+      24 Layer-24 pattern (lithography), 25 final pattern etch (etch), 26 final passivation cure
+      (TD), and 27 final electrical and optical inspection (inspection).
+    expected_ir_homes: [activities, flow, resources]
+    traps:
+      [
+        dropping revisits,
+        converting named operations into separate unshared machine banks,
+      ]
+
+  - id: machine-groups-and-chamber-counts
+    importance: load-bearing
+    epistemic_character: explicit-resource-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The fab has 16 chambers in four groups: LITH-1 through LITH-4, ETCH-1 through ETCH-6,
+      TD-1 through TD-4, and INSP-1 through INSP-2.
+    expected_ir_homes: [participants-resources, resources, constraints]
+    traps: [treating a chamber group as one indivisible machine]
+
+  - id: thermal-deposition-furnace-unified-naming
+    importance: load-bearing
+    epistemic_character: explicit-naming-equivalence
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Thermal deposition and furnaces are two names for the same TD-1 through TD-4 group; there is
+      no separate deposition bank or furnace bank, and every furnace step uses a TD chamber.
+    expected_ir_homes: [participants-resources, resources, terminology, flow]
+    traps: [creating separate furnace and deposition resources]
+
+  - id: chamber-and-lot-indivisibility
+    importance: load-bearing
+    epistemic_character: explicit-resource-rule
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      A chamber handles one running recipe at a time, except that compatible lots may share a TD
+      batch; lots are not split, and quality holds or loses a whole rejected lot.
+    expected_ir_homes: [resources, activities, constraints, flow]
+    traps: [splitting lots or running concurrent recipes in one chamber]
+
+  - id: family-chamber-qualification-matrix
+    importance: load-bearing
+    epistemic_character: explicit-qualification-rule
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Dispatch may use only family-qualified chambers. Logic qualifies on LITH-1, LITH-2, LITH-4;
+      ETCH-1, ETCH-2, ETCH-3, ETCH-4, ETCH-6; TD-1, TD-2, TD-3; and both inspection chambers.
+      Memory qualifies on all lithography chambers; ETCH-2 through ETCH-6; TD-1, TD-2, TD-4; and
+      both inspection chambers. Analog qualifies on LITH-2, LITH-3; ETCH-1, ETCH-3, ETCH-5,
+      ETCH-6; TD-2, TD-3, TD-4; and INSP-2 only.
+    expected_ir_homes: [resources, policies, constraints, flow]
+    traps: [treating chambers within a group as fully interchangeable]
+
+  - id: recipe-duration-patterns
+    importance: load-bearing
+    epistemic_character: explicit-time-range
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Duration depends on route position and family. A baseline logic furnace run is roughly five
+      hours; analog is usually about 15 percent longer and memory about 15 percent shorter.
+      Lithography is typically around two hours, etch around 90 minutes, and inspection around one
+      hour, with position-specific variation.
+    expected_ir_homes: [activities, time, quantities]
+    traps:
+      [
+        using one fixed duration per chamber group,
+        treating approximate standards as guarantees,
+      ]
+
+  - id: recipe-duration-distributions-source
+    importance: useful
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Leena does not know reliable best-case and bad-day durations for all 28 position/family
+      pairs; the historian holds the data while production control uses dispatch-screen standards.
+    expected_ir_homes: [unknowns, time, data-sources, validation]
+    traps: [turning typical times into complete duration distributions]
+
+  - id: transfer-and-queue-time-semantics
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    reveal_when: asked what happens between route positions or how non-processing time is represented
+    truth: >-
+      The pack does not establish transport times, transfer resources, or a general queue-service
+      discipline between positions beyond the stated dispatch, batch, and tacit priority rules.
+    expected_ir_homes: [flow, time, resources, unknowns]
+    traps: [silently assuming zero transfer time or universal FIFO queues]
+
+  - id: analog-insp2-protection
+    importance: load-bearing
+    epistemic_character: tacit-unwritten-priority
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked about exceptions, unwritten priorities, or scarce qualified paths
+    truth: >-
+      Because INSP-2 is analog's only qualified inspection path, Leena avoids filling it with
+      comfortable-due-date logic work when analog lots are within one day of finishing.
+    expected_ir_homes: [resources, policies, exceptions, situation-notes]
+    traps:
+      [
+        making the protection absolute,
+        omitting its one-day and due-date conditions,
+      ]
+
+  - id: td-batch-start-rule
+    importance: load-bearing
+    epistemic_character: explicit-batching-policy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      A TD batch contains one family and one compatible recipe and starts at four lots or when the
+      oldest compatible lot has waited three hours, whichever occurs first; timeout batches may
+      contain one to three lots.
+    expected_ir_homes: [activities, policies, flow, time, quantities]
+    traps: [mixing families or recipes, waiting indefinitely for four lots]
+
+  - id: wip-accounting-and-hard-release-stop
+    importance: load-bearing
+    epistemic_character: explicit-release-policy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Total WIP counts running, queued, and quality-held lots; at 50 lots no new customer lot may
+      be released until a lot ships or is formally scrapped.
+    expected_ir_homes: [boundary, quantities, policies, constraints, flow]
+    traps:
+      [
+        excluding held lots from WIP,
+        releasing merely because a lot finishes processing,
+      ]
+
+  - id: dispatch-priority-refresh
+    importance: load-bearing
+    epistemic_character: explicit-dispatch-policy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Dispatch priorities refresh every two hours from time remaining to committed due date; among
+      qualified choices, the lot with least time remaining normally goes first.
+    expected_ir_homes: [policies, time, triggers, flow]
+    traps:
+      [
+        treating priorities as continuously recomputed,
+        ignoring qualification,
+        making normally absolute,
+      ]
+
+  - id: late-lot-renegotiation
+    importance: load-bearing
+    epistemic_character: practiced-commercial-policy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Once a lot is 30 hours late, customer planning negotiates a new window of one normal cycle
+      time and the lot's displayed urgency returns to the ordinary range; Leena regards the board
+      improvement as cosmetic.
+    expected_ir_homes: [policies, goals, time, conflicts, measures]
+    traps:
+      [
+        treating renegotiation as physical recovery or erasing the original lateness,
+      ]
+
+  - id: finish-one-tie-break
+    importance: load-bearing
+    epistemic_character: tacit-unwritten-priority
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked how similar-urgency lots are broken, how WIP headroom is created, or what the screen misses
+    truth: >-
+      For similarly urgent lots, Leena favors the lot farther along the route because shipping one
+      creates WIP headroom; this tie-break is absent from the dispatch screen.
+    expected_ir_homes: [policies, exceptions, flow, situation-notes]
+    traps:
+      [applying route progress ahead of materially different due-date urgency]
+
+  - id: upstream-release-queue-clutter
+    importance: load-bearing
+    epistemic_character: tacit-release-practice
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked about release exceptions, queue clutter, or ways starts are informally throttled
+    truth: >-
+      Leena sometimes delays an upstream release by a few hours when it would become the fifth
+      incompatible lot at a furnace queue, describing this as avoiding queue clutter rather than
+      throttling starts.
+    expected_ir_homes: [policies, exceptions, flow, situation-notes]
+    traps: [turning a sometimes-practice into a mandatory fifth-lot rule]
+
+  - id: forty-six-lot-throughput-belief
+    importance: useful
+    epistemic_character: belief-with-qualification
+    discoverability: tension-probe
+    expert_can_answer: true
+    reveal_when: asked why the preferred WIP band should work or what evidence supports it
+    truth: >-
+      Leena believes a working band near 46 lots gives the best throughput, but acknowledges this is
+      control-room experience rather than a comparison separating demand mix, downtime, and
+      technician availability.
+    expected_ir_homes:
+      [beliefs, assumptions, conflicts, validation, situation-notes]
+    traps: [recording 46 as an established optimum]
+
+  - id: chamber-condition-and-defect-risk
+    importance: load-bearing
+    epistemic_character: qualitative-causal-relation
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Chamber health worsens with hours run; particle contamination tends to rise between cleans,
+      calibration may drift high or low, and worn, dirty, or poorly calibrated chambers are more
+      likely to fail and add defects.
+    expected_ir_homes: [resources, state, failures, quality, flow]
+    traps:
+      [inventing deterministic degradation or a quantitative defect function]
+
+  - id: chamber-health-thresholds
+    importance: load-bearing
+    epistemic_character: explicit-health-threshold
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The maintenance screen turns red at health 0.85; by 0.90 maintenance says failure risk is
+      roughly eight times that of a freshly serviced chamber.
+    expected_ir_homes: [resources, state, policies, failures, quantities]
+    traps:
+      [
+        treating the red threshold as an automatic shutdown,
+        claiming exact causality from the risk estimate,
+      ]
+
+  - id: preventive-maintenance-restoration
+    importance: load-bearing
+    epistemic_character: explicit-maintenance-process
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Preventive work cleans and recalibrates a chamber, but post-maintenance calibration is not
+      perfectly centered; process engineering signs the chamber back in after a qualification check.
+    expected_ir_homes: [activities, resources, state, policies, flow]
+    traps:
+      [
+        restoring a chamber to mathematically perfect condition,
+        skipping qualification sign-in,
+      ]
+
+  - id: deferred-final-inspection-observability
+    importance: load-bearing
+    epistemic_character: delayed-observability
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Defects may be added at every route position and travel invisibly with a lot. Final inspection
+      observes the accumulated result, so a bad chamber may process several later lots before the
+      first affected lot reaches inspection.
+    expected_ir_homes: [quality, flow, state, failures, observability]
+    traps:
+      [
+        detecting defects immediately at their source chamber,
+        attributing final defects to one visit,
+      ]
+
+  - id: mid-flow-inspection-limits
+    importance: load-bearing
+    epistemic_character: explicit-observability-limit
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Position 15 confirms dimensions and alignment but does not reveal the small contamination and
+      calibration defects accumulated through the route; those emerge only at position 27.
+    expected_ir_homes: [activities, quality, observability, flow]
+    traps:
+      [
+        using the mid-flow check as an early detector for contamination or drift defects,
+      ]
+
+  - id: defect-attribution-model-unknown
+    importance: load-bearing
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Leena does not know how particle level and calibration drift combine into lost yield or the
+      exact defect contribution of each chamber visit; maintenance and process engineering own
+      different pieces of the data.
+    expected_ir_homes: [unknowns, quality, losses, data-sources, validation]
+    traps:
+      [inventing an additive defect model or assigning ownership to one source]
+
+  - id: shared-technician-pool
+    importance: load-bearing
+    epistemic_character: explicit-resource-constraint
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Three technicians are shared across planned service, breakdown diagnosis, chamber cleans,
+      and recalibration. Normal TD preventive service uses two; initial fault diagnosis usually
+      uses one; maintenance assigns named people.
+    expected_ir_homes:
+      [participants-resources, resources, activities, constraints, policies]
+    traps:
+      [
+        creating separate crews by task,
+        letting production control assign named technicians,
+      ]
+
+  - id: preventive-maintenance-duration-absence
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not establish general preventive-maintenance duration ranges by chamber group
+      or maintenance type; TD-4's six-hour expectation and current overrun are one incident, not a
+      general service-time model.
+    expected_ir_homes: [activities, resources, time, unknowns, data-sources]
+    traps:
+      [
+        applying TD-4's six-hour expectation to every preventive service,
+        deriving a maintenance-duration distribution from the current incident,
+      ]
+
+  - id: failure-and-repair-patterns-source
+    importance: useful
+    epistemic_character: explicit-unknown-with-source
+    discoverability: direct-if-asked
+    expert_can_answer: false
+    truth: >-
+      Leena does not know chamber-specific failure frequencies or repair-time ranges by fault;
+      maintenance owns that evidence.
+    expected_ir_homes: [unknowns, failures, time, data-sources]
+    traps: [fitting distributions from the current incident]
+
+  - id: td2-dirtiness-belief
+    importance: useful
+    epistemic_character: belief-with-unresolved-attribution
+    discoverability: tension-probe
+    expert_can_answer: true
+    reveal_when: asked which chambers seem problematic and how that conclusion is supported
+    truth: >-
+      Leena believes TD-2 is the dirtiest furnace and is behind more rejects, but concedes that
+      delayed final inspection and each rejected lot's visits to many chambers prevent current
+      reports from isolating TD-2's contribution.
+    expected_ir_homes: [beliefs, conflicts, quality, observability, validation]
+    traps: [presenting TD-2 as the proven cause of excess rejects]
+
+  - id: pm-aligned-with-batch-timeout
+    importance: useful
+    epistemic_character: tacit-maintenance-practice
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked about informal maintenance efficiencies, quiet weeks, or experienced-controller practices
+    truth: >-
+      On quiet weeks, day-shift controllers informally align preventive work with a furnace batch
+      timeout so the queue can form while the chamber is down; nobody explicitly schedules it.
+    expected_ir_homes: [policies, activities, time, situation-notes]
+    traps: [making the alignment a formal or universally used scheduling rule]
+
+  - id: incident-td2-maintenance-deferral
+    importance: load-bearing
+    epistemic_character: explicit-incident-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Late Sunday TD-2 crossed 0.85. Leena approved one more four-lot memory batch due Wednesday
+      morning; TD-2 then ran a timed-out three-lot logic batch, after which maintenance planned to
+      take it.
+    expected_ir_homes: [situation-notes, state, activities, policies, time]
+    traps:
+      [
+        claiming the deferral caused the later defects or was known to be wrong at the time,
+      ]
+
+  - id: incident-td4-overrunning-maintenance
+    importance: load-bearing
+    epistemic_character: explicit-incident-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Two technicians began planned preventive work on TD-4 at 04:30 Tuesday; it was expected back
+      at 10:30, but at the 13:30 interview its recalibration check was still failing and maintenance
+      estimated another couple of hours.
+    expected_ir_homes: [situation-notes, resources, state, time, failures]
+    traps: [treating the revised estimate as a guaranteed return time]
+
+  - id: incident-etch3-vacuum-fault
+    importance: useful
+    epistemic_character: explicit-incident-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      ETCH-3 developed a vacuum fault at 08:20 Tuesday; the third technician went to diagnose it
+      and expected the chamber back around 14:00.
+    expected_ir_homes: [situation-notes, resources, state, time, failures]
+    traps: ["treating 14:00 as certain or omitting the technician contention"]
+
+  - id: incident-inspection-failures-and-quarantine
+    importance: load-bearing
+    epistemic_character: explicit-incident-fact
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      INSP-1 rejected memory lot M-442 at 08:10 for an unusual particle-related defect count, and
+      M-447 from the same Sunday TD-2 batch also failed at 09:00. Quality stopped TD-2 at 09:10
+      and quarantined all seven lots processed there since the last accepted final-inspection
+      result.
+    expected_ir_homes: [situation-notes, quality, state, triggers, flow]
+    traps:
+      [
+        claiming TD-2 caused the failures,
+        saying all seven quarantined lots are defective,
+      ]
+
+  - id: incident-current-wip-and-queues
+    importance: load-bearing
+    epistemic_character: explicit-incident-state
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      WIP rose from 43 lots Monday morning to 49 at 13:30 Tuesday; 11 lots wait for a furnace and
+      nine for etch, with the rest running, queued elsewhere, or held by quality.
+    expected_ir_homes: [situation-notes, state, quantities, flow]
+    traps:
+      [
+        assuming all remaining lots are running or excluding holds from the count,
+      ]
+
+  - id: incident-release-slot-reserved
+    importance: load-bearing
+    epistemic_character: practiced-incident-policy
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      New releases are effectively frozen at WIP 49 because Leena is preserving the one remaining
+      slot for a genuinely urgent customer start.
+    expected_ir_homes: [situation-notes, policies, constraints, flow]
+    traps:
+      [calling this the formal 50-lot hard stop, assuming the slot must be used]
+
+  - id: incident-held-lot-deadlines-and-td-state
+    importance: load-bearing
+    epistemic_character: explicit-incident-state
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      Two quarantined logic lots are due Tuesday night and three memory lots Wednesday morning.
+      TD-1 is running memory, TD-3 is in a long analog run, TD-4 remains under maintenance, and
+      TD-2 cannot return until technicians clean, inspect, and recalibrate it.
+    expected_ir_homes: [situation-notes, resources, state, time, constraints]
+    traps:
+      [
+        treating any TD chamber as immediately available or ignoring family qualifications,
+      ]
+
+  - id: incident-control-room-decision
+    importance: load-bearing
+    epistemic_character: explicit-decision-conflict
+    discoverability: direct-if-asked
+    expert_can_answer: true
+    truth: >-
+      The immediate choice is whether to pull technicians from TD-4 to recover TD-2, finish TD-4
+      first, or leave both alone until ETCH-3 is restored; customer planning wants logic expedited,
+      while quality will not release quarantined lots without a disposition.
+    expected_ir_homes:
+      [purpose, situation-notes, conflicts, policies, validation]
+    traps:
+      [
+        silently selecting a winner or treating one stakeholder preference as plant policy,
+      ]
+
+  - id: incident-cause-and-extent-unknown
+    importance: load-bearing
+    epistemic_character: explicit-current-unknown
+    discoverability: tension-probe
+    expert_can_answer: false
+    reveal_when: asked what the failures prove, what remains uncertain, or how broad the excursion is
+    truth: >-
+      It is unknown whether TD-2 caused the two inspection failures, how many of the seven held lots
+      are defective, or whether additional affected lots remain upstream of final inspection.
+    expected_ir_homes:
+      [unknowns, quality, failures, situation-notes, validation]
+    traps:
+      [
+        asserting causality from sequence and shared batch,
+        bounding the excursion at seven lots,
+      ]
+
+  - id: incident-finish-td4-heuristic
+    importance: load-bearing
+    epistemic_character: tacit-heuristic-without-data
+    discoverability: tacit
+    expert_can_answer: true
+    reveal_when: asked how Leena would decide or what experienced controllers see beyond written policy
+    truth: >-
+      Leena's instinct is to finish TD-4 because abandoning a half-completed calibration often turns
+      a six-hour service into an all-day one, but maintenance has never supplied data for that rule.
+    expected_ir_homes:
+      [beliefs, policies, conflicts, situation-notes, validation]
+    traps:
+      [
+        presenting the heuristic as measured fact or the decided incident response,
+      ]
+
+  - id: held-lot-disposition-process-absence
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    reveal_when: asked how quarantine ends, how long disposition takes, or what outcomes are possible
+    truth: >-
+      The pack establishes that quality requires a disposition before release but does not specify
+      disposition timing, decision criteria, rework possibilities, or the probabilities of release
+      versus scrap.
+    expected_ir_homes: [quality, flow, policies, time, unknowns]
+    traps:
+      [assuming held lots are automatically released, scrapped, or reworked]
+
+  - id: maintenance-contention-priority-absence
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    reveal_when: asked for the formal rule that resolves competing repair, PM, and production demands
+    truth: >-
+      The pack provides stakeholder positions and Leena's unsupported heuristic but no settled rule
+      for prioritizing technicians among TD-2 recovery, TD-4 completion, and ETCH-3 diagnosis.
+    expected_ir_homes: [policies, conflicts, unknowns, validation]
+    traps:
+      [
+        promoting the current instinct or customer request into a general priority rule,
+      ]
+
+  - id: customer-start-process-absence
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    reveal_when: asked how future starts should be generated or forecast in simulation
+    truth: >-
+      The pack says customer starts arrive unevenly but does not establish arrival distributions,
+      family mix over time, urgency-class frequencies, or a forecast source.
+    expected_ir_homes: [triggers, inputs, quantities, unknowns, data-sources]
+    traps: [inventing a Poisson process or fixed product mix]
+
+  - id: chamber-health-evolution-absence
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    reveal_when: asked how health, contamination, and drift should evolve numerically between services
+    truth: >-
+      The pack gives qualitative degradation and two health reference points but no numerical
+      evolution law linking run hours, contamination, calibration drift, failure, and defects.
+    expected_ir_homes: [state, failures, quality, unknowns, validation]
+    traps:
+      [interpolating a deterministic health or yield curve from 0.85 and 0.90]

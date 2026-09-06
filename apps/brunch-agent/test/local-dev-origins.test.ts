@@ -8,7 +8,7 @@ import {
   localChatListen,
   localPanelListen,
   petrinautLocalServer,
-} from "../src/local-dev-origins.ts";
+} from "../src/http/local-origins.ts";
 
 const readAppFile = (relativePath: string): string =>
   readFileSync(new URL(`../${relativePath}`, import.meta.url), "utf8");
@@ -65,5 +65,7 @@ test("petrinaut:dev listens on the panel origin chat CORS already assumes", () =
   expect(readAppFile("petrinaut-local.vite.config.ts")).toContain(
     "petrinautLocalServer",
   );
-  expect(readAppFile("src/petrinaut-chat.ts")).toContain("defaultPanelOrigins");
+  expect(readAppFile("src/http/petrinaut-chat.ts")).toContain(
+    "defaultPanelOrigins",
+  );
 });

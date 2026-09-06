@@ -1,7 +1,7 @@
 # ADR-0002: The three-lane topology and placement rules N1–N6
 
 Date: 2026-08-17
-Status: accepted
+Status: historical; superseded for current Brunch composition by the final [Mission 4 architecture](../mission-archive/4-core-plugin-elicitation-proof-of-life.md). N3's app composition boundary and the prohibition on app-local plugin content survive, but the three-lane/YAML/repertoire details do not.
 Amended: 2026-08-20 by ADR-0004 / FE-1437 (N3 application placement)
 Refines: spec [§12.2](../specs/elicitation-kernel.md) (package topology) with placement
 rules the spec did not state

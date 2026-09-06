@@ -1,0 +1,18 @@
+{
+  "currency": "USD",
+  "persona": null,
+  "elicitor": {
+    "requestedModel": "anthropic/claude-sonnet-4-6",
+    "reportedModel": null,
+    "cost": null,
+    "source": "Canonical Flue history does not expose provider model or usage"
+  },
+  "adjudicator": {
+    "requestedModel": "anthropic/claude-opus-4-6",
+    "reportedModel": "anthropic/claude-opus-4-6",
+    "thinking": "high",
+    "cost": 0.191,
+    "source": "Pi session usage display; rounded"
+  },
+  "knownRoundedTotal": 0.191
+}

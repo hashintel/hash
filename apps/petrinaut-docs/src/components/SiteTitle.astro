@@ -51,6 +51,22 @@ import DiffBadges from "./DiffBadges.astro";
 >
 </div>
 
+{/*
+  The band of blur under the header, over the content column only. Rendered
+  here for the same reason as the resize handle: this component renders at the
+  header's leading edge, and the element is positioned against the viewport
+  rather than laid out in the header. One span, carrying the blur that the
+  band's mask ramps out. See `chrome.css`.
+*/}
+<div class="pnd-fade pnd-content-fade" aria-hidden="true"><span></span></div>
+
+{/* The same band over the nav, grown out of how far the rail has scrolled, and
+    a mirrored one at its foot for whatever is still below the fold. */}
+<div class="pnd-fade pnd-nav-fade" aria-hidden="true"><span></span></div>
+<div class="pnd-fade pnd-fade-up pnd-nav-fade-bottom" aria-hidden="true">
+  <span></span>
+</div>
+
 <script is:inline>
   (() => {
     const root = document.documentElement;
@@ -95,39 +111,120 @@ import DiffBadges from "./DiffBadges.astro";
       remember("pnd:sidebar", collapsed ? "collapsed" : "expanded");
     });
 
-    /** @param {number} edge Where the pane's trailing edge should land, in px. */
-    const resizeTo = (edge) => {
-      const width = `${Math.round(Math.min(Math.max(edge, 224), 480))}px`;
+    /**
+     * The pane width that puts its trailing edge at `edge`, clamped to the
+     * range the rail stays usable in.
+     *
+     * @param {number} edge In px, from the viewport's inline start.
+     * @returns {number}
+     */
+    const widthFrom = (edge) =>
+      Math.round(Math.min(Math.max(edge, 224), 480));
 
-      root.style.setProperty("--pnd-sidebar-open-width", width);
-      remember("pnd:sidebar-width", width);
+    /** @param {number} width */
+    const applyWidth = (width) => {
+      root.style.setProperty("--pnd-sidebar-open-width", `${width}px`);
+    };
+
+    /** The edge the handle is currently drawn at, in px. */
+    const currentEdge = () => handle.getBoundingClientRect().left + 3;
+
+    /**
+     * Marks a gesture that tracks its own input. `chrome.css` reads this to
+     * drop the toggle's width transitions while it is set: a transition on a
+     * value the pointer is already moving leaves the pane trailing the cursor
+     * by the whole duration.
+     *
+     * @param {boolean} active
+     */
+    const setResizing = (active) => {
+      if (active) {
+        root.dataset.pndResizing = "";
+      } else {
+        delete root.dataset.pndResizing;
+      }
     };
 
     handle.addEventListener("pointerdown", (event) => {
       handle.setPointerCapture(event.pointerId);
+      setResizing(true);
+
+      let width = widthFrom(currentEdge());
+      let frame = 0;
 
       /** @param {PointerEvent} move */
-      const onMove = (move) => resizeTo(move.clientX);
+      const onMove = (move) => {
+        width = widthFrom(move.clientX);
+        // A pointer reports several moves per frame at high polling rates, and
+        // every write invalidates layout for the pane, the content column and
+        // both panels sized from it. One write per frame is all a display can
+        // show anyway.
+        frame ||= requestAnimationFrame(() => {
+          frame = 0;
+          applyWidth(width);
+        });
+      };
 
       handle.addEventListener("pointermove", onMove);
       // `lostpointercapture` covers the cancelled gesture as well as the
       // released one, so the drag cannot outlive the pointer holding it.
       handle.addEventListener(
         "lostpointercapture",
-        () => handle.removeEventListener("pointermove", onMove),
+        () => {
+          handle.removeEventListener("pointermove", onMove);
+          cancelAnimationFrame(frame);
+          applyWidth(width);
+          setResizing(false);
+          // Once per gesture, not once per move: `localStorage` writes
+          // synchronously and a drag produces hundreds of positions.
+          remember("pnd:sidebar-width", `${width}px`);
+        },
         { once: true },
       );
     });
+
+    /**
+     * The width a keyboard gesture has reached, persisted when it ends.
+     *
+     * @type {number | null}
+     */
+    let keyedWidth = null;
 
     handle.addEventListener("keydown", (event) => {
       const step =
         event.key === "ArrowLeft" ? -16 : event.key === "ArrowRight" ? 16 : 0;
 
-      if (step !== 0) {
-        event.preventDefault();
-        resizeTo(handle.getBoundingClientRect().left + 3 + step);
+      if (step === 0) {
+        return;
       }
+
+      event.preventDefault();
+      // A held arrow key tracks its input as much as a drag does, so it
+      // suppresses the transition the same way rather than chasing each
+      // repeat 200ms behind.
+      setResizing(true);
+
+      keyedWidth = widthFrom(currentEdge() + step);
+      applyWidth(keyedWidth);
     });
+
+    /*
+     * Held down, an arrow key repeats about thirty times a second, and
+     * `localStorage` writes synchronously. The width is kept in hand and
+     * written once the gesture ends, the same as a drag.
+     */
+    const endKeyGesture = () => {
+      setResizing(false);
+
+      if (keyedWidth !== null) {
+        remember("pnd:sidebar-width", `${keyedWidth}px`);
+        keyedWidth = null;
+      }
+    };
+
+    // Both, because a key released after focus has moved on fires only `blur`.
+    handle.addEventListener("keyup", endKeyGesture);
+    handle.addEventListener("blur", endKeyGesture);
 
     // A gradient cannot ask whether the text fits, so the labels that do not
     // fit are marked here and the fade keys off the mark. Deferred because this
@@ -166,8 +263,100 @@ import DiffBadges from "./DiffBadges.astro";
       });
     };
 
+    /**
+     * Scroll, in px, over which a fade band reaches its full height. Well under
+     * one row of the rail: a band is there as soon as anything has gone up
+     * behind the header, and the ramp only takes the hard edge off its arrival.
+     *
+     * Read from `--pnd-fade-ramp` rather than repeated: the scroll-driven path
+     * in `chrome.css` takes its `animation-range` from the same token, and the
+     * two ramps have to agree.
+     */
+    const FADE_RAMP =
+      parseFloat(getComputedStyle(root).getPropertyValue("--pnd-fade-ramp")) ||
+      20;
+
+    /**
+     * Drives a scroll container's bands. `chrome.css` takes each band's height,
+     * its tint and its opacity from its number, so at 0 there is no band and
+     * nothing is laid over the content.
+     *
+     * Read once up front as well as on scroll: the page can load part-way down
+     * at an anchor, and Starlight restores the rail's scroll position on
+     * navigation.
+     *
+     * @param {EventTarget} source
+     * @param {Record<string, () => number>} readings Px remaining, per property.
+     * @returns {() => void} Recomputes, for when the content changes size.
+     */
+    const trackFade = (source, readings) => {
+      let frame = 0;
+
+      const write = () => {
+        frame = 0;
+        for (const [property, distance] of Object.entries(readings)) {
+          root.style.setProperty(
+            property,
+            String(Math.min(distance() / FADE_RAMP, 1)),
+          );
+        }
+      };
+
+      // Scroll fires faster than the display refreshes, and each write
+      // invalidates a band's height.
+      const schedule = () => {
+        frame ||= requestAnimationFrame(write);
+      };
+
+      write();
+      source.addEventListener("scroll", schedule, { passive: true });
+
+      return schedule;
+    };
+
+    /*
+     * The bands are scroll-driven animations wherever CSS can express them,
+     * which is everywhere but Firefox as of writing. There the progress cannot
+     * be resolved from layout, so it is written from a scroll listener instead,
+     * at the cost of a frame on a page that loads part-way down. `chrome.css`
+     * tests the same condition, and its animations override what is written
+     * here, so this only has to stay out of the way.
+     */
+    const cssDrivesFades =
+      CSS.supports("animation-timeline: scroll()") &&
+      CSS.supports("timeline-scope: --pnd-nav-scroll");
+
+    const watchScrollFades = () => {
+      if (cssDrivesFades) {
+        return;
+      }
+
+      const pane = document.querySelector(".sidebar-pane");
+
+      if (pane) {
+        // The rail scrolls independently of the page, so it reads its own
+        // position: what has gone above the fold, and what is left below it.
+        const refresh = trackFade(pane, {
+          "--pnd-nav-progress": () => pane.scrollTop,
+          "--pnd-nav-end-progress": () =>
+            pane.scrollHeight - pane.scrollTop - pane.clientHeight,
+        });
+
+        // Opening a group changes how much is left below the fold without
+        // scrolling anything, so the foot band has to be recomputed then too.
+        const content = pane.querySelector(".sidebar-content");
+
+        if (content) {
+          new ResizeObserver(refresh).observe(content);
+        }
+      }
+
+      trackFade(window, { "--pnd-content-progress": () => window.scrollY });
+    };
+
     const onReady = () => {
       markLabels();
+      watchScrollFades();
       allowGroupAnimation();
     };
 

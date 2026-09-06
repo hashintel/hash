@@ -19,8 +19,7 @@
       "inputs": [
         "scripts/generate-example-artifacts.ts",
         "src/examples/catalog-metadata.ts",
-        "src/examples/models/**",
-        "src/examples/normalize-example.ts"
+        "src/examples/models/**"
       ],
       "outputs": ["src/examples/generated/**"]
     },

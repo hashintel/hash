@@ -98,6 +98,10 @@ The bottom toolbar provides playback controls:
 
 The frame counter shows the current frame number, total frames, and elapsed simulation time.
 
+Playback widens the toolbar, so in a narrow window it keeps Play and folds the
+scrubber, the frame counter and the playback settings away until you point at
+it.
+
 <img width="717" height="62" alt="simulation-toolbar" src="https://github.com/user-attachments/assets/fc39afbe-8603-4be5-88b1-83d5b09d5367" />
 
 ### Speed

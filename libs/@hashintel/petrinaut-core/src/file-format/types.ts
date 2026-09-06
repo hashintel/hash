@@ -5,8 +5,10 @@ import {
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,
   componentInstanceSchema as currentComponentInstanceSchema,
+  descriptionSchema,
   differentialEquationSchema as currentDifferentialEquationSchema,
   inputArcSchema as currentInputArcSchema,
+  metadataSchema,
   outputArcSchema as currentOutputArcSchema,
   parameterSchema as currentParameterSchema,
   placeSchema as currentPlaceSchema,
@@ -137,6 +139,8 @@ const componentInstanceSchema = z.object({
 const subnetSchema = z.object({
   id: z.string(),
   name: z.string(),
+  description: descriptionSchema,
+  metadata: metadataSchema,
   places: z.array(placeSchema),
   transitions: z.array(transitionSchema),
   types: z.array(colorSchema).default([]),
@@ -146,6 +150,8 @@ const subnetSchema = z.object({
 });
 
 export const sdcpnSchema = z.object({
+  description: descriptionSchema,
+  metadata: metadataSchema,
   places: z.array(placeSchema),
   transitions: z.array(transitionSchema),
   types: z.array(colorSchema).default([]),

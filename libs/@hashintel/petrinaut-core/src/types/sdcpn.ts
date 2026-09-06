@@ -5,6 +5,14 @@
 
 export type ID = string;
 
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 export type ColorElementType =
   | "real"
   | "integer"
@@ -63,6 +71,9 @@ export type OutputArc = ArcEndpointReference & {
 export type Transition = {
   id: ID;
   name: string;
+  description?: string;
+  /** Host-defined data, opaque to Petrinaut. */
+  metadata?: Record<string, JsonValue>;
   inputArcs: InputArc[];
   outputArcs: OutputArc[];
   lambdaType: "predicate" | "stochastic";
@@ -76,6 +87,7 @@ export type Transition = {
 export type Place = {
   id: ID;
   name: string;
+  description?: string;
   colorId: null | ID;
   dynamicsEnabled: boolean;
   differentialEquationId: null | ID;
@@ -104,6 +116,7 @@ export type Place = {
 export type Color = {
   id: ID;
   name: string;
+  description?: string;
   iconSlug: string; // e.g., "circle", "square"
   displayColor: string; // e.g., "#FF0000"
   elements: {
@@ -325,6 +338,9 @@ export type ComponentInstance = {
   id: ID;
   /** Display name for this instance. */
   name: string;
+  description?: string;
+  /** Host-defined data, opaque to Petrinaut. */
+  metadata?: Record<string, JsonValue>;
   /** ID of the subnet this instance instantiates. */
   subnetId: ID;
   /**
@@ -340,6 +356,9 @@ export type ComponentInstance = {
 export type Subnet = {
   id: ID;
   name: string;
+  description?: string;
+  /** Host-defined data, opaque to Petrinaut. */
+  metadata?: Record<string, JsonValue>;
   places: Place[];
   transitions: Transition[];
   types: Color[];
@@ -349,6 +368,9 @@ export type Subnet = {
 };
 
 export type SDCPN = {
+  description?: string;
+  /** Host-defined data, opaque to Petrinaut. */
+  metadata?: Record<string, JsonValue>;
   places: Place[];
   transitions: Transition[];
   types: Color[];
