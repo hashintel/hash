@@ -1,0 +1,8 @@
+---
+source: libs/@local/config/tests/files.rs
+expression: rendered
+---
+the configuration file is not valid TOML
+├╴at libs/@local/config/src/file.rs:[line]:[column]
+├╴config.toml
+╰╴at line 2, column 51

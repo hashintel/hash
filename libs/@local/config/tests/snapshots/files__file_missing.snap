@@ -1,0 +1,10 @@
+---
+source: libs/@local/config/tests/files.rs
+expression: rendered
+---
+the configuration file could not be read
+├╴at libs/@local/config/src/file.rs:[line]:[column]
+├╴missing.toml
+│
+╰─▶ No such file or directory (os error 2)
+    ╰╴at libs/@local/config/src/file.rs:[line]:[column]
