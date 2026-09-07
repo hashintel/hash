@@ -567,12 +567,14 @@ const AvailableVoiceInterviewControl = ({
         ? { questionSegment: correlateSegment(canonicalSpeech.questionSegment) }
         : {}),
       settlements,
+      stopped: context.stopped,
       status: context.status,
     });
   }, [
     context.canAcceptVoiceInput,
     context.messages,
     context.status,
+    context.stopped,
     context.submitVoiceInput,
     resolveInputSubmission,
     resolveResponseSubmission,

@@ -175,6 +175,33 @@ test("submits results from the latest assistant step with completed client tools
   );
 });
 
+test("keeps reordered cumulative tool results byte-identical for idempotent retry", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["readPetrinautDoc"]),
+  });
+  const parts: UIMessage["parts"] = ["tool-b", "tool-a"].map((toolCallId) => ({
+    type: "dynamic-tool",
+    toolName: "readPetrinautDoc",
+    toolCallId,
+    state: "output-available",
+    input: {},
+    output: toolCallId,
+  }));
+  for (const ordered of [parts, [...parts].reverse()]) {
+    await readChunks(
+      await transport.sendMessages(
+        sendOptions(
+          [{ id: "assistant-original", role: "assistant", parts: ordered }],
+          "assistant-original",
+        ),
+      ),
+    );
+  }
+  expect(send.mock.calls[0]?.[0]).toEqual(send.mock.calls[1]?.[0]);
+});
+
 test("admits one user message and projects a finite per-turn stream", async () => {
   const { client, send } = clientWith(completedEvents);
   const transport = createFlueChatTransport({

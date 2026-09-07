@@ -10,8 +10,9 @@ import type { UIMessage } from "ai";
 type UiMessagePart = UIMessage["parts"][number];
 
 export interface UiHistoryMessageMetadata {
-  readonly source: "voice";
+  readonly source?: "voice";
   readonly voiceToolCallIds?: readonly string[];
+  readonly stopped?: true;
 }
 
 export type UiHistoryMessage = Omit<
@@ -183,7 +184,8 @@ const partsFrom = (
 };
 
 export const snapshotToUiMessages = (
-  snapshot: Pick<FlueConversationState, "messages">,
+  snapshot: Pick<FlueConversationState, "messages"> &
+    Partial<Pick<FlueConversationState, "settlements">>,
   options: SnapshotToUiMessagesOptions,
 ): UiHistoryMessage[] => {
   const clientResults = clientToolResultsFrom(
@@ -191,6 +193,15 @@ export const snapshotToUiMessages = (
     CLIENT_TOOL_RESULT_SIGNAL,
   );
   const messages: UiHistoryMessage[] = [];
+  const abortedSubmissions = new Set(
+    snapshot.settlements
+      ?.filter(({ outcome }) => outcome === "aborted")
+      .flatMap(({ submissionId, answeredBySubmissionId }) =>
+        answeredBySubmissionId === undefined
+          ? [submissionId]
+          : [submissionId, answeredBySubmissionId],
+      ),
+  );
   // The live stream projects a client-tool continuation onto the assistant
   // message it resumes; the snapshot records that continuation as a separate
   // Flue message behind the `client-tool-result` dispatch, so fold it back.
@@ -216,15 +227,10 @@ export const snapshotToUiMessages = (
       continuationPending = false;
     }
     if (parts.length === 0) continue;
-    if (
+    const foldsIntoPrevious =
       message.role === "assistant" &&
       (awaitingClientResult || continuationPending) &&
-      resumableAssistant !== undefined
-    ) {
-      resumableAssistant.parts.push(...parts);
-      continuationPending = false;
-      continue;
-    }
+      resumableAssistant !== undefined;
     const voiceToolCallIds =
       message.role === "assistant"
         ? message.parts.flatMap((part) =>
@@ -234,29 +240,53 @@ export const snapshotToUiMessages = (
               : [],
           )
         : [];
-    const projected: UiHistoryMessage = {
-      id: message.id,
-      role: message.role,
-      parts,
+    const stopped =
+      message.role === "assistant" &&
+      message.submissionId !== undefined &&
+      abortedSubmissions.has(message.submissionId);
+    const metadata: UiHistoryMessageMetadata = {
       ...(voiceToolCallIds.length > 0
-        ? {
-            metadata: {
-              source: "voice",
-              voiceToolCallIds,
-            },
-          }
+        ? { source: "voice" as const, voiceToolCallIds }
         : {}),
+      ...(stopped ? { stopped: true as const } : {}),
     };
-    messages.push(projected);
-    if (message.role === "assistant") {
-      resumableAssistant = projected;
-      awaitingClientResult = message.parts.some(
+    awaitingClientResult =
+      message.role === "assistant" &&
+      !stopped &&
+      message.parts.some(
         (part) =>
           part.type === "dynamic-tool" &&
           options.clientToolNames.has(part.toolName) &&
           !clientResults.has(part.toolCallId),
       );
+    if (foldsIntoPrevious && resumableAssistant !== undefined) {
+      resumableAssistant.parts.push(...parts);
+      if (voiceToolCallIds.length > 0 || stopped) {
+        const combinedOrigins = [
+          ...new Set([
+            ...(resumableAssistant.metadata?.voiceToolCallIds ?? []),
+            ...voiceToolCallIds,
+          ]),
+        ];
+        resumableAssistant.metadata = {
+          ...resumableAssistant.metadata,
+          ...metadata,
+          ...(combinedOrigins.length > 0
+            ? { voiceToolCallIds: combinedOrigins }
+            : {}),
+        };
+      }
+      continuationPending = false;
+      continue;
     }
+    const projected: UiHistoryMessage = {
+      id: message.id,
+      role: message.role,
+      parts,
+      ...(voiceToolCallIds.length > 0 || stopped ? { metadata } : {}),
+    };
+    messages.push(projected);
+    if (message.role === "assistant") resumableAssistant = projected;
   }
   return messages;
 };
