@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  optimize-ci: # Do not run benches in the middle of the stack
+  optimize-ci: # Do not run benches on stacked PRs below the top
     runs-on: ubuntu-24.04
     name: Optimize CI
     outputs:
@@ -31,7 +31,6 @@ jobs:
         env:
           SKIP: >-
             ${{ github.event.pull_request.stack != null
-            && github.event.pull_request.stack.base.ref != github.event.pull_request.base.ref
             && github.event.pull_request.stack.position != github.event.pull_request.stack.size }}
         run: echo "skip=$SKIP" | tee -a "$GITHUB_OUTPUT"
 
