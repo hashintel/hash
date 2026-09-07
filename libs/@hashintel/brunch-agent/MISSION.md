@@ -2,7 +2,7 @@
 
 ## Status
 
-**Live as of 2026-09-04** for [FE-1580](https://linear.app/hash/issue/FE-1580/harden-voice-safety-and-ux-on-the-unified-flue-route) on `kostandin/fe-1580-harden-voice-safety-and-ux-on-the-unified-flue-route`, stacked directly on [PR #9528](https://github.com/hashintel/hash/pull/9528) at the GitHub-verified head `eecbe99e201fd8cb78d9b719e789b6abd373ed1b`. This file is the sole execution authority for the successor branch. The restack adopts the parent's canonical hydration overwrite guard, multi-submission response correlation, settlement-driven durable Stop, aligned live/snapshot projection, queued Voice-input cancellation, and client-tool continuation behavior. The parent remains the authority for defects in those mechanisms; this branch must restack onto further parent fixes rather than repair them.
+**Live as of 2026-09-07** for [FE-1580](https://linear.app/hash/issue/FE-1580/harden-voice-safety-and-ux-on-the-unified-flue-route) on `kostandin/fe-1580-harden-voice-safety-and-ux-on-the-unified-flue-route`, stacked directly on [PR #9528](https://github.com/hashintel/hash/pull/9528) at the GitHub-verified head `58f75840804766a84ce85b9daab5b5194f3875ec`. This file is the sole execution authority for the successor branch. The restack adopts the parent's canonical hydration overwrite guard, multi-submission response correlation, settlement-driven durable Stop, aligned live/snapshot projection, queued Voice-input cancellation, and client-tool continuation behavior. The parent remains the authority for defects in those mechanisms; this branch must restack onto further parent fixes rather than repair them.
 
 The owner selected **half-duplex turn ownership** on 2026-09-03. While canonical assistant audio is pending or playing, the microphone is closed. Ownership transfers away from input as soon as canonical speech is requested, before `response.create` is sent: every accepted unfinished input item becomes stale and provisional transcript state is cleared. Initial automatic speech may begin before Brunch settlement when a new canonical segment is durably completed and correlated to the active Voice submission. The explicit **Your turn** action may cancel that audio immediately, but opens a fresh input turn only after both provider cancellation acknowledgement and Brunch settlement. Automatic duplex barge-in is rejected because assistant playback can become a false user turn.
 
@@ -60,14 +60,14 @@ second-durable-store stop condition. The restacked hydration guard removes the
 old parent blocker, but no real witness claim is valid until the retained human
 evidence exists.
 
-The 2026-09-04 corrective verification covers the current 72-file successor
-diff against #9528 head `eecbe99e201f`: the four focused race cases pass 4/4
-tests, the filtered production admission-outcome cases pass 3/3 tests, and the
-complete seven-workspace Turbo run passes 39/39 tasks and 1,123/1,123 tests,
-including 282/282 website tests and the Brunch core package. Architecture
-validation passes with 68 layers, 337 edges, 690 files, 69 generated pages, and
-38 authored pages. `git diff --check` passes, and the root formatter accepts all
-5,527 matched files. The exact commands and dispositions are retained in the
+The 2026-09-07 restack verification covers the current 72-file successor diff
+against #9528 head `58f758408047`: the complete seven-workspace Turbo run
+passes 39/39 tasks and 1,216/1,216 tests, including 319/319 website and 673/673
+Petrinaut tests. Architecture validation passes with 70 layers, 356 edges, 725
+files, 71 generated pages, and 38 authored pages. `git diff --check` passes,
+and the root formatter accepts all 5,586 matched files. Earlier focused race
+and production admission-outcome runs remain retained alongside the current
+full-suite verification. The exact commands and dispositions are retained in the
 [donor matrix](docs/evidence/implementations/mission-5-voice-safety-parity/donor-behavior-matrix.md#corrective-verification).
 
 The pinned donor-behavior decision record is the [FE-1580 donor matrix](docs/evidence/implementations/mission-5-voice-safety-parity/donor-behavior-matrix.md). Donor PRs are read-only evidence at their named heads; semantic reimplementation is required, never merge or cherry-pick.

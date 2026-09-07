@@ -12,7 +12,7 @@ network-route witness required for mission acceptance. Direct-user Voice
 attribution has a separate [Flue projection blocker](provenance-blocker.md).
 
 The successor is restacked onto [PR #9528](https://github.com/hashintel/hash/pull/9528)
-head `eecbe99e201fd8cb78d9b719e789b6abd373ed1b`. That parent now guards its
+head `58f75840804766a84ce85b9daab5b5194f3875ec`. That parent now guards its
 once-per-conversation hydration from replacing a locally visible assistant
 response with an older canonical snapshot, so hydration no longer blocks this
 witness. The remaining gate is the required human browser and microphone run.
