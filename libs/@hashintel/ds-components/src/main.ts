@@ -71,7 +71,11 @@ export {
   type SegmentedControlItem,
   type SegmentedControlProps,
 } from "./components/SegmentedControl/segmented-control";
-export { Select, type SelectItem } from "./components/Select/select";
+export {
+  type MultiSelectItem,
+  Select,
+  type SelectItem,
+} from "./components/Select/select";
 export { Slider, type SliderProps } from "./components/Slider/slider";
 export { TextArea } from "./components/TextArea/text-area";
 export { TextInput } from "./components/TextInput/text-input";

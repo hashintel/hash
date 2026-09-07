@@ -119,7 +119,19 @@ const CustomRow = ({ item, ctx }: { item: CustomItem; ctx: RenderCtx }) => {
       className={classes.customItem}
       data-selectable-list-custom={getItemId(item)}
       onKeyDown={(event) => {
-        if (event.key !== "Tab" && event.key !== "Escape") {
+        // In a Select, arrows and Enter fall through to zag's content handler
+        // so the list highlight/selection can be driven from inside the row
+        // (zag already ignores typing from editable elements, but Space and
+        // Home/End would act on both the caret and the list, so they stay
+        // stopped along with everything else).
+        const passThrough =
+          event.key === "Tab" ||
+          event.key === "Escape" ||
+          (ctx.as === "Select" &&
+            (event.key === "ArrowDown" ||
+              event.key === "ArrowUp" ||
+              event.key === "Enter"));
+        if (!passThrough) {
           event.stopPropagation();
         }
       }}
