@@ -69,18 +69,47 @@ provides a fake optimizer for isolated UI development.
 
 ## Environment variables
 
-| Name                             | Required         | Used by          | Notes                                                      |
-| -------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------- |
-| `OPENAI_API_KEY`                 | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.         |
-| `OPENAI_VOICE_API_KEY`           | for voice        | voice API        | Dedicated OpenAI key used to create Realtime WebRTC calls. |
-| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice outside production.          |
-| `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                     |
-| `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.                |
-| `VITE_BRUNCH_CHAT_ENDPOINT`      | for voice input  | website          | Full Brunch Petrinaut chat endpoint used by the panel.     |
-| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the optimization route.         |
-| `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.  |
+| Name                             | Required         | Used by          | Notes                                                            |
+| -------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------------- |
+| `OPENAI_API_KEY`                 | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.               |
+| `OPENAI_VOICE_API_KEY`           | for voice        | voice API        | Dedicated OpenAI key used to create Realtime WebRTC calls.       |
+| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice outside production.                |
+| `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                           |
+| `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.                      |
+| `VITE_BRUNCH_CHAT_ENDPOINT`      | for voice input  | website          | Full Brunch Petrinaut chat endpoint used by the panel.           |
+| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the optimization route.               |
+| `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.        |
+| `GITHUB_CLIENT_ID`               | for sign-in      | auth API         | GitHub OAuth app client id.                                      |
+| `GITHUB_CLIENT_SECRET`           | for sign-in      | auth API         | GitHub OAuth app client secret. Never reaches the browser.       |
+| `PETRINAUT_SESSION_SECRET`       | for sign-in      | auth API         | At least 32 bytes; signs the session. `openssl rand -base64 32`. |
+| `PETRINAUT_PUBLIC_ORIGIN`        | for sign-in      | auth API         | This deployment's origin. Session issuer and callback base.      |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
+
+### GitHub sign-in
+
+Petrinaut AI and the voice routes answer 401 without a session, so the AI
+assistant is hidden until a visitor signs in. The burger menu carries the
+sign-in item.
+
+Sign-in needs all four variables above. With any of them missing the site
+reports sign-in unavailable and the assistant stays hidden, which is the
+expected state on a branch preview: previews are served from
+`*.stage.hash.ai`, a different registrable domain from production, and a GitHub
+callback URL cannot cover them — its wildcard matching requires the host to
+match exactly. Register one callback per environment instead:
+
+- `https://demo.petrinaut.org/api/auth/callback` for production
+- `http://localhost:5173/api/auth/callback` for local development
+
+Leave wildcard matching off on those registrations. With it on, GitHub accepts
+a redirect to any subdomain or deeper path of the callback, so anyone who
+controls one receives the authorization code.
+
+The session is a signed token in an `HttpOnly` cookie and nothing is stored
+server-side, so signing out ends only that browser's session: a token already
+issued stays valid until it expires. Rotating `PETRINAUT_SESSION_SECRET` is the
+way to invalidate every session at once.
 
 ### Brunch Voice mode preview
 

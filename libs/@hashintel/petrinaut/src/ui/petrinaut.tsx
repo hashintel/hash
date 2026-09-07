@@ -67,6 +67,7 @@ import type { PetrinautNavigationController } from "../react/navigation";
 import type { NetManagement } from "../react/net-management-context";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
 import type { ViewportAction } from "./types/viewport-action";
+import type { MenuItem } from "@hashintel/ds-components";
 
 export type PetrinautProps = {
   handle: PetrinautDocHandle;
@@ -89,6 +90,14 @@ export type PetrinautProps = {
   loadPetriNet?: (petriNetId: string) => void;
   aiAssistant?: PetrinautAiAssistant;
   viewportActions?: ViewportAction[];
+  /**
+   * Host-supplied items appended to the top bar's burger menu, after the
+   * editor's own — e.g. an account or sign-in item.
+   *
+   * Appended rather than merged, because the editor's items are about the open
+   * net and a host's are about the surrounding application.
+   */
+  menuItems?: MenuItem[];
   /**
    * Host-supplied components to inject at specific locations in the editor.
    */
@@ -145,6 +154,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   loadPetriNet = noop,
   aiAssistant,
   viewportActions,
+  menuItems,
   slots,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
@@ -187,6 +197,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               <EditorView
                 aiAssistant={aiAssistant}
                 hideNetManagementControls={hideNetManagementControls}
+                menuItems={menuItems}
                 slots={slots}
                 viewportActions={viewportActions}
               />

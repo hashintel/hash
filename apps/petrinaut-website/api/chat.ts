@@ -11,6 +11,10 @@ import { z } from "zod";
 
 import { petrinautAiTools, petrinautAiPrompt } from "@hashintel/petrinaut-core";
 
+import { createPetrinautAiGuard } from "../src/server/auth/petrinaut-auth";
+
+import type { OAuthSession } from "@hashintel/oauth-session";
+
 declare const process: {
   env: Record<string, string | undefined>;
 };
@@ -60,29 +64,20 @@ const validationErrorBody = (
     : { error: "Invalid chat messages", detail: error.message };
 
 /**
- * Resolve the public client IP for rate-limiting.
+ * Whether this caller may spend another request in the current window.
  *
- * Vercel's edge overwrites `x-forwarded-for` with the real client IP and
- * refuses to forward externally-set values, so the header cannot be spoofed
- * by the caller. `x-vercel-forwarded-for` carries the same value but is also
- * immune to a custom proxy placed in front of Vercel.
+ * Keyed on the signed-in account, not the client IP. Every request that reaches
+ * here is authenticated, and one account can arrive from as many addresses as
+ * it likes, so an address-keyed bucket bounds the wrong thing.
  *
- * See https://vercel.com/docs/edge-network/headers/request-headers
+ * The buckets live in module scope, so each warm function instance keeps its
+ * own and a cold start forgets them. That makes the effective cap a multiple of
+ * the constant above rather than the constant itself — enough to stop a single
+ * runaway client, not a distributed one.
  */
-const resolveClientIp = (request: Request): string | null => {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    const first = forwardedFor.split(",")[0]?.trim();
-    if (first) {
-      return first;
-    }
-  }
-  return request.headers.get("x-vercel-forwarded-for");
-};
-
-const checkRateLimit = (clientIp: string): boolean => {
+const checkRateLimit = (rateLimitKey: string): boolean => {
   const now = Date.now();
-  const current = rateLimitBuckets.get(clientIp);
+  const current = rateLimitBuckets.get(rateLimitKey);
 
   if (!current || current.resetAt <= now) {
     // The bucket map only grows; on a warm function instance with many unique
@@ -99,7 +94,7 @@ const checkRateLimit = (clientIp: string): boolean => {
         return false;
       }
     }
-    rateLimitBuckets.set(clientIp, {
+    rateLimitBuckets.set(rateLimitKey, {
       count: 1,
       resetAt: now + RATE_LIMIT_WINDOW_MS,
     });
@@ -114,42 +109,20 @@ const checkRateLimit = (clientIp: string): boolean => {
   return true;
 };
 
+const requireSignedIn = createPetrinautAiGuard(process.env);
+
 /**
- * API endpoint to proxy requests for AI assistance to OpenAI.
+ * Proxy a request for AI assistance to OpenAI, on behalf of a signed-in user.
  *
- * Exported via a default `{ fetch }` object so Vercel's Node.js runtime treats
- * this as a Web fetch handler and hands us a `Request`. Without this opt-in,
- * the default export is invoked with a Node.js `IncomingMessage`, whose
- * `headers` is a plain object (no `.get(...)` method) and would crash
- * `resolveClientIp`.
- *
- * See https://vercel.com/changelog/node-js-vercel-functions-now-support-fetch-web-handlers
+ * Only reached through {@link requireSignedIn}, so `session` is the identity
+ * that got past the guard rather than anything read out of the request here.
  */
-const fetch = async (request: Request): Promise<Response> => {
-  if (request.method === "OPTIONS") {
-    // We'll always serve this same-origin so we don't need any CORS config
-    return new Response(null, { status: 204 });
-  }
-
-  if (request.method !== "POST") {
-    logChatFailure("Rejected unsupported method", { method: request.method });
-    return jsonResponse({ error: "Method not allowed" }, { status: 405 });
-  }
-
-  const clientIp = resolveClientIp(request);
-  if (process.env.VERCEL_ENV === "production" && !clientIp) {
-    // Vercel's edge always sets x-forwarded-for in production. If it isn't
-    // present, the request reached us through an unexpected path and we have
-    // no way to rate-limit it - reject conservatively rather than fail open.
-    logChatFailure("Rejected production request with no resolvable client IP");
-    return jsonResponse(
-      { error: "Could not determine client IP" },
-      { status: 400 },
-    );
-  }
-
-  if (clientIp && !checkRateLimit(clientIp)) {
-    logChatFailure("Rejected rate-limited request", { clientIp });
+const handleChat = async (
+  request: Request,
+  session: OAuthSession,
+): Promise<Response> => {
+  if (!checkRateLimit(session.sub)) {
+    logChatFailure("Rejected rate-limited request", { sub: session.sub });
     return jsonResponse({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
@@ -224,6 +197,33 @@ const fetch = async (request: Request): Promise<Response> => {
       return error instanceof Error ? error.message : "AI request failed";
     },
   });
+};
+
+/**
+ * API endpoint to proxy requests for AI assistance to OpenAI.
+ *
+ * Exported via a default `{ fetch }` object so Vercel's Node.js runtime treats
+ * this as a Web fetch handler and hands us a `Request`. Without this opt-in,
+ * the default export is invoked with a Node.js `IncomingMessage`, whose
+ * `headers` is a plain object with no `.get(...)` method, and the session
+ * cookie could not be read.
+ *
+ * See https://vercel.com/changelog/node-js-vercel-functions-now-support-fetch-web-handlers
+ */
+const fetch = async (request: Request): Promise<Response> => {
+  if (request.method === "OPTIONS") {
+    // We'll always serve this same-origin so we don't need any CORS config
+    return new Response(null, { status: 204 });
+  }
+
+  // Ahead of the guard, so a preflight and a wrong verb are answered as such
+  // rather than as a request to sign in.
+  if (request.method !== "POST") {
+    logChatFailure("Rejected unsupported method", { method: request.method });
+    return jsonResponse({ error: "Method not allowed" }, { status: 405 });
+  }
+
+  return requireSignedIn(handleChat)(request);
 };
 
 export default { fetch };

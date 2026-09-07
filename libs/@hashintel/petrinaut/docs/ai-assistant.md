@@ -2,6 +2,10 @@
 
 Petrinaut has an in-app AI assistant that can build a net from a natural-language description, review or revise an existing one, read TypeScript compilation diagnostics, and consult its own user-guide pages to answer "how do I ..." questions. The host application controls whether the assistant is available -- it is enabled on [demo.petrinaut.org](https://demo.petrinaut.org) and in [HASH](https://hash.ai) and may or may not be enabled in other Petrinaut embeds.
 
+On [demo.petrinaut.org](https://demo.petrinaut.org) the assistant is available once you sign in. Open the top-bar menu (hamburger icon) and select **Sign in with GitHub**; GitHub asks you to authorise the app, and you return to your net signed in. The same menu then offers **Sign out of <your handle>**. Until you sign in, the **AI** button and the first-run prompt are not shown. Signing out reloads the page, so finish anything in progress first.
+
+Other Petrinaut hosts decide for themselves whether signing in is required, and an embedded Petrinaut has no sign-in item.
+
 ## Opening the panel
 
 There are two entry points:

@@ -32,6 +32,13 @@ import {
   withClearedSharedLocation,
 } from "../../../examples/use-shared-search-navigation";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
+import {
+  delegatedAuthorizationHeader,
+  isCrossOriginEndpoint,
+  oauthSessionMenuItems,
+  signOut,
+} from "../auth/oauth-session-client";
+import { useOAuthSession } from "../auth/use-oauth-session";
 import { CommandPalette } from "../command-palette";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import {
@@ -96,11 +103,28 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
 
 const brunchPrincipal = getOrCreateBrunchPrincipal();
 
+/**
+ * Whether the chat endpoint needs a bearer token to know who is calling.
+ *
+ * Same-origin, the session cookie travels on its own and a token would be
+ * worse than redundant: the guard judges a request on its bearer token
+ * whenever one is present, and a token minted for another audience is refused
+ * even with a valid cookie alongside it.
+ */
+const chatEndpointNeedsBearer = isCrossOriginEndpoint(
+  brunchPreviewConfig.chatEndpoint,
+);
+
 const stockChatTransport = new DefaultChatTransport({
   api: brunchPreviewConfig.chatEndpoint,
-  headers: () => ({
+  // Re-resolved per request, so a sign-in mid-session is picked up without
+  // rebuilding the transport.
+  headers: async () => ({
     [BRUNCH_PRINCIPAL_HEADER]: brunchPrincipal,
     [VOICE_REQUEST_ID_HEADER]: crypto.randomUUID(),
+    ...(chatEndpointNeedsBearer
+      ? await delegatedAuthorizationHeader(globalThis.fetch.bind(globalThis))
+      : {}),
   }),
 });
 
@@ -166,6 +190,9 @@ export const LocalStorageDemoApp = ({
   search: SharedExampleSearch;
 }) => {
   const sentryFeedbackAction = useSentryFeedbackAction();
+  const oauthSession = useOAuthSession();
+  const isSignedIn =
+    oauthSession.status === "loaded" && oauthSession.user !== null;
   const [openAIVoiceConfig, setOpenAIVoiceConfig] =
     useState<OpenAIVoiceConfig | null>();
   /**
@@ -200,7 +227,9 @@ export const LocalStorageDemoApp = ({
   const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(storedSDCPNs);
 
   useEffect(() => {
-    if (!brunchPreviewConfig.isBrunchConfigured) {
+    // `/api/voice/config` is guarded with the call route it describes, so
+    // asking before sign-in would only ever answer 401.
+    if (!brunchPreviewConfig.isBrunchConfigured || !isSignedIn) {
       // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Resolve the loading sentinel when voice is not configured.
       setOpenAIVoiceConfig(null);
       return;
@@ -217,7 +246,7 @@ export const LocalStorageDemoApp = ({
     });
 
     return () => abortController.abort();
-  }, []);
+  }, [isSignedIn]);
 
   const brunchVoiceMode = useMemo(
     () => getBrunchVoiceMode(openAIVoiceConfig),
@@ -446,7 +475,17 @@ export const LocalStorageDemoApp = ({
       <CommandRegistryProvider>
         <WalkthroughProvider steps={walkthroughSteps}>
           <Petrinaut
-            aiAssistant={aiAssistant}
+            /**
+             * Withholding the whole assistant is the client-side gate: the
+             * panel, the bottom-bar toggle and the empty-canvas hero all key
+             * off its presence. The server gate on `/api/chat` is what
+             * actually enforces this; hiding the surface only keeps a
+             * signed-out visitor from typing into something that would 401.
+             */
+            aiAssistant={isSignedIn ? aiAssistant : undefined}
+            menuItems={oauthSessionMenuItems(oauthSession, () => {
+              void signOut(globalThis.fetch.bind(globalThis));
+            })}
             handle={activeHandle.handle}
             existingNets={existingNets}
             createNewNet={createNewNet}

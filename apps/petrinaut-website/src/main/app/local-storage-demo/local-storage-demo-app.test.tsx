@@ -87,14 +87,28 @@ describe("local storage demo Brunch voice integration", () => {
     });
   });
 
-  test("correlates the existing Brunch transport request", () => {
+  // Awaited: the header bag is resolved per request and may fetch a bearer
+  // token for a cross-origin endpoint before it can answer.
+  test("correlates the existing Brunch transport request", async () => {
     const options = defaultTransportOptions.current as {
-      readonly headers: () => Record<string, string>;
+      readonly headers: () => Promise<Record<string, string>>;
     };
 
-    expect(options.headers()["x-request-id"]).toMatch(
+    expect((await options.headers())["x-request-id"]).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
     );
+  });
+
+  test("sends no bearer token to a same-origin chat endpoint", async () => {
+    const options = defaultTransportOptions.current as {
+      readonly headers: () => Promise<Record<string, string>>;
+    };
+
+    // The session cookie already reaches this origin. A token here would be
+    // judged instead of the cookie, and one minted for another audience is
+    // refused, so attaching it would break the very request it means to
+    // authenticate.
+    expect(await options.headers()).not.toHaveProperty("authorization");
   });
 });
 
