@@ -72,6 +72,16 @@ test("the browser transport streams the mounted Flue agent through server and cl
       type: "finish",
       finishReason: "stop",
     });
+    expect(result.questionMarkerLive).toEqual({
+      question: "Which documentation page should we inspect next?",
+      toolCallId: "tool-question-1",
+    });
+    expect(result.questionToolVisibleLive).toBe(false);
+    expect(result.questionMarkerHistory).toEqual({
+      question: "Which documentation page should we inspect next?",
+      toolCallId: "tool-question-1",
+    });
+    expect(result.questionToolVisibleHistory).toBe(false);
     expect(result.historyUserEntryCount).toBe(1);
     expect(result.historyClientToolResultCount).toBe(1);
 
@@ -107,6 +117,7 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.interviewerToolNames).toContain("read_skill_resource");
     expect(result.interviewerToolNames).toContain("ping");
     expect(result.interviewerToolNames).toContain("readPetrinautDoc");
+    expect(result.interviewerToolNames).toContain("brunch_mark_question");
     expect(result.interviewerToolNames).not.toContain("brunch_ask");
     expect(result.interviewerToolNames).not.toContain("sweep");
     expect(result.interviewerToolNames).not.toContain("brunch_sweep");
@@ -151,10 +162,16 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(resumeResult.historyUserText).toContain(
       "Run the FE-1435 transport probe.",
     );
+    expect(resumeResult.questionMarkerHistory).toEqual({
+      question: "Which documentation page should we inspect next?",
+      toolCallId: "tool-question-1",
+    });
+    expect(resumeResult.questionToolVisibleHistory).toBe(false);
     expect(resumeResult.transcript).toContain("tool ping");
     expect(resumeResult.transcript).toContain("tool readPetrinautDoc");
     expect(resumeResult.transcript).toContain("tool activate_skill");
     expect(resumeResult.transcript).toContain("tool read_skill_resource");
+    expect(resumeResult.transcript).toContain("tool brunch_mark_question");
   } finally {
     await rm(dbDirectory, { recursive: true, force: true });
   }

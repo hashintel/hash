@@ -166,10 +166,30 @@ const markVoiceToolOrigin = (
 ): PetrinautAiMessage[] =>
   messages.map((message) =>
     message.id === messageId
-      ? {
-          ...message,
-          metadata: { ...message.metadata, source: "voice", toolCallId },
-        }
+      ? (() => {
+          const previousToolCallIds =
+            message.metadata?.source === "voice"
+              ? [
+                  ...(message.metadata.voiceToolCallIds ?? []),
+                  ...(message.metadata.toolCallId
+                    ? [message.metadata.toolCallId]
+                    : []),
+                ]
+              : [];
+          const { toolCallId: _legacyToolCallId, ...previousMetadata } =
+            message.metadata ?? {};
+
+          return {
+            ...message,
+            metadata: {
+              ...previousMetadata,
+              source: "voice",
+              voiceToolCallIds: [
+                ...new Set([...previousToolCallIds, toolCallId]),
+              ],
+            },
+          };
+        })()
       : message,
   );
 
@@ -182,7 +202,25 @@ const isPetrinautAiCommandToolName = (
   toolName: string,
 ): toolName is AiCommandActionName => toolName in aiCommandActionInputSchemas;
 
-const safelyAddToolOutput = (
+const browserToolErrorText = (error: unknown): string => {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+  if (typeof error === "string" && error.trim().length > 0) {
+    return error;
+  }
+  try {
+    const serialized: unknown = JSON.stringify(error);
+    if (typeof serialized === "string" && serialized.length > 0) {
+      return serialized;
+    }
+  } catch {
+    // Fall through to the stable fallback for cyclic values.
+  }
+  return "The browser tool failed.";
+};
+
+export const safelyAddToolOutput = (
   addToolOutput: ReturnType<
     typeof useChat<PetrinautAiMessage>
   >["addToolOutput"],
@@ -190,10 +228,16 @@ const safelyAddToolOutput = (
     ReturnType<typeof useChat<PetrinautAiMessage>>["addToolOutput"]
   >[0],
 ) => {
-  // Failures here surface in the UI as an errored tool call (with the
-  // error message on hover), so we just swallow the rejection to avoid an
-  // unhandled-promise warning.
-  void Promise.resolve(addToolOutput(params)).catch(() => {});
+  void Promise.resolve(addToolOutput(params)).catch((error: unknown) => {
+    void Promise.resolve(
+      addToolOutput({
+        errorText: browserToolErrorText(error),
+        state: "output-error",
+        tool: params.tool,
+        toolCallId: params.toolCallId,
+      }),
+    ).catch(() => {});
+  });
 };
 
 const addDynamicToolOutput = (
@@ -258,8 +302,42 @@ export const addMappedToolOutput = async ({
         latestMessages.map((message) =>
           message.id === containingMessage.id &&
           message.metadata?.source === "voice" &&
-          message.metadata.toolCallId === params.toolCallId
-            ? { ...message, metadata: previousMetadata }
+          (message.metadata.voiceToolCallIds?.includes(params.toolCallId) ===
+            true ||
+            message.metadata.toolCallId === params.toolCallId)
+            ? (() => {
+                const attributionAlreadyPresent =
+                  previousMetadata?.source === "voice" &&
+                  (previousMetadata.voiceToolCallIds?.includes(
+                    params.toolCallId,
+                  ) === true ||
+                    previousMetadata.toolCallId === params.toolCallId);
+                const voiceToolCallIds = [
+                  ...(message.metadata.voiceToolCallIds ?? []),
+                  ...(message.metadata.toolCallId
+                    ? [message.metadata.toolCallId]
+                    : []),
+                ];
+                const remainingVoiceToolCallIds = attributionAlreadyPresent
+                  ? voiceToolCallIds
+                  : voiceToolCallIds.filter(
+                      (candidateToolCallId) =>
+                        candidateToolCallId !== params.toolCallId,
+                    );
+                if (remainingVoiceToolCallIds.length === 0) {
+                  return { ...message, metadata: previousMetadata };
+                }
+                const { toolCallId: _legacyToolCallId, ...metadata } =
+                  message.metadata;
+
+                return {
+                  ...message,
+                  metadata: {
+                    ...metadata,
+                    voiceToolCallIds: [...new Set(remainingVoiceToolCallIds)],
+                  },
+                };
+              })()
             : message,
         ),
       );
@@ -372,12 +450,19 @@ const ConversationAiAssistantPanel = ({
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [interactionMode, setInteractionMode] =
     useState<PetrinautAiInputMode>("text");
+  const [voiceDockCollapsed, setVoiceDockCollapsed] = useState(false);
   const interactionModeRef = useRef<PetrinautAiInputMode>("text");
   const selectInteractionMode = useCallback(
-    (nextMode: PetrinautAiInputMode) => {
+    (
+      nextMode: PetrinautAiInputMode,
+      options: { collapseVoiceDock?: boolean } = {},
+    ) => {
       const previousMode = interactionModeRef.current;
       interactionModeRef.current = nextMode;
       setInteractionMode(nextMode);
+      setVoiceDockCollapsed(
+        nextMode === "voice" && options.collapseVoiceDock === true,
+      );
       if (previousMode === "voice" && nextMode === "text") {
         setComposerFocusRequest((request) => request + 1);
       }
@@ -530,9 +615,16 @@ const ConversationAiAssistantPanel = ({
         // invalidates the host's active generation.
         end: () => requestInputMode("text"),
         pause: () => controls.pause(),
+        ...(controls.readFullResponse
+          ? { readFullResponse: () => controls.readFullResponse?.() }
+          : {}),
         reconnect: () => controls.reconnect(),
+        ...(controls.repeatQuestion
+          ? { repeatQuestion: () => controls.repeatQuestion?.() }
+          : {}),
         resume: () => controls.resume(),
         setMicrophoneMuted: (muted) => controls.setMicrophoneMuted(muted),
+        ...(controls.takeTurn ? { takeTurn: () => controls.takeTurn?.() } : {}),
       });
 
       return () => {
@@ -1054,8 +1146,8 @@ const ConversationAiAssistantPanel = ({
       target?: "auto" | "message";
       text: string;
     }): Promise<PetrinautAiComposerSubmitTextResult> => {
-      const trimmed = text.trim();
-      if (!trimmed) {
+      const submissionText = source === "voice" ? text : text.trim();
+      if (!submissionText.trim()) {
         const submissionError = new Error(
           "AI assistant text must not be empty.",
         );
@@ -1134,7 +1226,7 @@ const ConversationAiAssistantPanel = ({
         try {
           output = mappedToolCall.mapText({
             input: mappedToolCall.input,
-            text: trimmed,
+            text: submissionText,
           });
         } catch (caught) {
           const submissionError =
@@ -1188,7 +1280,7 @@ const ConversationAiAssistantPanel = ({
       await submitMessage({
         id: messageId,
         ...(source === "voice" ? { metadata: { source } } : {}),
-        parts: [{ text: trimmed, type: "text" }],
+        parts: [{ text: submissionText, type: "text" }],
         role: "user",
       });
       return { kind: "message", messageId };
@@ -1421,12 +1513,14 @@ const ConversationAiAssistantPanel = ({
       return;
     }
 
-    selectInteractionMode(
+    const nextMode =
       initialInteractionMode === "voice" &&
-        aiAssistant.renderVoiceMode === undefined
+      aiAssistant.renderVoiceMode === undefined
         ? "text"
-        : initialInteractionMode,
-    );
+        : initialInteractionMode;
+    selectInteractionMode(nextMode, {
+      collapseVoiceDock: nextMode === "voice",
+    });
     consumedInitialInteractionModeRef.current = initialInteractionMode;
     onInitialInteractionModeConsumed?.();
   }, [
@@ -1555,6 +1649,7 @@ const ConversationAiAssistantPanel = ({
         voiceModeControlsRef.current?.pause();
         setAiAssistantOpen(false);
       }}
+      onCollapsedVoiceEnd={() => setAiAssistantOpen(false)}
       onInputChange={setInput}
       onInputModeChange={selectInteractionMode}
       onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {
@@ -1633,11 +1728,13 @@ const ConversationAiAssistantPanel = ({
         void stopComposer();
       }}
       onSubmit={submitComposerInput}
+      onVoiceDockCollapsedChange={setVoiceDockCollapsed}
       promptChips={promptChips}
       rightOffset={hasSelection ? propertiesPanelWidth + PANEL_MARGIN : 0}
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}
+      voiceDockCollapsed={voiceDockCollapsed}
       voiceMode={voiceMode}
       voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
     />

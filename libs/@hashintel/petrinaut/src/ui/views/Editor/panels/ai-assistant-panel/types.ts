@@ -50,7 +50,9 @@ type PetrinautAiUiTools = {
 /** Persisted provenance for finalized input submitted through Voice mode. */
 export type PetrinautAiMessageMetadata = {
   source: "voice";
-  /** Identifies the interactive tool output carrying the spoken answer. */
+  /** Identifies every interactive tool output carrying a spoken answer. */
+  voiceToolCallIds?: string[];
+  /** Legacy single-answer provenance retained for persisted preview messages. */
   toolCallId?: string;
 };
 
