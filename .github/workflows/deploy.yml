@@ -251,8 +251,13 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.sourcemaps) }}
       fail-fast: false
     # Fork-only check applies to PRs — the Vault role for SENTRY_AUTH_TOKEN
-    # isn't reachable from forks.
-    if: needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    # isn't reachable from forks. Only the top of a stack uploads sourcemaps:
+    # it contains every layer below it.
+    if: >-
+      needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}'
+      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      && (github.event.pull_request.stack == null
+      || github.event.pull_request.stack.position == github.event.pull_request.stack.size)
     runs-on: ubuntu-24.04
     # The environment lands in the OIDC token as a claim the Vault role binds,
     # and `main` only accepts the main branch. Picking the tier here is
@@ -318,7 +323,11 @@ jobs:
     name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     needs: [setup]
-    if: fromJSON(needs.setup.outputs.backend-images).include[0] != null
+    # Only the top of a stack builds images: it contains every layer below it.
+    if: >-
+      fromJSON(needs.setup.outputs.backend-images).include[0] != null
+      && (github.event.pull_request.stack == null
+      || github.event.pull_request.stack.position == github.event.pull_request.stack.size)
     # No concurrency: builds and their immutable pushes (GHCR by digest, ECR
     # :sha/:run) are idempotent, so parallel runs don't race — they run free.
     # Only the mutable tags need serialization: :staging in the `stage` job,

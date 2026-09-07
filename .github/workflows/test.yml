@@ -41,22 +41,9 @@ jobs:
 
       - name: Determine changed packages
         id: packages
-        env:
-          # The top of a stack contains every layer below it.
-          SKIP_PLAYWRIGHT: >-
-            ${{ github.event_name == 'pull_request'
-            && github.event.pull_request.stack != null
-            && github.event.pull_request.stack.position != github.event.pull_request.stack.size }}
         run: |
           UNIT_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:unit)
           INTEGRATION_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:integration)
-
-          if [[ "$SKIP_PLAYWRIGHT" == "true" ]]; then
-            INTEGRATION_TEST_PACKAGES=$(echo "$INTEGRATION_TEST_PACKAGES" | jq -c '
-              .name -= ["@tests/hash-playwright"]
-              | .include = [.include[] | select(.name != "@tests/hash-playwright")]
-            ')
-          fi
 
           PUBLISH_PACKAGES=[]
           while IFS= read -r file; do
@@ -222,7 +209,11 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
       fail-fast: false
-    if: needs.setup.outputs.integration-tests != '{"name":[],"include":[]}'
+    # Only the top of a stack runs integration tests: it contains every layer below it.
+    if: >-
+      needs.setup.outputs.integration-tests != '{"name":[],"include":[]}'
+      && (github.event.pull_request.stack == null
+      || github.event.pull_request.stack.position == github.event.pull_request.stack.size)
     runs-on: ubuntu-24.04
     permissions:
       contents: read
