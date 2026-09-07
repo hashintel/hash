@@ -1,50 +1,32 @@
-# Codex local environment for this repository: what to run when a worktree is
-# created, and the dev servers worth one click from the top bar.
-#
-# The same servers as `.claude/launch.json`, started by the same commands.
-# Ports are not repeated here, because an action runs a command in the
-# integrated terminal rather than being handed a port; each server picks its
-# own, and `AGENTS.md` carries the map.
-#
-# The schema below is inferred from the documented shape of the feature
-# (https://learn.chatgpt.com/docs/environments/local-environment): a setup
-# script with per-platform overrides, and actions carrying a name, a command
-# and an icon. The published documentation does not name this file or its
-# fields, so field names here are a best guess until the Codex app writes its
-# own; the app's settings pane is the authority, and this file should be
-# reconciled with whatever it produces.
+# Common HASH actions for Codex worktrees.
+name    = "HASH"
+version = 1
 
-# Run once when Codex creates a worktree, mirroring the repository's own
-# getting-started steps. `mise trust` is required once per clone, and the
-# toolchains it installs are what `yarn install` then builds against.
+# Run the repository's setup steps whenever Codex creates a worktree.
 [setup]
 script = """
 mise trust && mise install
 yarn install
 """
 
-# Petrinaut's editor, built from source, with every story in the library.
+# The launcher selects an available port and exposes it as PORT, matching the
+# autoPort behavior of .claude/launch.json.
 [[actions]]
-icon   = "book"
-name   = "Petrinaut Storybook"
-script = "yarn workspace @hashintel/petrinaut dev"
+command = "node .codex/run-with-auto-port.mjs yarn workspace @hashintel/petrinaut dev"
+icon    = "run"
+name    = "Petrinaut Storybook"
 
-# The Petrinaut demo site: the editor as an embedder mounts it.
 [[actions]]
-icon   = "browser"
-name   = "Petrinaut website"
-script = "yarn workspace @apps/petrinaut-website dev"
+command = "node .codex/run-with-auto-port.mjs yarn workspace @apps/petrinaut-website dev"
+icon    = "run"
+name    = "Petrinaut website"
 
-# The architecture docs. Goes through turbo, which regenerates the arch-docs
-# bundle the site reads before Astro starts.
 [[actions]]
-icon   = "document"
-name   = "Petrinaut architecture docs"
-script = "yarn exec turbo run dev --filter @apps/petrinaut-docs"
+command = "node .codex/run-with-auto-port.mjs yarn exec turbo run dev --filter @apps/petrinaut-docs"
+icon    = "run"
+name    = "Petrinaut architecture docs"
 
-# The checks a change has to pass before review. Slower than the dev servers,
-# so it earns its place in the bar rather than being retyped.
 [[actions]]
-icon   = "check"
-name   = "Lint and typecheck"
-script = "yarn lint:tsc && yarn lint:eslint && yarn lint:format"
+command = "yarn lint:tsc && yarn lint:eslint && yarn lint:format"
+icon    = "test"
+name    = "Lint and typecheck"
