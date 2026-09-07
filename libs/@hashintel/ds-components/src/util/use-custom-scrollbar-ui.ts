@@ -14,10 +14,7 @@ let alwaysVisible: boolean | undefined;
  * The width a plain scrollable element's scrollbar consumes in a pristine
  * `about:blank` iframe, or `undefined` when the probe cannot run. The iframe
  * document carries none of the host page's stylesheets, so the probe's
- * scrollbar is guaranteed native — probing the host document instead would
- * read the preset's own `::-webkit-scrollbar` styling, which forces a
- * space-consuming custom scrollbar and would report "always visible" for
- * everyone. Zero means overlay (auto-hiding) scrollbars.
+ * scrollbar is guaranteed native
  */
 const measureNativeScrollbarWidth = (host: HTMLElement): number | undefined => {
   const iframe = document.createElement("iframe");
@@ -49,9 +46,8 @@ const measureNativeScrollbarWidth = (host: HTMLElement): number | undefined => {
  * Record the user's scrollbar-visibility preference on the document: when
  * the system renders classic, always-visible scrollbars (macOS "Show scroll
  * bars: Always", most Windows setups), `<html>` gains the
- * `ds-scrollbars-visible` class and the preset's scrollbar styling keeps
- * thumbs visible instead of revealing them on hover. With overlay
- * (auto-hiding) scrollbars — and until this check has run — thumbs stay
+ * `ds-scrollbars-visible` class. With overlay (auto-hiding) scrollbars —
+ * and until this check has run — thumbs stay
  * hidden until the pointer is over the scroll container or it is scrolled.
  */
 const applyScrollbarVisibilityPreference = (): void => {
@@ -80,12 +76,6 @@ let scrollActivityTracked = false;
  * preset's scrollbar styling shows a marked container's thumb in the dark
  * shade — scrolling feedback, and the only reveal for inputs that never
  * hover the container (keyboard scrolling).
- *
- * The removal is a lodash `debounce` per container, cached for the
- * container's lifetime. Scroll events fire per frame while scrolling, and
- * lodash debounces by recording the call time and letting one timer re-arm
- * itself for the remaining wait, so the per-event cost stays a lookup and a
- * timestamp rather than timer churn.
  *
  * One capture-phase listener on the document sees the (non-bubbling) scroll
  * events of every element as well as of the viewport, whose events arrive
@@ -125,26 +115,17 @@ const trackScrollActivity = (): void => {
 };
 
 /**
- * Opt the document into the preset's custom scrollbar UI and set up its
- * runtime halves: the `ds-custom-scrollbars` master-switch class that the
- * scrollbar CSS is gated on (an app that never calls this keeps the
- * browser's default scrollbars), the always-visible preference class (see
- * `applyScrollbarVisibilityPreference` above), and scroll-activity tracking
- * (see `trackScrollActivity` above).
+ * Opt the document into the preset's custom scrollbar UI
  *
- * Safe to call repeatedly (each half runs once per page) and during SSR
- * (no-op). Call it — or the `useCustomScrollbarUI` hook — once from the
- * component that renders the theme scope root (the element carrying the
- * scope class passed to the preset), as Petrinaut's editor and preview roots
- * do.
+ * Safe to call repeatedly and during SSR. Call it — or the `useCustomScrollbarUI` hook
+ * — once from the component that renders the theme scope root (the element carrying the
+ * scope class passed to the preset), as Petrinaut's editor and preview roots do.
  */
 export const applyCustomScrollbarUI = (): void => {
   if (typeof document === "undefined") {
     return;
   }
 
-  // `document.body` is typed non-null but is absent while the parser is
-  // still inside <head>.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!document.body) {
     return;

@@ -116,7 +116,6 @@ const App: FunctionComponent<AppProps> = ({
   const [ssr, setSsr] = useState(true);
   const router = useRouter();
 
-  // Enables the ds-components scrollbar styling inside `.hash-ds-root` subtrees.
   useCustomScrollbarUI();
 
   useEffect(() => {

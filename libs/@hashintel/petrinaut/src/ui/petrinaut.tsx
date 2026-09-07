@@ -155,8 +155,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   navigation,
   presentationProfile = "editor",
 }) => {
-  // As the `.petrinaut-root` theme-scope root, opt into the design system's
-  // custom scrollbar UI once on mount.
   useCustomScrollbarUI();
 
   const portalContainerRef = useRef<HTMLDivElement>(null);

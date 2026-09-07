@@ -246,8 +246,6 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
 
   useEffect(() => () => instance.dispose(), [instance]);
 
-  // As the `.petrinaut-root` theme-scope root, opt into the design system's
-  // custom scrollbar UI once on mount.
   useCustomScrollbarUI();
 
   /**

@@ -15,16 +15,10 @@ export const srOnly = css.raw({
  * Thin (8px) variant of the preset's scrollbar styling, for dense scroll
  * containers (dropdown lists, textareas). WebKit engines get a narrower
  * custom gutter; engines that only style scrollbars through the standard
- * properties get `scrollbar-width: thin` instead. The `@supports` gate keeps
- * that declaration away from Chromium and Safari, where a computed
- * `scrollbar-width` other than `auto` would disable the preset's
- * `::-webkit-scrollbar-*` styling entirely.
+ * properties get `scrollbar-width: thin` instead.
  *
  * Like the preset's scrollbar rules, both halves require the runtime's
- * master-switch class on `<html>` — a component in an app that never calls
- * `useCustomScrollbarUI` keeps its browser-default scrollbar (a bare
- * `::-webkit-scrollbar` width would otherwise force a custom scrollbar with
- * no thumb styling at all).
+ * master-switch class on `<html>`
  *
  * The selector and `@supports` strings must stay literals — Panda's static
  * extraction drops computed keys. They duplicate `customScrollbarsClassName`
