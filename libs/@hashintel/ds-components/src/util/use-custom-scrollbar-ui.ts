@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import {
   alwaysVisibleScrollbarsClassName,
   customScrollbarsClassName,
+  scrollbarFadeCss,
   scrollingAttribute,
 } from "../preset/scrollbars";
 
@@ -67,6 +68,28 @@ const applyScrollbarVisibilityPreference = (): void => {
 
 /** How long the scrolling state outlives the last scroll event. */
 const scrollingIdleMs = 800;
+
+let fadeStylesheetInjected = false;
+
+/**
+ * The thumb fade needs to be injected dynamically to workaround panda css specificity issues
+ */
+const injectScrollbarFadeStylesheet = (): void => {
+  if (fadeStylesheetInjected) {
+    return;
+  }
+  fadeStylesheetInjected = true;
+
+  try {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(scrollbarFadeCss);
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+  } catch {
+    const style = document.createElement("style");
+    style.textContent = scrollbarFadeCss;
+    document.head.append(style);
+  }
+};
 
 let scrollActivityTracked = false;
 
@@ -132,6 +155,7 @@ export const applyCustomScrollbarUI = (): void => {
   }
 
   document.documentElement.classList.add(customScrollbarsClassName);
+  injectScrollbarFadeStylesheet();
   applyScrollbarVisibilityPreference();
   trackScrollActivity();
 };

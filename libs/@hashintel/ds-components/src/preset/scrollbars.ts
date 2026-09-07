@@ -15,7 +15,12 @@ export const customScrollbarsClassName = "ds-custom-scrollbars";
 export const alwaysVisibleScrollbarsClassName = "ds-scrollbars-visible";
 export const scrollingAttribute = "data-ds-scrolling";
 
+/**
+ * The thumb fade, injected by `applyCustomScrollbarUI` injected as a low (0,0,0) specificity
+ * selector outside the panda pipeline so that it loses to vendor scroll styles (Monaco, uPlot, MUI, etc)
+ */
 const thumbColor = "--ds-scrollbar-thumb";
+export const scrollbarFadeCss = `:where(:root.${customScrollbarsClassName}, :root.${customScrollbarsClassName} *) { transition: ${thumbColor} 200ms ease; }`;
 
 /**
  * Registered so the thumb reveal can animate: only a registered custom
@@ -134,7 +139,6 @@ export const createScrollbarGlobalCss = (scope?: string) => {
     },
     [inScope]: {
       [thumbColor]: "transparent",
-      transition: `${thumbColor} 200ms ease`,
       [standardScrollbarPropertiesGate]: {
         scrollbarWidth: "thin",
         scrollbarColor: `var(${thumbColor}) transparent`,
