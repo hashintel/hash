@@ -1,8 +1,10 @@
 # Git workflow: one issue, one branch, one pull request
 
-Brunch branches are managed with Graphite. The submission unit is exactly one Linear issue, one
-stacked branch, and one GitHub pull request. This is an identity and visibility rule, not a ticket
-decomposition method: the branch is still governed by its mission.
+Brunch branches are plain Git branches with GitHub pull requests, per the repository's
+`managing-git-workflow` skill; a branch that depends on another unmerged branch is managed with
+`gh stack`. The submission unit is exactly one Linear issue, one branch, and one GitHub pull
+request. This is an identity and visibility rule, not a ticket decomposition method: the branch is
+still governed by its mission.
 
 Work discovered while executing the mission stays on the branch when it serves the same imperative
 and proof. Create another issue and branch only when the work has an independently meaningful
@@ -23,16 +25,18 @@ If an active branch predates its issue, create and link the issue before submiss
 checked-out or stacked branch solely for cosmetic compliance when doing so would endanger in-flight
 work; make the relationship explicit in the PR and follow the naming rule on subsequent branches.
 
-## Git and Graphite boundary
+## Git and `gh stack` boundary
 
 Use plain `git` for local reads, staging, and commits: `status`, `diff`, `log`, `add`, and `commit`.
-Use `gt` for stack-aware operations: `create`, `checkout`, `restack`, `continue`, `abort`, `submit`,
-and `sync`. Raw branch creation or rebasing bypasses Graphite's parent metadata. Do not use
-`gh stack` in `hashintel/hash`.
+A branch based on `main` needs nothing more: create it with `git`, push it, and open the pull
+request with `gh pr create --draft`. Use `gh stack` for stack-aware operations on a branch based on
+another unmerged branch: `init`, `add`, `checkout`, `rebase`, `sync`, and `submit`. Raw rebasing of
+a stacked branch bypasses the parent and child ordering that `gh stack` records. Run `gh stack`
+with the non-interactive flags from the `gh-stack` skill.
 
-The worktree is shared infrastructure. Before switching or restacking, inspect every involved
-worktree for uncommitted or in-flight work. Never stash, reset, clean, or relocate another tenant's
-changes to make a stack operation proceed.
+The worktree is shared infrastructure. Before switching branches or rebasing a stack, inspect every
+involved worktree for uncommitted or in-flight work. Never stash, reset, clean, or relocate another
+tenant's changes to make a stack operation proceed.
 
 ## Lifecycle
 
@@ -44,11 +48,14 @@ changes to make a stack operation proceed.
    per `AGENTS.md`.
 2. After explicit approval, create its Linear issue in the `brunch-agent` project and assign the
    accountable human.
-3. Create the Graphite branch from the intended parent, or explicitly link a pre-existing branch.
+3. Create the branch from `main` with `git`, or from its parent with `gh stack add` (or
+   `gh stack init <parent> <branch>` when the parent is not in a stack yet), or explicitly link a
+   pre-existing branch.
 4. Commit the branch's work and proof without creating issues for incidental implementation steps.
 5. Fill the GitHub PR template. The visible summary states what the mission establishes and does
    not establish; Agent notes carry the full execution record.
-6. Submit with `gt submit` and verify that the Linear issue, branch, and PR link to one another.
+6. Push the branch and open the pull request with `gh pr create --draft`, or `gh stack submit
+   --auto` for a stack, and verify that the Linear issue, branch, and PR link to one another.
 7. At close, update the PR with proof results, fog-line answers, and carried flags. Update Linear
    status or comments only with explicit approval.
 

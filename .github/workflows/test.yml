@@ -18,18 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  optimize-ci:
-    runs-on: ubuntu-24.04
-    name: Optimize CI
-    outputs:
-      skip: ${{ steps.check_skip.outputs.skip }}
-    steps:
-      - name: Optimize CI
-        id: check_skip
-        uses: withgraphite/graphite-ci-action@ee395f3a78254c006d11339669c6cabddf196f72
-        with:
-          graphite_token: ${{ secrets.GRAPHITE_CI_OPTIMIZER_TOKEN }}
-
   setup:
     runs-on: ubuntu-24.04
     permissions:
@@ -56,13 +44,6 @@ jobs:
         run: |
           UNIT_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:unit)
           INTEGRATION_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:integration)
-
-          if [[ "$GITHUB_EVENT_NAME" != "merge_group" ]]; then
-            INTEGRATION_TEST_PACKAGES=$(echo "$INTEGRATION_TEST_PACKAGES" | jq -c '
-              .name -= ["@tests/hash-playwright"]
-              | .include = [.include[] | select(.name != "@tests/hash-playwright")]
-            ')
-          fi
 
           PUBLISH_PACKAGES=[]
           while IFS= read -r file; do
@@ -224,11 +205,15 @@ jobs:
 
   integration-tests:
     name: Integration
-    needs: [setup, sccache-credentials, optimize-ci]
+    needs: [setup, sccache-credentials]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
       fail-fast: false
-    if: needs.setup.outputs.integration-tests != '{"name":[],"include":[]}' && needs.optimize-ci.outputs.skip == 'false'
+    # Only the top of a stack runs integration tests: it contains every layer below it.
+    if: >-
+      needs.setup.outputs.integration-tests != '{"name":[],"include":[]}'
+      && (github.event.pull_request.stack == null
+      || github.event.pull_request.stack.position == github.event.pull_request.stack.size)
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -393,14 +378,7 @@ jobs:
   passed:
     name: Tests passed
     needs:
-      [
-        setup,
-        sccache-credentials,
-        unit-tests,
-        integration-tests,
-        publish-rust,
-        optimize-ci,
-      ]
+      [setup, sccache-credentials, unit-tests, integration-tests, publish-rust]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -414,7 +392,6 @@ jobs:
         run: |
           [[ ${{ needs.unit-tests.result }} =~ success|skipped ]]
       - name: Check integration tests
-        if: needs.optimize-ci.outputs.skip == 'false'
         run: |
           [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
       - name: Check publish results

@@ -62,7 +62,7 @@ This is an expeditionary posture, not a defensive one. Survey only until the nex
 
 ### One live mission and bounded planning surfaces
 
-One Linear issue = one Graphite branch = one GitHub PR, and only one live mission may exist on that branch. [`MISSION.md`](MISSION.md) is the sole execution authority; agents and humans implement only against it.
+One Linear issue = one Git branch = one GitHub PR, and only one live mission may exist on that branch. [`MISSION.md`](MISSION.md) is the sole execution authority; agents and humans implement only against it.
 
 Only three additional planning or control surfaces are permitted:
 
@@ -118,9 +118,9 @@ These rules exist because Mission 4 lost its design between the owner conversati
 - **Toolchain:** format TS/JSON with root `oxfmt`; lint via `lint:eslint` (Oxlint) and
   `lint:tsc` (`tsgo --noEmit`); unit tests via `vitest run`; build with Vite 8. Run tasks through
   the HASH root Yarn/Turbo workspace — add no `package.json` or lockfile here.
-- **Issue, branch, and PR lifecycle:** one Linear issue = one Graphite branch = one GitHub PR; the
+- **Issue, branch, and PR lifecycle:** one Linear issue = one Git branch = one GitHub PR; the
   branch mission remains the execution authority. Follow
-  [`docs/agents/git-workflow.md`](docs/agents/git-workflow.md) when creating, restacking, or
+  [`docs/agents/git-workflow.md`](docs/agents/git-workflow.md) when creating, rebasing, or
   submitting a branch or connecting it to an issue or PR.
 - **Linear project posture:** Brunch issues live on team `FE`, project `brunch-agent`, whose mixed
   inherited issue history is evidence and inbox rather than an authoritative plan. Follow
