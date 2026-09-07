@@ -4,7 +4,7 @@
 
 The product manager accepted the visible two-tab conversation, workpiece, and Petrinaut document path after independently operating the local fixture. The fresh Tab A run advanced from settled revision 0 with the target arc absent to settled revision 1 with the target arc visible. Tab B reopened the same fixture at revision 1, retained the arc and conversation content, and answered `What remains unresolved in this workpiece?` without another mutation or prepared-fixture delivery.
 
-The fresh run did not contain a Voice-origin message or an aborted assistant entry, so it did not independently exercise the Voice-provenance and stopped-entry presentation clauses in the full `MISSION.md` demo script. Those behaviors remain covered by the retained outer witness, not by this human run; this record does not substitute one for the other.
+The fresh run did not contain a Voice-origin message or an aborted assistant entry, so it did not independently exercise the Voice-provenance and stopped-entry presentation clauses in the full `MISSION.md` demo script. Those behaviors remain covered by the retained outer witness, not by this human run; this record does not substitute one for the other. The owner explicitly waived those two fresh-human checks, closed Mission 6 anyway, and carried them into `MISSION.next.md` as required scenarios for a later Voice, resume, or pre-release testing mission. The waiver is not a pass.
 
 ## Durable correlation
 
