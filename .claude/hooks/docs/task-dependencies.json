@@ -14,8 +14,6 @@
     "lint:tsc": [
       "@local/eslint#build"
     ],
-    "test:unit": [
-      "@local/eslint#build"
-    ]
+    "test:unit": []
   }
 }

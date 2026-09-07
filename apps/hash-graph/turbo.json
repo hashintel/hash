@@ -5,9 +5,21 @@
       "cache": false,
       "dependsOn": ["compile:release"]
     },
+    "start:healthcheck": {
+      "dependsOn": ["compile:release"]
+    },
+    "start": {
+      "dependsOn": ["start:migrate"]
+    },
     "start:test:migrate": {
       "cache": false,
       "dependsOn": ["compile"]
+    },
+    "start:test:healthcheck": {
+      "dependsOn": ["compile"]
+    },
+    "start:test": {
+      "dependsOn": ["start:test:migrate"]
     }
   }
 }

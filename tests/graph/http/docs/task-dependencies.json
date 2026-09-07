@@ -5,8 +5,7 @@
   ],
   "tasks": {
     "test:integration": [
-      "@apps/hash-graph#start:test:healthcheck",
-      "@local/status#build"
+      "@apps/hash-graph#start:test:healthcheck"
     ]
   }
 }

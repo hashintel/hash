@@ -67,10 +67,12 @@
       "build"
     ],
     "start": [
+      "@apps/hash-graph#start:healthcheck",
       "build"
     ],
     "start:healthcheck": [],
     "start:test": [
+      "@apps/hash-graph#start:test:healthcheck",
       "build"
     ],
     "start:test:healthcheck": []

@@ -1,10 +1,6 @@
 {
   "extends": ["//"],
   "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
-    },
     "test:unit": {
       "dependsOn": ["^build"]
     }

@@ -8,12 +8,13 @@
       "@local/petrinaut-python#codegen"
     ],
     "lint:ruff": [],
-    "lint:types": [],
+    "lint:types": [
+      "@local/petrinaut-python#codegen"
+    ],
     "start": [
-      "codegen"
+      "@local/petrinaut-python#codegen"
     ],
     "test:unit": [
-      "@local/petrinaut-python#codegen",
       "codegen"
     ]
   }

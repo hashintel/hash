@@ -13,9 +13,6 @@
   ],
   "tasks": {
     "build": [
-      "codegen"
-    ],
-    "codegen": [
       "@blockprotocol/graph#build",
       "@blockprotocol/type-system#build",
       "@local/advanced-types#build",
@@ -23,17 +20,41 @@
       "@local/hash-graph-client#build",
       "@local/hash-graph-sdk#build",
       "@local/hash-graph-store#build",
-      "@local/status#build"
+      "@local/status#build",
+      "codegen"
     ],
+    "codegen": [],
     "fix:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
       "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-graph-store#build",
+      "@local/status#build",
       "codegen"
     ],
     "lint:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
       "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-graph-store#build",
+      "@local/status#build",
       "codegen"
     ],
     "lint:tsc": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-graph-store#build",
+      "@local/status#build",
       "codegen"
     ],
     "test:unit": [

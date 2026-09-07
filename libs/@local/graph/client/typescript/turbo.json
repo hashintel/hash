@@ -2,6 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
+      "dependsOn": ["codegen", "^manifest"],
       "outputs": ["./dist/**"]
     },
     // The spec is read from its checked-in copy. `@rust/hash-graph-api#build:openapi`
@@ -9,7 +10,7 @@
     // here would only add a Graph API compile to every consumer's build. The manifest
     // edge keeps a change in the crate selecting this package.
     "codegen": {
-      "dependsOn": ["^build", "@rust/hash-graph-api#manifest"],
+      "dependsOn": ["@rust/hash-graph-api#manifest"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "../../api/openapi/openapi.json",

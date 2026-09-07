@@ -14,15 +14,6 @@
   ],
   "tasks": {
     "build": [
-      "codegen"
-    ],
-    "build:firefox": [
-      "codegen"
-    ],
-    "build:test": [
-      "codegen"
-    ],
-    "codegen": [
       "@blockprotocol/graph#build",
       "@blockprotocol/type-system#build",
       "@local/advanced-types#build",
@@ -30,20 +21,76 @@
       "@local/hash-graph-client#build",
       "@local/hash-graph-sdk#build",
       "@local/hash-isomorphic-utils#build",
-      "@local/status#build"
+      "@local/status#build",
+      "codegen"
+    ],
+    "build:firefox": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build",
+      "codegen"
+    ],
+    "build:test": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build",
+      "codegen"
+    ],
+    "codegen": [
+      "@local/hash-isomorphic-utils#build"
     ],
     "dev": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build",
       "codegen"
     ],
     "fix:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
       "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build",
       "codegen"
     ],
     "lint:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
       "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build",
       "codegen"
     ],
     "lint:tsc": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build",
       "codegen"
     ]
   }

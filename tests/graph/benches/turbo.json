@@ -1,0 +1,11 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "bench:integration": {
+      "dependsOn": ["^manifest", "@apps/hash-graph#start:healthcheck"]
+    },
+    "test:integration": {
+      "dependsOn": ["^manifest", "@apps/hash-graph#start:test:healthcheck"]
+    }
+  }
+}

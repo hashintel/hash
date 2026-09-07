@@ -42,8 +42,6 @@
     "start:test:migrate": [
       "compile"
     ],
-    "test:unit": [
-      "@local/status#build"
-    ]
+    "test:unit": []
   }
 }

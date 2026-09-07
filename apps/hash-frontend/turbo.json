@@ -2,14 +2,37 @@
   "extends": ["//"],
   "tasks": {
     "codegen": {
-      // Outputs of GraphQL generation
+      // Outputs of GraphQL generation and of `panda cssgen`
       "outputs": ["./src/**/*.gen.*"],
-      "dependsOn": ["^build"]
+      // graphql-codegen loads its config from the isomorphic utils' dist, and the Panda
+      // config loads both presets from their packages' dist.
+      "dependsOn": [
+        "@local/hash-isomorphic-utils#build",
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut#build"
+      ]
     },
     "build": {
       // "outputs": ["./.next/**"],
       "cache": false,
       "dependsOn": ["^build", "codegen"]
+    },
+    // The image copies the repository and generates and builds inside it, so the host
+    // only contributes sources.
+    "build:docker": {
+      "dependsOn": ["^manifest"]
+    },
+    "dev": {
+      "dependsOn": ["codegen", "^build"]
+    },
+    "test:unit": {
+      "dependsOn": ["codegen", "^build"]
+    },
+    "start": {
+      "dependsOn": ["build", "@apps/hash-api#start:healthcheck"]
+    },
+    "start:test": {
+      "dependsOn": ["build", "@apps/hash-api#start:test:healthcheck"]
     }
   }
 }

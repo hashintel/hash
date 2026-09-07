@@ -14,6 +14,9 @@
     "codegen": {
       "outputs": ["src/routeTree.gen.ts"]
     },
+    "dev": {
+      "dependsOn": ["codegen", "examples:generate", "^build"]
+    },
     "examples:generate": {
       "dependsOn": ["^build"],
       "inputs": [

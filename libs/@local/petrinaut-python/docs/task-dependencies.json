@@ -8,9 +8,10 @@
       "@hashintel/petrinaut-cli#codegen"
     ],
     "lint:ruff": [],
-    "lint:types": [],
+    "lint:types": [
+      "codegen"
+    ],
     "test:unit": [
-      "@hashintel/petrinaut-cli#build",
       "codegen"
     ]
   }

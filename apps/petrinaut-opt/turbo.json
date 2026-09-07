@@ -2,6 +2,9 @@
   "extends": ["//"],
   "tasks": {
     "codegen": {
+      // The schema is generated from the app, which imports the models that
+      // `petrinaut-python` generates.
+      "dependsOn": ["@local/petrinaut-python#codegen"],
       "inputs": [
         "pyproject.toml",
         "uv.lock",
@@ -11,6 +14,17 @@
       ],
       "outputs": ["openapi/openapi.json"],
       "passThroughEnv": ["UV_CACHE_DIR"]
+    },
+    "start": {
+      "dependsOn": ["@local/petrinaut-python#codegen"]
+    },
+    // Type checking resolves the generated models of `petrinaut-python`, not the
+    // schema this package generates from itself.
+    "lint:types": {
+      "dependsOn": ["@local/petrinaut-python#codegen"]
+    },
+    "test:unit": {
+      "dependsOn": ["codegen", "^manifest"]
     }
   }
 }

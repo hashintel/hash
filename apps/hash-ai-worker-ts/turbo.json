@@ -2,7 +2,23 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": ["./dist/**"]
+      "outputs": ["./dist/**"],
+      "dependsOn": ["^build"]
+    },
+    "build:docker": {
+      "dependsOn": ["^manifest"]
+    },
+    "dev": {
+      "dependsOn": ["^build"]
+    },
+    "test:unit": {
+      "dependsOn": ["^build"]
+    },
+    "start": {
+      "dependsOn": ["build", "@apps/hash-graph#start:healthcheck"]
+    },
+    "start:test": {
+      "dependsOn": ["build", "@apps/hash-graph#start:test:healthcheck"]
     }
   }
 }

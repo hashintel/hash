@@ -7,24 +7,27 @@
   ],
   "tasks": {
     "build": [
+      "@local/eslint#build",
       "codegen"
     ],
     "build:buildinfo": [
       "codegen"
     ],
     "build:ladle": [
+      "@local/eslint#build",
       "codegen"
     ],
     "build:lib": [
+      "@local/eslint#build",
       "codegen"
     ],
-    "codegen": [
-      "@local/eslint#build"
-    ],
+    "codegen": [],
     "dev": [
+      "@local/eslint#build",
       "codegen"
     ],
     "dev:ladle": [
+      "@local/eslint#build",
       "codegen"
     ],
     "fix": [
@@ -42,6 +45,7 @@
       "codegen"
     ],
     "lint:tsc": [
+      "@local/eslint#build",
       "codegen"
     ],
     "preview:ladle": [
