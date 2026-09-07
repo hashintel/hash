@@ -92,6 +92,7 @@ describe("selectRunbookWorkpiece", () => {
       authorship: "test-authored",
       content: "# Prepared",
       fixtureId: "crew-reservation-v1",
+      revision: 0,
       sourceKind: "prepared-signal",
       sourceMessageId: "prepared",
     });
@@ -127,6 +128,7 @@ describe("selectRunbookWorkpiece", () => {
     ).toMatchObject({
       authorship: "model-produced",
       content: "# Revision two",
+      revision: 2,
       sourceKind: "assistant",
       sourceMessageId: "revision-2",
     });
@@ -143,6 +145,7 @@ describe("selectRunbookWorkpiece", () => {
     ).toMatchObject({
       authorship: "test-authored",
       content: "# Prepared",
+      revision: 0,
       sourceMessageId: "prepared",
     });
   });

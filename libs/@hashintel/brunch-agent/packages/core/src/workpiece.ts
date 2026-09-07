@@ -56,6 +56,12 @@ export interface SelectedRunbookWorkpiece {
   readonly authorship: "model-produced" | "test-authored";
   readonly content: string;
   readonly fixtureId?: string;
+  /**
+   * Position in the append-only revision sequence, derived from the history
+   * itself rather than from whoever observed it: a prepared source is always
+   * revision zero and each later eligible assistant workpiece adds one.
+   */
+  readonly revision: number;
   readonly sourceKind: "assistant" | "prepared-signal";
   readonly sourceMessage: WorkpieceHistoryMessage;
   readonly sourceMessageId: string;
@@ -97,7 +103,10 @@ const isPreparedWorkpieceMessage = (
 
 const selectedFrom = (
   message: WorkpieceHistoryMessage,
-  source: Pick<SelectedRunbookWorkpiece, "authorship" | "sourceKind">,
+  source: Pick<
+    SelectedRunbookWorkpiece,
+    "authorship" | "revision" | "sourceKind"
+  >,
 ): SelectedRunbookWorkpiece | undefined => {
   const content = latestRunbookIrBlock(textFrom(message));
   if (content === undefined) return undefined;
@@ -177,6 +186,7 @@ export const selectRunbookWorkpiece = (
     if (message === preparedMessage) {
       const preparedWorkpiece = selectedFrom(message, {
         authorship: preparedWorkpieceAuthorship,
+        revision: 0,
         sourceKind: "prepared-signal",
       });
       if (preparedWorkpiece === undefined) {
@@ -203,6 +213,7 @@ export const selectRunbookWorkpiece = (
     }
     const assistantWorkpiece = selectedFrom(message, {
       authorship: "model-produced",
+      revision: selected === undefined ? 0 : selected.revision + 1,
       sourceKind: "assistant",
     });
     if (assistantWorkpiece !== undefined) selected = assistantWorkpiece;

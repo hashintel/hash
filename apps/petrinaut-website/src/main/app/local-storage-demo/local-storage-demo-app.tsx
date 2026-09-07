@@ -55,9 +55,9 @@ import {
 } from "./brunch-panel-transport";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
+import { isCrewReservationFixtureSelected } from "./local-storage-demo-search";
 import {
   crewReservationDocumentId,
-  isCrewReservationFixtureSelected,
   preparedCrewReservationNet,
 } from "./prepared-crew-reservation-fixture";
 import {
@@ -82,6 +82,7 @@ import {
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
+import type { LocalStorageDemoSearch } from "./local-storage-demo-search";
 
 const createDefaultStoredSDCPN = (): SDCPNInLocalStorage => ({
   id: "net-1",
@@ -313,7 +314,7 @@ export const LocalStorageDemoApp = ({
     search: SharedExampleSearch,
     history: "push" | "replace",
   ) => void;
-  search: SharedExampleSearch;
+  search: LocalStorageDemoSearch;
 }) => {
   const sentryFeedbackAction = useSentryFeedbackAction();
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
@@ -350,9 +351,14 @@ export const LocalStorageDemoApp = ({
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
   const { settledManifest, setSettledManifest } =
     useCrewReservationSettledManifestStorage();
-  const crewReservationFixtureSelected = isCrewReservationFixtureSelected(
-    window.location.search,
-  );
+  /**
+   * The fixture is only reachable when Brunch is configured: without an
+   * endpoint there is no Flue client to prepare the conversation, so the URL
+   * falls back to the ordinary demo rather than a banner stuck on preparing.
+   */
+  const crewReservationFixtureSelected =
+    brunchPreviewConfig.isBrunchConfigured &&
+    isCrewReservationFixtureSelected(search);
   const crewReservationBundle = crewReservationFixtureSelected
     ? resolveCrewReservationBundle({
         fallbackDocument: preparedCrewReservationStoredSDCPN,
@@ -747,7 +753,9 @@ export const LocalStorageDemoApp = ({
           />,
           document.body,
         )}
-      {!preparedFixtureIsCurrent && <PreparedFixtureSelector />}
+      {brunchPreviewConfig.isBrunchConfigured && !preparedFixtureIsCurrent && (
+        <PreparedFixtureSelector />
+      )}
       <CommandRegistryProvider>
         <WalkthroughProvider steps={walkthroughSteps}>
           <Petrinaut

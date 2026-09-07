@@ -5,6 +5,7 @@ import {
   normalizePetrinautAiToolInput,
 } from "@hashintel/petrinaut-core/ai";
 
+import { brunchClientToolNames } from "./brunch-client-tools";
 import {
   crewReservationConversationId,
   crewReservationFixtureClientToolNames,
@@ -18,9 +19,16 @@ import type { CrewReservationSettledManifest } from "./crew-reservation-settled-
 import type { FlueClient } from "@flue/sdk";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
-const clientToolNames: ReadonlySet<string> = new Set(
-  crewReservationFixtureClientToolNames,
-);
+/**
+ * The fixture adds its canonical Petrinaut read and least mutation to the
+ * browser catalog rather than replacing it: the SDCPN plugin mounts the docs
+ * reader in every mode, so a docs read must still be answered here or the
+ * turn stalls awaiting a client result that never comes.
+ */
+const clientToolNames: ReadonlySet<string> = new Set([
+  ...brunchClientToolNames,
+  ...crewReservationFixtureClientToolNames,
+]);
 
 export const crewReservationFixtureConfiguration = {
   clientToolNames,

@@ -1,15 +1,17 @@
 import { describe, expect, test } from "vitest";
 
+import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
+
 import {
   crewReservationFixtureClientToolNames,
   crewReservationFixtureId,
   dispatchCrewPlaceId,
-  isCrewReservationFixtureSelected,
   preparedCrewReservationDelivery,
   preparedCrewReservationNet,
   preparedCrewReservationWorkpiece,
   startFinalInspectionTransitionId,
 } from "./prepared-crew-reservation-fixture";
+import { crewReservationFixtureConfiguration } from "./use-crew-reservation-fixture-session";
 
 const transitionById = (transitionId: string) => {
   const transition = preparedCrewReservationNet.transitions.find(
@@ -27,6 +29,17 @@ describe("prepared crew-reservation fixture", () => {
       "getLatestNetDefinition",
       "addArc",
     ]);
+  });
+
+  test("keeps the always-mounted browser tools answerable in fixture mode", () => {
+    for (const toolName of [
+      readPetrinautDocToolName,
+      ...crewReservationFixtureClientToolNames,
+    ]) {
+      expect(
+        crewReservationFixtureConfiguration.clientToolNames.has(toolName),
+      ).toBe(true);
+    }
   });
 
   test("has the batch flow and crew return but omits the target input arc", () => {
@@ -64,17 +77,5 @@ describe("prepared crew-reservation fixture", () => {
       authorship: "test-authored",
       claimBoundary: "prepared-not-model-produced",
     });
-  });
-
-  test("selects only the explicit stable query value", () => {
-    expect(
-      isCrewReservationFixtureSelected(
-        `?brunch-fixture=${crewReservationFixtureId}`,
-      ),
-    ).toBe(true);
-    expect(
-      isCrewReservationFixtureSelected("?brunch-fixture=another-fixture"),
-    ).toBe(false);
-    expect(isCrewReservationFixtureSelected("")).toBe(false);
   });
 });
