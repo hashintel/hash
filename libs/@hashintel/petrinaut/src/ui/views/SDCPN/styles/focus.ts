@@ -20,7 +20,7 @@ import type { CanvasArcFocus } from "../canvas-focus";
  * How long the pointer has to rest before the neighbourhood lights up.
  * Sweeping across the canvas passes over nodes without any of them flashing.
  */
-export const HOVER_FOCUS_DELAY_MS = 150;
+export const HOVER_FOCUS_DELAY_MS = 100;
 
 const FOCUSED_COLOR = "var(--colors-neutral-s100)";
 const UPSTREAM_COLOR = "var(--colors-blue-s90)";
@@ -31,12 +31,15 @@ const DOWNSTREAM_COLOR = "var(--colors-orange-s90)";
  * composes this, and it is the only place a node's outline is set: two styles
  * setting `outline` would resolve by stylesheet order rather than intent.
  *
- * The ring fades over 200ms, so a neighbourhood arrives and leaves as a fade
- * rather than a switch.
+ * The ring is offset clear of the node's own border, so it reads as a band
+ * around the node rather than a thickening of the border it surrounds. It
+ * fades over 200ms, so a neighbourhood arrives and leaves as a fade rather
+ * than a switch.
  */
 export const nodeFocusStyle = cva({
   base: {
     outline: "[4px solid transparent]",
+    outlineOffset: "[2px]",
     transition:
       "[outline-color 200ms ease, border-color 200ms ease, color 200ms ease, box-shadow 200ms ease]",
   },
@@ -45,36 +48,46 @@ export const nodeFocusStyle = cva({
       none: {},
       focused: {
         outline:
-          "[4px solid color-mix(in oklab, var(--colors-neutral-s100), transparent 55%)]",
+          "[4px solid color-mix(in oklab, var(--colors-neutral-s100), transparent 25%)]",
       },
       upstream: {
         outline:
-          "[4px solid color-mix(in oklab, var(--colors-blue-s90), transparent 55%)]",
+          "[4px solid color-mix(in oklab, var(--colors-blue-s90), transparent 25%)]",
       },
       downstream: {
         outline:
-          "[4px solid color-mix(in oklab, var(--colors-orange-s90), transparent 55%)]",
+          "[4px solid color-mix(in oklab, var(--colors-orange-s90), transparent 25%)]",
       },
       bidirectional: {
         outline:
-          "[4px solid color-mix(in oklab, var(--colors-purple-s90), transparent 55%)]",
+          "[4px solid color-mix(in oklab, var(--colors-purple-s90), transparent 25%)]",
       },
       /**
-       * Only the border and the label recede, and only by one step — a node
-       * keeps its fill, its shape and a readable label, so the rest of the net
-       * can still be read while a neighbourhood is highlighted.
+       * Border and label recede, the fill and the token count do not: the rest
+       * of the net stays readable, and stays put, while a neighbourhood is
+       * highlighted.
        */
-      muted: { borderColor: "neutral.s70", color: "neutral.s110" },
+      muted: { borderColor: "neutral.s50", color: "neutral.s95" },
     },
   },
   defaultVariants: { focus: "none" },
 });
 
 /**
- * An arc's stroke and arrowhead colour for its focus role. Arcs away from the
- * neighbourhood keep their token type's colour, only lighter.
+ * An arc's own stroke and arrowhead colour. An arc in the neighbourhood keeps
+ * its token type's colour and takes the role's colour as a casing around it,
+ * the way a node keeps its border inside its ring. Arcs away from the
+ * neighbourhood keep that colour too, only lighter.
  */
-export const arcFocusColor = (focus: CanvasArcFocus, color: string): string => {
+export const arcFocusColor = (focus: CanvasArcFocus, color: string): string =>
+  focus === "muted" ? `color-mix(in oklab, white 50%, ${color})` : color;
+
+/**
+ * The colour of the casing drawn around an arc's stroke, or undefined for an
+ * arc that gets none. Only arcs at the focused item are cased, so the extra
+ * paths track the neighbourhood rather than the net.
+ */
+export const arcHaloColor = (focus: CanvasArcFocus): string | undefined => {
   switch (focus) {
     case "focused":
       return FOCUSED_COLOR;
@@ -83,8 +96,10 @@ export const arcFocusColor = (focus: CanvasArcFocus, color: string): string => {
     case "outgoing":
       return DOWNSTREAM_COLOR;
     case "muted":
-      return `color-mix(in oklab, white 35%, ${color})`;
     case "none":
-      return color;
+      return undefined;
   }
 };
+
+/** How far the casing stands out either side of the arc it wraps. */
+export const ARC_HALO_OVERHANG = 3;

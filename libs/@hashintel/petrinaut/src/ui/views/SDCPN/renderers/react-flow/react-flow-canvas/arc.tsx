@@ -11,6 +11,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
+import { ARC_HALO_OVERHANG, arcHaloColor } from "../../../styles/focus";
 
 import type { ArcData, ArcEdgeType } from "./react-flow-types";
 
@@ -325,6 +326,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   const strokeColor = style?.stroke ?? "#b1b1b7";
   const arcType = data?.kind;
   const strokeDasharray = getArcStrokeDasharray(arcType);
+  const haloColor = arcHaloColor(data?.focus ?? "none");
 
   const tickMarks = arcType === "inhibitor" ? computeArcTickMarks(arcPath) : [];
   const markerEndOverride =
@@ -386,6 +388,20 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
           id={`${id}-selection`}
           path={arcPath}
           style={selectionIndicatorStyle}
+        />
+      )}
+
+      {/* Focus casing: the role's colour around the arc's own stroke, drawn
+          beneath it so the arc keeps its token type's colour. */}
+      {haloColor !== undefined && (
+        <path
+          d={arcPath}
+          fill="none"
+          stroke={haloColor}
+          strokeWidth={BASE_STROKE_WIDTH + ARC_HALO_OVERHANG * 2}
+          strokeDasharray={strokeDasharray}
+          strokeLinecap={arcType === "read" ? "round" : "butt"}
+          style={{ pointerEvents: "none" }}
         />
       )}
 

@@ -2,7 +2,7 @@ import { MarkerType } from "@xyflow/react";
 import { use } from "react";
 
 import { ExecutionFrameSourceContext } from "../../../../../../react/execution-frame/context";
-import { arcFocusColor } from "../../../styles/focus";
+import { arcFocusColor, arcHaloColor } from "../../../styles/focus";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 
 import type { SimulationFrameReader } from "../../../../../../react/simulation/context";
@@ -47,6 +47,10 @@ const toReactFlowEdge = (
   frameReader: SimulationFrameReader | null,
 ): ArcEdgeType => {
   const color = arcFocusColor(arc.focus, arc.color);
+  // The casing cannot wrap the arrowhead, so the arrowhead takes its colour:
+  // the cased arc then runs into a head of the same colour rather than
+  // stopping at a grey one.
+  const headColor = arcHaloColor(arc.focus) ?? color;
   return {
     id: arc.id,
     source: arc.sourceId,
@@ -61,7 +65,7 @@ const toReactFlowEdge = (
     selected: arc.selected,
     markerEnd: {
       type: MarkerType.ArrowClosed,
-      color,
+      color: headColor,
       width: ARC_MARKER_SIZE,
       height: ARC_MARKER_SIZE,
     },
@@ -73,6 +77,7 @@ const toReactFlowEdge = (
       kind: arc.kind,
       weight: arc.weight,
       selected: arc.selected,
+      focus: arc.focus,
       frame: frameReader?.getTransitionState(arc.transitionId) ?? null,
     },
   };

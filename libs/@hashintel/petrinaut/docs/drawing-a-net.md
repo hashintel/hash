@@ -147,7 +147,7 @@ Selecting a node, or resting the pointer on one, rings it and colours everything
 | **Orange** | Fed by the node -- the places it produces into, or the transitions draining it. |
 | **Purple** | Both at once, so tokens cycle through the node.                                 |
 
-The arcs take the same colours, so you can read which way tokens flow without tracing arrowheads. Hovering an arc rings the node at each of its ends the same way.
+The arcs joining them are cased in the same colours, keeping their own colour inside the casing, so you can read which way tokens flow without tracing arrowheads. Hovering an arc rings the node at each of its ends the same way.
 
 Nodes further away keep their fill and token counts and only soften their border, so the rest of the net stays readable. The highlight follows the pointer once it comes to rest, not on the way past, and fades in and out rather than switching -- moving across a crowded net does not make it flicker. A selected node stays ringed while you point at something else.
 
