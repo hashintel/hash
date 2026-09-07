@@ -294,19 +294,21 @@ const applyPetrinautAiCommand = async ({
   }
 };
 
-export const AiAssistantPanel = ({
-  aiAssistant,
-  initialInteractionMode,
-  initialMessage,
-  onInitialInteractionModeConsumed,
-  onInitialMessageConsumed,
-}: {
+interface AiAssistantPanelProps {
   aiAssistant: PetrinautAiAssistant;
   initialInteractionMode?: PetrinautAiInputMode | null;
   initialMessage?: string | null;
   onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
-}) => {
+}
+
+const ConversationAiAssistantPanel = ({
+  aiAssistant,
+  initialInteractionMode,
+  initialMessage,
+  onInitialInteractionModeConsumed,
+  onInitialMessageConsumed,
+}: AiAssistantPanelProps) => {
   // The wrapped AI transport closes over several refs (diagnostics version,
   // pending mutation version, diagnostics context) so the transport's
   // `sendMessages` can read the latest values when it eventually runs. React
@@ -1473,3 +1475,11 @@ export const AiAssistantPanel = ({
     />
   );
 };
+
+/** Replace every conversation-owned hook and callback together when identity changes. */
+export const AiAssistantPanel = (props: AiAssistantPanelProps) => (
+  <ConversationAiAssistantPanel
+    key={props.aiAssistant.conversationId ?? "generated-conversation"}
+    {...props}
+  />
+);
