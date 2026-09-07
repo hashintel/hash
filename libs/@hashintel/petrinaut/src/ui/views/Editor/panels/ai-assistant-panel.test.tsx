@@ -1754,6 +1754,129 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(screen.queryByText("Response stopped")).toBeNull();
   });
 
+  test("withholds the client-tool follow-up when a durable Stop lands after a tool-calls step", async () => {
+    let streamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            streamController = controller;
+            controller.enqueue({ type: "start-step" });
+            controller.enqueue({ type: "text-start", id: "preamble" });
+            controller.enqueue({
+              type: "text-delta",
+              id: "preamble",
+              delta: "Checking the net",
+            });
+          },
+        }),
+      ),
+    );
+    const requestStop = vi.fn(async () => {
+      // The step settles as a tool-calls step while the durable Stop is in
+      // flight, so Flue has nothing left to abort and reports already-settled.
+      streamController?.enqueue({ type: "text-end", id: "preamble" });
+      streamController?.enqueue({
+        type: "tool-input-available",
+        toolCallId: "net-read-1",
+        toolName: "getLatestNetDefinition",
+        input: {},
+      });
+      streamController?.enqueue({ type: "finish-step" });
+      streamController?.enqueue({ type: "finish", finishReason: "tool-calls" });
+      streamController?.close();
+      return "already-settled" as const;
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        requestStop,
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      initialMessage: "Stop me mid-tool",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await screen.findByText("Checking the net");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+
+    await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
+    expect(await screen.findByText("Response stopped")).not.toBeNull();
+    // Let any automatic follow-up the SDK might schedule drain first.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(sendMessages).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Send message" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+  });
+
+  test("keeps hosts seeing a busy conversation between a tool-calls step and its follow-up", async () => {
+    const observedStatuses: PetrinautAiComposerControlContext["status"][] = [];
+    let requestCount = 0;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() => {
+        requestCount += 1;
+        return Promise.resolve(
+          streamChunks(
+            requestCount === 1
+              ? [
+                  ...textChunks("preamble", "Checking the net"),
+                  {
+                    type: "tool-input-available",
+                    toolCallId: "net-read-1",
+                    toolName: "getLatestNetDefinition",
+                    input: {},
+                  },
+                  { type: "finish-step" },
+                  { type: "finish", finishReason: "tool-calls" },
+                ]
+              : [
+                  ...textChunks("reply", "The net has one place"),
+                  { type: "finish-step" },
+                  { type: "finish", finishReason: "stop" },
+                ],
+          ),
+        );
+      }),
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderComposerControl: (context) => {
+          observedStatuses.push(context.status);
+          return null;
+        },
+        transport,
+      },
+      initialMessage: "Read the net",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await screen.findByText("The net has one place");
+
+    // The SDK reports `ready` between the tool-calls step and the follow-up it
+    // sends automatically; a host must not read that gap as the turn's end.
+    const firstBusy = observedStatuses.findIndex(
+      (status) => status === "submitted" || status === "streaming",
+    );
+    const lastBusy = observedStatuses.findLastIndex(
+      (status) => status === "submitted" || status === "streaming",
+    );
+    expect(firstBusy).toBeGreaterThanOrEqual(0);
+    expect(
+      observedStatuses
+        .slice(firstBusy, lastBusy + 1)
+        .filter((status) => status === "ready"),
+    ).toEqual([]);
+    expect(observedStatuses.at(-1)).toBe("ready");
+  });
+
   test("does not carry an idle host stop into a later incidental abort", async () => {
     let requestCount = 0;
     const transport: PetrinautAiTransport = {

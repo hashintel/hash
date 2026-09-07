@@ -10,7 +10,11 @@ export type { PetrinautAiVoiceSessionPhase, PetrinautAiVoiceSessionState };
 /** The active way a user is providing input to the AI assistant. */
 export type PetrinautAiInputMode = "text" | "voice";
 
-/** Current lifecycle state of Petrinaut's AI SDK conversation. */
+/**
+ * Current lifecycle state of Petrinaut's conversation. Stays busy across the
+ * automatic follow-up to a step that ended in client tool calls, so hosts
+ * never read the SDK's momentary `ready` between them as the end of a turn.
+ */
 export type PetrinautAiComposerStatus =
   | "submitted"
   | "streaming"

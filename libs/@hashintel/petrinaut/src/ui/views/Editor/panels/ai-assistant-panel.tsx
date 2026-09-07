@@ -58,6 +58,7 @@ import {
 import type { PetrinautAiAssistant } from "../../../petrinaut";
 import type {
   PetrinautAiComposerControlContext,
+  PetrinautAiComposerStatus,
   PetrinautAiComposerSubmitTextResult,
   PetrinautAiInputMode,
   PetrinautAiVoiceModeContext,
@@ -445,6 +446,11 @@ export const AiAssistantPanel = ({
   // response. Cleared whenever a new turn begins so it never lingers across
   // sends or a fresh conversation.
   const [stopped, setStopped] = useState(false);
+  // The SDK reports `ready` between a step that ended in client tool calls and
+  // the follow-up it sends automatically. That gap is not the end of the turn,
+  // so hosts keep seeing a busy conversation until the follow-up starts or a
+  // Stop withholds it.
+  const [continuationPending, setContinuationPending] = useState(false);
 
   const requestInputMode = useCallback(
     (nextMode: PetrinautAiInputMode) => {
@@ -525,7 +531,7 @@ export const AiAssistantPanel = ({
     addToolOutput,
     sendMessage,
     setMessages,
-    status,
+    status: chatStatus,
     stop,
   } = useChat<PetrinautAiMessage>({
     ...(aiAssistant.conversationId === undefined
@@ -533,7 +539,28 @@ export const AiAssistantPanel = ({
       : { id: aiAssistant.conversationId }),
     messages: aiAssistant.messages,
     transport: diagnosticsTransportState.transport,
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    sendAutomaticallyWhen: ({ messages: currentMessages }) => {
+      if (
+        !lastAssistantMessageIsCompleteWithToolCalls({
+          messages: currentMessages,
+        })
+      ) {
+        return false;
+      }
+      if (!stopRequestedRef.current) {
+        // Left pending until the follow-up's own status change lands, so hosts
+        // never observe the `ready` between this check and that request.
+        return true;
+      }
+      // Stop was pressed during the step that just ended in client tool
+      // calls. Flue had nothing left to abort once that step settled, so
+      // withholding the follow-up is what makes the Stop real.
+      stopRequestedRef.current = false;
+      setContinuationPending(false);
+      setStreamError(null);
+      setStopped(true);
+      return false;
+    },
     // Without throttling, every reasoning-delta / text-delta chunk triggers a
     // full re-render of `AiAssistantContents`, and the SDK `structuredClone`s
     // the active message on each one. For a long markdown reply that locks
@@ -548,8 +575,18 @@ export const AiAssistantPanel = ({
       pendingSubmissionRecoveryRef.current = null;
       recoverPendingSubmission?.();
     },
-    onFinish: ({ messages: finishedMessages, isAbort }) => {
+    onFinish: ({ messages: finishedMessages, isAbort, isError }) => {
       pendingSubmissionRecoveryRef.current = null;
+      // A step that ended in client tool calls is followed automatically by
+      // the SDK unless it was aborted or errored; that follow-up is still part
+      // of this turn.
+      const followUpPending =
+        !isAbort &&
+        !isError &&
+        lastAssistantMessageIsCompleteWithToolCalls({
+          messages: finishedMessages,
+        });
+      setContinuationPending(followUpPending);
       if (isAbort) {
         // The SDK fires `onFinish` for every abort. Only act on a deliberate
         // Stop — clearing the chat or unmounting also aborts, and those paths
@@ -573,13 +610,19 @@ export const AiAssistantPanel = ({
         return;
       }
 
+      aiAssistant.onMessages?.(finishedMessages);
+      if (followUpPending) {
+        // The turn is not over: a Stop pressed during this step must still be
+        // able to withhold the follow-up, so its intent survives this step.
+        return;
+      }
+
       // A response that runs to completion clears any pending Stop intent so a
       // later incidental abort can't replay the deliberate-stop path, and
       // drops a stale "Response stopped" note left over from an earlier turn.
       stopRequestedRef.current = false;
       setStreamError(null);
       setStopped(false);
-      aiAssistant.onMessages?.(finishedMessages);
     },
     onToolCall: async ({ toolCall }) => {
       if (!instance) {
@@ -769,6 +812,9 @@ export const AiAssistantPanel = ({
       });
     },
   });
+
+  const status: PetrinautAiComposerStatus =
+    continuationPending && chatStatus === "ready" ? "submitted" : chatStatus;
 
   useEffect(() => {
     if (
@@ -1330,6 +1376,7 @@ export const AiAssistantPanel = ({
         setInput("");
         setStreamError(null);
         setStopped(false);
+        setContinuationPending(false);
         setMessages([]);
         aiAssistant.onMessages?.([]);
         aiAssistant.onClearMessages?.();
