@@ -1,7 +1,42 @@
-import { sva } from "@hashintel/ds-helpers/css";
+import { css, cva, sva } from "@hashintel/ds-helpers/css";
 
 import { formSizes } from "../../util/form-size.recipe";
 import { formWidths } from "../../util/form-width.recipe";
+
+// The default suffix content of a multi select item, swapped out for the
+// "Only" button while the item is hovered
+export const suffixDefaultContentClass = css({
+  "[data-part='item']:hover &": {
+    display: "none",
+  },
+});
+
+export const onlyButtonRecipe = cva({
+  base: {
+    display: "none",
+    cursor: "pointer",
+    fontWeight: "[500]",
+    _hover: {
+      textDecoration: "underline",
+    },
+    "[data-part='item']:hover &": {
+      display: "inline-flex",
+    },
+  },
+  variants: {
+    tone: {
+      neutral: {
+        color: "neutral.s110",
+        _hover: { color: "neutral.s125" },
+      },
+      brand: {
+        color: "blue.s100",
+        _hover: { color: "blue.s110" },
+      },
+    },
+  },
+  defaultVariants: { tone: "neutral" },
+});
 
 export const selectRecipe = sva({
   slots: [
@@ -49,7 +84,18 @@ export const selectRecipe = sva({
         opacity: "1",
         visibility: "visible",
       },
+      // Visibility and opacity are split across the two focus rules: focus-within
+      // drives visibility so the clear stays keyboard-reachable (Chromium's tab
+      // navigation honours :focus-within-dependent visibility but skips elements
+      // revealed via :has(:focus-visible)), while opacity — the actual visual
+      // reveal — only applies for keyboard (:focus-visible) focus.
       "&:focus-within [data-part='clear']": {
+        visibility: "visible",
+      },
+      "&:has(:focus-visible) [data-part='clear']": {
+        opacity: "1",
+      },
+      "&:has([data-part='trigger'][data-state='open']) [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
       },
@@ -391,6 +437,17 @@ export const selectRecipe = sva({
     },
     willClear: { true: {} },
     hasPrefix: { true: {} },
+    // Multi-select items need the same inter-item gap as Menu lists so that
+    // adjacent highlight-style selections read as separate rows
+    multiple: {
+      true: {
+        list: {
+          "& [data-part='item'] + [data-part='item']": {
+            marginTop: "[1px]",
+          },
+        },
+      },
+    },
     connectsRight: {
       true: {
         wrapper: {

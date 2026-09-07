@@ -7,7 +7,7 @@
   ],
   "tasks": {
     "build": [
-      "@local/hash-graph-store#codegen"
+      "codegen"
     ],
     "codegen": [
       "@blockprotocol/type-system#build",
@@ -15,7 +15,7 @@
       "@rust/hash-graph-store#build:types"
     ],
     "lint:tsc": [
-      "@local/hash-graph-store#codegen"
+      "codegen"
     ]
   }
 }

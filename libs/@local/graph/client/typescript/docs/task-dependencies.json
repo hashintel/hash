@@ -5,10 +5,8 @@
   ],
   "tasks": {
     "build": [
-      "@local/hash-graph-client#codegen"
+      "codegen"
     ],
-    "codegen": [
-      "@local/status#build"
-    ]
+    "codegen": []
   }
 }

@@ -7,54 +7,54 @@
   ],
   "tasks": {
     "build": [
-      "@hashintel/ds-components#codegen"
+      "codegen"
     ],
     "build:buildinfo": [
-      "@hashintel/ds-components#codegen"
+      "codegen"
     ],
     "build:ladle": [
-      "@hashintel/ds-components#codegen"
+      "codegen"
     ],
     "build:lib": [
-      "@hashintel/ds-components#codegen"
+      "codegen"
     ],
     "codegen": [
       "@local/eslint#build"
     ],
     "dev": [
-      "@hashintel/ds-components#codegen"
+      "codegen"
     ],
     "dev:ladle": [
-      "@hashintel/ds-components#codegen"
+      "codegen"
     ],
     "fix": [
-      "@hashintel/ds-components#codegen"
+      "codegen"
     ],
     "fix:eslint": [
-      "@hashintel/ds-components#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint": [
-      "@hashintel/ds-components#codegen"
+      "codegen"
     ],
     "lint:eslint": [
-      "@hashintel/ds-components#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:tsc": [
-      "@hashintel/ds-components#codegen"
+      "codegen"
     ],
     "preview:ladle": [
-      "@hashintel/ds-components#build:ladle"
+      "build:ladle"
     ],
     "test:snapshots": [
-      "@hashintel/ds-components#build:ladle"
+      "build:ladle"
     ],
     "test:snapshots:update": [
-      "@hashintel/ds-components#build:ladle"
+      "build:ladle"
     ],
     "test:unit": [
-      "@hashintel/ds-components#build:buildinfo"
+      "build:buildinfo"
     ]
   }
 }

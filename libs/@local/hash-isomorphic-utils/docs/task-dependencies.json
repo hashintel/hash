@@ -8,11 +8,12 @@
     "@local/hash-graph-client",
     "@local/hash-graph-sdk",
     "@local/hash-graph-store",
+    "@local/status",
     "@local/tsconfig"
   ],
   "tasks": {
     "build": [
-      "@local/hash-isomorphic-utils#codegen"
+      "codegen"
     ],
     "codegen": [
       "@blockprotocol/graph#build",
@@ -21,18 +22,19 @@
       "@local/eslint#build",
       "@local/hash-graph-client#build",
       "@local/hash-graph-sdk#build",
-      "@local/hash-graph-store#build"
+      "@local/hash-graph-store#build",
+      "@local/status#build"
     ],
     "fix:eslint": [
       "@local/eslint#build",
-      "@local/hash-isomorphic-utils#codegen"
+      "codegen"
     ],
     "lint:eslint": [
       "@local/eslint#build",
-      "@local/hash-isomorphic-utils#codegen"
+      "codegen"
     ],
     "lint:tsc": [
-      "@local/hash-isomorphic-utils#codegen"
+      "codegen"
     ],
     "test:unit": [
       "@blockprotocol/graph#build",
@@ -42,7 +44,8 @@
       "@local/hash-graph-client#build",
       "@local/hash-graph-sdk#build",
       "@local/hash-graph-store#build",
-      "@local/hash-isomorphic-utils#codegen"
+      "@local/status#build",
+      "codegen"
     ]
   }
 }

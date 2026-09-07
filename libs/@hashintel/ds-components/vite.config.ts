@@ -7,8 +7,10 @@ import svgr from "vite-plugin-svgr";
 // `moduleType`"). Skip the plugin there so Ladle injects its own; Ladle
 // detects it in every other context (`vite:react-babel`) and adds nothing.
 // `ladle build`, vitest, and plain Vite all run the React Compiler.
-const isLadleServe = (command: "build" | "serve") =>
-  command === "serve" && process.env.VITE_LADLE_APP_ID !== undefined;
+const isLadleServe = (command: "build" | "serve") => {
+  const { VITE_LADLE_APP_ID: ladleAppId } = process.env;
+  return command === "serve" && ladleAppId !== undefined;
+};
 
 export default defineConfig(({ command }) => ({
   // Ladle points at this file from `.ladle/config.mjs`. Keep it limited to shared demo/build concerns.

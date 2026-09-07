@@ -53,14 +53,14 @@
       "@hashintel/petrinaut-core#build"
     ],
     "test:unit": [
-      "@apps/brunch-agent#build",
       "@hashintel/brunch-agent#build",
       "@hashintel/brunch-agent-binding-flue#build",
       "@hashintel/brunch-agent-plugin-dafny#build",
       "@hashintel/brunch-agent-plugin-gherkin#build",
       "@hashintel/brunch-agent-plugin-sdcpn#build",
       "@hashintel/brunch-agent-transport-aisdk#build",
-      "@hashintel/petrinaut-core#build"
+      "@hashintel/petrinaut-core#build",
+      "build"
     ]
   }
 }

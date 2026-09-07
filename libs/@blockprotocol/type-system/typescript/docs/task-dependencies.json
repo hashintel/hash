@@ -7,7 +7,7 @@
   ],
   "tasks": {
     "build": [
-      "@blockprotocol/type-system#codegen"
+      "codegen"
     ],
     "codegen": [
       "@blockprotocol/type-system-rs#build:types",
@@ -16,20 +16,20 @@
       "@local/hash-codec#build"
     ],
     "fix:eslint": [
-      "@blockprotocol/type-system#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:eslint": [
-      "@blockprotocol/type-system#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:tsc": [
-      "@blockprotocol/type-system#codegen"
+      "codegen"
     ],
     "test:unit": [
-      "@blockprotocol/type-system#codegen",
       "@local/eslint#build",
-      "@local/hash-codec#build"
+      "@local/hash-codec#build",
+      "codegen"
     ]
   }
 }

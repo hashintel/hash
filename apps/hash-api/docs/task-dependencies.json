@@ -14,6 +14,7 @@
     "@local/hash-graph-sdk",
     "@local/hash-graph-store",
     "@local/hash-isomorphic-utils",
+    "@local/internal-api-client",
     "@local/petrinaut-optimizer-client",
     "@local/status",
     "@local/tsconfig"
@@ -43,37 +44,36 @@
       "@local/status#build"
     ],
     "dev": [
-      "@apps/hash-api#codegen"
+      "codegen"
     ],
     "fix:eslint": [
-      "@apps/hash-api#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:eslint": [
-      "@apps/hash-api#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:tsc": [
-      "@apps/hash-api#codegen"
+      "codegen"
     ],
     "start": [
-      "@apps/hash-api#start:migrate"
+      "start:migrate"
     ],
     "start:healthcheck": [],
     "start:migrate": [
-      "@apps/hash-api#codegen",
-      "@apps/hash-graph#start:healthcheck"
+      "@apps/hash-graph#start:healthcheck",
+      "codegen"
     ],
     "start:test": [
-      "@apps/hash-api#start:test:migrate"
+      "start:test:migrate"
     ],
     "start:test:healthcheck": [],
     "start:test:migrate": [
-      "@apps/hash-api#codegen",
-      "@apps/hash-graph#start:test:healthcheck"
+      "@apps/hash-graph#start:test:healthcheck",
+      "codegen"
     ],
     "test:unit": [
-      "@apps/hash-api#codegen",
       "@blockprotocol/graph#build",
       "@blockprotocol/type-system#build",
       "@hashintel/petrinaut-core#build",
@@ -86,8 +86,10 @@
       "@local/hash-graph-sdk#build",
       "@local/hash-graph-store#build",
       "@local/hash-isomorphic-utils#build",
+      "@local/internal-api-client#build",
       "@local/petrinaut-optimizer-client#build",
-      "@local/status#build"
+      "@local/status#build",
+      "codegen"
     ]
   }
 }

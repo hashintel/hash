@@ -5,13 +5,13 @@
   ],
   "tasks": {
     "build": [
-      "@apps/petrinaut-docs#sync:bundle"
+      "sync:bundle"
     ],
     "dev": [
-      "@apps/petrinaut-docs#sync:bundle"
+      "sync:bundle"
     ],
     "lint:tsc": [
-      "@apps/petrinaut-docs#sync:bundle"
+      "sync:bundle"
     ],
     "sync:bundle": [
       "@local/petrinaut-arch-docs#doc:architecture"

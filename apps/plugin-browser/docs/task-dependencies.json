@@ -14,13 +14,13 @@
   ],
   "tasks": {
     "build": [
-      "@apps/plugin-browser#codegen"
+      "codegen"
     ],
     "build:firefox": [
-      "@apps/plugin-browser#codegen"
+      "codegen"
     ],
     "build:test": [
-      "@apps/plugin-browser#codegen"
+      "codegen"
     ],
     "codegen": [
       "@blockprotocol/graph#build",
@@ -33,18 +33,18 @@
       "@local/status#build"
     ],
     "dev": [
-      "@apps/plugin-browser#codegen"
+      "codegen"
     ],
     "fix:eslint": [
-      "@apps/plugin-browser#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:eslint": [
-      "@apps/plugin-browser#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:tsc": [
-      "@apps/plugin-browser#codegen"
+      "codegen"
     ]
   }
 }

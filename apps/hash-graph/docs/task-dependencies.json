@@ -25,22 +25,22 @@
     "fix:clippy": [],
     "lint:clippy": [],
     "start": [
-      "@apps/hash-graph#start:migrate"
+      "start:migrate"
     ],
     "start:healthcheck": [
-      "@apps/hash-graph#compile:release"
+      "compile:release"
     ],
     "start:migrate": [
-      "@apps/hash-graph#compile:release"
+      "compile:release"
     ],
     "start:test": [
-      "@apps/hash-graph#start:test:migrate"
+      "start:test:migrate"
     ],
     "start:test:healthcheck": [
-      "@apps/hash-graph#compile"
+      "compile"
     ],
     "start:test:migrate": [
-      "@apps/hash-graph#compile"
+      "compile"
     ],
     "test:unit": [
       "@local/status#build"
