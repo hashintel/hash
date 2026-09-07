@@ -26,11 +26,14 @@ jobs:
     outputs:
       skip: ${{ steps.check_skip.outputs.skip }}
     steps:
-      - name: Optimize CI
+      - name: Check position in the stack
         id: check_skip
-        uses: withgraphite/graphite-ci-action@ee395f3a78254c006d11339669c6cabddf196f72
-        with:
-          graphite_token: ${{ secrets.GRAPHITE_CI_OPTIMIZER_TOKEN }}
+        env:
+          SKIP: >-
+            ${{ github.event.pull_request.stack != null
+            && github.event.pull_request.stack.base.ref != github.event.pull_request.base.ref
+            && github.event.pull_request.stack.position != github.event.pull_request.stack.size }}
+        run: echo "skip=$SKIP" | tee -a "$GITHUB_OUTPUT"
 
   setup:
     needs: [optimize-ci]
