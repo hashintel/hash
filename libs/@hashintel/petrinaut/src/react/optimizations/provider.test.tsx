@@ -17,6 +17,7 @@ import {
   usePetrinautNavigation,
 } from "../navigation";
 import { PetrinautOptimizationContext } from "../optimization-context";
+import { ACTIVE_RUNS_STORAGE_KEY } from "./active-run-storage";
 import {
   OptimizationsContext,
   type OptimizationsContextValue,
@@ -482,9 +483,7 @@ describe("OptimizationsProvider", () => {
     // does not prove the server acted (some hosts fire-and-forget), so the
     // next reload's re-attach settles the run's true fate instead.
     expect(cancelledRunIds).toEqual(["run-3"]);
-    expect(
-      sessionStorage.getItem("petrinaut:active-optimization-runs"),
-    ).toContain("run-3");
+    expect(sessionStorage.getItem(ACTIVE_RUNS_STORAGE_KEY)).toContain("run-3");
   });
 
   it("lets Remove cancel a possibly-live run after a terminal error", async () => {
@@ -555,7 +554,7 @@ describe("OptimizationsProvider", () => {
 
   it("re-attaches to stored runs after a reload, rebuilding from a full replay", async () => {
     sessionStorage.setItem(
-      "petrinaut:active-optimization-runs",
+      ACTIVE_RUNS_STORAGE_KEY,
       JSON.stringify({ "run-5": { input, createdAt: 123 } }),
     );
     const cursors: number[] = [];
@@ -590,9 +589,7 @@ describe("OptimizationsProvider", () => {
     // The best was rebuilt locally from the replayed trial.
     expect(optimization.best?.trial).toBe(0);
     // The settled run was forgotten so the next reload doesn't re-attach.
-    expect(sessionStorage.getItem("petrinaut:active-optimization-runs")).toBe(
-      "{}",
-    );
+    expect(sessionStorage.getItem(ACTIVE_RUNS_STORAGE_KEY)).toBe("{}");
   });
 
   it("settles a replayed cancellation as cancelled rather than failed", async () => {
@@ -600,7 +597,7 @@ describe("OptimizationsProvider", () => {
     // stored entry, expecting the next reload to settle it. That replay must
     // report Cancelled — not a failed run offering Retry.
     sessionStorage.setItem(
-      "petrinaut:active-optimization-runs",
+      ACTIVE_RUNS_STORAGE_KEY,
       JSON.stringify({ "run-6": { input, createdAt: 123 } }),
     );
     const capability: PetrinautOptimization = {
@@ -627,14 +624,12 @@ describe("OptimizationsProvider", () => {
     expect(optimization.errorCategory).toBeNull();
     // The trial applied before the cancellation is still part of the record.
     expect(optimization.trials).toHaveLength(1);
-    expect(sessionStorage.getItem("petrinaut:active-optimization-runs")).toBe(
-      "{}",
-    );
+    expect(sessionStorage.getItem(ACTIVE_RUNS_STORAGE_KEY)).toBe("{}");
   });
 
   it("silently drops a stored run the service no longer knows", async () => {
     sessionStorage.setItem(
-      "petrinaut:active-optimization-runs",
+      ACTIVE_RUNS_STORAGE_KEY,
       JSON.stringify({ "run-6": { input, createdAt: 123 } }),
     );
     const capability: PetrinautOptimization = {
@@ -651,9 +646,7 @@ describe("OptimizationsProvider", () => {
     const getValue = renderProvider(capability);
 
     await waitFor(() => expect(getValue().optimizations).toHaveLength(0));
-    expect(sessionStorage.getItem("petrinaut:active-optimization-runs")).toBe(
-      "{}",
-    );
+    expect(sessionStorage.getItem(ACTIVE_RUNS_STORAGE_KEY)).toBe("{}");
   });
 
   it("treats a retryable NodeAPI error event as a dropped connection and reconnects", async () => {
@@ -857,7 +850,7 @@ describe("OptimizationsProvider", () => {
 
   it("does not duplicate restored runs under StrictMode double-mounting", async () => {
     sessionStorage.setItem(
-      "petrinaut:active-optimization-runs",
+      ACTIVE_RUNS_STORAGE_KEY,
       JSON.stringify({ "run-12": { input, createdAt: 123 } }),
     );
     const capability: PetrinautOptimization = {
