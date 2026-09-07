@@ -705,7 +705,6 @@ const ConversationAiAssistantPanel = ({
     if (currentAddToolOutput === null) {
       throw new Error("The AI assistant tool host is not ready.");
     }
-    const executionKey = `${aiAssistant.conversationId ?? "local"}:${params.toolCallId}`;
     pendingAutomaticToolCallExecutionsRef.current.delete(executionKey);
     // Prevent addToolOutput's fire-and-forget continuation from racing the
     // explicit continuation chained to its promise below.
@@ -1067,7 +1066,13 @@ const ConversationAiAssistantPanel = ({
         );
       });
     }, 0);
-  }, [chatStatus, continuationPending, conversationId, messages]);
+  }, [
+    automaticToolTurnIsTerminatedRef,
+    chatStatus,
+    continuationPending,
+    conversationId,
+    messages,
+  ]);
   useEffect(
     () => () => {
       for (const [
@@ -1077,9 +1082,9 @@ const ConversationAiAssistantPanel = ({
         clearTimeout(timer);
         // Cancelled-before-start work is claimable on StrictMode's next setup.
         automaticToolCallExecutionsRef.current.delete(executionKey);
+        pendingAutomaticToolCallExecutionsRef.current.delete(executionKey);
       }
       automaticToolExecutionTimersRef.current.clear();
-      pendingAutomaticToolCallExecutionsRef.current.clear();
       if (automaticToolContinuationTimerRef.current !== null) {
         clearTimeout(automaticToolContinuationTimerRef.current);
         automaticToolContinuationTimerRef.current = null;
