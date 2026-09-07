@@ -67,6 +67,12 @@ describe("prepared crew-reservation fixture", () => {
       "Exactly one dispatch crew",
     );
     expect(preparedCrewReservationWorkpiece).toContain(
+      "requires explicit true-user confirmation",
+    );
+    expect(preparedCrewReservationWorkpiece).not.toContain(
+      "- Final inspection reserves the sole available dispatch crew.",
+    );
+    expect(preparedCrewReservationWorkpiece).toContain(
       "timing, failure modes, and recovery behavior remain unresolved",
     );
     expect(preparedCrewReservationWorkpiece).toContain(
