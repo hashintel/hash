@@ -20,23 +20,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  optimize-ci: # Do not run benches on stacked PRs below the top
-    runs-on: ubuntu-24.04
-    name: Optimize CI
-    outputs:
-      skip: ${{ steps.check_skip.outputs.skip }}
-    steps:
-      - name: Check position in the stack
-        id: check_skip
-        env:
-          SKIP: >-
-            ${{ github.event.pull_request.stack != null
-            && github.event.pull_request.stack.position != github.event.pull_request.stack.size }}
-        run: echo "skip=$SKIP" | tee -a "$GITHUB_OUTPUT"
-
+  # Only the top of a stack runs this workflow: it contains every layer below
+  # it. The two root jobs carry the condition; every other job needs them.
   setup:
-    needs: [optimize-ci]
-    if: needs.optimize-ci.outputs.skip == 'false'
+    if: >-
+      github.event.pull_request.stack == null
+      || github.event.pull_request.stack.position == github.event.pull_request.stack.size
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -65,8 +54,9 @@ jobs:
           echo "integration=$INTEGRATION_BENCH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
   sccache-credentials:
-    needs: [optimize-ci]
-    if: needs.optimize-ci.outputs.skip == 'false'
+    if: >-
+      github.event.pull_request.stack == null
+      || github.event.pull_request.stack.position == github.event.pull_request.stack.size
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -441,25 +431,18 @@ jobs:
 
   passed:
     name: Benches passed
-    needs:
-      [
-        setup,
-        sccache-credentials,
-        unit-benches,
-        integration-benches,
-        optimize-ci,
-      ]
-    if: always() && needs.optimize-ci.outputs.skip == 'false'
+    needs: [setup, sccache-credentials, unit-benches, integration-benches]
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
       - name: Check setup script
         run: |
-          [[ ${{ needs.setup.result }} = success ]]
+          [[ ${{ needs.setup.result }} =~ success|skipped ]]
       - name: Check sccache credentials
         run: |
-          [[ ${{ needs.sccache-credentials.result }} = success ]]
+          [[ ${{ needs.sccache-credentials.result }} =~ success|skipped ]]
       - name: Check unit benches
         run: |
           [[ ${{ needs.unit-benches.result }} =~ success|skipped ]]
