@@ -7,25 +7,39 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "fix:eslint": [
-      "@local/eslint#build",
-      "@local/hash-backend-utils#build",
-      "@local/hash-isomorphic-utils#build"
-    ],
-    "lint:eslint": [
-      "@local/eslint#build",
-      "@local/hash-backend-utils#build",
-      "@local/hash-isomorphic-utils#build"
-    ],
-    "lint:tsc": [
-      "@local/eslint#build",
-      "@local/hash-backend-utils#build",
-      "@local/hash-isomorphic-utils#build"
-    ],
-    "test:unit": [
-      "@local/eslint#build",
-      "@local/hash-backend-utils#build",
-      "@local/hash-isomorphic-utils#build"
-    ]
+    "fix:eslint": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-isomorphic-utils#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-isomorphic-utils#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-isomorphic-utils#build"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "@local/hash-backend-utils#build",
+        "@local/hash-isomorphic-utils#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

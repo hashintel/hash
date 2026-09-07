@@ -13,37 +13,54 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "codegen": [
-      "@local/hash-isomorphic-utils#build"
-    ],
-    "fix:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "codegen"
-    ],
-    "lint:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "codegen"
-    ],
-    "lint:tsc": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-isomorphic-utils#build",
-      "codegen"
-    ],
-    "test:integration": [
-      "@apps/hash-api#start:test:healthcheck",
-      "@apps/hash-frontend#start:test:healthcheck",
-      "@apps/plugin-browser#build:test",
-      "codegen"
-    ]
+    "codegen": {
+      "dependsOn": [
+        "@local/hash-isomorphic-utils#build"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "codegen"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "codegen"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-isomorphic-utils#build",
+        "codegen"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [
+        "@apps/hash-api#start:test:healthcheck",
+        "@apps/hash-frontend#start:test:healthcheck",
+        "@apps/plugin-browser#build:test",
+        "codegen"
+      ],
+      "cache": false,
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

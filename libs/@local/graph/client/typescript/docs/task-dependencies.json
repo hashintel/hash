@@ -4,9 +4,13 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "codegen"
-    ],
-    "codegen": []
+    "build": {
+      "dependsOn": [
+        "codegen"
+      ]
+    },
+    "codegen": {
+      "dependsOn": []
+    }
   }
 }

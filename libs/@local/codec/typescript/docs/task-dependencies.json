@@ -4,14 +4,20 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "codegen"
-    ],
-    "codegen": [
-      "@rust/hash-codec#build:types"
-    ],
-    "lint:tsc": [
-      "codegen"
-    ]
+    "build": {
+      "dependsOn": [
+        "codegen"
+      ]
+    },
+    "codegen": {
+      "dependsOn": [
+        "@rust/hash-codec#build:types"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "codegen"
+      ]
+    }
   }
 }

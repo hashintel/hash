@@ -12,55 +12,71 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/harpc-client#build",
-      "@local/hash-graph-authorization#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-store#build"
-    ],
-    "fix:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/harpc-client#build",
-      "@local/hash-graph-authorization#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-store#build"
-    ],
-    "lint:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/harpc-client#build",
-      "@local/hash-graph-authorization#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-store#build"
-    ],
-    "lint:tsc": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/harpc-client#build",
-      "@local/hash-graph-authorization#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-store#build"
-    ],
-    "test:unit": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/harpc-client#build",
-      "@local/hash-graph-authorization#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-store#build"
-    ]
+    "build": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/harpc-client#build",
+        "@local/hash-graph-authorization#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-store#build"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/harpc-client#build",
+        "@local/hash-graph-authorization#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-store#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/harpc-client#build",
+        "@local/hash-graph-authorization#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-store#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/harpc-client#build",
+        "@local/hash-graph-authorization#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-store#build"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/harpc-client#build",
+        "@local/hash-graph-authorization#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-store#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

@@ -4,8 +4,13 @@
     "@apps/hash-graph"
   ],
   "tasks": {
-    "test:integration": [
-      "@apps/hash-graph#start:test:healthcheck"
-    ]
+    "test:integration": {
+      "dependsOn": [
+        "@apps/hash-graph#start:test:healthcheck"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

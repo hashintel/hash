@@ -6,18 +6,24 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "@blockprotocol/type-system#build",
-      "@local/hash-graph-authorization#build",
-      "codegen"
-    ],
-    "codegen": [
-      "@rust/hash-graph-store#build:types"
-    ],
-    "lint:tsc": [
-      "@blockprotocol/type-system#build",
-      "@local/hash-graph-authorization#build",
-      "codegen"
-    ]
+    "build": {
+      "dependsOn": [
+        "@blockprotocol/type-system#build",
+        "@local/hash-graph-authorization#build",
+        "codegen"
+      ]
+    },
+    "codegen": {
+      "dependsOn": [
+        "@rust/hash-graph-store#build:types"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@blockprotocol/type-system#build",
+        "@local/hash-graph-authorization#build",
+        "codegen"
+      ]
+    }
   }
 }

@@ -2,15 +2,34 @@
   "package": "@hashintel/brunch-agent",
   "dependencies": [],
   "tasks": {
-    "build": [],
-    "fix:eslint": [
-      "@local/eslint#build"
-    ],
-    "linear:graph": [],
-    "lint:eslint": [
-      "@local/eslint#build"
-    ],
-    "lint:tsc": [],
-    "test:unit": []
+    "build": {
+      "dependsOn": []
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ]
+    },
+    "linear:graph": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": []
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

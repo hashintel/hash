@@ -4,22 +4,38 @@
     "@hashintel/brunch-agent"
   ],
   "tasks": {
-    "build": [
-      "@hashintel/brunch-agent#build"
-    ],
-    "fix:eslint": [
-      "@hashintel/brunch-agent#build",
-      "@local/eslint#build"
-    ],
-    "lint:eslint": [
-      "@hashintel/brunch-agent#build",
-      "@local/eslint#build"
-    ],
-    "lint:tsc": [
-      "@hashintel/brunch-agent#build"
-    ],
-    "test:unit": [
-      "@hashintel/brunch-agent#build"
-    ]
+    "build": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@local/eslint#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }
