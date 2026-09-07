@@ -30,8 +30,10 @@ const cardStyle = css({
   borderRadius: "sm",
   backgroundColor: "neutral.s15",
   cursor: "default",
-  shadow: "[0px 2px 9px rgba(0, 0, 0, 0.04)]",
-  _hover: { shadow: "[0px 4px 11px rgba(0, 0, 0, 0.1)]" },
+  // Contributed to the shadow `nodeFocusStyle` owns, so the focus glow
+  // and the elevation can sit in one declaration.
+  "--node-elevation": "0px 2px 9px rgba(0, 0, 0, 0.04)",
+  _hover: { "--node-elevation": "0px 4px 11px rgba(0, 0, 0, 0.1)" },
 });
 
 const titleStyle = css({

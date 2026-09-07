@@ -149,7 +149,7 @@ Selecting a node, or resting the pointer on one, rings it and colours everything
 
 The arcs joining them are cased in the same colours, keeping their own colour inside the casing, so you can read which way tokens flow without tracing arrowheads. Hovering an arc rings the node at each of its ends the same way.
 
-Nodes further away keep their fill and token counts and only soften their border, so the rest of the net stays readable. The highlight follows the pointer once it comes to rest, not on the way past, and fades in and out rather than switching -- moving across a crowded net does not make it flicker. A selected node stays ringed while you point at something else.
+Each highlighted node and arc also carries a white band between its own edge and the colour, lifting it off the canvas. The [minimap](visual-settings.md) rings and fades its shapes to match, so you can see where the neighbourhood sits in a net larger than the screen. Nodes further away keep their fill and token counts and only soften their border, so the rest of the net stays readable. The highlight follows the pointer once it comes to rest, not on the way past, and fades in and out rather than switching -- moving across a crowded net does not make it flicker. A selected node stays ringed while you point at something else.
 
 ## Left sidebar
 

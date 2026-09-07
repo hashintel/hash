@@ -14,7 +14,7 @@
 
 import { cva } from "@hashintel/ds-helpers/css";
 
-import type { CanvasArcFocus } from "../canvas-focus";
+import type { CanvasArcFocus, CanvasNodeFocus } from "../canvas-focus";
 
 /**
  * How long the pointer has to rest before the neighbourhood lights up.
@@ -22,24 +22,30 @@ import type { CanvasArcFocus } from "../canvas-focus";
  */
 export const HOVER_FOCUS_DELAY_MS = 100;
 
-const FOCUSED_COLOR = "var(--colors-neutral-s100)";
+const FOCUSED_COLOR = "var(--colors-neutral-s115)";
 const UPSTREAM_COLOR = "var(--colors-blue-s90)";
 const DOWNSTREAM_COLOR = "var(--colors-orange-s90)";
+const BIDIRECTIONAL_COLOR = "var(--colors-purple-s90)";
 
 /**
  * The focus ring for a canvas node, keyed by its focus role. Every node style
- * composes this, and it is the only place a node's outline is set: two styles
- * setting `outline` would resolve by stylesheet order rather than intent.
+ * composes this, and it is the only place a node's outline and box shadow are
+ * set: two styles setting either would resolve by stylesheet order rather than
+ * intent. A node style contributes its own elevation through
+ * `--node-elevation` instead of declaring a shadow of its own.
  *
- * The ring is offset clear of the node's own border, so it reads as a band
- * around the node rather than a thickening of the border it surrounds. It
- * fades over 200ms, so a neighbourhood arrives and leaves as a fade rather
- * than a switch.
+ * A highlighted node wears two bands outside its own border: white first,
+ * lifting the node off the dotted canvas, then the role's colour. Both are
+ * anchored on the border box, so they stay concentric whatever the node's
+ * shape. They fade over 200ms, so a neighbourhood arrives and leaves as a fade
+ * rather than a switch.
  */
 export const nodeFocusStyle = cva({
   base: {
     outline: "[4px solid transparent]",
-    outlineOffset: "[2px]",
+    outlineOffset: "[3px]",
+    boxShadow:
+      "[var(--focus-glow, 0 0 #0000), var(--node-elevation, 0 0 #0000)]",
     transition:
       "[outline-color 200ms ease, border-color 200ms ease, color 200ms ease, box-shadow 200ms ease]",
   },
@@ -47,18 +53,22 @@ export const nodeFocusStyle = cva({
     focus: {
       none: {},
       focused: {
+        "--focus-glow": "0 0 0 3px white",
         outline:
-          "[4px solid color-mix(in oklab, var(--colors-neutral-s100), transparent 25%)]",
+          "[4px solid color-mix(in oklab, var(--colors-neutral-s115), transparent 25%)]",
       },
       upstream: {
+        "--focus-glow": "0 0 0 3px white",
         outline:
           "[4px solid color-mix(in oklab, var(--colors-blue-s90), transparent 25%)]",
       },
       downstream: {
+        "--focus-glow": "0 0 0 3px white",
         outline:
           "[4px solid color-mix(in oklab, var(--colors-orange-s90), transparent 25%)]",
       },
       bidirectional: {
+        "--focus-glow": "0 0 0 3px white",
         outline:
           "[4px solid color-mix(in oklab, var(--colors-purple-s90), transparent 25%)]",
       },
@@ -67,7 +77,7 @@ export const nodeFocusStyle = cva({
        * of the net stays readable, and stays put, while a neighbourhood is
        * highlighted.
        */
-      muted: { borderColor: "neutral.s50", color: "neutral.s95" },
+      muted: { borderColor: "neutral.s45", color: "neutral.s90" },
     },
   },
   defaultVariants: { focus: "none" },
@@ -80,7 +90,7 @@ export const nodeFocusStyle = cva({
  * neighbourhood keep that colour too, only lighter.
  */
 export const arcFocusColor = (focus: CanvasArcFocus, color: string): string =>
-  focus === "muted" ? `color-mix(in oklab, white 50%, ${color})` : color;
+  focus === "muted" ? `color-mix(in oklab, white 60%, ${color})` : color;
 
 /**
  * The colour of the casing drawn around an arc's stroke, or undefined for an
@@ -101,5 +111,36 @@ export const arcHaloColor = (focus: CanvasArcFocus): string | undefined => {
   }
 };
 
-/** How far the casing stands out either side of the arc it wraps. */
-export const ARC_HALO_OVERHANG = 3;
+/**
+ * How far each casing stands out either side of the arc it wraps: white first,
+ * lifting the arc off the canvas, then the role's colour around that. The two
+ * match the bands a highlighted node wears outside its border.
+ */
+export const ARC_WHITE_OVERHANG = 2;
+export const ARC_HALO_OVERHANG = ARC_WHITE_OVERHANG + 2;
+
+/** How far a shape off the neighbourhood recedes on the minimap. */
+export const MINI_MAP_MUTED_OPACITY = 0.3;
+
+/**
+ * The ring colour for a shape on the minimap, or undefined for a shape that
+ * gets none. The minimap has room for a ring and a fade, not for the canvas's
+ * white band, so the roles reach it through colour alone.
+ */
+export const miniMapFocusColor = (
+  focus: CanvasNodeFocus,
+): string | undefined => {
+  switch (focus) {
+    case "focused":
+      return FOCUSED_COLOR;
+    case "upstream":
+      return UPSTREAM_COLOR;
+    case "downstream":
+      return DOWNSTREAM_COLOR;
+    case "bidirectional":
+      return BIDIRECTIONAL_COLOR;
+    case "muted":
+    case "none":
+      return undefined;
+  }
+};

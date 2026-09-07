@@ -28,10 +28,12 @@ export const nodeCardStyle = css({
   boxSizing: "border-box",
   position: "relative",
   cursor: "default",
-  shadow: "[0px 2px 9px rgba(0, 0, 0, 0.04)]",
+  // Contributed to the shadow `nodeFocusStyle` owns, so the focus glow
+  // and the elevation can sit in one declaration.
+  "--node-elevation": "0px 2px 9px rgba(0, 0, 0, 0.04)",
   // The pointer gets its own feedback straight away; only the neighbourhood
   // highlight waits for the hover to settle.
-  _hover: { shadow: "[0px 4px 11px rgba(0, 0, 0, 0.1)]" },
+  _hover: { "--node-elevation": "0px 4px 11px rgba(0, 0, 0, 0.1)" },
 });
 
 export const iconContainerBaseStyle = css({
