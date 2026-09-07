@@ -3,6 +3,7 @@ use std::sync::OnceLock;
 
 use crate::serve::schedule::ScopeSchedule;
 
+#[derive(Debug)]
 pub struct Cache {
     saturated_scope_schedule: OnceLock<Arc<ScopeSchedule>>,
 }

@@ -11,6 +11,7 @@ use crate::{
     serve2::codec::{EncodableId, EncodedRowId},
 };
 
+#[derive(Debug)]
 pub struct Encoding<I> {
     codec: RowCodec<I>,
     lookup: IdVec<BasePosition, EncodedRowId<I>>,

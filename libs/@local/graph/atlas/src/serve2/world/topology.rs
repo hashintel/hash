@@ -7,6 +7,7 @@ use crate::{
     salt::{adjacency::AdjacencyArchive, fit::prepare::identity::IdentityTableArchive},
 };
 
+#[derive(Debug)]
 pub(crate) struct Topology {
     identity: IdentityTableArchive<ArchivedEntityId, EdgeRowId>,
 
@@ -80,5 +81,74 @@ impl Topology {
     )]
     pub(crate) const fn node_count(&self) -> usize {
         self.adjacency.rows() as usize
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::assert_matches;
+
+    use super::Topology;
+    use crate::{
+        identity::EdgeRowId,
+        serve2::{
+            tests::fixture::{
+                EDGE_SEED, EDGES, ENDPOINTS, TamperFixture, secret, shorten_endpoints,
+                shorten_entities,
+            },
+            world::{OpenOptions, error::WorldError},
+        },
+    };
+
+    /// Open refuses an edge identity table short of the adjacency's edge domain, under
+    /// [`WorldError::TopologyCountMismatch`].
+    #[test]
+    fn edge_identities_short() {
+        let fixture = TamperFixture::publish("topology-edge-identities-short");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.edge_identities.name(), |path| {
+            shorten_entities::<EdgeRowId>(path, EDGES - 1, EDGE_SEED);
+        });
+        let report = Topology::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses a short edge identity table");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::TopologyCountMismatch {
+                identity,
+                endpoints,
+                adjacency,
+            }] if *identity == EDGES - 1 && *endpoints == ENDPOINTS.len() && *adjacency == EDGES,
+        );
+    }
+
+    /// Open refuses an endpoint column short of the adjacency's edge domain, under
+    /// [`WorldError::TopologyCountMismatch`].
+    #[test]
+    fn endpoint_column_short() {
+        let fixture = TamperFixture::publish("topology-endpoint-column-short");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.edge_endpoints.name(), |path| {
+            shorten_endpoints(path, &ENDPOINTS[..ENDPOINTS.len() - 1]);
+        });
+        let report = Topology::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses a short endpoint column");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::TopologyCountMismatch {
+                identity,
+                endpoints,
+                adjacency,
+            }] if *identity == EDGES && *endpoints == ENDPOINTS.len() - 1 && *adjacency == EDGES,
+        );
     }
 }

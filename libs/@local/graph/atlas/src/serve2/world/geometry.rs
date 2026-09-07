@@ -8,6 +8,7 @@ use crate::{
     salt::lod::stage::WIRE_FRAME,
 };
 
+#[derive(Debug)]
 pub struct Geometry {
     bounds: Option<Bounds2>,
     positions: Column<BasePosition, Vec2>,
@@ -80,5 +81,42 @@ impl Geometry {
 
     pub(crate) fn node_count(&self) -> usize {
         self.positions.len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::assert_matches;
+
+    use super::Geometry;
+    use crate::serve2::{
+        tests::fixture::{NODES, TamperFixture, retarget_quad_root, secret},
+        world::{OpenOptions, error::WorldError},
+    };
+
+    /// Open refuses a spatial index root whose point count lies below the wire coordinate
+    /// column's, under [`WorldError::SpatialIndexCountMismatch`].
+    #[test]
+    fn quad_root_subtree_short() {
+        let fixture = TamperFixture::publish("geometry-quad-root");
+        let positions = usize::try_from(NODES).expect("fixture node counts fit usize");
+        let points = u32::try_from(NODES - 1).expect("fixture point counts fit u32");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.quad.name(), |path| {
+            retarget_quad_root(path, points);
+        });
+
+        let report = Geometry::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses a root point count below the coordinate column's");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::SpatialIndexCountMismatch { root, positions: counted }]
+                if *root == points && *counted == positions,
+        );
     }
 }

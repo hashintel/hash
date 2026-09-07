@@ -10,6 +10,7 @@ use crate::{
     },
 };
 
+#[derive(Debug)]
 pub(crate) struct Ontology {
     identity: IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId>,
 
@@ -90,5 +91,39 @@ impl Ontology {
     )]
     pub(crate) fn ontology_count(&self) -> usize {
         self.identity.len() as usize
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::assert_matches;
+
+    use super::Ontology;
+    use crate::serve2::{
+        tests::fixture::{TYPES, TamperFixture, secret, shorten_ontology},
+        world::{OpenOptions, error::WorldError},
+    };
+
+    /// Open refuses an ontology identity table short of the postings' type domain, under
+    /// [`WorldError::OntologyCountMismatch`].
+    #[test]
+    fn ontology_identities_short() {
+        let fixture = TamperFixture::publish("ontology-identities-short");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.ontology_identities.name(), |path| {
+            shorten_ontology(path, TYPES - 1);
+        });
+        let report = Ontology::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses a short ontology identity table");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::OntologyCountMismatch { identity, postings }]
+                if *identity == TYPES - 1 && *postings == TYPES,
+        );
     }
 }

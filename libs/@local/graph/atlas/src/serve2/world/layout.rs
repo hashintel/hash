@@ -79,6 +79,7 @@ impl fmt::Display for LayoutRoundtripError {
 
 impl Error for LayoutRoundtripError {}
 
+#[derive(Debug)]
 pub(crate) struct Layout {
     index: NodeIndex,
     importance: NodeImportance,
@@ -172,5 +173,153 @@ impl Layout {
 
     pub(crate) fn node_count(&self) -> usize {
         self.geometry.node_count()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::assert_matches;
+
+    use hashql_core::id::Id as _;
+
+    use super::{Layout, LayoutRoundtripError};
+    use crate::{
+        identity::{BasePosition, ImportanceRank, NodeRowId},
+        serve2::{
+            tests::fixture::{
+                NODES, TamperFixture, constant_u32_column, constant_u64_column, secret,
+            },
+            world::{OpenOptions, error::WorldError},
+        },
+    };
+
+    /// Open refuses a position-of-rank column that is no permutation, under
+    /// [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RankInverse`].
+    ///
+    /// Every rank claiming position zero keeps the length and the format. The roundtrip sample
+    /// therefore refuses the pairing at the first sampled position past zero.
+    #[test]
+    fn rank_positions_constant() {
+        let fixture = TamperFixture::publish("layout-rank-positions-constant");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.position_of_rank.name(), |path| {
+            constant_u32_column(path, NODES, 0);
+        });
+        let report = Layout::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses a position-of-rank column that is no permutation");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::LayoutRoundtrip],
+        );
+        assert_matches!(
+            report.downcast_ref::<LayoutRoundtripError>(),
+            Some(LayoutRoundtripError::RankInverse {
+                position,
+                rank: _,
+                roundtrip: Some(roundtrip),
+            }) if *position > BasePosition::MIN && *roundtrip == BasePosition::MIN,
+        );
+    }
+
+    /// Open refuses a rank outside the position-of-rank column's domain, under
+    /// [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RankInverse`].
+    ///
+    /// The sample reports the roundtrip as absent at the first sampled position.
+    #[test]
+    fn ranks_out_of_domain() {
+        let fixture = TamperFixture::publish("layout-ranks-out-of-domain");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.rank_of_position.name(), |path| {
+            constant_u32_column(path, NODES, u32::MAX);
+        });
+        let report = Layout::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses an out-of-domain rank");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::LayoutRoundtrip],
+        );
+        assert_matches!(
+            report.downcast_ref::<LayoutRoundtripError>(),
+            Some(LayoutRoundtripError::RankInverse {
+                position,
+                rank,
+                roundtrip: None,
+            }) if *position == BasePosition::MIN && *rank == ImportanceRank::MAX,
+        );
+    }
+
+    /// Open refuses a position-of-row column that is no permutation, under
+    /// [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RowInverse`].
+    ///
+    /// Every node claiming position zero keeps the length and the format. Position zero's own node
+    /// roundtrips, and the first sampled position past it does not.
+    #[test]
+    fn row_positions_constant() {
+        let fixture = TamperFixture::publish("layout-row-positions-constant");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.position_of_row.name(), |path| {
+            constant_u32_column(path, NODES, 0);
+        });
+        let report = Layout::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses a position-of-row column that is no permutation");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::LayoutRoundtrip],
+        );
+        assert_matches!(
+            report.downcast_ref::<LayoutRoundtripError>(),
+            Some(LayoutRoundtripError::RowInverse {
+                position,
+                row: _,
+                roundtrip: Some(roundtrip),
+            }) if *position > BasePosition::MIN && *roundtrip == BasePosition::MIN,
+        );
+    }
+
+    /// Open refuses a node row outside the position-of-row column's domain, under
+    /// [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RowInverse`].
+    ///
+    /// The sample reports the roundtrip as absent at the first sampled position.
+    #[test]
+    fn rows_out_of_domain() {
+        let fixture = TamperFixture::publish("layout-rows-out-of-domain");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.row_of_position.name(), |path| {
+            constant_u64_column(path, NODES, u64::MAX);
+        });
+        let report = Layout::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses an out-of-domain node row");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::LayoutRoundtrip],
+        );
+        assert_matches!(
+            report.downcast_ref::<LayoutRoundtripError>(),
+            Some(LayoutRoundtripError::RowInverse {
+                position,
+                row,
+                roundtrip: None,
+            }) if *position == BasePosition::MIN && *row == NodeRowId::MAX,
+        );
     }
 }

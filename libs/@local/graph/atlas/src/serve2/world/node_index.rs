@@ -9,6 +9,7 @@ use crate::{
     salt::fit::prepare::identity::IdentityTableArchive,
 };
 
+#[derive(Debug)]
 pub struct NodeIndex {
     identity: IdentityTableArchive<ArchivedEntityId, NodeRowId>,
     encoding: Encoding<NodeRowId>,
@@ -102,5 +103,141 @@ impl Index<NodeRowId> for NodeIndex {
 
     fn index(&self, index: NodeRowId) -> &Self::Output {
         &self.reverse.view()[index]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::assert_matches;
+
+    use super::NodeIndex;
+    use crate::{
+        file::repository::{IntegrityVerificationError, OpenBindingError},
+        identity::NodeRowId,
+        salt::fit::prepare::identity::OpenIdentityTableArchiveError,
+        serve2::{
+            tests::fixture::{NODES, TamperFixture, secret, shorten_entities, shorten_u32_column},
+            world::{OpenOptions, error::WorldError},
+        },
+    };
+
+    /// Open refuses a node identity table short of the position columns, under
+    /// [`WorldError::NodeIndexCountMismatch`].
+    #[test]
+    fn node_identities_short() {
+        let fixture = TamperFixture::publish("node-index-identities-short");
+        let columns = usize::try_from(NODES).expect("fixture node counts fit usize");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.node_identities.name(), |path| {
+            shorten_entities::<NodeRowId>(path, NODES - 1, 0);
+        });
+        let report = NodeIndex::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses a short node identity table");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::NodeIndexCountMismatch {
+                identity,
+                lookup,
+                reverse,
+            }] if *identity == NODES - 1 && *lookup == columns && *reverse == columns,
+        );
+    }
+
+    /// Open refuses a position-of-row column short of the node identity table, under
+    /// [`WorldError::NodeIndexCountMismatch`].
+    #[test]
+    fn row_positions_short() {
+        let fixture = TamperFixture::publish("node-index-row-positions-short");
+        let columns = usize::try_from(NODES).expect("fixture node counts fit usize");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.position_of_row.name(), |path| {
+            shorten_u32_column(path, NODES - 1);
+        });
+        let report = NodeIndex::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses a short position-of-row column");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::NodeIndexCountMismatch {
+                identity,
+                lookup,
+                reverse,
+            }] if *identity == NODES && *lookup == columns && *reverse == columns - 1,
+        );
+    }
+
+    /// Open refuses a published file rewritten in place, under [`WorldError::Open`] from
+    /// [`IntegrityVerificationError::Checksum`].
+    ///
+    /// The rewrite keeps the table's format and would fail the count check if it reached it. The
+    /// digest check runs first and names the file with both digests.
+    #[test]
+    fn corruption_rewritten_file() {
+        let fixture = TamperFixture::publish("node-index-corruption-rewritten");
+        let files = &fixture.generation().repository().files;
+        let name = files.node_identities.name();
+
+        shorten_entities::<NodeRowId>(&fixture.generation().path_of(&name), NODES - 1, 0);
+        let report = NodeIndex::open(OpenOptions {
+            generation: fixture.generation(),
+            secret: &secret(),
+        })
+        .expect_err("open refuses a published file rewritten in place");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::Open { file }] if *file == name,
+        );
+        assert_matches!(
+            report.downcast_ref::<OpenBindingError<OpenIdentityTableArchiveError>>(),
+            Some(OpenBindingError::Integrity(IntegrityVerificationError::Checksum {
+                file,
+                received,
+            })) if file.name == name
+                && file.hash == files.node_identities.hash()
+                && *received != file.hash,
+        );
+    }
+
+    /// Open refuses a generation missing a published file, under [`WorldError::Open`] from
+    /// [`IntegrityVerificationError::Io`].
+    #[test]
+    fn corruption_missing_file() {
+        let fixture = TamperFixture::publish("node-index-corruption-missing");
+        let name = fixture
+            .generation()
+            .repository()
+            .files
+            .node_identities
+            .name();
+
+        std::fs::remove_file(fixture.generation().path_of(&name))
+            .expect("the published file removes");
+        let report = NodeIndex::open(OpenOptions {
+            generation: fixture.generation(),
+            secret: &secret(),
+        })
+        .expect_err("open refuses a generation missing a published file");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::Open { file }] if *file == name,
+        );
+        assert_matches!(
+            report.downcast_ref::<OpenBindingError<OpenIdentityTableArchiveError>>(),
+            Some(OpenBindingError::Integrity(IntegrityVerificationError::Io {
+                name: missing,
+                error,
+            })) if *missing == name && error.kind() == std::io::ErrorKind::NotFound,
+        );
     }
 }

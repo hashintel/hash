@@ -24,6 +24,7 @@ pub(crate) struct OpenOptions<'context> {
     pub secret: &'context ServeSecret,
 }
 
+#[derive(Debug)]
 pub(crate) struct World {
     generation: Generation,
 
@@ -91,5 +92,86 @@ impl World {
         // advisory read lock. Therefore it is safe to remove the directory, and then
         // release the file descriptors at the end of the call through `Drop`.
         tokio::fs::remove_dir_all(self.generation.path()).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::assert_matches;
+
+    use super::{World, error::WorldError};
+    use crate::serve2::tests::fixture::{
+        ENDPOINTS, NODES, TamperFixture, respan_adjacency, retarget_postings_points, secret,
+    };
+
+    /// The synthetic generation opens as a world.
+    #[test]
+    fn untampered_opens() {
+        let fixture = TamperFixture::publish("world-untampered");
+
+        let world = World::open(fixture.generation().clone(), &secret())
+            .expect("the untampered generation opens");
+        let nodes = usize::try_from(NODES).expect("fixture node counts fit usize");
+
+        assert_eq!(world.layout.node_count(), nodes);
+        assert_eq!(world.topology.node_count(), nodes);
+        assert_eq!(world.ontology.node_count(), nodes);
+        assert_eq!(world.topology.edge_count(), ENDPOINTS.len());
+    }
+
+    /// Open refuses an adjacency spanning an extra node row, under
+    /// [`WorldError::NodeCountMismatch`].
+    ///
+    /// Dropping a node row from the adjacency would drop that node's edge slots with it and move
+    /// the edge domain in the same tamper. The tamper therefore adds a row, and widening is as
+    /// much a producer bug as truncation is.
+    #[test]
+    fn adjacency_extra_node_row() {
+        let fixture = TamperFixture::publish("world-adjacency-extra-node-row");
+        let nodes = usize::try_from(NODES).expect("fixture node counts fit usize");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.adjacency.name(), |path| {
+            respan_adjacency(path, nodes + 1, &ENDPOINTS);
+        });
+        let report = World::open(tampered, &secret())
+            .expect_err("open refuses an adjacency spanning an extra node row");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::NodeCountMismatch {
+                layout,
+                topology,
+                ontology,
+            }] if *layout == nodes && *topology == nodes + 1 && *ontology == nodes,
+        );
+    }
+
+    /// Open refuses a postings point domain above the layout's node count, under
+    /// [`WorldError::NodeCountMismatch`].
+    ///
+    /// Narrowing the postings' point domain can strand a membership position outside it, which
+    /// the postings contract refuses first and under its own name. The tamper therefore adds a
+    /// row.
+    #[test]
+    fn postings_points_wide() {
+        let fixture = TamperFixture::publish("world-postings-points-wide");
+        let nodes = usize::try_from(NODES).expect("fixture node counts fit usize");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.postings.name(), |path| {
+            retarget_postings_points(path, NODES + 1);
+        });
+        let report = World::open(tampered, &secret())
+            .expect_err("open refuses a postings point domain above the node count");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::NodeCountMismatch {
+                layout,
+                topology,
+                ontology,
+            }] if *layout == nodes && *topology == nodes && *ontology == nodes + 1,
+        );
     }
 }

@@ -11,9 +11,15 @@ impl ServeSecret {
 }
 
 impl Deref for ServeSecret {
-    type Target = SecretHexBytes<32>;
+    type Target = SecretHexBytes<{ Self::LENGTH }>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl From<SecretHexBytes<{ Self::LENGTH }>> for ServeSecret {
+    fn from(bytes: SecretHexBytes<{ Self::LENGTH }>) -> Self {
+        Self(bytes)
     }
 }
