@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
@@ -139,6 +139,34 @@ test("retains a selected bundle while canonical history reconnects", async () =>
 
   expect(result.current.status).toEqual({ state: "revalidating" });
   expect(result.current.settledManifest).toEqual(settledManifest);
+});
+
+test("does not publish a bundle while its coherent snapshot is unavailable", async () => {
+  const persistCoherentSnapshot = vi.fn();
+  const { result } = renderHook(() => {
+    const storage = useCrewReservationSettledManifestStorage();
+    const status = useCrewReservationSettlement({
+      definition: preparedCrewReservationNet,
+      enabled: true,
+      history: preparedHistory,
+      historyError: undefined,
+      persistCoherentSnapshot,
+      preparationError: undefined,
+      setSettledManifest: storage.setSettledManifest,
+      settledManifest: storage.settledManifest,
+      snapshotMissing: true,
+    });
+    return { ...storage, status };
+  });
+
+  await act(async () => undefined);
+
+  expect(result.current.status).toEqual({
+    state: "refused",
+    reason: "bundle-snapshot-unavailable",
+  });
+  expect(persistCoherentSnapshot).not.toHaveBeenCalled();
+  expect(result.current.settledManifest).toBeNull();
 });
 
 test("surfaces canonical history failure without publishing a bundle", async () => {

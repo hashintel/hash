@@ -74,6 +74,7 @@ export const useCrewReservationSettlement = (input: {
     if (
       !enabled ||
       historyError !== undefined ||
+      snapshotMissing ||
       definition === undefined ||
       history === undefined
     ) {
@@ -134,6 +135,7 @@ export const useCrewReservationSettlement = (input: {
     persistCoherentSnapshot,
     setSettledManifest,
     settledManifest,
+    snapshotMissing,
   ]);
 
   const status: CrewReservationSettlementStatus = !enabled
