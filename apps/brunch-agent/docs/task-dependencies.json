@@ -15,6 +15,7 @@
       "@hashintel/brunch-agent-transport-aisdk#build",
       "@hashintel/petrinaut-core#build"
     ],
+    "build:docker": [],
     "dev": [
       "@hashintel/brunch-agent#build",
       "@hashintel/brunch-agent-binding-flue#build",

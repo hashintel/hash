@@ -21,6 +21,8 @@
 # Atlas compiles its wire contract into the binary with `include_str!`, so the
 # file is a build input rather than documentation the image can do without.
 !libs/@local/graph/atlas/docs/wire.md
+# Brunch packages prompts and skills through `?raw` imports in their builds.
+!libs/@hashintel/brunch-agent/packages/*/src/**/*.md
 
 ########################
 ## Same as in .gitignore
