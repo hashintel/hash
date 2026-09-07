@@ -21,7 +21,7 @@ import {
   Button,
   Icon,
   PortalContainerContext,
-  useScrollbarBehavior,
+  useCustomScrollbarUI,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
@@ -255,9 +255,9 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
 
   useEffect(() => () => instance.dispose(), [instance]);
 
-  // As the `.petrinaut-root` theme-scope root, set up the design system's
-  // scrollbar runtime behavior once on mount.
-  useScrollbarBehavior();
+  // As the `.petrinaut-root` theme-scope root, opt into the design system's
+  // custom scrollbar UI once on mount.
+  useCustomScrollbarUI();
 
   /**
    * `handle` is rebuilt whenever the host swaps the model, while `handle.id`
