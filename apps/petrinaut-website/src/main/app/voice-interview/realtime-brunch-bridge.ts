@@ -467,9 +467,11 @@ export class RealtimeBrunchBridge {
     if (event.type === "canonical-speech-requested") {
       this.#pendingSpeechRequestIds.add(event.speechRequestId);
       for (const itemId of this.#acceptedInputItemIds) {
-        this.#playbackOverlappingInputItemIds.add(itemId);
+        if (!this.#interruptionPlaybackText.has(itemId)) {
+          this.#playbackOverlappingInputItemIds.add(itemId);
+          this.#acceptedInputItemIds.delete(itemId);
+        }
       }
-      this.#acceptedInputItemIds.clear();
       return;
     }
     if (event.type === "output-started") {

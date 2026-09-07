@@ -29,7 +29,7 @@ complete voice telemetry and final projection contracts are not production-ready
    and there is no generic voice-provider abstraction.
 3. **Server policy is fixed.** The website server combines browser SDP with a trusted Realtime
    session and calls the unified `/v1/realtime/calls` endpoint. The session enables audio output,
-   low reasoning effort, the `marin` voice and semantic VAD with low eagerness, automatic response
+   low reasoning effort, the `marin` voice and semantic VAD with medium eagerness, automatic response
    creation and interruption. Optional provisional input transcription is display-only; neither it
    nor Realtime audio is persisted as chat history. API credentials, model selection, instructions
    and tools never enter browser-controlled configuration.

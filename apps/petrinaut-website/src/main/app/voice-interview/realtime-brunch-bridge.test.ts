@@ -340,6 +340,45 @@ describe("RealtimeBrunchBridge", () => {
     ]);
   });
 
+  test("keeps an accepted interruption through a later speech request", async () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.emit({
+      canonicalText: [assistantText],
+      connectionEpoch: 3,
+      responseId: "playing",
+      speechRequestId: "speech-playing",
+      type: "output-started",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      interruptionBySpeaking: true,
+      itemId: "interruption",
+      type: "input-speech-started",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      speechRequestId: "speech-follow-on",
+      type: "canonical-speech-requested",
+    });
+
+    harness.emit(
+      completedTranscript(
+        3,
+        "Actually, the auditor approves it.",
+        "interruption",
+      ),
+    );
+
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    expect(harness.events).not.toContainEqual({
+      reason: "unavailable",
+      type: "transcript-rejected",
+    });
+  });
+
   test.each(["output-stopped", "output-interrupted"] as const)(
     "does not compare against playback that already %s",
     (type) => {

@@ -630,7 +630,11 @@ export class VoiceTurnController {
         this.#inputTurnPending = false;
         this.#transcriptItemId = null;
         this.#transcriptKey = null;
-        this.#update({ inputNotice: "none", partialText: "" });
+        this.#update(
+          this.#snapshot.inputNotice === "answer-pending"
+            ? {}
+            : { inputNotice: "none", partialText: "" },
+        );
         return;
       }
       this.#transcriptItemId = null;
@@ -752,7 +756,13 @@ export class VoiceTurnController {
         this.#transcriptItemId = null;
         this.#transcriptKey = null;
       }
-      this.#update({ output: "waiting-for-tool", partialText: "" });
+      this.#update({
+        output: "waiting-for-tool",
+        partialText:
+          this.#snapshot.interruptionBySpeaking && this.#inputTurnPending
+            ? this.#snapshot.partialText
+            : "",
+      });
       if (
         this.#latencyCorrelationId !== null &&
         this.#ttsSpeechRequestId === null
@@ -778,7 +788,13 @@ export class VoiceTurnController {
         this.#update({ output: "interrupted", partialText: "" });
         return;
       }
-      this.#update({ output: "speaking", partialText: "" });
+      this.#update({
+        output: "speaking",
+        partialText:
+          this.#snapshot.interruptionBySpeaking && this.#inputTurnPending
+            ? this.#snapshot.partialText
+            : "",
+      });
       if (
         this.#latencyCorrelationId !== null &&
         event.speechRequestId === this.#ttsSpeechRequestId
@@ -836,7 +852,11 @@ export class VoiceTurnController {
       this.#inputTurnPending = true;
       this.#transcriptItemId = event.itemId;
       this.#transcriptKey = null;
-      this.#update({ inputNotice: "none", partialText: "" });
+      this.#update(
+        this.#snapshot.inputNotice === "answer-pending"
+          ? {}
+          : { inputNotice: "none", partialText: "" },
+      );
       return;
     }
     if (event.type === "response-terminal") {
@@ -878,6 +898,7 @@ export class VoiceTurnController {
     if (this.#transcriptKey !== null && this.#transcriptKey !== key) return;
     this.#transcriptKey = key;
     if (event.type === "partial") {
+      if (this.#snapshot.inputNotice === "answer-pending") return;
       this.#update({
         partialText: `${this.#snapshot.partialText}${event.text}`,
       });
@@ -886,9 +907,11 @@ export class VoiceTurnController {
     this.#inputTurnPending = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
-    this.#update({
-      partialText: event.text.trim() || this.#snapshot.partialText,
-    });
+    this.#update(
+      this.#snapshot.inputNotice === "answer-pending"
+        ? {}
+        : { partialText: event.text.trim() || this.#snapshot.partialText },
+    );
   }
 
   #setError(
