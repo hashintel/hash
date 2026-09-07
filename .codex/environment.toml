@@ -12,17 +12,17 @@ yarn install
 # The launcher selects an available port and exposes it as PORT, matching the
 # autoPort behavior of .claude/launch.json.
 [[actions]]
-command = "node .codex/run-with-auto-port.mjs yarn workspace @hashintel/petrinaut dev"
+command = "node .codex/run-with-auto-port.mjs 6006 yarn workspace @hashintel/petrinaut dev"
 icon    = "run"
 name    = "Petrinaut Storybook"
 
 [[actions]]
-command = "node .codex/run-with-auto-port.mjs yarn workspace @apps/petrinaut-website dev"
+command = "node .codex/run-with-auto-port.mjs 5173 yarn workspace @apps/petrinaut-website dev"
 icon    = "run"
 name    = "Petrinaut website"
 
 [[actions]]
-command = "node .codex/run-with-auto-port.mjs yarn exec turbo run dev --filter @apps/petrinaut-docs"
+command = "node .codex/run-with-auto-port.mjs 4322 yarn exec turbo run dev --filter @apps/petrinaut-docs"
 icon    = "run"
 name    = "Petrinaut architecture docs"
 

@@ -1,18 +1,24 @@
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 
-const [command, ...args] = process.argv.slice(2);
+const [preferredPortArgument, command, ...args] = process.argv.slice(2);
+const preferredPort = Number(preferredPortArgument);
 
-if (!command) {
-  throw new Error("Expected a command to run");
+if (
+  !Number.isInteger(preferredPort) ||
+  preferredPort < 1 ||
+  preferredPort > 65_535 ||
+  !command
+) {
+  throw new Error("Expected a preferred port followed by a command to run");
 }
 
-const getAvailablePort = () =>
+const tryPort = (port) =>
   new Promise((resolve, reject) => {
     const server = createServer();
 
     server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
+    server.listen(port, "127.0.0.1", () => {
       const address = server.address();
 
       if (!address || typeof address === "string") {
@@ -31,7 +37,13 @@ const getAvailablePort = () =>
     });
   });
 
-const port = await getAvailablePort();
+const port = await tryPort(preferredPort).catch((error) => {
+  if (error.code === "EADDRINUSE") {
+    return tryPort(0);
+  }
+
+  throw error;
+});
 console.log(`Starting on automatically allocated port ${port}`);
 
 const child = spawn(command, args, {
