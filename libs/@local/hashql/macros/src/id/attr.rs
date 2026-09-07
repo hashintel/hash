@@ -12,6 +12,7 @@ pub(crate) enum DisplayAttribute {
     Format(TokenTree),
 }
 
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct Spanned<T> {
     pub value: T,
     pub span: proc_macro::Span,
@@ -37,7 +38,6 @@ pub(crate) struct Attributes {
     pub traits: BTreeSet<Trait>,
 
     pub endian: Option<Spanned<Endianness>>,
-    /// The `unaligned` keyword token; presence turns the mode on, kept for error spans.
     pub unaligned: Option<proc_macro::Span>,
 
     pub extra: TokenStream,
