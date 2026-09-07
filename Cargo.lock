@@ -5984,6 +5984,7 @@ dependencies = [
  "hash-graph-types",
  "hash-middleware",
  "hash-temporal-client",
+ "hashbrown 0.17.1",
  "hashql-core",
  "heed",
  "hkdf 0.13.0",
