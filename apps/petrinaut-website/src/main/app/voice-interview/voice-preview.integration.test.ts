@@ -483,7 +483,7 @@ describe("controlled voice preview", () => {
     await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({
-        idempotencyKey: "ai-sdk:voice-realtime:1:user-item:0",
+        idempotencyKey: "ai-sdk:user:voice-realtime:1:user-item:0",
         message: { body: spokenAnswer, kind: "user" },
       }),
     );

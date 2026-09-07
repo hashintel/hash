@@ -661,11 +661,11 @@ test("replays a stable typed or Voice message with the same idempotency key", as
 
   expect(send).toHaveBeenNthCalledWith(
     1,
-    expect.objectContaining({ idempotencyKey: "ai-sdk:typed-message-1" }),
+    expect.objectContaining({ idempotencyKey: "ai-sdk:user:typed-message-1" }),
   );
   expect(send).toHaveBeenNthCalledWith(
     2,
-    expect.objectContaining({ idempotencyKey: "ai-sdk:typed-message-1" }),
+    expect.objectContaining({ idempotencyKey: "ai-sdk:user:typed-message-1" }),
   );
   expect(admittedTurns).toBe(1);
   expect(onAdmission).toHaveBeenNthCalledWith(2, {
@@ -684,7 +684,7 @@ test("replays a stable typed or Voice message with the same idempotency key", as
   await readChunks(await transport.sendMessages(voiceTurn));
   expect(send).toHaveBeenLastCalledWith(
     expect.objectContaining({
-      idempotencyKey: "ai-sdk:voice-realtime:7:item%2F1:0",
+      idempotencyKey: "ai-sdk:user:voice-realtime:7:item%2F1:0",
     }),
   );
 });
