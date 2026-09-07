@@ -86,7 +86,7 @@ When Petrinaut supplies response_text, speak only those strings, in array order 
           },
           turn_detection: {
             type: "semantic_vad",
-            eagerness: "low",
+            eagerness: "medium",
             create_response: false,
             interrupt_response: false,
           },

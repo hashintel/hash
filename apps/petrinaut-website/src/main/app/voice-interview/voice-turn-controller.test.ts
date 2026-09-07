@@ -432,6 +432,38 @@ describe("VoiceTurnController", () => {
     });
   });
 
+  test("preserves in-flight interruption text through queued canonical speech", async () => {
+    const harness = createHarness();
+    harness.controller.setInterruptionBySpeaking(true);
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      interruptionBySpeaking: true,
+      itemId: "interruption",
+      type: "input-speech-started",
+    });
+    harness.emitSession({
+      key: { connectionEpoch: 1, contentIndex: 0, itemId: "interruption" },
+      text: "The supervisor",
+      type: "partial",
+    });
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-follow-on",
+      type: "canonical-speech-requested",
+    });
+    expect(harness.controller.getSnapshot().partialText).toBe("The supervisor");
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-follow-on",
+      speechRequestId: "speech-follow-on",
+      type: "output-started",
+    });
+    expect(harness.controller.getSnapshot().partialText).toBe("The supervisor");
+  });
+
   test("offers handoff for canonical output without a question marker", async () => {
     const harness = createHarness();
     await harness.controller.start();
@@ -1545,6 +1577,60 @@ describe("VoiceTurnController", () => {
       expect(harness.submitText).not.toHaveBeenCalled();
     },
   );
+
+  test.each(["prompt-regurgitation", "self-echo"] as const)(
+    "preserves a retained answer after a later %s rejection",
+    async (reason) => {
+      const harness = createHarness();
+      await harness.controller.start();
+      harness.emitBridge({
+        answer: "The retained answer",
+        type: "transcript-retained",
+      });
+
+      harness.emitBridge({ reason, type: "transcript-rejected" });
+
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        inputNotice: "answer-pending",
+        partialText: "The retained answer",
+      });
+    },
+  );
+
+  test("keeps a retained answer visible through a later rejected transcript", async () => {
+    const harness = createHarness();
+    harness.controller.setInterruptionBySpeaking(true);
+    await harness.controller.start();
+    harness.emitBridge({
+      answer: "The retained answer",
+      type: "transcript-retained",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      interruptionBySpeaking: true,
+      itemId: "false-echo",
+      type: "input-speech-started",
+    });
+    harness.emitSession({
+      key: { connectionEpoch: 1, contentIndex: 0, itemId: "false-echo" },
+      text: "Assistant echo",
+      type: "partial",
+    });
+    harness.emitBridge({
+      reason: "self-echo",
+      type: "transcript-rejected",
+    });
+    harness.emitSession({
+      key: { connectionEpoch: 1, contentIndex: 0, itemId: "false-echo" },
+      text: "Assistant echo",
+      type: "completed",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      inputNotice: "answer-pending",
+      partialText: "The retained answer",
+    });
+  });
 
   test("keeps completed display transcripts until submission and rejects late events", async () => {
     const harness = createHarness();

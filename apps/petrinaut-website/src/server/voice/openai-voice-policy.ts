@@ -69,7 +69,7 @@ export const createOpenAIRealtimeSession = () => ({
       },
       turn_detection: {
         type: "semantic_vad" as const,
-        eagerness: "low" as const,
+        eagerness: "medium" as const,
         create_response: false,
         interrupt_response: false,
       },

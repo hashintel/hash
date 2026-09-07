@@ -628,7 +628,7 @@ describe("controlled voice preview", () => {
         input: {
           turn_detection: {
             type: "semantic_vad",
-            eagerness: "low",
+            eagerness: "medium",
             create_response: false,
             interrupt_response: false,
           },
