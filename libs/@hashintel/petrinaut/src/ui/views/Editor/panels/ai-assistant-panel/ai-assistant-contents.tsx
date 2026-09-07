@@ -492,6 +492,9 @@ const AiAssistantMessage = memo(
           }
         })}
         {hasVoiceOrigin && firstTextKey === null && <VoiceInputProvenance />}
+        {role === "assistant" && message.metadata?.stopped && (
+          <div className={stoppedNoteStyle}>Response stopped</div>
+        )}
       </div>
     );
   },
@@ -809,7 +812,7 @@ export const AiAssistantContents = ({
               handlersRef={handlersRef}
             />
           ))}
-          {stopped && !error && (
+          {stopped && !error && !messages.at(-1)?.metadata?.stopped && (
             <div className={stoppedNoteStyle}>Response stopped</div>
           )}
           <div ref={messagesEndRef} />

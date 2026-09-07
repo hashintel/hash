@@ -76,6 +76,38 @@ afterEach(() => {
 });
 
 describe("AiAssistantContents", () => {
+  test("labels stopped history after a later completed reply without global Stop state", () => {
+    render(
+      <NotificationsProvider>
+        <AiAssistantContents
+          input=""
+          status="ready"
+          stopped={false}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          messages={[
+            {
+              id: "aborted",
+              role: "assistant",
+              metadata: { stopped: true },
+              parts: [{ type: "text", text: "Partial reply" }],
+            },
+            {
+              id: "completed-later",
+              role: "assistant",
+              parts: [{ type: "text", text: "Later completed reply" }],
+            },
+          ]}
+        />
+      </NotificationsProvider>,
+    );
+    expect(screen.getByText("Partial reply")).not.toBeNull();
+    expect(screen.getByText("Later completed reply")).not.toBeNull();
+    expect(screen.getAllByText("Response stopped")).toHaveLength(1);
+  });
+
   test("shows assistant errors as toasts instead of transcript messages", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {

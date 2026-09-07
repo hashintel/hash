@@ -112,6 +112,8 @@ Voice-origin client-tool results retain their markers in Flue history. Direct
 spoken user turns remain canonical text, but Flue 2.0.3 does not yet expose the
 caller delivery metadata needed to restore their Voice chip after reopening.
 
+Browser execution and its continuation keep the shared composer busy; a local tool failure reaches Voice as an error rather than an apparently completed response. Durably aborted history entries retain their stopped label. If the Flue step has already completed, Stop can withhold not-yet-started browser work locally but cannot durably record that withholding: a reopen can recover those calls as pending. This cancellation/reopen limitation remains unresolved; the local guard is not a durable cancellation claim.
+
 An active session stays at the end of the transcript. Its compact divider shows
 a waveform and **Connecting**, **Listening**, **Speaking**, **Paused**, or a
 recovery state. Listening levels follow microphone input; provisional words
