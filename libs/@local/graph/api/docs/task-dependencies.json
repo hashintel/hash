@@ -31,9 +31,7 @@
     "@rust/hashql-syntax-jexpr"
   ],
   "tasks": {
-    "build:openapi": [
-      "@local/status#build"
-    ],
+    "build:openapi": [],
     "doc:dependency-diagram": [
       "@rust/hash-repo-chores#build"
     ],
