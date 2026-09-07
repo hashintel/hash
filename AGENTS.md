@@ -60,7 +60,7 @@ Every dev server binds a port of its own, so any set of them can run at once:
 | 6007  | `@hashintel/refractive` Storybook                                |
 | 61000 | `@hashintel/ds-components` Ladle                                 |
 
-`PORT` overrides the default for every one of them except the two Brunch servers, whose ports are a contract between the pair. `.claude/launch.json` names the servers a Claude Code session can preview; keep its `port` in step with the table when a default moves.
+`PORT` overrides the default for every one of them except the two Brunch servers, which take `BRUNCH_CHAT_PORT` and `BRUNCH_PANEL_PORT` instead: one variable each, because the pair binds two ports and the panel proxies to whatever the chat variable names. Set them on `yarn dev:brunch`, which passes its environment to both servers. `.claude/launch.json` names the servers a Claude Code session can preview; keep its `port` in step with the table when a default moves.
 
 ### Starting Services
 
