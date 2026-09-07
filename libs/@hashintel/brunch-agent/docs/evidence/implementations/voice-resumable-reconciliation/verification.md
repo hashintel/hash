@@ -59,18 +59,20 @@ The scoped unit suites passed **1,317 tests in 166 files**:
 
 Additional checks: `yarn workspace @local/petrinaut-arch-docs lint:arch-docs` passed (70 layers, 356 edges, 736 files, 71 generated pages, 38 authored pages); changed TypeScript formatting, the three changed publishable/user Markdown files and `git diff --check` passed. Commit hooks passed formatting and Markdown lint. Existing non-blocking React Compiler and Node configuration warnings are not repaired here. Brunch Markdown is explicitly excluded from the repository formatter and Markdown lint, so those tools are not claimed as checks of this record. Full Local CI/GitHub CI and live screenshot/audio evidence were not run; no push occurred.
 
-## Acceptance disposition — still open
+## Acceptance disposition — accepted with explicit limitations on 2026-09-07
+
+Lu Nelson accepted the narrowed Mission 6b claim after the real owner witness in [`owner-witness-2026-09-07/witness.md`](owner-witness-2026-09-07/witness.md). That witness exposed and repaired cumulative cross-step client results and the fixture's non-causal prepared answer, then passed the negative control, explicit spoken mutation, Your turn, coherent revision-2 settlement, Tab-B continuation, active-submission durable Stop, Tab-C stopped-entry recovery, and playback controls. The full pre-registered telemetry bundle was not retained; the owner accepted that evidence limitation explicitly.
 
 | Obligation | Disposition |
 | --- | --- |
 | Source preservation, scoped catalogue, canonical normalization, deterministic admission and inherited automated contracts | Imported with provenance; scoped suites pass |
-| Deferred execution, termination and history joins above | Discriminated and repaired locally |
-| Exact Stop timing during held output insertion and insertion rejection through the full combined host | Not separately demonstrated by the new combined test; source error-wrapper cases and the matching static-tool error path are retained, not a claim that every race was witnessed |
-| Real fixture spoken mutation, Your turn, Stop, coherent bundle, Tab-B continuation and compact/expanded inspection | Required product witness remains unperformed |
-| Direct spoken-user Voice chip after snapshot-only reopen | Still unsupported by SDK 2.0.3; requires upstream resolution or Lu's explicit truthful deferral |
-| Reload-safe cancellation of a locally withheld tool continuation | Newly confirmed unresolved boundary below; no waiver or invented durable marker |
-| Comparative audible latency | Still requires 10 donor and 10 candidate trials with the inherited median/p95 gate; no spend authorization |
-| Human acceptance and original PR retirement | Not granted; KA's PR remains untouched |
+| Deferred execution, termination and history joins above | Discriminated and repaired locally; the owner witness additionally proved one result per causal step after the cross-step accumulation repair |
+| Exact Stop timing during held output insertion and insertion rejection through the full combined host | Not separately demonstrated by the owner witness; source/component cases remain bounded automated evidence rather than a claim that every race was witnessed |
+| Real fixture spoken mutation, Your turn, Stop, coherent bundle, Tab-B continuation and compact/expanded inspection | Passed by the owner witness, including one causal mutation, no duplicate/autoplay, canonical active-submission abort and stopped-entry recovery |
+| Direct spoken-user Voice chip after snapshot-only reopen | Observed missing and explicitly deferred by Lu; canonical text survives, but no direct-user Voice-origin claim is made after hydration |
+| Reload-safe cancellation of a locally withheld tool continuation | Explicitly deferred with the narrowed Stop claim below; no invented durable marker |
+| Comparative audible latency | Explicitly deferred; Mission 6b makes no comparative latency or no-regression claim |
+| Human acceptance and original PR retirement | Narrowed mission claim accepted by Lu; KA's PR remains untouched and requires separate retirement authorization |
 
 ### Local withholding is not a durable stopped record
 
@@ -78,4 +80,4 @@ When a Flue tool-call step has already completed, the parent Stop adapter can re
 
 A fresh process cannot infer the local withholding from that snapshot. Pending completed-step tools remain recoverable work, whereas genuinely aborted submissions now project `metadata.stopped` and are not executed. The successful aborted-entry tests do **not** solve this local-withholding/reopen case. User docs explicitly warn that reopening can recover the locally withheld tool as pending work.
 
-Resolving that distinction durably requires a supported recording/termination boundary or an owner-approved narrowing of behavior. Do not add a browser sidecar, forge aborted settlements, admit an extra hidden turn, or silently disable ordinary pending-tool recovery. This is an owner reorientation point under the live mission, not grounds to call the base accepted. A local Mission 7 restack for review must retain the blocker and must not authorize shared transport/host implementation or paid integrated runs over an asserted verified base.
+Resolving that distinction durably requires a supported recording/termination boundary. Do not add a browser sidecar, forge aborted settlements, admit an extra hidden turn, or silently disable ordinary pending-tool recovery. Lu accepted the narrower behavior on 2026-09-07: Stop is durable while the Flue submission is active; after a tool-call step settles, locally withheld browser work may reappear as pending after reopen, and already-applied mutations are not rolled back. Re-enter when the platform supplies a durable canonical withholding/cancellation operation or a product consumer makes this race load-bearing.
