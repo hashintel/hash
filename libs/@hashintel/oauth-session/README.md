@@ -10,6 +10,18 @@ a deployment whose instances share no memory can still complete a sign-in.
 No React, no HTTP framework, no database. Handlers take a `Request` and return
 a `Response`.
 
+![One service issues sessions; any number verify them, over either of two
+credentials](docs/session-overview.svg)
+
+One service holds the provider credentials and issues. Any number verify, and a
+verifier holds only the keyring, so it can check a session without being able
+to start a sign-in. The second credential exists because a verifier may sit on
+an origin the session cookie never reaches.
+
+The diagram's source is [`docs/session-overview.d2`](docs/session-overview.d2),
+which carries the command that renders it. The handshake itself has a sequence
+diagram in the architecture docs.
+
 ## Guarding a route
 
 A service that only checks sessions needs a secret, an issuer and an audience —
