@@ -8,7 +8,7 @@ The fully preserved pre-split source is git commit `d6b7ea829f`. Rationale prove
 
 ## Amendment gate
 
-Step B may be cut only after Step A produces a classified outcome allowed by [`MISSION.md#probe-outcomes-and-owner-gate`](../../MISSION.md#probe-outcomes-and-owner-gate), any required rework is named, and the owner separately authorizes Step B's scope, provider envelope, and claim. The amendment must be an authority-only commit before dependent implementation or evaluation work. Step A completion is not authorization.
+Step B may be cut only after Step A produces a classified outcome allowed by [`MISSION.md#probe-outcomes-and-owner-gate`](../../MISSION.md#probe-outcomes-and-owner-gate), any required rework is named, and the owner separately authorizes Step B's scope, provider envelope, and claim. The amendment must be an authority-only commit before dependent implementation or evaluation work. Step A completion is not authorization. The review-only restack above Mission 6b also grants no Step B permission: root authority's foundation gate remains a separate dependency, and this packet's genuine Vestera lifecycle witness cannot absorb or waive Mission 6b's unclosed obligations.
 
 At that gate, replace probe-dependent alternatives below with the observed branch; do not leave placeholders for choices already settled by the owner. Preserve the consolidated mission shape unless a terminal Step A outcome requires stopping or returning explainability to design.
 
