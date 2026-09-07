@@ -522,6 +522,68 @@ describe("AiAssistantPanel composer submissions", () => {
     );
   });
 
+  test("does not continue while a sibling automatic tool is pending", async () => {
+    let releaseLayout: (() => void) | undefined;
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(
+        streamChunks([
+          { type: "start-step" },
+          {
+            type: "tool-input-available",
+            toolCallId: "staggered-net-read",
+            toolName: getLatestNetDefinitionToolName,
+            input: {},
+          },
+          {
+            type: "tool-input-available",
+            toolCallId: "staggered-layout",
+            toolName: "applyAutoLayout",
+            input: { askUserFirst: false },
+          },
+          { type: "finish-step" },
+          { type: "finish", finishReason: "tool-calls" },
+        ]),
+      ),
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      initialMessage: "Read and lay out the net",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    const instance = testInstances.at(-1);
+    if (instance === undefined) {
+      throw new Error("Expected the panel to create a Petrinaut instance.");
+    }
+    const layout = vi
+      .spyOn(instance.commands, "applyAutoLayout")
+      .mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          releaseLayout = resolve;
+        });
+        return { commitCount: 0 };
+      });
+
+    await waitFor(() => expect(releaseLayout).toBeDefined());
+    await act(
+      () =>
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, 20);
+        }),
+    );
+    expect(sendMessages).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      releaseLayout?.();
+      await layout.mock.results[0]?.value;
+    });
+  });
+
   test("invalidates registered Voice controls before typed submit while active publication is pending", async () => {
     const events: string[] = [];
     let finishVoiceEnd: (() => void) | undefined;
