@@ -108,6 +108,39 @@ test("keeps the prior runtime bundle selected while a document write is partial"
   ).toEqual(settledManifest);
 });
 
+test("retains a selected bundle while canonical history reconnects", async () => {
+  const persistCoherentSnapshot = vi.fn();
+  const { result, rerender } = renderHook(
+    ({ history }: { history: typeof preparedHistory | undefined }) => {
+      const storage = useCrewReservationSettledManifestStorage();
+      const status = useCrewReservationSettlement({
+        definition: preparedCrewReservationNet,
+        enabled: true,
+        history,
+        historyError: undefined,
+        persistCoherentSnapshot,
+        preparationError: undefined,
+        setSettledManifest: storage.setSettledManifest,
+        settledManifest: storage.settledManifest,
+        snapshotMissing: false,
+      });
+      return { ...storage, status };
+    },
+    {
+      initialProps: {
+        history: preparedHistory as typeof preparedHistory | undefined,
+      },
+    },
+  );
+  await waitFor(() => expect(result.current.status.state).toBe("settled"));
+  const settledManifest = result.current.settledManifest;
+
+  rerender({ history: undefined });
+
+  expect(result.current.status).toEqual({ state: "revalidating" });
+  expect(result.current.settledManifest).toEqual(settledManifest);
+});
+
 test("surfaces canonical history failure without publishing a bundle", async () => {
   const persistCoherentSnapshot = vi.fn();
   const { result } = renderHook(() => {

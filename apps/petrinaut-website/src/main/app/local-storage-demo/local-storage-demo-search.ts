@@ -51,3 +51,11 @@ export const withBrunchFixtureKey = (
 export const isCrewReservationFixtureSelected = (
   search: LocalStorageDemoSearch,
 ): boolean => search[crewReservationFixtureQuery] === crewReservationFixtureId;
+
+/** Identity of the stateful editor selected by the route's fixture mode. */
+export const localStorageDemoRouteIdentity = (
+  search: LocalStorageDemoSearch,
+): "ordinary" | typeof crewReservationFixtureId =>
+  isCrewReservationFixtureSelected(search)
+    ? crewReservationFixtureId
+    : "ordinary";
