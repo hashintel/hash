@@ -588,3 +588,158 @@ fn files_required_optional_order() {
         Ok(())
     });
 }
+
+/// Later changes to sibling keys preserve the source of the surviving invalid scalar.
+#[test]
+fn provenance_scalar_source() {
+    Jail::expect_with(|jail| {
+        jail.create_file("base.toml", &format!("[store]\nport = '{SECRET}'\n"))?;
+        jail.create_file("override.toml", "[store]\nport = 12.5\n")?;
+        jail.create_file("host.toml", "[store]\nhost = 'database'\n")?;
+
+        for (loader, source, snapshot) in [
+            (
+                Loader::new().with_toml_file("base.toml"),
+                "base.toml",
+                "provenance_scalar_base",
+            ),
+            (
+                Loader::new()
+                    .with_toml_file("base.toml")
+                    .with_optional_toml_file("override.toml"),
+                "override.toml",
+                "provenance_scalar_override",
+            ),
+        ] {
+            let report = loader
+                .with_toml_file("host.toml")
+                .with_defaults(json!({ "routes": [] }))
+                .load::<Config>()
+                .expect_err("the surviving invalid port should fail deserialization");
+            let rendered = format!("{report:?}");
+
+            assert_matches!(
+                report.current_context(),
+                LoadError::Invalid,
+                "the error should identify an invalid configuration"
+            );
+            assert!(
+                rendered.contains(&format!("at `store.port` in `{source}`")),
+                "the diagnostic should name the port's source after merging sibling keys: \
+                 {report:?}"
+            );
+            assert_report(snapshot, &report, jail);
+        }
+        Ok(())
+    });
+}
+
+/// Replacing an array attributes invalid elements to the file supplying the replacement.
+#[test]
+fn provenance_array_source() {
+    Jail::expect_with(|jail| {
+        jail.create_file("base.toml", "routes = [42]\n")?;
+        jail.create_file("override.toml", "routes = [false]\n")?;
+        jail.create_file("host.toml", "[store]\nhost = 'database'\n")?;
+
+        for (files, source, snapshot) in [
+            (
+                ["base.toml", "override.toml"],
+                "override.toml",
+                "provenance_array_override",
+            ),
+            (
+                ["override.toml", "base.toml"],
+                "base.toml",
+                "provenance_array_base",
+            ),
+        ] {
+            let report = files
+                .into_iter()
+                .fold(Loader::new(), Loader::with_toml_file)
+                .with_toml_file("host.toml")
+                .with_defaults(json!({ "store": { "port": 5432 } }))
+                .load::<Config>()
+                .expect_err("the replacement array's invalid element should fail deserialization");
+            let rendered = format!("{report:?}");
+
+            assert_matches!(
+                report.current_context(),
+                LoadError::Invalid,
+                "the error should identify an invalid configuration"
+            );
+            assert!(
+                rendered.contains(&format!("at `routes.0` in `{source}`")),
+                "the diagnostic should name the replacement array's source and element: {report:?}"
+            );
+            assert_report(snapshot, &report, jail);
+        }
+        Ok(())
+    });
+}
+
+/// File contributions to sibling keys do not claim an invalid value supplied by defaults.
+#[test]
+fn provenance_defaults_source() {
+    Jail::expect_with(|jail| {
+        jail.create_file("host.toml", "[store]\nhost = 'database'\n")?;
+        jail.create_file("routes.toml", "routes = ['api']\n")?;
+
+        let report = Loader::new()
+            .with_defaults(json!({ "store": { "port": SECRET } }))
+            .with_toml_file("host.toml")
+            .with_toml_file("routes.toml")
+            .load::<Config>()
+            .expect_err("the untouched invalid default should fail deserialization");
+
+        assert_matches!(
+            report.current_context(),
+            LoadError::Invalid,
+            "the error should identify an invalid configuration"
+        );
+        assert!(
+            format!("{report:?}").contains("at `store.port` from programmatic defaults"),
+            "the diagnostic should preserve the default value's source: {report:?}"
+        );
+        assert_report("provenance_defaults_source", &report, jail);
+        Ok(())
+    });
+}
+
+/// A required value absent from all layers has no supplying file, regardless of merge order.
+#[test]
+fn provenance_missing_field() {
+    Jail::expect_with(|jail| {
+        jail.create_file("base.toml", "[store]\nhost = 'localhost'\n")?;
+        jail.create_file("override.toml", "[store]\nhost = 'database'\n")?;
+
+        for files in [
+            ["base.toml", "override.toml"],
+            ["override.toml", "base.toml"],
+        ] {
+            let report = files
+                .into_iter()
+                .fold(Loader::new(), Loader::with_toml_file)
+                .with_defaults(json!({ "routes": [] }))
+                .load::<Config>()
+                .expect_err("the port absent from all layers should fail deserialization");
+            let rendered = format!("{report:?}");
+
+            assert_matches!(
+                report.current_context(),
+                LoadError::Invalid,
+                "the error should identify an invalid configuration"
+            );
+            assert!(
+                rendered.contains("missing field `store.port`"),
+                "the diagnostic should preserve the missing field's full path: {report:?}"
+            );
+            assert!(
+                !rendered.contains("base.toml") && !rendered.contains("override.toml"),
+                "the diagnostic should not attribute an absent value to a file: {report:?}"
+            );
+            assert_report("provenance_missing_field", &report, jail);
+        }
+        Ok(())
+    });
+}

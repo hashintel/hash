@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use error_stack::Report;
 use figment::{
-    Profile,
+    Profile, Source,
     error::{Actual, Error as FigmentError, Kind as FigmentKind},
 };
 
@@ -29,7 +29,7 @@ impl Error for LoadError {}
 #[derive(Debug)]
 struct LoadDiagnostic {
     provider: Option<String>,
-    location: Option<String>,
+    source: Option<Source>,
     profile: Option<Box<str>>,
     path: Option<Box<str>>,
     kind: LoadDiagnosticKind,
@@ -63,16 +63,19 @@ impl From<FigmentError> for LoadDiagnostic {
             .filter(|profile| *profile != Profile::Default)
             .map(|profile| profile.to_string().into_boxed_str());
 
-        let (provider, location) = error.metadata.map_or((None, None), |metadata| {
-            (
-                Some(metadata.name.into_owned()),
-                metadata.source.map(|source| source.to_string()),
-            )
+        // Missing fields have no source value; Figment supplies the enclosing map's metadata.
+        let metadata = if matches!(kind, LoadDiagnosticKind::MissingField(_)) {
+            None
+        } else {
+            error.metadata
+        };
+        let (provider, source) = metadata.map_or((None, None), |metadata| {
+            (Some(metadata.name.into_owned()), metadata.source)
         });
 
         Self {
             provider,
-            location,
+            source,
             profile,
             path,
             kind,
@@ -88,16 +91,20 @@ impl fmt::Display for LoadDiagnostic {
             write!(formatter, " at `{path}`")?;
         }
 
-        if let Some(provider) = &self.provider {
-            write!(formatter, " in `{provider}`")?;
+        if let Some(source @ Source::File(_)) = &self.source {
+            write!(formatter, " in `{source}`")?;
+        } else {
+            if let Some(provider) = &self.provider {
+                write!(formatter, " from {provider}")?;
+            }
+
+            if let Some(source) = &self.source {
+                write!(formatter, " ({source})")?;
+            }
         }
 
         if let Some(profile) = &self.profile {
             write!(formatter, " under profile `{profile}`")?;
-        }
-
-        if let Some(location) = &self.location {
-            write!(formatter, " ({location})")?;
         }
 
         Ok(())

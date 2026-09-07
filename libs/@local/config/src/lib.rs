@@ -157,7 +157,7 @@ impl Loader {
     /// - [`LoadError::ParseFile`] if a file is invalid for the selected format.
     ///
     /// The report names the key, expected shape, and source when available. Rejected values and
-    /// TOML source excerpts are withheld.
+    /// TOML source excerpts are withheld. Missing required fields have no supplying source.
     #[track_caller]
     pub fn load<C>(self) -> Result<C, Report<LoadError>>
     where
