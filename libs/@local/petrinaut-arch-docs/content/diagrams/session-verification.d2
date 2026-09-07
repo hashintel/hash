@@ -1,0 +1,27 @@
+# Hand-written; rendered by the arch-docs build. Two credentials, because the
+# services that consume a session do not share an origin with the one issuing
+# it. Palette matches the classes in src/emit/d2.ts; the accent fill marks a
+# credential rather than a layer.
+direction: down
+
+page: "Browser\npetrinaut editor" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+
+cookie: "__Host- session cookie\nHttpOnly, SameSite=Lax\naud petrinaut-ai, 8 h" {style.fill: "#fff3d6"; style.stroke: "#b8862b"}
+bearer: "Bearer token\nreadable by page scripts\naud brunch, 5 min" {style.fill: "#fff3d6"; style.stroke: "#b8862b"}
+
+mint: "website.api\nGET /api/auth/token" {style.fill: "#eef3d9"; style.stroke: "#6f8f2f"}
+paid: "website.api\nPOST /api/chat, /api/voice/*" {style.fill: "#eef3d9"; style.stroke: "#6f8f2f"}
+brunch: "Brunch\nanother origin" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+
+guard: "auth\nreadSession, then requireSession" {style.fill: "#f3e3f4"; style.stroke: "#8f4f9c"}
+
+page -> cookie: "attached by the browser"
+cookie -> paid
+cookie -> mint: "the only way to mint one"
+mint -> bearer
+bearer -> page: "held in memory, never stored"
+page -> brunch: "authorization header"
+
+paid -> guard
+brunch -> guard: "same package, same secret"
+guard -> paid: "the session, or 401" {style.stroke-dash: 3}

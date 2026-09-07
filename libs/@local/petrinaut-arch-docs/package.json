@@ -27,6 +27,7 @@
   "devDependencies": {
     "@apps/petrinaut-opt": "workspace:*",
     "@apps/petrinaut-website": "workspace:*",
+    "@hashintel/oauth-session": "workspace:*",
     "@hashintel/petrinaut": "workspace:*",
     "@hashintel/petrinaut-cli": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
