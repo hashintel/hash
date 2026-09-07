@@ -1,3 +1,4 @@
+import { debounce } from "lodash-es";
 import { useEffect } from "react";
 
 import {
@@ -79,6 +80,12 @@ let scrollActivityTracked = false;
  * shade — scrolling feedback, and the only reveal for inputs that never
  * hover the container (keyboard scrolling).
  *
+ * The removal is a lodash `debounce` per container, cached for the
+ * container's lifetime. Scroll events fire per frame while scrolling, and
+ * lodash debounces by recording the call time and letting one timer re-arm
+ * itself for the remaining wait, so the per-event cost stays a lookup and a
+ * timestamp rather than timer churn.
+ *
  * One capture-phase listener on the document sees the (non-bubbling) scroll
  * events of every element as well as of the viewport, whose events arrive
  * targeted at the document itself.
@@ -89,7 +96,7 @@ const trackScrollActivity = (): void => {
   }
   scrollActivityTracked = true;
 
-  const idleTimeouts = new WeakMap<Element, number>();
+  const debouncedClears = new WeakMap<Element, () => void>();
 
   document.addEventListener(
     "scroll",
@@ -99,19 +106,18 @@ const trackScrollActivity = (): void => {
           ? event.target
           : document.documentElement;
 
-      scrolled.setAttribute(scrollingAttribute, "");
-
-      const pending = idleTimeouts.get(scrolled);
-      if (pending !== undefined) {
-        clearTimeout(pending);
+      if (!scrolled.hasAttribute(scrollingAttribute)) {
+        scrolled.setAttribute(scrollingAttribute, "");
       }
-      idleTimeouts.set(
-        scrolled,
-        window.setTimeout(() => {
+
+      let clearMark = debouncedClears.get(scrolled);
+      if (!clearMark) {
+        clearMark = debounce(() => {
           scrolled.removeAttribute(scrollingAttribute);
-          idleTimeouts.delete(scrolled);
-        }, scrollingIdleMs),
-      );
+        }, scrollingIdleMs);
+        debouncedClears.set(scrolled, clearMark);
+      }
+      clearMark();
     },
     { capture: true, passive: true },
   );
