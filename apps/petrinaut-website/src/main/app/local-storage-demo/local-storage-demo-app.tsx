@@ -380,20 +380,22 @@ export const LocalStorageDemoApp = ({
 
   const persistCrewReservationSnapshot = useCallback(
     (sha256: string, definition: SDCPN) => {
-      setStoredSDCPNs((previous) =>
-        produce(previous, (draft) => {
-          const document =
-            draft[crewReservationDocumentId] ??
-            preparedCrewReservationStoredSDCPN;
-          draft[crewReservationDocumentId] = {
+      setStoredSDCPNs((previous) => {
+        const document =
+          previous[crewReservationDocumentId] ??
+          preparedCrewReservationStoredSDCPN;
+
+        return {
+          ...previous,
+          [crewReservationDocumentId]: {
             ...document,
             coherentSnapshots: {
               ...document.coherentSnapshots,
               [sha256]: structuredClone(definition),
             },
-          };
-        }),
-      );
+          },
+        };
+      });
     },
     [setStoredSDCPNs],
   );
