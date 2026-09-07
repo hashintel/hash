@@ -21,15 +21,9 @@
     ],
     "fix:clippy": [],
     "lint:clippy": [],
-    "start": [
-      "@local/status#build"
-    ],
-    "test:integration": [
-      "@local/status#build"
-    ],
+    "start": [],
+    "test:integration": [],
     "test:miri": [],
-    "test:unit": [
-      "@local/status#build"
-    ]
+    "test:unit": []
   }
 }
