@@ -1,10 +1,9 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { nodeFocusStyle } from "../../../styles/focus";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 
 import type { ComponentInstanceNodeType } from "./react-flow-types";
@@ -17,49 +16,22 @@ const containerStyle = css({
   height: "full",
 });
 
-const cardStyle = cva({
-  base: {
-    width: "full",
-    height: "full",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "1",
-    padding: "3",
-    border: "2px solid",
-    borderColor: "neutral.s60",
-    borderRadius: "sm",
-    backgroundColor: "neutral.s15",
-    cursor: "default",
-    transition: "[all 0.2s ease]",
-    outline: "[0px solid rgba(75, 126, 156, 0)]",
-    shadow: "[0px 2px 9px rgba(0, 0, 0, 0.04)]",
-    _hover: {
-      outline: "[4px solid rgba(75, 126, 156, 0.2)]",
-      shadow: "[0px 4px 11px rgba(0, 0, 0, 0.1)]",
-    },
-  },
-  variants: {
-    selection: {
-      resource: {
-        outline: "[4px solid rgba(59, 178, 246, 0.6)]",
-        _hover: {
-          outline: "[4px solid rgba(59, 178, 246, 0.7)]",
-        },
-      },
-      reactflow: {
-        outline: "[4px solid rgba(40, 172, 233, 0.6)]",
-      },
-      notSelectedConnection: {
-        opacity: "[0.5]",
-      },
-      none: {},
-    },
-  },
-  defaultVariants: {
-    selection: "none",
-  },
+const cardStyle = css({
+  width: "full",
+  height: "full",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "1",
+  padding: "3",
+  border: "2px solid",
+  borderColor: "neutral.s60",
+  borderRadius: "sm",
+  backgroundColor: "neutral.s15",
+  cursor: "default",
+  shadow: "[0px 2px 9px rgba(0, 0, 0, 0.04)]",
+  _hover: { shadow: "[0px 4px 11px rgba(0, 0, 0, 0.1)]" },
 });
 
 const titleStyle = css({
@@ -106,23 +78,10 @@ const portLabelStyle = css({
 
 export const ComponentInstanceNode: React.FC<
   NodeProps<ComponentInstanceNodeType>
-> = ({ id, data, selected }: NodeProps<ComponentInstanceNodeType>) => {
-  const {
-    isSelected,
-    isNotSelectedConnection,
-    hoveredItem,
-    isNotHoveredConnection,
-  } = use(EditorContext);
-
-  const isInSelection = isSelected(id);
-  const selectionVariant = isInSelection
-    ? "resource"
-    : selected
-      ? "reactflow"
-      : isNotHoveredConnection(id) ||
-          (!hoveredItem && isNotSelectedConnection(id))
-        ? "notSelectedConnection"
-        : "none";
+> = ({ data, selected }: NodeProps<ComponentInstanceNodeType>) => {
+  // React Flow marks a node selected as a drag-selection is drawn, before the
+  // change reaches the editor's own selection.
+  const focus = selected ? "focused" : data.focus;
 
   const { ports } = data;
   const portCount = ports.length;
@@ -159,7 +118,7 @@ export const ComponentInstanceNode: React.FC<
         );
       })}
 
-      <div className={cardStyle({ selection: selectionVariant })}>
+      <div className={`${cardStyle} ${nodeFocusStyle({ focus })}`}>
         <Icon name="cube" className={iconStyle} />
         <div className={titleStyle}>{data.label}</div>
         <div className={subtitleStyle}>{data.subnetName}</div>

@@ -1,11 +1,5 @@
 import { use, useEffect, useRef, useState } from "react";
 
-import {
-  getNodeConnections,
-  type SelectionItem,
-  type SelectionMap,
-} from "@hashintel/petrinaut-core";
-
 import { ActualModeContext } from "../actual-mode-context";
 import {
   navigationResourceToSimulateDrawer,
@@ -13,7 +7,6 @@ import {
   simulateDrawerToNavigationResource,
   usePetrinautNavigation,
 } from "../navigation";
-import { ActiveNetContext } from "./active-net-context";
 import {
   type DraggingStateByNodeId,
   type EditorActions,
@@ -26,16 +19,9 @@ import { SDCPNContext } from "./sdcpn-context";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { UserSettingsContext } from "./user-settings-context";
 
-export type EditorProviderProps = React.PropsWithChildren;
+import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
 
-const canvasSelections = (selection: SelectionMap) =>
-  Array.from(selection.entries()).filter(
-    ([_, s]) =>
-      s.type === "arc" ||
-      s.type === "place" ||
-      s.type === "transition" ||
-      s.type === "componentInstance",
-  );
+export type EditorProviderProps = React.PropsWithChildren;
 
 const selectionFromNavigation = (
   items: readonly SelectionItem[],
@@ -48,7 +34,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
   const actualMode = use(ActualModeContext);
   const navigation = usePetrinautNavigation();
-  const { activeNet } = use(ActiveNetContext);
   const { getItemType, petriNetDefinition } = use(SDCPNContext);
   const startsInActualMode = actualMode.available;
   const startsWithActualTimeline =
@@ -371,16 +356,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }
   };
 
-  const actions: Omit<
-    EditorActions,
-    | "isSelected"
-    | "isSelectedConnection"
-    | "isNotSelectedConnection"
-    | "selectedConnections"
-    | "isHovered"
-    | "isHoveredConnection"
-    | "isNotHoveredConnection"
-  > = {
+  const actions: Omit<EditorActions, "isSelected"> = {
     navigateTo,
     setGlobalMode: (mode) => navigateTo({ globalMode: mode }),
     setEditionMode: (mode) =>
@@ -538,32 +514,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     ),
     selection,
     hasSelection: selection.size > 0,
-    hasCanvasSelection: canvasSelections(selection).length > 0,
   };
-  const { hoveredItem } = effectiveState;
   const isSelected = (id: string) => selection.has(id);
-
-  const selectedConnections = getNodeConnections(
-    activeNet.transitions,
-    new Set(selection.keys()),
-  );
-
-  const isSelectedConnection = (id: string) => selectedConnections.has(id);
-  const isNotSelectedConnection = (id: string) =>
-    canvasSelections(selection).length > 0 &&
-    !isSelected(id) &&
-    !selectedConnections.has(id);
-
-  const isHovered = (id: string) => hoveredItem?.id === id;
-
-  const hoveredConnections = getNodeConnections(
-    activeNet.transitions,
-    new Set(hoveredItem ? [hoveredItem.id] : []),
-  );
-
-  const isHoveredConnection = (id: string) => hoveredConnections.has(id);
-  const isNotHoveredConnection = (id: string) =>
-    !!hoveredItem && !isHovered(id) && !hoveredConnections.has(id);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -571,12 +523,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     ...effectiveState,
     ...actions,
     isSelected,
-    isHovered,
-    isHoveredConnection,
-    isNotHoveredConnection,
-    isSelectedConnection,
-    isNotSelectedConnection,
-    selectedConnections,
     searchInputRef,
   };
 

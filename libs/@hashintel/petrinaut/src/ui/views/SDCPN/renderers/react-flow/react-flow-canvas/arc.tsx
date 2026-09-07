@@ -9,7 +9,6 @@ import { type CSSProperties, use, useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 
@@ -278,12 +277,9 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   style,
   markerEnd,
 }) => {
-  // Derive selected state from EditorContext
-  const { isSelected } = use(EditorContext);
   const { arcRendering } = use(UserSettingsContext);
 
-  // Check if this arc is selected by its ID
-  const selected = isSelected(id);
+  const selected = data?.selected ?? false;
 
   const inhibitorMarkerId = `inhibitor-circle-${id}`;
   const readMarkerId = `read-dot-${id}`;
@@ -326,7 +322,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
             targetPosition,
           });
 
-  let strokeColor = style?.stroke ?? "#b1b1b7";
+  const strokeColor = style?.stroke ?? "#b1b1b7";
   const arcType = data?.kind;
   const strokeDasharray = getArcStrokeDasharray(arcType);
 

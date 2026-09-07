@@ -1,16 +1,10 @@
 import { Handle, Position } from "@xyflow/react";
 
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { handleStyling } from "../../../styles/styling";
 
 import type { ReactNode } from "react";
-
-export type SelectionVariant =
-  | "resource"
-  | "reactflow"
-  | "notSelectedConnection"
-  | "none";
 
 const containerStyle = css({
   position: "relative",
@@ -18,61 +12,26 @@ const containerStyle = css({
 });
 
 /**
- * Shared card style with selection variants.
- * Consumers pass `borderRadius` and color overrides per node type.
- * The card fills the node wrapper, which React Flow sizes to the node's
- * declared dimensions (see `RenderNodeDimensions` in petrinaut-core).
+ * Shared card style. Consumers pass `borderRadius` and color overrides per
+ * node type, and compose `nodeFocusStyle` for the focus ring. The card fills
+ * the node wrapper, which React Flow sizes to the node's declared dimensions
+ * (see `RenderNodeDimensions` in petrinaut-core).
  */
-export const nodeCardStyle = cva({
-  base: {
-    width: "full",
-    height: "full",
-    display: "flex",
-    alignItems: "center",
-    gap: "[8px]",
-    padding: "[4px 12px 4px 4px]",
-    border: "1px solid",
-    boxSizing: "border-box",
-    position: "relative",
-    cursor: "default",
-    transition: "[all 0.2s ease]",
-    outline: "[0px solid rgba(75, 126, 156, 0)]",
-    shadow: "[0px 2px 9px rgba(0, 0, 0, 0.04)]",
-    _hover: {
-      outline: "[4px solid rgba(75, 126, 156, 0.2)]",
-      shadow: "[0px 4px 11px rgba(0, 0, 0, 0.1)]",
-    },
-    _after: {
-      content: '""',
-      transition: "[all 0.1s ease]",
-      position: "absolute",
-      pointerEvents: "none",
-      borderRadius: "[inherit]",
-      inset: "[-1px]",
-    },
-  },
-  variants: {
-    selection: {
-      resource: {
-        outline: "[4px solid rgba(59, 178, 246, 0.6)]",
-        _hover: {
-          outline: "[4px solid rgba(59, 178, 246, 0.7)]",
-        },
-      },
-      reactflow: {
-        outline: "[4px solid rgba(40, 172, 233, 0.6)]",
-      },
-      notSelectedConnection: {
-        _after: {
-          background: "[rgba(255, 255, 255, 0.5)]",
-        },
-      },
-      none: {},
-    },
-  },
-  defaultVariants: {
-    selection: "none",
-  },
+export const nodeCardStyle = css({
+  width: "full",
+  height: "full",
+  display: "flex",
+  alignItems: "center",
+  gap: "[8px]",
+  padding: "[4px 12px 4px 4px]",
+  border: "1px solid",
+  boxSizing: "border-box",
+  position: "relative",
+  cursor: "default",
+  shadow: "[0px 2px 9px rgba(0, 0, 0, 0.04)]",
+  // The pointer gets its own feedback straight away; only the neighbourhood
+  // highlight waits for the hover to settle.
+  _hover: { shadow: "[0px 4px 11px rgba(0, 0, 0, 0.1)]" },
 });
 
 export const iconContainerBaseStyle = css({
@@ -129,7 +88,7 @@ const subtitleStyle = css({
 });
 
 interface NodeCardProps {
-  /** Class name for the outer card (use nodeCardStyle with selection variant) */
+  /** Class name for the outer card (nodeCardStyle plus the node's own styles) */
   cardClassName: string;
   /** Inline style overrides for the card (e.g. border/background colors) */
   cardStyle?: React.CSSProperties;
