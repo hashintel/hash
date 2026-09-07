@@ -41,6 +41,7 @@ interface ConnectionOptions {
 }
 
 export const POSTGRES_CONNECTION_TIMEOUT_MS = 10_000;
+export const POSTGRES_STATEMENT_TIMEOUT_MS = 30_000;
 
 const defaultSignerFactory: NonNullable<ConnectionOptions["signerFactory"]> = (
   config,
@@ -48,7 +49,7 @@ const defaultSignerFactory: NonNullable<ConnectionOptions["signerFactory"]> = (
 
 const reportDatabaseFailure = async (error: unknown): Promise<void> => {
   try {
-    await recordOperationalFailure("database_operation", error);
+    recordOperationalFailure("database_operation", error);
   } catch {
     // Preserve the database failure as the authoritative operational cause.
   }
@@ -76,16 +77,20 @@ export function createPostgresPoolConfig(
         throw new Error(`Unable to read ${POSTGRES_ENV.tlsCaPath}.`);
       }
     });
+  const ssl = config.tlsCaPath
+    ? {
+        ca: readTlsCa(config.tlsCaPath),
+        rejectUnauthorized: true,
+      }
+    : undefined;
   const common: PoolConfig = {
     application_name: "brunch-agent",
     connectionTimeoutMillis: POSTGRES_CONNECTION_TIMEOUT_MS,
     database: config.database,
     host: config.host,
     port: config.port,
-    ssl: {
-      ca: readTlsCa(config.tlsCaPath),
-      rejectUnauthorized: true,
-    },
+    ...(ssl ? { ssl } : {}),
+    statement_timeout: POSTGRES_STATEMENT_TIMEOUT_MS,
     user: config.user,
   };
 
@@ -180,10 +185,17 @@ export function createPostgresRunnerFromPool(
       }
     },
     close: async () => {
-      const results = await Promise.allSettled([pool.end(), afterClose?.()]);
-      const failures = results.flatMap((result) =>
-        result.status === "rejected" ? [result.reason as unknown] : [],
-      );
+      const failures: unknown[] = [];
+      try {
+        await pool.end();
+      } catch (error) {
+        failures.push(error);
+      }
+      try {
+        await afterClose?.();
+      } catch (error) {
+        failures.push(error);
+      }
       if (failures.length > 0) {
         throw new AggregateError(
           failures,

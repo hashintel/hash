@@ -49,7 +49,7 @@ yarn workspace @apps/brunch-agent build:docker
 
 The image runs the generated `dist/server.mjs` under the repository-locked Node version as uid
 `60000`. It listens on `PORT`, set to `3002` in the image, exposes the cheap liveness probe `GET /health`,
-and requires Postgres plus an OTLP collector whenever `NODE_ENV=production`. Flue connects and
+and requires Postgres whenever `NODE_ENV=production`. An OTLP collector is optional. Flue connects and
 migrates its store before the server listens, so database configuration, connection, and migration
 failures prevent readiness. `/health` reports process liveness only; it does not query Postgres or
 Anthropic.
@@ -63,16 +63,18 @@ Production database configuration uses dedicated fields:
 | `BRUNCH_POSTGRES_PORT`        | Always            | PostgreSQL port                                     |
 | `BRUNCH_POSTGRES_DATABASE`    | Always            | Flue database                                       |
 | `BRUNCH_POSTGRES_USER`        | Always            | PostgreSQL role                                     |
-| `BRUNCH_POSTGRES_TLS_CA_PATH` | Always            | Path to the trusted RDS CA bundle                   |
+| `BRUNCH_POSTGRES_TLS_CA_PATH` | Optional          | Path to a trusted CA bundle; enables verified TLS   |
 | `BRUNCH_POSTGRES_AWS_REGION`  | IAM               | Region used by the RDS signer                       |
 | `BRUNCH_POSTGRES_PASSWORD`    | Password fallback | Runtime-injected database password                  |
-| `HASH_OTLP_ENDPOINT`          | Always            | HASH OTLP/gRPC collector endpoint                   |
+| `HASH_OTLP_ENDPOINT`          | Optional          | HASH OTLP/gRPC collector endpoint                   |
 | `OTEL_SERVICE_NAME`           | Optional          | OTel service name; defaults to `Brunch Agent`       |
 | `OTEL_RESOURCE_ATTRIBUTES`    | Optional          | Standard deployment/resource correlation attributes |
 
-`DATABASE_URL`, `BRUNCH_DEV_DB_PATH`, and `BRUNCH_CHAT_DB_PATH` are rejected in production.
-TLS verification is always enabled, and connection acquisition fails after 10 seconds rather than
-waiting indefinitely. IAM mode uses the task credential chain and asks the RDS signer for a fresh
+When dedicated Postgres configuration is selected, legacy database variables and credentials for the
+other authentication mode are ignored with a warning. Postgres may also be selected in development or
+test environments; without it, those environments use SQLite. Supplying a CA path enables verified TLS.
+Connection acquisition fails after 10 seconds and statements after 30 seconds rather than waiting
+indefinitely. IAM mode uses the task credential chain and asks the RDS signer for a fresh
 token whenever `pg` opens a physical connection. Run the real two-connection probe from the
 selected task role and RDS network boundary:
 
@@ -80,7 +82,8 @@ selected task role and RDS network boundary:
 yarn workspace @apps/brunch-agent probe:rds-iam
 ```
 
-The application exports content-free Flue traces, logs, and metrics: prompts, responses, tool
+When configured, the application exports content-free Flue traces, logs, and metrics through the shared
+HASH OpenTelemetry setup: prompts, responses, tool
 payloads, exception messages, and credentials are not recorded. The generated Flue shutdown
 lifecycle drains active work, disposes its instrumentation, closes Postgres, and flushes the
 application-owned OTel providers. Configure the ECS task with init handling and a stop timeout that

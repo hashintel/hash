@@ -9,6 +9,7 @@ import {
   createPostgresPoolConfig,
   createPostgresRunnerFromPool,
   POSTGRES_CONNECTION_TIMEOUT_MS,
+  POSTGRES_STATEMENT_TIMEOUT_MS,
   probeRdsIam,
 } from "../src/postgres.ts";
 
@@ -49,6 +50,7 @@ describe("Postgres connection configuration", () => {
       host: commonConfig.host,
       port: 5432,
       ssl: { ca: "test-ca", rejectUnauthorized: true },
+      statement_timeout: POSTGRES_STATEMENT_TIMEOUT_MS,
       user: "brunch_agent",
     });
     expect(typeof poolConfig.password).toBe("function");
@@ -58,6 +60,21 @@ describe("Postgres connection configuration", () => {
     await expect(password()).resolves.toBe("token-two");
     expect(getAuthToken).toHaveBeenCalledTimes(2);
     expect(onIamToken).toHaveBeenCalledTimes(2);
+  });
+
+  test("allows Postgres without TLS configuration", () => {
+    const readTlsCa = vi.fn<(path: string) => string>();
+    const { tlsCaPath: _tlsCaPath, ...configWithoutTls } = commonConfig;
+    const poolConfig = createPostgresPoolConfig(
+      {
+        ...configWithoutTls,
+        auth: { mode: "password", password: "test-password" },
+      },
+      { readTlsCa },
+    );
+
+    expect(poolConfig.ssl).toBeUndefined();
+    expect(readTlsCa).not.toHaveBeenCalled();
   });
 
   test("uses the injected password without a signer", () => {

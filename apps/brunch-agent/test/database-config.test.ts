@@ -14,13 +14,13 @@ const productionEnvironment = {
 } as const;
 
 describe("database configuration", () => {
-  test("keeps SQLite outside production", () => {
+  test("uses SQLite when Postgres is not selected outside production", () => {
     expect(loadDatabaseConfig({ NODE_ENV: "test" })).toEqual({
       kind: "sqlite",
     });
   });
 
-  test("loads dedicated IAM fields in production", () => {
+  test("loads dedicated IAM fields whenever Postgres is selected", () => {
     expect(loadDatabaseConfig(productionEnvironment)).toEqual({
       kind: "postgres",
       auth: { mode: "iam", region: "eu-central-1" },
@@ -30,6 +30,12 @@ describe("database configuration", () => {
       tlsCaPath: "/run/config/rds-ca.pem",
       user: "brunch_agent",
     });
+    expect(
+      loadDatabaseConfig({
+        ...productionEnvironment,
+        NODE_ENV: "development",
+      }),
+    ).toMatchObject({ kind: "postgres" });
   });
 
   test("trims values supplied through secret and config injection", () => {
@@ -56,10 +62,25 @@ describe("database configuration", () => {
       [POSTGRES_ENV.awsRegion]: undefined,
       [POSTGRES_ENV.password]: "secret-for-test",
     };
-    expect(loadDatabaseConfig(environment)).toMatchObject({
+    const warnings: string[] = [];
+    expect(
+      loadDatabaseConfig(environment, {
+        onWarning: (warning) => warnings.push(warning),
+      }),
+    ).toMatchObject({
       kind: "postgres",
       auth: { mode: "password", password: "secret-for-test" },
     });
+    expect(warnings).toEqual([]);
+  });
+
+  test("does not require a TLS CA path", () => {
+    expect(
+      loadDatabaseConfig({
+        ...productionEnvironment,
+        [POSTGRES_ENV.tlsCaPath]: undefined,
+      }),
+    ).not.toHaveProperty("tlsCaPath");
   });
 
   test.each([
@@ -75,35 +96,39 @@ describe("database configuration", () => {
   });
 
   test.each(["DATABASE_URL", "BRUNCH_DEV_DB_PATH", "BRUNCH_CHAT_DB_PATH"])(
-    "rejects legacy production input %s",
+    "warns about ignored legacy input %s",
     (name) => {
-      expect(() =>
-        loadDatabaseConfig({
-          ...productionEnvironment,
-          [name]: "must-not-be-accepted",
-        }),
-      ).toThrow(name);
+      const warnings: string[] = [];
+      expect(
+        loadDatabaseConfig(
+          {
+            ...productionEnvironment,
+            [name]: "ignored",
+          },
+          { onWarning: (warning) => warnings.push(warning) },
+        ),
+      ).toMatchObject({ kind: "postgres" });
+      expect(warnings).toEqual([
+        `${name} is set but ignored by the selected database mode.`,
+      ]);
     },
   );
 
-  test("rejects contradictory authentication inputs without exposing values", () => {
-    const password = "must-not-appear-in-the-error";
-    expect(() =>
-      loadDatabaseConfig({
-        ...productionEnvironment,
-        [POSTGRES_ENV.password]: password,
-      }),
-    ).toThrow(POSTGRES_ENV.password);
-
-    let errorMessage = "";
-    try {
-      loadDatabaseConfig({
-        ...productionEnvironment,
-        [POSTGRES_ENV.password]: password,
-      });
-    } catch (error) {
-      errorMessage = String(error);
-    }
-    expect(errorMessage).not.toContain(password);
+  test("warns about contradictory authentication inputs without exposing values", () => {
+    const password = "must-not-appear-in-the-warning";
+    const warnings: string[] = [];
+    expect(
+      loadDatabaseConfig(
+        {
+          ...productionEnvironment,
+          [POSTGRES_ENV.password]: password,
+        },
+        { onWarning: (warning) => warnings.push(warning) },
+      ),
+    ).toMatchObject({ auth: { mode: "iam" } });
+    expect(warnings).toEqual([
+      `${POSTGRES_ENV.password} is set but ignored by the selected database mode.`,
+    ]);
+    expect(warnings.join(" ")).not.toContain(password);
   });
 });

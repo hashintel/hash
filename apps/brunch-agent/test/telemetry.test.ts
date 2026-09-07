@@ -5,16 +5,24 @@ import { expect, test, vi } from "vitest";
 
 import {
   type BrunchOpenTelemetrySetup,
-  createBrunchHttpInstrumentation,
   createBrunchTelemetryInstrumentation,
-  createBrunchUndiciInstrumentation,
   recordOperationalFailure,
 } from "../src/telemetry.ts";
 
-test("production requires a HASH collector endpoint", () => {
-  expect(() =>
-    createBrunchTelemetryInstrumentation({ NODE_ENV: "production" }),
-  ).toThrow("HASH_OTLP_ENDPOINT");
+test("production continues without a HASH collector endpoint", async () => {
+  const registerHashOpenTelemetry = vi.fn<
+    (input: { endpoint: string | undefined; serviceName: string }) => undefined
+  >(() => undefined);
+  const instrumentation = createBrunchTelemetryInstrumentation(
+    { NODE_ENV: "production" },
+    { registerHashOpenTelemetry },
+  );
+
+  expect(registerHashOpenTelemetry).toHaveBeenCalledWith({
+    endpoint: undefined,
+    serviceName: "Brunch Agent",
+  });
+  await instrumentation.dispose();
 });
 
 test("keeps Flue content disabled and flushes exporters after Flue disposal", async () => {
@@ -32,7 +40,6 @@ test("keeps Flue content disabled and flushes exporters after Flue disposal", as
   }));
   const setup = {
     endpoint: "http://collector.test:4317",
-    forceFlush: async () => undefined,
     logger: logs.getLogger("brunch-test"),
     meter: metrics.getMeter("brunch-test"),
     shutdown: async () => {
@@ -42,9 +49,9 @@ test("keeps Flue content disabled and flushes exporters after Flue disposal", as
   } satisfies BrunchOpenTelemetrySetup & { endpoint: string };
   const registerHashOpenTelemetry = vi.fn<
     (input: {
-      endpoint: string;
+      endpoint: string | undefined;
       serviceName: string;
-    }) => BrunchOpenTelemetrySetup
+    }) => BrunchOpenTelemetrySetup | undefined
   >(() => setup);
 
   const instrumentation = createBrunchTelemetryInstrumentation(
@@ -80,7 +87,6 @@ test("trims collector configuration supplied through the environment", async () 
     content: false,
   });
   const setup = {
-    forceFlush: async () => undefined,
     logger: logs.getLogger("brunch-test"),
     meter: metrics.getMeter("brunch-test"),
     shutdown: async () => undefined,
@@ -88,9 +94,9 @@ test("trims collector configuration supplied through the environment", async () 
   } satisfies BrunchOpenTelemetrySetup;
   const registerHashOpenTelemetry = vi.fn<
     (input: {
-      endpoint: string;
+      endpoint: string | undefined;
       serviceName: string;
-    }) => BrunchOpenTelemetrySetup
+    }) => BrunchOpenTelemetrySetup | undefined
   >(() => setup);
 
   const instrumentation = createBrunchTelemetryInstrumentation(
@@ -112,90 +118,11 @@ test("trims collector configuration supplied through the environment", async () 
   });
 });
 
-test("flushes startup failures without blocking database operations", async () => {
-  const forceFlush = vi.fn<() => Promise<void>>(async () => undefined);
-  const flueInstrumentation = createOpenTelemetryInstrumentation({
-    content: false,
-  });
-  const setup = {
-    forceFlush,
-    logger: logs.getLogger("brunch-test"),
-    meter: metrics.getMeter("brunch-test"),
-    shutdown: async () => undefined,
-    tracer: trace.getTracer("brunch-test"),
-  } satisfies BrunchOpenTelemetrySetup;
-  const instrumentation = createBrunchTelemetryInstrumentation(
-    {
-      HASH_OTLP_ENDPOINT: "http://collector.test:4317",
-      NODE_ENV: "production",
-    },
-    {
-      createFlueInstrumentation: () => flueInstrumentation,
-      registerHashOpenTelemetry: () => setup,
-    },
-  );
-
-  await recordOperationalFailure("database_operation", new Error("query"));
-  expect(forceFlush).not.toHaveBeenCalled();
-
-  await recordOperationalFailure(
-    "database_configuration",
-    new Error("startup"),
-  );
-  expect(forceFlush).toHaveBeenCalledOnce();
-
-  await instrumentation.dispose();
-});
-
-test("excludes health probes and collector traffic from HTTP telemetry", () => {
-  const httpConfig = createBrunchHttpInstrumentation(
-    "http://collector.test:4317",
-  ).getConfig();
-  const ignoreIncoming = httpConfig.ignoreIncomingRequestHook;
-  const ignoreOutgoing = httpConfig.ignoreOutgoingRequestHook;
-  if (!ignoreIncoming || !ignoreOutgoing) {
-    throw new Error("Brunch HTTP telemetry filters must be configured.");
-  }
-
-  expect(
-    ignoreIncoming({
-      url: "/health?source=ecs",
-    } as Parameters<typeof ignoreIncoming>[0]),
-  ).toBe(true);
-  expect(
-    ignoreIncoming({
-      url: "/api/chat",
-    } as Parameters<typeof ignoreIncoming>[0]),
-  ).toBe(false);
-  expect(
-    ignoreOutgoing({
-      port: "4317",
-    } as Parameters<typeof ignoreOutgoing>[0]),
-  ).toBe(true);
-  expect(
-    ignoreOutgoing({
-      port: 443,
-    } as Parameters<typeof ignoreOutgoing>[0]),
-  ).toBe(false);
-});
-
-test("excludes collector fetches without suppressing ordinary HTTPS", () => {
-  const undiciConfig = createBrunchUndiciInstrumentation(
-    "http://collector.test:4317",
-  ).getConfig();
-  const ignoreRequest = undiciConfig.ignoreRequestHook;
-  if (!ignoreRequest) {
-    throw new Error("Brunch Undici telemetry filter must be configured.");
-  }
-
-  expect(
-    ignoreRequest({
-      origin: "http://collector.test:4317",
-    } as Parameters<typeof ignoreRequest>[0]),
-  ).toBe(true);
-  expect(
-    ignoreRequest({
-      origin: "https://api.anthropic.com",
-    } as Parameters<typeof ignoreRequest>[0]),
-  ).toBe(false);
+test("records operational failures without requiring an exporter", () => {
+  expect(() =>
+    recordOperationalFailure("database_operation", new Error("query")),
+  ).not.toThrow();
+  expect(() =>
+    recordOperationalFailure("database_configuration", new Error("startup")),
+  ).not.toThrow();
 });

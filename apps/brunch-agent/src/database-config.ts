@@ -35,27 +35,37 @@ export interface PostgresDatabaseConfig {
   readonly database: string;
   readonly host: string;
   readonly port: number;
-  readonly tlsCaPath: string;
+  readonly tlsCaPath?: string;
   readonly user: string;
 }
 
 export type DatabaseConfig = SqliteDatabaseConfig | PostgresDatabaseConfig;
 
 type Environment = Readonly<Record<string, string | undefined>>;
+interface DatabaseConfigOptions {
+  readonly onWarning?: (message: string) => void;
+}
+
+const optionalValueOf = (
+  environment: Environment,
+  name: string,
+): string | undefined => environment[name]?.trim() || undefined;
 
 const valueOf = (environment: Environment, name: string): string => {
-  const value = environment[name]?.trim();
-  if (value === undefined || value.length === 0) {
+  const value = optionalValueOf(environment, name);
+  if (value === undefined) {
     throw new Error(`Production database configuration requires ${name}.`);
   }
   return value;
 };
 
-const absent = (environment: Environment, name: string): void => {
+const warnIfPresent = (
+  environment: Environment,
+  name: string,
+  onWarning: (message: string) => void,
+): void => {
   if (environment[name] !== undefined) {
-    throw new Error(
-      `Production database configuration does not accept ${name}.`,
-    );
+    onWarning(`${name} is set but ignored by the selected database mode.`);
   }
 };
 
@@ -72,33 +82,44 @@ const portOf = (environment: Environment): number => {
   return port;
 };
 
-const rejectLegacyProductionInputs = (environment: Environment): void => {
-  absent(environment, "DATABASE_URL");
-  absent(environment, "BRUNCH_DEV_DB_PATH");
-  absent(environment, "BRUNCH_CHAT_DB_PATH");
-};
-
 export function loadDatabaseConfig(
   environment: Environment = process.env,
+  options: DatabaseConfigOptions = {},
 ): DatabaseConfig {
-  if (environment.NODE_ENV !== "production") {
+  const authMode = optionalValueOf(environment, POSTGRES_ENV.authMode);
+  if (authMode === undefined && environment.NODE_ENV !== "production") {
     return { kind: "sqlite" };
   }
-
-  rejectLegacyProductionInputs(environment);
-
-  const authMode = valueOf(environment, POSTGRES_ENV.authMode);
+  if (authMode === undefined) {
+    throw new Error(
+      `Production database configuration requires ${POSTGRES_ENV.authMode}.`,
+    );
+  }
+  const onWarning =
+    options.onWarning ??
+    ((message: string) => {
+      // eslint-disable-next-line no-console
+      console.warn(message);
+    });
+  for (const legacyName of [
+    "DATABASE_URL",
+    "BRUNCH_DEV_DB_PATH",
+    "BRUNCH_CHAT_DB_PATH",
+  ]) {
+    warnIfPresent(environment, legacyName, onWarning);
+  }
+  const tlsCaPath = optionalValueOf(environment, POSTGRES_ENV.tlsCaPath);
   const common = {
     kind: "postgres" as const,
     database: valueOf(environment, POSTGRES_ENV.database),
     host: valueOf(environment, POSTGRES_ENV.host),
     port: portOf(environment),
-    tlsCaPath: valueOf(environment, POSTGRES_ENV.tlsCaPath),
+    ...(tlsCaPath ? { tlsCaPath } : {}),
     user: valueOf(environment, POSTGRES_ENV.user),
   };
 
   if (authMode === "iam") {
-    absent(environment, POSTGRES_ENV.password);
+    warnIfPresent(environment, POSTGRES_ENV.password, onWarning);
     return {
       ...common,
       auth: {
@@ -109,7 +130,7 @@ export function loadDatabaseConfig(
   }
 
   if (authMode === "password") {
-    absent(environment, POSTGRES_ENV.awsRegion);
+    warnIfPresent(environment, POSTGRES_ENV.awsRegion, onWarning);
     return {
       ...common,
       auth: {
