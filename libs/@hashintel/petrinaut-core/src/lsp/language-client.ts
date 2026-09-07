@@ -21,6 +21,7 @@ import type { Scenario, SDCPN } from "../types/sdcpn";
 import type {
   AdHocSessionParams,
   ClientMessage,
+  ConstraintSessionParams,
   MetricSessionParams,
   PublishDiagnosticsParams,
   ScenarioSessionParams,
@@ -79,6 +80,13 @@ export interface LanguageClient {
   initializeAdHocSession(this: void, params: AdHocSessionParams): void;
   updateAdHocSession(this: void, params: AdHocSessionParams): void;
   killAdHocSession(this: void, sessionId: string): void;
+
+  initializeConstraintSession(
+    this: void,
+    params: ConstraintSessionParams,
+  ): void;
+  updateConstraintSession(this: void, params: ConstraintSessionParams): void;
+  killConstraintSession(this: void, sessionId: string): void;
 
   // --- Requests (return Promise) ---
   requestCompletion(
@@ -364,6 +372,28 @@ export function createLanguageClient(
       sendNotification({
         jsonrpc: "2.0",
         method: "temp/adhoc/kill",
+        params: { sessionId },
+      });
+    },
+
+    initializeConstraintSession(params) {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/constraint/initialize",
+        params,
+      });
+    },
+    updateConstraintSession(params) {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/constraint/didChange",
+        params,
+      });
+    },
+    killConstraintSession(sessionId) {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/constraint/kill",
         params: { sessionId },
       });
     },

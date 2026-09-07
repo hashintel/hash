@@ -1,3 +1,4 @@
+import type { ConstraintSpace } from "../../constraint/constraint";
 import type {
   ConstraintSource,
   LowerConstraintContext,
@@ -74,6 +75,23 @@ export type MetricSessionParams = {
   code: string;
 };
 
+/**
+ * Data describing a constraint editing session for the language server: one
+ * constraint expression, checked in the space it ranges over.
+ */
+export type ConstraintSessionParams = {
+  sessionId: string;
+  space: ConstraintSpace;
+  /** The constraint's source text; empty means nothing to lint. */
+  code: string;
+  /**
+   * The study's scenario parameters, ambient as `scenario.*` in the
+   * parameters space. The client sends them because the study's scenario may
+   * be ad-hoc and absent from the SDCPN.
+   */
+  scenarioParameters: ScenarioParameter[];
+};
+
 /** Position in a text document (LSP standard: line/character based). */
 export type TextDocumentPositionParams = {
   textDocument: TextDocumentIdentifier;
@@ -147,6 +165,21 @@ type ClientNotification =
   | {
       jsonrpc: "2.0";
       method: "temp/metric/kill";
+      params: { sessionId: string };
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/constraint/initialize";
+      params: ConstraintSessionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/constraint/didChange";
+      params: ConstraintSessionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/constraint/kill";
       params: { sessionId: string };
     };
 

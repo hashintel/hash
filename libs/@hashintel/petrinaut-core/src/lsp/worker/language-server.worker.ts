@@ -46,12 +46,14 @@ import type { HirSurfaceContext } from "../../hir";
 import type { SDCPN } from "../../types/sdcpn";
 import type {
   AdHocSessionData,
+  ConstraintSessionData,
   MetricSessionData,
   ScenarioSessionData,
 } from "../lib/generate-virtual-files";
 import type {
   AdHocSessionParams,
   ClientMessage,
+  ConstraintSessionParams,
   MetricSessionParams,
   PublishDiagnosticsParams,
   ScenarioSessionParams,
@@ -125,6 +127,68 @@ function scenarioHirContextForFile(
 /** Active ad-hoc scenario editing sessions (sessionId → session data). */
 const adHocSessions = new Map<string, AdHocSessionData>();
 
+/** Active constraint editing sessions (sessionId → session data). */
+const constraintSessions = new Map<string, ConstraintSessionData>();
+
+/**
+ * The HIR context a constraint session is linted against: the same one
+ * `lowerConstraint` typechecks with, so the editor and the submit path agree.
+ */
+function constraintHirContext(
+  session: ConstraintSessionData,
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): HirSurfaceContext {
+  if (session.space === "parameters") {
+    const netParameters = extensions.parameters ? sdcpn.parameters : [];
+    return buildScenarioExpressionContext(
+      netParameters,
+      session.scenarioParameters,
+      "boolean",
+    );
+  }
+  return buildMetricContext(sdcpn, extensions, "boolean");
+}
+
+/**
+ * TypeScript diagnostics for one session code file, plus the HIR lint when
+ * TypeScript is clean and `hirContextFor` returns a context. Returns null for
+ * defs files and paths with no document URI.
+ */
+function sessionDocumentDiagnostics(
+  filePath: string,
+  hirContextFor: (
+    userContent: string,
+    filePath: string,
+  ) => HirSurfaceContext | null,
+): PublishDiagnosticsParams | null {
+  if (!server || filePath.endsWith("/defs.d.ts")) {
+    return null;
+  }
+  const uri = filePathToUri(filePath);
+  if (!uri) {
+    return null;
+  }
+  const userContent = server.getUserContent(filePath) ?? "";
+  const allDiags = [
+    ...server.getSyntacticDiagnostics(filePath),
+    ...server.getSemanticDiagnostics(filePath),
+  ];
+  // HIR lints assume type-valid input, so they only run once TypeScript is
+  // clean; stacking both would be noise.
+  const hasTsError = allDiags.some(
+    (diag) => diag.category === ts.DiagnosticCategory.Error,
+  );
+  const hirContext = hasTsError ? null : hirContextFor(userContent, filePath);
+  if (hirContext) {
+    allDiags.push(...getHirDiagnosticsForItem(userContent, hirContext));
+  }
+  return {
+    uri,
+    diagnostics: allDiags.map((diag) => serializeDiagnostic(diag, userContent)),
+  };
+}
+
 function respond(id: number, result: unknown): void {
   workerRuntime.postMessage({
     jsonrpc: "2.0",
@@ -166,104 +230,61 @@ function publishAllDiagnostics(
     },
   );
 
-  // Include diagnostics for all active scenario sessions
-  for (const [, session] of scenarioSessions) {
-    const scenarioFiles = server.getScenarioFileNames(session.sessionId);
-    for (const filePath of scenarioFiles) {
-      // Skip defs files — only check code files
-      if (filePath.endsWith("/defs.d.ts")) {
-        continue;
-      }
-      const uri = filePathToUri(filePath);
-      if (!uri) {
-        continue;
-      }
-      const userContent = server.getUserContent(filePath) ?? "";
-      const semanticDiags = server.getSemanticDiagnostics(filePath);
-      const syntacticDiags = server.getSyntacticDiagnostics(filePath);
-      const allDiags = [...syntacticDiags, ...semanticDiags];
-      // When TypeScript is clean, run the HIR lint over the scenario code so
-      // out-of-subset constructs surface in the editor rather than at run
-      // start (scenario code is compiled through the HIR and interpreted).
-      // Empty code means "keep the default" and is never linted.
-      const hasTsError = allDiags.some(
-        (diag) => diag.category === ts.DiagnosticCategory.Error,
+  const pushSessionDiagnostics = (
+    filePaths: string[],
+    hirContextFor: (
+      userContent: string,
+      filePath: string,
+    ) => HirSurfaceContext | null,
+  ): void => {
+    for (const filePath of filePaths) {
+      const documentParams = sessionDocumentDiagnostics(
+        filePath,
+        hirContextFor,
       );
-      const hirContext =
-        !hasTsError && userContent.trim() !== ""
-          ? scenarioHirContextForFile(filePath, session, sdcpn, extensions)
-          : null;
-      if (hirContext) {
-        allDiags.push(...getHirDiagnosticsForItem(userContent, hirContext));
+      if (documentParams) {
+        params.push(documentParams);
       }
-      params.push({
-        uri,
-        diagnostics: allDiags.map((diag) =>
-          serializeDiagnostic(diag, userContent),
-        ),
-      });
     }
+  };
+
+  // Scenario code is compiled through the HIR and interpreted, so the HIR
+  // lint surfaces out-of-subset constructs in the editor rather than at run
+  // start. Empty code means "keep the default" and is never linted.
+  for (const session of scenarioSessions.values()) {
+    pushSessionDiagnostics(
+      server.getScenarioFileNames(session.sessionId),
+      (userContent, filePath) =>
+        userContent.trim() === ""
+          ? null
+          : scenarioHirContextForFile(filePath, session, sdcpn, extensions),
+    );
   }
 
-  // Include diagnostics for all active ad-hoc scenario sessions
-  for (const [, session] of adHocSessions) {
-    const adHocFiles = server.getAdHocFileNames(session.sessionId);
-    for (const filePath of adHocFiles) {
-      // Skip defs files — only check code files
-      if (filePath.endsWith("/defs.d.ts")) {
-        continue;
-      }
-      const uri = filePathToUri(filePath);
-      if (!uri) {
-        continue;
-      }
-      const userContent = server.getUserContent(filePath) ?? "";
-      const semanticDiags = server.getSemanticDiagnostics(filePath);
-      const syntacticDiags = server.getSyntacticDiagnostics(filePath);
-      const allDiags = [...syntacticDiags, ...semanticDiags];
-      params.push({
-        uri,
-        diagnostics: allDiags.map((diag) =>
-          serializeDiagnostic(diag, userContent),
-        ),
-      });
-    }
+  for (const session of adHocSessions.values()) {
+    pushSessionDiagnostics(
+      server.getAdHocFileNames(session.sessionId),
+      () => null,
+    );
   }
 
-  // Include diagnostics for all active metric sessions
+  // The metric HIR lint reports domain rules and buffer-compilability.
   const metricHirContext = buildMetricContext(sdcpn, extensions);
-  for (const [, session] of metricSessions) {
-    const metricFiles = server.getMetricFileNames(session.sessionId);
-    for (const filePath of metricFiles) {
-      // Skip defs files — only check code files
-      if (filePath.endsWith("/defs.d.ts")) {
-        continue;
-      }
-      const uri = filePathToUri(filePath);
-      if (!uri) {
-        continue;
-      }
-      const userContent = server.getUserContent(filePath) ?? "";
-      const semanticDiags = server.getSemanticDiagnostics(filePath);
-      const syntacticDiags = server.getSyntacticDiagnostics(filePath);
-      const allDiags = [...syntacticDiags, ...semanticDiags];
-      // When TypeScript is clean, run the HIR lint over the metric body —
-      // it reports domain rules and (metric-only) buffer-compilability.
-      const hasTsError = allDiags.some(
-        (diag) => diag.category === ts.DiagnosticCategory.Error,
-      );
-      if (!hasTsError) {
-        allDiags.push(
-          ...getHirDiagnosticsForItem(userContent, metricHirContext),
-        );
-      }
-      params.push({
-        uri,
-        diagnostics: allDiags.map((diag) =>
-          serializeDiagnostic(diag, userContent),
-        ),
-      });
-    }
+  for (const session of metricSessions.values()) {
+    pushSessionDiagnostics(
+      server.getMetricFileNames(session.sessionId),
+      () => metricHirContext,
+    );
+  }
+
+  for (const session of constraintSessions.values()) {
+    pushSessionDiagnostics(
+      server.getConstraintFileNames(session.sessionId),
+      (userContent) =>
+        userContent.trim() === ""
+          ? null
+          : constraintHirContext(session, sdcpn, extensions),
+    );
   }
 
   workerRuntime.postMessage({
@@ -321,6 +342,32 @@ function syncAdHocSession(
   publishAllDiagnostics(sdcpn, extensions);
 }
 
+/** Convert protocol params to internal constraint session data. */
+function toConstraintSessionData(
+  params: ConstraintSessionParams,
+): ConstraintSessionData {
+  return {
+    sessionId: params.sessionId,
+    space: params.space,
+    code: params.code,
+    scenarioParameters: params.scenarioParameters,
+  };
+}
+
+/** Sync constraint session files and publish diagnostics. */
+function syncConstraintSession(
+  sessionData: ConstraintSessionData,
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): void {
+  if (!server) {
+    return;
+  }
+  constraintSessions.set(sessionData.sessionId, sessionData);
+  server.syncConstraintFiles(sdcpn, sessionData);
+  publishAllDiagnostics(sdcpn, extensions);
+}
+
 /** Convert protocol params to internal metric session data. */
 function toMetricSessionData(params: MetricSessionParams): MetricSessionData {
   return {
@@ -364,6 +411,9 @@ let pendingMetricInits: MetricSessionData[] = [];
 /** Same queueing strategy for ad-hoc scenario sessions. */
 let pendingAdHocInits: AdHocSessionData[] = [];
 
+/** Same queueing strategy for constraint sessions. */
+let pendingConstraintInits: ConstraintSessionData[] = [];
+
 workerRuntime.onMessage((data) => {
   try {
     switch (data.method) {
@@ -395,6 +445,11 @@ workerRuntime.onMessage((data) => {
           server.syncMetricFiles(sdcpn, session);
         }
         pendingMetricInits = [];
+        for (const session of pendingConstraintInits) {
+          constraintSessions.set(session.sessionId, session);
+          server.syncConstraintFiles(sdcpn, session);
+        }
+        pendingConstraintInits = [];
         publishAllDiagnostics(sdcpn, extensions);
         break;
       }
@@ -418,6 +473,9 @@ workerRuntime.onMessage((data) => {
         // Re-sync all metric sessions since SDCPN types may have changed
         for (const session of metricSessions.values()) {
           server.syncMetricFiles(sdcpn, session);
+        }
+        for (const session of constraintSessions.values()) {
+          server.syncConstraintFiles(sdcpn, session);
         }
         publishAllDiagnostics(sdcpn, extensions);
         break;
@@ -561,6 +619,46 @@ workerRuntime.onMessage((data) => {
         break;
       }
 
+      case "temp/constraint/initialize": {
+        const sessionData = toConstraintSessionData(data.params);
+        if (!lastSDCPN) {
+          pendingConstraintInits.push(sessionData);
+          break;
+        }
+        syncConstraintSession(sessionData, lastSDCPN, lastExtensions);
+        break;
+      }
+
+      case "temp/constraint/didChange": {
+        const sessionData = toConstraintSessionData(data.params);
+        if (!lastSDCPN) {
+          const idx = pendingConstraintInits.findIndex(
+            (s) => s.sessionId === sessionData.sessionId,
+          );
+          if (idx >= 0) {
+            pendingConstraintInits[idx] = sessionData;
+          } else {
+            pendingConstraintInits.push(sessionData);
+          }
+          break;
+        }
+        syncConstraintSession(sessionData, lastSDCPN, lastExtensions);
+        break;
+      }
+
+      case "temp/constraint/kill": {
+        const { sessionId } = data.params;
+        constraintSessions.delete(sessionId);
+        pendingConstraintInits = pendingConstraintInits.filter(
+          (s) => s.sessionId !== sessionId,
+        );
+        server?.removeConstraintSession(sessionId);
+        if (lastSDCPN) {
+          publishAllDiagnostics(lastSDCPN, lastExtensions);
+        }
+        break;
+      }
+
       // --- Requests (send response) ---
 
       case "sdcpn/compileHirArtifacts": {
@@ -610,7 +708,9 @@ workerRuntime.onMessage((data) => {
         }
 
         const filePath = uriToFilePath(data.params.textDocument.uri);
-        if (!filePath) {
+        // A session whose code is empty has no code file yet; answer empty
+        // instead of failing the request over a missing source file.
+        if (!filePath || server.getFileContent(filePath) === undefined) {
           respond(id, {
             isIncomplete: false,
             items: [],
@@ -651,7 +751,9 @@ workerRuntime.onMessage((data) => {
         }
 
         const filePath = uriToFilePath(data.params.textDocument.uri);
-        if (!filePath) {
+        // A session whose code is empty has no code file yet; answer empty
+        // instead of failing the request over a missing source file.
+        if (!filePath || server.getFileContent(filePath) === undefined) {
           respond(id, null);
           break;
         }
@@ -698,7 +800,9 @@ workerRuntime.onMessage((data) => {
         }
 
         const filePath = uriToFilePath(data.params.textDocument.uri);
-        if (!filePath) {
+        // A session whose code is empty has no code file yet; answer empty
+        // instead of failing the request over a missing source file.
+        if (!filePath || server.getFileContent(filePath) === undefined) {
           respond(id, null);
           break;
         }

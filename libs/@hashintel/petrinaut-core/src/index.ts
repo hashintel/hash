@@ -607,8 +607,10 @@ export {
 export {
   getDocumentUri,
   getAdHocDocumentUri,
+  getConstraintDocumentUri,
   getMetricDocumentUri,
   getScenarioDocumentUri,
   parseAdHocDocumentUri,
+  parseConstraintDocumentUri,
   parseDocumentUri,
 } from "./lsp/lib/document-uris";
