@@ -1,0 +1,294 @@
+{
+  "pin": "832ad2eeaf5e4b07d39749fc669e7ad556238313",
+  "node": "v22.21.1",
+  "write": {
+    "sdkSurface": [
+      "abort",
+      "attachmentUrl",
+      "history",
+      "observe",
+      "read",
+      "send",
+      "url",
+      "wait"
+    ],
+    "handleSurface": ["abort", "dispatch", "id", "read"],
+    "agentEntries": 5,
+    "startHooks": 3,
+    "modelCalls": 2,
+    "lifecycle": {
+      "submission_queued": 3,
+      "submission_running": 3,
+      "submission_settled": 3,
+      "submission_recovery": 1
+    },
+    "checkpoints": [
+      {
+        "label": "normal typed send",
+        "agentEntries": 2,
+        "startHooks": 1,
+        "modelCalls": 1,
+        "lifecycle": {
+          "submission_queued": 1,
+          "submission_running": 1,
+          "submission_settled": 1
+        }
+      },
+      {
+        "label": "normal signal send",
+        "agentEntries": 4,
+        "startHooks": 2,
+        "modelCalls": 2,
+        "lifecycle": {
+          "submission_queued": 2,
+          "submission_running": 2,
+          "submission_settled": 2
+        }
+      },
+      {
+        "label": "hook rejects before model",
+        "agentEntries": 5,
+        "startHooks": 3,
+        "modelCalls": 2,
+        "lifecycle": {
+          "submission_queued": 3,
+          "submission_running": 3,
+          "submission_settled": 3,
+          "submission_recovery": 1
+        }
+      }
+    ],
+    "snapshot": {
+      "v": 1,
+      "conversationId": "conv_01M1YNEZSB0GRTJ0VA1YZS8F0J",
+      "offset": "0000000000000000_0000000000000019",
+      "messages": [
+        {
+          "id": "entry_direct_c3ViX2lrXzM2OGEzZGRhYzc0NTgyNDcyZTM4MmM5MjQxOWZlNTIz",
+          "role": "user",
+          "purpose": "user",
+          "display": "visible",
+          "submissionId": "sub_ik_368a3ddac74582472e382c92419fe523",
+          "parts": [
+            {
+              "type": "text",
+              "text": "A real typed input.",
+              "state": "done"
+            }
+          ]
+        },
+        {
+          "id": "entry_01M1YNEZTBVX0QJRZDWBC8CS22",
+          "role": "assistant",
+          "purpose": "assistant",
+          "display": "visible",
+          "submissionId": "sub_ik_368a3ddac74582472e382c92419fe523",
+          "turnId": "turn_01M1YNEZT9NWEY079DM2CRZGEB",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Typed admission received.",
+              "state": "done"
+            }
+          ]
+        },
+        {
+          "id": "entry_direct_c3ViX2lrXzIxZmU5NGYzNTY5ODY3NjY4ZDk1ZDViZWYyMWQ5NDk4",
+          "role": "system",
+          "purpose": "dispatch",
+          "display": "diagnostic",
+          "submissionId": "sub_ik_21fe94f3569867668d95d5bef21d9498",
+          "signal": {
+            "attributes": {
+              "source": "external-runtime"
+            }
+          },
+          "parts": [
+            {
+              "type": "text",
+              "text": "A proposal, not human testimony. No external dialogue was recorded.",
+              "state": "done"
+            }
+          ]
+        },
+        {
+          "id": "entry_01M1YNEZV3ZBZGDZQA3W0EF224",
+          "role": "assistant",
+          "purpose": "assistant",
+          "display": "visible",
+          "submissionId": "sub_ik_21fe94f3569867668d95d5bef21d9498",
+          "turnId": "turn_01M1YNEZV2KXRDHG977VE86X0C",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Signal admission received.",
+              "state": "done"
+            }
+          ]
+        },
+        {
+          "id": "entry_direct_c3ViX2lrXzRiNmQ4YjUzNDVjZTUxNjk4MGMwNDFjYmY1YjA4NDBk",
+          "role": "system",
+          "purpose": "dispatch",
+          "display": "diagnostic",
+          "submissionId": "sub_ik_4b6d8b5345ce516980c041cbf5b0840d",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Reject in hook.",
+              "state": "done"
+            }
+          ]
+        }
+      ],
+      "settlements": [
+        {
+          "submissionId": "sub_ik_368a3ddac74582472e382c92419fe523",
+          "outcome": "completed",
+          "answeredBySubmissionId": "sub_ik_368a3ddac74582472e382c92419fe523"
+        },
+        {
+          "submissionId": "sub_ik_21fe94f3569867668d95d5bef21d9498",
+          "outcome": "completed",
+          "answeredBySubmissionId": "sub_ik_21fe94f3569867668d95d5bef21d9498"
+        },
+        {
+          "submissionId": "sub_ik_4b6d8b5345ce516980c041cbf5b0840d",
+          "outcome": "failed",
+          "error": {
+            "name": "Error",
+            "message": "The agent submission failed because of an internal error.",
+            "type": "internal_error",
+            "details": "The server encountered an unexpected error while processing the agent submission. When reporting this failure, quote the settlement submissionId — server-side logs carry the same id."
+          }
+        }
+      ],
+      "incarnation": "inc_01M1YNEZS9W6MFBG238BWARYHT"
+    }
+  },
+  "reopen": {
+    "sdkSurface": [
+      "abort",
+      "attachmentUrl",
+      "history",
+      "observe",
+      "read",
+      "send",
+      "url",
+      "wait"
+    ],
+    "handleSurface": ["abort", "dispatch", "id", "read"],
+    "agentEntries": 0,
+    "startHooks": 0,
+    "modelCalls": 0,
+    "lifecycle": {},
+    "checkpoints": [],
+    "snapshot": {
+      "v": 1,
+      "conversationId": "conv_01M1YNEZSB0GRTJ0VA1YZS8F0J",
+      "offset": "0000000000000000_0000000000000019",
+      "messages": [
+        {
+          "id": "entry_direct_c3ViX2lrXzM2OGEzZGRhYzc0NTgyNDcyZTM4MmM5MjQxOWZlNTIz",
+          "role": "user",
+          "purpose": "user",
+          "display": "visible",
+          "submissionId": "sub_ik_368a3ddac74582472e382c92419fe523",
+          "parts": [
+            {
+              "type": "text",
+              "text": "A real typed input.",
+              "state": "done"
+            }
+          ]
+        },
+        {
+          "id": "entry_01M1YNEZTBVX0QJRZDWBC8CS22",
+          "role": "assistant",
+          "purpose": "assistant",
+          "display": "visible",
+          "submissionId": "sub_ik_368a3ddac74582472e382c92419fe523",
+          "turnId": "turn_01M1YNEZT9NWEY079DM2CRZGEB",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Typed admission received.",
+              "state": "done"
+            }
+          ]
+        },
+        {
+          "id": "entry_direct_c3ViX2lrXzIxZmU5NGYzNTY5ODY3NjY4ZDk1ZDViZWYyMWQ5NDk4",
+          "role": "system",
+          "purpose": "dispatch",
+          "display": "diagnostic",
+          "submissionId": "sub_ik_21fe94f3569867668d95d5bef21d9498",
+          "signal": {
+            "attributes": {
+              "source": "external-runtime"
+            }
+          },
+          "parts": [
+            {
+              "type": "text",
+              "text": "A proposal, not human testimony. No external dialogue was recorded.",
+              "state": "done"
+            }
+          ]
+        },
+        {
+          "id": "entry_01M1YNEZV3ZBZGDZQA3W0EF224",
+          "role": "assistant",
+          "purpose": "assistant",
+          "display": "visible",
+          "submissionId": "sub_ik_21fe94f3569867668d95d5bef21d9498",
+          "turnId": "turn_01M1YNEZV2KXRDHG977VE86X0C",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Signal admission received.",
+              "state": "done"
+            }
+          ]
+        },
+        {
+          "id": "entry_direct_c3ViX2lrXzRiNmQ4YjUzNDVjZTUxNjk4MGMwNDFjYmY1YjA4NDBk",
+          "role": "system",
+          "purpose": "dispatch",
+          "display": "diagnostic",
+          "submissionId": "sub_ik_4b6d8b5345ce516980c041cbf5b0840d",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Reject in hook.",
+              "state": "done"
+            }
+          ]
+        }
+      ],
+      "settlements": [
+        {
+          "submissionId": "sub_ik_368a3ddac74582472e382c92419fe523",
+          "outcome": "completed",
+          "answeredBySubmissionId": "sub_ik_368a3ddac74582472e382c92419fe523"
+        },
+        {
+          "submissionId": "sub_ik_21fe94f3569867668d95d5bef21d9498",
+          "outcome": "completed",
+          "answeredBySubmissionId": "sub_ik_21fe94f3569867668d95d5bef21d9498"
+        },
+        {
+          "submissionId": "sub_ik_4b6d8b5345ce516980c041cbf5b0840d",
+          "outcome": "failed",
+          "error": {
+            "name": "Error",
+            "message": "The agent submission failed because of an internal error.",
+            "type": "internal_error",
+            "details": "The server encountered an unexpected error while processing the agent submission. When reporting this failure, quote the settlement submissionId — server-side logs carry the same id."
+          }
+        }
+      ],
+      "incarnation": "inc_01M1YNEZS9W6MFBG238BWARYHT"
+    }
+  }
+}
