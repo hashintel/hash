@@ -95,6 +95,86 @@ const sendOptions = (
   abortSignal: undefined,
 });
 
+test("submits results from the latest assistant step with completed client tools", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["getLatestNetDefinition", "addArc"]),
+  });
+
+  await readChunks(
+    await transport.sendMessages(
+      sendOptions(
+        [
+          {
+            id: "assistant-original",
+            role: "assistant",
+            parts: [
+              { type: "step-start" },
+              {
+                type: "dynamic-tool",
+                toolName: "getLatestNetDefinition",
+                toolCallId: "read-before-1",
+                state: "output-available",
+                input: {},
+                output: { revision: 0 },
+              },
+              { type: "step-start" },
+              {
+                type: "dynamic-tool",
+                toolName: "getLatestNetDefinition",
+                toolCallId: "read-before-2",
+                state: "output-available",
+                input: {},
+                output: { revision: 0 },
+              },
+              { type: "step-start" },
+              {
+                type: "dynamic-tool",
+                toolName: "addArc",
+                toolCallId: "mutation-latest",
+                state: "output-available",
+                input: {},
+                output: { applied: true },
+              },
+              { type: "step-start" },
+              {
+                type: "dynamic-tool",
+                toolName: "activate_skill",
+                toolCallId: "server-tool-later",
+                state: "output-available",
+                input: {},
+                output: { activated: true },
+                providerExecuted: true,
+              },
+            ],
+          },
+        ],
+        "assistant-original",
+      ),
+    ),
+  );
+
+  expect(send).toHaveBeenCalledWith(
+    expect.objectContaining({
+      message: {
+        kind: "signal",
+        type: "client-tool-result",
+        tagName: "client-tool-result",
+        body: JSON.stringify([
+          {
+            toolCallId: "mutation-latest",
+            toolName: "addArc",
+            output: { applied: true },
+          },
+        ]),
+        attributes: { toolCallIds: "mutation-latest" },
+      },
+      signal: undefined,
+    }),
+  );
+});
+
 test("admits one user message and projects a finite per-turn stream", async () => {
   const { client, send } = clientWith(completedEvents);
   const transport = createFlueChatTransport({
