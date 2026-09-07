@@ -92,6 +92,20 @@ impl Ontology {
     pub(crate) fn ontology_count(&self) -> usize {
         self.identity.len() as usize
     }
+
+    pub(crate) const fn identity(
+        &self,
+    ) -> &IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId> {
+        &self.identity
+    }
+
+    pub(crate) const fn postings(&self) -> &PostingsArchive {
+        &self.postings
+    }
+
+    pub(crate) const fn closure(&self) -> &ClosureMap {
+        &self.closure
+    }
 }
 
 #[cfg(test)]

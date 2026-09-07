@@ -280,6 +280,9 @@ fn derive(config: &FitConfig) -> Delivery {
     }
 }
 
+#[expect(clippy::cast_possible_truncation)]
+const EDGE_COUNT: usize = EDGES as usize;
+
 /// Stages every artifact of the generation and returns the manifest's typed entries.
 fn stage_files(
     staging: &StagedGeneration,
@@ -291,8 +294,6 @@ fn stage_files(
         adjacency,
     }: &Delivery,
 ) -> SaltFiles {
-    let edges = usize::try_from(EDGES).expect("fixture edge counts fit usize");
-
     let node_legends: Vec<OwnedLegend> = types
         .iter()
         .map(|types| OwnedLegend::new(types[0], Label::EMPTY))
@@ -372,7 +373,7 @@ fn stage_files(
         edge_identities: staging
             .stage_with(artifact::EdgeIdentities, |writer| {
                 entity_table::<EdgeRowId>(EDGES, EDGE_SEED)
-                    .write_into(core::iter::repeat_n(edge_legend.borrow(), edges), writer)
+                    .write_into(core::iter::repeat_n(&*edge_legend, EDGE_COUNT), writer)
             })
             .expect("the edge identities stage"),
         ontology_identities: staging

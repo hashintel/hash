@@ -2,9 +2,6 @@ use std::io;
 
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 
-use self::{
-    cache::Cache, error::WorldError, layout::Layout, ontology::Ontology, topology::Topology,
-};
 use super::{schedule::BucketSchedule, secret::ServeSecret};
 use crate::file::generation::Generation;
 
@@ -17,6 +14,11 @@ mod node_importance;
 mod node_index;
 mod ontology;
 mod topology;
+
+pub(crate) use self::{
+    cache::Cache, encoding::Encoding, error::WorldError, geometry::Geometry, layout::Layout,
+    node_importance::NodeImportance, node_index::NodeIndex, ontology::Ontology, topology::Topology,
+};
 
 #[derive(Clone, Copy)]
 pub(crate) struct OpenOptions<'context> {
