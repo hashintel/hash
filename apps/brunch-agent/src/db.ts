@@ -6,30 +6,31 @@ import { createPostgresRunner } from "./postgres.ts";
 import { shutdownBrunchTelemetry } from "./telemetry-bootstrap.ts";
 import { recordOperationalFailure } from "./telemetry.ts";
 
-import type { DatabaseConfig } from "./database-config.ts";
-
 /**
  * The substrate's conversation storage — host-authored because Flue requires
  * it of the consuming app.
  *
- * Local development and hermetic tests retain SQLite. Production must provide
- * the dedicated Postgres contract and cannot fall back to a task-local file.
+ * Production must provide the Postgres contract and cannot fall back to a
+ * task-local file; local development and hermetic tests keep SQLite.
  */
-let config: DatabaseConfig;
-try {
-  config = loadDatabaseConfig();
-} catch (error) {
+const openDatabase = async () => {
   try {
+    const config = loadDatabaseConfig();
+    return config.kind === "postgres"
+      ? postgres(createPostgresRunner(config, shutdownBrunchTelemetry))
+      : (await import("@flue/runtime/node")).sqlite(conversationDbPath());
+  } catch (error) {
+    // The process exits right after this, so flush the failure span first.
     await recordOperationalFailure("database_configuration", error);
-  } catch {
-    // The database configuration error remains the authoritative startup cause.
+    try {
+      await shutdownBrunchTelemetry();
+    } catch {
+      // The database failure remains the authoritative startup cause.
+    }
+    throw error;
   }
-  throw error;
-}
+};
 
-const database =
-  config.kind === "postgres"
-    ? postgres(createPostgresRunner(config, shutdownBrunchTelemetry))
-    : (await import("@flue/runtime/node")).sqlite(conversationDbPath());
+const database = await openDatabase();
 
 export default database;

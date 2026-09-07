@@ -64,10 +64,9 @@ The former-ancestry container smoke observed:
 - trace receipt by a disposable OTLP collector.
 
 Brunch is registered in the deploy service catalog for CI builds and
-multi-architecture GHCR publication. Its catalog entry has `push: ["ghcr"]`
-and an empty ECS target list. The workflow provisions neither an ECR repository
-nor an ECS service, so ECR publication and deployment remain disabled until
-infrastructure supplies and approves those targets.
+multi-architecture publication to ECR and GHCR (`push: ["ecr", "ghcr"]`). Its
+ECS target list is empty, so no service is redeployed until infrastructure adds
+that target.
 
 ## Required infrastructure handoff
 

@@ -9,6 +9,7 @@ import {
   createPostgresPoolConfig,
   createPostgresRunnerFromPool,
   POSTGRES_CONNECTION_TIMEOUT_MS,
+  POSTGRES_QUERY_TIMEOUT_MS,
   probeRdsIam,
 } from "../src/postgres.ts";
 
@@ -45,6 +46,8 @@ describe("Postgres connection configuration", () => {
     expect(poolConfig).toMatchObject({
       application_name: "brunch-agent",
       connectionTimeoutMillis: POSTGRES_CONNECTION_TIMEOUT_MS,
+      query_timeout: POSTGRES_QUERY_TIMEOUT_MS,
+      statement_timeout: POSTGRES_QUERY_TIMEOUT_MS,
       database: "brunch",
       host: commonConfig.host,
       port: 5432,
@@ -115,6 +118,35 @@ describe("Postgres connection configuration", () => {
     expect(() => pool.emit("error", failure, undefined as never)).not.toThrow();
     expect(onPoolError).toHaveBeenCalledWith(failure);
     await pool.end();
+  });
+
+  test("logs idle pool errors by code when nothing else observes them", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    try {
+      const pool = createPostgresPool(
+        {
+          ...commonConfig,
+          auth: { mode: "password", password: "test-password" },
+        },
+        { readTlsCa: () => "test-ca" },
+      );
+      const failure = Object.assign(new Error("read ECONNRESET 10.0.0.1"), {
+        code: "ECONNRESET",
+      });
+
+      expect(() =>
+        pool.emit("error", failure, undefined as never),
+      ).not.toThrow();
+      expect(consoleError).toHaveBeenCalledWith(
+        "[brunch] postgres pool error:",
+        "ECONNRESET",
+      );
+      await pool.end();
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });
 
@@ -287,11 +319,14 @@ describe("Flue Postgres runner", () => {
     expect(release).toHaveBeenCalledWith(true);
   });
 
-  test("closes Postgres and telemetry through the adapter lifecycle", async () => {
+  test("drains Postgres before shutting telemetry down", async () => {
     const closed: string[] = [];
     const pool = {
       connect: vi.fn<() => Promise<never>>(),
       end: vi.fn<() => Promise<void>>(async () => {
+        // A real pool.end() resolves later than the call; the order must not
+        // depend on both hooks finishing within the same tick.
+        await new Promise((resolve) => setTimeout(resolve, 10));
         closed.push("postgres");
       }),
       query: vi.fn<(text: string) => Promise<TestQueryResult>>(),
@@ -303,5 +338,29 @@ describe("Flue Postgres runner", () => {
     await runner.close();
 
     expect(closed).toEqual(["postgres", "telemetry"]);
+  });
+
+  test("still shuts telemetry down when the pool fails to close, reporting both", async () => {
+    const poolFailure = new Error("pool end failed");
+    const telemetryFailure = new Error("telemetry shutdown failed");
+    const afterClose = vi.fn<() => Promise<void>>(async () => {
+      throw telemetryFailure;
+    });
+    const pool = {
+      connect: vi.fn<() => Promise<never>>(),
+      end: vi.fn<() => Promise<void>>(async () => {
+        throw poolFailure;
+      }),
+      query: vi.fn<(text: string) => Promise<TestQueryResult>>(),
+    };
+    const runner = createPostgresRunnerFromPool(pool, afterClose);
+
+    await expect(runner.close()).rejects.toEqual(
+      new AggregateError(
+        [poolFailure, telemetryFailure],
+        "Postgres or telemetry shutdown failed.",
+      ),
+    );
+    expect(afterClose).toHaveBeenCalledOnce();
   });
 });

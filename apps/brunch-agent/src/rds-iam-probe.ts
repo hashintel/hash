@@ -1,8 +1,8 @@
 /**
  * Run inside the selected task role and RDS network boundary.
  *
- * The result contains connection counts only. Tokens, credentials, endpoint
- * values, and database identifiers are never printed.
+ * The result contains the token-request count only. Tokens, credentials,
+ * endpoint values, and database identifiers are never printed.
  */
 
 import { loadDatabaseConfig } from "./database-config.ts";
@@ -23,10 +23,5 @@ if (!result.distinctBackendConnections || result.tokenRequests < 2) {
 }
 
 process.stdout.write(
-  `${JSON.stringify({
-    ok: true,
-    connections: 2,
-    tokenRequests: result.tokenRequests,
-    tlsVerified: true,
-  })}\n`,
+  `${JSON.stringify({ ok: true, tokenRequests: result.tokenRequests })}\n`,
 );

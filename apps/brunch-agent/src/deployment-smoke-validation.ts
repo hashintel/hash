@@ -59,19 +59,33 @@ export const validateUiMessageStream = async (
   }
 
   let finished = false;
+  let sawText = false;
   for (const line of encodedStream.split(/\r?\n/u)) {
     if (!line.startsWith("data: ")) continue;
     const data = line.slice("data: ".length);
     if (data === "[DONE]") continue;
-    const event = JSON.parse(data) as { readonly type?: unknown };
+    const event = JSON.parse(data) as {
+      readonly type?: unknown;
+      readonly delta?: unknown;
+    };
     if (event.type === "error" || event.type === "abort") {
       throw new Error(`Streamed turn ended with ${event.type}.`);
     }
     if (event.type === "finish") finished = true;
+    if (
+      event.type === "text-delta" &&
+      typeof event.delta === "string" &&
+      event.delta.trim().length > 0
+    ) {
+      sawText = true;
+    }
   }
 
   if (!finished) {
     throw new Error("Streamed turn completed without a finish event.");
+  }
+  if (!sawText) {
+    throw new Error("Streamed turn finished without any assistant text.");
   }
   return { bytes, chunks };
 };

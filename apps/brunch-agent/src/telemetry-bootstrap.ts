@@ -1,9 +1,7 @@
 /**
- * Side-effect entry imported before application and database dependencies.
- *
- * Keeping the install in one module ensures the generated Flue server owns one
- * registration while the database entry can emit startup failures through the
- * same provider.
+ * Side-effect entry the application module imports first, so the exporters
+ * exist by the time Flue asks the OpenTelemetry globals for its tracer and
+ * meter.
  */
 
 import { installBrunchTelemetry } from "./telemetry.ts";
@@ -11,7 +9,8 @@ import { installBrunchTelemetry } from "./telemetry.ts";
 const disposeTelemetry = installBrunchTelemetry();
 
 /**
- * The Postgres adapter invokes this from its generated-lifecycle close hook.
- * The disposer is idempotent if Flue also owns the registration directly.
+ * Flushes and shuts the exporters down. The Postgres runner's close hook calls
+ * it during a normal shutdown; a failed startup calls it before the process
+ * exits.
  */
 export const shutdownBrunchTelemetry = (): Promise<void> => disposeTelemetry();
