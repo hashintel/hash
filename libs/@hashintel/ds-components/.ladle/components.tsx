@@ -15,8 +15,6 @@ export const Provider: GlobalProvider = ({
   children,
   globalState: { theme },
 }) => {
-  // The demo surface acts as the theme root, so it opts into the design
-  // system's custom scrollbar UI once on mount.
   useCustomScrollbarUI();
 
   useLayoutEffect(() => {
