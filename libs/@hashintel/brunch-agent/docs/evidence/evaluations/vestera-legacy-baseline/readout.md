@@ -725,7 +725,8 @@ runbook, ontology, schema, pattern, or machinery key. Missing model content is r
 existing unsatisfied rows; adding keys would not repair it.
 
 The final third-formalism check also fills cells only. Reapplying the cycle-one
-[formal-verification sketch](../../design/plugin-keys-pressure-review-cycle-1.md#14-flexibility--formal-verification-sketch-tlamodel-checking-properties-not-written-to-a-file)
+formal-verification sketch (historical `plugin-keys-pressure-review-cycle-1.md` §1.4, last copy
+`69c02f69a9:libs/@hashintel/brunch-agent/docs/evidence/design/plugin-keys-pressure-review-cycle-1.md`)
 to the cycle-two contract leaves its five kinds, anchor, and guidance cells unchanged. Its demands
 use only `spelled out`, `named`, and `at least N`, all still accepted; the new applicability facet
 omits the quantity and policy-versus-practice defaults that the sketch identified as noise. It

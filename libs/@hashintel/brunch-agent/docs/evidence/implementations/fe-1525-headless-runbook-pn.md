@@ -22,8 +22,9 @@ Headless drive: `createFlueClient` → `send` → `wait` → `history()` against
 production agent. Simulated Marta answers as ordinary user messages. No
 `brunch_ask`, no sweep, no capture-store write on this path.
 
-Inbox JSON fixtures under `docs/inbox/sdcpn-examples-to-validate/` all
-`parseSDCPNFile` with `ok: true`.
+Inbox JSON fixtures then under `docs/inbox/salvage/sdcpn-examples-to-validate/` (removed
+2026-09-07; last copies at `69c02f69a9:libs/@hashintel/brunch-agent/docs/inbox/salvage/sdcpn-examples-to-validate/`)
+all `parseSDCPNFile` with `ok: true`.
 
 ## Proof checklist
 

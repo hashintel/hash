@@ -113,11 +113,15 @@ The runtime branch in which the workpiece is the complete input and no interview
 **Evidence level**:
 One of three non-collapsible claims about a constructed artifact: tool-schema acceptance, agent-reviewed structural correspondence, and behavioral execution or stronger analysis. Report every level reached; none implies the next.
 
-### Evidence and capture
+### Evidence
 
 **Session**:
-One substrate conversation: the full log of user, agent, tool, and injected entries. Sessions go quiet rather than close.
+One substrate conversation: the full log of user, agent, tool, and injected entries. Sessions go quiet rather than close. Flue history is the canonical conversation log.
 _Avoid_: sitting, conversation (as a distinct concept)
+
+### Historical — rejected capture path (2026-09-04)
+
+These terms describe Mission 2's mechanical sweep and store. They were rejected as product provenance on 2026-09-04: Flue history already carries message ids and exact text, and the store duplicated them under a second identity scheme. Surviving homes are the workpiece revision protocol and, if compaction loses folded records, the existing session-log archive lane. Do not treat the still-exported capture-store code as the durable truth of a document.
 
 **Capture**:
 Mechanically extracted source evidence from a settled range of session entries: an immutable, quote-anchored, domain-opaque envelope. Produced only by a sweep and never written during conversation.

@@ -1,6 +1,6 @@
 # Topology: verification and specification
 
-**Status: ratified 2026-08-17 (Lu), application layout updated 2026-08-31 and conversation transport updated by FE-1574 / Mission 5 on 2026-09-03 — recorded as [ADR-0002](../../adr/0002-topology-and-placement-rules.md); this file remains the living reference.** Verifies the current app/package topology against the three-lane model (cheatsheet, boundary summary), spec §12.2, and Flue's project-layout guide; then specifies where upcoming work lands. Pseudo-style: tree nodes with rules; `✓` complies today, `✗` violates, `→` normative rule for what's next.
+**Status: ratified 2026-08-17 (Lu), application layout updated 2026-08-31, conversation transport updated by FE-1574 / Mission 5 on 2026-09-03, and capture/YAML claims relabelled 2026-09-07 — recorded as [ADR-0002](../../adr/0002-topology-and-placement-rules.md).** This file is the living *package-tree* reference. It is not a capture-store or YAML-plugin roadmap. Verifies the current app/package topology against Flue's project-layout guide and the three-lane cheatsheet; then specifies where upcoming work lands. Pseudo-style: tree nodes with rules; `✓` complies today, `✗` violates, `→` normative rule for what's next.
 
 ## Verification — the tree as it stands
 
@@ -10,7 +10,8 @@ packages/core                      CORE HARNESS + Flue-native agent contribution
 ├─ skills/elicitation/ ✓ core's one capability skill: `SKILL.md` + `references/universal-elicitation.md`,
 │                        packaged through `skills/skill-markdown.ts` and mounted by `flue.ts`
 ├─ flue.ts            ✓ `useBrunchAgent()`: model, elicitation skill, returned core prompt (`./flue`)
-├─ evidence/          ✓ active capture-store and archived-session evidence authority
+├─ evidence/          ○ capture-store code still exported; rejected as product provenance on
+│                        2026-09-04. Archived-session evidence remains the binding-owned archive lane.
 ├─ conversation/      ✓ tool naming and the harness reply-event contract
 ├─ _suspended/conversation/ ○ compiled ask/affordance and settlement protocols; not mounted;
 │                        re-exported only for contracts other packages still type against
@@ -88,13 +89,11 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 
 ## Specification — where what's next lands
 
-- **N1 (the structural repair, discharged by FE-1422 + FE-1392).**
-  `packages/core/src/conversation/ask-protocol.ts` now owns pure affordance minting, the one-live guard,
-  reply-binding signal payload, and instruction fragments. `packages/core/src/conversation/sweep-protocol.ts`
-  owns range selection, trigger/repair decisions (including reopening the loop guard after a
-  refusal), prompt content, and advisory semantics;
-  `useElicitation` contributes only Flue projection, hooks, persistent-state, private-prompt,
-  refresh, and durable-step wiring. A future `binding-pi` reuses both protocol modules.
+- **N1 (ask/sweep protocol extraction; discharged by FE-1422 + FE-1392, then retired from the product surface).**
+  The ask and sweep protocol modules still exist under `src/_suspended/conversation/` and as
+  historical extraction evidence. They are not a current product path: structured questions are
+  an unallocated future capability, and capture envelopes/sweep semantics were rejected for
+  provenance on 2026-09-04. Do not remount them to satisfy this paragraph.
 - **N2 (plugin cells, repertoire, and the proving runbook; amended by ADR-0007, ADR-0008, Mission 3, and FE-1563; retired 2026-09-02).** The YAML cell/repertoire machinery described here was removed on 2026-09-02 once plugins became Flue-native contribution bundles; this paragraph is history. Reusable plugin-owned policy lives in plugin packages, and harness-owned repertoire teaching lives in core behind `@hashintel/brunch-agent/prompts`; plugins may not import that guarded prompt data. FE-1563 established a separate Flue-native production seam: core's `./flue` subpath supplies the stable agent prompt, while plugin-sdcpn's `./flue` subpath and exported `SKILL.md` supply SDCPN prompt material, progressive teaching, and target-specific tools. This does not reactivate the generalized repertoire/`useElicitation()` runtime. The app retains only the directive-marked registration point and host-specific capabilities.
 - **N3 (application composition; amended by ADR-0004 / FE-1437).** There is no dedicated demo
   shell. The standalone `apps/dev` was imported as `apps/brunch-agent`, which owns the remote
@@ -103,12 +102,13 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
   Applications may compose Brunch and Petrinaut public surfaces; reusable libraries may not know
   about one another.
 - **N4 (experiments).** Experiment runners live under the consuming app's `src/evaluations/`, use the JS-API pattern with `observe()` accounting, and never enter `packages/` or become bespoke daemons. Reusable cases, oracles, and protocols remain under the context-root `evaluations/`; observed output remains under `docs/evidence/evaluations/`.
-- **N5 (storage-port implementations; local target discharged by FE-1391).** One per (binding ×
-  deploy target), always in the binding package, always implementing core's `CaptureStore` +
-  parse-on-read. The local implementation provisions a versioned target-document record around
-  both capture and archive state. The Cloudflare case (per-object SQLite) is a new implementation
-  behind the same port — the file-path assumption never leaks above the binding.
+- **N5 (storage-port implementations; local target discharged by FE-1391, capture half rejected 2026-09-04).**
+  Binding-owned storage ports still own parse-on-read and the session-log archive lane. The
+  capture-store half of that port is not product provenance: workpiece revisions settle in
+  per-conversation state, and Flue `history()` is the conversation log. A new deploy target may
+  still need a binding-local archive implementation; it must not revive envelopes as the document
+  of record. The file-path assumption never leaks above the binding.
 - **N6 (plugin-assurance, when chartered).** `packages/plugin-assurance`, same shape as
   gherkin; its existence is FE-1387's contract-freeze instrument, not a feature.
 
-Ratification note: N1 was the only item that changed existing code in the original 2026-08-17 ratification; FE-1422 extracted the ask protocol and FE-1392 continued the same repair for sweep mechanism. Mission 3 later narrowed N2's blanket app-skill prohibition for one directly authored proving instrument without reactivating plugin composition. N2–N6 otherwise constrain future placement. ADR-0002 records the original ratification. The boundary gates in `test/boundaries.test.ts` should learn enforceable package rules as their packages arrive; N5's "port implementations only in bindings" remains mechanically checkable.
+Ratification note: N1 was the only item that changed existing code in the original 2026-08-17 ratification; FE-1422 extracted the ask protocol and FE-1392 continued the same repair for sweep mechanism, later retired from the product surface. Mission 3 later narrowed N2's blanket app-skill prohibition for one directly authored proving instrument without reactivating plugin composition. N2–N6 otherwise constrain future placement. ADR-0002 records the original ratification. The boundary gates in `test/boundaries.test.ts` should learn enforceable package rules as their packages arrive; N5's "port implementations only in bindings" remains mechanically checkable for the archive lane, not as permission to treat capture envelopes as current.

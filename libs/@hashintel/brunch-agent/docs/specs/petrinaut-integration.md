@@ -1,21 +1,26 @@
 # Integration spec: the elicitor behind Petrinaut's chat panel
 
-**Ticket**: FE-1433 (the integration-spec issue) · **Decision record**: ADR-0004 (`docs/adr/0004-in-petrinaut-staging-and-the-monorepo-import.md`) · **Supersedes**: `recommendation-demo-vehicle.md` as the September staging plan · **Evidence base**: the Petrinaut survey (FE-1358, `research/petrinaut-survey.md`), re-verified against `hashintel/hash` source on 2026-08-18 · **Amended**: FE-1506 (stable UI and voice attach contract), H-6763 / ADR-0009 (generic composer submission and app-owned voice boundary), and FE-1574 / Mission 5 (one mounted Flue conversation route and browser AI SDK projection).
+> Historical integration hypothesis, not live authority. The production door is the Mission 5
+> browser Flue `ChatTransport` at `/agents/chat/:instanceId`. Structured `brunch_ask` is retired
+> from the product surface; capture envelopes and a separate IR store are rejected as provenance.
+> Read root [`MISSION.md`](../../MISSION.md) for current contracts.
+
+**Ticket**: FE-1433 (the integration-spec issue) · **Decision record**: ADR-0004 (`docs/adr/0004-in-petrinaut-staging-and-the-monorepo-import.md`) · **Supersedes**: `recommendation-demo-vehicle.md` as the September staging plan · **Evidence base**: the Petrinaut survey (FE-1358, `research/petrinaut-survey.md`), re-verified against `hashintel/hash` source on 2026-08-18 · **Amended**: FE-1506 (stable UI and voice attach contract), H-6763 / ADR-0009 (generic composer submission and app-owned voice boundary), and FE-1574 / Mission 5 (one mounted Flue conversation route and browser AI SDK projection). Relabelled 2026-09-07.
 
 ## Problem Statement
 
-The September demo must show agentic elicitation producing a working process model — durable
-capture with provenance, completion accounting, a live interpretation render, and a net that
-runs — and the 2026-08-18 meeting decided it must do so **inside demo.petrinaut.org's existing
-chat panel**, not in a separate application. Petrinaut's incumbent assistant is a stateless
-browser-resident chat over a Vercel edge proxy: it persists only a transcript and a net in
-localStorage, and has no server, no sessions, no capture store. The elicitor is the opposite
-shape: a stateful server-side agent (Pi/Flue substrate) with its own loop, tools, and durable
-storage. The problem is connecting the second to the first without rebuilding either.
+The original September staging goal was to show agentic elicitation inside
+demo.petrinaut.org's existing chat panel, not in a separate application. Petrinaut's
+incumbent assistant is a stateless browser-resident chat over a Vercel edge proxy: it
+persists only a transcript and a net in localStorage. The elicitor is the opposite shape: a
+stateful server-side Flue agent with its own loop, tools, and durable conversation/document
+state. The problem is connecting the second to the first without rebuilding either. Later
+missions replaced "durable capture / completion accounting / live interpretation" with Flue
+history, a Markdown workpiece, and browser-executed Petrinaut mutations.
 
 ## Solution
 
-The Brunch elicitor runs as a **long-running Flue server** built on the harness + `binding-flue`; Mission 5 proves the local same-origin path, while remote deployment remains a separate gate. The demo site derives one guarded `/agents/chat/:instanceId` URL from its opaque principal and logical conversation id, creates a public `@flue/sdk` client for that conversation, and supplies Petrinaut with a browser `ChatTransport` that projects Flue conversation events into the AI SDK rendering contract. Everything else in the panel — rendering, the diagnostics decorator, and client-side tool execution — is reused as-is. The elicitor drives Petrinaut's editor through the **existing UI-executed tool surface** (schemas imported from `petrinaut-core`): a response may end with client tool calls pending, the panel executes them, and one `client-tool-result` signal resumes the owning Flue conversation. Flue history is the canonical conversation record; captures and IRs remain in their own server-side stores.
+The Brunch elicitor runs as a **long-running Flue server** built on the harness + `binding-flue`; Mission 5 proves the local same-origin path, while remote deployment remains a separate gate. The demo site derives one guarded `/agents/chat/:instanceId` URL from its opaque principal and logical conversation id, creates a public `@flue/sdk` client for that conversation, and supplies Petrinaut with a browser `ChatTransport` that projects Flue conversation events into the AI SDK rendering contract. Everything else in the panel — rendering, the diagnostics decorator, and client-side tool execution — is reused as-is. The elicitor drives Petrinaut's editor through the **existing UI-executed tool surface** (schemas imported from `petrinaut-core`): a response may end with client tool calls pending, the panel executes them, and one `client-tool-result` signal resumes the owning Flue conversation. Flue history is the canonical conversation record; the workpiece is per-conversation Markdown, not a capture store or typed IR.
 
 ## Seams
 
@@ -41,9 +46,10 @@ which the design needs anyway:
 The panel and the voice edge attach to Brunch through one stable surface:
 
 1. **Conversation transport**: the browser calls `FlueClient.send()` against the guarded `/agents/chat/:instanceId` route, then follows the admitted submission through the SDK. The host-supplied browser `ChatTransport` projects that Flue stream into the finite AI SDK v6 UI-message stream consumed by `useChat`; the stock Petrinaut `/api/chat` route is a separate fallback and never carries Brunch turns.
-2. **Question affordance**: the UI-executed tool is named `brunch_ask`. Its input schema is
-   `{ question: non-empty string }`; its submitted output schema is
-   `{ answer: non-empty string }`.
+2. **Question affordance** (historical; not a current product path): the earlier UI-executed
+   tool was named `brunch_ask`. Structured questions remain an unallocated future capability and
+   must not be restored from this paragraph. The current Voice/typed path uses completed
+   transcript admission and a hidden question marker for exact replay only.
 3. **Principal identity**: every request carries one non-empty, opaque principal in the
    `x-brunch-principal` header. The current UI shell keeps that value in localStorage so it is
    stable across reloads; replacing the local UID with authenticated identity must preserve the

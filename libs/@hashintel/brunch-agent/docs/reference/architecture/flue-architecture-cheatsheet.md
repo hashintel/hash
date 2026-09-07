@@ -320,12 +320,14 @@ between the second and third:
 
 ## Reconciliation with the Flue-vs-tilde analysis (2026-08-14)
 
-The comparative analysis at [`../../reference/amp-analysis-flue-vs-tilde.md`](../../research/amp-analysis-flue-vs-tilde.md)
+The comparative analysis last living at
+`69c02f69a9:libs/@hashintel/brunch-agent/docs/research/amp-analysis-flue-vs-tilde.md`
 read Flue's _source and changelog_, not only the guides, so where it speaks it carries higher
 evidence grade than this sheet's paraphrase-level doc reads. Reconciled 2026-08-17; no
 contradictions found — the analysis's verdict (keep Flue; Tilde is a hosted control plane, not
-a runtime; the capture store stays application-owned under any future) matches this sheet's
-boundary summary independently. Four source-level facts it adds that the guides state weakly
+a runtime; application-owned document state stays outside Flue's conversation store) matches
+this sheet's boundary summary independently. Capture envelopes were later rejected as that
+application-owned store. Four source-level facts it adds that the guides state weakly
 or not at all:
 
 - **Pre-remote-exposure gates.** The mounted Flue route is public — no authentication or

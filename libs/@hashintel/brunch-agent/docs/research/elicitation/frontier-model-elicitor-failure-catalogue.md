@@ -476,9 +476,9 @@ each successor performs.
   [elicitation strategy synthesis](elicitation-strategy-literature.md).
 - [Research-patterns audit](../../evidence/audits/research-patterns-audit.md), which
   identifies the novice-human population mismatch and the locally synthesized stopping claims.
-- [Elicitation harness specification](../../specs/elicitation-kernel.md) and
-  [provisional plugin contract](../../specs/plugin-contract.md) for the prevention mechanisms;
-  these are design authorities, not evidence that the mechanisms work.
+- Historical elicitation-kernel and plugin-contract specs (removed 2026-09-07; last copies at
+  `69c02f69a9:libs/@hashintel/brunch-agent/docs/specs/`) for the prevention mechanisms then
+  proposed; those files were design hypotheses, not evidence that the mechanisms work.
 
 ### Primary-source verification
 

@@ -139,9 +139,9 @@ These rules exist because Mission 4 lost its design between the owner conversati
 
 ## Authorities vs obligations
 
-[`docs/specs/`](docs/specs), [`docs/adr/`](docs/adr) (see its [README](docs/adr/README.md)), and
-[`docs/evidence/`](docs/evidence) are history and reference: prior design hypotheses and observed
-results. They are not marching orders. Re-earn any design you build to; an implemented decision is
+[`docs/specs/`](docs/specs) (see its [README](docs/specs/README.md)), [`docs/adr/`](docs/adr)
+(see its [README](docs/adr/README.md)), and [`docs/evidence/`](docs/evidence) are history and
+reference: prior design hypotheses and observed results. They are not marching orders. Re-earn any design you build to; an implemented decision is
 evidence, unimplemented design is a hypothesis. A branch may depart from a recorded decision by
 noting the divergence in its commit. Provenance is not warrant: a statement is evidence of what
 was said, not automatically of the terrain. This holds equally for specs, ADRs, the user's

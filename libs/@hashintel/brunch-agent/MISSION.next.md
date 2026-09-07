@@ -448,6 +448,22 @@ Source: the complete pre-split planning record at [`d6b7ea829f`](https://github.
 
 The old partial-utility proposal (re-examine per-class thresholds and release only passing classes) is superseded by the owner's accepted useful explanation for every ordinary behaviour-affecting part. Correct refusal remains mandatory safety for controls, never an ordinary coverage pass. The rejected preview-summary interpretation is not retained as a product requirement: the requested capability is explicit gap filling/guessing under a future policy. These are semantic dispositions, not silent omissions.
 
+## 2026-09-07 stale-docs subtraction
+
+Owner-authorized documentation-only remediation on this Mission 7 branch. It does not implement product code, freeze an instrument, or close Step A. Last living copies are pinned at `69c02f69a9`. The retirement index is [`docs/archive/specs/README.md`](docs/archive/specs/README.md).
+
+Deleted from living paths because they still described discarded destinations (YAML plugin/repertoire, three-register capture/fold IR, capture envelopes as document truth, ElevenLabs/kernel Voice, undispositioned inbox salvage):
+
+- living specs `plugin-contract`, `elicitation-completion`, `elicitation-kernel`, `intermediate-representation{,-plain}`, `elicitation-to-ir-oracle-design`, `structurally-typed-elicitation-runbooks`
+- `docs/reference/architecture/capture-store.md`
+- satellite design evidence for those specs
+- `docs/inbox/salvage/**`
+- `docs/research/{voice-feasibility,voice-implementation-recommendation-pplx,amp-analysis-flue-vs-tilde}.md`
+
+Surviving homes already present before deletion: this spine's provenance/tool-admission locks and unallocated Voice/Dafny/Gherkin/structured-question sections; the Mission 4 archive; 2026-09-04 provenance-by-lineage evidence; Flue-native skill/prompt files; Mission 5/6b Voice evidence. Relabelled, not deleted: `CONTEXT.md` capture glossary (now historical), remaining `docs/specs/` files, `docs/adr/` status lines, `docs/reference/architecture/{topology,flue-routing,flue-architecture-cheatsheet}.md`, and root/`docs/research` index wording so they no longer present `docs/specs/` as the current harness contract.
+
+Frozen evaluation instruments and `docs/archive/**` fossils were left in place. This pass is not the optional Mission 4+ archive-subtraction successor.
+
 ## 2026-09-04 provenance replanning migration disposition
 
 This ledger records the homes at the 2026-09-04 recut. Its "Draft 7" section references are historical addresses; the Mission 7 cut conversion above maps them to current root authority and the Step B packet. Every planning item in the former Mission 7 draft (`7-capture-backed-review.md`, renamed with history to `7-explainable-construction.md`), the former Mission 9 draft, and the affected spine paragraphs was dispositioned; nothing was removed without a named home or recorded rejection with reason.
