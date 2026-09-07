@@ -44,6 +44,24 @@ Package-specific standing instructions live in that package’s `AGENTS.md`. On-
 - Backend only: `yarn dev:backend` or `yarn dev:backend:api`
 - Frontend only: `yarn dev:frontend`
 
+### Dev server ports
+
+Every dev server binds a port of its own, so any set of them can run at once:
+
+| Port  | Server                                                           |
+| ----- | ---------------------------------------------------------------- |
+| 3000  | `@apps/hash-frontend`                                            |
+| 4004  | Petrinaut Optimizer service (`--with-optimizer-service`)         |
+| 4321  | `@apps/brunch-agent` chat -- `strictPort`, paired with the panel |
+| 4322  | `@apps/petrinaut-docs`                                           |
+| 4915  | `@apps/brunch-agent` panel -- `strictPort`                       |
+| 5173  | `@apps/petrinaut-website`                                        |
+| 6006  | `@hashintel/petrinaut` Storybook                                 |
+| 6007  | `@hashintel/refractive` Storybook                                |
+| 61000 | `@hashintel/ds-components` Ladle                                 |
+
+`PORT` overrides the default for every one of them except the two Brunch servers, whose ports are a contract between the pair. `.claude/launch.json` names the servers a Claude Code session can preview; keep its `port` in step with the table when a default moves.
+
 ### Starting Services
 
 - Start all services: `yarn start`
