@@ -18,7 +18,6 @@ import {
   type AddNotificationInput,
 } from "../../../../../react/notifications/context";
 import { EditorContext } from "../../../../../react/state/editor-context";
-import { VoiceSessionContext } from "../../../../../react/voice-session/context";
 import {
   useVoiceSessionErrorMessage,
   useVoiceSessionPhase,
