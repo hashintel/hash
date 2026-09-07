@@ -13,7 +13,7 @@ use error_stack::{
     fmt::{Charset, ColorMode},
 };
 use figment::Jail;
-use hash_config::{LoadError, Loader};
+use hash_config::{FileFormat, LoadError, Loader};
 use serde_json::json;
 
 const SECRET: &str = "this-value-must-not-appear-in-an-error";
@@ -237,6 +237,7 @@ fn file_missing() {
     Jail::expect_with(|jail| {
         let report = Loader::new()
             .with_defaults(json!({ "store": { "host": "localhost", "port": 5432 }, "routes": [] }))
+            .with_optional_toml_file("missing.toml")
             .with_toml_file("missing.toml")
             .load::<Config>()
             .expect_err("the absent required file should fail the load");
@@ -262,24 +263,28 @@ fn file_missing() {
 #[test]
 fn file_directory() {
     Jail::expect_with(|jail| {
-        let report = Loader::new()
-            .with_toml_file(jail.directory())
-            .load::<Config>()
-            .expect_err("the directory should fail as a configuration file");
+        for loader in [
+            Loader::new().with_toml_file(jail.directory()),
+            Loader::new().with_optional_toml_file(jail.directory()),
+        ] {
+            let report = loader
+                .load::<Config>()
+                .expect_err("the directory should fail as a configuration file");
 
-        assert_matches!(
-            report.current_context(),
-            LoadError::ReadFile { path } if path == jail.directory(),
-            "the error should identify a read failure and retain the original path"
-        );
-        assert_eq!(
-            report
-                .downcast_ref::<std::io::Error>()
-                .map(std::io::Error::kind),
-            Some(std::io::ErrorKind::IsADirectory),
-            "the report should preserve the directory IO cause"
-        );
-        assert_report("file_directory", &report, jail);
+            assert_matches!(
+                report.current_context(),
+                LoadError::ReadFile { path } if path == jail.directory(),
+                "the error should identify a read failure and retain the original path"
+            );
+            assert_eq!(
+                report
+                    .downcast_ref::<std::io::Error>()
+                    .map(std::io::Error::kind),
+                Some(std::io::ErrorKind::IsADirectory),
+                "the report should preserve the directory IO cause"
+            );
+            assert_report("file_directory", &report, jail);
+        }
         Ok(())
     });
 }
@@ -292,23 +297,27 @@ fn file_non_utf8() {
         contents.push(0xFF);
         fs::write("config.toml", contents).expect("the invalid UTF-8 fixture should be written");
 
-        let report = Loader::new()
-            .with_toml_file("config.toml")
-            .load::<Config>()
-            .expect_err("the non-UTF-8 file should fail the load");
-        assert_matches!(
-            report.current_context(),
-            LoadError::ReadFile { path } if path == Path::new("config.toml"),
-            "the error should identify a read failure and retain the original path"
-        );
-        assert_eq!(
-            report
-                .downcast_ref::<std::io::Error>()
-                .map(std::io::Error::kind),
-            Some(std::io::ErrorKind::InvalidData),
-            "the report should preserve the encoding IO cause"
-        );
-        assert_report("file_non_utf8", &report, jail);
+        for loader in [
+            Loader::new().with_toml_file("config.toml"),
+            Loader::new().with_optional_toml_file("config.toml"),
+        ] {
+            let report = loader
+                .load::<Config>()
+                .expect_err("the non-UTF-8 file should fail the load");
+            assert_matches!(
+                report.current_context(),
+                LoadError::ReadFile { path } if path == Path::new("config.toml"),
+                "the error should identify a read failure and retain the original path"
+            );
+            assert_eq!(
+                report
+                    .downcast_ref::<std::io::Error>()
+                    .map(std::io::Error::kind),
+                Some(std::io::ErrorKind::InvalidData),
+                "the report should preserve the encoding IO cause"
+            );
+            assert_report("file_non_utf8", &report, jail);
+        }
         Ok(())
     });
 }
@@ -319,20 +328,25 @@ fn file_malformed_redaction() {
     Jail::expect_with(|jail| {
         jail.create_file("config.toml", &format!("# ü\npassword = \"{SECRET}\n"))?;
 
-        let report = Loader::new()
-            .with_toml_file("config.toml")
-            .load::<Config>()
-            .expect_err("the unterminated string should fail TOML parsing");
-        assert_matches!(
-            report.current_context(),
-            LoadError::ParseFile { path } if path == Path::new("config.toml"),
-            "the error should identify malformed TOML and retain the original path"
-        );
-        assert!(
-            !report.contains::<toml::de::Error>(),
-            "the report should not retain the source-bearing TOML error"
-        );
-        assert_report("file_malformed_redaction", &report, jail);
+        for loader in [
+            Loader::new().with_toml_file("config.toml"),
+            Loader::new().with_optional_toml_file("config.toml"),
+        ] {
+            let report = loader
+                .load::<Config>()
+                .expect_err("the unterminated string should fail TOML parsing");
+            assert_matches!(
+                report.current_context(),
+                LoadError::ParseFile { path, format: FileFormat::Toml }
+                    if path == Path::new("config.toml"),
+                "the error should identify the TOML format and retain the original path"
+            );
+            assert!(
+                !report.contains::<toml::de::Error>(),
+                "the report should not retain the source-bearing TOML error"
+            );
+            assert_report("file_malformed_redaction", &report, jail);
+        }
         Ok(())
     });
 }
@@ -356,22 +370,54 @@ fn file_non_utf8_path() {
     });
 }
 
+/// Parse errors name the selected parser even when the extension suggests another format.
+#[test]
+fn file_format_explicit() {
+    Jail::expect_with(|jail| {
+        jail.create_file(
+            "config.json",
+            &json!({ "host": "localhost", "port": 5432 }).to_string(),
+        )?;
+
+        for loader in [
+            Loader::new().with_toml_file("config.json"),
+            Loader::new().with_optional_toml_file("config.json"),
+        ] {
+            let report = loader
+                .load::<Store>()
+                .expect_err("the JSON document should fail TOML parsing");
+
+            assert_matches!(
+                report.current_context(),
+                LoadError::ParseFile { path, format: FileFormat::Toml }
+                    if path == Path::new("config.json"),
+                "the error should name the selected TOML parser regardless of the file extension"
+            );
+        }
+        Ok(())
+    });
+}
+
 /// Deserialization errors retain the winning file and key while redacting the value.
 #[test]
 fn file_invalid_value() {
     Jail::expect_with(|jail| {
         jail.create_file("config.toml", &format!("[store]\nport = '{SECRET}'\n"))?;
-        let report = Loader::new()
-            .with_defaults(json!({ "store": { "host": "localhost" }, "routes": [] }))
-            .with_toml_file("config.toml")
-            .load::<Config>()
-            .expect_err("the string should not deserialize as a port");
-        assert_matches!(
-            report.current_context(),
-            LoadError::Invalid,
-            "the error should identify invalid configuration"
-        );
-        assert_report("file_invalid_value", &report, jail);
+        for loader in [
+            Loader::new().with_toml_file("config.toml"),
+            Loader::new().with_optional_toml_file("config.toml"),
+        ] {
+            let report = loader
+                .with_defaults(json!({ "store": { "host": "localhost" }, "routes": [] }))
+                .load::<Config>()
+                .expect_err("the string should not deserialize as a port");
+            assert_matches!(
+                report.current_context(),
+                LoadError::Invalid,
+                "the error should identify invalid configuration"
+            );
+            assert_report("file_invalid_value", &report, jail);
+        }
         Ok(())
     });
 }
@@ -391,6 +437,154 @@ fn file_missing_required_value() {
             "the error should identify incomplete configuration"
         );
         assert_report("file_missing_required_value", &report, jail);
+        Ok(())
+    });
+}
+
+/// An absent optional file contributes no values, including when its parent directory is absent.
+#[test]
+fn optional_file_missing() {
+    Jail::expect_with(|_jail| {
+        for path in ["missing.toml", "missing/config.toml"] {
+            let config = Loader::new()
+                .with_defaults(json!({ "host": "localhost", "port": 5432 }))
+                .with_optional_toml_file(path)
+                .load::<Store>()
+                .expect("the absent optional file should leave the defaults intact");
+
+            assert_eq!(
+                config,
+                Store {
+                    host: "localhost".to_owned(),
+                    port: 5432,
+                },
+                "the defaults should survive an absent optional file"
+            );
+        }
+        Ok(())
+    });
+}
+
+/// Skipping an absent file does not waive required configuration fields.
+#[test]
+fn optional_file_missing_required_value() {
+    Jail::expect_with(|_jail| {
+        let report = Loader::new()
+            .with_defaults(json!({ "host": "localhost" }))
+            .with_optional_toml_file("missing.toml")
+            .load::<Store>()
+            .expect_err("the missing port should still fail deserialization");
+
+        assert_matches!(
+            report.current_context(),
+            LoadError::Invalid,
+            "the error should identify an incomplete configuration"
+        );
+        assert!(
+            format!("{report:?}").contains("missing field `port`"),
+            "the report should name the missing field: {report:?}"
+        );
+        Ok(())
+    });
+}
+
+/// A file created after adding its path is read as TOML, independent of its extension.
+#[test]
+fn optional_file_deferred_read() {
+    Jail::expect_with(|jail| {
+        let loader = Loader::new().with_optional_toml_file("config.local");
+        jail.create_file("config.local", "host = 'database'\nport = 6543\n")?;
+
+        let config = loader
+            .load::<Store>()
+            .expect("the optional file created before load should be read");
+
+        assert_eq!(
+            config,
+            Store {
+                host: "database".to_owned(),
+                port: 6543,
+            },
+            "the values should come from the file created after the builder call"
+        );
+        Ok(())
+    });
+}
+
+/// A file removed before load is skipped even if it existed when its path was added.
+#[test]
+fn optional_file_removed_before_load() {
+    Jail::expect_with(|jail| {
+        jail.create_file("config.toml", "port = 6543\n")?;
+        let loader = Loader::new()
+            .with_defaults(json!({ "host": "localhost", "port": 5432 }))
+            .with_optional_toml_file("config.toml");
+        fs::remove_file("config.toml").expect("the optional file should be removed before load");
+
+        let config = loader
+            .load::<Store>()
+            .expect("the removed optional file should be skipped");
+
+        assert_eq!(
+            config.port, 5432,
+            "the default port should survive the removed optional file"
+        );
+        Ok(())
+    });
+}
+
+/// Required and optional files share one order above defaults; absent layers leave it intact.
+#[test]
+fn files_required_optional_order() {
+    Jail::expect_with(|jail| {
+        jail.create_file(
+            "required.toml",
+            "routes = ['api', 'health']\n[store]\nport = 5432\n",
+        )?;
+        jail.create_file(
+            "optional.toml",
+            "routes = ['metrics']\n[store]\nhost = 'database'\nport = 6543\n",
+        )?;
+
+        for (loader, expected_port, expected_routes) in [
+            (
+                Loader::new()
+                    .with_toml_file("required.toml")
+                    .with_optional_toml_file("missing.toml")
+                    .with_optional_toml_file("optional.toml"),
+                6543,
+                vec!["metrics"],
+            ),
+            (
+                Loader::new()
+                    .with_optional_toml_file("optional.toml")
+                    .with_toml_file("required.toml")
+                    .with_optional_toml_file("missing.toml"),
+                5432,
+                vec!["api", "health"],
+            ),
+        ] {
+            let config = loader
+                .with_defaults(json!({
+                    "store": { "host": "localhost", "port": 1234 },
+                    "routes": ["default"],
+                }))
+                .load::<Config>()
+                .expect("the required and optional files should compose above the defaults");
+
+            assert_eq!(
+                config.store.host, "database",
+                "the optional file's host should override defaults and survive either file order"
+            );
+            assert_eq!(
+                config.store.port, expected_port,
+                "the later present file should supply the port"
+            );
+            assert_eq!(
+                config.routes, expected_routes,
+                "the later present file should replace the routes"
+            );
+        }
         Ok(())
     });
 }

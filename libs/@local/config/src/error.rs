@@ -7,6 +7,8 @@ use figment::{
     error::{Actual, Error as FigmentError, Kind as FigmentKind},
 };
 
+use crate::FileFormat;
+
 /// What prevented a configuration from loading.
 #[derive(Debug, derive_more::Display)]
 #[non_exhaustive]
@@ -14,12 +16,12 @@ pub enum LoadError {
     /// The merged values do not deserialize into the requested configuration type.
     #[display("the configuration could not be loaded")]
     Invalid,
-    /// A required configuration file could not be read as UTF-8.
+    /// A configuration file could not be read as UTF-8.
     #[display("the configuration file `{}` could not be read", path.display())]
     ReadFile { path: PathBuf },
-    /// A configuration file does not contain valid TOML.
-    #[display("the configuration file `{}` is not valid TOML", path.display())]
-    ParseFile { path: PathBuf },
+    /// A configuration file is invalid for the selected format.
+    #[display("the configuration file `{}` is not valid {format}", path.display())]
+    ParseFile { path: PathBuf, format: FileFormat },
 }
 
 impl Error for LoadError {}

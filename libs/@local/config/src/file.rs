@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{fs, io, path::PathBuf};
 
 use error_stack::{Report, ResultExt as _};
 use figment::{
@@ -9,20 +9,44 @@ use figment::{
 
 use crate::LoadError;
 
-/// A required TOML file contributing one configuration layer.
+/// The format used to parse a configuration file.
+#[derive(Debug, derive_more::Display)]
+#[non_exhaustive]
+pub enum FileFormat {
+    #[display("TOML")]
+    Toml,
+}
+
+/// A file to read when loading the configuration.
+#[derive(Debug)]
+pub(crate) enum FileSource {
+    Required(PathBuf),
+    Optional(PathBuf),
+}
+
+/// A parsed file contributing one configuration layer.
 pub(crate) struct File {
     path: PathBuf,
     values: Dict,
 }
 
-impl File {
-    pub(crate) fn read(path: PathBuf) -> Result<Self, Report<LoadError>> {
-        let text = fs::read_to_string(&path)
-            .change_context_lazy(|| LoadError::ReadFile { path: path.clone() })?;
+impl FileSource {
+    pub(crate) fn read(self) -> Result<Option<File>, Report<LoadError>> {
+        let (path, required) = match self {
+            Self::Required(path) => (path, true),
+            Self::Optional(path) => (path, false),
+        };
+        let text = match fs::read_to_string(&path) {
+            Err(error) if !required && error.kind() == io::ErrorKind::NotFound => return Ok(None),
+            result => result.change_context_lazy(|| LoadError::ReadFile { path: path.clone() })?,
+        };
         let values = toml::from_str(&text).map_err(|error: toml::de::Error| {
             // TOML errors retain the source document and may quote its values. Keep only the
             // position so neither the report nor its underlying frames can expose that input.
-            let mut report = Report::new(LoadError::ParseFile { path: path.clone() });
+            let mut report = Report::new(LoadError::ParseFile {
+                path: path.clone(),
+                format: FileFormat::Toml,
+            });
             if let Some(prefix) = error.span().and_then(|span| text.get(..span.start)) {
                 let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
                 let column = prefix
@@ -34,7 +58,7 @@ impl File {
             report
         })?;
 
-        Ok(Self { path, values })
+        Ok(Some(File { path, values }))
     }
 }
 
