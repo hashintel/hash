@@ -5,6 +5,9 @@ import { toVoiceSessionState } from "./voice-session-state";
 import type { VoiceTurnSnapshot } from "./voice-turn-controller";
 
 const listeningSnapshot = {
+  canReadFullResponse: false,
+  canRepeatQuestion: false,
+  canTakeTurn: false,
   canReviseLastAnswer: false,
   connection: "connected",
   currentQuestion: "What happens after approval?",
@@ -12,6 +15,7 @@ const listeningSnapshot = {
   errorMessage: "",
   errorRequestId: "",
   input: "listening",
+  inputNotice: "none",
   lastAnswerDelivery: "none",
   lastCommittedText: "",
   microphoneEnabled: true,
@@ -30,11 +34,38 @@ describe("toVoiceSessionState", () => {
 
   test("reports a listening turn with its microphone level", () => {
     expect(mapSnapshot()).toEqual({
+      canReadFullResponse: false,
+      canRepeatQuestion: false,
+      canTakeTurn: false,
       errorMessage: null,
       microphoneLevel: 0.24,
       microphoneMuted: false,
+      notice: null,
       phase: "listening",
     });
+  });
+
+  test("publishes safe handoff and canonical playback availability", () => {
+    expect(
+      mapSnapshot({
+        canReadFullResponse: true,
+        canRepeatQuestion: true,
+        canTakeTurn: true,
+      }),
+    ).toMatchObject({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
+      canTakeTurn: true,
+    });
+  });
+
+  test("describes recoverable transcript rejections", () => {
+    expect(mapSnapshot({ inputNotice: "not-heard" })?.notice).toBe(
+      "We didn't catch that. Please try again.",
+    );
+    expect(mapSnapshot({ inputNotice: "too-long" })?.notice).toBe(
+      "That answer is too long. Please try a shorter response.",
+    );
   });
 
   test("hands the turn to the assistant while it speaks", () => {

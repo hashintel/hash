@@ -18,6 +18,10 @@
       "types": "./src/flue.ts",
       "import": "./dist/flue.js"
     },
+    "./question-marker": {
+      "types": "./src/question-marker.ts",
+      "import": "./dist/question-marker.js"
+    },
     "./storage": {
       "types": "./src/storage.ts",
       "import": "./dist/storage.js"

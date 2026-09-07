@@ -12,6 +12,8 @@ import {
 import { StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import {
   acknowledgeVoiceInterviewDisclosure,
@@ -265,8 +267,53 @@ describe("voice interview control", () => {
 
     abortController.abort();
 
-    await expect(resultPromise).rejects.toMatchObject({ name: "AbortError" });
+    await expect(resultPromise).rejects.toMatchObject({
+      failure: { kind: "aborted" },
+      name: "FlueChatAdmissionError",
+    });
     expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  test("preserves a typed failure reported after the panel submission resolves", async () => {
+    const admissionError = new FlueChatAdmissionError({ kind: "ambiguous" });
+    let reportFailure: ((error: FlueChatAdmissionError) => void) | undefined;
+    const unsubscribeFromAdmission = vi.fn();
+    const unsubscribeFromFailure = vi.fn();
+    const resultPromise = submitVoiceInputWithAdmission({
+      input: {
+        admissionTarget: { kind: "user", messageId: "voice-turn-1" },
+        id: "voice-turn-1",
+        onAdmission: vi.fn(),
+        signal: new AbortController().signal,
+        text: "One Voice turn.",
+      },
+      submitVoiceInput: async () => ({
+        kind: "message",
+        messageId: "voice-turn-1",
+      }),
+      subscribeToAdmission: () => unsubscribeFromAdmission,
+      subscribeToAdmissionFailure: (_target, listener) => {
+        reportFailure = listener;
+        return unsubscribeFromFailure;
+      },
+    });
+    let settled = false;
+    void resultPromise.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    reportFailure?.(admissionError);
+
+    await expect(resultPromise).rejects.toBe(admissionError);
+    expect(unsubscribeFromAdmission).toHaveBeenCalledOnce();
+    expect(unsubscribeFromFailure).toHaveBeenCalledOnce();
   });
 
   test("stores and reads the versioned disclosure acknowledgement", () => {
@@ -324,7 +371,7 @@ describe("voice interview control", () => {
     await expect(loadOpenAIVoiceConfig(fetch)).resolves.toBeNull();
   });
 
-  test("keeps the first-use disclosure inline without a text-handoff action", () => {
+  test("keeps the first-use disclosure inline without a text-handoff action", async () => {
     render(<VoiceInterviewHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
@@ -332,16 +379,33 @@ describe("voice interview control", () => {
     const disclosure = screen.getByRole("region", {
       name: "Voice mode consent",
     });
-    expect(disclosure).not.toBeNull();
-    expect(within(disclosure).getByText("Voice mode")).not.toBeNull();
     expect(
-      screen.getByText("OpenAI processes live audio", { exact: false }),
+      within(disclosure).getByText("Start a voice conversation"),
     ).not.toBeNull();
     expect(
-      screen
-        .getByRole("button", { name: "Start voice mode" })
-        .hasAttribute("disabled"),
-    ).toBe(true);
+      within(disclosure).getByText(
+        "OpenAI processes live audio and speaks the interviewer’s words. Petrinaut saves finalized answers—not audio.",
+      ),
+    ).not.toBeNull();
+
+    const consent = within(disclosure).getByRole("checkbox", {
+      name: "I understand how voice data is handled.",
+    });
+    const start = within(disclosure).getByRole("button", {
+      name: "Start voice",
+    });
+    expect(start.hasAttribute("disabled")).toBe(true);
+    fireEvent.click(consent);
+    await waitFor(() =>
+      expect(
+        within(disclosure)
+          .getByRole("button", { name: "Start voice" })
+          .hasAttribute("disabled"),
+      ).toBe(false),
+    );
+    expect(
+      within(disclosure).getByRole("button", { name: "Test microphone" }),
+    ).not.toBeNull();
     expect(
       screen.queryByRole("button", { name: "Use text instead" }),
     ).toBeNull();
@@ -361,7 +425,14 @@ describe("voice interview control", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
     fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("button", { name: "Start voice" })
+          .hasAttribute("disabled"),
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start voice" }));
 
     expect(await screen.findByText("Session: error")).not.toBeNull();
     expect(screen.getByText("Voice active")).not.toBeNull();
@@ -376,6 +447,75 @@ describe("voice interview control", () => {
     expect(screen.getByText("Panel closed")).not.toBeNull();
     expect(screen.getByText("Session: error")).not.toBeNull();
   });
+
+  test("keeps one microphone check pending and reports its result", async () => {
+    let resolveCheck: ((stream: MediaStream) => void) | undefined;
+    const getUserMedia = vi.fn(
+      () =>
+        new Promise<MediaStream>((resolve) => {
+          resolveCheck = resolve;
+        }),
+    );
+    vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+    render(<VoiceInterviewHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+    const check = screen.getByRole("button", { name: "Test microphone" });
+    fireEvent.click(check);
+    fireEvent.click(check);
+
+    expect(getUserMedia).toHaveBeenCalledOnce();
+    expect(check.getAttribute("aria-busy")).toBe("true");
+
+    resolveCheck?.({ getTracks: () => [] } as unknown as MediaStream);
+
+    expect(await screen.findByText("Microphone ready.")).not.toBeNull();
+    await waitFor(() => expect(check.getAttribute("aria-busy")).toBe("false"));
+  });
+
+  test.each([
+    {
+      failure: "media devices are missing",
+      stubMedia: () => vi.stubGlobal("navigator", {}),
+    },
+    {
+      failure: "getUserMedia throws synchronously",
+      stubMedia: () =>
+        vi.stubGlobal("navigator", {
+          mediaDevices: {
+            getUserMedia: () => {
+              throw new DOMException("Unavailable", "NotSupportedError");
+            },
+          },
+        }),
+    },
+  ])(
+    "reports an accessible microphone failure when $failure",
+    async ({ stubMedia }) => {
+      stubMedia();
+      render(<VoiceInterviewHarness />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+      const disclosure = screen.getByRole("region", {
+        name: "Voice mode consent",
+      });
+      const check = within(disclosure).getByRole("button", {
+        name: "Test microphone",
+      });
+
+      fireEvent.click(check);
+
+      const status = await within(disclosure).findByText(
+        "Microphone access was not available.",
+      );
+      expect(status.getAttribute("aria-live")).toBe("polite");
+      expect(status.getAttribute("aria-atomic")).toBe("true");
+      expect(check.getAttribute("aria-describedby")).toBe(status.id);
+      await waitFor(() =>
+        expect(check.getAttribute("aria-busy")).toBe("false"),
+      );
+    },
+  );
 
   test("starts directly after acknowledgement and ends through the registered control", async () => {
     window.localStorage.setItem(
@@ -399,6 +539,18 @@ describe("voice interview control", () => {
     });
     expect(screen.getByText("Text mode")).not.toBeNull();
     expect(screen.getByText("Voice inactive")).not.toBeNull();
+  });
+
+  test("registers replay controls that remain snapshot-gated", async () => {
+    render(<VoiceInterviewHarness />);
+
+    await waitFor(() => expect(registeredVoiceModeControls).toBeDefined());
+
+    expect(registeredVoiceModeControls?.readFullResponse).toBeTypeOf(
+      "function",
+    );
+    expect(registeredVoiceModeControls?.takeTurn).toBeTypeOf("function");
+    expect(registeredVoiceModeControls?.repeatQuestion).toBeTypeOf("function");
   });
 
   test("restarts when Voice is reselected before teardown completes", async () => {
@@ -494,18 +646,25 @@ describe("voice interview control", () => {
     expect(screen.getByText("Panel closed")).not.toBeNull();
   });
 
-  test("records acknowledgement only when the interview starts", () => {
+  test("records acknowledgement only when the interview starts", async () => {
     stubUnavailableMicrophone();
     render(<VoiceInterviewHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
-    fireEvent.click(screen.getByRole("button", { name: "Check microphone" }));
+    fireEvent.click(screen.getByRole("button", { name: "Test microphone" }));
     expect(
       window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
     ).toBeNull();
 
     fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("button", { name: "Start voice" })
+          .hasAttribute("disabled"),
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start voice" }));
     expect(
       window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
     ).toBe("acknowledged");

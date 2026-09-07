@@ -7,9 +7,12 @@ import type {
 export type VoiceSessionActions = {
   end: () => void;
   pause: () => void;
+  readFullResponse?: () => void;
   reconnect: () => void;
+  repeatQuestion?: () => void;
   resume: () => void;
   setMicrophoneMuted: (muted: boolean) => void;
+  takeTurn?: () => Promise<void> | void;
 };
 
 export type VoiceSessionSnapshot = {
