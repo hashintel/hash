@@ -188,6 +188,63 @@ describe("crew-reservation settled manifest", () => {
     });
   });
 
+  test("numbers a model revision that settles first by its history, not as revision zero", async () => {
+    // The transport waits for preparation, not for the revision-zero manifest,
+    // so a user who submits immediately can produce the model revision before
+    // any manifest exists. Its manifest must still say revision one.
+    const revisedMessage: WorkpieceHistoryMessage = {
+      id: "revised-workpiece",
+      role: "assistant",
+      purpose: "assistant",
+      submissionId: "confirmation-turn",
+      parts: [
+        {
+          type: "text",
+          text: preparedCrewReservationWorkpiece.replace(
+            "It deliberately lacks",
+            "The confirmation resolves",
+          ),
+        },
+      ],
+    };
+    const revisedDefinition = structuredClone(preparedCrewReservationNet);
+    const startInspection = revisedDefinition.transitions.find(
+      ({ id }) => id === startFinalInspectionTransitionId,
+    );
+    if (startInspection === undefined) {
+      throw new Error("Missing prepared start-inspection transition");
+    }
+    startInspection.inputArcs.push({
+      placeId: dispatchCrewPlaceId,
+      type: "standard",
+      weight: 1,
+    });
+
+    const result = await settleCrewReservationManifest({
+      definition: revisedDefinition,
+      history: {
+        ...settledHistory([
+          preparedMessage,
+          ...targetMutationMessages(),
+          revisedMessage,
+        ]),
+        settlements: [
+          { submissionId: "prepare-submission", outcome: "completed" },
+          { submissionId: "confirmation-turn", outcome: "completed" },
+        ],
+      },
+      settledAt: "2026-09-03T12:05:00.000Z",
+    });
+
+    expect(result).toMatchObject({
+      status: "settled",
+      manifest: {
+        revision: 1,
+        latestWorkpiece: { authorship: "model-produced" },
+      },
+    });
+  });
+
   test("refuses a model revision without one successful correlated target mutation", async () => {
     const revisedMessage: WorkpieceHistoryMessage = {
       id: "revised-workpiece",

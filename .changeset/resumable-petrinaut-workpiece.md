@@ -3,4 +3,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-Report duplicate AI mutations as no-ops so hosts can distinguish an applied document change from an already-present state, and reliably continue consecutive browser tool calls from live or rehydrated assistant messages.
+Report an AI mutation that leaves the document unchanged as not applied, without claiming the requested state was already present, so hosts can distinguish an applied document change from an unchanged one, and reliably continue consecutive browser tool calls from live or rehydrated assistant messages.

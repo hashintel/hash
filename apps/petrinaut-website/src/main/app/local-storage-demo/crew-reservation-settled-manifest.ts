@@ -239,11 +239,13 @@ export const settleCrewReservationManifest = async (input: {
     }
     return { status: "settled", manifest: input.previous };
   }
-  const revision = (input.previous?.revision ?? -1) + 1;
   const withoutId = {
     version: 1 as const,
     fixtureId: crewReservationFixtureId,
-    revision,
+    // Numbered by the history, not by how many manifests this browser has
+    // settled: a model revision that settles before the prepared bundle did
+    // must not be labelled the test-authored revision zero.
+    revision: workpiece.revision,
     settledAt: input.settledAt,
     conversation: {
       logicalId: crewReservationConversationId,

@@ -63,10 +63,49 @@ describe("applyPetrinautAiMutation", () => {
     );
     expect(applyPetrinautAiMutation({ aiToolCall: call, instance })).toEqual({
       applied: false,
-      reason:
-        "Added input arc was a no-op because the document already had that state.",
+      reason: "Added input arc left the document unchanged.",
     });
     expect(instance.definition.get().transitions[0]?.inputArcs).toHaveLength(1);
+
+    instance.dispose();
+  });
+
+  test("does not claim a differently weighted arc already exists", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        id: "document",
+        initial: definition,
+        capabilities: { disabledExtensions: [] },
+      }),
+    });
+    const endpoint = {
+      toolName: "addArc" as const,
+      input: {
+        transitionId: "start",
+        arcDirection: "input" as const,
+        placeId: "crew",
+        type: "standard" as const,
+      },
+    };
+
+    applyPetrinautAiMutation({
+      aiToolCall: { ...endpoint, input: { ...endpoint.input, weight: 1 } },
+      instance,
+    });
+    const result = applyPetrinautAiMutation({
+      aiToolCall: { ...endpoint, input: { ...endpoint.input, weight: 2 } },
+      instance,
+    });
+
+    // The core skips a second arc between the same endpoints whatever its
+    // weight, so the document still carries weight 1, not the requested 2.
+    expect(result).toEqual({
+      applied: false,
+      reason: "Added input arc left the document unchanged.",
+    });
+    expect(instance.definition.get().transitions[0]?.inputArcs).toEqual([
+      expect.objectContaining({ placeId: "crew", weight: 1 }),
+    ]);
 
     instance.dispose();
   });

@@ -4,8 +4,11 @@ import {
   useSearch,
 } from "@tanstack/react-router";
 
-import { validateSharedExampleSearch } from "../examples/example-search";
 import { LocalStorageDemoApp } from "../main/app/local-storage-demo/local-storage-demo-app";
+import {
+  validateLocalStorageDemoSearch,
+  withBrunchFixtureKey,
+} from "../main/app/local-storage-demo/local-storage-demo-search";
 
 function IndexRoute() {
   const navigate = useNavigate({ from: "/" });
@@ -14,7 +17,12 @@ function IndexRoute() {
   return (
     <LocalStorageDemoApp
       onSearchChange={(nextSearch, history) => {
-        void navigate({ replace: history === "replace", search: nextSearch });
+        void navigate({
+          replace: history === "replace",
+          // Applied to the router's own previous search, so two navigations
+          // in one event compose instead of the second reverting the first.
+          search: (previous) => withBrunchFixtureKey(previous, nextSearch),
+        });
       }}
       search={search}
     />
@@ -23,5 +31,5 @@ function IndexRoute() {
 
 export const Route = createFileRoute("/")({
   component: IndexRoute,
-  validateSearch: validateSharedExampleSearch,
+  validateSearch: validateLocalStorageDemoSearch,
 });

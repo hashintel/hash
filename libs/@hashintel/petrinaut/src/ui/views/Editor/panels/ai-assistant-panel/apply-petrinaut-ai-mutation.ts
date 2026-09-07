@@ -28,10 +28,14 @@ export const applyPetrinautAiMutation = ({
 
   callback(aiToolCall.input);
 
+  // Only the unchanged document is observed here. The mutation may have
+  // declined for a reason narrower than "already present" (an arc between the
+  // same endpoints with a different weight, for one), so the reason must not
+  // claim the requested state exists.
   if (isSDCPNEqual(definition, instance.definition.get())) {
     return {
       applied: false,
-      reason: `${summary.title} was a no-op because the document already had that state.`,
+      reason: `${summary.title} left the document unchanged.`,
     };
   }
 

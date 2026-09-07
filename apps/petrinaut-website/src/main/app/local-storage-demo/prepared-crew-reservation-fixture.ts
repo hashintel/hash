@@ -148,7 +148,3 @@ export const preparedCrewReservationNet: SDCPN = {
   parameters: [],
   differentialEquations: [],
 };
-
-export const isCrewReservationFixtureSelected = (search: string): boolean =>
-  new URLSearchParams(search).get(crewReservationFixtureQuery) ===
-  crewReservationFixtureId;
