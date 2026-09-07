@@ -376,7 +376,7 @@ Prove one genuine conversation can become an authorized live fixture before the 
 - [`../../mission-drafts/7-capture-backed-review.md`](../../mission-drafts/7-capture-backed-review.md)
 - [`../../mission-drafts/9-traceable-projection.md`](../../mission-drafts/9-traceable-projection.md)
 - [`../../mission-drafts/10-bounded-reviewer-revision.md`](../../mission-drafts/10-bounded-reviewer-revision.md)
-- [`../../specs/petrinaut-batched-construction-tools.md`](../../specs/petrinaut-batched-construction-tools.md)
+- [`../../specs/petrinaut-batched-construction-tools.md`](../../specs/petrinaut-batched-construction-tools.md) (collapsed note; full 2026-09-02 survey at `ed9edfe7f0`)
 - [`../../../packages/core/src/workpiece.ts`](../../../packages/core/src/workpiece.ts)
 - [`../../../packages/plugin-sdcpn/src/flue.ts`](../../../packages/plugin-sdcpn/src/flue.ts)
 - [`../../../packages/plugin-sdcpn/src/tools/petrinaut-construction.ts`](../../../packages/plugin-sdcpn/src/tools/petrinaut-construction.ts)

@@ -464,6 +464,8 @@ Surviving homes already present before deletion: this spine's provenance/tool-ad
 
 Frozen evaluation instruments and `docs/archive/**` fossils were left in place. This pass is not the optional Mission 4+ archive-subtraction successor.
 
+A follow-up the same day collapsed the remaining medium living notes so they stop drifting: `petrinaut-integration.md` and `petrinaut-batched-construction-tools.md` are short surviving-contract / unselected-candidate notes (full prior text at `ed9edfe7f0`); Draft 9 now owns the batch probes; `topology.md` records the current tree and placement locks only; the Flue cheatsheet is labelled a dated 2.0.3 read. ADR bodies were left as historical records behind the existing README.
+
 ## 2026-09-04 provenance replanning migration disposition
 
 This ledger records the homes at the 2026-09-04 recut. Its "Draft 7" section references are historical addresses; the Mission 7 cut conversion above maps them to current root authority and the Step B packet. Every planning item in the former Mission 7 draft (`7-capture-backed-review.md`, renamed with history to `7-explainable-construction.md`), the former Mission 9 draft, and the affected spine paragraphs was dispositioned; nothing was removed without a named home or recorded rejection with reason.

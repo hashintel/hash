@@ -63,8 +63,9 @@ required by the evidence; selecting the slot variant is the smaller design, not 
 parallel design lacks value. As a recommended guardrail, initially reject a model turn that tries
 to suspend both a user question and a client-tool batch. Mixed-pending semantics remain untested.
 
-FE-1435 (the panel-to-AI-SDK adapter spike named by the
-[integration spec](../../specs/petrinaut-integration.md#testing-decisions)) still has to prove that
+FE-1435 (the panel-to-AI-SDK adapter spike named by the historical integration spec's
+testing-decisions section, last full copy
+`ed9edfe7f0:libs/@hashintel/brunch-agent/docs/specs/petrinaut-integration.md`) still has to prove that
 the real panel's batched tool-result POST can become this one Flue signal without losing ids.
 That is the exact remaining wire uncertainty; it does not reopen the Flue runtime behavior tested
 here.
