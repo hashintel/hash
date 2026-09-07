@@ -201,8 +201,7 @@ export const readBitmask = (
 /**
  * The entries of an intern table (`typeTable` / `propertyTable`).
  *
- * The table is a text array, bytewise-sorted and deduplicated over the
- * UTF-8 encodings.
+ * The table is a text array of unique entries in index order.
  */
 export const readInternTable = (
   value: CborValue | undefined,
@@ -215,17 +214,8 @@ export const readInternTable = (
   ) {
     return fail(`TRAILER ${name} must be a text array`, offset);
   }
-  // The law is bytewise UTF-8 order; a plain `<` on JS strings compares
-  // UTF-16 code units, which diverges above U+FFFF.
-  const encoder = new TextEncoder();
-  const encoded = value.map((entry) => encoder.encode(entry));
-  for (let index = 1; index < encoded.length; index += 1) {
-    if (!bytewiseLess(encoded[index - 1]!, encoded[index]!)) {
-      return fail(
-        `TRAILER ${name} must be bytewise-sorted and deduplicated`,
-        offset,
-      );
-    }
+  if (new Set(value).size !== value.length) {
+    return fail(`TRAILER ${name} must contain unique entries`, offset);
   }
   return value;
 };

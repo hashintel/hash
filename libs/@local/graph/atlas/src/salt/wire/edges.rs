@@ -113,8 +113,7 @@ impl EdgesResponse<'_> {
 /// representative-type reference per edge, and locate is the detail view.
 #[derive(Debug)]
 pub(crate) struct EdgesTrailer<'trailer> {
-    /// Trailer key 0: the type intern table - every referenced versioned type URL once,
-    /// bytewise-sorted.
+    /// Trailer key 0: the type intern table, every referenced versioned type URL once.
     pub type_table: &'trailer IdSlice<TableIndex<VersionedUrl>, Cow<'trailer, str>>,
     /// Trailer key 1: link labels, edge order.
     ///

@@ -12,7 +12,7 @@
 //!
 //! Every locate document includes the detail trailer, because locate is the detail view. It interns
 //! type and property URLs profile-natively. Keys 0 and 1 are string tables that list every
-//! referenced URL once in bytewise order, and every type and property reference in the later keys
+//! referenced URL once, and every type and property reference in the later keys
 //! is a uint index into them. The source and the delivered edges get property maps. Neighbour nodes
 //! carry a label and a representative type reference, and their own detail is one locate away. The
 //! document's consistency laws are producer contracts and panic when violated.
@@ -235,11 +235,9 @@ impl LocateResponse<'_> {
 /// every type and property reference a uint index into its table.
 #[derive(Debug)]
 pub(crate) struct LocateTrailer<'trailer> {
-    /// Trailer key 0: the type intern table - every referenced versioned type URL once,
-    /// bytewise-sorted.
+    /// Trailer key 0: the type intern table, every referenced versioned type URL once.
     pub type_table: &'trailer IdSlice<TableIndex<VersionedUrl>, Cow<'trailer, str>>,
-    /// Trailer key 1: the property intern table - every surviving property base URL once,
-    /// bytewise-sorted.
+    /// Trailer key 1: the property intern table, every surviving property base URL once.
     pub property_table: &'trailer IdSlice<TableIndex<BaseUrl>, Cow<'trailer, str>>,
     /// Trailer key 2: labels, delivered order.
     pub labels: &'trailer IdSlice<NodeSlot, &'trailer Label>,
@@ -387,10 +385,6 @@ impl LocateTrailer<'_> {
 pub(crate) type PropertyEntry<'trailer> = (TableIndex<BaseUrl>, PropertyValue<'trailer>);
 
 /// One entity's wire property map, keys ascending into the property table.
-///
-/// Ascending keys are the interning derivation's own order. Hydration emits each entity's
-/// surviving properties ascending by base URL, a base URL renders as its own string, and the
-/// table's wire order is bytewise over renderings, so ascending names map to ascending indexes.
 #[derive(Debug, PartialEq)]
 pub(crate) struct PropertyMap<'doc> {
     /// The encoded entries, keys ascending.
@@ -398,15 +392,16 @@ pub(crate) struct PropertyMap<'doc> {
 }
 
 impl<'doc> PropertyMap<'doc> {
-    /// Builds one map over interned entries.
+    /// Sorts entries by their numeric table index.
     ///
-    /// The keys must ascend by table index.
-    pub(crate) fn new_unchecked(entries: Vec<PropertyEntry<'doc>>) -> Self {
-        // Safe fn: the ascending-keys invariant is correctness rather than memory safety, and
-        // debug builds check it as a maintainer tripwire.
+    /// The keys must be unique.
+    pub(crate) fn new_unchecked(mut entries: Vec<PropertyEntry<'doc>>) -> Self {
+        entries.sort_unstable_by_key(|(index, _)| *index);
+
+        // Safe fn: uniqueness is a correctness invariant rather than a memory-safety invariant.
         debug_assert!(
             entries.is_sorted_by(|left, right| left.0 < right.0),
-            "property map keys must ascend",
+            "property map keys must be unique",
         );
 
         Self { entries }

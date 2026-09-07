@@ -984,8 +984,8 @@ const fn wire_value(value: &ScalarValue) -> PropertyValue<'_> {
 /// Builds the property intern table and the per-entity uint-index maps.
 ///
 /// The table is the bytewise-sorted, deduplicated union of the source's and every link's
-/// surviving names; the returned maps lead with the source's, then the links' in edge order. Each
-/// map keeps the hydration layer's ascending-name order, which maps to ascending indexes.
+/// surviving names. The returned maps start with the source's, then the links' in edge order.
+/// Each map sorts its keys by numeric table index.
 pub(crate) fn intern_properties<'doc>(
     source: Option<&'doc [(BaseUrl, ScalarValue)]>,
     links: &'doc IdSlice<EdgeSlot, Option<Vec<(BaseUrl, ScalarValue)>>>,

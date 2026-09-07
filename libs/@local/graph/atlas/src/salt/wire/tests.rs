@@ -1142,12 +1142,12 @@ mod locate {
         let positions = points();
         let lists = [vec![TableIndex::new(1), TableIndex::new(0)], Vec::new()];
         let source_map = PropertyMap::new_unchecked(vec![
-            (TableIndex::new(0), PropertyValue::Text("x")),
             (TableIndex::new(1), PropertyValue::Integer(-2)),
+            (TableIndex::new(0), PropertyValue::Text("x")),
         ]);
         let link_map = PropertyMap::new_unchecked(vec![
-            (TableIndex::new(0), PropertyValue::Boolean(true)),
             (TableIndex::new(1), PropertyValue::Null),
+            (TableIndex::new(0), PropertyValue::Boolean(true)),
         ]);
         let link_properties: [Option<&PropertyMap<'_>>; 2] = [Some(&link_map), None];
         // Slot 0's type list is complete and slot 1's property map is, over the two delivered
@@ -1241,12 +1241,14 @@ mod locate {
         let _bytes = response.encode();
     }
 
+    /// Duplicate indexes remain invalid even when separated in the input.
     #[test]
-    #[should_panic(expected = "property map keys must ascend")]
-    fn descending_property_keys_are_rejected() {
+    #[should_panic(expected = "property map keys must be unique")]
+    fn property_keys_duplicates() {
         let _map = PropertyMap::new_unchecked(vec![
-            (TableIndex::new(1), PropertyValue::Null),
+            (TableIndex::new(1), PropertyValue::Integer(10)),
             (TableIndex::new(0), PropertyValue::Null),
+            (TableIndex::new(1), PropertyValue::Integer(20)),
         ]);
     }
 }
