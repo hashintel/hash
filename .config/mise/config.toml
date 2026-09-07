@@ -4,6 +4,10 @@ min_version = "2026.8.10"
 [env]
 TURBO_GLOBAL_WARNING_DISABLED = 1
 _.file                        = [".env", ".env.local"]
+# Yarn's node-modules linker loses bin registrations for workspaces whose peer-virtualized
+# instance of a tool (e.g. vite) isn't the copy hoisted to the root — triggered by petrinaut-docs' hoistingLimits.
+# Yarn's script shell falls back to PATH, so exposing the root bins fixes this.
+_.path = ["{{config_root}}/node_modules/.bin"]
 
 [settings]
 idiomatic_version_file_enable_tools = ["rust"]
