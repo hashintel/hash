@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Restyle native scrollbars across the editor: scroll containers now show a rounded thumb on an invisible track instead of the platform default, in light and dark mode. The thumb stays hidden until the pointer is over the scroll container, fading in and out over 200ms. Firefox falls back to thin standard scrollbars with the same behavior.
+Native scrollbars across the editor now use the design-system styling: a rounded thumb on an invisible track instead of the platform default, hidden until the pointer is over the scroll container or it is being scrolled, unless the user's system always shows scrollbars. The two simulation-results drawers no longer force `scrollbar-width: thin`, which disabled that styling in Chromium and Safari.

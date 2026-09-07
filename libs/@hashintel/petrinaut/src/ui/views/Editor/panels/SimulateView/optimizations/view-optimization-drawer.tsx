@@ -88,7 +88,6 @@ const stepsScrollStyle = css({
   flex: "[1]",
   minHeight: "[160px]",
   overflowY: "auto",
-  scrollbarWidth: "[thin]",
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",

@@ -51,7 +51,6 @@ const metricsScrollStyle = css({
   flex: "[1]",
   minHeight: "[160px]",
   overflowY: "auto",
-  scrollbarWidth: "[thin]",
 });
 
 const describeComputeBackend = (experiment: ExperimentRecord): string => {

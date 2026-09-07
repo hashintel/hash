@@ -1,5 +1,6 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
+import { thinScrollbar } from "../../util/css-mixins";
 import { formSizes } from "../../util/form-size.recipe";
 import { formWidths } from "../../util/form-width.recipe";
 
@@ -72,6 +73,7 @@ export const textAreaRecipe = sva({
       fontSize: "[inherit]",
       fontWeight: "[inherit]",
       lineHeight: "[inherit]",
+      ...thinScrollbar,
       _placeholder: { color: "neutral.s80" },
       _disabled: { cursor: "auto" },
     },
