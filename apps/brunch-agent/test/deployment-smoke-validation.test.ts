@@ -53,18 +53,33 @@ describe("deployment turn smoke validation", () => {
     expect(onFirstChunk).toHaveBeenCalledOnce();
   });
 
-  test("rejects a finished stream that never produced assistant text", async () => {
-    await expect(
-      validateUiMessageStream(
-        streamOf(
-          'data: {"type":"start"}\n\n',
-          'data: {"type":"finish","finishReason":"stop"}\n\n',
-          "data: [DONE]\n\n",
+  test.each([
+    ["no text event", []],
+    [
+      "an empty delta",
+      ['data: {"type":"text-delta","id":"t1","delta":""}\n\n'],
+    ],
+    [
+      "a whitespace delta",
+      ['data: {"type":"text-delta","id":"t1","delta":" \\n"}\n\n'],
+    ],
+    ["a delta-less text event", ['data: {"type":"text-delta","id":"t1"}\n\n']],
+  ])(
+    "rejects a finished stream with %s",
+    async (_label, textEvents: string[]) => {
+      await expect(
+        validateUiMessageStream(
+          streamOf(
+            'data: {"type":"start"}\n\n',
+            ...textEvents,
+            'data: {"type":"finish","finishReason":"stop"}\n\n',
+            "data: [DONE]\n\n",
+          ),
+          () => undefined,
         ),
-        () => undefined,
-      ),
-    ).rejects.toThrow("without any assistant text");
-  });
+      ).rejects.toThrow("without any assistant text");
+    },
+  );
 
   test.each(["error", "abort"])("rejects a terminal %s event", async (type) => {
     await expect(
