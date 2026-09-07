@@ -85,27 +85,29 @@ describe("local storage demo Brunch voice integration", () => {
     const config = { available: true as const, connectionTimeoutMs: 15_000 };
     const tracker = new BrunchPanelConversationTracker();
     const voiceMode = getBrunchVoiceMode(config, tracker);
-    const control = voiceMode?.({
-      canAcceptVoiceInput: true,
-      conversationId: "petrinaut-preview:net-1",
-      inputMode: "text",
-      isAiAssistantOpen: true,
-      messages: [],
-      registerVoiceModeControls: vi.fn(() => () => undefined),
-      reportVoiceSessionState: vi.fn(),
-      setInputMode: vi.fn(),
-      setVoiceActive: vi.fn(),
-      status: "ready",
-      stop: vi.fn(async () => undefined),
-      submitText: vi.fn(async () => ({
-        kind: "message" as const,
-        messageId: "message-1",
-      })),
-      submitVoiceInput: vi.fn(async () => ({
-        kind: "message" as const,
-        messageId: "voice-message-1",
-      })),
-    });
+    const renderControl = () =>
+      voiceMode?.({
+        canAcceptVoiceInput: true,
+        conversationId: "petrinaut-preview:net-1",
+        inputMode: "text",
+        isAiAssistantOpen: true,
+        messages: [],
+        registerVoiceModeControls: vi.fn(() => () => undefined),
+        reportVoiceSessionState: vi.fn(),
+        setInputMode: vi.fn(),
+        setVoiceActive: vi.fn(),
+        status: "ready",
+        stop: vi.fn(async () => undefined),
+        submitText: vi.fn(async () => ({
+          kind: "message" as const,
+          messageId: "message-1",
+        })),
+        submitVoiceInput: vi.fn(async () => ({
+          kind: "message" as const,
+          messageId: "voice-message-1",
+        })),
+      });
+    const control = renderControl();
 
     expect(isValidElement(control)).toBe(true);
     if (!isValidElement(control)) {
@@ -118,6 +120,14 @@ describe("local storage demo Brunch voice integration", () => {
     const target = { kind: "user" as const, messageId: "voice-turn-1" };
     const controlProps = control.props as {
       config: typeof config;
+      resolveInputSubmission: (messageId: string) => string | undefined;
+      resolveResponseSubmission: (
+        messageId: string,
+      ) => readonly string[] | undefined;
+      subscribeToAdmission: (
+        admissionTarget: typeof target,
+        listener: (submissionId: string) => void,
+      ) => () => void;
       subscribeToAdmissionFailure: (
         admissionTarget: typeof target,
         listener: (error: FlueChatAdmissionError) => void,
@@ -132,6 +142,36 @@ describe("local storage demo Brunch voice integration", () => {
     };
     expect(control.type).toBe(VoiceInterviewControl);
     expect(controlProps.config).toBe(config);
+
+    const rerenderedControl = renderControl();
+    expect(isValidElement(rerenderedControl)).toBe(true);
+    if (!isValidElement(rerenderedControl)) {
+      throw new Error("Expected the configured composer control to rerender.");
+    }
+    const rerenderedControlProps =
+      rerenderedControl.props as typeof controlProps;
+    expect(rerenderedControlProps.resolveInputSubmission).toBe(
+      controlProps.resolveInputSubmission,
+    );
+    expect(rerenderedControlProps.resolveResponseSubmission).toBe(
+      controlProps.resolveResponseSubmission,
+    );
+    expect(rerenderedControlProps.subscribeToAdmission).toBe(
+      controlProps.subscribeToAdmission,
+    );
+    expect(rerenderedControlProps.subscribeToAdmissionFailure).toBe(
+      controlProps.subscribeToAdmissionFailure,
+    );
+    expect(rerenderedControlProps.subscribeToResponseMessageCompleted).toBe(
+      controlProps.subscribeToResponseMessageCompleted,
+    );
+    expect(rerenderedControlProps.subscribeToResponseMessageStarted).toBe(
+      controlProps.subscribeToResponseMessageStarted,
+    );
+    expect(rerenderedControlProps.subscribeToStopRequested).toBe(
+      controlProps.subscribeToStopRequested,
+    );
+
     const unsubscribe = controlProps.subscribeToAdmissionFailure(
       target,
       failureListener,
