@@ -38,11 +38,12 @@ vi.mock("@flue/sdk", () => ({
   createFlueClient: () => flueClientMock.current,
 }));
 
+const brunchPreviewConfig = vi.hoisted(() => ({
+  chatEndpoint: "/agents/chat",
+  isBrunchConfigured: true,
+}));
 vi.mock("./brunch-preview-config", () => ({
-  resolveBrunchPreviewConfig: () => ({
-    chatEndpoint: "/agents/chat",
-    isBrunchConfigured: true,
-  }),
+  resolveBrunchPreviewConfig: () => brunchPreviewConfig,
 }));
 
 const editorProps = vi.hoisted(() => ({
@@ -523,11 +524,12 @@ describe("local storage demo prepared fixture", () => {
   afterEach(() => {
     cleanup();
     editorProps.current = null;
+    brunchPreviewConfig.isBrunchConfigured = true;
   });
 
   test("neither advertises nor opens the fixture while Brunch is unconfigured", () => {
-    // These tests run without `VITE_BRUNCH_CHAT_ENDPOINT`, so there is no Flue
-    // client to prepare the fixture conversation. Opening the fixture URL
+    brunchPreviewConfig.isBrunchConfigured = false;
+    // With Brunch disabled there is no Flue client to prepare the fixture conversation. Opening the fixture URL
     // anyway once left the banner on "preparing" forever with every send
     // unavailable; the URL now falls back to the ordinary per-net demo.
     seedStoredNet();
