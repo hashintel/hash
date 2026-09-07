@@ -56,6 +56,12 @@ The bounded stratum includes:
 
 Stratum closure is over the named extended region, accepted peer set, and mutation classes actually used, not all Petrinaut tools or the full optimisation handoff. Mission 10 owns reviewer authority; Mission 11 owns broadening to its accepted handoff scenario.
 
+### Scenario breadth obligation
+
+On 2026-09-07 the owner selected Vestera for Mission 7 and required later missions to prove the more complex cases. Vestera construction-and-explanation evidence must not be generalized to continuous dynamics or the other cases' richer operational constraints. Mission 9 owns the next scenario-breadth allocation at its cut: name the more complex cases and additional contract classes it will prove, and assign any remaining cases to a named later mission with a re-entry gate and oracle rather than leaving them as optional backlog. Industrial Gas, Data Centre Thermal Operations, and Pharma Cold Chain are existing candidates for continuous/hybrid behaviour; Truck Fleet Maintenance and Semiconductor Fab Operations carry other richer constraints. Selection and order remain owner decisions informed by the Mission 7 result and consumer discovery.
+
+**Re-entry gate:** Mission 9's region and scenario portfolio are selected over the accepted Mission 7 seam, before expanded tool admission or a claim of broader support. **Oracle:** for each admitted case, a genuine production-agent conversation constructs a meaningful region using its newly required canonical classes; a case-derived executable behavioural check and reopened why safety/utility checks establish the added claim. Classes outside the selected portfolio remain explicitly unproven. This obligation does not authorize these cases under Mission 7 or replace Mission 9's repeat/change/readiness requirements.
+
 ## Boundary crossings and current throughline hypothesis
 
 ```text

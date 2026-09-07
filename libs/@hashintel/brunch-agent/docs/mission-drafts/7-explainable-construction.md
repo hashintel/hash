@@ -4,9 +4,48 @@
 
 This draft is written at cut-level detail so that conversion into a live `MISSION.md` is a re-evaluation rather than a rewrite; the [cut conversion map](#cut-conversion-map) at the end names which section becomes which live address and how the two-step authority is represented. It was recut on 2026-09-04 from the former "capture-backed review of an honest prebuilt pair" after two independent reviews of the provenance design, then tightened the same day after a readiness review of the recut; the reasoning is in the [decision log](../evidence/design/provenance-and-tooling-decision-log-2026-09-04.md) (sections C, F, G, H), the [mini spec](../evidence/design/provenance-by-lineage-mini-spec-2026-09-04.md), the [independent review](../evidence/design/provenance-by-lineage-independent-review-2026-09-04.md), and the [follow-up review](../evidence/design/provenance-by-lineage-follow-up-review-2026-09-04.md). Where this draft cites an entry such as G7, that entry is the surviving rationale. The owner's standing qualification on the readiness review is recorded as H0: it may make this mission more rigorous, never narrower.
 
+## Cut preparation — 2026-09-07
+
+The owner authorized cutting Mission 7, creating its branch, and updating FE-1573. Branch `ln/fe-1573-construct-and-explain` was created from Mission 6's owner-close commit [`9b94604cb0`](https://github.com/hashintel/hash/commit/9b94604cb0bc34765ec7e7e8616ac907a061b1fb), not from `main` or `origin/main`. FE-1573 is in progress. This draft remains non-authoritative while the remaining cut-time owner decisions are resolved; the closed Mission 6 record is still in root `MISSION.md` pending archival and conversion.
+
+**Selected:** Vestera is the proving scenario for this pass. Its existing case inputs remain private to the interviewee and its answer keys remain evaluation-only. The recommended region is multi-line changeover and production eligibility: shared crew contention, asymmetric family changes, and product/line restrictions with unknowns preserved. The exact region, admitted operations, behavioural check, consequential inventory rule, utility threshold and reviewers, paid model/call/spend envelope, and disposition of Chris/Yannis discovery are finalized in the cut, not inferred from this selection. More complex cases remain required future proof, not optional improvements or claims established by Vestera; their planning owner and re-entry live in [Mission 9's scenario breadth obligation](9-traceable-projection.md#scenario-breadth-obligation).
+
+### Execution structure accepted for incorporation
+
+This supplements, rather than replaces, the six-address mission contract, proof leaves, readiness gate, and two-step authority. Chunks are delegated work inside one mission, issue, branch, and PR, not new missions. The dependency graph is an execution hypothesis; change ordering when observed evidence warrants it without silently changing scope or policy.
+
+```text
+Step A authority cut
+  ├─ A1 provider carrier and one scenario-required nested mutation
+  ├─ A2 settled workpiece revisions over the mounted production agent
+  ├─ A3 independently observed browser mutations and transition records
+  └─ A4 history survival and reopen pins, starting with existing tools
+       A1 + A2 + A3 + A4
+         → A5 joined construction and model-facing why, with a minimal real pane
+         → A6 genuine adversarial tracer; all four probes; cadence, basis, safety and utility measurement
+         → owner gate: allowed amendment, named rework, or terminal stop
+         → separately committed Step B authority amendment
+              ├─ B1 meaning and lineage contract closure
+              ├─ B2 mutation and reconciliation contract closure
+              └─ B3 product and lifecycle contract closure
+                   → integrated genuine proving run, behavioural check, safety, blinded utility, product demo
+```
+
+- **A1** owns plugin schema/tool machinery. Handoff: canonical schemas survive the real provider boundary for the tested operation, or a precise carrier blocker. A successful nested call does not admit every other operation without its own evidence.
+- **A2** owns core revision machinery and focused app integration. First pin tool-call identity, persistent-state writes from tool execution, and batch behaviour; then prove real settlement, current Markdown recovery, and revision identity. Handoff: the settled-revision contract, not an assumed future history API.
+- **A3** owns actual browser execution observation and plugin effect semantics. First prove independent pre/post observation and diff accounting on one canonical mutation. A headless callback returning `applied: true` is insufficient; where both hosts need the same effect semantics, share those semantics without adding Brunch logic to Petrinaut. A generic host extension is considered only if the real execution boundary requires it.
+- **A4** owns binding/history investigations and evidence. Begin compaction and reopen pins on existing genuine records in parallel with A1–A3; repeat against their actual revision and mutation records before the final verdict. Early substrate evidence does not substitute for the mission's four probe outcomes. The archive-lane fail branch must remain available until decided.
+- **A5** is integration-owned: settled citation and refusal, declared basis, authorized evidence acquisition, live-state reconciliation, structured why results interpreted through the actual assistant interaction, and the minimal real pane. Pane and persona-host adaptation may be delegated after their consumed contracts exist. A new browser-driven persona executor is a candidate, not mandatory architecture; a human browser conversation remains an admitted route.
+- **A6** applies the existing adversarial tracer and probe decision tables. Before claiming no false attribution, it needs citation refusal, evidence-source validation, independently verifiable effects, conflicting-result refusal, live-state reconciliation, honest absent basis, and an enumerated tracer inventory. These safety premises cannot be postponed to Step B. Passage-policy selection and cadence/basis measurements use the genuine workpiece rather than unrelated mock content.
+- **B1** completes passage/evidence continuity, origin versus current-state query semantics, identity epochs, and basis-quality coverage for the accepted region. **B2** completes admitted-operation coverage, duplicate and unknown outcomes, external changes/imports, and binding enforcement. **B3** completes the revision list/diff, migration and rollback behaviour, reopen, stock coexistence, docs, and subtraction after the archive-lane decision. Each extends Step A's demonstrated safety; aggregate unit-test totals do not replace the integrated run or human gates.
+
+One integration owner controls `packages/plugin-sdcpn/src/flue.ts`, `apps/brunch-agent/src/agents/chat-agent/agent.ts`, website client-tool/transport registration, the basis-envelope join, and `MISSION.md`. Worker briefs name non-overlapping write boundaries, protected semantic content, permitted deltas, handoff contracts, exact oracles, and stop conditions. Shared composition changes are integrated by that owner; delegates cannot select policy, rewrite the oracle to fit output, or amend authority. Independent contract tests and evaluation preparation may overlap production work, but answer keys never enter agent inputs.
+
+Mission 6's newly carried typed/Voice/stopped-entry reopen scenario belongs to B3 because Mission 7 exercises exact conversation resume. Include the reproducible human scenario from the spine before Step B closure; its waiver in Mission 6 is not a passing result. Do not reopen Mission 6 or make its skipped check a Step A lineage premise.
+
 ## Cold-start reads
 
-Tracker: [FE-1573](https://linear.app/hash/issue/FE-1573/explain-one-prepared-petrinaut-net-from-exact-conversation-evidence) is the tracker projection for this future branch mission and advances the stakeholder outcome [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph) without rewriting that record. Its current title and description describe the superseded prepared-pair cut and must be re-titled with owner approval before this draft is cut; FE-1478's "requirements graph" and "captured assertions" wording remains the stakeholder's, satisfied here by declared basis over settled workpiece revisions rather than by a graph.
+Tracker: [FE-1573](https://linear.app/hash/issue/FE-1573/construct-and-explain-one-real-net-region-from-a-genuine-conversation) is the tracker projection for this future branch mission and advances the stakeholder outcome [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph) without rewriting that record. Its title and description were read from Linear on 2026-09-07 and already describe the consolidated genuine-conversation cut; no re-title is needed. Its final description must reflect the completed cut. FE-1478's "requirements graph" and "captured assertions" wording remains the stakeholder's, satisfied here by declared basis over settled workpiece revisions rather than by a graph.
 
 A fresh builder must resolve these authorities and this terrain before implementing anything:
 
