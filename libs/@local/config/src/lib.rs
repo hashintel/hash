@@ -14,8 +14,8 @@ use error_stack::Report;
 use figment::Figment;
 use serde_core::{Serialize, de::DeserializeOwned};
 
-pub use self::error::LoadError;
-use self::{defaults::Defaults, error::load_report};
+use self::{defaults::Defaults, error::load_report, file::FileSource};
+pub use self::{error::LoadError, file::FileFormat};
 
 /// Builds a configuration from layered sources.
 ///
@@ -37,7 +37,7 @@ use self::{defaults::Defaults, error::load_report};
 #[derive(Default)]
 pub struct Loader {
     defaults: Figment,
-    files: Vec<PathBuf>,
+    files: Vec<FileSource>,
 }
 
 impl fmt::Debug for Loader {
@@ -78,10 +78,11 @@ impl Loader {
 
     /// Adds a required TOML file above the programmatic defaults.
     ///
-    /// Files are read by [`load`](Self::load), in the order they were added. Later files replace
-    /// earlier scalars and arrays, while maps merge recursively. Every file takes precedence over
-    /// every default, regardless of the order of builder calls. Relative paths resolve against the
-    /// working directory at load time; the file extension does not select the format.
+    /// Required and optional files are read by [`load`](Self::load), in the order they were added.
+    /// Later files replace earlier scalars and arrays, while maps merge recursively. Every file
+    /// takes precedence over every default, regardless of the order of builder calls. Relative
+    /// paths resolve against the working directory at load time; the file extension does not
+    /// select the format.
     ///
     /// # Examples
     ///
@@ -107,7 +108,41 @@ impl Loader {
     /// ```
     #[must_use]
     pub fn with_toml_file(mut self, path: impl Into<PathBuf>) -> Self {
-        self.files.push(path.into());
+        self.files.push(FileSource::Required(path.into()));
+        self
+    }
+
+    /// Adds a TOML file that may be absent at load time.
+    ///
+    /// Only [`NotFound`](std::io::ErrorKind::NotFound) is skipped; other read errors, invalid
+    /// UTF-8, and malformed TOML fail [`load`](Self::load). Present files follow the same
+    /// precedence, merge, and path rules as [`with_toml_file`](Self::with_toml_file), including
+    /// their position among required files. Missing files contribute no values, so required
+    /// configuration fields must still be supplied elsewhere.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// #[derive(serde::Deserialize)]
+    /// struct Config {
+    ///     port: u16,
+    /// }
+    ///
+    /// # figment::Jail::expect_with(|jail| {
+    /// # jail.create_file("hash-graph.local.toml", "port = 6543\n")?;
+    /// let config = hash_config::Loader::new()
+    ///     .with_defaults(serde_json::json!({ "port": 5432 }))
+    ///     .with_optional_toml_file("hash-graph.local.toml")
+    ///     .load::<Config>()
+    ///     .expect("the optional configuration file should load");
+    ///
+    /// assert_eq!(config.port, 6543);
+    /// # Ok(())
+    /// # });
+    /// ```
+    #[must_use]
+    pub fn with_optional_toml_file(mut self, path: impl Into<PathBuf>) -> Self {
+        self.files.push(FileSource::Optional(path.into()));
         self
     }
 
@@ -117,8 +152,9 @@ impl Loader {
     ///
     /// - [`LoadError::Invalid`] if a value does not fit `C`, a required value is missing, or a
     ///   default does not serialize to a map.
-    /// - [`LoadError::ReadFile`] if a required file is absent, unreadable, or not UTF-8.
-    /// - [`LoadError::ParseFile`] if a file does not contain valid TOML.
+    /// - [`LoadError::ReadFile`] if a required file is absent, or any file is unreadable or not
+    ///   UTF-8.
+    /// - [`LoadError::ParseFile`] if a file is invalid for the selected format.
     ///
     /// The report names the key, expected shape, and source when available. Rejected values and
     /// TOML source excerpts are withheld.
@@ -128,8 +164,10 @@ impl Loader {
         C: DeserializeOwned,
     {
         let mut values = self.defaults;
-        for path in self.files {
-            values = values.merge(file::File::read(path)?);
+        for source in self.files {
+            if let Some(file) = source.read()? {
+                values = values.merge(file);
+            }
         }
 
         match values.extract::<C>() {
