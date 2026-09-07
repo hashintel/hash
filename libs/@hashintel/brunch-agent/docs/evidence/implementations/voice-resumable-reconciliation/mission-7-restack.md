@@ -1,5 +1,7 @@
 # Mission 7 review-only restack
 
+> Historical restack record. Later on 2026-09-07 Lu accepted Mission 6b's narrowed claim after the [owner witness](owner-witness-2026-09-07/witness.md). Mission 7 was restacked again onto accepted parent commit `7958a86b69`; its root authority now opens shared implementation and paid Step A runs while preserving the accepted limitations. The review-only decisions and pins below describe the earlier move and remain historical evidence.
+
 On 2026-09-07 Lu explicitly selected a local restack for review while Mission 6b remains unaccepted. Shared host/transport implementation and paid runs remain blocked pending Mission 6b acceptance. This record is not a product witness, acceptance, Step B authorization, PR submission or permission to change KA's records.
 
 ## Pins and topology
