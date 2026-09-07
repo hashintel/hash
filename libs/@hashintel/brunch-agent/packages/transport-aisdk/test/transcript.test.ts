@@ -34,6 +34,101 @@ const projectionOptions = {
   hiddenToolNames: new Set(["brunch_mark_question"]),
 };
 
+test("retains Voice origins from folded continuation messages", () => {
+  const messages: FlueConversationSnapshot["messages"] = [];
+  for (const ordinal of [1, 2]) {
+    messages.push(
+      {
+        id: `assistant-${ordinal}`,
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolCallId: `tool-${ordinal}`,
+            toolName: "readPetrinautDoc",
+            state: "output-available",
+            input: { doc: "ai-assistant" },
+            output: { awaiting: "client" },
+          },
+        ],
+      },
+      {
+        id: `signal-${ordinal}`,
+        role: "system",
+        purpose: "dispatch",
+        display: "hidden",
+        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        parts: [
+          {
+            type: "text",
+            state: "done",
+            text: JSON.stringify([
+              {
+                toolCallId: `tool-${ordinal}`,
+                output: "A spoken answer",
+                source: "voice",
+              },
+            ]),
+          },
+        ],
+      },
+    );
+  }
+  expect(snapshotToUiMessages({ messages }, projectionOptions)).toMatchObject([
+    {
+      id: "assistant-1",
+      metadata: { source: "voice", voiceToolCallIds: ["tool-1", "tool-2"] },
+    },
+  ]);
+});
+
+test("marks only the durably aborted assistant response stopped after reopen", () => {
+  const snapshot: FlueConversationSnapshot = {
+    ...snapshotWithPendingClientTool,
+    messages: [
+      {
+        id: "partial",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        submissionId: "stopped-turn",
+        parts: [{ type: "text", state: "done", text: "Partial reply" }],
+      },
+      {
+        id: "next-user",
+        role: "user",
+        purpose: "user",
+        display: "visible",
+        parts: [{ type: "text", state: "done", text: "Continue" }],
+      },
+      {
+        id: "complete",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        submissionId: "next-turn",
+        parts: [{ type: "text", state: "done", text: "Complete reply" }],
+      },
+    ],
+    settlements: [
+      { submissionId: "stopped-turn", outcome: "aborted" },
+      { submissionId: "next-turn", outcome: "completed" },
+    ],
+  };
+  const projected = snapshotToUiMessages(snapshot, projectionOptions);
+  expect(projected.find(({ id }) => id === "partial")?.metadata).toEqual({
+    stopped: true,
+  });
+  expect(
+    projected.find(({ id }) => id === "complete")?.metadata,
+  ).toBeUndefined();
+  expect(
+    projected.find(({ id }) => id === "next-user")?.metadata,
+  ).toBeUndefined();
+});
+
 test("leaves an unfinished client tool available to run", () => {
   expect(
     snapshotToUiMessages(snapshotWithPendingClientTool, projectionOptions),

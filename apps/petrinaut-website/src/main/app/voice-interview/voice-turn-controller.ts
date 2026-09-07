@@ -101,6 +101,7 @@ interface ChatUpdate {
   readonly canonicalSegments: CanonicalSpeechSegment[];
   readonly questionSegment?: CanonicalSpeechSegment;
   readonly settlements?: readonly VoiceSubmissionSettlement[];
+  readonly stopped?: boolean;
   readonly status: PetrinautAiVoiceModeContext["status"];
 }
 

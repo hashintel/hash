@@ -41,6 +41,8 @@ export type PetrinautAiComposerControlContext = {
   conversationId: string;
   messages: PetrinautAiMessage[];
   status: PetrinautAiComposerStatus;
+  /** Logical response stopped, including a withheld follow-up; not a Flue settlement claim. */
+  stopped?: boolean;
   /** Call from an event handler or effect, never while rendering. */
   stop: () => Promise<void>;
   /** Call from an event handler or effect, never while rendering. */
@@ -67,7 +69,7 @@ export type PetrinautAiVoiceModeControls = {
   resume: () => void;
   /** Replays the exact retained canonical assistant response when available. */
   readFullResponse?: () => void;
-  /** Replays the final segment of the retained canonical response. */
+  /** Replays only the exact question selected by the host's canonical marker. */
   repeatQuestion?: () => void;
   /**
    * Stops or restarts microphone capture while the session keeps running, so

@@ -26,7 +26,9 @@ interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
   readonly questionSegment?: CanonicalSpeechSegment;
-  /** Flue's settlement index: the only witness that a turn ended short of a reply. */
+  /** Local logical termination when the panel withheld a continuation. */
+  readonly stopped?: boolean;
+  /** Flue's settlement index remains the durable outcome authority. */
   readonly settlements?: readonly VoiceSubmissionSettlement[];
   readonly status: PetrinautAiVoiceModeContext["status"];
 }
@@ -138,10 +140,9 @@ export type RealtimeBrunchBridgeEvent =
     }
   | {
       readonly deliveryId: string;
-      readonly outcome: Exclude<
-        VoiceSubmissionSettlement["outcome"],
-        "completed"
-      >;
+      readonly outcome:
+        | Exclude<VoiceSubmissionSettlement["outcome"], "completed">
+        | "withheld";
       readonly type: "submission-stopped";
     }
   | {
@@ -338,7 +339,7 @@ export class RealtimeBrunchBridge {
       this.#completeCorrelatedSubmission();
       return;
     }
-    if (this.#outputCancellationPending) {
+    if (this.#outputCancellationPending || update.stopped) {
       for (const segment of update.canonicalSegments) {
         this.#seenSegmentIds.add(segment.id);
       }
@@ -588,6 +589,27 @@ export class RealtimeBrunchBridge {
   #completeCorrelatedSubmission(): void {
     const active = this.#activeSubmission;
     if (!active?.correlated || !active.sawBusyChatStatus) {
+      return;
+    }
+    if (this.#chat.stopped && this.#chat.status === "ready") {
+      // Cancellation can finish before this step commits its final prose.
+      // Retire it now so a later render cannot restart the withheld speech.
+      for (const segment of this.#chat.canonicalSegments) {
+        this.#seenSegmentIds.add(segment.id);
+      }
+      const settlement = this.#chat.settlements?.find(
+        ({ submissionId }) => submissionId === active.submissionId,
+      );
+      this.#emit({ deliveryId: active.deliveryId, type: "submission-settled" });
+      this.#activeSubmission = null;
+      this.#emit({
+        deliveryId: active.deliveryId,
+        outcome:
+          settlement && settlement.outcome !== "completed"
+            ? settlement.outcome
+            : "withheld",
+        type: "submission-stopped",
+      });
       return;
     }
     // A reply may be written by the admitted submission itself or by a

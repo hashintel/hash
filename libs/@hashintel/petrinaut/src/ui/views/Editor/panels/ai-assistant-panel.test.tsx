@@ -10,7 +10,7 @@ import {
   within,
   waitFor,
 } from "@testing-library/react";
-import { useEffect } from "react";
+import { StrictMode, useEffect } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import {
@@ -182,6 +182,7 @@ const renderTestPanel = ({
   initialMessage,
   onInitialInteractionModeConsumed,
   petriNetDefinition = emptySDCPN,
+  strictMode = false,
 }: {
   aiAssistant: PetrinautAiAssistant;
   editorContext?: EditorContextValue;
@@ -189,6 +190,7 @@ const renderTestPanel = ({
   initialMessage?: string;
   onInitialInteractionModeConsumed?: () => void;
   petriNetDefinition?: SDCPN;
+  strictMode?: boolean;
 }) => {
   const handle = createJsonDocHandle({
     id: "ai-assistant-panel-test",
@@ -232,10 +234,14 @@ const renderTestPanel = ({
       </NotificationsProvider>
     </PetrinautInstanceContext.Provider>
   );
-  const rendered = render(renderPanel(aiAssistant, editorContext));
+  const rendered = render(
+    renderPanel(aiAssistant, editorContext),
+    strictMode ? { wrapper: StrictMode } : undefined,
+  );
 
   return {
     ...rendered,
+    instance,
     rerenderPanel: (
       nextAiAssistant: PetrinautAiAssistant,
       nextEditorContext = editorContext,
@@ -340,6 +346,145 @@ describe("AiAssistantPanel composer submissions", () => {
       await screen.findByText("Rehydrated second conversation"),
     ).not.toBeNull();
     expect(screen.queryByText("Rehydrated first conversation")).toBeNull();
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("replays StrictMode effects without stranding an initially recovered tool", async () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([
+        ...textChunks("reply", "Done."),
+        { type: "finish", finishReason: "stop" },
+      ]),
+    );
+    renderTestPanel({
+      strictMode: true,
+      aiAssistant: {
+        conversationId: "strict-history",
+        messages: [
+          {
+            id: "strict-call",
+            role: "assistant",
+            parts: [
+              {
+                type: "tool-readPetrinautDoc",
+                toolCallId: "strict-read",
+                state: "input-available",
+                input: { doc: "ai-assistant" },
+              },
+            ],
+          },
+        ],
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+    });
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce());
+  });
+
+  test("does not carry a stopped browser generation into a different conversation", async () => {
+    let latest: PetrinautAiComposerControlContext | undefined;
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([
+        ...textChunks("reply", "Done."),
+        { type: "finish", finishReason: "stop" },
+      ]),
+    );
+    const config = (conversationId: string): PetrinautAiAssistant => ({
+      conversationId,
+      messages: [
+        {
+          id: `${conversationId}-call`,
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-readPetrinautDoc",
+              toolCallId: `${conversationId}-read`,
+              state: "input-available",
+              input: { doc: "ai-assistant" },
+            },
+          ],
+        },
+      ],
+      transport: { reconnectToStream: async () => null, sendMessages },
+      requestStop: async () => "already-settled",
+      renderComposerControl: (context) => {
+        latest = context;
+        return null;
+      },
+    });
+    const { rerenderPanel } = renderTestPanel({ aiAssistant: config("first") });
+    await act(async () => {
+      await latest?.stop();
+    });
+    await waitFor(() => expect(latest?.stopped).toBe(true));
+    expect(sendMessages).not.toHaveBeenCalled();
+    rerenderPanel(config("second"));
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce());
+    expect(sendMessages.mock.calls[0]?.[0].chatId).toBe("second");
+  });
+
+  test("does not deliver a previous conversation's asynchronous browser result into its replacement", async () => {
+    let releaseLayout: (() => void) | undefined;
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([
+        ...textChunks("reply", "Done."),
+        { type: "finish", finishReason: "stop" },
+      ]),
+    );
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: async () => null,
+      sendMessages,
+    };
+    const { instance, rerenderPanel } = renderTestPanel({
+      aiAssistant: {
+        conversationId: "old-layout",
+        messages: [
+          {
+            id: "layout-call",
+            role: "assistant",
+            parts: [
+              {
+                type: "tool-applyAutoLayout",
+                toolCallId: "old-layout",
+                state: "input-available",
+                input: { askUserFirst: false },
+              },
+            ],
+          },
+        ],
+        transport,
+      },
+    });
+    const applyAutoLayout = instance.commands.applyAutoLayout.bind(
+      instance.commands,
+    );
+    const layout = vi
+      .spyOn(instance.commands, "applyAutoLayout")
+      .mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          releaseLayout = resolve;
+        });
+        return applyAutoLayout();
+      });
+    await waitFor(() => expect(releaseLayout).toBeDefined());
+    rerenderPanel({
+      conversationId: "replacement",
+      messages: [
+        {
+          id: "replacement-history",
+          role: "assistant",
+          parts: [{ type: "text", text: "Settled replacement" }],
+        },
+      ],
+      transport,
+    });
+    await act(async () => {
+      releaseLayout?.();
+      await layout.mock.results[0]?.value;
+      // Drain the explicit continuation timer following the awaited command.
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 20);
+      });
+    });
     expect(sendMessages).not.toHaveBeenCalled();
   });
 
@@ -2331,9 +2476,9 @@ describe("AiAssistantPanel composer submissions", () => {
       streamController?.enqueue({ type: "text-end", id: "preamble" });
       streamController?.enqueue({
         type: "tool-input-available",
-        toolCallId: "net-read-1",
-        toolName: "getLatestNetDefinition",
-        input: {},
+        toolCallId: "stopped-mutation",
+        toolName: "updatePlace",
+        input: { placeId: "place-1", update: { name: "MustNotApply" } },
       });
       streamController?.enqueue({ type: "finish-step" });
       streamController?.enqueue({ type: "finish", finishReason: "tool-calls" });
@@ -2358,13 +2503,88 @@ describe("AiAssistantPanel composer submissions", () => {
 
     await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
     expect(await screen.findByText("Response stopped")).not.toBeNull();
-    // Let any automatic follow-up the SDK might schedule drain first.
+    // Let both deferred execution and any follow-up drain: withholding only
+    // the send is insufficient if the mutation already ran after Stop.
     await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(testInstances.at(-1)?.definition.get().places[0]?.name).toBe(
+      "PlaceOne",
+    );
     expect(sendMessages).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", { name: "Send message" })).toHaveProperty(
       "disabled",
       true,
     );
+  });
+
+  test("reports a textless automatic browser failure to hosts and its matching tool", async () => {
+    let latest: PetrinautAiComposerControlContext | undefined;
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([
+        { type: "start-step" },
+        {
+          type: "tool-input-available",
+          toolCallId: "invalid-doc",
+          toolName: "readPetrinautDoc",
+          input: { doc: "not-a-guide-page" },
+        },
+        { type: "finish-step" },
+        { type: "finish", finishReason: "tool-calls" },
+      ]),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        renderComposerControl: (context) => {
+          latest = context;
+          return null;
+        },
+      },
+      initialMessage: "Read the guide",
+    });
+    await waitFor(() => expect(latest?.status).toBe("error"));
+    await waitFor(() =>
+      expect(latest?.messages.at(-1)?.parts).toContainEqual(
+        expect.objectContaining({
+          toolCallId: "invalid-doc",
+          state: "output-error",
+          errorText: expect.any(String) as unknown,
+        }),
+      ),
+    );
+    expect(sendMessages).toHaveBeenCalledOnce();
+  });
+
+  test("does not execute tools from a durably stopped reopened response", async () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([]),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        messages: [
+          {
+            id: "stopped",
+            role: "assistant",
+            metadata: { stopped: true },
+            parts: [
+              {
+                type: "tool-updatePlace",
+                toolCallId: "stopped-mutation",
+                state: "input-available",
+                input: { placeId: "place-1", update: { name: "MustNotApply" } },
+              },
+            ],
+          },
+        ],
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
+    expect(testInstances.at(-1)?.definition.get().places[0]?.name).toBe(
+      "PlaceOne",
+    );
+    expect(sendMessages).not.toHaveBeenCalled();
+    expect(screen.getByText("Response stopped")).not.toBeNull();
   });
 
   test("keeps hosts seeing a busy conversation between a tool-calls step and its follow-up", async () => {

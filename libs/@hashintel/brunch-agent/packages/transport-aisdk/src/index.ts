@@ -404,6 +404,12 @@ export const createFlueChatTransport = <
             messages,
             messageId,
             options.clientToolNames,
+          ).toSorted((left, right) =>
+            left.toolCallId < right.toolCallId
+              ? -1
+              : left.toolCallId > right.toolCallId
+                ? 1
+                : 0,
           );
     const userMessage =
       messageId === undefined ? finalUserMessage(messages) : undefined;
