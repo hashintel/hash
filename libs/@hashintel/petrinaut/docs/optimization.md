@@ -89,7 +89,7 @@ The **Constraints** section of the create-optimization drawer records boolean co
 - **Parameter constraints** -- one-line expressions over the study's parameters (`scenario.*` for scenario parameters, `parameters.*` for net parameters) that must produce a boolean, for example `scenario.min_load < scenario.max_load`. In a later iteration these will let the optimizer avoid infeasible parameter combinations.
 - **State constraints** -- small code bodies that read the simulation `state` exactly like a [metric](experiments.md#metrics) and `return` a boolean, for example `return state.places.Queue.count <= 10;`. In a later iteration these will measure how close a run comes to leaving the safe region, not just whether it did.
 
-Add a condition with its **Add ... constraint** button, edit it in place, and remove it with **Remove**. Conditions are checked when you press Run: one that does not compile, or does not produce a boolean, blocks the submission with its error message. Empty rows are ignored.
+Add a condition with its **Add ... constraint** button, edit it in place, and remove it with **Remove**. Each editor checks as you type: type errors, unknown names and a result that is not a boolean are underlined, and the message appears under the row. Typing `scenario.`, `parameters.` or `state.places.` offers completions, and hovering a name shows its type. **Run** stays disabled, with the first failing row named in the footer, until every constraint compiles; the constraints are compiled once more when you press Run. Empty rows are ignored.
 
 ## Watching results
 

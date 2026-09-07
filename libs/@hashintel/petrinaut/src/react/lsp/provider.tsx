@@ -122,6 +122,9 @@ export const LanguageClientProvider: React.FC<{
     killAdHocSession: client.killAdHocSession,
     updateMetricSession: client.updateMetricSession,
     killMetricSession: client.killMetricSession,
+    initializeConstraintSession: client.initializeConstraintSession,
+    updateConstraintSession: client.updateConstraintSession,
+    killConstraintSession: client.killConstraintSession,
   };
 
   return (

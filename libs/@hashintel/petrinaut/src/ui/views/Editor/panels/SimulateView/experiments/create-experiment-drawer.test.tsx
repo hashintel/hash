@@ -109,6 +109,9 @@ function makeLanguageClient(): LanguageClientContextValue {
     initializeAdHocSession: vi.fn(),
     updateAdHocSession: vi.fn(),
     killAdHocSession: vi.fn(),
+    initializeConstraintSession: vi.fn(),
+    updateConstraintSession: vi.fn(),
+    killConstraintSession: vi.fn(),
   };
 }
 

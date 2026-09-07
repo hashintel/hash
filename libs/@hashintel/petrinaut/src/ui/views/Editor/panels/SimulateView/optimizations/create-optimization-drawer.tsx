@@ -56,6 +56,12 @@ import {
 } from "../metrics/metric-picker-options";
 import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
+import { ConstraintDraftList } from "./create-optimization-drawer/constraint-draft-list";
+import {
+  type ConstraintDraft,
+  describeConstraint,
+  summarizeConstraintLspErrors,
+} from "./create-optimization-drawer/constraint-lsp";
 import {
   createOptimizationParameterDraft,
   type OptimizationParameterDraft,
@@ -187,8 +193,6 @@ const errorsStyle = css({
 
 type Direction = "maximize" | "minimize";
 
-/** One constraint being authored: stable id + editable source. */
-type ConstraintDraft = { id: string; code: string };
 type MetricSource = "saved" | "custom";
 type ParameterDrafts = Record<string, OptimizationParameterDraft>;
 
@@ -230,86 +234,6 @@ const ScenarioSelectLabel = ({
     </span>
   );
 };
-
-const constraintRowStyle = css({
-  display: "flex",
-  alignItems: "flex-start",
-  gap: "2",
-  "& > :first-child": {
-    flex: "[1]",
-    minWidth: "0",
-  },
-});
-
-const constraintListStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-});
-
-/**
- * One editable list of constraints: an expression editor per row, a remove
- * button, and a quiet add button. Parameter constraints edit as one-line
- * expressions; state constraints as small code bodies.
- */
-const ConstraintDraftList = ({
-  drafts,
-  onChange,
-  multiline,
-  addLabel,
-  ariaPrefix,
-}: {
-  drafts: ConstraintDraft[];
-  onChange: (drafts: ConstraintDraft[]) => void;
-  multiline: boolean;
-  addLabel: string;
-  ariaPrefix: string;
-}) => (
-  <div className={constraintListStyle}>
-    {drafts.map((draft, index) => (
-      <div key={draft.id} className={constraintRowStyle}>
-        <CodeEditor
-          language="typescript"
-          singleLine={!multiline}
-          value={draft.code}
-          height={multiline ? "96px" : undefined}
-          onChange={(code) =>
-            onChange(
-              drafts.map((candidate) =>
-                candidate.id === draft.id
-                  ? { ...candidate, code: code ?? "" }
-                  : candidate,
-              ),
-            )
-          }
-        />
-        <Button
-          size="xs"
-          variant="ghost"
-          tone="neutral"
-          aria-label={`Remove ${ariaPrefix} ${index + 1}`}
-          onClick={() =>
-            onChange(drafts.filter((candidate) => candidate.id !== draft.id))
-          }
-        >
-          Remove
-        </Button>
-      </div>
-    ))}
-    <div>
-      <Button
-        size="sm"
-        variant="subtle"
-        tone="neutral"
-        onClick={() =>
-          onChange([...drafts, { id: crypto.randomUUID(), code: "" }])
-        }
-      >
-        {addLabel}
-      </Button>
-    </div>
-  </div>
-);
 
 const InlineObjectiveMetricForm = ({ form }: { form: MetricFormInstance }) => {
   const values = useStore(form.store, (state) => state.values);
@@ -448,6 +372,27 @@ function adHocHasOptimizeSelection(
       )
     );
   });
+}
+
+const NO_SCENARIO_PARAMETERS: ScenarioParameter[] = [];
+
+/**
+ * The scenario parameters an ad-hoc study exposes as `scenario.*`, or none
+ * while the definition does not synthesize.
+ */
+function getSynthesizedScenarioParameters(
+  state: AdHocScenarioState,
+  definition: SDCPN,
+  parametersEnabled: boolean,
+): ScenarioParameter[] {
+  const synthesized = synthesizeAdHocOptimization(state, {
+    netParameters: parametersEnabled ? definition.parameters : [],
+    places: definition.places,
+    types: definition.types,
+  });
+  return synthesized.ok
+    ? synthesized.output.scenario.scenarioParameters
+    : NO_SCENARIO_PARAMETERS;
 }
 
 function formatAdHocSynthesisErrors(errors: AdHocSynthesisError[]): string {
@@ -728,7 +673,9 @@ export const CreateOptimizationDrawer = ({
   onClose: () => void;
 }) => {
   const { extensions, petriNetDefinition, title } = use(SDCPNContext);
-  const { requestHirArtifacts, requestConstraint } = use(LanguageClientContext);
+  const { diagnosticsByUri, requestHirArtifacts, requestConstraint } = use(
+    LanguageClientContext,
+  );
   const { createOptimization } = use(OptimizationsContext);
   const { enableAdHocScenarios, webGpuEnabled } = use(UserSettingsContext);
   const source = useOptimizationSource();
@@ -1010,7 +957,7 @@ export const CreateOptimizationDrawer = ({
           if (!lowered.ok) {
             setIsSubmitting(false);
             setError(
-              `${space === "parameters" ? "Parameter" : "State"} constraint ${index + 1}: ${lowered.diagnostics[0]?.message ?? "does not compile"}`,
+              `${describeConstraint(space, index)}: ${lowered.diagnostics[0]?.message ?? "does not compile"}`,
             );
             return;
           }
@@ -1141,6 +1088,22 @@ export const CreateOptimizationDrawer = ({
           maxTime,
         })
       : "Select a scenario";
+  // The constraint rows type-check as typed against the scenario the study
+  // will run: the selected one, or the one the ad-hoc definition synthesizes
+  // (its Variables and generated `adhoc_*` parameters). While the ad-hoc
+  // definition does not synthesize, the rows see no scenario parameters.
+  const constraintScenarioParameters = isAdHoc
+    ? getSynthesizedScenarioParameters(
+        adHocState ?? EMPTY_AD_HOC_STATE,
+        petriNetDefinition,
+        extensions.parameters,
+      )
+    : (selectedScenario?.scenarioParameters ?? NO_SCENARIO_PARAMETERS);
+  const constraintLspError = summarizeConstraintLspErrors(diagnosticsByUri, [
+    { space: "parameters", drafts: parameterConstraintDrafts },
+    { space: "state", drafts: stateConstraintDrafts },
+  ]);
+  const runBlocker = configurationError ?? constraintLspError;
 
   const handleClose = () => {
     if (submissionInProgress) {
@@ -1427,11 +1390,10 @@ export const CreateOptimizationDrawer = ({
                   &lt; scenario.max_load.
                 </span>
                 <ConstraintDraftList
+                  space="parameters"
                   drafts={parameterConstraintDrafts}
                   onChange={setParameterConstraintDrafts}
-                  multiline={false}
-                  addLabel="Add parameter constraint"
-                  ariaPrefix="parameter constraint"
+                  scenarioParameters={constraintScenarioParameters}
                 />
                 <span className={hintStyle}>
                   State constraints read the simulation state like a metric body
@@ -1439,11 +1401,10 @@ export const CreateOptimizationDrawer = ({
                   state.places.Queue.count &lt;= 10;
                 </span>
                 <ConstraintDraftList
+                  space="state"
                   drafts={stateConstraintDrafts}
                   onChange={setStateConstraintDrafts}
-                  multiline
-                  addLabel="Add state constraint"
-                  ariaPrefix="state constraint"
+                  scenarioParameters={constraintScenarioParameters}
                 />
               </Section>
 
@@ -1497,13 +1458,13 @@ export const CreateOptimizationDrawer = ({
       <Drawer.Footer
         secondaryActions={
           error ||
-          (selectedScenario || isAdHoc ? configurationError : null) ||
+          (selectedScenario || isAdHoc ? runBlocker : null) ||
           visibleCustomMetricError ? (
             <Form.Field.Errors
               className={errorsStyle}
               errors={[
                 error ??
-                  (selectedScenario || isAdHoc ? configurationError : null) ??
+                  (selectedScenario || isAdHoc ? runBlocker : null) ??
                   visibleCustomMetricError,
               ]}
               size="sm"
@@ -1527,10 +1488,10 @@ export const CreateOptimizationDrawer = ({
               size="sm"
               disabled={
                 submissionInProgress ||
-                configurationError !== null ||
+                runBlocker !== null ||
                 visibleCustomMetricError !== undefined
               }
-              tooltip={configurationError ?? visibleCustomMetricError}
+              tooltip={runBlocker ?? visibleCustomMetricError}
               prefix={
                 submissionInProgress ? (
                   <LoadingSpinner size="sm" variant="bars" />

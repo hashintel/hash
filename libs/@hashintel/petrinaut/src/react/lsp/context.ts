@@ -20,6 +20,7 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type {
   AdHocSessionParams,
+  ConstraintSessionParams,
   MetricSessionParams,
   ScenarioSessionParams,
 } from "@hashintel/petrinaut-core/workers/lsp";
@@ -102,6 +103,12 @@ export interface LanguageClientContextValue {
   updateMetricSession: (params: MetricSessionParams) => void;
   /** Kill a metric editing session. */
   killMetricSession: (sessionId: string) => void;
+  /** Starts a constraint editing session for one constraint's source. */
+  initializeConstraintSession: (params: ConstraintSessionParams) => void;
+  /** Updates a constraint editing session. */
+  updateConstraintSession: (params: ConstraintSessionParams) => void;
+  /** Ends a constraint editing session. */
+  killConstraintSession: (sessionId: string) => void;
 }
 
 /** The inert default: no worker wired — requests resolve to empty results. */
@@ -153,6 +160,9 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
   killAdHocSession: () => {},
   updateMetricSession: () => {},
   killMetricSession: () => {},
+  initializeConstraintSession: () => {},
+  updateConstraintSession: () => {},
+  killConstraintSession: () => {},
 };
 
 export const LanguageClientContext = createContext<LanguageClientContextValue>(
