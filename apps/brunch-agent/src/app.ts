@@ -7,10 +7,9 @@
  * path id. The Flue instance id is derived, not a bearer token.
  */
 
+import "./telemetry-bootstrap.ts";
 import { readFile } from "node:fs/promises";
 
-import { createOpenTelemetryInstrumentation } from "@flue/opentelemetry";
-import { instrument } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
@@ -24,8 +23,6 @@ import {
   HEALTH_ROUTE,
   PETRINAUT_CHAT_ROUTE,
 } from "./http/routes.ts";
-
-instrument(createOpenTelemetryInstrumentation({ content: false }));
 
 const app = new Hono();
 const appTransport: typeof fetch = async (input, init) =>

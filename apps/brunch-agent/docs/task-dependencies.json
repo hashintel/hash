@@ -53,6 +53,18 @@
       "@hashintel/brunch-agent-transport-aisdk#build",
       "@hashintel/petrinaut-core#build"
     ],
+    "start": [
+      "build"
+    ],
+    "start:healthcheck": [],
+    "start:test": [
+      "build"
+    ],
+    "start:test:healthcheck": [],
+    "test:docker": [
+      "build:docker"
+    ],
+    "test:integration": [],
     "test:unit": [
       "@hashintel/brunch-agent#build",
       "@hashintel/brunch-agent-binding-flue#build",

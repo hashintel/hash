@@ -88,7 +88,7 @@ describe("the emitted server bundle", () => {
     }
   });
 
-  test("mounts the agent router and wires the conversation store", () => {
+  test("mounts the agent router, health check, and fail-closed production store", () => {
     // Without db.ts reaching the bundle, conversations are process-memory and a
     // restart loses them — a difference invisible until something restarts.
     //
@@ -104,8 +104,17 @@ describe("the emitted server bundle", () => {
     expect(bundle).toContain(
       `chatAgentMount = \`/agents/\${CHAT_AGENT_ROUTE}\``,
     );
-    expect(bundle).toContain("BRUNCH_DEV_DB_PATH"); // db.ts's env override
-    expect(bundle).toContain(".data-wipe-me"); // db.ts's default store path
+    expect(bundle).toContain("app.get(HEALTH_ROUTE, healthHandler);");
+    expect(bundle).toContain("application/health+json");
+    expect(bundle).toContain("BRUNCH_POSTGRES_AUTH_MODE");
+    expect(bundle).toContain(`config.kind === "postgres"`);
+    expect(bundle).toContain(
+      `postgres(createPostgresRunner(config, shutdownBrunchTelemetry))`,
+    );
+    expect(bundle).toContain("Production database configuration requires");
+    // SQLite remains available to local/test execution only.
+    expect(bundle).toContain("BRUNCH_DEV_DB_PATH");
+    expect(bundle).toContain(".data-wipe-me");
   });
 
   test("packages the authored skill without the retired filesystem loader", () => {
