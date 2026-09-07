@@ -21,6 +21,7 @@ import { Suspense, useEffect, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
+import { useScrollbarBehavior } from "@hashintel/ds-components";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
@@ -114,6 +115,8 @@ const App: FunctionComponent<AppProps> = ({
   // Helps prevent tree mismatch between server and client on initial render
   const [ssr, setSsr] = useState(true);
   const router = useRouter();
+
+  useScrollbarBehavior();
 
   useEffect(() => {
     const release = getClient()?.getOptions().release;
