@@ -1,0 +1,9 @@
+---
+source: libs/@local/config/tests/files.rs
+expression: rendered
+---
+the configuration file `[config-dir]` could not be read
+├╴at libs/@local/config/src/file.rs:[line]:[column]
+│
+╰─▶ Is a directory (os error 21)
+    ╰╴at libs/@local/config/src/file.rs:[line]:[column]

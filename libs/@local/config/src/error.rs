@@ -1,4 +1,5 @@
 use core::{error::Error, fmt};
+use std::path::PathBuf;
 
 use error_stack::Report;
 use figment::{
@@ -7,19 +8,18 @@ use figment::{
 };
 
 /// What prevented a configuration from loading.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, derive_more::Display)]
 #[non_exhaustive]
 pub enum LoadError {
     /// The merged values do not deserialize into the requested configuration type.
+    #[display("the configuration could not be loaded")]
     Invalid,
-}
-
-impl fmt::Display for LoadError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Invalid => formatter.write_str("the configuration could not be loaded"),
-        }
-    }
+    /// A required configuration file could not be read as UTF-8.
+    #[display("the configuration file `{}` could not be read", path.display())]
+    ReadFile { path: PathBuf },
+    /// A configuration file does not contain valid TOML.
+    #[display("the configuration file `{}` is not valid TOML", path.display())]
+    ParseFile { path: PathBuf },
 }
 
 impl Error for LoadError {}

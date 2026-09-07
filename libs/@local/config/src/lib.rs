@@ -5,8 +5,10 @@
 
 mod defaults;
 mod error;
+mod file;
 
 use core::fmt;
+use std::path::PathBuf;
 
 use error_stack::Report;
 use figment::Figment;
@@ -35,6 +37,7 @@ use self::{defaults::Defaults, error::load_report};
 #[derive(Default)]
 pub struct Loader {
     defaults: Figment,
+    files: Vec<PathBuf>,
 }
 
 impl fmt::Debug for Loader {
@@ -49,6 +52,7 @@ impl fmt::Debug for Loader {
                     .map(|metadata| &metadata.name)
                     .collect::<Vec<_>>(),
             )
+            .field("files", &self.files)
             .finish_non_exhaustive()
     }
 }
@@ -72,20 +76,63 @@ impl Loader {
         self
     }
 
+    /// Adds a required TOML file above the programmatic defaults.
+    ///
+    /// Files are read by [`load`](Self::load), in the order they were added. Later files replace
+    /// earlier scalars and arrays, while maps merge recursively. Every file takes precedence over
+    /// every default, regardless of the order of builder calls. Relative paths resolve against the
+    /// working directory at load time; the file extension does not select the format.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// #[derive(serde::Deserialize)]
+    /// struct Config {
+    ///     host: String,
+    ///     port: u16,
+    /// }
+    ///
+    /// # figment::Jail::expect_with(|jail| {
+    /// # jail.create_file("hash-graph.toml", "host = 'localhost'\n")?;
+    /// let config = hash_config::Loader::new()
+    ///     .with_defaults(serde_json::json!({ "port": 5432 }))
+    ///     .with_toml_file("hash-graph.toml")
+    ///     .load::<Config>()
+    ///     .expect("the configuration file should load");
+    ///
+    /// assert_eq!(config.host, "localhost");
+    /// assert_eq!(config.port, 5432);
+    /// # Ok(())
+    /// # });
+    /// ```
+    #[must_use]
+    pub fn with_toml_file(mut self, path: impl Into<PathBuf>) -> Self {
+        self.files.push(path.into());
+        self
+    }
+
     /// Deserializes the merged values into `C`.
     ///
     /// # Errors
     ///
-    /// Returns [`LoadError::Invalid`] when a value does not fit `C`, when a required value is not
-    /// set, or when a default does not serialize to a map. The report names the key, the shape
-    /// that was expected, and the layer the key came from. Configuration values never appear in a
-    /// report, so it is safe to log one in full.
+    /// - [`LoadError::Invalid`] if a value does not fit `C`, a required value is missing, or a
+    ///   default does not serialize to a map.
+    /// - [`LoadError::ReadFile`] if a required file is absent, unreadable, or not UTF-8.
+    /// - [`LoadError::ParseFile`] if a file does not contain valid TOML.
+    ///
+    /// The report names the key, expected shape, and source when available. Rejected values and
+    /// TOML source excerpts are withheld.
     #[track_caller]
     pub fn load<C>(self) -> Result<C, Report<LoadError>>
     where
         C: DeserializeOwned,
     {
-        match self.defaults.extract::<C>() {
+        let mut values = self.defaults;
+        for path in self.files {
+            values = values.merge(file::File::read(path)?);
+        }
+
+        match values.extract::<C>() {
             Ok(value) => Ok(value),
             Err(error) => Err(load_report(error)),
         }

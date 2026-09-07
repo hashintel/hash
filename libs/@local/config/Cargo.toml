@@ -14,10 +14,14 @@ error-stack = { workspace = true, public = true, features = ["std"] }
 serde_core = { workspace = true, public = true }
 
 # Private third-party dependencies
+derive_more    = { workspace = true, features = ["display"] }
 figment        = { workspace = true }
 simple-mermaid = { workspace = true }
+toml           = { workspace = true, features = ["parse", "serde", "std"] }
 
 [dev-dependencies]
+figment    = { workspace = true, features = ["test"] }
+insta      = { workspace = true, features = ["filters"] }
 serde      = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 

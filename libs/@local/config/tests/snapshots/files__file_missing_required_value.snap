@@ -1,0 +1,7 @@
+---
+source: libs/@local/config/tests/files.rs
+expression: rendered
+---
+the configuration could not be loaded
+├╴at libs/@local/config/tests/files.rs:[line]:[column]
+╰╴missing field `store.port` in `file` (config.toml)
