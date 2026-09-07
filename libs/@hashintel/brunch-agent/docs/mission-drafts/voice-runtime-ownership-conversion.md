@@ -53,6 +53,8 @@ The required extension must carry the design's [persistence-only contract](voice
 
 **Gate result: blocked on supported external recording.** An upstream-supported implementation and distributable pin plus real boundary evidence are needed to change that result. Merely locating an internal reducer, retaining JSON in a browser, or dispatching a signal does not pass. Opening an upstream issue/PR or publishing an extension requires separate external-write authorization.
 
+**Executable re-entry decision:** FE-1624's owner, Kostandin Angjellari, must either identify a supported upstream candidate or authorize a separately bounded upstream extension effort. That effort must establish maintainer-supported public SDK/router semantics and an inspectable implementation pin; a private fork or approval of this HASH plan alone cannot discharge the supported-contract requirement. Until such a candidate exists, keep the accepted parent mission unchanged and retain this planning packet. Do not create a live implementation mission whose only action is waiting for an unspecified dependency. The first re-entry check is the real no-wake/hydration/attribution test below, not an assumption that an upstream announcement establishes compatibility.
+
 ## Proposed mission conversion envelope
 
 The following are candidate contents of the six live semantic addresses, not a second live mission.
@@ -114,7 +116,7 @@ Names below specify new assertions to add, not tests claimed to exist or pass. R
 
 | Proposed discriminator | Owner / observable oracle |
 | --- | --- |
-| `records two local exchanges without invoking Brunch` | App `petrinaut-chat.test.ts`/`.integration.ts`: count model requests and submissions before/after four dialogue records; unchanged IR/document; one logical later handback admission. Normal typed send still wakes Brunch. |
+| `records two local exchanges without invoking Brunch` | App `petrinaut-chat.test.ts`/`.integration.ts`: observe Brunch execution entry and hook activity as well as model requests and submissions before/after four dialogue records. After initialization settles, local appends must schedule no Brunch work, execute no Brunch hooks, and leave IR/document unchanged, including after process replacement. One logical later handback admission and a normal typed send are positive controls proving the execution observer is live. Zero model requests alone is insufficient. If the supported runtime offers no credible execution observation, mark this proof blocked rather than substituting a sleep or provider-call count. |
 | `reconstructs attributed originals after process replacement` | Same two-process test over the same isolated database: exact canonical event identities/order/actors/modalities and separate raw/normalized text; subsequent Brunch input includes original evidence, not only the proposal. No browser/provider history used. |
 | `deduplicates identical recording and rejects identity conflicts` | App boundary plus transport tests: lost append/admission acknowledgement, duplicate final transcripts/proposals, same key with changed payload, wrong incarnation, cross-conversation references, forged actor, concurrent order, and reconnect. Reuse identity on retry; no blind new admission. |
 | `Realtime content cannot update a workpiece or execute tools` | Core `workpiece.test.ts`, transport projections, and real panel tests: inject assistant `runbook-ir`, tool-shaped parts, a forged Brunch validation, leading suggestion, ambiguous assent, and `SDCPN`; no update/effect. Explicit original evidence plus Brunch validation is the positive control. |
@@ -127,7 +129,7 @@ Names below specify new assertions to add, not tests claimed to exist or pass. R
 
 ### Verification commands and evidence separation
 
-Run from repository root on the approved implementation checkout, not this older working tree. Start with each touched owner's targeted suite, then run the relevant package checks. These are planned commands, not results from this planning session.
+Run from repository root on the approved implementation checkout, not the original older checkout. Start with each touched owner's targeted suite, then run the relevant package checks. These are planned commands, not results from this planning session.
 
 ```sh
 yarn workspace @hashintel/brunch-agent-transport-aisdk test:unit chat-transport.test.ts transcript.test.ts ui-stream.test.ts
@@ -159,4 +161,4 @@ Retain sanitized canonical snapshots, event/submission/operation identities, wor
 
 ## Review checkpoint
 
-This proposal has no product completion claim. Source inspection established a missing supported recorder and a usable waking signal handback, not runtime feasibility. Approval of mission conversion, resolution of the Flue dependency, tracker topology, paid media evidence, and final product acceptance remain separate decisions. The next executable work is a supported-boundary probe when its public implementation exists, not speculative Voice code.
+The planning review retained the four ownership boundaries, the continuous-conversation interaction, the full staged recovery obligations, and the distinction between tracer and readiness. It tightened the blocked-stage re-entry decision and the no-wake oracle; it did not approve the mission or establish runtime feasibility. The successor tracker topology is resolved. Mission conversion, resolution of the Flue dependency, paid media evidence, and final product acceptance remain separate decisions. The next decision is obtaining a supported candidate or authorizing the bounded upstream effort above, not speculative Voice code.
