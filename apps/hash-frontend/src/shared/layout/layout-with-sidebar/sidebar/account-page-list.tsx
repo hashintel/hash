@@ -75,26 +75,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
   const preferences = useUserPreferences();
 
-  const [expanded, setExpanded] = useState<boolean>(
-    preferences.sidebarSections.pages.expanded,
-  );
+  const expanded = preferences.sidebarSections.pages.expanded;
 
   const [updateUser] = useUpdateAuthenticatedUser();
 
   const togglePagesExpanded = () => {
-    setExpanded(!expanded);
-
     void updateUser({
-      preferences: {
-        ...preferences,
-        sidebarSections: {
-          ...preferences.sidebarSections,
-          pages: {
-            ...preferences.sidebarSections.pages,
-            expanded: !expanded,
-          },
-        },
-      },
+      preferences: { sidebarSections: { pages: { expanded: !expanded } } },
     });
   };
 
