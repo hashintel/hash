@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-09-07",
+  "branch": "ln/fe-1580-reconcile-voice-resumable-workpiece",
+  "implementationHead": "48e2b66666df05034777f9410024c2e1228c86be",
+  "implementationCommits": ["1e238f498e", "48e2b66666"],
+  "canonicalConversationId": "conv_01M1Y4SPKHEKPVFVAMQG9QNH4Y",
+  "streamPath": "agents/brunch-chat-agent/7b484f39802178a2222836a7ee4c0c5e3ef123c457d507d75b3faf5ac98b3e32",
+  "submissions": [
+    {
+      "sequence": 2,
+      "submissionId": "sub_ik_53770e9263c875a6a3ac812ed2ae291e",
+      "kind": "signal",
+      "status": "settled",
+      "outcome": "completed",
+      "fixtureId": "crew-reservation-v1"
+    },
+    {
+      "sequence": 3,
+      "submissionId": "sub_ik_9942648a081a4a1d257dc20b41e0d9ea",
+      "kind": "user",
+      "status": "settled",
+      "outcome": "completed",
+      "body": "SDCPN"
+    },
+    {
+      "sequence": 4,
+      "submissionId": "sub_ik_40c1b6c5489dc05c9bf9c49e243db5ed",
+      "kind": "signal",
+      "status": "settled",
+      "outcome": "completed",
+      "results": [
+        {
+          "toolCallId": "toolu_01Ff2VXcErUd5pLxPiVFHPgc",
+          "toolName": "getLatestNetDefinition",
+          "applied": null
+        }
+      ]
+    },
+    {
+      "sequence": 5,
+      "submissionId": "sub_ik_b15d9c3a910649fef2d5a559db61a6ee",
+      "kind": "user",
+      "status": "settled",
+      "outcome": "completed",
+      "body": "Starting final inspection reserves the single dispatch crew immediately. Sign-off releases it. The timing, failure, and recovery behavior are still unknown."
+    },
+    {
+      "sequence": 6,
+      "submissionId": "sub_ik_f7f80b5cd8b6e3360d6a8d1bfca86f86",
+      "kind": "signal",
+      "status": "settled",
+      "outcome": "completed",
+      "results": [
+        {
+          "toolCallId": "toolu_01XoXQED2JUy5Xk6MiH3axDs",
+          "toolName": "addArc",
+          "applied": true
+        }
+      ]
+    },
+    {
+      "sequence": 7,
+      "submissionId": "sub_ik_785634ce1e717631217d8fc0484a660d",
+      "kind": "signal",
+      "status": "settled",
+      "outcome": "completed",
+      "results": [
+        {
+          "toolCallId": "toolu_01MaeDyPhW4iuULiJvWkpKeE",
+          "toolName": "getLatestNetDefinition",
+          "applied": null
+        }
+      ]
+    },
+    {
+      "sequence": 8,
+      "submissionId": "sub_ik_8eb1e09c5ebb8b651ef29965140ecd40",
+      "kind": "user",
+      "status": "settled",
+      "outcome": "completed",
+      "body": "What remains unresolved in this workpiece? Do not mutate the net."
+    },
+    {
+      "sequence": 9,
+      "submissionId": "sub_ik_336c2a985788889d677697626db20ba1",
+      "kind": "user",
+      "status": "settled",
+      "outcome": "aborted",
+      "body": "Please give a detailed explanation of every unresolved timing, failure, and recovery question in this workpiece without changing the net.",
+      "abortRequested": true
+    },
+    {
+      "sequence": 10,
+      "submissionId": "sub_ik_bcdfbccbd9856a83982a7aa2a49e1972",
+      "kind": "user",
+      "status": "settled",
+      "outcome": "completed",
+      "body": "Just give me a very brief overview of what is less than optimal in the current model."
+    },
+    {
+      "sequence": 11,
+      "submissionId": "sub_ik_3926c3230c824a5a3c7a6a13089a6729",
+      "kind": "user",
+      "status": "settled",
+      "outcome": "completed",
+      "body": "For testing purposes only, ask me a question please."
+    }
+  ],
+  "toolCalls": [
+    {
+      "sequence": 32,
+      "submissionId": "sub_ik_9942648a081a4a1d257dc20b41e0d9ea",
+      "messageId": "entry_01M1Y4T7VKYRMJPBQ87QNY9HHF",
+      "toolCallId": "toolu_01Ff2VXcErUd5pLxPiVFHPgc",
+      "toolName": "getLatestNetDefinition",
+      "arguments": {}
+    },
+    {
+      "sequence": 115,
+      "submissionId": "sub_ik_b15d9c3a910649fef2d5a559db61a6ee",
+      "messageId": "entry_01M1Y511RH9XABSYGBYAJE430A",
+      "toolCallId": "toolu_01XoXQED2JUy5Xk6MiH3axDs",
+      "toolName": "addArc",
+      "arguments": {
+        "transitionId": "start-final-inspection",
+        "arcDirection": "input",
+        "placeId": "dispatch-crew-available",
+        "weight": "1",
+        "type": "standard"
+      }
+    },
+    {
+      "sequence": 126,
+      "submissionId": "sub_ik_f7f80b5cd8b6e3360d6a8d1bfca86f86",
+      "messageId": "entry_01M1Y51F3JYQVJW5N5CKC9PWE6",
+      "toolCallId": "toolu_01MaeDyPhW4iuULiJvWkpKeE",
+      "toolName": "getLatestNetDefinition",
+      "arguments": {}
+    }
+  ],
+  "modelProducedWorkpieceMessages": [
+    {
+      "messageId": "entry_01M1Y511RH9XABSYGBYAJE430A",
+      "submissionId": "sub_ik_b15d9c3a910649fef2d5a559db61a6ee",
+      "sequence": 98,
+      "runbookBlockCount": 1
+    },
+    {
+      "messageId": "entry_01M1Y51QS8WTR61G9Z1V1YNFY3",
+      "submissionId": "sub_ik_785634ce1e717631217d8fc0484a660d",
+      "sequence": 148,
+      "runbookBlockCount": 1
+    }
+  ],
+  "assertions": {
+    "targetAddArcCallCount": 1,
+    "clientResultSignalsAreSingleStep": true,
+    "durableAbortCount": 1,
+    "directSpokenUserOriginPresentAfterHydration": false,
+    "browserObservedSettledRevision": 2,
+    "browserObservedTargetArc": "present",
+    "browserObservedAutoplayOnHydration": false,
+    "browserObservedResumedWorkAfterAbort": false,
+    "browserObservedStoppedLabel": true,
+    "browserObservedPlaybackControlsPassed": true
+  }
+}
