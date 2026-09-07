@@ -54,7 +54,28 @@ const completedClientToolResults = (
   if (assistantMessage === undefined) {
     return [];
   }
-  return assistantMessage.parts.flatMap((part): ClientToolResult[] => {
+  const steps = assistantMessage.parts.reduce<
+    (typeof assistantMessage.parts)[]
+  >(
+    (collected, part) => {
+      if (part.type === "step-start") {
+        collected.push([]);
+      } else {
+        collected.at(-1)?.push(part);
+      }
+      return collected;
+    },
+    [[]],
+  );
+  const latestClientToolStep = steps.findLast((step) =>
+    step.some(
+      (part) =>
+        isToolUIPart(part) &&
+        clientToolNames.has(getToolName(part)) &&
+        part.providerExecuted !== true,
+    ),
+  );
+  return (latestClientToolStep ?? []).flatMap((part): ClientToolResult[] => {
     if (!isToolUIPart(part)) return [];
     const toolName = getToolName(part);
     if (
