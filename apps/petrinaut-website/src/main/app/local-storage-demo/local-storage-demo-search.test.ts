@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   isCrewReservationFixtureSelected,
+  localStorageDemoRouteIdentity,
   validateLocalStorageDemoSearch,
   withBrunchFixtureKey,
 } from "./local-storage-demo-search";
@@ -34,6 +35,18 @@ describe("local storage demo search", () => {
       itemType: "place",
       itemId: "place-1",
     });
+  });
+
+  test("changes route identity only when fixture mode changes", () => {
+    expect(localStorageDemoRouteIdentity({})).toBe("ordinary");
+    expect(localStorageDemoRouteIdentity({ subnet: "subnet-1" })).toBe(
+      "ordinary",
+    );
+    expect(
+      localStorageDemoRouteIdentity({
+        "brunch-fixture": crewReservationFixtureId,
+      }),
+    ).toBe(crewReservationFixtureId);
   });
 
   test("selects only the explicit stable fixture value", () => {

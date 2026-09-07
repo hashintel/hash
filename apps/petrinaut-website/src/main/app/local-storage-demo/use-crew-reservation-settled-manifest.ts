@@ -12,7 +12,7 @@ import type { CrewReservationHistory } from "./crew-reservation-history";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 export type CrewReservationSettlementStatus =
-  | { readonly state: "idle" | "preparing" }
+  | { readonly state: "idle" | "preparing" | "revalidating" }
   | { readonly state: "settled" }
   | {
       readonly detail?: string;
@@ -157,7 +157,9 @@ export const useCrewReservationSettlement = (input: {
               detail: preparationError,
             }
           : definition === undefined || history === undefined
-            ? { state: "preparing" }
+            ? settledManifest === null
+              ? { state: "preparing" }
+              : { state: "revalidating" }
             : observedStatus;
   return status;
 };

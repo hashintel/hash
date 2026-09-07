@@ -6,6 +6,7 @@ import {
 
 import { LocalStorageDemoApp } from "../main/app/local-storage-demo/local-storage-demo-app";
 import {
+  localStorageDemoRouteIdentity,
   validateLocalStorageDemoSearch,
   withBrunchFixtureKey,
 } from "../main/app/local-storage-demo/local-storage-demo-search";
@@ -16,6 +17,7 @@ function IndexRoute() {
 
   return (
     <LocalStorageDemoApp
+      key={localStorageDemoRouteIdentity(search)}
       onSearchChange={(nextSearch, history) => {
         void navigate({
           replace: history === "replace",

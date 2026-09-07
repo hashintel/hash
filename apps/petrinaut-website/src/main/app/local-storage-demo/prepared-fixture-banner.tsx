@@ -74,9 +74,12 @@ export const PreparedFixtureBanner = ({
                   ? "no coherent bundle is selected"
                   : `bundle revision ${settledManifest.revision} remains selected`
               }.${settlementStatus.detail === undefined ? "" : ` ${settlementStatus.detail}`}`
-          : settlementStatus.state !== "settled" || settledManifest === null
-            ? "Preparing the conversation, workpiece, and automatically mirrored document…"
-            : `Settled bundle revision ${settledManifest.revision}; target crew-reservation arc ${settledManifest.document.targetArc}.`}
+          : settlementStatus.state === "revalidating" &&
+              settledManifest !== null
+            ? `Bundle revision ${settledManifest.revision} remains selected while canonical history reconnects.`
+            : settlementStatus.state !== "settled" || settledManifest === null
+              ? "Preparing the conversation, workpiece, and automatically mirrored document…"
+              : `Settled bundle revision ${settledManifest.revision}; target crew-reservation arc ${settledManifest.document.targetArc}.`}
       </div>
       {displayedWorkpiece === undefined ? (
         <div>The selected bundle’s Markdown workpiece is unavailable.</div>
