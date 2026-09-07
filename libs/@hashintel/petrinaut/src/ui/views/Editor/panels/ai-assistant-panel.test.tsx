@@ -1877,6 +1877,61 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(observedStatuses.at(-1)).toBe("ready");
   });
 
+  test("replaces conversation-owned busy state when the identity changes", async () => {
+    let requestCount = 0;
+    const statuses: string[] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() => {
+        requestCount += 1;
+        if (requestCount > 1) {
+          return new Promise<ReadableStream<UIMessageChunk>>(() => {});
+        }
+        return Promise.resolve(
+          streamChunks([
+            ...textChunks("preamble", "Checking the net"),
+            {
+              type: "tool-input-available",
+              toolCallId: "net-read-1",
+              toolName: "getLatestNetDefinition",
+              input: {},
+            },
+            { type: "finish-step" },
+            { type: "finish", finishReason: "tool-calls" },
+          ]),
+        );
+      }),
+    };
+    const createAiAssistant = (
+      conversationId: string,
+    ): PetrinautAiAssistant => ({
+      conversationId,
+      renderComposerControl: (context) => {
+        statuses.push(`${context.conversationId}:${context.status}`);
+        return (
+          <button
+            type="button"
+            onClick={() => void context.submitText({ text: "Read the net" })}
+          >
+            Read net
+          </button>
+        );
+      },
+      transport,
+    });
+    const rendered = renderTestPanel({
+      aiAssistant: createAiAssistant("conversation-1"),
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Read net" }));
+    await waitFor(() => expect(statuses).toContain("conversation-1:submitted"));
+
+    rendered.rerenderPanel(createAiAssistant("conversation-2"));
+
+    await waitFor(() => expect(statuses.at(-1)).toBe("conversation-2:ready"));
+  });
+
   test("does not carry an idle host stop into a later incidental abort", async () => {
     let requestCount = 0;
     const transport: PetrinautAiTransport = {
