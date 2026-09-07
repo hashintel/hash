@@ -5,27 +5,42 @@
  * the pointer counts as hovered, so the container being scrolled always
  * reveals its own thumb) or while it is being scrolled. On systems that show
  * classic, always-visible scrollbars, the runtime check in
- * `util/use-scrollbar-behavior.ts` marks `<html>` with
+ * `util/use-custom-scrollbar-ui.ts` marks `<html>` with
  * {@link alwaysVisibleScrollbarsClassName} and the thumb stays visible
  * instead, respecting the user's setting; until that check has run, thumbs
  * auto-hide.
  *
+ * All of it is inert until that same runtime marks `<html>` with
+ * {@link customScrollbarsClassName}: the styling depends on runtime-managed
+ * state (the preference class, the scrolling attribute), so an app that never
+ * calls `useCustomScrollbarUI` keeps the browser's default scrollbars rather
+ * than getting permanently hidden thumbs.
+ *
  * This module is deliberately import-free: it is shared by the build-time
- * preset entrypoint and the runtime preference check, and must drag neither
- * `@pandacss/dev` into the component bundle nor React into the preset bundle.
+ * preset entrypoint and the runtime, and must drag neither `@pandacss/dev`
+ * into the component bundle nor React into the preset bundle.
  */
 
 /**
+ * Master switch: the scrollbar rules only apply beneath an `<html>` carrying
+ * this class, which `applyCustomScrollbarUI` (in
+ * `util/use-custom-scrollbar-ui.ts`) adds when an app opts into the custom
+ * scrollbar UI. The thin-scrollbar recipe mixin in `util/css-mixins.ts`
+ * spells this name out as a literal — keep the two in step.
+ */
+export const customScrollbarsClassName = "ds-custom-scrollbars";
+
+/**
  * Class the scrollbar-visibility preference check (part of
- * `applyScrollbarBehavior` in `util/use-scrollbar-behavior.ts`) adds to
+ * `applyCustomScrollbarUI` in `util/use-custom-scrollbar-ui.ts`) adds to
  * `<html>` when the user's system renders classic, always-visible scrollbars
  * (macOS "Show scroll bars: Always", most Windows setups).
  */
 export const alwaysVisibleScrollbarsClassName = "ds-scrollbars-visible";
 
 /**
- * Attribute the scroll-activity tracker (`applyScrollbarBehavior` in
- * `util/use-scrollbar-behavior.ts`) sets on a scroll container while it is
+ * Attribute the scroll-activity tracker (`applyCustomScrollbarUI` in
+ * `util/use-custom-scrollbar-ui.ts`) sets on a scroll container while it is
  * being scrolled — by any input: wheel, keyboard, or programmatic. While
  * present, the container's thumb shows in the dark shade, which both gives
  * scrolling feedback and reveals the scrollbar for inputs that never hover
@@ -97,17 +112,20 @@ const webkitOnlyGate = "@supports (-webkit-hyphens: none)";
  * takes a direct, unanimated route instead — see {@link webkitOnlyGate}.
  */
 export const createScrollbarGlobalCss = (scope?: string) => {
-  const root = scope ?? ":root";
-  const inScope = `:is(${root}, ${root} *)`;
+  // Every selector requires the runtime's master-switch class on `<html>`.
+  // The runtime classes live on `<html>`, which for the unscoped preset is
+  // the scope root itself rather than an ancestor of it — hence the two
+  // shapes. `:where()` holds each class's specificity contribution at zero,
+  // preserving the (0,1,0) per-element defaults vs (0,2,0) hover/scrolling
+  // tie-breaking that the rules below rely on.
+  const inScope = scope
+    ? `:where(:root.${customScrollbarsClassName}) :is(${scope}, ${scope} *)`
+    : `:is(:root, :root *):where(:root.${customScrollbarsClassName}, :root.${customScrollbarsClassName} *)`;
 
-  // The preference check puts its class on `<html>`, which for the unscoped
-  // preset is the scope root itself rather than an ancestor of it. `:where()`
-  // holds the specificity at (0,1,0) — above nothing, tying the per-element
-  // defaults it must override by source order — so the (0,2,0) hover and
-  // scrolling rules still win while the preference class is set.
+  const bothClasses = `${customScrollbarsClassName}.${alwaysVisibleScrollbarsClassName}`;
   const alwaysVisible = scope
-    ? `:where(:root.${alwaysVisibleScrollbarsClassName}) ${inScope}`
-    : `${inScope}:where(:root.${alwaysVisibleScrollbarsClassName}, :root.${alwaysVisibleScrollbarsClassName} *)`;
+    ? `:where(:root.${bothClasses}) :is(${scope}, ${scope} *)`
+    : `:is(:root, :root *):where(:root.${bothClasses}, :root.${bothClasses} *)`;
 
   const scrolling = `${inScope}[${scrollingAttribute}]`;
 

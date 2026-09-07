@@ -4,7 +4,7 @@ import "@fontsource-variable/geist-mono";
 import "@fontsource-variable/inter";
 import "@fontsource-variable/inter-tight";
 
-import { useScrollbarBehavior } from "../src/util/use-scrollbar-behavior";
+import { useCustomScrollbarUI } from "../src/util/use-custom-scrollbar-ui";
 import "./index.css";
 
 /**
@@ -15,9 +15,9 @@ export const Provider: GlobalProvider = ({
   children,
   globalState: { theme },
 }) => {
-  // The demo surface acts as the theme root, so it sets up the design
-  // system's scrollbar runtime behavior once on mount.
-  useScrollbarBehavior();
+  // The demo surface acts as the theme root, so it opts into the design
+  // system's custom scrollbar UI once on mount.
+  useCustomScrollbarUI();
 
   useLayoutEffect(() => {
     const root = document.documentElement;

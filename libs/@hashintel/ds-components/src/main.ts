@@ -89,8 +89,8 @@ export {
   usePortalContainerRef,
 } from "./util/portal-container-context";
 export { useAvoidScrollWidthChange } from "./util/use-avoid-scroll-width-change";
-export { useScrollLock } from "./util/use-scroll-lock";
 export {
-  applyScrollbarBehavior,
-  useScrollbarBehavior,
-} from "./util/use-scrollbar-behavior";
+  applyCustomScrollbarUI,
+  useCustomScrollbarUI,
+} from "./util/use-custom-scrollbar-ui";
+export { useScrollLock } from "./util/use-scroll-lock";

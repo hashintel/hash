@@ -3,6 +3,7 @@ import { useEffect } from "react";
 
 import {
   alwaysVisibleScrollbarsClassName,
+  customScrollbarsClassName,
   scrollingAttribute,
 } from "../preset/scrollbars";
 
@@ -124,18 +125,20 @@ const trackScrollActivity = (): void => {
 };
 
 /**
- * Set up the runtime halves of the preset's scrollbar styling on the
- * document: the always-visible preference class (see
- * `applyScrollbarVisibilityPreference` above) and scroll-activity tracking
+ * Opt the document into the preset's custom scrollbar UI and set up its
+ * runtime halves: the `ds-custom-scrollbars` master-switch class that the
+ * scrollbar CSS is gated on (an app that never calls this keeps the
+ * browser's default scrollbars), the always-visible preference class (see
+ * `applyScrollbarVisibilityPreference` above), and scroll-activity tracking
  * (see `trackScrollActivity` above).
  *
  * Safe to call repeatedly (each half runs once per page) and during SSR
- * (no-op). Call it — or the `useScrollbarBehavior` hook — once from the
+ * (no-op). Call it — or the `useCustomScrollbarUI` hook — once from the
  * component that renders the theme scope root (the element carrying the
  * scope class passed to the preset), as Petrinaut's editor and preview roots
  * do.
  */
-export const applyScrollbarBehavior = (): void => {
+export const applyCustomScrollbarUI = (): void => {
   if (typeof document === "undefined") {
     return;
   }
@@ -147,17 +150,19 @@ export const applyScrollbarBehavior = (): void => {
     return;
   }
 
+  document.documentElement.classList.add(customScrollbarsClassName);
   applyScrollbarVisibilityPreference();
   trackScrollActivity();
 };
 
 /**
- * Ensures the preset's scrollbar runtime behavior is set up (see
- * {@link applyScrollbarBehavior}). Call this once from the component that
- * renders the theme scope root — not from individual scrollable components.
+ * Ensures the preset's custom scrollbar UI is enabled and its runtime set up
+ * (see {@link applyCustomScrollbarUI}). Call this once from the component
+ * that renders the theme scope root — not from individual scrollable
+ * components.
  */
-export const useScrollbarBehavior = (): void => {
+export const useCustomScrollbarUI = (): void => {
   useEffect(() => {
-    applyScrollbarBehavior();
+    applyCustomScrollbarUI();
   }, []);
 };

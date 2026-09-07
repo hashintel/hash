@@ -26,12 +26,13 @@ export type PresetOptions = {
  * Without arguments it behaves identically to the default export (document-level
  * global styles). Pass `{ scope }` to target a subtree instead.
  *
- * The preset's scrollbar styling (see `preset/scrollbars.ts`) auto-hides
- * thumbs until the container is hovered or scrolled. CSS can detect neither
- * the OS "always show scrollbars" setting nor scroll activity, so the
- * consuming app must call `applyScrollbarBehavior` (exported from
+ * The preset's scrollbar styling (see `preset/scrollbars.ts`) is opt-in: it
+ * replaces native scrollbars with thumbs that auto-hide until the container
+ * is hovered or scrolled, but only beneath the `ds-custom-scrollbars` class
+ * its runtime puts on `<html>`. Call `applyCustomScrollbarUI` (exported from
  * `@hashintel/ds-components`) once from the component rendering the theme
- * scope root, as Petrinaut's editor and preview roots do.
+ * scope root, as Petrinaut's editor and preview roots do; apps that never
+ * call it keep the browser's default scrollbars.
  */
 export function createPreset(options?: PresetOptions) {
   const scope = options?.scope;

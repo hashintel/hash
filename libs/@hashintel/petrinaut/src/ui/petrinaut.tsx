@@ -6,7 +6,7 @@ import { type FunctionComponent, useEffect, useMemo, useRef } from "react";
 
 import {
   PortalContainerContext,
-  useScrollbarBehavior,
+  useCustomScrollbarUI,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
@@ -155,9 +155,9 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   navigation,
   presentationProfile = "editor",
 }) => {
-  // As the `.petrinaut-root` theme-scope root, set up the design system's
-  // scrollbar runtime behavior once on mount.
-  useScrollbarBehavior();
+  // As the `.petrinaut-root` theme-scope root, opt into the design system's
+  // custom scrollbar UI once on mount.
+  useCustomScrollbarUI();
 
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(

@@ -15,24 +15,33 @@ export const srOnly = css.raw({
  * Thin (8px) variant of the preset's scrollbar styling, for dense scroll
  * containers (dropdown lists, textareas). WebKit engines get a narrower
  * custom gutter; engines that only style scrollbars through the standard
- * properties get `scrollbar-width: thin` instead. The gate keeps that
- * declaration away from Chromium and Safari, where a computed
+ * properties get `scrollbar-width: thin` instead. The `@supports` gate keeps
+ * that declaration away from Chromium and Safari, where a computed
  * `scrollbar-width` other than `auto` would disable the preset's
  * `::-webkit-scrollbar-*` styling entirely.
+ *
+ * Like the preset's scrollbar rules, both halves require the runtime's
+ * master-switch class on `<html>` — a component in an app that never calls
+ * `useCustomScrollbarUI` keeps its browser-default scrollbar (a bare
+ * `::-webkit-scrollbar` width would otherwise force a custom scrollbar with
+ * no thumb styling at all).
+ *
+ * The selector and `@supports` strings must stay literals — Panda's static
+ * extraction drops computed keys. They duplicate `customScrollbarsClassName`
+ * and `standardScrollbarPropertiesGate` in `../preset/scrollbars` (see there
+ * for why they are shaped this way) and must be kept in step with them.
  */
 export const thinScrollbar = {
-  "&::-webkit-scrollbar": {
-    width: "[8px]",
-    height: "[8px]",
-  },
-  // Must stay a literal: Panda's static extraction drops computed keys. The
-  // string duplicates `standardScrollbarPropertiesGate` in
-  // `../preset/scrollbars` (see there for why it is shaped this way) and must
-  // be kept in step with it.
-  "@supports (-moz-appearance: none) or ((not selector(::-webkit-scrollbar)) and (scrollbar-width: thin))":
-    {
-      scrollbarWidth: "[thin]",
+  ":where(:root.ds-custom-scrollbars) &": {
+    "&::-webkit-scrollbar": {
+      width: "[8px]",
+      height: "[8px]",
     },
+    "@supports (-moz-appearance: none) or ((not selector(::-webkit-scrollbar)) and (scrollbar-width: thin))":
+      {
+        scrollbarWidth: "[thin]",
+      },
+  },
 } as const satisfies SystemStyleObject;
 
 // Do not use this export! We only need to export this as a recipe for panda
