@@ -667,9 +667,11 @@ export class VoiceTurnController {
       input: paused ? "paused" : "listening",
       output: paused
         ? "interrupted"
-        : preserveSettledOutput
-          ? this.#snapshot.output
-          : "waiting-for-tool",
+        : event.segments.length === 0
+          ? "idle"
+          : preserveSettledOutput
+            ? this.#snapshot.output
+            : "waiting-for-tool",
     });
     this.#restoreMicrophoneIfCaptureAvailable();
     if (responseEnd) this.#recordLatency("answer-ready", responseEnd.id);
@@ -777,7 +779,7 @@ export class VoiceTurnController {
     }
     if (event.type === "response-terminal") {
       if (event.responseId === this.#activeSpeechResponseId) {
-        if (this.#activeSpeechOutputEnded) {
+        if (!event.playbackExpected || this.#activeSpeechOutputEnded) {
           this.#clearSettledSpeech();
         } else {
           this.#activeSpeechResponseTerminal = true;
@@ -788,11 +790,17 @@ export class VoiceTurnController {
         event.speechRequestId !== undefined &&
         this.#pendingSpeechRequestIds.has(event.speechRequestId)
       ) {
-        if (event.status === "completed") {
+        if (event.status === "completed" && event.playbackExpected) {
           this.#terminalSpeechRequestIds.add(event.speechRequestId);
         } else {
           this.#pendingSpeechRequestIds.delete(event.speechRequestId);
           this.#terminalSpeechRequestIds.delete(event.speechRequestId);
+          if (this.#activeSpeechResponseId === null) {
+            this.#update({
+              output: this.#outputAfterPlaybackEnds("idle"),
+            });
+            this.#restoreMicrophoneIfCaptureAvailable();
+          }
         }
       }
       return;

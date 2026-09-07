@@ -436,7 +436,10 @@ export class RealtimeBrunchBridge {
       return;
     }
     if (event.type === "response-terminal") {
-      if (event.status !== "completed" && event.speechRequestId !== undefined) {
+      if (
+        event.speechRequestId !== undefined &&
+        (event.status !== "completed" || !event.playbackExpected)
+      ) {
         this.#pendingSpeechRequestIds.delete(event.speechRequestId);
       }
       return;
@@ -664,7 +667,18 @@ export class RealtimeBrunchBridge {
       return;
     }
     if (responseSegments.length === 0) {
-      this.#completeStoppedSubmission(active);
+      if (stoppedSettlement?.outcome === "completed") {
+        this.#emit({
+          deliveryId: active.deliveryId,
+          type: "submission-settled",
+        });
+        this.#activeSubmission = null;
+        this.#emit({
+          deliveryId: active.deliveryId,
+          segments: [],
+          type: "canonical-response-ready",
+        });
+      }
       return;
     }
 

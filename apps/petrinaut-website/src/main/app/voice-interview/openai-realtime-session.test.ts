@@ -683,10 +683,47 @@ describe("OpenAIRealtimeSession", () => {
     });
     expect(harness.events).toContainEqual({
       connectionEpoch: 1,
+      playbackExpected: false,
       responseId: "response-active",
       status: "completed",
       type: "response-terminal",
     });
+  });
+
+  test("reopens capture when a completed canonical response has no audio", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    harness.session.speakCanonical([
+      canonicalSegment("silent", "This response produced no audio."),
+    ]);
+    const channel = harness.channels[0]!;
+    authorizeLatestSpeechResponse(channel, "response-silent");
+
+    channel.receive({
+      response: {
+        id: "response-silent",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    expect(harness.events).toContainEqual({
+      connectionEpoch: 1,
+      playbackExpected: false,
+      responseId: "response-silent",
+      speechRequestId: "canonical-1-1",
+      status: "completed",
+      type: "response-terminal",
+    });
+    expect(
+      harness.events.some(
+        (event) =>
+          event.type === "output-started" || event.type === "output-stopped",
+      ),
+    ).toBe(false);
+    expect(harness.localTracks[0]!.enabled).toBe(true);
   });
 
   test("keeps the microphone closed when an earlier stop follows a queued response request", async () => {
@@ -709,7 +746,15 @@ describe("OpenAIRealtimeSession", () => {
     channel.receive({
       response: {
         id: "response-early",
-        output: [],
+        output: [
+          {
+            content: [
+              { transcript: "First canonical segment.", type: "output_audio" },
+            ],
+            role: "assistant",
+            type: "message",
+          },
+        ],
         status: "completed",
       },
       type: "response.done",
@@ -722,7 +767,15 @@ describe("OpenAIRealtimeSession", () => {
     channel.receive({
       response: {
         id: "response-follow-on",
-        output: [],
+        output: [
+          {
+            content: [
+              { transcript: "Second canonical segment.", type: "output_audio" },
+            ],
+            role: "assistant",
+            type: "message",
+          },
+        ],
         status: "completed",
       },
       type: "response.done",
@@ -745,6 +798,7 @@ describe("OpenAIRealtimeSession", () => {
     });
     expect(harness.events).toContainEqual({
       connectionEpoch: 1,
+      playbackExpected: true,
       responseId: "response-follow-on",
       speechRequestId: "canonical-1-2",
       status: "completed",
@@ -803,10 +857,27 @@ describe("OpenAIRealtimeSession", () => {
     channel.receive({
       response: {
         id: "response-generated",
-        output: [],
+        output: [
+          {
+            content: [
+              { transcript: "Generated canonical segment.", type: "audio" },
+            ],
+            role: "assistant",
+            type: "message",
+          },
+        ],
         status: "completed",
       },
       type: "response.done",
+    });
+
+    expect(harness.events).toContainEqual({
+      connectionEpoch: 1,
+      playbackExpected: true,
+      responseId: "response-generated",
+      speechRequestId: "canonical-1-1",
+      status: "completed",
+      type: "response-terminal",
     });
 
     const cancellation = harness.session.cancelOutput();
