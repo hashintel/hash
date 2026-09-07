@@ -1,0 +1,40 @@
+---
+source: libs/@local/graph/atlas/src/dataset/postgres/streams.rs
+assertion_line: 422
+expression: "node_statement(&axes, &types).sql"
+---
+WITH "scope" AS (SELECT "meta"."web_id" AS "web_id", "meta"."entity_uuid" AS "entity_uuid", "meta"."entity_edition_id" AS "entity_edition_id", row_number() OVER (ORDER BY "meta"."web_id" ASC, "meta"."entity_uuid" ASC) - 1 AS "row"
+FROM "entity_embeddings" AS "embedding"
+INNER JOIN "entity_temporal_metadata" AS "meta"
+  ON "meta"."web_id" = "embedding"."web_id"
+ AND "meta"."entity_uuid" = "embedding"."entity_uuid"
+ AND "meta"."draft_id" IS NULL
+ AND "meta"."transaction_time" @> $1::TIMESTAMPTZ
+ AND "meta"."decision_time" @> $2::TIMESTAMPTZ
+INNER JOIN "entity_editions" AS "edition"
+  ON "edition"."entity_edition_id" = "meta"."entity_edition_id"
+ AND NOT("edition"."archived")
+WHERE ("embedding"."property" IS NULL) AND (NOT(EXISTS (SELECT 
+FROM "entity_is_of_type" AS "is_link"
+INNER JOIN "ontology_ids" AS "link_type"
+  ON "link_type"."ontology_id" = "is_link"."entity_type_ontology_id"
+ AND "link_type"."base_url" = $3
+WHERE "is_link"."entity_edition_id" = "meta"."entity_edition_id")))), "type_rows" AS (SELECT "is_of_type"."entity_edition_id" AS "entity_edition_id", array_agg("mapping"."ordinal" ORDER BY "mapping"."ordinal" ASC) AS "ordinals"
+FROM "entity_is_of_type" AS "is_of_type"
+INNER JOIN (SELECT "mapping"."ontology_id", "mapping"."ordinality" - 1 AS "ordinal"
+FROM UNNEST(($4::uuid[])) WITH ORDINALITY AS "mapping"("ontology_id", "ordinality")) AS "mapping"
+  ON "mapping"."ontology_id" = "is_of_type"."entity_type_ontology_id"
+WHERE ("is_of_type"."inheritance_depth" = 0) AND ("is_of_type"."entity_edition_id" = ANY(SELECT "entity_edition_id"
+FROM "scope"))
+GROUP BY "is_of_type"."entity_edition_id")
+SELECT "scope"."web_id", "scope"."entity_uuid", (l2_normalize(subvector("embedding"."embedding", 1, 512))::vector(512)), "edition"."confidence", COALESCE("type_rows"."ordinals", ARRAY[]::int8[])
+FROM "scope"
+INNER JOIN "entity_embeddings" AS "embedding"
+  ON "embedding"."web_id" = "scope"."web_id"
+ AND "embedding"."entity_uuid" = "scope"."entity_uuid"
+ AND "embedding"."property" IS NULL
+INNER JOIN "entity_editions" AS "edition"
+  ON "edition"."entity_edition_id" = "scope"."entity_edition_id"
+LEFT OUTER JOIN "type_rows"
+  ON "type_rows"."entity_edition_id" = "scope"."entity_edition_id"
+ORDER BY "scope"."row" ASC

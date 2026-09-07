@@ -40,7 +40,8 @@
     try_trait_v2,
     variant_count,
     const_range_bounds,
-    const_index
+    const_index,
+    clone_to_uninit
 )]
 
 extern crate alloc;

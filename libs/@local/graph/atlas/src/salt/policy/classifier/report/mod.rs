@@ -1,0 +1,212 @@
+//! A certified refit of one published generation's deployed model.
+//!
+//! The report reconstructs the classifier training set from the generation's staged annotation
+//! artifacts (the [`replay`] facility), re-runs the full production fit under the echoed
+//! configuration - fold assignment seeded by the echo, so the refit is deterministic - and records
+//! whether the recomputed model reproduces the staged `.clsf` artifact byte-for-byte. A verified
+//! bundle provably describes the deployed model, not a lookalike.
+//!
+//! One JSON document carries everything a downstream renderer needs: the per-row records (identity,
+//! fold, soft target, weight, out-of-fold logits, raw and calibrated posteriors, and
+//! applicability), the model summary (coefficient row norms, intercepts, temperature, the sorted
+//! training-distance distribution, and the out-of-fold metrics), and the certification verdict with
+//! both digests.
+//!
+//! Failures panic with the failing step's error. A report run has no recovery path, and the error
+//! is the diagnosis. The byte certification is the exception: its verdict is the report's content,
+//! so a digest mismatch compiles and serializes with its per-row evidence instead of panicking.
+
+pub(crate) mod replay;
+
+use self::replay::Frozen;
+use super::fit::{Fit, TrainingSet, fit, regularization::RegularizationReading};
+use crate::{
+    file::{
+        WriteInto as _,
+        generation::{GenerationId, GenerationRoot},
+    },
+    integrity::Sha256Digest,
+    math::{DNonNegative, DPositive, UnitFraction},
+    progress::NoProgress,
+    salt::policy::{GeometryClass, Posterior},
+};
+
+/// The certification verdict of the refit model against the staged artifact.
+#[derive(Debug, serde::Serialize)]
+struct Certification {
+    /// The staged `.clsf` artifact's recorded identity.
+    staged: Sha256Digest,
+    /// SHA-256 of the refit model's serialized bytes.
+    recomputed: Sha256Digest,
+    /// Whether the digests agree, which certifies that the report describes the deployed model.
+    verified: bool,
+}
+
+/// The deployed model's parameters and out-of-fold evidence.
+#[derive(Debug, serde::Serialize)]
+struct ModelSummary {
+    /// Euclidean norm of each coefficient row, in class order.
+    coefficient_norms: [DNonNegative; GeometryClass::COUNT],
+    /// The intercepts, in class order.
+    intercepts: [f64; GeometryClass::COUNT],
+    /// The fitted calibration temperature.
+    temperature: f64,
+    /// Cross-validation fold count of the echoed configuration.
+    folds: usize,
+    /// Fold-assignment seed of the echoed configuration.
+    seed: u64,
+    /// Started outer iterations of the final full-corpus fit.
+    iterations: u64,
+    /// The selected L2 penalty on contrast coefficients.
+    regularization: DPositive,
+    /// Every regularization candidate's out-of-fold reading, ascending by strength.
+    selection: Box<[RegularizationReading]>,
+    /// Weighted-mean cross-entropy of the uncalibrated out-of-fold posteriors.
+    raw_cross_entropy: DNonNegative,
+    /// Weighted-mean cross-entropy at the deployment temperature.
+    calibrated_cross_entropy: DNonNegative,
+    /// Weighted-mean Brier score of the uncalibrated out-of-fold posteriors.
+    raw_brier: DNonNegative,
+    /// Weighted-mean Brier score at the deployment temperature.
+    calibrated_brier: DNonNegative,
+    /// The applicability evidence's training distances, sorted ascending.
+    training_distances: Box<[DNonNegative]>,
+}
+
+/// One training row's identity, supervision, and out-of-fold behaviour.
+#[derive(Debug, serde::Serialize)]
+struct RowReport {
+    /// The card's canonical identity URL.
+    identity: String,
+    /// The indivisible validation group.
+    group: Sha256Digest,
+    /// The fold that held this row out.
+    fold: usize,
+    /// Soft target over the geometry classes, in class order.
+    target: [f64; GeometryClass::COUNT],
+    /// Vote count backing the target.
+    weight: f64,
+    /// Out-of-fold logits, in class order.
+    out_of_fold_logits: [f64; GeometryClass::COUNT],
+    /// The uncalibrated out-of-fold distribution `softmax(logits)`.
+    raw_posterior: [f64; GeometryClass::COUNT],
+    /// The deployment out-of-fold distribution `softmax(logits / T)`.
+    calibrated_posterior: [f64; GeometryClass::COUNT],
+    /// Standardized distance from the training distribution.
+    distance: DNonNegative,
+    /// Upper-tail rank of `distance` among the training distances, in `[0, 1]`.
+    applicability: UnitFraction,
+}
+
+/// The certified classifier report of one published generation.
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct ClassifierReport {
+    /// The reported generation's hex identity.
+    generation: GenerationId,
+    certification: Certification,
+    model: ModelSummary,
+    rows: Vec<RowReport>,
+}
+
+impl ClassifierReport {
+    /// Reconstructs the staged corpus and refits the deployed model, then certifies the bytes and
+    /// compiles the bundle.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the report cannot open the generation, when its staged corpus fails
+    /// reconstruction, or when the refit fails.
+    pub(crate) async fn compile(root: &GenerationRoot, generation: GenerationId) -> Self {
+        let frozen = Frozen::load(root, generation);
+        let reconstructed = frozen.reconstruct().await;
+        let embeddings = reconstructed.trained_embeddings();
+        let rows = reconstructed.rows();
+        let identities = reconstructed.identities();
+
+        let training =
+            TrainingSet::new(embeddings, rows).expect("the staged corpus validated at fit time");
+        let config = frozen.fit();
+        let refit: Fit = fit(training, config, &NoProgress).expect("the staged corpus refits");
+
+        let staged = frozen
+            .staged_classifier_digest()
+            .expect("a published generation stages its classifier artifact");
+        let recomputed = refit
+            .classifier
+            .write_into(std::io::sink())
+            .expect("writing to a sink performs no fallible IO");
+        // A digest mismatch serializes with its per-row evidence: the divergence is the most
+        // valuable thing this instrument can show.
+
+        let temperature = refit.classifier.temperature();
+        let row_reports = rows
+            .iter_enumerated()
+            .map(|(row, training_row)| {
+                let identity = &identities[row];
+                let logits = refit.evidence.out_of_fold_logits[row];
+                let prediction = refit
+                    .classifier
+                    .predict(&embeddings[row])
+                    .expect("the deployed model evaluates its own training rows");
+
+                RowReport {
+                    identity: identity.canonical_url(),
+                    group: training_row.group,
+                    fold: refit.evidence.folds[row],
+                    target: training_row.target,
+                    weight: training_row.weight,
+                    out_of_fold_logits: logits,
+                    raw_posterior: Posterior::softmax(logits, 1.0).to_array(),
+                    calibrated_posterior: Posterior::softmax(logits, temperature).to_array(),
+                    distance: prediction.distance,
+                    applicability: prediction.applicability,
+                }
+            })
+            .collect();
+
+        // Finite by the refit's own certification: `certify` evaluated the objective over these
+        // exact unscaled rows and refuses a non-finite value by name. The objective carries
+        // 0.5·λ·‖A‖² with λ positive by type, squares cannot cancel, so a non-finite row norm
+        // cannot reach a converged refit.
+        let coefficient_norms = core::array::from_fn(|class| {
+            refit.classifier.coefficients[class]
+                .norm()
+                .finish_unchecked()
+        });
+
+        Self {
+            generation,
+            certification: Certification {
+                staged,
+                recomputed,
+                verified: recomputed == staged,
+            },
+            model: ModelSummary {
+                coefficient_norms,
+                intercepts: refit.classifier.intercepts,
+                temperature,
+                folds: config.folds,
+                seed: config.seed,
+                iterations: refit.evidence.iterations,
+                regularization: refit.evidence.regularization,
+                selection: refit.evidence.selection,
+                raw_cross_entropy: refit.evidence.raw_cross_entropy,
+                calibrated_cross_entropy: refit.evidence.calibrated_cross_entropy,
+                raw_brier: refit.evidence.raw_brier,
+                calibrated_brier: refit.evidence.calibrated_brier,
+                training_distances: refit.classifier.applicability.distances,
+            },
+            rows: row_reports,
+        }
+    }
+
+    /// The reported training-row count.
+    pub(crate) const fn row_count(&self) -> usize {
+        self.rows.len()
+    }
+
+    /// Whether the refit model reproduced the staged artifact bytes.
+    pub(crate) const fn verified(&self) -> bool {
+        self.certification.verified
+    }
+}

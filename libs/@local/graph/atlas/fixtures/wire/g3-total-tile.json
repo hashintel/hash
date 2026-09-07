@@ -1,0 +1,39 @@
+{
+  "golden": "g3-total-tile",
+  "layer": "tile",
+  "prefix": {
+    "magic": "SALTILET",
+    "wireVersion": 1,
+    "flags": 0,
+    "slotCount": 5,
+    "reserved": 0
+  },
+  "directory": [
+    [56, 115],
+    [120, 168],
+    [168, 192],
+    [192, 204],
+    [0, 0]
+  ],
+  "head": {
+    "generation": "3333333333333333333333333333333333333333333333333333333333333333",
+    "variant": 0,
+    "coordinate": [1, 1, 0],
+    "mode": 1,
+    "delivered": 6,
+    "firstBucket": 0,
+    "runs": [1, 0, 3, 2],
+    "global": null,
+    "children": 0,
+    "trailer": false
+  },
+  "positions": [
+    1063675494, 0, 1041865112, 1048576000, 3172571552, 1050673152, 3194381928,
+    1052770304, 3206125978, 1056964608, 3209271706, 1058013184
+  ],
+  "rowIds": [1000, 1028, 1035, 1042, 1056, 1063],
+  "typeMask": [1, 0, 8, 0, 3, 0, 128, 0, 128, 0, 1, 1],
+  "mass": null,
+  "appended": null,
+  "trailer": null
+}

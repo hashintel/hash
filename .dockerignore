@@ -18,6 +18,9 @@
 # Petrinaut bundles its user-facing docs into the build via `?raw` imports,
 # so they must be present in the Docker context (not just README.md).
 !libs/@hashintel/petrinaut/docs/*.md
+# Atlas compiles its wire contract into the binary with `include_str!`, so the
+# file is a build input rather than documentation the image can do without.
+!libs/@local/graph/atlas/docs/wire.md
 
 ########################
 ## Same as in .gitignore

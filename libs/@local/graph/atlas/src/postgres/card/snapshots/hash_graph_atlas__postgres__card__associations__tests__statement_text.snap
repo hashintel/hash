@@ -1,0 +1,30 @@
+---
+source: libs/@local/graph/atlas/src/postgres/card/associations.rs
+expression: "association_statement(&types, &axes.transaction_time).sql"
+---
+WITH "current_types" AS (SELECT DISTINCT ON("ids"."base_url") "ids"."base_url" AS "base_url", "types"."ontology_id" AS "ontology_id", "types"."schema"->>'$id' AS "versioned_url", "types"."schema"->>'title' AS "title", "types"."schema"->>'description' AS "description", "types"."closed_schema"->'links' AS "links"
+FROM "entity_types" AS "types"
+INNER JOIN "ontology_ids" AS "ids"
+  ON "ids"."ontology_id" = "types"."ontology_id"
+INNER JOIN "ontology_temporal_metadata" AS "meta"
+  ON "meta"."ontology_id" = "types"."ontology_id"
+ AND "meta"."transaction_time" @> $2::TIMESTAMPTZ
+ORDER BY "ids"."base_url" ASC, "ids"."version" DESC), "relations" AS (SELECT "mapping"."ordinality", "ids"."base_url" AS "base_url"
+FROM UNNEST(($1::uuid[])) WITH ORDINALITY AS "mapping"("ontology_id", "ordinality")
+INNER JOIN "ontology_ids" AS "ids"
+  ON "ids"."ontology_id" = "mapping"."ontology_id"), "matched" AS (SELECT DISTINCT ON("relations"."ordinality", "source"."base_url") "relations"."ordinality", "source"."base_url", "source"."ontology_id", "source"."versioned_url", "source"."title", "source"."description", "constraint_entry"."value"->'items'->'oneOf' AS "one_of", (("constraint_entry"."value"->>'minItems')::int8) AS "min_items", (("constraint_entry"."value"->>'maxItems')::int8) AS "max_items"
+FROM "current_types" AS "source"
+CROSS JOIN LATERAL jsonb_each("source"."links") AS "constraint_entry"("key", "value")
+INNER JOIN "relations"
+  ON starts_with("constraint_entry"."key", "relations"."base_url")
+ AND substring("constraint_entry"."key" FROM char_length("relations"."base_url") + 1) ~ $3
+ORDER BY "relations"."ordinality" ASC, "source"."base_url" ASC, (substring("constraint_entry"."key" FROM char_length("relations"."base_url") + 3)::int8) DESC)
+SELECT "matched"."ordinality", "matched"."base_url", "matched"."versioned_url", "matched"."ontology_id", "matched"."title", "matched"."description", "matched"."min_items", "matched"."max_items", "targets"."titles", "targets"."descriptions", "targets"."base_urls", "targets"."versioned_urls", "targets"."ontology_ids"
+FROM "matched"
+LEFT OUTER JOIN LATERAL (SELECT array_agg("target"."title" ORDER BY "target"."base_url" ASC) AS "titles", array_agg("target"."description" ORDER BY "target"."base_url" ASC) AS "descriptions", array_agg("target"."base_url" ORDER BY "target"."base_url" ASC) AS "base_urls", array_agg("target"."versioned_url" ORDER BY "target"."base_url" ASC) AS "versioned_urls", array_agg("target"."ontology_id" ORDER BY "target"."base_url" ASC) AS "ontology_ids"
+FROM (SELECT DISTINCT ON(regexp_replace("reference"."value"->>'$ref', $4, $5)) regexp_replace("reference"."value"->>'$ref', $4, $5) AS "ref_base_url"
+FROM jsonb_array_elements("matched"."one_of") AS "reference"("value")) AS "reference"
+INNER JOIN "current_types" AS "target"
+  ON "target"."base_url" = "reference"."ref_base_url") AS "targets"
+  ON TRUE
+ORDER BY "matched"."ordinality" ASC, "matched"."base_url" ASC

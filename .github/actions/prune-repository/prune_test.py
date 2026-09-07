@@ -8,6 +8,7 @@ import unittest
 from prune import (
     expand_scopes,
     extra_paths_for_requested,
+    extras_for_requested,
     fixpoint_expand,
 )
 
@@ -17,9 +18,50 @@ APP = "@apps/brunch-agent"
 PLUGIN_GHERKIN = "@hashintel/brunch-agent-plugin-gherkin"
 PLUGIN_SDCPN = "@hashintel/brunch-agent-plugin-sdcpn"
 WEBSITE = "@apps/petrinaut-website"
+FRONTEND = "@apps/hash-frontend"
+PLAYWRIGHT = "@tests/hash-playwright"
+ATLAS = "@rust/hash-graph-atlas"
+
+
+class FrontendRequestedExtras(unittest.TestCase):
+    def test_frontend_direct(self) -> None:
+        self.assertEqual(extras_for_requested({FRONTEND}), frozenset({ATLAS}))
+        self.assertIn(
+            ATLAS,
+            fixpoint_expand(
+                {FRONTEND} | extras_for_requested({FRONTEND}),
+                {FRONTEND: frozenset(), ATLAS: frozenset()},
+            ),
+        )
+
+    def test_frontend_transitive(self) -> None:
+        dependencies = {
+            PLAYWRIGHT: frozenset({FRONTEND}),
+            FRONTEND: frozenset(),
+        }
+        expanded = fixpoint_expand({PLAYWRIGHT}, dependencies)
+        self.assertNotIn(ATLAS, expanded)
+        self.assertEqual(extras_for_requested({PLAYWRIGHT}), frozenset())
 
 
 class BrunchRequestedExtras(unittest.TestCase):
+    def test_core_adds_the_app_and_plugins(self) -> None:
+        expected_workspaces = frozenset({APP, PLUGIN_GHERKIN, PLUGIN_SDCPN})
+        self.assertEqual(extras_for_requested({CORE}), expected_workspaces)
+        self.assertTrue(
+            expected_workspaces.issubset(
+                fixpoint_expand(
+                    {CORE} | extras_for_requested({CORE}),
+                    {
+                        CORE: frozenset(),
+                        APP: frozenset({CORE}),
+                        PLUGIN_GHERKIN: frozenset({CORE}),
+                        PLUGIN_SDCPN: frozenset({CORE}),
+                    },
+                )
+            )
+        )
+
     def test_app_task_adds_the_core_plugins_and_context_paths(self) -> None:
         expected_workspaces = frozenset({CORE, PLUGIN_GHERKIN, PLUGIN_SDCPN})
         expanded = fixpoint_expand(
@@ -61,8 +103,19 @@ class BrunchRequestedExtras(unittest.TestCase):
         self.assertEqual(extra_paths_for_requested({TRANSPORT}), [])
         self.assertEqual(extra_paths_for_requested({WEBSITE}), [])
 
+    def test_core_transitive(self) -> None:
+        dependencies = {
+            WEBSITE: frozenset({CORE, TRANSPORT}),
+            TRANSPORT: frozenset(),
+            CORE: frozenset(),
+        }
+        expanded = fixpoint_expand({WEBSITE}, dependencies)
+        self.assertNotIn(APP, expanded)
+        self.assertEqual(extras_for_requested({WEBSITE}), frozenset())
+
+
 class DarwinPrefix(unittest.TestCase):
-    def test_child_crate_still_triggers_the_prefix_family(self) -> None:
+    def test_darwin_child(self) -> None:
         extras = expand_scopes({"@rust/darwin-kperf-sys"})
         self.assertIn("@rust/darwin-kperf-sys", extras)
         self.assertIn("@rust/darwin-kperf-events", extras)

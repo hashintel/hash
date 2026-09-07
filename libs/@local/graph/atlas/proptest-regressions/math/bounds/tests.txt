@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc b54894964c5329778cc97e87e8502fa8a053a5f1b8e1648249cd2ac93e3f7cd4 # shrinks to ScalingAboutTheCentreScalesBothExtentsArgs = ScalingAboutTheCentreScalesBothExtentsArgs { bounds: Bounds2 { min: Vec2([0.0, 0.0]), max: Vec2([851.0668, 1.0]) }, factor: Positive(84.73532) }
+cc f4f2f810cccce55be497d3620fb1200e1cf77e0a252c32dae9a20682c5e4d2e1 # shrinks to AspectRatioContainsTheBoxAndHoldsItsRatioArgs = AspectRatioContainsTheBoxAndHoldsItsRatioArgs { bounds: Bounds2 { min: Vec2([0.0, 0.0]), max: Vec2([356.08014, 722.6388]) }, ratio: Positive(49.636898) }

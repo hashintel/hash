@@ -1,0 +1,299 @@
+//! Training-step machinery for the conditioned projector.
+//!
+//! One training step draws a minibatch over the built artifacts and projects its rows at the step's
+//! relation-lens step. The step then evaluates the composite objective against the detached
+//! coordinates and measures the relation forces per node for the budget diagnostics. Its return
+//! value is one backward-ready scalar whose gradient carries exactly the combined per-node field
+//! through the shared model parameters.
+//!
+//! The step splits along module boundaries: [`batch`] draws the step's populations and re-indexes
+//! them into a batch-local coordinate domain, [`step`] evaluates the objective over the assembled
+//! batch, [`metrics`] accumulates the budget outcomes and the displacement telemetry into the
+//! reporting buckets (overall, per relation type, per relation-degree decile), [`refresh`]
+//! re-measures everything defined over current coordinates at the configured cadence, and
+//! [`mod@fit`] composes them all into the optimization loop with its lens schedule and phase
+//! boundary.
+//!
+//! Every family shares one estimator convention. Each term scales its batch sum so the expectation
+//! stays independent of the batch plan's draw counts, which keeps the loss coefficients' meaning
+//! stable across configurations.
+//!
+//! - Semantic attraction scales by `W / m` (total positive edge weight over drawn pairs), the
+//!   unbiased estimator of the full weighted attraction.
+//! - Ordinary repulsion scales by `W / m` as well, so the ordinary coefficient over the semantic
+//!   one reads directly as the repulsion-to-attraction balance.
+//! - Hard-negative repulsion scales by `N / m` (corpus rows over drawn query rows), the unbiased
+//!   estimator of the pooled mined-frame total.
+//! - Relation attraction scales by `G / g` (total relation groups over drawn groups), the unbiased
+//!   estimator of the capped relation objective. That objective is the specified per-type clipped
+//!   total over the same force-mass population the boundary calibration measures its radius over.
+//!   Changing the per-type factor re-derives both surfaces together, so they move in lockstep by
+//!   contract.
+//! - Support terms scale by their pool size over the drawn count.
+//! - The target objective divides each drawn unit by its full first-order inclusion probability
+//!   under the same draw law and reads against the fixed split-time denominator `W`, the estimator
+//!   contract's own convention rather than the group factor - the intentional divergence its
+//!   derivation registers against the released curriculum.
+
+pub(crate) mod batch;
+pub(crate) mod fit;
+pub(crate) mod metrics;
+pub(crate) mod refresh;
+pub(crate) mod step;
+#[cfg(test)]
+mod tests;
+
+use core::{error::Error, fmt, num::NonZero};
+
+pub(crate) use self::{
+    batch::{NodeColumns, SupportAnchor},
+    fit::{
+        BoundaryEvidence, FitOutcome, FrozenRadius, Model, RefreshFraction, RelationLens,
+        TrainError, TrainOptions, TrainerInputs, TrainingSchedule, fit,
+    },
+};
+#[expect(
+    unused_imports,
+    reason = "the evidence and boundary-fork surfaces await their consumers: training-telemetry \
+              metadata summaries and the checkpoint-fork tuning protocol"
+)]
+pub(crate) use self::{
+    fit::{
+        BoundaryState, ResumePoint, TickTelemetry, TrainingEvidence, fit_from_boundary,
+        fit_to_boundary,
+    },
+    metrics::{BudgetBreakdown, DisplacementHistogram, DisplacementMoments, DisplacementSummary},
+    step::LossBreakdown,
+};
+use crate::{
+    math::{DNonNegative, DPositive, NonNegative, Positive},
+    salt::projector::{
+        budget::Budget,
+        loss::{AffinityEnergy, RelationEnergy, SupportOptions},
+    },
+};
+
+/// The relation-lens steps the trainer schedules, ascending.
+///
+/// The first and last entries are the lens extremes.
+///
+/// This is the training curriculum rather than the published schedule. The lens is a continuous
+/// conditioning input, and these three points (both extremes plus the midpoint) are where the
+/// trainer samples it. The configurable step set lives on the ladder
+/// ([`LadderOptions`](crate::salt::ladder::LadderOptions)), which decides where the fitted model is
+/// *evaluated* for publication. Publication admits any step in `[0, 1]`, independent of the
+/// curriculum.
+pub(crate) const STEPS: [NonNegative; 3] = [
+    NonNegative::ZERO,
+    NonNegative::new(0.5).expect("the midpoint step is finite and non-negative"),
+    NonNegative::ONE,
+];
+
+/// A training step failed.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum StepError<N> {
+    /// The forward pass produced a non-finite coordinate: training diverged at this corpus row.
+    Diverged { row: N },
+}
+
+impl<N> StepError<N> {
+    /// Maps the row the error names into another row domain.
+    pub(crate) fn map_rows<M>(self, row: impl FnOnce(N) -> M) -> StepError<M> {
+        match self {
+            Self::Diverged { row: diverged } => StepError::Diverged { row: row(diverged) },
+        }
+    }
+}
+
+impl<N> fmt::Display for StepError<N>
+where
+    N: fmt::Display,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Diverged { row } => write!(
+                fmt,
+                "training diverged: row {row} projected to a non-finite coordinate",
+            ),
+        }
+    }
+}
+
+impl<N> Error for StepError<N> where N: fmt::Debug + fmt::Display {}
+
+/// Objective coefficients, one per loss family.
+///
+/// The semantic attraction coefficient is strictly positive - the semantic layout is the frame for
+/// every other force, and a run without it has no baseline to measure by - and every other
+/// coefficient is finite and non-negative.
+///
+/// The relation coefficient is the lens-independent factor. The training loop multiplies it by the
+/// step's step, so a zero step contributes nothing regardless of the configured value.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct Coefficients {
+    semantic: Positive,
+    ordinary: NonNegative,
+    hard: NonNegative,
+    relation: NonNegative,
+    anchor: NonNegative,
+    landmark: NonNegative,
+}
+
+impl Coefficients {
+    /// Assembles objective coefficients.
+    #[must_use]
+    pub(crate) const fn new(
+        semantic: Positive,
+        ordinary: NonNegative,
+        hard: NonNegative,
+        relation: NonNegative,
+        anchor: NonNegative,
+        landmark: NonNegative,
+    ) -> Self {
+        Self {
+            semantic,
+            ordinary,
+            hard,
+            relation,
+            anchor,
+            landmark,
+        }
+    }
+
+    /// Returns the semantic attraction coefficient.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn semantic(self) -> Positive {
+        self.semantic
+    }
+
+    /// Returns the ordinary repulsion coefficient.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn ordinary(self) -> NonNegative {
+        self.ordinary
+    }
+
+    /// Returns the hard-negative repulsion coefficient.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn hard(self) -> NonNegative {
+        self.hard
+    }
+
+    /// Returns the lens-independent relation coefficient.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn relation(self) -> NonNegative {
+        self.relation
+    }
+
+    /// Returns the temporal-anchor support coefficient.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn anchor(self) -> NonNegative {
+        self.anchor
+    }
+
+    /// Returns the landmark support coefficient.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn landmark(self) -> NonNegative {
+        self.landmark
+    }
+
+    /// Normalizes the coefficient bases by their objective masses.
+    ///
+    /// Semantic and ordinary by the total semantic edge weight, hard by the corpus row count, and
+    /// each support base by its own pool size. The anchor base divides by the temporal anchor
+    /// pool and the landmark base by the landmark pool.
+    ///
+    /// The relation base passes through, and a pool of zero keeps its base inert rather than
+    /// dividing by nothing. A weightless graph passes every base through unchanged.
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "corpus and pool counts remain exactly representable in f64 far beyond any corpus"
+    )]
+    #[must_use]
+    pub(crate) fn normalized(
+        self,
+        weight: DNonNegative,
+        rows: usize,
+        anchor_pool: usize,
+        landmark_pool: usize,
+    ) -> Self {
+        if weight == DNonNegative::ZERO {
+            return self;
+        }
+
+        let scaled = |base: NonNegative, mass: f64| -> NonNegative {
+            let Some(mass) = DPositive::new(mass) else {
+                return NonNegative::ZERO;
+            };
+
+            base.widen()
+                .checked_div(mass)
+                .expect(
+                    "a normalization quotient overflows only for a mass more than 270 orders \
+                     below its f32-born base, a defect of the weights",
+                )
+                .narrow_lossy()
+        };
+
+        Self::new(
+            Positive::new(scaled(self.semantic.into(), weight.get()).get()).expect(
+                "a quotient leaves the positive domain only for a weight total more than 38 \
+                 orders from its base",
+            ),
+            scaled(self.ordinary, weight.get()),
+            scaled(self.hard, rows as f64),
+            self.relation,
+            scaled(self.anchor, anchor_pool as f64),
+            scaled(self.landmark, landmark_pool as f64),
+        )
+    }
+}
+
+/// The per-step sampling plan, with one draw count per family.
+///
+/// A zero count disables its family for the run. The semantic draw and the relation cap are
+/// structurally positive because a batch without semantic pairs cannot train and a zero cap would
+/// admit no edges from a selected type.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct BatchPlan {
+    /// Semantic positive pairs per step, drawn weight-proportionally.
+    pub semantic_pairs: NonZero<usize>,
+    /// Ordinary negative pairs per step, drawn uniformly past the vetoes.
+    pub ordinary_pairs: usize,
+    /// Relation types per step, drawn uniformly without replacement.
+    pub relation_types: usize,
+    /// Distinct attraction edges each drawn type contributes at most.
+    pub relation_cap: NonZero<usize>,
+    /// Query rows per step whose pooled mined pairs enter the batch.
+    pub hard_queries: usize,
+    /// Landmark anchors per step, drawn uniformly from the skeleton.
+    pub landmark_anchors: usize,
+    /// Temporal anchors per step, drawn uniformly from the retained set.
+    pub temporal_anchors: usize,
+}
+
+/// The step objective's numerical contract.
+///
+/// Every field is a validated value. The struct is plain wiring. The relation energy is absent
+/// exactly while the run has no frozen Proximal radius - the opening semantic-only segment - and
+/// the loop supplies it when the ladder opens.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct ObjectiveOptions {
+    /// The semantic affinity energy shared by attraction and both repulsion families.
+    pub affinity: AffinityEnergy,
+    /// The relation class-mixture energy.
+    ///
+    /// [`None`] before the boundary freezes the Proximal radius.
+    pub relation: Option<RelationEnergy>,
+    /// The support-term constants shared by anchors and landmarks.
+    pub support: SupportOptions,
+    /// The per-node relation-gradient diagnostics' baseline convention.
+    pub budget: Budget,
+    /// The objective coefficients.
+    pub coefficients: Coefficients,
+}
