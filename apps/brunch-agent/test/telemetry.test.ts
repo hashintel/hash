@@ -1,15 +1,31 @@
 import { createOpenTelemetryInstrumentation } from "@flue/opentelemetry";
-import { metrics, trace } from "@opentelemetry/api";
-import { logs } from "@opentelemetry/api-logs";
-import { expect, test, vi } from "vitest";
+import {
+  type Span,
+  type SpanOptions,
+  trace,
+  type TracerProvider,
+} from "@opentelemetry/api";
+import { afterEach, expect, test, vi } from "vitest";
 
 import {
-  type BrunchOpenTelemetrySetup,
-  createBrunchHttpInstrumentation,
   createBrunchTelemetryInstrumentation,
-  createBrunchUndiciInstrumentation,
+  errorCode,
   recordOperationalFailure,
 } from "../src/telemetry.ts";
+
+import type {
+  OpenTelemetrySetup,
+  registerOpenTelemetry,
+} from "@local/hash-backend-utils/opentelemetry";
+
+const collectorEndpoint = "http://collector.test:4317";
+
+const setupWith = (shutdown: () => Promise<void>): OpenTelemetrySetup =>
+  ({ endpoint: collectorEndpoint, shutdown }) as unknown as OpenTelemetrySetup;
+
+afterEach(() => {
+  trace.disable();
+});
 
 test("production requires a HASH collector endpoint", () => {
   expect(() =>
@@ -17,185 +33,142 @@ test("production requires a HASH collector endpoint", () => {
   ).toThrow("HASH_OTLP_ENDPOINT");
 });
 
-test("keeps Flue content disabled and flushes exporters after Flue disposal", async () => {
+test("registers HASH's exporters before Flue and shuts them down after it", async () => {
   const order: string[] = [];
   const flueInstrumentation = createOpenTelemetryInstrumentation({
     content: false,
   });
   const createFlueInstrumentation = vi.fn<
     typeof createOpenTelemetryInstrumentation
-  >(() => ({
-    ...flueInstrumentation,
-    dispose: () => {
-      order.push("flue");
-    },
-  }));
-  const setup = {
-    endpoint: "http://collector.test:4317",
-    forceFlush: async () => undefined,
-    logger: logs.getLogger("brunch-test"),
-    meter: metrics.getMeter("brunch-test"),
-    shutdown: async () => {
-      order.push("sdk");
-    },
-    tracer: trace.getTracer("brunch-test"),
-  } satisfies BrunchOpenTelemetrySetup & { endpoint: string };
-  const registerHashOpenTelemetry = vi.fn<
-    (input: {
-      endpoint: string;
-      serviceName: string;
-    }) => BrunchOpenTelemetrySetup
-  >(() => setup);
+  >(() => {
+    order.push("flue-created");
+    return {
+      ...flueInstrumentation,
+      dispose: () => {
+        order.push("flue-disposed");
+      },
+    };
+  });
+  const register = vi.fn<typeof registerOpenTelemetry>(() => {
+    order.push("exporters-registered");
+    return setupWith(async () => {
+      order.push("exporters-shutdown");
+    });
+  });
 
   const instrumentation = createBrunchTelemetryInstrumentation(
     {
-      HASH_OTLP_ENDPOINT: setup.endpoint,
+      HASH_OTLP_ENDPOINT: collectorEndpoint,
       NODE_ENV: "production",
       OTEL_SERVICE_NAME: "Brunch Test",
     },
-    {
-      createFlueInstrumentation,
-      registerHashOpenTelemetry,
-    },
+    { createFlueInstrumentation, registerOpenTelemetry: register },
   );
   await instrumentation.dispose();
 
-  expect(createFlueInstrumentation).toHaveBeenCalledWith({
-    content: false,
-    logger: setup.logger,
-    meter: setup.meter,
-    tracer: setup.tracer,
+  expect(createFlueInstrumentation).toHaveBeenCalledWith({ content: false });
+  expect(register).toHaveBeenCalledWith({
+    endpoint: collectorEndpoint,
+    serviceName: "Brunch Test",
+    instrumentations: [expect.anything(), expect.anything()],
   });
-  expect(registerHashOpenTelemetry).toHaveBeenCalledWith(
-    expect.objectContaining({
-      endpoint: setup.endpoint,
-      serviceName: "Brunch Test",
-    }),
-  );
-  expect(order).toEqual(["flue", "sdk"]);
+  expect(order).toEqual([
+    "exporters-registered",
+    "flue-created",
+    "flue-disposed",
+    "exporters-shutdown",
+  ]);
 });
 
 test("trims collector configuration supplied through the environment", async () => {
-  const flueInstrumentation = createOpenTelemetryInstrumentation({
-    content: false,
-  });
-  const setup = {
-    forceFlush: async () => undefined,
-    logger: logs.getLogger("brunch-test"),
-    meter: metrics.getMeter("brunch-test"),
-    shutdown: async () => undefined,
-    tracer: trace.getTracer("brunch-test"),
-  } satisfies BrunchOpenTelemetrySetup;
-  const registerHashOpenTelemetry = vi.fn<
-    (input: {
-      endpoint: string;
-      serviceName: string;
-    }) => BrunchOpenTelemetrySetup
-  >(() => setup);
+  const register = vi.fn<typeof registerOpenTelemetry>(() =>
+    setupWith(async () => undefined),
+  );
 
   const instrumentation = createBrunchTelemetryInstrumentation(
     {
-      HASH_OTLP_ENDPOINT: " http://collector.test:4317\n",
+      HASH_OTLP_ENDPOINT: ` ${collectorEndpoint}\n`,
       NODE_ENV: "production",
       OTEL_SERVICE_NAME: " Brunch Test\n",
     },
     {
-      createFlueInstrumentation: () => flueInstrumentation,
-      registerHashOpenTelemetry,
+      createFlueInstrumentation: () =>
+        createOpenTelemetryInstrumentation({ content: false }),
+      registerOpenTelemetry: register,
     },
   );
   await instrumentation.dispose();
 
-  expect(registerHashOpenTelemetry).toHaveBeenCalledWith({
-    endpoint: "http://collector.test:4317",
-    serviceName: "Brunch Test",
-  });
+  expect(register).toHaveBeenCalledWith(
+    expect.objectContaining({
+      endpoint: collectorEndpoint,
+      serviceName: "Brunch Test",
+    }),
+  );
 });
 
-test("flushes startup failures without blocking database operations", async () => {
-  const forceFlush = vi.fn<() => Promise<void>>(async () => undefined);
-  const flueInstrumentation = createOpenTelemetryInstrumentation({
-    content: false,
-  });
-  const setup = {
-    forceFlush,
-    logger: logs.getLogger("brunch-test"),
-    meter: metrics.getMeter("brunch-test"),
-    shutdown: async () => undefined,
-    tracer: trace.getTracer("brunch-test"),
-  } satisfies BrunchOpenTelemetrySetup;
+test("runs without exporters when no collector is configured outside production", async () => {
+  const register = vi.fn<typeof registerOpenTelemetry>();
+
   const instrumentation = createBrunchTelemetryInstrumentation(
+    { NODE_ENV: "test" },
     {
-      HASH_OTLP_ENDPOINT: "http://collector.test:4317",
-      NODE_ENV: "production",
-    },
-    {
-      createFlueInstrumentation: () => flueInstrumentation,
-      registerHashOpenTelemetry: () => setup,
+      createFlueInstrumentation: () =>
+        createOpenTelemetryInstrumentation({ content: false }),
+      registerOpenTelemetry: register,
     },
   );
+  await instrumentation.dispose();
 
-  await recordOperationalFailure("database_operation", new Error("query"));
-  expect(forceFlush).not.toHaveBeenCalled();
+  expect(register).not.toHaveBeenCalled();
+});
 
+test("records failures by error code, never by message", async () => {
+  const recorded: (SpanOptions | undefined)[] = [];
+  const span = {
+    end: vi.fn<Span["end"]>(),
+    setStatus: vi.fn<Span["setStatus"]>(),
+  } as unknown as Span;
+  const provider = {
+    getTracer: () => ({
+      startSpan: (_name: string, options?: SpanOptions) => {
+        recorded.push(options);
+        return span;
+      },
+    }),
+  } as unknown as TracerProvider;
+  trace.setGlobalTracerProvider(provider);
+
+  const refused = Object.assign(new Error("connect ECONNREFUSED 10.0.0.1"), {
+    code: "ECONNREFUSED",
+  });
+  await recordOperationalFailure("database_operation", refused);
   await recordOperationalFailure(
     "database_configuration",
-    new Error("startup"),
+    new TypeError("BRUNCH_POSTGRES_PORT must be an integer"),
   );
-  expect(forceFlush).toHaveBeenCalledOnce();
 
-  await instrumentation.dispose();
+  expect(recorded.map((options) => options?.attributes)).toEqual([
+    {
+      "brunch.failure.stage": "database_operation",
+      "error.type": "ECONNREFUSED",
+    },
+    {
+      "brunch.failure.stage": "database_configuration",
+      "error.type": "TypeError",
+    },
+  ]);
+  expect(JSON.stringify(recorded)).not.toContain("10.0.0.1");
+  expect(JSON.stringify(recorded)).not.toContain("BRUNCH_POSTGRES_PORT");
 });
 
-test("excludes health probes and collector traffic from HTTP telemetry", () => {
-  const httpConfig = createBrunchHttpInstrumentation(
-    "http://collector.test:4317",
-  ).getConfig();
-  const ignoreIncoming = httpConfig.ignoreIncomingRequestHook;
-  const ignoreOutgoing = httpConfig.ignoreOutgoingRequestHook;
-  if (!ignoreIncoming || !ignoreOutgoing) {
-    throw new Error("Brunch HTTP telemetry filters must be configured.");
-  }
-
-  expect(
-    ignoreIncoming({
-      url: "/health?source=ecs",
-    } as Parameters<typeof ignoreIncoming>[0]),
-  ).toBe(true);
-  expect(
-    ignoreIncoming({
-      url: "/api/chat",
-    } as Parameters<typeof ignoreIncoming>[0]),
-  ).toBe(false);
-  expect(
-    ignoreOutgoing({
-      port: "4317",
-    } as Parameters<typeof ignoreOutgoing>[0]),
-  ).toBe(true);
-  expect(
-    ignoreOutgoing({
-      port: 443,
-    } as Parameters<typeof ignoreOutgoing>[0]),
-  ).toBe(false);
-});
-
-test("excludes collector fetches without suppressing ordinary HTTPS", () => {
-  const undiciConfig = createBrunchUndiciInstrumentation(
-    "http://collector.test:4317",
-  ).getConfig();
-  const ignoreRequest = undiciConfig.ignoreRequestHook;
-  if (!ignoreRequest) {
-    throw new Error("Brunch Undici telemetry filter must be configured.");
-  }
-
-  expect(
-    ignoreRequest({
-      origin: "http://collector.test:4317",
-    } as Parameters<typeof ignoreRequest>[0]),
-  ).toBe(true);
-  expect(
-    ignoreRequest({
-      origin: "https://api.anthropic.com",
-    } as Parameters<typeof ignoreRequest>[0]),
-  ).toBe(false);
+test("reads machine codes from Node, TLS, and pg errors only", () => {
+  expect(errorCode(Object.assign(new Error("x"), { code: "28000" }))).toBe(
+    "28000",
+  );
+  expect(errorCode(Object.assign(new Error("x"), { code: 42 }))).toBe(
+    undefined,
+  );
+  expect(errorCode(new Error("x"))).toBe(undefined);
+  expect(errorCode("not an error")).toBe(undefined);
 });

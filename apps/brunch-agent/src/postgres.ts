@@ -7,7 +7,7 @@ import {
   type PostgresDatabaseConfig,
   POSTGRES_ENV,
 } from "./database-config.ts";
-import { recordOperationalFailure } from "./telemetry.ts";
+import { errorCode, recordOperationalFailure } from "./telemetry.ts";
 
 import type { PostgresParameter, PostgresRunner } from "@flue/postgres";
 import type { PoolConfig } from "pg";
@@ -41,6 +41,9 @@ interface ConnectionOptions {
 }
 
 export const POSTGRES_CONNECTION_TIMEOUT_MS = 10_000;
+// Bounds a query on a connection that died without a reset; otherwise the
+// client stays checked out and `pool.end()` never resolves.
+export const POSTGRES_QUERY_TIMEOUT_MS = 30_000;
 
 const defaultSignerFactory: NonNullable<ConnectionOptions["signerFactory"]> = (
   config,
@@ -72,13 +75,20 @@ export function createPostgresPoolConfig(
     ((path: string) => {
       try {
         return readFileSync(path, "utf8");
-      } catch {
-        throw new Error(`Unable to read ${POSTGRES_ENV.tlsCaPath}.`);
+      } catch (error) {
+        // The code (ENOENT, EACCES, EISDIR) is enough to act on; the path
+        // stays out of the message and out of the logs.
+        throw new Error(
+          `Unable to read ${POSTGRES_ENV.tlsCaPath} (${errorCode(error) ?? "unknown"}).`,
+          { cause: error },
+        );
       }
     });
   const common: PoolConfig = {
     application_name: "brunch-agent",
     connectionTimeoutMillis: POSTGRES_CONNECTION_TIMEOUT_MS,
+    query_timeout: POSTGRES_QUERY_TIMEOUT_MS,
+    statement_timeout: POSTGRES_QUERY_TIMEOUT_MS,
     database: config.database,
     host: config.host,
     port: config.port,
@@ -115,8 +125,18 @@ export const createPostgresPool = (
 ): Pool => {
   const pool = new Pool(createPostgresPoolConfig(config, options));
   pool.on("error", (error) => {
-    options?.onPoolError?.(error);
-    if (options?.onPoolError === undefined) void reportDatabaseFailure(error);
+    if (options?.onPoolError) {
+      options.onPoolError(error);
+      return;
+    }
+    // Idle clients fail outside any request, so nothing else reports this;
+    // stderr keeps it visible even while the collector is unreachable.
+    // eslint-disable-next-line no-console
+    console.error(
+      "[brunch] postgres pool error:",
+      errorCode(error) ?? error.name,
+    );
+    void reportDatabaseFailure(error);
   });
   return pool;
 };
@@ -165,8 +185,9 @@ export function createPostgresRunnerFromPool(
           try {
             await client.query("ROLLBACK");
           } catch (rollbackError) {
-            client.release(true);
+            const failedClient = client;
             client = undefined;
+            failedClient.release(true);
             failure = new AggregateError(
               [error, rollbackError],
               "Postgres transaction and rollback both failed.",
@@ -180,10 +201,19 @@ export function createPostgresRunnerFromPool(
       }
     },
     close: async () => {
-      const results = await Promise.allSettled([pool.end(), afterClose?.()]);
-      const failures = results.flatMap((result) =>
-        result.status === "rejected" ? [result.reason as unknown] : [],
-      );
+      // Drain the pool before the telemetry providers go away, so the last
+      // database spans are still exported.
+      const failures: unknown[] = [];
+      try {
+        await pool.end();
+      } catch (error) {
+        failures.push(error);
+      }
+      try {
+        await afterClose?.();
+      } catch (error) {
+        failures.push(error);
+      }
       if (failures.length > 0) {
         throw new AggregateError(
           failures,

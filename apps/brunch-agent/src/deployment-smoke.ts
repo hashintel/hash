@@ -26,13 +26,13 @@ const headers = new Headers({
   "x-brunch-principal": principal,
   "x-request-id": requestId,
 });
-const bearerToken = process.env.BRUNCH_SMOKE_BEARER_TOKEN;
-if (bearerToken) headers.set("authorization", `Bearer ${bearerToken}`);
+// A streamed turn legitimately takes tens of seconds; a hung server must still fail the smoke.
+const requestTimeout = () => AbortSignal.timeout(120_000);
 
 if (mode === "history") {
   const response = await fetch(
     `${baseUrl}/api/chat?id=${encodeURIComponent(conversationId)}`,
-    { headers },
+    { headers, signal: requestTimeout() },
   );
   if (!response.ok) {
     throw new Error(`History request failed with HTTP ${response.status}.`);
@@ -52,6 +52,7 @@ if (mode === "history") {
   const response = await fetch(`${baseUrl}/api/chat`, {
     method: "POST",
     headers,
+    signal: requestTimeout(),
     body: JSON.stringify({
       id: conversationId,
       messages: [

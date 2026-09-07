@@ -21,9 +21,11 @@ const collectorConfig = join(temporaryDirectory, "otel-collector.yaml");
 const run = async (
   executable: string,
   arguments_: readonly string[],
+  options: { readonly timeout?: number } = {},
 ): Promise<{ stderr: string; stdout: string }> =>
   executeFile(executable, [...arguments_], {
     maxBuffer: 10 * 1024 * 1024,
+    ...options,
   });
 
 const removeContainer = async (name: string): Promise<void> => {
@@ -256,17 +258,23 @@ service:
 
   let refusalOutput = "";
   try {
-    await run("docker", [
-      "run",
-      "--rm",
-      "--network",
-      network,
-      "--env",
-      "NODE_ENV=production",
-      "--env",
-      `HASH_OTLP_ENDPOINT=http://${collectorContainer}:4317`,
-      "brunch-agent",
-    ]);
+    // An image that starts without database configuration would serve
+    // forever; the timeout turns that regression into a failure.
+    await run(
+      "docker",
+      [
+        "run",
+        "--rm",
+        "--network",
+        network,
+        "--env",
+        "NODE_ENV=production",
+        "--env",
+        `HASH_OTLP_ENDPOINT=http://${collectorContainer}:4317`,
+        "brunch-agent",
+      ],
+      { timeout: 60_000 },
+    );
     throw new Error("Image started without required database configuration.");
   } catch (error) {
     refusalOutput =

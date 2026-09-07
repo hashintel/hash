@@ -59,6 +59,9 @@ FROM tools AS runner
 
 ENV NODE_ENV=production
 ENV PORT=3002
+# RDS server certificates chain to Amazon's private CAs, which the system trust store does not carry.
+ENV BRUNCH_POSTGRES_TLS_CA_PATH=/etc/ssl/certs/rds-global-bundle.pem
+ADD --chmod=0444 https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /etc/ssl/certs/rds-global-bundle.pem
 
 WORKDIR /repo/apps/brunch-agent
 

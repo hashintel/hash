@@ -59,6 +59,7 @@ export const validateUiMessageStream = async (
   }
 
   let finished = false;
+  let sawText = false;
   for (const line of encodedStream.split(/\r?\n/u)) {
     if (!line.startsWith("data: ")) continue;
     const data = line.slice("data: ".length);
@@ -68,10 +69,14 @@ export const validateUiMessageStream = async (
       throw new Error(`Streamed turn ended with ${event.type}.`);
     }
     if (event.type === "finish") finished = true;
+    if (event.type === "text-delta") sawText = true;
   }
 
   if (!finished) {
     throw new Error("Streamed turn completed without a finish event.");
+  }
+  if (!sawText) {
+    throw new Error("Streamed turn finished without any assistant text.");
   }
   return { bytes, chunks };
 };

@@ -8,7 +8,13 @@
  * Returns a teardown function that must run during graceful shutdown so
  * pending spans / log records / metric points are flushed before exit.
  */
-import { metrics, SpanStatusCode } from "@opentelemetry/api";
+import {
+  diag,
+  DiagConsoleLogger,
+  DiagLogLevel,
+  metrics,
+  SpanStatusCode,
+} from "@opentelemetry/api";
 import { logs } from "@opentelemetry/api-logs";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-grpc";
@@ -353,6 +359,10 @@ export const registerOpenTelemetry = ({
     );
     return undefined;
   }
+
+  // Without a diagnostic logger the SDK routes export failures to a no-op
+  // handler, so a collector outage would leave no trace on stderr.
+  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.WARN);
 
   const collectorOptions = {
     timeoutMillis: traceTimeoutMs,
