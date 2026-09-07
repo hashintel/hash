@@ -99,3 +99,7 @@ export {
 export type { Item, ItemOrGroup } from "./util/SelectableList/selectable-list";
 export { useAvoidScrollWidthChange } from "./util/use-avoid-scroll-width-change";
 export { useScrollLock } from "./util/use-scroll-lock";
+export {
+  applyScrollbarBehavior,
+  useScrollbarBehavior,
+} from "./util/use-scrollbar-behavior";

@@ -1,5 +1,7 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
+import { thinScrollbar } from "../css-mixins";
+
 import type { FormInputSize } from "../form-shared";
 
 export const styles = sva({
@@ -36,6 +38,7 @@ export const styles = sva({
       outline: "0",
       maxHeight: "[var(--available-height)]",
       overflowY: "auto",
+      ...thinScrollbar,
       color: "fg.heading",
       minWidth: "[140px]",
       zIndex: "popover",
@@ -92,6 +95,7 @@ export const styles = sva({
       // to the outer content instead.
       minHeight: "[min(200px, var(--selectable-list-items-height, 0px))]",
       overflowY: "auto",
+      ...thinScrollbar,
       "& > *": {
         flexShrink: "0",
       },

@@ -51,7 +51,6 @@ const rowsStyle = css({
   display: "flex",
   flexDirection: "column",
   overflowY: "auto",
-  scrollbarWidth: "[thin]",
   minHeight: "[0]",
 });
 

@@ -19,7 +19,6 @@ const stepsStyle = css({
 
 const scrollStyle = css({
   overflowY: "auto",
-  scrollbarWidth: "[thin]",
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",

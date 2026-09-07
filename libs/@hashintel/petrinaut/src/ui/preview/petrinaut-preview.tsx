@@ -17,7 +17,12 @@ import {
   type FunctionComponent,
 } from "react";
 
-import { Button, Icon, PortalContainerContext } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  PortalContainerContext,
+  useScrollbarBehavior,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   createJsonDocHandle,
@@ -249,6 +254,10 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
   );
 
   useEffect(() => () => instance.dispose(), [instance]);
+
+  // As the `.petrinaut-root` theme-scope root, set up the design system's
+  // scrollbar runtime behavior once on mount.
+  useScrollbarBehavior();
 
   /**
    * `handle` is rebuilt whenever the host swaps the model, while `handle.id`

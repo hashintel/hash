@@ -2,6 +2,10 @@ import { defineGlobalStyles, definePreset } from "@pandacss/dev";
 import pandaPreset from "@pandacss/preset-panda";
 
 import { documentSurfaceStyles, fontPipelineCssVars } from "./preset/document";
+import {
+  createScrollbarGlobalCss,
+  scrollbarPropertyRegistration,
+} from "./preset/scrollbars";
 import { semanticTokens, tokens } from "./preset/tokens";
 
 export type PresetOptions = {
@@ -21,6 +25,13 @@ export type PresetOptions = {
  *
  * Without arguments it behaves identically to the default export (document-level
  * global styles). Pass `{ scope }` to target a subtree instead.
+ *
+ * The preset's scrollbar styling (see `preset/scrollbars.ts`) auto-hides
+ * thumbs until the container is hovered or scrolled. CSS can detect neither
+ * the OS "always show scrollbars" setting nor scroll activity, so the
+ * consuming app must call `applyScrollbarBehavior` (exported from
+ * `@hashintel/ds-components`) once from the component rendering the theme
+ * scope root, as Petrinaut's editor and preview roots do.
  */
 export function createPreset(options?: PresetOptions) {
   const scope = options?.scope;
@@ -41,6 +52,8 @@ export function createPreset(options?: PresetOptions) {
     name: "@hashintel/ds-components/preset",
     globalCss: defineGlobalStyles({
       [surfaceSelector]: surfaceStyles,
+      ...scrollbarPropertyRegistration,
+      ...createScrollbarGlobalCss(scope),
     }),
     conditions: {
       extend: {

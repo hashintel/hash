@@ -4,7 +4,10 @@ import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
 import { type FunctionComponent, useEffect, useMemo, useRef } from "react";
 
-import { PortalContainerContext } from "@hashintel/ds-components";
+import {
+  PortalContainerContext,
+  useScrollbarBehavior,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   createPetrinaut,
@@ -230,6 +233,10 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   navigation,
   presentationProfile = "editor",
 }) => {
+  // As the `.petrinaut-root` theme-scope root, set up the design system's
+  // scrollbar runtime behavior once on mount.
+  useScrollbarBehavior();
+
   const titleEditable = setTitle !== undefined;
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
