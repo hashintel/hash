@@ -25,7 +25,7 @@ export const styles = sva({
       padding: "[calc(var(--toggle-padding) + 1px)]",
       borderRadius: "full",
       boxShadow:
-        "[inset 0 2px 4px rgba(0, 0, 0, 0.05), inset 0 0 0 1px var(--colors-black-a10)]",
+        "[inset 0 2px 4px rgba(0, 0, 0, 0.03), inset 0 0 0 1px var(--colors-black-a05)]",
       outlineColor: "black.a40",
       transition:
         "[background-color 0.15s ease, outline 0.15s ease, box-shadow 0.15s ease]",
@@ -155,7 +155,7 @@ export const styles = sva({
             backgroundColor: "blue.s85",
           },
           "&[data-state='checked']:hover:not([data-disabled])": {
-            backgroundColor: "blue.s75",
+            backgroundColor: "blue.s80",
           },
           "&[data-disabled][data-state='checked']": {
             backgroundColor: "blue.s55 !important",
@@ -168,7 +168,7 @@ export const styles = sva({
             backgroundColor: "green.s80",
           },
           "&[data-state='checked']:hover:not([data-disabled])": {
-            backgroundColor: "green.s70",
+            backgroundColor: "green.s75",
           },
           "&[data-disabled][data-state='checked']": {
             backgroundColor: "green.s55 !important",
@@ -180,26 +180,26 @@ export const styles = sva({
       neutral: {
         control: {
           "&[data-state='unchecked']": {
-            backgroundColor: "neutral.s30",
+            backgroundColor: "neutral.s60",
           },
           "&[data-state='unchecked']:hover:not([data-disabled])": {
-            backgroundColor: "neutral.s40",
+            backgroundColor: "neutral.s65",
           },
           "&[data-disabled][data-state='unchecked']": {
-            backgroundColor: "neutral.s30 !important",
+            backgroundColor: "neutral.s35 !important",
           },
         },
       },
       error: {
         control: {
           "&[data-state='unchecked']": {
-            backgroundColor: "red.s40",
+            backgroundColor: "red.s60",
           },
           "&[data-state='unchecked']:hover:not([data-disabled])": {
-            backgroundColor: "red.s50",
+            backgroundColor: "red.s65",
           },
           "&[data-disabled][data-state='unchecked']": {
-            backgroundColor: "red.s30 !important",
+            backgroundColor: "red.s35 !important",
           },
         },
       },
@@ -208,7 +208,7 @@ export const styles = sva({
       true: {
         control: {
           boxShadow:
-            "[0 0 0 1px var(--colors-red-s70), inset 0 2px 4px rgba(0, 0, 0, 0.05)]",
+            "[0 0 0 1px var(--colors-red-s70), inset 0 2px 4px rgba(0, 0, 0, 0.03)]",
           "&::after": {
             content: '""',
             position: "absolute",
