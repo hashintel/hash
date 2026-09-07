@@ -6,14 +6,14 @@
   ],
   "tasks": {
     "build": [
-      "@local/hash-graph-authorization#codegen"
+      "codegen"
     ],
     "codegen": [
       "@blockprotocol/type-system#build",
       "@rust/hash-graph-authorization#build:types"
     ],
     "lint:tsc": [
-      "@local/hash-graph-authorization#codegen"
+      "codegen"
     ]
   }
 }

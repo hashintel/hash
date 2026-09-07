@@ -11,7 +11,7 @@
     "lint:types": [],
     "test:unit": [
       "@hashintel/petrinaut-cli#build",
-      "@local/petrinaut-python#codegen"
+      "codegen"
     ]
   }
 }

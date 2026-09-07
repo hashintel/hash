@@ -11,20 +11,20 @@
       "@hashintel/petrinaut-core#build"
     ],
     "fix:eslint": [
-      "@hashintel/petrinaut-cli#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:eslint": [
-      "@hashintel/petrinaut-cli#codegen",
-      "@local/eslint#build"
+      "@local/eslint#build",
+      "codegen"
     ],
     "lint:tsc": [
-      "@hashintel/petrinaut-cli#codegen"
+      "codegen"
     ],
     "test:unit": [
-      "@hashintel/petrinaut-cli#build",
-      "@hashintel/petrinaut-cli#codegen",
-      "@hashintel/petrinaut-core#build"
+      "@hashintel/petrinaut-core#build",
+      "build",
+      "codegen"
     ]
   }
 }

@@ -34,14 +34,14 @@
     ],
     "fix:eslint": [
       "@local/eslint#build",
-      "@tests/hash-playwright#codegen"
+      "codegen"
     ],
     "lint:eslint": [
       "@local/eslint#build",
-      "@tests/hash-playwright#codegen"
+      "codegen"
     ],
     "lint:tsc": [
-      "@tests/hash-playwright#codegen"
+      "codegen"
     ],
     "test:integration": [
       "@apps/hash-api#start:test:healthcheck",

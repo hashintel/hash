@@ -10,11 +10,11 @@
     "lint:ruff": [],
     "lint:types": [],
     "start": [
-      "@apps/petrinaut-opt#codegen"
+      "codegen"
     ],
     "test:unit": [
-      "@apps/petrinaut-opt#codegen",
-      "@local/petrinaut-python#codegen"
+      "@local/petrinaut-python#codegen",
+      "codegen"
     ]
   }
 }
