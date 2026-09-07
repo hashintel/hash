@@ -549,7 +549,11 @@ export class VoiceTurnController {
       this.#recordLatency("question-visible", question.id);
     }
     this.#bridge.updateChat(update);
-    if (this.#snapshot.input === "paused") {
+    if (
+      this.#snapshot.input === "paused" &&
+      (this.#activeSpeechResponseId !== null ||
+        this.#pendingSpeechRequestIds.size > 0)
+    ) {
       void this.#cancelOutput();
     }
   }
@@ -867,6 +871,9 @@ export class VoiceTurnController {
   }
 
   #cancelOutput(): Promise<void> {
+    if (this.#outputCancellationPromise) {
+      return this.#outputCancellationPromise;
+    }
     const cancellationPromise = this.#session.cancelOutput();
     this.#outputCancellationPromise = cancellationPromise;
     this.#update({});

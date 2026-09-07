@@ -1452,7 +1452,7 @@ describe("VoiceTurnController", () => {
       microphoneEnabled: false,
       output: "interrupted",
     });
-    expect(harness.session.cancelOutput).toHaveBeenCalledTimes(2);
+    expect(harness.session.cancelOutput).toHaveBeenCalledOnce();
 
     await harness.controller.resume();
     expect(harness.controller.getSnapshot()).toMatchObject({
@@ -1628,6 +1628,37 @@ describe("VoiceTurnController", () => {
     });
   });
 
+  test("reuses pending output cancellation across paused chat updates", async () => {
+    const harness = createHarness();
+    let finishCancellation: (() => void) | undefined;
+    harness.session.cancelOutput.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finishCancellation = resolve;
+        }),
+    );
+    await harness.controller.start();
+    harness.controller.pause();
+    const listener = vi.fn();
+    harness.controller.subscribe(listener);
+    const update = {
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      status: "ready" as const,
+    };
+
+    harness.controller.updateChat(update);
+    harness.controller.updateChat(update);
+
+    expect(harness.session.cancelOutput).toHaveBeenCalledOnce();
+    expect(listener).not.toHaveBeenCalled();
+
+    finishCancellation?.();
+    await vi.waitFor(() =>
+      expect(harness.bridge.completeTurnHandoff).toHaveBeenCalledOnce(),
+    );
+  });
+
   test("mutes capture without interrupting what the interviewer is saying", async () => {
     const harness = createHarness();
     await harness.controller.start();
@@ -1707,7 +1738,7 @@ describe("VoiceTurnController", () => {
     });
   });
 
-  test("cancels output that starts while paused without exposing speaking", async () => {
+  test("keeps pending cancellation when output starts while paused", async () => {
     const harness = createHarness();
     await harness.controller.start();
     harness.controller.pause();
@@ -1722,7 +1753,7 @@ describe("VoiceTurnController", () => {
       type: "output-started",
     });
 
-    expect(harness.session.cancelOutput).toHaveBeenCalledOnce();
+    expect(harness.session.cancelOutput).not.toHaveBeenCalled();
     expect(observedOutputs).not.toContain("speaking");
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "paused",
