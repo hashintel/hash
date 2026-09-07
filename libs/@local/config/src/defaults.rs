@@ -23,7 +23,7 @@ where
     fn metadata(&self) -> Metadata {
         let mut metadata = self.0.metadata();
         // `Serialized` names itself after the Rust type it was handed.
-        metadata.name = "defaults".into();
+        metadata.name = "programmatic defaults".into();
         // Figment's default notation prefixes the profile a key was found under.
         metadata.interpolater(|_profile, keys| keys.join("."))
     }

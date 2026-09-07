@@ -4,4 +4,4 @@ expression: rendered
 ---
 the configuration could not be loaded
 ├╴at libs/@local/config/tests/files.rs:[line]:[column]
-╰╴invalid type: found string, expected u16 at `store.port` in `config.toml`
+╰╴invalid type: found string, expected u16 at `store.port` in `base.toml`
