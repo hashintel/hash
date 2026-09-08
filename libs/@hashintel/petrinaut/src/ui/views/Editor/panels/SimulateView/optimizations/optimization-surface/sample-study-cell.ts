@@ -10,9 +10,10 @@ import type { OptimizationRecord } from "../../../../../../../react/optimization
 import type { OptimizationSurfaceAxis } from "../../../../../../../react/optimizations/surface-grid";
 
 /**
- * Per position tuple, the promise of a cell's deepest merged result. A cell's
- * entry is a promise so the walk and a selected point's refinement queue
- * behind each other instead of both sampling from the same run index.
+ * Per axis pair, position tuple and slice, the promise of a cell's deepest
+ * merged result. A cell's entry is a promise so the walk and a selected
+ * point's refinement queue behind each other instead of both sampling from
+ * the same run index.
  */
 export type StudyCellCache = Map<string, Promise<SweepCellSnapshot | null>>;
 
@@ -80,7 +81,9 @@ export const sampleStudyCell = async (options: {
     values[axis.identifier] = optimizationAxisValueAt(axis, position);
   }
 
-  const key = `${slice}|x=${xPosition}|y=${yPosition}`;
+  // The axes are part of the key: swapping X and Y keeps the positions and the
+  // slice while every value moves to the other parameter.
+  const key = `${xAxisId}=${xPosition}|${yAxisId}=${yPosition}|${slice}`;
   const pending = cache.get(key);
   const settled = (async (): Promise<SweepCellSnapshot | null> => {
     const cached = await pending;

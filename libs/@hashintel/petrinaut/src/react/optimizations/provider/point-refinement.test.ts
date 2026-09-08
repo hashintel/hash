@@ -287,6 +287,22 @@ describe("createPointRefinement", () => {
     refinement.refine(target("a", 0.05));
     expect(fake.runs).toHaveLength(2);
     expect(latest()).toMatchObject({ key: "a", note: cannotBeatBestNote(8) });
+
+    // Once the point is the best (a later trial landed on it), the verdict
+    // no longer applies: the ladder resumes from the cached rung.
+    refinement.refine(target("a", 0.05, true));
+    expect(fake.runs).toHaveLength(3);
+    expect(fake.runs[2]!.request).toMatchObject({
+      seed: deriveRunSeed(study.seed, 8),
+      runCount: 17,
+    });
+    expect(latest()).toMatchObject({
+      key: "a",
+      runsCompleted: 8,
+      runTarget: 25,
+      computing: true,
+      note: null,
+    });
   });
 
   it("keeps climbing at a point that might beat the best, and at the best trial's own point", async () => {

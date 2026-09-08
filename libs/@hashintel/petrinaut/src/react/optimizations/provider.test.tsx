@@ -1631,4 +1631,53 @@ describe("OptimizationsProvider lifecycle of a connected study", () => {
       connected: { resumable: true },
     });
   });
+  it("cancels a connected study stopped before its run has an id, once creation resolves", async () => {
+    const calls = { cancel: [] as string[], attach: 0 };
+    let resolveCreation: (value: { runId: string }) => void = () => {};
+    const source: PetrinautConnectedOptimization = {
+      kind: "connected",
+      connect: () => ({
+        createOptimizationRun: () =>
+          new Promise<{ runId: string }>((resolve) => {
+            resolveCreation = resolve;
+          }),
+        async *attachOptimizationRun() {
+          calls.attach += 1;
+          yield* [];
+        },
+        cancelOptimizationRun: (runId) => {
+          calls.cancel.push(runId);
+          return Promise.resolve();
+        },
+        extendOptimizationRun: () => Promise.resolve(),
+        releaseOptimizationRun: () => Promise.resolve(),
+        dispose: () => {},
+      }),
+    };
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input);
+    });
+    act(() => getValue().cancelOptimization(optimizationId));
+    expect(getValue().optimizations[0]).toMatchObject({ status: "cancelled" });
+
+    // The run id arrives after the stop: the run is cancelled where it was
+    // made, nothing attaches, and a `started` event cannot revive the record.
+    await act(async () => {
+      resolveCreation({ runId: "run-late" });
+      await Promise.resolve();
+    });
+    expect(calls.cancel).toEqual(["run-late"]);
+    expect(calls.attach).toBe(0);
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "cancelled",
+      connected: { resumable: false },
+    });
+  });
 });

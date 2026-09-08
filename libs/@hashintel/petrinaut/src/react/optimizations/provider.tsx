@@ -1115,6 +1115,11 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
         .catch(() => undefined);
     }
     if (connected) {
+      if (runId === undefined) {
+        // Stop before the run has an id: creation is still in flight and
+        // cancels the run it obtains once it finds this signal aborted.
+        abortControllersRef.current.get(optimizationId)?.abort();
+      }
       // The study's segment ends with a terminal event once the worker has
       // resolved its steps in flight; those are told failed without an
       // event, so they appear nowhere. The attachment stays to apply the

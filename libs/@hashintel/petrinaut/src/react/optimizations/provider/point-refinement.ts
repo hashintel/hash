@@ -46,8 +46,10 @@ export type PointRefinement = {
   /**
    * Climbs the run ladder at `target`, streaming into `onUpdate`. A new key
    * cancels the batch in flight and resumes from the key's cached rungs; the
-   * key already refining, or settled, changes nothing. A failed rung stops
-   * the ladder and records the reason; refining the key again retries it.
+   * key already refining, or settled, changes nothing unless its `isBest`
+   * changed, since the best point climbs past the early stop. A failed rung
+   * stops the ladder and records the reason; refining the key again retries
+   * it.
    * Between rungs, a point whose mean sits too far from the study's best to
    * ever beat it stops with a note saying so.
    */
@@ -60,6 +62,7 @@ export type PointRefinement = {
 /** The point being refined, and how to stop it. */
 type RefinementSession = {
   key: string;
+  isBest: boolean;
   cancel: () => void;
 };
 
@@ -119,7 +122,7 @@ export const createPointRefinement = ({
   };
 
   const refine = (target: PointRefinementTarget) => {
-    if (active?.key === target.key) {
+    if (active?.key === target.key && active.isBest === target.isBest) {
       return;
     }
     stop();
@@ -130,6 +133,7 @@ export const createPointRefinement = ({
     const isCancelled = () => cancelled;
     active = {
       key: target.key,
+      isBest: target.isBest,
       cancel: () => {
         cancelled = true;
         inFlight?.cancel();
