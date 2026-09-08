@@ -52,43 +52,30 @@ export const styles = sva({
       display: "inline-flex",
       alignItems: "center",
       minWidth: "0",
-      maxWidth: "full",
-      position: "relative",
-      isolation: "isolate",
       font: "[inherit]",
       // Pin a real line-height: `font: inherit` would otherwise pull it from an
       // ancestor, and the Tooltip trigger wrapper sets `line-height: 0`, which
       // would collapse the label (overflow: hidden) to zero height.
       lineHeight: "[1.2]",
+      // The hover-fill pill is the element's own padded box (padding is set
+      // per size variant, cancelled in layout by equal negative margins), so
+      // popovers anchored to the crumb align with the pill automatically.
+      boxSizing: "border-box",
+      borderRadius: "md",
       transition: "colors",
-      // The hover-fill pill; its insets are set per size variant.
-      _before: {
-        content: '""',
-        position: "absolute",
-        zIndex: "[-1]",
-        borderRadius: "md",
-        transition: "[background-color 0.15s ease]",
-      },
       "&:is(a, button):not([aria-disabled=true])": {
         cursor: "pointer",
       },
       "&:is(a, button):not([aria-disabled=true]):hover": {
         color: "neutral.s110",
-      },
-      "&:is(a, button):not([aria-disabled=true]):hover::before": {
         background: "neutral.a30",
       },
       // A menu crumb stays highlighted while its dropdown is open.
       "&[aria-expanded=true]": {
         color: "neutral.s110",
-      },
-      "&[aria-expanded=true]::before": {
         background: "neutral.a30",
       },
       "&:focus-visible": {
-        outlineStyle: "none",
-      },
-      "&:focus-visible::before": {
         outlineWidth: "2px",
         outlineStyle: "solid",
         outlineColor: "black.a60",
@@ -124,44 +111,28 @@ export const styles = sva({
       alignItems: "center",
       justifyContent: "center",
       flexShrink: "0",
-      position: "relative",
-      isolation: "isolate",
       color: "neutral.s100",
       cursor: "pointer",
       background: "[none]",
       border: "0",
-      padding: "0",
-      transition: "colors",
       // The icon-sized trigger is far below the 24px minimum target size
-      // (WCAG 2.5.8); extend the hit area without affecting layout — and
-      // therefore without affecting the width measurement. The same pseudo
-      // doubles as the crumbs' button-shaped hover fill and focus-ring shape;
-      // its inset is set per size variant to match the item pills' height.
-      _before: {
-        content: '""',
-        position: "absolute",
-        zIndex: "[-1]",
-        borderRadius: "md",
-        // Background only — see the crumb link's ::before.
-        transition: "[background-color 0.15s ease]",
-      },
+      // (WCAG 2.5.8); the per-size padding extends the hit area, forms the
+      // button-shaped hover fill / focus-ring shape matching the item pills,
+      // and anchors the ellipsis menu. Equal negative margins cancel it in
+      // layout, so the trail (and the width measurement) stays icon-sized —
+      // `measure()` compensates where it measures this box directly.
+      boxSizing: "border-box",
+      borderRadius: "md",
+      transition: "colors",
       "&:hover": {
         color: "neutral.s110",
-      },
-      "&:hover::before": {
         background: "neutral.a30",
       },
       "&[aria-expanded=true]": {
         color: "neutral.s110",
-      },
-      "&[aria-expanded=true]::before": {
         background: "neutral.a30",
       },
-      // `outlineStyle`, not `outline: none` — see the crumb link.
       "&:focus-visible": {
-        outlineStyle: "none",
-      },
-      "&:focus-visible::before": {
         outlineWidth: "2px",
         outlineStyle: "solid",
         outlineColor: "black.a60",
@@ -198,7 +169,10 @@ export const styles = sva({
         list: { textStyle: "xxs" },
         link: {
           gap: "[3px]",
-          _before: { insetBlock: "[-2.5px]", insetInline: "[-3.5px]" },
+          paddingBlock: "[2.5px]",
+          paddingInline: "[3.5px]",
+          marginBlock: "[-2.5px]",
+          marginInline: "[-3.5px]",
         },
         icon: { "&&": { "--icon-size": "8px" } },
         dropdownIcon: {
@@ -208,14 +182,18 @@ export const styles = sva({
         separator: { paddingInline: "[5px]", "&&": { "--icon-size": "8px" } },
         ellipsisTrigger: {
           "& svg": { "--icon-size": "10px" },
-          _before: { inset: "[-4.5px]" },
+          padding: "[4.5px]",
+          margin: "[-4.5px]",
         },
       },
       xs: {
         list: { textStyle: "xs" },
         link: {
           gap: "[4px]",
-          _before: { insetBlock: "[-2.5px]", insetInline: "[-4.5px]" },
+          paddingBlock: "[2.5px]",
+          paddingInline: "[4.5px]",
+          marginBlock: "[-2.5px]",
+          marginInline: "[-4.5px]",
         },
         icon: { "&&": { "--icon-size": "9px" } },
         dropdownIcon: {
@@ -225,14 +203,18 @@ export const styles = sva({
         separator: { paddingInline: "[6px]", "&&": { "--icon-size": "9px" } },
         ellipsisTrigger: {
           "& svg": { "--icon-size": "12px" },
-          _before: { inset: "[-5.5px]" },
+          padding: "[5.5px]",
+          margin: "[-5.5px]",
         },
       },
       sm: {
         list: { textStyle: "sm" },
         link: {
           gap: "[4px]",
-          _before: { insetBlock: "[-3.5px]", insetInline: "[-5px]" },
+          paddingBlock: "[3.5px]",
+          paddingInline: "[5px]",
+          marginBlock: "[-3.5px]",
+          marginInline: "[-5px]",
         },
         icon: { "&&": { "--icon-size": "12px" } },
         dropdownIcon: {
@@ -242,14 +224,18 @@ export const styles = sva({
         separator: { paddingInline: "2", "&&": { "--icon-size": "12px" } },
         ellipsisTrigger: {
           "& svg": { "--icon-size": "14px" },
-          _before: { inset: "[-6px]" },
+          padding: "[6px]",
+          margin: "[-6px]",
         },
       },
       md: {
         list: { textStyle: "base" },
         link: {
           gap: "[5px]",
-          _before: { insetBlock: "[-3.5px]", insetInline: "[-6px]" },
+          paddingBlock: "[3.5px]",
+          paddingInline: "[6px]",
+          marginBlock: "[-3.5px]",
+          marginInline: "[-6px]",
         },
         icon: { "&&": { "--icon-size": "14px" } },
         dropdownIcon: {
@@ -259,21 +245,26 @@ export const styles = sva({
         separator: { paddingInline: "[9px]", "&&": { "--icon-size": "14px" } },
         ellipsisTrigger: {
           "& svg": { "--icon-size": "16px" },
-          _before: { inset: "[-7px]" },
+          padding: "[7px]",
+          margin: "[-7px]",
         },
       },
       lg: {
         list: { textStyle: "lg" },
         link: {
           gap: "[6px]",
-          _before: { insetBlock: "[-4px]", insetInline: "[-6px]" },
+          paddingBlock: "[4px]",
+          paddingInline: "[6px]",
+          marginBlock: "[-4px]",
+          marginInline: "[-6px]",
         },
         icon: { "&&": { "--icon-size": "16px" } },
         dropdownIcon: { "&&": { "--icon-size": "17px" } },
         separator: { paddingInline: "[9px]", "&&": { "--icon-size": "20px" } },
         ellipsisTrigger: {
           "& svg": { "--icon-size": "20px" },
-          _before: { inset: "[-6.5px]" },
+          padding: "[6.5px]",
+          margin: "[-6.5px]",
         },
       },
     },

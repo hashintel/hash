@@ -113,11 +113,20 @@ const BreadCrumbsRoot = ({
       (Number.parseFloat(rootStyle.paddingLeft) || 0) -
       (Number.parseFloat(rootStyle.paddingRight) || 0);
 
+    // The trigger's rect includes its hover-pill padding, but that padding is
+    // cancelled in layout by negative margins — the trail space it takes is
+    // its margin-box width. (Cells measure their <li>, which already is one.)
+    const triggerStyle = getComputedStyle(ellipsisTrigger);
+    const bareEllipsisWidth =
+      ellipsisTrigger.getBoundingClientRect().width +
+      (Number.parseFloat(triggerStyle.marginLeft) || 0) +
+      (Number.parseFloat(triggerStyle.marginRight) || 0);
+
     const next = computeCollapse({
       cellWidths,
       collapsible: [...collapsibleKey].map((flag) => flag === "1"),
       ellipsisWidth: ellipsisCell.getBoundingClientRect().width,
-      bareEllipsisWidth: ellipsisTrigger.getBoundingClientRect().width,
+      bareEllipsisWidth,
       available,
       maxItems,
     });

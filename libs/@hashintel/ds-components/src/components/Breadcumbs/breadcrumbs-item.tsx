@@ -37,9 +37,10 @@ export type BreadcrumbSubItem = {
 
 export type BreadcrumbItemProps = BreadcrumbSubItem & {
   /**
-   * Caps the crumb's width while it is visible in the trail (it does not apply
-   * inside the ellipsis menu); a longer label truncates with an ellipsis and
-   * gains a tooltip showing the full label (unless `tooltip` is already set).
+   * Caps the crumb's width — hover pill included — while it is visible in the
+   * trail (it does not apply inside the ellipsis menu); a longer label
+   * truncates with an ellipsis and gains a tooltip showing the full label
+   * (unless `tooltip` is already set).
    */
   maxWidth?: React.CSSProperties["maxWidth"];
   /**
