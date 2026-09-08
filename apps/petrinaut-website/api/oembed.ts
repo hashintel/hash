@@ -9,11 +9,11 @@ import {
   isExampleSlug,
   PETRINAUT_DEMO_ORIGIN,
   type ExampleSlug,
-} from "../src/examples/catalog-metadata";
+} from "../src/examples/catalog-metadata.js";
 import {
   canonicalSearchString,
   validateSharedExampleSearch,
-} from "../src/examples/example-search";
+} from "../src/examples/example-search.js";
 
 const DEFAULT_WIDTH = 800;
 const DEFAULT_HEIGHT = 450;
