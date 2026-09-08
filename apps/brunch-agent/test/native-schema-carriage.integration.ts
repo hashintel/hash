@@ -253,7 +253,19 @@ try {
           },
         }),
       );
-      histories.push(await typeClient.history());
+      const typeHistory = await typeClient.history();
+      histories.push(typeHistory);
+      const issuedType = typeHistory.messages
+        .flatMap((message) => message.parts)
+        .find(
+          (part) =>
+            part.type === "dynamic-tool" &&
+            part.toolCallId === `${method}-type`,
+        );
+      assert(issuedType?.type === "dynamic-tool");
+      assert.equal(issuedType.state, "output-available");
+      assert.deepEqual(issuedType.input, nested);
+      assert.deepEqual(issuedType.output, { awaiting: "client" });
     }
   }
   for (const method of ["stream", "streamSimple"] as const) {
@@ -270,11 +282,16 @@ try {
       );
       assert(tools.length > 0);
       // Headless mode also mounts its unchanged legacy addArc; inspect native joined arcs only.
-      for (const tool of tools.filter(
+      const nativeTools = tools.filter(
         (tool) =>
           name !== "addArc" ||
           JSON.stringify(tool.input_schema).includes('"brunch"'),
-      ))
+      );
+      assert(
+        nativeTools.length > 0,
+        `${method} must carry mounted native ${name}, not just a legacy tool`,
+      );
+      for (const tool of nativeTools)
         assert.deepEqual(tool.input_schema, expected);
     }
   }

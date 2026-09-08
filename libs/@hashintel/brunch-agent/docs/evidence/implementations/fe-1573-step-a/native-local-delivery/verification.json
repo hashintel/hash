@@ -1,0 +1,25 @@
+{
+  "portfolio": {
+    "successfulTasks": 63,
+    "totalTasks": 63,
+    "cachedTasks": 0,
+    "testCounts": {
+      "@hashintel/brunch-agent": 107,
+      "@hashintel/brunch-agent-transport-aisdk": 44,
+      "@hashintel/brunch-agent-binding-flue": 20,
+      "@hashintel/brunch-agent-plugin-sdcpn": 69,
+      "@hashintel/petrinaut": 692,
+      "@apps/brunch-agent": 205,
+      "@apps/petrinaut-website": 379
+    },
+    "log": "guarded-portfolio-final.log.gz",
+    "command": "sandbox-exec -f <evidence>/deny-network.sb env YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 CARGO_NET_OFFLINE=true yarn exec turbo run build test:unit lint:tsc lint:eslint --filter=@hashintel/brunch-agent --filter=@hashintel/brunch-agent-plugin-sdcpn --filter=@hashintel/brunch-agent-binding-flue --filter=@hashintel/brunch-agent-transport-aisdk --filter=@apps/brunch-agent --filter=@apps/petrinaut-website --filter=@hashintel/petrinaut --continue=always --force --concurrency=1"
+  },
+  "browser": "browser-final/observations.json",
+  "nativeRuntime": "runtime-final/candidate.json.gz",
+  "mounted": "mounted-final/run.log.gz",
+  "paidApplicationCalls": 0,
+  "campaignZeroExternalRequests": false,
+  "networkIncident": "network-incident.md",
+  "ownerAcceptance": false
+}

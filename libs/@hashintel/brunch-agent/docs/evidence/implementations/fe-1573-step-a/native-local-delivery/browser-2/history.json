@@ -1,0 +1,518 @@
+{
+  "v": 1,
+  "conversationId": "conv_01M20ZER8QVKZ7TBWDFP4AQ62R",
+  "offset": "0000000000000000_0000000000000073",
+  "messages": [
+    {
+      "id": "entry_direct_c3ViX2lrXzFkNjdkYWRlODViNDkwYWQyMjc5ZThlMjJkZTFlODcw",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_1d67dade85b490ad2279e8e22de1e870",
+      "signal": {
+        "tagName": "prepared-fixture",
+        "attributes": {
+          "fixtureId": "crew-reservation-v1",
+          "authorship": "test-authored",
+          "claimBoundary": "prepared-not-model-produced",
+          "rootArcContext": "{\"binding\":{\"conversationId\":\"prepared-root-arc:37547c2e-73f3-4bd5-969c-7f9ec2e754dd\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"37547c2e-73f3-4bd5-969c-7f9ec2e754dd\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"}"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "Fixture authorship: test-authored preparation for Mission 6.\nNon-claims: not a Mission 4 candidate, not model-produced evidence, not capture-backed provenance, and not proof of automatic full-net projection.\n\n```runbook-ir\n# Final inspection and dispatch workpiece\n\n## Purpose and posture\nMaintain the narrow batch path from final inspection to dispatch readiness and test one evidence-backed decision against the live Petrinaut document.\n\n## Operational account\n- A batch that is ready enters final inspection.\n- The prepared topology returns the sole dispatch crew at sign-off.\n- Whether final inspection reserves that crew is an unconfirmed hypothesis; changing the workpiece or net requires explicit true-user confirmation.\n\n## Quantity and resource policy\nExactly one dispatch crew is available in this fixture. Revision zero does not establish whether starting final inspection consumes it; the prepared topology currently returns it at sign-off.\n\n## Current Petrinaut correspondence\nThe prepared non-empty net contains the batch path and the crew return from sign-off. The standard weight-1 input arc from `Dispatch crew available` to `Start final inspection` is absent while the reservation policy remains unconfirmed.\n\n## Explicit unknowns\nCrew reservation awaits true-user confirmation. Inspection and sign-off timing, failure modes, and recovery behavior remain unresolved.\n\n## Claim boundary\nThis prepared revision is test-authored diagnostic material. It is not model-produced evidence and does not establish capture provenance, behavioral execution, or broad projection quality.\n```",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZER9KF4J8WP7BMQHTNBTB",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_1d67dade85b490ad2279e8e22de1e870",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:37547c2e-73f3-4bd5-969c-7f9ec2e754dd\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"37547c2e-73f3-4bd5-969c-7f9ec2e754dd\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":null}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZERA33SW5F79TYE1TR6W4",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_1d67dade85b490ad2279e8e22de1e870",
+      "turnId": "turn_01M20ZER9N92490AEN236R73K2",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Prepared mechanical fixture acknowledged.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzQ1ZmE2MzRlOWE1ZjlkMjdjNzgyMGY2NTc4MjU3OTgz",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_45fa634e9a5f9d27c7820f6578257983",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Settle the labelled prepared workpiece for this unpaid mechanical tracer; it is not elicited testimony.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZERCY6V4QSWC243KDJVN9",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_45fa634e9a5f9d27c7820f6578257983",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:37547c2e-73f3-4bd5-969c-7f9ec2e754dd\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"37547c2e-73f3-4bd5-969c-7f9ec2e754dd\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":null}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZERD17528X6W3NS56DGAC",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_45fa634e9a5f9d27c7820f6578257983",
+      "turnId": "turn_01M20ZERCY37DP9XV4AH0KF85D",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "update_workpiece",
+          "toolCallId": "m7-browser-revision",
+          "state": "output-available",
+          "input": {
+            "markdown": "# Final inspection and dispatch workpiece\n\n## Purpose and posture\nMaintain the narrow batch path from final inspection to dispatch readiness and test one evidence-backed decision against the live Petrinaut document.\n\n## Operational account\n- A batch that is ready enters final inspection.\n- The prepared topology returns the sole dispatch crew at sign-off.\n- Whether final inspection reserves that crew is an unconfirmed hypothesis; changing the workpiece or net requires explicit true-user confirmation.\n\n## Quantity and resource policy\nExactly one dispatch crew is available in this fixture. Revision zero does not establish whether starting final inspection consumes it; the prepared topology currently returns it at sign-off.\n\n## Current Petrinaut correspondence\nThe prepared non-empty net contains the batch path and the crew return from sign-off. The standard weight-1 input arc from `Dispatch crew available` to `Start final inspection` is absent while the reservation policy remains unconfirmed.\n\n## Explicit unknowns\nCrew reservation awaits true-user confirmation. Inspection and sign-off timing, failure modes, and recovery behavior remain unresolved.\n\n## Claim boundary\nThis prepared revision is test-authored diagnostic material. It is not model-produced evidence and does not establish capture provenance, behavioral execution, or broad projection quality."
+          },
+          "output": {
+            "revisionId": "m7-browser-revision",
+            "sha256": "b40f9701324d07200308716fe7a5b09c33606e566b8f625ab8e1abf5b5339156",
+            "ordinal": 1
+          },
+          "durationMs": 2
+        },
+        {
+          "type": "text",
+          "text": "Prepared workpiece settled for the mechanical tracer.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZERD6TFB79B3S87YFPQAY",
+      "role": "system",
+      "purpose": "advisory",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_45fa634e9a5f9d27c7820f6578257983",
+      "signal": {
+        "attributes": {
+          "resource": "tool"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "New tools available:\n- **getLatestNetDefinition** — Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.\nCanonical Petrinaut input JSON Schema:\n{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{},\"additionalProperties\":false,\"description\":\"Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.\"}\n- **addArc** — Add an input or output arc to a transition.\nRoot place arcs only. Cite a settled workpiece in brunch.basis and the issued brunch.requestedBaseHash. Numeric-string weights normalize before structural and canonical validation.\nAll available tools: task, activate_skill, read_skill_resource, brunch_mark_question, update_workpiece, readPetrinautDoc, getLatestNetDefinition, addArc, ping",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrX2UyM2E2ZjljNTZmY2IwYzkzNDQwY2UxNmMxODM4ZTFh",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_e23a6f9c56fcb0c93440ce16c1838e1a",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Negative control: attempt a boolean weight, not a numeric string.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZEREWMXP5R4M30W43GYHD",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_e23a6f9c56fcb0c93440ce16c1838e1a",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:37547c2e-73f3-4bd5-969c-7f9ec2e754dd\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"37547c2e-73f3-4bd5-969c-7f9ec2e754dd\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"m7-browser-revision\",\"sha256\":\"b40f9701324d07200308716fe7a5b09c33606e566b8f625ab8e1abf5b5339156\",\"markdown\":\"# Final inspection and dispatch workpiece\\n\\n## Purpose and posture\\nMaintain the narrow batch path from final inspection to dispatch readiness and test one evidence-backed decision against the live Petrinaut document.\\n\\n## Operational account\\n- A batch that is ready enters final inspection.\\n- The prepared topology returns the sole dispatch crew at sign-off.\\n- Whether final inspection reserves that crew is an unconfirmed hypothesis; changing the workpiece or net requires explicit true-user confirmation.\\n\\n## Quantity and resource policy\\nExactly one dispatch crew is available in this fixture. Revision zero does not establish whether starting final inspection consumes it; the prepared topology currently returns it at sign-off.\\n\\n## Current Petrinaut correspondence\\nThe prepared non-empty net contains the batch path and the crew return from sign-off. The standard weight-1 input arc from `Dispatch crew available` to `Start final inspection` is absent while the reservation policy remains unconfirmed.\\n\\n## Explicit unknowns\\nCrew reservation awaits true-user confirmation. Inspection and sign-off timing, failure modes, and recovery behavior remain unresolved.\\n\\n## Claim boundary\\nThis prepared revision is test-authored diagnostic material. It is not model-produced evidence and does not establish capture provenance, behavioral execution, or broad projection quality.\",\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZEREX98KG0T3ENBAEDD1C",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_e23a6f9c56fcb0c93440ce16c1838e1a",
+      "turnId": "turn_01M20ZEREWPPDJ9RS1BMQR6MT1",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "addArc",
+          "toolCallId": "m7-browser-boolean-weight",
+          "state": "output-error",
+          "input": {
+            "transitionId": "start-final-inspection",
+            "placeId": "dispatch-crew-available",
+            "arcDirection": "input",
+            "weight": true,
+            "type": "standard",
+            "brunch": {
+              "requestedBaseHash": "a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3",
+              "basis": {
+                "kind": "declared",
+                "revisionId": "m7-browser-revision",
+                "sha256": "b40f9701324d07200308716fe7a5b09c33606e566b8f625ab8e1abf5b5339156",
+                "locators": [
+                  {
+                    "start": 0,
+                    "end": 1369
+                  }
+                ],
+                "rationale": "Labelled prepared mechanics only; no elicited testimony or useful-basis claim.",
+                "scope": "operation"
+              }
+            }
+          },
+          "errorText": "Arguments for tool \"addArc\" do not match the required schema: Invalid input: expected number, received boolean (at weight). Call the tool again with corrected arguments.",
+          "durationMs": 1
+        },
+        {
+          "type": "text",
+          "text": "Boolean weight refused by native validation; no browser mutation was authorized.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzQ1YzQ3OWIzOWY3YjJjY2IxZDZjMmRkYWI4NDI2YzE4",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_45c479b39f7b2ccb1d6c2ddab8426c18",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Negative control: attempt the same prepared arc with an unknown revision citation.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZERJEW60GCAX9XNMWSAA3",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_45c479b39f7b2ccb1d6c2ddab8426c18",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:37547c2e-73f3-4bd5-969c-7f9ec2e754dd\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"37547c2e-73f3-4bd5-969c-7f9ec2e754dd\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"m7-browser-revision\",\"sha256\":\"b40f9701324d07200308716fe7a5b09c33606e566b8f625ab8e1abf5b5339156\",\"markdown\":\"# Final inspection and dispatch workpiece\\n\\n## Purpose and posture\\nMaintain the narrow batch path from final inspection to dispatch readiness and test one evidence-backed decision against the live Petrinaut document.\\n\\n## Operational account\\n- A batch that is ready enters final inspection.\\n- The prepared topology returns the sole dispatch crew at sign-off.\\n- Whether final inspection reserves that crew is an unconfirmed hypothesis; changing the workpiece or net requires explicit true-user confirmation.\\n\\n## Quantity and resource policy\\nExactly one dispatch crew is available in this fixture. Revision zero does not establish whether starting final inspection consumes it; the prepared topology currently returns it at sign-off.\\n\\n## Current Petrinaut correspondence\\nThe prepared non-empty net contains the batch path and the crew return from sign-off. The standard weight-1 input arc from `Dispatch crew available` to `Start final inspection` is absent while the reservation policy remains unconfirmed.\\n\\n## Explicit unknowns\\nCrew reservation awaits true-user confirmation. Inspection and sign-off timing, failure modes, and recovery behavior remain unresolved.\\n\\n## Claim boundary\\nThis prepared revision is test-authored diagnostic material. It is not model-produced evidence and does not establish capture provenance, behavioral execution, or broad projection quality.\",\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZERJGDN59WJ7R3FB696MH",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_45c479b39f7b2ccb1d6c2ddab8426c18",
+      "turnId": "turn_01M20ZERJFCW5NVYG79WXSF7WB",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "addArc",
+          "toolCallId": "m7-browser-unknown-revision",
+          "state": "output-error",
+          "input": {
+            "transitionId": "start-final-inspection",
+            "placeId": "dispatch-crew-available",
+            "arcDirection": "input",
+            "weight": "1",
+            "type": "standard",
+            "brunch": {
+              "requestedBaseHash": "a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3",
+              "basis": {
+                "kind": "declared",
+                "revisionId": "unknown-revision",
+                "sha256": "b40f9701324d07200308716fe7a5b09c33606e566b8f625ab8e1abf5b5339156",
+                "locators": [
+                  {
+                    "start": 0,
+                    "end": 1369
+                  }
+                ],
+                "rationale": "Labelled prepared mechanics only; no elicited testimony or useful-basis claim.",
+                "scope": "operation"
+              }
+            }
+          },
+          "errorText": "Unknown settled workpiece revision.",
+          "durationMs": 1
+        },
+        {
+          "type": "text",
+          "text": "Unknown settled revision refused; no browser mutation was authorized.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrX2VmOGFlYTI0MjE0YmIxOThjOTNmMTk4ODFlMzY5YmRl",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_ik_ef8aea24214bb198c93f19881e369bde",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Apply the one prepared root arc using the settled citation and issued browser base.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZERM5P2GBEWEVSNEAK106",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_ef8aea24214bb198c93f19881e369bde",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:37547c2e-73f3-4bd5-969c-7f9ec2e754dd\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"37547c2e-73f3-4bd5-969c-7f9ec2e754dd\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"m7-browser-revision\",\"sha256\":\"b40f9701324d07200308716fe7a5b09c33606e566b8f625ab8e1abf5b5339156\",\"markdown\":\"# Final inspection and dispatch workpiece\\n\\n## Purpose and posture\\nMaintain the narrow batch path from final inspection to dispatch readiness and test one evidence-backed decision against the live Petrinaut document.\\n\\n## Operational account\\n- A batch that is ready enters final inspection.\\n- The prepared topology returns the sole dispatch crew at sign-off.\\n- Whether final inspection reserves that crew is an unconfirmed hypothesis; changing the workpiece or net requires explicit true-user confirmation.\\n\\n## Quantity and resource policy\\nExactly one dispatch crew is available in this fixture. Revision zero does not establish whether starting final inspection consumes it; the prepared topology currently returns it at sign-off.\\n\\n## Current Petrinaut correspondence\\nThe prepared non-empty net contains the batch path and the crew return from sign-off. The standard weight-1 input arc from `Dispatch crew available` to `Start final inspection` is absent while the reservation policy remains unconfirmed.\\n\\n## Explicit unknowns\\nCrew reservation awaits true-user confirmation. Inspection and sign-off timing, failure modes, and recovery behavior remain unresolved.\\n\\n## Claim boundary\\nThis prepared revision is test-authored diagnostic material. It is not model-produced evidence and does not establish capture provenance, behavioral execution, or broad projection quality.\",\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZERM632HZ3NDMGZV0N1EY",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_ef8aea24214bb198c93f19881e369bde",
+      "turnId": "turn_01M20ZERM5HX7Q1X44WWNT0P7P",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "getLatestNetDefinition",
+          "toolCallId": "m7-browser-read",
+          "state": "output-available",
+          "input": {},
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzYxYzhjODliOGJmNDljN2YyYjNhZjE4OTkyMTAxODI3",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_61c8c89b8bf49c7f2b3af18992101827",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "m7-browser-read"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"m7-browser-read\",\"toolName\":\"getLatestNetDefinition\",\"output\":{\"title\":\"Prepared root-arc mechanical tracer\",\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"extensions\":{\"colors\":true,\"stochasticity\":true,\"dynamics\":true,\"parameters\":true,\"subnets\":true}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZERQB6SDC82KEZW7XERR8",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_61c8c89b8bf49c7f2b3af18992101827",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:37547c2e-73f3-4bd5-969c-7f9ec2e754dd\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"37547c2e-73f3-4bd5-969c-7f9ec2e754dd\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"m7-browser-revision\",\"sha256\":\"b40f9701324d07200308716fe7a5b09c33606e566b8f625ab8e1abf5b5339156\",\"markdown\":\"# Final inspection and dispatch workpiece\\n\\n## Purpose and posture\\nMaintain the narrow batch path from final inspection to dispatch readiness and test one evidence-backed decision against the live Petrinaut document.\\n\\n## Operational account\\n- A batch that is ready enters final inspection.\\n- The prepared topology returns the sole dispatch crew at sign-off.\\n- Whether final inspection reserves that crew is an unconfirmed hypothesis; changing the workpiece or net requires explicit true-user confirmation.\\n\\n## Quantity and resource policy\\nExactly one dispatch crew is available in this fixture. Revision zero does not establish whether starting final inspection consumes it; the prepared topology currently returns it at sign-off.\\n\\n## Current Petrinaut correspondence\\nThe prepared non-empty net contains the batch path and the crew return from sign-off. The standard weight-1 input arc from `Dispatch crew available` to `Start final inspection` is absent while the reservation policy remains unconfirmed.\\n\\n## Explicit unknowns\\nCrew reservation awaits true-user confirmation. Inspection and sign-off timing, failure modes, and recovery behavior remain unresolved.\\n\\n## Claim boundary\\nThis prepared revision is test-authored diagnostic material. It is not model-produced evidence and does not establish capture provenance, behavioral execution, or broad projection quality.\",\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZERQE3R64CRBMFHQQM5SC",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_61c8c89b8bf49c7f2b3af18992101827",
+      "turnId": "turn_01M20ZERQCCC2BKFFA8T67MNYJ",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "addArc",
+          "toolCallId": "m7-browser-arc",
+          "state": "output-available",
+          "input": {
+            "transitionId": "start-final-inspection",
+            "placeId": "dispatch-crew-available",
+            "arcDirection": "input",
+            "weight": "1",
+            "type": "standard",
+            "brunch": {
+              "requestedBaseHash": "a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3",
+              "basis": {
+                "kind": "declared",
+                "revisionId": "m7-browser-revision",
+                "sha256": "b40f9701324d07200308716fe7a5b09c33606e566b8f625ab8e1abf5b5339156",
+                "locators": [
+                  {
+                    "start": 0,
+                    "end": 1369
+                  }
+                ],
+                "rationale": "Labelled prepared mechanics only; no elicited testimony or useful-basis claim.",
+                "scope": "operation"
+              }
+            }
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViX2lrXzM4YTBlYzg5ZTljNDM3ZjU1NmI4ZDE2ZjU1ZWFmNjll",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_38a0ec89e9c437f556b8d16f55eaf69e",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "m7-browser-arc"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"m7-browser-arc\",\"toolName\":\"addArc\",\"output\":{\"title\":\"Added input arc\",\"detail\":\"Dispatch crew available <-> Start final inspection\",\"target\":{\"kind\":\"selection\",\"item\":{\"type\":\"arc\",\"id\":\"$A_place:dispatch-crew-available___start-final-inspection\"}},\"applied\":true},\"metadata\":{\"transitionRecord\":{\"attempts\":[{\"request\":{\"toolCallId\":\"m7-browser-arc\",\"toolName\":\"addArc\",\"input\":{\"transitionId\":\"start-final-inspection\",\"arcDirection\":\"input\",\"placeId\":\"dispatch-crew-available\",\"weight\":1,\"type\":\"standard\"},\"binding\":{\"conversationId\":\"prepared-root-arc:37547c2e-73f3-4bd5-969c-7f9ec2e754dd\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"37547c2e-73f3-4bd5-969c-7f9ec2e754dd\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"binding\":{\"conversationId\":\"prepared-root-arc:37547c2e-73f3-4bd5-969c-7f9ec2e754dd\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"37547c2e-73f3-4bd5-969c-7f9ec2e754dd\"},\"pre\":{\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"outcome\":\"applied\",\"effects\":{\"created\":[{\"path\":\"/transitions/0/inputArcs/1\",\"kind\":\"created\",\"after\":{\"type\":\"standard\",\"placeId\":\"dispatch-crew-available\",\"weight\":1}}],\"updated\":[],\"deleted\":[],\"derived\":[]},\"post\":{\"definition\":{\"places\":[{\"id\":\"batch-ready\",\"name\":\"Batch ready\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":80,\"y\":100},{\"id\":\"under-final-inspection\",\"name\":\"Under final inspection\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":100},{\"id\":\"ready-for-dispatch\",\"name\":\"Ready for dispatch\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":760,\"y\":100},{\"id\":\"dispatch-crew-available\",\"name\":\"Dispatch crew available\",\"colorId\":null,\"dynamicsEnabled\":false,\"differentialEquationId\":null,\"x\":420,\"y\":360}],\"transitions\":[{\"id\":\"start-final-inspection\",\"name\":\"Start final inspection\",\"inputArcs\":[{\"placeId\":\"batch-ready\",\"weight\":1,\"type\":\"standard\"},{\"type\":\"standard\",\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"outputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":250,\"y\":100},{\"id\":\"sign-off\",\"name\":\"Sign-off\",\"inputArcs\":[{\"placeId\":\"under-final-inspection\",\"weight\":1,\"type\":\"standard\"}],\"outputArcs\":[{\"placeId\":\"ready-for-dispatch\",\"weight\":1},{\"placeId\":\"dispatch-crew-available\",\"weight\":1}],\"lambdaType\":\"predicate\",\"lambdaCode\":\"\",\"transitionKernelCode\":\"\",\"x\":590,\"y\":100}],\"types\":[],\"differentialEquations\":[],\"parameters\":[]},\"sha256\":\"3c47961d02296c00131644d1aea0dac16a017f470a66aea919fcf324a2bc9e37\"}}],\"outcome\":\"applied\"}}}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZERRCSN63RPXKDT9KT2HY",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_ik_38a0ec89e9c437f556b8d16f55eaf69e",
+      "signal": {
+        "tagName": "brunch.construction-context"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "{\"browser\":{\"binding\":{\"conversationId\":\"prepared-root-arc:37547c2e-73f3-4bd5-969c-7f9ec2e754dd\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"37547c2e-73f3-4bd5-969c-7f9ec2e754dd\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"},\"currentWorkpiece\":{\"revisionId\":\"m7-browser-revision\",\"sha256\":\"b40f9701324d07200308716fe7a5b09c33606e566b8f625ab8e1abf5b5339156\",\"markdown\":\"# Final inspection and dispatch workpiece\\n\\n## Purpose and posture\\nMaintain the narrow batch path from final inspection to dispatch readiness and test one evidence-backed decision against the live Petrinaut document.\\n\\n## Operational account\\n- A batch that is ready enters final inspection.\\n- The prepared topology returns the sole dispatch crew at sign-off.\\n- Whether final inspection reserves that crew is an unconfirmed hypothesis; changing the workpiece or net requires explicit true-user confirmation.\\n\\n## Quantity and resource policy\\nExactly one dispatch crew is available in this fixture. Revision zero does not establish whether starting final inspection consumes it; the prepared topology currently returns it at sign-off.\\n\\n## Current Petrinaut correspondence\\nThe prepared non-empty net contains the batch path and the crew return from sign-off. The standard weight-1 input arc from `Dispatch crew available` to `Start final inspection` is absent while the reservation policy remains unconfirmed.\\n\\n## Explicit unknowns\\nCrew reservation awaits true-user confirmation. Inspection and sign-off timing, failure modes, and recovery behavior remain unresolved.\\n\\n## Claim boundary\\nThis prepared revision is test-authored diagnostic material. It is not model-produced evidence and does not establish capture provenance, behavioral execution, or broad projection quality.\",\"ordinal\":1}}",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20ZERRFQ6ZKNWFYFBY3YHWE",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_ik_38a0ec89e9c437f556b8d16f55eaf69e",
+      "turnId": "turn_01M20ZERRDBJFVCTCPKG34PE27",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Verified browser result received. The prepared arc will not be applied again.",
+          "state": "done"
+        }
+      ]
+    }
+  ],
+  "settlements": [
+    {
+      "submissionId": "sub_ik_1d67dade85b490ad2279e8e22de1e870",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_1d67dade85b490ad2279e8e22de1e870"
+    },
+    {
+      "submissionId": "sub_ik_45fa634e9a5f9d27c7820f6578257983",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_45fa634e9a5f9d27c7820f6578257983"
+    },
+    {
+      "submissionId": "sub_ik_e23a6f9c56fcb0c93440ce16c1838e1a",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_e23a6f9c56fcb0c93440ce16c1838e1a"
+    },
+    {
+      "submissionId": "sub_ik_45c479b39f7b2ccb1d6c2ddab8426c18",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_45c479b39f7b2ccb1d6c2ddab8426c18"
+    },
+    {
+      "submissionId": "sub_ik_ef8aea24214bb198c93f19881e369bde",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_ef8aea24214bb198c93f19881e369bde"
+    },
+    {
+      "submissionId": "sub_ik_61c8c89b8bf49c7f2b3af18992101827",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_61c8c89b8bf49c7f2b3af18992101827"
+    },
+    {
+      "submissionId": "sub_ik_38a0ec89e9c437f556b8d16f55eaf69e",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_ik_38a0ec89e9c437f556b8d16f55eaf69e"
+    }
+  ],
+  "incarnation": "inc_01M20ZER8NASYTFSXT550WPCEB"
+}

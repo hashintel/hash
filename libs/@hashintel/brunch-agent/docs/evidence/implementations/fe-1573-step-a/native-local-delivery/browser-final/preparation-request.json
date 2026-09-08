@@ -1,0 +1,25 @@
+{
+  "initialData": {
+    "mode": "validated-fixture-mutation",
+    "browser": {
+      "binding": {
+        "conversationId": "prepared-root-arc:41490028-14e9-4718-9cba-2b60ddb61d11",
+        "documentId": "mission-6-crew-reservation-document-v1:root-arc",
+        "incarnationId": "41490028-14e9-4718-9cba-2b60ddb61d11"
+      },
+      "requestedBaseHash": "a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3"
+    }
+  },
+  "uid": null,
+  "idempotencyKey": "prepared-fixture:crew-reservation-v1:revision-0",
+  "kind": "signal",
+  "type": "brunch.fixture.prepared",
+  "tagName": "prepared-fixture",
+  "body": "Fixture authorship: test-authored preparation for Mission 6.\nNon-claims: not a Mission 4 candidate, not model-produced evidence, not capture-backed provenance, and not proof of automatic full-net projection.\n\n```runbook-ir\n# Final inspection and dispatch workpiece\n\n## Purpose and posture\nMaintain the narrow batch path from final inspection to dispatch readiness and test one evidence-backed decision against the live Petrinaut document.\n\n## Operational account\n- A batch that is ready enters final inspection.\n- The prepared topology returns the sole dispatch crew at sign-off.\n- Whether final inspection reserves that crew is an unconfirmed hypothesis; changing the workpiece or net requires explicit true-user confirmation.\n\n## Quantity and resource policy\nExactly one dispatch crew is available in this fixture. Revision zero does not establish whether starting final inspection consumes it; the prepared topology currently returns it at sign-off.\n\n## Current Petrinaut correspondence\nThe prepared non-empty net contains the batch path and the crew return from sign-off. The standard weight-1 input arc from `Dispatch crew available` to `Start final inspection` is absent while the reservation policy remains unconfirmed.\n\n## Explicit unknowns\nCrew reservation awaits true-user confirmation. Inspection and sign-off timing, failure modes, and recovery behavior remain unresolved.\n\n## Claim boundary\nThis prepared revision is test-authored diagnostic material. It is not model-produced evidence and does not establish capture provenance, behavioral execution, or broad projection quality.\n```",
+  "attributes": {
+    "fixtureId": "crew-reservation-v1",
+    "authorship": "test-authored",
+    "claimBoundary": "prepared-not-model-produced",
+    "rootArcContext": "{\"binding\":{\"conversationId\":\"prepared-root-arc:41490028-14e9-4718-9cba-2b60ddb61d11\",\"documentId\":\"mission-6-crew-reservation-document-v1:root-arc\",\"incarnationId\":\"41490028-14e9-4718-9cba-2b60ddb61d11\"},\"requestedBaseHash\":\"a3eeb14f9e84880ce3cbabca5201a05822c17bdd8ad612abaa730b97a92d56b3\"}"
+  }
+}
