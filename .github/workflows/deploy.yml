@@ -142,6 +142,19 @@ jobs:
               ecs: [{ service: "integration-worker", cluster: "h-stage-euc1-worker", service_name: "h-stage-euc1-worker-integration" }]
             },
             {
+              package:    "@rust/hash-graph-atlas",
+              service:    "atlas-fit",
+              push:       ["ecr"],
+              # The fit runs on x86 GPU hosts, so this ECR image is amd64 rather
+              # than the arm64 default; `arch` overrides the per-registry rule.
+              arch:       ["amd64"],
+              dockerfile: "libs/@local/graph/atlas/docker/Dockerfile",
+              context:    ".",
+              # A Batch job pulls the image by tag when it is submitted; there
+              # is no ECS service to redeploy.
+              ecs:        []
+            },
+            {
               # TODO(H-6664): switch to `package`-based detection once the
               #   monorepo tooling gives @apps/petrinaut-opt a `build:docker`
               #   task and workspace dependencies; until then turbo cannot see
@@ -203,16 +216,20 @@ jobs:
               )]' <<<"$CATALOG")
           fi
 
-          # Build matrix: expand each affected entry to its arches. Skip amd64
-          # for services that don't publish to GHCR (ECR is arm64-only) and
-          # also on PR events (arch divergence in Rust/Node is rare;
-          # merge_group still validates amd64 before main).
+          # Build matrix: expand each affected entry to its architectures. An entry's
+          # `arch` list wins; without one, GHCR publishers build both and ECR-only
+          # services build arm64. ECR holds one arch per service, and that arch
+          # travels as `ecr_arch` so the push step can recognise it. PR events
+          # skip amd64 (arch divergence in Rust/Node is rare; merge_group still
+          # validates amd64 before main) unless amd64 is the only arch the entry
+          # has, since skipping it would leave that Dockerfile unbuilt until merge.
           BUILD_MATRIX=$(jq -c --argjson skip_amd64 "$SKIP_AMD64" '
             [.[] as $e
-              | ({arch: "arm64"}, {arch: "amd64"})
-              | $e + .
-              | select(($e.push | index("ghcr")) or .arch == "arm64")
-              | select($skip_amd64 != true or .arch != "amd64")
+              | ($e.arch // (if ($e.push | index("ghcr")) then ["arm64", "amd64"] else ["arm64"] end)) as $arch
+              | (if ($arch | index("arm64")) then "arm64" else $arch[0] end) as $ecr_arch
+              | $arch[]
+              | $e + {arch: ., ecr_arch: $ecr_arch}
+              | select($skip_amd64 != true or .arch != "amd64" or ($arch | index("arm64") | not))
               | del(.package, .ecs, .paths)
             ] | { include: . }' <<<"$AFFECTED_CATALOG")
 
@@ -226,7 +243,7 @@ jobs:
             [.[] | .ecs[]] | { include: . }
           ' <<<"$AFFECTED_CATALOG")
 
-          # Staging matrix: services whose arm64 image is pushed to ECR and
+          # Staging matrix: services whose image is pushed to ECR and
           # tagged :staging (one guard run per such service).
           STAGING_MATRIX=$(jq -c '
             map(select(.push | index("ecr"))) | { service: [.[].service] }
@@ -358,6 +375,7 @@ jobs:
         env:
           PUSH_LIST: ${{ join(matrix.push, ' ') }}
           ARCH: ${{ matrix.arch }}
+          ECR_ARCH: ${{ matrix.ecr_arch }}
           REF: ${{ github.ref }}
           EVENT: ${{ github.event_name }}
           SERVICE: ${{ matrix.service }}
@@ -374,7 +392,7 @@ jobs:
           [[ "$REF" == refs/heads/main ]] && is_main=true
 
           push_ecr=false
-          if [[ " $PUSH_LIST " == *" ecr "* && "$ARCH" == arm64 && "$is_main" == true && "$is_push_event" == true ]]; then
+          if [[ " $PUSH_LIST " == *" ecr "* && "$ARCH" == "$ECR_ARCH" && "$is_main" == true && "$is_push_event" == true ]]; then
             push_ecr=true
           fi
           push_ghcr=false
@@ -394,7 +412,7 @@ jobs:
             echo "push_ghcr=$push_ghcr"
             echo "push=$push"
 
-            # ECR is single-arch (arm64), tag-based. Only immutable tags here
+            # ECR holds one arch per service (`ecr_arch`), tag-based. Only immutable tags here
             # (:sha / :run); the mutable :staging tag is set by the `stage` job.
             echo "ecr_tags<<EOF"
             if $push_ecr; then
@@ -488,7 +506,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
-      # ECR images are single-arch (arm64). Advance :staging onto this commit's
+      # ECR images are single-arch per service. Advance :staging onto this commit's
       # immutable sha tag only if it is newer than the one currently tagged.
       - name: Advance :staging if newer
         uses: $/.github/actions/tag-if-newer
