@@ -2,15 +2,93 @@ import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { formInputSizes } from "../../util/form-shared";
 import { Select } from "./select";
 
+import type { FormInputWidth } from "../../util/form-shared";
 import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
 import type { MultiSelectItem, SelectItem } from "./select";
 import type { Story, StoryDefault } from "@ladle/react";
 
+type SelectProps = React.ComponentProps<typeof Select>;
+type MultiSelectProps = Extract<SelectProps, { multiple: true }>;
+type Variant = NonNullable<SelectProps["variant"]>;
+type Align = NonNullable<SelectProps["align"]>;
+
+const variants = ["default", "subtle"] as const satisfies readonly Variant[];
+const alignments = [
+  "left",
+  "center",
+  "right",
+] as const satisfies readonly Align[];
+const widths = [
+  "xs",
+  "sm",
+  "md",
+  "lg",
+  "fullWidth",
+  "fitContent",
+] as const satisfies readonly FormInputWidth[];
+
 export default {
   title: "Components/Select",
-} satisfies StoryDefault;
+  argTypes: {
+    placeholder: {
+      control: { type: "text" },
+      description: "Placeholder text shown when the input is empty",
+    },
+    disabled: {
+      control: { type: "boolean" },
+      description: "Disable the input",
+    },
+    invalid: {
+      control: { type: "boolean" },
+      description: "Mark the input as invalid",
+    },
+    readonly: {
+      control: { type: "boolean" },
+      description: "Render the input as read-only text",
+    },
+    loading: {
+      control: { type: "boolean" },
+      description: "Show a loading indicator",
+    },
+    variant: {
+      control: { type: "radio" },
+      options: variants,
+      description: "Visual variant of the input",
+    },
+    align: {
+      control: { type: "radio" },
+      options: alignments,
+      description: "Text alignment within the input",
+    },
+    size: {
+      control: { type: "select" },
+      options: formInputSizes,
+      description: "Input height",
+    },
+    width: {
+      control: { type: "select" },
+      options: widths,
+      description: "Preset input width",
+    },
+    hideArrow: {
+      control: { type: "boolean" },
+      description: "Hide the dropdown arrow",
+    },
+  },
+  args: {
+    disabled: false,
+    invalid: false,
+    readonly: false,
+    loading: false,
+    variant: "default",
+    align: "left",
+    size: "md",
+    hideArrow: false,
+  },
+} satisfies StoryDefault<MultiSelectProps>;
 
 const sampleItems: Array<ItemOrGroup<SelectItem>> = [
   { value: "apple", text: "Apple" },
@@ -97,6 +175,25 @@ const tonedItems = [
   { value: "error", text: "Error", tone: "error" as const },
 ];
 
+const groupedItems: Array<ItemOrGroup<MultiSelectItem>> = [
+  {
+    id: "group-one",
+    label: "Group one",
+    items: [
+      { value: "apple", text: "Apple" },
+      { value: "banana", text: "Banana" },
+    ],
+  },
+  {
+    id: "group-two",
+    label: "Group two",
+    items: [
+      { value: "cherry", text: "Cherry" },
+      { value: "date", text: "Date" },
+    ],
+  },
+];
+
 const suffixItems: Array<MultiSelectItem> = [
   { value: "apple", text: "Apple", suffix: "52 kcal", showOnlyButton: true },
   {
@@ -110,7 +207,11 @@ const suffixItems: Array<MultiSelectItem> = [
   { value: "date", text: "Date", suffix: "282 kcal" },
 ];
 
-export const Multiple: Story = () => {
+export const Multiple: Story<MultiSelectProps> = (args) => {
+  const spreadArgs = args as Omit<
+    MultiSelectProps,
+    "items" | "value" | "onChange" | "required"
+  >;
   const [fruits, setFruits] = useState<string[]>(["apple", "banana"]);
   const [byVariant, setByVariant] = useState<Record<string, string[]>>({
     checkbox: ["apple"],
@@ -125,6 +226,10 @@ export const Multiple: Story = () => {
     highlight: ["neutral", "brand", "error"],
   });
   const [capped, setCapped] = useState<string[]>(["apple", "banana"]);
+  const [groupedValues, setGroupedValues] = useState<string[]>([
+    "apple",
+    "cherry",
+  ]);
   const [suffixValues, setSuffixValues] = useState<string[]>([
     "apple",
     "banana",
@@ -139,11 +244,22 @@ export const Multiple: Story = () => {
       <div className={groupStyle}>
         <span style={subheadingStyle}>Default (checkbox items)</span>
         <Select
+          {...spreadArgs}
           multiple
           items={sampleItems}
           value={fruits}
           onChange={setFruits}
           placeholder="Select fruits..."
+        />
+      </div>
+      <div className={groupStyle}>
+        <span style={subheadingStyle}>Item groups</span>
+        <Select
+          {...spreadArgs}
+          multiple
+          items={groupedItems}
+          value={groupedValues}
+          onChange={setGroupedValues}
         />
       </div>
       <div className={groupStyle}>
@@ -165,6 +281,7 @@ export const Multiple: Story = () => {
           {multiItemVariants.map((itemVariant) => (
             <Select
               key={itemVariant}
+              {...spreadArgs}
               multiple
               items={sampleItems.map((item) => ({
                 ...item,
@@ -197,6 +314,7 @@ export const Multiple: Story = () => {
           {multiItemVariants.map((itemVariant) => (
             <Select
               key={itemVariant}
+              {...spreadArgs}
               multiple
               items={tonedItems.map((item) => ({
                 ...item,
@@ -216,6 +334,7 @@ export const Multiple: Story = () => {
           (Date has a suffix but no Only button)
         </span>
         <Select
+          {...spreadArgs}
           multiple
           items={suffixItems}
           value={suffixValues}
@@ -228,6 +347,7 @@ export const Multiple: Story = () => {
           selected
         </span>
         <Select
+          {...spreadArgs}
           multiple
           maxItems={2}
           searchable={{ searchable: true, onSearch: noop }}
@@ -241,6 +361,7 @@ export const Multiple: Story = () => {
           renderItem + renderSelectedItem (receives all selected values)
         </span>
         <Select
+          {...spreadArgs}
           multiple
           items={colorItems}
           value={colors}
@@ -265,6 +386,7 @@ export const Multiple: Story = () => {
           Searchable — onSearch reported: "{lastSearch}"
         </span>
         <Select
+          {...spreadArgs}
           multiple
           searchable={{ searchable: true, onSearch: setLastSearch }}
           items={sampleItems}
@@ -275,6 +397,7 @@ export const Multiple: Story = () => {
       <div className={groupStyle}>
         <span style={subheadingStyle}>Clearable</span>
         <Select
+          {...spreadArgs}
           multiple
           items={sampleItems}
           value={clearableValues}
@@ -285,6 +408,7 @@ export const Multiple: Story = () => {
       <div className={groupStyle}>
         <span style={subheadingStyle}>Readonly</span>
         <Select
+          {...spreadArgs}
           multiple
           items={sampleItems}
           value={["apple", "cherry"]}
