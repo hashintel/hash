@@ -9694,6 +9694,7 @@ __metadata:
     "@hashintel/petrinaut": "workspace:*"
     "@hashintel/petrinaut-cli": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
+    "@local/petrinaut-optimizer-core": "workspace:*"
     "@local/petrinaut-python": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@types/js-yaml": "npm:^4"

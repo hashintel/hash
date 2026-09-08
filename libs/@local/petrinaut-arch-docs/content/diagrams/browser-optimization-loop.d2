@@ -8,25 +8,58 @@ optuna: Optuna (optimizer-core)
 channel: Channel
 experiments: Experiments provider
 
-provider -> capability: createOptimizationRun(manifest)
-capability -> worker: "start { runId, description, parallelism }"
-worker -> optuna: create_browser_study (kept handle)
-worker -> optuna: run_browser_study (one segment of trials)
-optuna -> worker: ask, suggest values (up to parallelism in flight)
-worker -> capability: "evaluate { requestId, trial, suggestedValues }"
-capability -> channel: evaluateTrial(request)
-channel -> experiments: "runDetachedObjective (runCount = seeds, seeds pinned on the CPU)"
-experiments -> provider: frames stream into the followed selection
-experiments -> channel: "outcome: the result, or { reason, cancelled } when refused, failed or cancelled"
-channel -> capability: "{ objective, replicates } or { pruned, reason }"
-capability -> worker: "evaluated { requestId, outcome }"
-worker -> optuna: tell
-optuna -> worker: trial event with best
-worker -> capability: "trial { event }"
-capability -> provider: trial event through attachOptimizationRun
-provider -> capability: "extendOptimizationRun(runId, trials) after Stop or Complete"
-capability -> worker: "extend { runId, trials }"
-worker -> optuna: run_browser_study (next segment, same study)
-provider -> capability: releaseOptimizationRun(runId) when the record is removed
-capability -> worker: "release { runId }"
-worker -> optuna: release_browser_study
+one study: {
+  provider -> capability: "createOptimizationRun(manifest, { parallelism })"
+  capability -> capability: "started { requestedTrials } appended to the run log"
+  capability -> worker: "start { runId, description, parallelism }"
+  worker -> optuna: create_browser_study(description, parallelism), kept in a handle
+  worker -> optuna: run_browser_study(handle, trials, evaluate, on_trial, is_cancelled), one segment
+}
+
+one trial, up to parallelism at a time: {
+  optuna -> worker: ask and suggest values
+  worker -> capability: "evaluate { runId, requestId, trial, suggestedValues }"
+  capability -> channel: evaluateTrial(request) with the run's seeds and the segment's signal
+  channel -> experiments: "runDetachedObjective (cacheKey = runId, queueKey per trial, runSeeds pinned on the CPU)"
+  channel -> provider: trialStarted(trial, values, run, runCount)
+  experiments -> provider: frames and progress stream into the followed selection
+  experiments -> channel: "outcome: the result, or { reason, cancelled } when refused, failed or cancelled"
+  channel -> provider: trialSettled(trial, outcome)
+  channel -> capability: "{ objective: mean } or { pruned, reason }"
+  capability -> worker: "evaluated { requestId, outcome }"
+  worker -> optuna: tell
+  optuna -> worker: trial event with the running best
+  worker -> capability: "trial { runId, event }"
+  capability -> provider: trial event through attachOptimizationRun
+}
+
+segment end: {
+  optuna -> worker: summary once the segment's trials are told
+  worker -> capability: "complete { runId, summary }"
+  capability -> provider: complete event through attachOptimizationRun
+}
+
+Stop: {
+  provider -> capability: cancelOptimizationRun(runId)
+  capability -> channel: the segment's signal aborts and the trials' runs cancel
+  capability -> worker: "cancel { runId }"
+  worker -> worker: pending evaluations resolve as pruned
+  optuna -> worker: is_cancelled() is true at the next poll
+  optuna -> optuna: trials in flight told failed, without an event
+  optuna -> worker: summary with cancelled set
+  worker -> capability: "cancelled { runId }"
+  capability -> provider: cancelled error event through attachOptimizationRun
+}
+
+Continue: {
+  provider -> capability: extendOptimizationRun(runId, trials) after Complete or Stop
+  capability -> capability: "started { requestedTrials } with the new total"
+  capability -> worker: "extend { runId, trials }"
+  worker -> optuna: run_browser_study on the kept handle, the next segment
+}
+
+Remove: {
+  provider -> capability: releaseOptimizationRun(runId)
+  capability -> worker: "release { runId }, nothing posted back"
+  worker -> optuna: release_browser_study(handle)
+}

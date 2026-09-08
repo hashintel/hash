@@ -1,0 +1,107 @@
+---
+title: The connected study
+description: "The local state behind a study evaluated in the tab: following the trials, the refinement ladder at the navigated point, the activity list, and what Stop and Continue do to it."
+sidebar_order: 10
+attachTo: react.optimizations.connected-study
+---
+
+A **connected** study is one the tab evaluates itself through the
+[browser runtime](doc:optimizer/browser-runtime); a **remote** one runs on the
+optimizer service. Both share the event stream and the record fields it
+fills. A connected record also carries `record.connected`, a
+`ConnectedStudyState`, and this layer is the object that fills it: one
+`createConnectedStudy` per record, made by the
+[optimizations provider](layer:react.optimizations) when the study is created
+and disposed when the record is removed or the connection is disposed.
+Everything below happens outside React. The study publishes
+`{ navigation, selection, activity, inFlight }` through `onUpdate`, and the
+provider patches them onto the record.
+
+## Following
+
+`navigation` is the point the drawer looks at: one quantized position per
+optimized numeric parameter (an `OptimizationSurfaceAxis` from
+`buildOptimizationSurfaceAxes`), one value per optimized boolean parameter,
+and `followTrials`. It starts at each axis's midpoint
+(`optimizationAxisMidpoint`), at the scenario's defaults for the booleans, and
+with `followTrials: true`.
+
+The channel reports each trial's detached run to the study. `trialStarted`
+registers the trial in the activity list and, while following, moves the
+navigation to the trial's values (`optimizationAxisPositionFor` per axis) and
+mirrors the run's frames and progress stores into `selection` under the key
+`trial:<n>`, so the objective's chart beside the drawer's Surface streams the
+step being evaluated. With several trials in flight the most recently started
+one is followed. `trialSettled` clears the followed selection's `computing`
+flag; a failed batch records its reason on `selection.error` (a cancelled one
+records nothing), and following moves on to the latest trial still in flight.
+`trialReported` keeps the best from each trial event with `foldBestTrial`, so
+the refinement below can compare against it.
+
+`setNavigation` applies a patch. A change to a position or a boolean clears
+`followTrials` and refines at the new point; a patch that turns `followTrials`
+back on stops the refinement and follows the most recently started trial. Once
+the study is terminal, every move refines.
+
+## The refinement ladder
+
+`createPointRefinement` (`provider/point-refinement.ts`) refines one point as
+the sweep session refines the navigator's selection: cumulative batches up
+`EXPERIMENT_RUN_LADDER` (`getNextRunTarget`), capped at
+`POINT_REFINEMENT_MAX_RUNS`, one `runDetachedObjective` batch per rung with
+`seed = sweepBatchSeed(studySeed, from)` and `runCount = target − from`,
+frames merged with `mergeMetricFramesAcrossCells`, and the result cached per
+navigation key for the record's lifetime. Each batch runs the study's frozen
+snapshot on its requested backend, compiled once under the record id as
+`cacheKey`, and registers in the activity list as `{ kind: "refine", values }`
+with the point's optimized parameter values. A key change cancels the batch in
+flight; returning to a cached key resumes from its finished rungs. A rung that
+fails stops the ladder at that key and records the batch's reason on
+`selection.error`; the next refine of that key, on a later navigation change,
+retries.
+
+Between rungs, `estimateObjective` reads the point's mean and standard error
+from the objective's last distribution frame with samples, and
+`shouldStopRefining` stops the ladder when the mean sits more than
+`STOP_MARGIN_STANDARD_ERRORS` standard errors on the wrong side of the study's
+best. The ladder then publishes `selection.note` from `cannotBeatBestNote`
+("8 runs · cannot beat the best"). The best trial's own point is exempt
+(`isBest`) and climbs to the top rung.
+
+## Settling, Stop and Continue
+
+When the study reaches a terminal status, the provider calls `settle`. While
+following is on and no trial is still being followed, the navigation moves to
+the best trial's point and refines there; without a completed trial it stays
+where it is, with following off. A navigation the user moved earlier stays
+put. A trial still followed at that moment settles first, and `trialSettled`
+then makes the same move.
+
+**Stop** in the drawer calls the provider's `cancelOptimization`. For a
+connected study it calls `cancelOptimizationRun` on the capability and marks
+the record cancelled at once (the drawer reads it as **Stopped**), with
+`connected.resumable` still false: the worker resolves the steps in flight
+first, and the core refuses to extend the run until the segment's terminal
+event lands. The attachment stays to apply that event, so the record's cursor
+covers the whole segment. The stopped trials in flight are told failed without
+an event, so they appear nowhere: in neither the steps table nor the counts.
+The terminal event sets `resumable`, and the footer offers **Continue**.
+
+**Continue** calls `extendOptimization(optimizationId, trials)`: the provider
+calls `extendOptimizationRun(runId, trials)`, then `resume()` on the study
+(`followTrials` back on, the refinement stopped), and re-runs its attach loop
+from `record.lastSeq`, so the new `started` event sets the total and the new
+trials are followed as they are evaluated. **Remove** calls
+`releaseOptimizationRun` and disposes the study: the followed subscriptions
+end, every in-flight entry is released, the activity list clears and the
+refinement cache is dropped.
+
+## The activity list and the trials in flight
+
+`activity` is a `BatchRegistry` (`react/experiments/shared/batch-registry.ts`)
+over two kinds, `trial` before `refine`: every trial in flight and the
+refinement rung, each with its `runCount` and `completedRuns`, republished on
+a 100 ms throttle as progress ticks. `inFlight` lists every trial being
+evaluated with its running objective (`sweepCellObjective` over the run's
+frames so far), most recently started last; the Surface draws them as rings.
+The [Optimizations tab](doc:ui/optimizations-tab) renders both.

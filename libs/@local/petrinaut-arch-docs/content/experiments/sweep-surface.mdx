@@ -24,17 +24,16 @@ one queue by parallel lanes, each chunk one request through the session's
 background lane at eight runs per cell. Where the swept parameters only
 drive rates, a chunk becomes a **single experiment**: the session lays every
 cell's values out as per-run parameter draws (each cell's values repeated
-eight times), runs one batch of `cells × 8` runs, and folds the per-run
+eight times), runs one batch of `cells × 8` runs, and combines the per-run
 metric values back into per-cell means. One batch setup per chunk replaces
-one per cell — batch setup, not compute, dominated a cell's wall time, which
-is why the earlier design needed four concurrent per-cell lanes to fill an
-11×11 surface in ~4 s. Cells do not wait for the whole chunk either: CPU
+one per cell, and batch setup dominates a cell's wall time. Cells do not wait
+for the whole chunk either: CPU
 workers report per-run values as each shard completes, so a sharded chunk
 streams its cells in slices (`sampleCells`'s partial listener), and the
 per-cell fallback reports each resolved cell the same way.
 
 The navigator's own selection outranks all of this. Every chunk dispatch
-awaits `session.whenSelectionStreamed()` — a gate that opens once the
+awaits `session.whenSelectionStreamed()` — a check that passes once the
 current selection has streamed its first frames (or has cached runs, or
 failed) and re-arms on every selection change — so the metric charts start
 filling before any surface batch competes for workers, on first open and
@@ -47,7 +46,7 @@ initial state at each axis's extremes and compares against the midpoint — and
 a marking-shaping sweep falls back to per-cell sampling, whose base compile
 follows each cell. Batched chunks also pin the batch to the CPU lane: only
 the CPU workers report per-run metric values (`runResults`), the GPU backend
-folds runs into histograms on-device.
+reduces runs to histograms on-device.
 
 Every metric is measured on the same runs, so the component caches
 per-cell values for **all** metrics and switching the shown metric repaints
@@ -73,20 +72,18 @@ At any moment most cells are unsampled, so the picture must make sense at
 every stage. Inverse distance weighting over the sampled points gives smooth
 blobs around the first few samples that converge to the surface as cells
 land; marching squares over that raster draws the iso-lines, and sampled
-combinations are marked with dots so it stays visible where data actually
-exists. All of that is pure, tested math in
+combinations are marked with dots so it stays visible where data exists. All of that is pure, tested math in
 `ui/components/contour-surface/contour-field.ts`; the component only paints it onto a
 canvas, the same imperative-draw idiom the metric charts use.
 
-A restart — any slice or axis change clears the sampled
-values — used to blank the plot until the first new samples resolved,
-which reads as a crash after every slider move. The plot now keeps the
-previous picture up, dimmed to 45%, whenever fewer than three fresh samples
-exist (one or two samples interpolate to a near-uniform wash that says less
-than the old picture does), with the new dots drawn on top. The same
-bridge the metric charts build with a snapshot overlay, built here by
-retaining the last complete-enough field. The `Components / ContourSurface →
-Restarting` story demonstrates the cycle.
+A restart — any slice or axis change — clears the sampled values. The plot
+keeps the previous picture up, dimmed to 45%, whenever fewer than three fresh
+samples exist (one or two samples interpolate to a near-uniform wash that says
+less than the old picture does), with the new dots drawn on top; a blank plot
+after every slider move would read as a crash. This is the same bridge the
+metric charts build with a snapshot overlay, built here by retaining the last
+complete-enough field. The `Components / ContourSurface → Restarting` story
+demonstrates the cycle.
 
 ## Eight runs is a sketch
 
@@ -104,17 +101,18 @@ The optimization drawer mounts the same rendering and sampling shape over a
 study's optimized parameters (`optimization-surface.tsx`), with two
 differences. Axes come from the study's domains (`react/optimizations/
 surface-grid.ts`): log-scale domains quantize in log space and integer domains
-snap to their step. And samples cannot go through a sweep session — a study
-must run its **frozen model snapshot**, not the live editor net — so the
-experiments provider exposes `sampleDetachedObjective`: a serialized
-single-worker lane that compiles the snapshot once per study (cached), runs
-its objective as an expression metric, and returns the finished frames. The
+snap to their step. And a study must run its **frozen model snapshot**
+rather than the live editor net a sweep session holds, so the experiments
+provider exposes `sampleDetachedObjective`: one CPU batch on a queue of its
+own (`surface`), against a snapshot compiled once per study (cached), running
+the objective as an expression metric and returning the finished frames. The
 component keeps its own per-position cache and climbs the same run ladder for
 the selected point, streaming the objective's mean and median. The study's
 completed trials draw as projected rings over the locally computed fill — the
 optimizer's evaluations laid over a picture computed here. A study run in the
 browser skips the walk: its trials are the field's samples, drawn as dots and
 interpolated between, the step in flight streams its running objective at the
-record's `navigation`, and the plot only displays until the study is over or
-following is off, so the drawer's Parameters band and the plot move together
-([the browser runtime](doc:optimizer/browser-runtime)).
+record's navigation, and the plot only displays until the study is over or
+following is off, so the drawer's Parameters band and the plot move together.
+[The connected study](doc:optimizer/connected-study) owns that navigation and
+[the Optimizations tab](doc:ui/optimizations-tab) draws the plot.

@@ -4,13 +4,13 @@ import {
   useSearch,
 } from "@tanstack/react-router";
 
-import { BrowserOptimizationProvider } from "../main/app/browser-optimization-provider";
 import { LocalStorageDemoApp } from "../main/app/local-storage-demo/local-storage-demo-app";
 import {
   localStorageDemoRouteIdentity,
   validateLocalStorageDemoSearch,
   withBrunchFixtureKey,
 } from "../main/app/local-storage-demo/local-storage-demo-search";
+import { BrowserOptimizationProvider } from "../main/app/optimization-demo/browser-optimization-provider";
 
 function IndexRoute() {
   const navigate = useNavigate({ from: "/" });
