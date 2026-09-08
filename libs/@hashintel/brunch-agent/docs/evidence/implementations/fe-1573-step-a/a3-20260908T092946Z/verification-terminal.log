@@ -1,0 +1,11 @@
+• turbo 2.10.12
+
+   • Packages in scope: @apps/brunch-agent, @apps/petrinaut-website, @hashintel/brunch-agent-plugin-sdcpn, @hashintel/petrinaut
+   • Running build, test:unit, lint:tsc, lint:eslint in 4 packages
+   • Remote caching disabled, using shared worktree cache
+
+
+ Tasks:    54 successful, 54 total
+Cached:    0 cached, 54 total
+  Time:    43.552s 
+

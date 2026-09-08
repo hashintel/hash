@@ -1,0 +1,44 @@
+{
+  "implementationCommit": "0ff1f8f0e4740ec4b6b1e4821b0b8c51d16cd961",
+  "baseCommit": "c4f5a54b355f25b2588a1a23659fdc996d14986a",
+  "readAuthorityClarification": "c265134393c6a8ecf131342482cd77ae0ceaa3a6",
+  "branch": "ln/fe-1573-a3",
+  "evidenceKind": "unit/component/canonical-handle only; browser integration blocked",
+  "paidProviderCalls": 0,
+  "testSummary": {
+    "plugin": {
+      "files": "4",
+      "tests": "20"
+    },
+    "app": {
+      "files": "25",
+      "tests": "152"
+    },
+    "petrinaut": {
+      "files": "84",
+      "tests": "692"
+    },
+    "website": {
+      "files": "42",
+      "tests": "373"
+    }
+  },
+  "files": {
+    ".changeset/brunch-a3-browser-observation.md": "c023e1bdacbfae54928a02e3d472bdcfdbb74af6a860644ebcde85ce5669f6b6",
+    "apps/petrinaut-website/docs/task-dependencies.json": "a9ccde90ec248ba2f295c50cf30a104563843ce40815fcd13fa9a8c1f24a77db",
+    "apps/petrinaut-website/package.json": "aa565086872f6036d6ef97a6848af80d75f4f46e28c8cfbaf471919b16c3972e",
+    "apps/petrinaut-website/src/main/app/local-storage-demo/transition-record.test.ts": "cdb9a315bb7e39a3f569419524a9009fb28f3d385fa0bb5dc1c3816d51eb4f4b",
+    "apps/petrinaut-website/src/main/app/local-storage-demo/transition-record.ts": "c7804d5fc5fef7a3167b1c014f4e40629678b4b71633392db2badcb13c288d9c",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/index.ts": "7a5dc420d738f4f054d5af8e0aa1004406fb316a62b014026750b11fda1a3c4c",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/transition-record.ts": "40a78fc75e2ec9d9429654c3f87dbbef7aee712a5e9c8d0c430600a2e510d4a7",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/test/transition-record.test.ts": "8350bb687f3abfa42a48bb3e38438d1cb3545fcc9c3363bcdb7865727b3197ba",
+    "libs/@hashintel/petrinaut/docs/ai-assistant.md": "5fee1efd0bbe0afd50b923d44fd53931bf127f6cda2ae17b6db8e28dc17f7de0",
+    "libs/@hashintel/petrinaut/src/ui/petrinaut.tsx": "0c0bf5ec06026aa09538e459e6558cb144a146571902f296bbd1d6e9b8c7d0c6",
+    "libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.test.tsx": "dd6141f24033c80830fc04fe481928f38285b5533a69840548d38de7544989aa",
+    "libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.tsx": "90dce580a333f6bb22b6f1cd219ab53eab78389770970a125c556b6fdc23a7d1",
+    "libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/apply-petrinaut-ai-mutation.test.ts": "2612f6826a7c3f95b1f86c58c73a5f892c07207e7167cfddad4c88576a4841e2",
+    "libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/apply-petrinaut-ai-mutation.ts": "a1d0d3cefdb1b2641b14fbdd6584b9a359b97e42b4f778a8c4f5ffad3876a2da",
+    "libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/types.ts": "d36507e14fcc0594f9c62b8394dbc37c8ecc47c86f5f2985c3708c9337588603",
+    "yarn.lock": "80de1176e832e5434e3510f0a54a451b76fa99520dedc72f29a578b87e5a3c8f"
+  }
+}

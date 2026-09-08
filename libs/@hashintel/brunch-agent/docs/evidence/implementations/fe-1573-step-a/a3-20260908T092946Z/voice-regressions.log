@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/charlie/apps/petrinaut-website
+
+
+ Test Files  3 passed (3)
+      Tests  27 passed (27)
+   Start at  11:49:57
+   Duration  3.34s (transform 5.25s, setup 0ms, import 4.48s, tests 680ms, environment 284ms)
+

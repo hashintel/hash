@@ -1,0 +1,41 @@
+
+ RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/charlie/apps/brunch-agent
+
+ ✓ test/deployment-smoke-validation.test.ts (9 tests) 7ms
+ ✓ test/agent-ownership.test.ts (4 tests) 10ms
+ ✓ test/proof-artifacts.test.ts (3 tests) 14ms
+ ✓ test/retired-run-archive.test.ts (1 test) 42ms
+ ✓ test/headless-petrinaut-client.test.ts (2 tests) 13ms
+ ✓ test/architecture/boundaries.test.ts (27 tests) 180ms
+ ✓ test/schema-carrier.test.ts (1 test) 1707ms
+   ✓ the built agent carries nested canonical input and correlates headless continuation over the mounted route  1706ms
+ ✓ test/database-config.test.ts (13 tests) 4ms
+ ✓ test/architecture/workspace.test.ts (7 tests) 5ms
+ ✓ test/health.test.ts (1 test) 16ms
+ ✓ test/runbook-artifacts.test.ts (13 tests) 7ms
+ ✓ test/telemetry.test.ts (6 tests) 8ms
+ ✓ test/conversation-identity.test.ts (4 tests) 7ms
+ ✓ test/postgres.test.ts (13 tests) 19ms
+ ✓ test/assets.test.ts (9 tests) 27ms
+(node:3583) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ test/build-artifact.test.ts (9 tests) 1435ms
+     ✓ serves only the guarded Flue conversation door  1413ms
+ ✓ test/brunch-turn.test.ts (13 tests) 24ms
+ ✓ test/prepared-workpiece.integration.test.ts (1 test) 2696ms
+   ✓ the built ChatAgent preserves prepared and model workpiece provenance  2695ms
+ ✓ test/petrinaut-chat.test.ts (1 test) 3480ms
+   ✓ the browser transport streams the mounted Flue agent through server and client tools  3480ms
+ ✓ test/local-dev-origins.test.ts (4 tests) 2ms
+ ✓ test/workpiece.test.ts (1 test) 2ms
+ ✓ test/runbook-headless.test.ts (1 test) 1567ms
+   ✓ the built ChatAgent reports only the construct-only evidence it reaches  1566ms
+ ✓ test/flue-transcript.test.ts (1 test) 1ms
+ ✓ test/db-path.test.ts (5 tests) 2ms
+ ✓ test/persona-probe-objective.test.ts (3 tests) 2ms
+
+ Test Files  25 passed (25)
+      Tests  152 passed (152)
+   Start at  11:58:20
+   Duration  5.11s (transform 2.59s, setup 0ms, import 4.87s, tests 11.28s, environment 1ms)
+

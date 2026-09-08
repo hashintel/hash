@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/charlie/libs/@hashintel/petrinaut
+
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  11:31:13
+   Duration  437ms (transform 140ms, setup 0ms, import 231ms, tests 7ms, environment 0ms)
+

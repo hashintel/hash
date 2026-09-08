@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/charlie/libs/@hashintel/brunch-agent/packages/transport-aisdk
+
+
+ Test Files  4 passed (4)
+      Tests  42 passed (42)
+   Start at  11:50:02
+   Duration  527ms (transform 43ms, setup 0ms, import 214ms, tests 16ms, environment 0ms)
+

@@ -1,0 +1,90 @@
+
+ RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/charlie/libs/@hashintel/petrinaut
+
+11:41:45 AM [vite] (client) warning: Cannot access refs during render
+
+  ! react-compiler(Refs): Cannot access refs during render
+     ,-[/Users/lunelson/.herdr/worktrees/hash/charlie/libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.tsx:535:5]
+ 534 |       const [diagnosticsTransportState, setDiagnosticsTransportState] = useState(
+ 535 | ,->     () => ({
+ 536 | |         source: aiAssistant.transport,
+ 537 | |         transport: buildWrappedTransport(aiAssistant.transport),
+ 538 | |->     }),
+     : `---- Passing a ref to a function may read its value during render
+ 539 |       );
+     `----
+  help: React refs are values that are not needed for rendering. Refs should
+        only be accessed outside of render, such as in event handlers or
+        effects. Accessing a ref value (the `current` property) during
+        render can cause your component not to update as expected
+  note: React Compiler skipped optimizing this component or hook
+
+  Plugin: vite:react-compiler
+  File: /Users/lunelson/.herdr/worktrees/hash/charlie/libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.tsx
+11:41:45 AM [vite] (client) warning: Cannot access refs during render
+
+  ! react-compiler(Refs): Cannot access refs during render
+      ,-[/Users/lunelson/.herdr/worktrees/hash/charlie/libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.tsx:1735:5]
+ 1734 |   const composerControl = aiAssistant.renderComposerControl?.(
+ 1735 |     composerControlContext,
+      :     ^^^^^^^^^^^|^^^^^^^^^^
+      :                `-- Passing a ref to a function may read its value during render
+ 1736 |   );
+      `----
+  help: React refs are values that are not needed for rendering. Refs should
+        only be accessed outside of render, such as in event handlers or
+        effects. Accessing a ref value (the `current` property) during
+        render can cause your component not to update as expected
+  note: React Compiler skipped optimizing this component or hook
+
+  Plugin: vite:react-compiler
+  File: /Users/lunelson/.herdr/worktrees/hash/charlie/libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.tsx
+11:41:45 AM [vite] (client) warning: Cannot access refs during render
+
+  ! react-compiler(Refs): Cannot access refs during render
+      ,-[/Users/lunelson/.herdr/worktrees/hash/charlie/libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.tsx:1737:51]
+ 1736 |       );
+ 1737 | ,->   const voiceMode = aiAssistant.renderVoiceMode?.({
+ 1738 | |       ...composerControlContext,
+ 1739 | |       canAcceptVoiceInput: !voiceInputQueued,
+ 1740 | |       inputMode: interactionMode,
+ 1741 | |       isAiAssistantOpen,
+ 1742 | |       registerVoiceModeControls,
+ 1743 | |       reportVoiceSessionState,
+ 1744 | |       setInputMode: requestInputMode,
+ 1745 | |       setVoiceActive,
+ 1746 | |       submitVoiceInput,
+ 1747 | |->   });
+      : `---- Passing a ref to a function may read its value during render
+ 1748 |       /* eslint-enable react-hooks-js/refs */
+      `----
+  help: React refs are values that are not needed for rendering. Refs should
+        only be accessed outside of render, such as in event handlers or
+        effects. Accessing a ref value (the `current` property) during
+        render can cause your component not to update as expected
+  note: React Compiler skipped optimizing this component or hook
+
+  Plugin: vite:react-compiler
+  File: /Users/lunelson/.herdr/worktrees/hash/charlie/libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.tsx
+11:41:45 AM [vite] (client) warning: Logical assignment operators (||=, &&=, ??=) are not yet supported
+
+  ! react-compiler(Todo): Logical assignment operators (||=, &&=, ??=) are not
+  | yet supported
+     ,-[/Users/lunelson/.herdr/worktrees/hash/charlie/libs/@hashintel/petrinaut/src/ui/views/Editor/components/voice-session-indicator.tsx:213:5]
+ 212 |     const targetColor = parseColor(window.getComputedStyle(canvas).color);
+ 213 |     colorRef.current ??= targetColor;
+     :     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 214 | 
+     `----
+  help: Rewrite the highlighted code using syntax supported by React
+        Compiler
+  note: React Compiler skipped optimizing this component or hook
+
+  Plugin: vite:react-compiler
+  File: /Users/lunelson/.herdr/worktrees/hash/charlie/libs/@hashintel/petrinaut/src/ui/views/Editor/components/voice-session-indicator.tsx
+
+ Test Files  2 passed (2)
+      Tests  64 passed (64)
+   Start at  11:41:44
+   Duration  5.56s (transform 765ms, setup 0ms, import 1.53s, tests 4.02s, environment 145ms)
+
