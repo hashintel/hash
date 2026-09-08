@@ -61,6 +61,96 @@ test.each(["stream", "streamSimple"] as const)(
   },
 );
 
+for (const method of ["stream", "streamSimple"] as const) {
+  test.each([false, true])(
+    `${method} rejects multiple browser calls before publication (duplicate id: %s)`,
+    async (duplicateId) => {
+      const { faux, provider, model } = fixture();
+      faux.setResponses([
+        fauxAssistantMessage(
+          [
+            fauxToolCall("browser", {}, { id: "first" }),
+            fauxToolCall(
+              "browser",
+              {},
+              { id: duplicateId ? "first" : "second" },
+            ),
+          ],
+          { stopReason: "toolUse" },
+        ),
+      ]);
+      const events: AssistantMessageEvent[] = [];
+      const stream = provider[method](model, { messages: [] });
+      await expect(
+        (async () => {
+          for await (const event of stream) events.push(event);
+        })(),
+      ).rejects.toThrow("Multiple browser calls");
+      expect(events).toEqual([]);
+      await expect(stream.result()).rejects.toThrow("Multiple browser calls");
+    },
+  );
+}
+
+test.each(["missing", "arguments", "identity"] as const)(
+  "refuses inconsistent streamed and final browser calls (%s)",
+  async (difference) => {
+    const { faux, model } = fixture();
+    const streamed = fauxToolCall("browser", { value: 1 }, { id: "published" });
+    const final = fauxToolCall(
+      "browser",
+      { value: difference === "arguments" ? 2 : 1 },
+      { id: difference === "identity" ? "other" : "published" },
+    );
+    const message = fauxAssistantMessage(
+      difference === "missing" ? [] : [final],
+      {
+        stopReason: "toolUse",
+      },
+    );
+    const upstream = createAssistantMessageEventStream();
+    upstream.push({
+      type: "toolcall_end",
+      contentIndex: 0,
+      toolCall: streamed,
+      partial: message,
+    });
+    upstream.push({ type: "done", reason: "toolUse", message });
+    const provider = withBufferedToolAdmission(
+      { ...faux.provider, streamSimple: () => upstream },
+      () => true,
+      new Set(["browser"]),
+    );
+    await expect(
+      collect(provider.streamSimple(model, { messages: [] })),
+    ).rejects.toThrow(/browser.*proposal/iu);
+  },
+);
+
+test("preserves one browser call across key-order-equivalent stream and final representations", async () => {
+  const { faux, model } = fixture();
+  const message = fauxAssistantMessage(
+    [fauxToolCall("browser", { second: 2, first: 1 }, { id: "only" })],
+    { stopReason: "toolUse" },
+  );
+  const upstream = createAssistantMessageEventStream();
+  upstream.push({
+    type: "toolcall_end",
+    contentIndex: 0,
+    toolCall: fauxToolCall("browser", { first: 1, second: 2 }, { id: "only" }),
+    partial: message,
+  });
+  upstream.push({ type: "done", reason: "toolUse", message });
+  const provider = withBufferedToolAdmission(
+    { ...faux.provider, streamSimple: () => upstream },
+    () => true,
+    new Set(["browser"]),
+  );
+  expect(
+    (await collect(provider.streamSimple(model, { messages: [] }))).result,
+  ).toEqual(message);
+});
+
 test("leaves unrelated provider use and its streaming behavior untouched", async () => {
   const { faux, provider, model } = fixture(false);
   const response = fauxAssistantMessage(

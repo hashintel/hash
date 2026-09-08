@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from "node:util";
+
 import { EventStream } from "@earendil-works/pi-ai";
 
 import type {
@@ -108,20 +110,48 @@ class AdmittedStream extends EventStream<
       count(message);
       // Flue publishes toolcall_end inputs, then executes final-message calls.
       // Neither representation may smuggle a mixed proposal past admission.
-      const names = [
-        ...message.content.flatMap((part) =>
-          part.type === "toolCall" ? [part.name] : [],
-        ),
-        ...events.flatMap((event) =>
-          event.type === "toolcall_end" ? [event.toolCall.name] : [],
-        ),
-      ];
+      const finalCalls = message.content.flatMap((part) =>
+        part.type === "toolCall" ? [part] : [],
+      );
+      const streamedCalls = events.flatMap((event) =>
+        event.type === "toolcall_end" ? [event.toolCall] : [],
+      );
+      const names = [...finalCalls, ...streamedCalls].map((call) => call.name);
       if (
         names.some((name) => browserToolNames.has(name)) &&
         names.some((name) => !browserToolNames.has(name))
       ) {
         throw new Error(
           "Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+        );
+      }
+      const browserCalls = finalCalls.filter((call) =>
+        browserToolNames.has(call.name),
+      );
+      const streamedBrowserCalls = streamedCalls.filter((call) =>
+        browserToolNames.has(call.name),
+      );
+      const browserCallIds = new Set(
+        [...browserCalls, ...streamedBrowserCalls].map((call) => call.id),
+      );
+      if (browserCalls.length > 1 || browserCallIds.size > 1) {
+        throw new Error(
+          "Multiple browser calls refused before admission. Submit one browser call per proposal and wait for its correlated result.",
+        );
+      }
+      if (
+        streamedBrowserCalls.some(
+          (streamedCall) =>
+            !browserCalls.some(
+              (finalCall) =>
+                finalCall.id === streamedCall.id &&
+                finalCall.name === streamedCall.name &&
+                isDeepStrictEqual(finalCall.arguments, streamedCall.arguments),
+            ),
+        )
+      ) {
+        throw new Error(
+          "Inconsistent browser proposal refused before admission: published inputs must match the final call.",
         );
       }
       return { events, message: structuredClone(message) };

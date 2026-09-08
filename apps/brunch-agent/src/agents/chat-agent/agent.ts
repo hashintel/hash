@@ -154,6 +154,7 @@ export function ChatAgent({ id }: AgentProps) {
   useInstruction(
     `
 Call ping when you need to confirm the server tool path.
+Submit at most one browser tool call per proposal, separately from server tools, and wait for its correlated client result before further browser work. Invalid proposals fail as a whole; do not rely on sibling execution order.
 A client-tool-result signal is JSON [{ toolCallId, toolName, output, metadata? }]. Treat output as the browser's canonical result for that call and continue helping the user once; never reapply a completed mutation. For a joined root arc, metadata.transitionRecord contains verified observations and effects, not assistant prose or user testimony. Failed, stale, no-op and unknown attempts are not causes.
 `.replace(/^\s+|\s+$/gu, ""),
   );
