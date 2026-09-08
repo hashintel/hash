@@ -3,15 +3,14 @@
 ## Status
 
 **Live as of 2026-09-08** for
-[FE-1626](https://linear.app/hash/issue/FE-1626/add-cors-handling-to-brunch-agents-agents-routes-for-the-petrinaut)
-on `kafe/fe-1626-cors-agents-routes`, cut directly from `main` after
-[FE-1574](https://github.com/hashintel/hash/pull/9528) established
-`/agents/chat/:instanceId` as the Petrinaut browser's Brunch transport and
-[FE-1625](https://github.com/hashintel/hash/pull/9573) made the image deployable.
-This file is the branch's sole execution authority.
+[SRE-1042](https://linear.app/hash/issue/SRE-1042/configure-petrinauts-deployment-variables-for-the-brunch-agent-chat)
+on `t/sre-1042-allow-wildcard-origins-for-brunch-previews`, cut from `main` after
+[FE-1626](https://github.com/hashintel/hash/pull/9583) established the exact-origin allow-list for
+`/agents/*`. This file is the branch's sole execution authority.
 
-The owner selected deployment-configured exact origins over wildcard preview-host patterns or a
-new same-origin proxy. CORS governs whether a conforming browser exposes a cross-origin response
+Exact origins alone do not fit the deployment: every Petrinaut preview has its own
+`https://petrinaut-git-<branch>.stage.hash.ai` origin, so the allow-list additionally accepts a
+wildcard for exactly one leading host label. CORS governs whether a conforming browser exposes a cross-origin response
 to client code; it does not authenticate or restrict non-browser callers, authorize a
 conversation, or make public exposure safe by itself.
 
@@ -35,10 +34,12 @@ Petrinaut browser at one configured exact origin
 → response exposes the Flue/Durable Streams headers the browser SDK reads
 ```
 
-`BRUNCH_CORS_ALLOWED_ORIGINS` is read once at startup as a comma-separated list of exact HTTP(S)
-origins. Parsing trims whitespace, normalizes an optional trailing slash through `URL.origin`, and
-deduplicates values. Credentials, non-root paths, queries, fragments, wildcards, opaque origins,
-and non-HTTP(S) schemes are startup configuration errors. Missing or blank configuration means an
+`BRUNCH_CORS_ALLOWED_ORIGINS` is read once at startup as a comma-separated list of HTTP(S)
+origins, each either exact or with a wildcard as the whole leading host label in front of a domain
+with at least two labels (`https://*.stage.hash.ai`). A wildcard matches exactly one label, like a
+wildcard TLS certificate. Parsing trims whitespace, normalizes an optional trailing slash through
+`URL.origin`, and deduplicates values. Credentials, non-root paths, queries, fragments, wildcards in
+any other position, opaque origins, and non-HTTP(S) schemes are startup configuration errors. Missing or blank configuration means an
 empty allowlist: same-origin and non-browser callers continue through the existing route, but
 browser code at another origin receives no CORS grant. See the
 [Brunch application README](../../../apps/brunch-agent/README.md#production-container) for
@@ -99,8 +100,9 @@ configuration, a deployed endpoint, or end-to-end remote verification.
   CORS response logic.
 - Keep one Flue product route and the existing ownership guard. CORS must not add, proxy, rename, or
   reinterpret an agent route.
-- The origin list is exact. Do not hard-code Petrinaut domains, accept wildcard entries, infer trust
-  from `.stage.hash.ai`, reflect arbitrary `Origin` values, or silently skip malformed entries.
+- The origin list is explicit: exact origins or one-label wildcards, matched by scheme, host and
+  port. Do not hard-code Petrinaut domains, reflect arbitrary `Origin` values, or silently skip
+  malformed entries.
 - Keep credentials disabled. The current browser client uses explicit ownership headers, not
   cookies, and those headers are not authentication.
 - Answer preflight before ownership while preserving ownership enforcement on every non-preflight
@@ -115,7 +117,7 @@ configuration, a deployed endpoint, or end-to-end remote verification.
 
 ```text
 ~ libs/@hashintel/brunch-agent/MISSION.md      branch authority
-+ apps/brunch-agent/src/http/cors.ts           exact-origin parsing and Hono middleware
+~ apps/brunch-agent/src/http/cors.ts           exact and one-label wildcard origins, Hono middleware
 ~ apps/brunch-agent/src/app.ts                 mount CORS before ownership on /agents/*
 + apps/brunch-agent/test/cors.test.ts          parser, allowed, rejected, preflight, route-scope tests
 ~ apps/brunch-agent/README.md                  deployment variable and security boundary
@@ -127,10 +129,9 @@ configuration, a deployed endpoint, or end-to-end remote verification.
 - Infrastructure repository access is unavailable in this worktree, so this branch can prove only
   the application contract. Runtime deployment configuration must supply the chosen origins before
   remote verification.
-- Exact origins intentionally do not cover every ephemeral deployment URL. Prefer stable,
-  explicitly named origins; add an ephemeral origin only when a named test requires it. Re-enter
-  constrained patterns or a same-origin proxy only if maintaining the exact list becomes observed
-  operational strain.
+- A one-label wildcard admits every host directly under the configured domain, not only Petrinaut
+  previews. Narrow the deployed pattern or return to exact origins if that breadth becomes a
+  problem in practice.
 - The allowed and exposed headers are pinned to the installed Flue and Durable Streams clients.
   Re-evaluate them from client source when either dependency changes.
 
@@ -154,5 +155,5 @@ separate release gates.
   `VITE_BRUNCH_CHAT_ENDPOINT`, Voice deployment variables, and the deployed browser verification
   after this application contract lands.
 - FE-1615 and FE-1616 retain authentication and rate-limit work. CORS does not discharge either.
-- A same-origin Petrinaut proxy or constrained preview-host pattern re-enters only under observed
-  exact-list maintenance strain.
+- A same-origin Petrinaut proxy stays deferred; the one-label wildcard covers the preview
+  deployments the exact list could not.
