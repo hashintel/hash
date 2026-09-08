@@ -146,6 +146,19 @@ jobs:
               ecs: [{ service: "integration-worker", cluster: "h-stage-euc1-worker", service_name: "h-stage-euc1-worker-integration" }]
             },
             {
+              package:    "@rust/hash-graph-atlas",
+              service:    "atlas-fit",
+              push:       ["ecr"],
+              # The fit runs on x86 GPU hosts, so this image is amd64 rather than
+              # the arm64 default; with one arch listed it is also the ECR arch.
+              arches:     ["amd64"],
+              dockerfile: "libs/@local/graph/atlas/docker/Dockerfile",
+              context:    ".",
+              # A Batch job pulls the image by tag when it is submitted; there
+              # is no ECS service to redeploy.
+              ecs:        []
+            },
+            {
               # TODO(H-6664): switch to `package`-based detection once the
               #   monorepo tooling gives @apps/petrinaut-opt a `build:docker`
               #   task and workspace dependencies; until then turbo cannot see
