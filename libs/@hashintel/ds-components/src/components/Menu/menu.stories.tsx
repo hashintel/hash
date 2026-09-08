@@ -159,6 +159,36 @@ export const PlainButtonTrigger: Story<MenuProps> = (args) => {
   );
 };
 
+export const LongHeaderAndFooter: Story<MenuProps> = (args) => {
+  const { selected, toggle } = useToggleSelection();
+  const items = useMemo(
+    () => groupedItems.map((entry) => withSelection(entry, selected, toggle)),
+    [selected, toggle],
+  );
+  return (
+    <Menu
+      {...args}
+      trigger={<Button variant="solid">Open menu</Button>}
+      items={items}
+      header={
+        <span>
+          This is a very long header for the menu, spelling out in generous
+          detail the context of every action below, wrapping across several
+          lines while staying pinned above the scrollable items.
+        </span>
+      }
+      footer={
+        <span>
+          An equally long footer with fine print: none of the options above take
+          effect until confirmed elsewhere, and this note also wraps across
+          several lines while staying pinned below the scrollable items.
+        </span>
+      }
+      swapHeaderFooterOnFlip
+    />
+  );
+};
+
 export const EllipsisMenu: Story<MenuProps> = (args) => {
   const ellipsis = useToggleSelection();
   const bell = useToggleSelection();

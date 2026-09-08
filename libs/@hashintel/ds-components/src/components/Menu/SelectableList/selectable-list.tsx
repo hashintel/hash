@@ -3,7 +3,7 @@
 import { Menu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
 import { Select } from "@ark-ui/react/select";
-import { createContext, use, useMemo } from "react";
+import { createContext, use, useEffect, useMemo, useRef } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -345,6 +345,26 @@ export const SelectableList = ({
 
   const isEmpty = normalizedItems.length === 0;
 
+  // The scroll area may not shrink below min(200px, the list's natural
+  // height) — see the recipe. CSS cannot compare a length with an intrinsic
+  // size, so measure the natural height into a variable via a sizer element.
+  const scrollSizerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sizer = scrollSizerRef.current;
+    const scrollArea = sizer?.parentElement;
+    if (!sizer || !scrollArea) {
+      return undefined;
+    }
+    const observer = new ResizeObserver(() => {
+      scrollArea.style.setProperty(
+        "--selectable-list-items-height",
+        `${sizer.offsetHeight}px`,
+      );
+    });
+    observer.observe(sizer);
+    return () => observer.disconnect();
+  }, [hasHeader, hasFooter]);
+
   const ctx: RenderCtx = {
     as,
     size,
@@ -378,7 +398,9 @@ export const SelectableList = ({
           </div>
         )}
         <div className={classes.scrollArea} data-selectable-list-scroll="">
-          {listBody}
+          <div ref={scrollSizerRef} className={classes.scrollSizer}>
+            {listBody}
+          </div>
         </div>
         {hasFooter && (
           <div

@@ -104,8 +104,9 @@ export const HeaderAndFooter: Story<SelectableListProps> = (args) => (
     className={css({
       // The static menu has no positioner to set --available-height, so
       // provide it here — short enough that the items must scroll, showing
-      // the header and footer stay pinned outside the scroll area.
-      "--available-height": "240px",
+      // the header and footer stay pinned outside the scroll area (but tall
+      // enough for the scroll area's 200px floor).
+      "--available-height": "320px",
     })}
   >
     <StaticMenu>

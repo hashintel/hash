@@ -10,6 +10,7 @@ export const styles = sva({
     "emptyContainer",
     "customItem",
     "scrollArea",
+    "scrollSizer",
     "header",
     "footer",
   ],
@@ -80,14 +81,28 @@ export const styles = sva({
     scrollArea: {
       display: "flex",
       flexDirection: "column",
-      minHeight: "0",
+      // A tall header/footer may squeeze the scroll area, but no further
+      // than 200px — or the list's natural height when that is smaller
+      // (measured into the variable by the component). Any excess overflows
+      // to the outer content instead.
+      minHeight: "[min(200px, var(--selectable-list-items-height, 0px))]",
       overflowY: "auto",
       scrollbarWidth: "[thin]",
       "& > *": {
         flexShrink: "0",
       },
     },
+    scrollSizer: {
+      display: "flex",
+      flexDirection: "column",
+      "& > *": {
+        flexShrink: "0",
+      },
+    },
     header: {
+      width: "[min-content]",
+      minWidth: "[100%]",
+      boxSizing: "border-box",
       paddingX: "[var(--selectable-list-padding-x)]",
       paddingY: "[var(--selectable-list-padding-y)]",
       marginBottom: "1",
@@ -109,6 +124,9 @@ export const styles = sva({
       },
     },
     footer: {
+      width: "[min-content]",
+      minWidth: "[100%]",
+      boxSizing: "border-box",
       paddingX: "[var(--selectable-list-padding-x)]",
       paddingY: "[var(--selectable-list-padding-y)]",
       marginTop: "1",
