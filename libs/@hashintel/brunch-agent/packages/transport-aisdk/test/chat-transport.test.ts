@@ -188,9 +188,6 @@ test("after snapshot fold, submits only the latest client-tool step", async () =
   });
   const folded = snapshotToUiMessages(
     {
-      v: 1,
-      conversationId: "conversation-1",
-      offset: "0",
       messages: [
         {
           id: "assistant-1",
@@ -253,7 +250,6 @@ test("after snapshot fold, submits only the latest client-tool step", async () =
           ],
         },
       ],
-      settlements: [],
     },
     { clientToolNames },
   );
