@@ -148,7 +148,7 @@ jobs:
             {
               package:    "@rust/hash-graph-atlas",
               service:    "atlas-fit",
-              push:       ["ecr"],
+              push:       ["ecr", "ghcr"],
               # The fit runs on x86 GPU hosts, so this image is amd64 rather than
               # the arm64 default; with one arch listed it is also the ECR arch.
               arches:     ["amd64"],
