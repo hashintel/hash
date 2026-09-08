@@ -68,12 +68,42 @@ export interface SelectedRunbookWorkpiece {
   readonly sourceSubmissionId?: string;
 }
 
-const runbookIrFencePattern = /```runbook-ir\s*\n([\s\S]*?)```/gu;
+const openingRunbookIrFence = `\`\`\`${runbookIrFence}`;
+const closingFence = "```";
 
 export const latestRunbookIrBlock = (text: string): string | undefined => {
-  const matches = [...text.matchAll(runbookIrFencePattern)];
-  const last = matches.at(-1)?.[1];
-  return last === undefined ? undefined : last.trim();
+  let last: string | undefined;
+  let searchFrom = 0;
+  while (searchFrom < text.length) {
+    const openAt = text.indexOf(openingRunbookIrFence, searchFrom);
+    if (openAt === -1) {
+      break;
+    }
+    let cursor = openAt + openingRunbookIrFence.length;
+    let lastNewline: number | undefined;
+    while (cursor < text.length) {
+      const character = text[cursor];
+      if (character === undefined || character.trim() !== "") {
+        break;
+      }
+      if (character === "\n") {
+        lastNewline = cursor;
+      }
+      cursor += 1;
+    }
+    if (lastNewline === undefined) {
+      searchFrom = openAt + 1;
+      continue;
+    }
+    const contentStart = lastNewline + 1;
+    const closeAt = text.indexOf(closingFence, contentStart);
+    if (closeAt === -1) {
+      break;
+    }
+    last = text.slice(contentStart, closeAt).trim();
+    searchFrom = closeAt + closingFence.length;
+  }
+  return last;
 };
 
 const textFrom = (message: WorkpieceHistoryMessage): string =>

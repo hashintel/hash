@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   createPreparedWorkpieceDelivery,
+  latestRunbookIrBlock,
   preparedWorkpieceAuthorship,
   preparedWorkpieceClaimBoundary,
   preparedWorkpieceSignalTag,
@@ -49,6 +50,28 @@ const history = (
 ): WorkpieceHistory => ({
   conversationId: "conversation",
   messages,
+});
+
+describe("latestRunbookIrBlock", () => {
+  test("takes the last complete fenced block", () => {
+    expect(
+      latestRunbookIrBlock(
+        "```runbook-ir\n# first\n```\nlater\n```runbook-ir\n# second\n```",
+      ),
+    ).toBe("# second");
+  });
+
+  test("skips an opening fence that never reaches a newline", () => {
+    expect(latestRunbookIrBlock("```runbook-ir still on one line```")).toBe(
+      undefined,
+    );
+  });
+
+  test("scans a long whitespace prefix without quadratic backtracking", () => {
+    const prefix = "```runbook-ir\n" + "\n ".repeat(8_000);
+    expect(latestRunbookIrBlock(`${prefix}# body\n\`\`\``)).toBe("# body");
+    expect(latestRunbookIrBlock(prefix)).toBeUndefined();
+  });
 });
 
 describe("prepared workpiece delivery", () => {
