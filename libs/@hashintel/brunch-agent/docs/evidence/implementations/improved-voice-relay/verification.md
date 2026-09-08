@@ -2,7 +2,7 @@
 
 ## Status
 
-Blocked before prompt or delivery changes. This is not an implemented experiment, a naturalness verdict, or a replacement for the accepted Mission 6b authority. No new live mission has been cut while the required baseline and supported Voice-context path remain blocked.
+Blocked before prompt or delivery changes by the supported Voice-context prerequisite. Local credentials and routing now work, and two synthetic-speech baseline turns crossed the real provider/Flue path. This is not an implemented optimization, a human naturalness verdict, or a replacement for the accepted Mission 6b authority. No new live mission has been cut.
 
 - Issue: [FE-1630 — Optimize and measure the Brunch Voice relay](https://linear.app/hash/issue/FE-1630/optimize-and-measure-the-brunch-voice-relay) _(internal)_, created in FE / brunch-agent, Todo, assigned to Kostandin Angjellari.
 - Branch: `kostandin/fe-1630-improved-voice-relay`.
@@ -51,9 +51,24 @@ The Brunch provider boundary failed during preparation:
 401 {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}
 ```
 
-The configured Anthropic credential must be corrected locally. No credential is included in this record. A secondary operational warning reported the local OpenTelemetry collector unavailable at port 4317.
+This initial authentication blocker was cleared by the user's updated root `.env.local`. No credential is included in this record. A secondary operational warning reported the local OpenTelemetry collector unavailable at port 4317.
 
-No successful short clarification or long report was produced. No after observation, audible latency measurement, interruption witness, or demonstration video exists. The absence of these records is a blocked prerequisite, not a failed naturalness trial. No paid evaluation campaign or preview test was run.
+### Local retry and synthetic-speech baseline — 2026-09-08
+
+The retry found a second configuration issue: `VITE_BRUNCH_CHAT_ENDPOINT` still pointed to `http://127.0.0.1:4321/api/chat`. Changing the ignored root `.env.local` entry to `/agents/chat` restored the current same-origin Flue route. Fresh processes loaded the updated environment at Brunch `127.0.0.1:4322` and panel `127.0.0.1:4926`, with `BRUNCH_CHAT_ORIGIN=http://127.0.0.1:4322`. The original running processes were not restarted or modified. The fixture reached settled revision zero and displayed a real Brunch preparation response. OpenAI's models-list endpoint denied the restricted key's `api.model.read` scope, but the actual local Realtime call returned 200 and reached Listening; model-list permission is not needed for this Voice flow.
+
+[Baseline record](baseline-2026-09-08.json) retains the exact canonical speech requests, provider output transcripts, selected timestamped events, and visible panel text. Method: local headless Chrome, macOS Samantha synthetic speech injected as a Web Audio MediaStream, real OpenAI WebRTC/transcription, and real Brunch/Flue with unchanged prompts. A continuously connected silent source was needed to let the synthetic stream deliver silence after speech; an earlier harness attempt did not finalize input and is not counted as a successful trial. Models were `claude-haiku-4-5` and `gpt-realtime-2`. This was two diagnostic turns, not a paid evaluation campaign or a human microphone witness.
+
+| Baseline input | Observed result |
+| --- | --- |
+| “What does reserving a dispatch crew mean here?” | Brunch sent 192 whitespace-delimited words, including a prefatory compliment/explanation and a concluding question. Realtime emitted an additional 12-word preamble, “Let me walk through how that resource behaves and why it matters.” That string was absent from the canonical speech request. |
+| “Give me a detailed analysis of this model, including assumptions, possible bottlenecks, missing constraints, and what still needs validation. Do not change the model.” | Brunch sent an 11-word preliminary statement followed by a complete 1,178-word report. The full report was automatically submitted for speech without a read-aloud request. Its summary remained visible on screen while Voice showed Speaking. Fixture revision zero and the absent target arc were unchanged. |
+
+Browser-received event timings, **not first-audible measurements**: short input end → completed transcription was 7.854 seconds; completed transcription → first provider audio-buffer-start was 11.497 seconds. A second audio-buffer-start for the same response arrived at 26.663 seconds; these events carry a response id, not an output-item id. Long completed transcription → preliminary audio-buffer-start was 16.044 seconds; → report audio-buffer-start was 41.248 seconds. These single observations do not establish medians, percentiles, or regression bounds.
+
+The short response was still Speaking at the capture. Clicking **Your turn** cleared the output buffer, received the provider's clear acknowledgement, and permitted the second input; it was not a durable Stop test. The long report was also still Speaking when the browser session ended. Provider output-transcript completion is not proof of completed playback. Both screenshots were inspected for visible canonical text, Voice status, and unchanged fixture revision. A silent browser recording was captured diagnostically, but it is not an audible demonstration of an optimized relay.
+
+Remaining evidence: no after observation, human naturalness judgment, audible latency measurement, durable Stop/reopen witness, or optimized demonstration video. No preview test was run; #9564 was still open at the pinned head on this retry.
 
 ## Local verification
 
@@ -81,6 +96,6 @@ These checks must be rerun for the eventual implementation; no implementation ex
 
 ## Remaining proof and decision
 
-After fixing the credential and resolving the supported-context prerequisite, cut the bounded live mission separately before implementation. Capture the short and long baseline first, then implement within the requested envelope. Test typed isolation, concise Voice clarification, complete visible long report with opt-in exact reading, non-substantive bridging, interruption versus durable Stop, and no autoplay/duplicate canonical content on reopen. Retain comparable observations and a demonstration video, and document latency, repetition, long-response, and interruption limitations. Test preview only after #9564 merges.
+After resolving the supported-context prerequisite, cut the bounded live mission separately before implementation. Preserve these synthetic baseline inputs and method for comparison, and obtain a real audible witness before making naturalness claims. Test typed isolation, concise Voice clarification, complete visible long report with opt-in exact reading, non-substantive bridging, interruption versus durable Stop, and no autoplay/duplicate canonical content on reopen. Retain comparable observations and a demonstration video, and document latency, repetition, long-response, and interruption limitations. Test preview only after #9564 merges.
 
-Neither requested recommendation is supported yet: the optimized relay has not been exercised, and local-follow-up round-trip failure has not been observed by this experiment. Keep #9571 unchanged; authentication and missing context support are not evidence selecting split ownership.
+Neither requested recommendation is supported yet: the optimized relay has not been implemented or exercised. The baseline establishes verbosity, automatic long-report reading, and an unsolicited Realtime preamble; it does not establish that bounded optimization cannot succeed. Keep #9571 unchanged; the missing context capability and these baseline observations do not select split ownership.
