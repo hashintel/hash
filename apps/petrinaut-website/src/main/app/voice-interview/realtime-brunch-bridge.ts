@@ -34,6 +34,7 @@ interface ChatUpdate {
 }
 
 interface RealtimeBridgeSession {
+  offerFullResponse(): void;
   speakCanonical(segments: CanonicalSpeechSegment[]): void;
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
 }
@@ -666,7 +667,14 @@ export class RealtimeBrunchBridge {
           completionMatchesSegment(completion, segment),
         ),
     );
-    if (!active.speechCancelled) {
+    // FE-1630 experimental delivery budget, not a canonical-text truncation.
+    // Count the whole visible response, including earlier completed steps.
+    const responseText = responseSegments.map(({ text }) => text).join("\n");
+    const requiresExplicitReading =
+      responseText.trim().split(/\s+/u).length > 120 ||
+      responseText.length > 1_200 ||
+      responseText.includes("```");
+    if (!active.speechCancelled && !requiresExplicitReading) {
       if (completedSegments.length > 0) {
         try {
           this.#session.speakCanonical(completedSegments);
@@ -698,7 +706,14 @@ export class RealtimeBrunchBridge {
       const unscheduledSegments = responseSegments.filter(
         ({ id }) => !this.#seenSegmentIds.has(id),
       );
-      if (unscheduledSegments.length > 0) {
+      if (requiresExplicitReading) {
+        try {
+          this.#session.offerFullResponse();
+        } catch {
+          this.#fail(INVALID_BRIDGE_EVENT);
+          return;
+        }
+      } else if (unscheduledSegments.length > 0) {
         try {
           this.#session.speakCanonical(unscheduledSegments);
         } catch {

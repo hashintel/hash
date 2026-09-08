@@ -605,6 +605,63 @@ describe("OpenAIRealtimeSession", () => {
     ]);
   });
 
+  test("requests only a fixed, bounded, distinguishable report offer", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    harness.session.offerFullResponse();
+    const request = sentEvents(channel)[0];
+    expect(request).toMatchObject({
+      type: "response.create",
+      response: {
+        conversation: "none",
+        input: [
+          {
+            type: "message",
+            role: "system",
+            content: [
+              {
+                type: "input_text",
+                text: JSON.stringify({
+                  response_text: [
+                    "The full response is on screen. Choose Read full response to hear it.",
+                  ],
+                }),
+              },
+            ],
+          },
+        ],
+        max_output_tokens: 256,
+        tool_choice: "none",
+        tools: [],
+        metadata: { petrinaut_kind: "bridging-speech" },
+      },
+    });
+    expect(harness.events).toContainEqual(
+      expect.objectContaining({ type: "bridging-speech-requested" }),
+    );
+    expect(harness.events).not.toContainEqual(
+      expect.objectContaining({ type: "canonical-speech-requested" }),
+    );
+    authorizeLatestSpeechResponse(channel, "report-offer");
+    channel.receive({
+      type: "output_audio_buffer.started",
+      response_id: "report-offer",
+    });
+    channel.receive({
+      type: "response.done",
+      response: { id: "report-offer", status: "completed", output: [] },
+    });
+    channel.receive({
+      type: "output_audio_buffer.stopped",
+      response_id: "report-offer",
+    });
+    expect(harness.reportDiagnostic).toHaveBeenCalledWith(
+      expect.objectContaining({ operation: "speech", speechKind: "bridging" }),
+    );
+    await harness.session.disconnect();
+  });
+
   test("preserves exact canonical whitespace while rejecting blank speech", async () => {
     const harness = createHarness();
     await harness.session.connect();

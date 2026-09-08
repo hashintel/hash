@@ -429,6 +429,8 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
       "Types the Flue logger and calls the core marker tool with a mocked data-part writer and logger; no runtime boot, provider, key or socket.",
     "apps/brunch-agent/test/brunch-turn.test.ts":
       "Types Flue's client, admission, and conversation snapshot and constructs FlueExecutionError so the persona bridge can be unit-tested against a stubbed client — no provider key, no socket, no model call, no runtime boot.",
+    "apps/brunch-agent/test/flue-delivery-context.test.ts":
+      "Tests the owner-approved local Flue 2.0.3 delivery-context patch through router.fetch, faux provider, disposable SQLite restart, and pinned private recovery seams — no provider key, socket, or network model call.",
     "apps/brunch-agent/test/flue-transcript.test.ts":
       "Types Flue's public conversation snapshot so the transcript projector can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/petrinaut-chat.integration.ts":
@@ -445,6 +447,8 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
       "Boots the built Flue ChatAgent with pi-ai's faux provider and a headless Petrinaut client to prove validated construct-only tool flow without a provider key, socket, or network model call.",
     "apps/brunch-agent/test/telemetry.test.ts":
       "Constructs Flue's content-free OpenTelemetry instrumentation with an injected exporter setup to prove disposal order; it registers no global instrumentation, opens no socket, and makes no provider call.",
+    "apps/brunch-agent/test/voice-context.test.ts":
+      "Boots the production ChatAgent with a faux provider to compare effective system prompts across typed, Voice, and browser-result deliveries — no provider key, socket, or network model call.",
     "apps/brunch-agent/test/workpiece.test.ts":
       "Types Flue's public conversation snapshot so the substrate-neutral workpiece selector and app-owned SHA-256 projection can be unit-tested against in-memory messages — no provider key, no socket, no model call, no runtime boot.",
     "libs/@hashintel/brunch-agent/packages/transport-aisdk/test/chat-transport.test.ts":

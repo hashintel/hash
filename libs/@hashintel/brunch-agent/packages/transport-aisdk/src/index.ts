@@ -193,7 +193,9 @@ const completedClientToolResults = (
 
 const finalUserMessage = (
   messages: readonly UIMessage[],
-): { readonly id: string; readonly text: string } | undefined => {
+):
+  | { readonly id: string; readonly text: string; readonly voice: boolean }
+  | undefined => {
   const message = messages.at(-1);
   if (
     message === undefined ||
@@ -207,7 +209,13 @@ const finalUserMessage = (
     .filter((part) => part.type === "text")
     .map((part) => part.text)
     .join("");
-  return text.length > 0 ? { id: message.id, text } : undefined;
+  return text.length > 0
+    ? {
+        id: message.id,
+        text,
+        voice: asRecord(message.metadata)?.source === "voice",
+      }
+    : undefined;
 };
 
 const isAbortError = (error: unknown): boolean =>
@@ -419,7 +427,14 @@ export const createFlueChatTransport = <
             if (userMessage === undefined) {
               throw new Error("The submitted user message has no text.");
             }
-            return { kind: "user", body: userMessage.text };
+            return {
+              kind: "user",
+              body: userMessage.text,
+              // FE-1630: maintained local Flue 2.0.3 extension, not provenance.
+              ...(userMessage.voice
+                ? { context: { responseMode: "voice" } }
+                : {}),
+            };
           })()
         : (() => {
             if (toolResults.length === 0) {
@@ -427,11 +442,35 @@ export const createFlueChatTransport = <
                 "The client-tool follow-up has no completed result.",
               );
             }
+            const assistantIndex = messages.findIndex(
+              ({ id }) => id === messageId,
+            );
+            const assistant = messages[assistantIndex];
+            const originatingUser = messages
+              .slice(0, assistantIndex)
+              .findLast(({ role }) => role === "user");
+            // Static browser tools continue the originating live turn. A dynamic
+            // interactive answer instead carries its own explicit input source.
+            // Never label automatic tool output as user-authored Voice evidence.
+            const voiceContinuation =
+              toolResults.some(({ source }) => source === "voice") ||
+              (asRecord(originatingUser?.metadata)?.source === "voice" &&
+                toolResults.every(({ toolCallId }) =>
+                  assistant?.parts.some(
+                    (part) =>
+                      isToolUIPart(part) &&
+                      part.type !== "dynamic-tool" &&
+                      part.toolCallId === toolCallId,
+                  ),
+                ));
             return {
               kind: "signal",
               type: CLIENT_TOOL_RESULT_SIGNAL,
               tagName: CLIENT_TOOL_RESULT_SIGNAL,
               body: JSON.stringify(toolResults),
+              ...(voiceContinuation
+                ? { context: { responseMode: "voice" } }
+                : {}),
               attributes: {
                 toolCallIds: toolResults
                   .map((result) => result.toolCallId)

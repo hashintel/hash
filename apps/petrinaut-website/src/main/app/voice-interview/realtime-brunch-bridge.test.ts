@@ -66,6 +66,7 @@ const completedResponseMessage = (
 const createHarness = () => {
   let listener: ((event: OpenAIRealtimeSessionEvent) => void) | undefined;
   const session = {
+    offerFullResponse: vi.fn(),
     speakCanonical: vi.fn(),
     subscribe: vi.fn((next: (event: OpenAIRealtimeSessionEvent) => void) => {
       listener = next;
@@ -115,6 +116,82 @@ const startReady = (
 };
 
 describe("RealtimeBrunchBridge", () => {
+  test("offers a long report once while retaining all canonical text for explicit reading", async () => {
+    const harness = createHarness();
+    startReady(harness, 7);
+    harness.emit(completedTranscript(7));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    const report = segment(
+      "long-report",
+      "Consequential qualification. ".repeat(80),
+      "submission-voice-1",
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [report],
+      status: "streaming",
+    });
+    expect(harness.session.offerFullResponse).not.toHaveBeenCalled();
+    harness.bridge.notifyResponseMessageCompleted(
+      completedResponseMessage(report.messageId, "submission-voice-1", 1),
+    );
+    expect(harness.session.offerFullResponse).not.toHaveBeenCalled();
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [report],
+      status: "ready",
+    });
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [report],
+      status: "ready",
+    });
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+    expect(harness.session.offerFullResponse).toHaveBeenCalledOnce();
+    expect(harness.events.at(-1)).toMatchObject({
+      type: "canonical-response-ready",
+      segments: [report],
+    });
+    harness.bridge.stop();
+    harness.bridge.start(8);
+    expect(harness.session.offerFullResponse).toHaveBeenCalledOnce();
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+  });
+
+  test("cancelled report delivery makes neither a bridge offer nor canonical speech", async () => {
+    const harness = createHarness();
+    startReady(harness, 7);
+    harness.emit(completedTranscript(7));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    harness.bridge.cancelPendingSpeech();
+    const report = segment(
+      "cancelled-report",
+      "Complete report. ".repeat(80),
+      "submission-voice-1",
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [report],
+      status: "streaming",
+    });
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [report],
+      status: "ready",
+    });
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+    expect(harness.session.offerFullResponse).not.toHaveBeenCalled();
+    expect(harness.events.at(-1)).toMatchObject({
+      type: "canonical-response-ready",
+      segments: [report],
+      speechCancelled: true,
+    });
+  });
+
   test("rehydrates settled canonical speech without submission or playback", () => {
     const harness = createHarness();
     harness.bridge.updateChat({

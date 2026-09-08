@@ -22,6 +22,8 @@ export interface VoiceDiagnosticEvent {
   readonly requestId: string;
   readonly stage: "browser" | "playback" | "server";
   readonly status?: number;
+  /** Marks application-authored delivery notices, never canonical Brunch text. */
+  readonly speechKind?: "bridging";
 }
 
 export type VoiceDiagnosticReporter = (event: VoiceDiagnosticEvent) => void;

@@ -47,33 +47,16 @@ describe("OpenAI voice policy", () => {
   });
 
   test("owns the trusted GPT-Realtime-2 half-duplex session policy", () => {
-    expect(OPENAI_REALTIME_POLICY_VERSION).toBe("brunch-control-plane-v3");
-    expect(createOpenAIRealtimeSession()).toEqual({
+    expect(OPENAI_REALTIME_POLICY_VERSION).toBe("brunch-bounded-relay-v4");
+    const { instructions, ...configuration } = createOpenAIRealtimeSession();
+    expect(instructions).toContain("verbatim speech renderer");
+    expect(configuration).toEqual({
       type: "realtime",
       model: "gpt-realtime-2",
       output_modalities: ["audio"],
       reasoning: { effort: "low" },
       parallel_tool_calls: false,
       tool_choice: "none",
-      instructions: `# Role and objective
-
-You are the realtime voice of an expert interviewer for process-model elicitation. The person speaking is the domain expert. Petrinaut listens to them and submits their words to Brunch; your only job is to deliver Brunch's interview turns aloud when Petrinaut asks you to.
-
-# Personality and delivery
-
-Sound warm, calm, curious, confident, concise, and professionally neutral. Speak at a measured conversational pace with natural emphasis. Treat the speaker as the authority on their system. Never sound robotic, fawning, rushed, overenthusiastic, or patronizing.
-
-# Authority
-
-Brunch is the sole authority for interview state, questions, captures, completion, and business decisions. You must never invent, change, summarize, or answer an interview question yourself. You must never restate, guess, or fill in what the speaker said.
-
-# Turn handling
-
-Never respond on your own after the speaker stops talking. Petrinaut transcribes their words and decides what happens next. Do not speak, acknowledge, emit a preamble, or call any tool between the speaker's turns.
-
-# Canonical output
-
-When Petrinaut supplies response_text, speak only those strings, in array order and verbatim. Do not add, remove, paraphrase, acknowledge, or explain anything.`,
       tools: [],
       audio: {
         input: {
@@ -106,6 +89,13 @@ When Petrinaut supplies response_text, speak only those strings, in array order 
     expect(serializedPolicy).not.toContain('"tool_choice":"auto"');
     expect(serializedPolicy).not.toContain('"tool_choice":"required"');
     expect(policy.tools).toHaveLength(0);
+    expect(policy.instructions).toContain("explicitly requested");
+    expect(policy.instructions).toContain(
+      "Never interpret or summarize domain evidence",
+    );
+    expect(policy.instructions).toContain("confirm a workpiece change");
+    expect(policy.instructions).toContain("ask a domain follow-up");
+    expect(policy.instructions).toContain("alter Brunch's qualifications");
     expect(policy.audio.input.turn_detection.create_response).toBe(false);
     expect(policy.audio.input.transcription.model).toBe("gpt-4o-transcribe");
   });

@@ -693,7 +693,10 @@ export class VoiceTurnController {
     ) {
       return;
     }
-    if (event.type === "canonical-speech-requested") {
+    if (
+      event.type === "canonical-speech-requested" ||
+      event.type === "bridging-speech-requested"
+    ) {
       this.#pendingSpeechRequestIds.add(event.speechRequestId);
       this.#session.setMicrophoneEnabled(false);
       this.#inputTurnPending = false;
@@ -701,6 +704,7 @@ export class VoiceTurnController {
       this.#transcriptKey = null;
       this.#update({ output: "waiting-for-tool", partialText: "" });
       if (
+        event.type === "canonical-speech-requested" &&
         this.#latencyCorrelationId !== null &&
         this.#ttsSpeechRequestId === null
       ) {

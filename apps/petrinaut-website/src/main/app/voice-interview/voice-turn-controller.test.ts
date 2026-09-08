@@ -723,6 +723,65 @@ describe("VoiceTurnController", () => {
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
   });
 
+  test("a delivery offer gates capture but never becomes canonical text or canonical latency", async () => {
+    const harness = createHarness();
+    const report = question(
+      "report",
+      "Exact complete report with qualifications. ".repeat(40),
+    );
+    await harness.controller.start();
+    harness.emitBridge({
+      type: "submission-started",
+      deliveryId: "voice-report",
+      answer: "Give me the report.",
+    });
+    harness.emitSession({
+      type: "bridging-speech-requested",
+      connectionEpoch: 1,
+      speechRequestId: "bridge-1",
+    });
+    harness.emitBridge({
+      type: "canonical-response-ready",
+      deliveryId: "voice-report",
+      segments: [report],
+    });
+    expect(harness.controller.getSnapshot().canReadFullResponse).toBe(false);
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+    harness.emitSession({
+      type: "output-started",
+      connectionEpoch: 1,
+      speechRequestId: "bridge-1",
+      responseId: "offer-1",
+    });
+    harness.emitSession({
+      type: "response-terminal",
+      connectionEpoch: 1,
+      speechRequestId: "bridge-1",
+      responseId: "offer-1",
+      status: "completed",
+    });
+    harness.emitSession({
+      type: "output-stopped",
+      connectionEpoch: 1,
+      responseId: "offer-1",
+    });
+    expect(harness.controller.getSnapshot().canReadFullResponse).toBe(true);
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+    expect(harness.latencyEvents.map(({ name }) => name)).not.toContain(
+      "first-tts-request",
+    );
+    expect(harness.latencyEvents.map(({ name }) => name)).not.toContain(
+      "first-tts-audio",
+    );
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+    harness.controller.readFullResponse();
+    expect(harness.session.speakCanonical).toHaveBeenCalledExactlyOnceWith([
+      report,
+    ]);
+  });
+
   test("replays exact canonical response segments but does not infer a question from the final segment", async () => {
     const harness = createHarness();
     const context = question("context", "Approval is required before release.");
