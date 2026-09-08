@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/@hashintel/brunch-agent/packages/plugin-sdcpn
+
+
+ Test Files  5 passed (5)
+      Tests  58 passed (58)
+   Start at  14:20:54
+   Duration  792ms (transform 288ms, setup 0ms, import 983ms, tests 75ms, environment 0ms)
+

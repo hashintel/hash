@@ -1,0 +1,2 @@
+Registered OpenTelemetry (traces + logs + metrics) at endpoint http://localhost:4317 for Brunch Agent
+SCHEMA_CARRIER_PROBE {"passed":true,"paid":false,"outputDirectory":"/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/a1-faux-7f71ba18-40ad-418e-ab9e-ea8ad0281e79"}

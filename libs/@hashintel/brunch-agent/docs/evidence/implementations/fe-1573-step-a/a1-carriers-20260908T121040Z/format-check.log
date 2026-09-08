@@ -1,0 +1,8 @@
+(node:73372) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/lunelson/.herdr/worktrees/hash/m7-carriers/oxfmt.config.ts?cache=1788871368856 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/lunelson/.herdr/worktrees/hash/m7-carriers/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Checking formatting...
+
+All matched files use the correct format.
+Finished in 32ms on 5 files using 16 threads.

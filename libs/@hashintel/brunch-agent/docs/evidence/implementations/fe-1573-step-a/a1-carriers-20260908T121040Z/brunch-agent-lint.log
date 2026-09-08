@@ -1,0 +1,164 @@
+
+  ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+     ,-[src/evaluations/persona/brunch-turn.ts:297:11]
+ 296 |           submissionIds.push(currentAdmission.submissionId);
+ 297 |           await onUpdate?.({
+     :           ^^^^^
+ 298 |             content: [
+     `----
+  help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+
+  ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+     ,-[src/evaluations/persona/brunch-turn.ts:311:25]
+ 310 | 
+ 311 |           const reply = await client.read(currentAdmission, { signal });
+     :                         ^^^^^
+ 312 |           const snapshot = await client.history({ signal });
+     `----
+  help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+
+  ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+     ,-[src/evaluations/persona/brunch-turn.ts:312:28]
+ 311 |           const reply = await client.read(currentAdmission, { signal });
+ 312 |           const snapshot = await client.history({ signal });
+     :                            ^^^^^
+ 313 |           // Snapshot retention must finish before this canonical submission is advanced or returned.
+     `----
+  help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+
+  ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+     ,-[src/evaluations/persona/brunch-turn.ts:400:30]
+ 399 |               // Tool calls within one suspension are serviced in canonical order.
+ 400 |               const output = await host.execute(call);
+     :                              ^^^^^
+ 401 |               completedClientCallIds.add(call.toolCallId);
+     `----
+  help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+
+  ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+     ,-[src/evaluations/persona/brunch-turn.ts:436:30]
+ 435 | 
+ 436 |           currentAdmission = await client.send({
+     :                              ^^^^^
+ 437 |             message: {
+     `----
+  help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+
+  ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+    ,-[test/petrinaut-chat.integration.ts:71:20]
+ 70 |   for (;;) {
+ 71 |     const result = await reader.read();
+    :                    ^^^^^
+ 72 |     if (result.done) return chunks;
+    `----
+  help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+
+  ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+    ,-[test/assets.test.ts:78:24]
+ 77 |     ] as const) {
+ 78 |       const response = await app.request(`/assets/${file}`);
+    :                        ^^^^^
+ 79 |       expect({
+    `----
+  help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+
+  ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+     ,-[test/assets.test.ts:129:24]
+ 128 |     for (const name of PRODUCER_PUNCTUATION) {
+ 129 |       const response = await app.request(`/assets/${encodeURIComponent(name)}`);
+     :                        ^^^^^
+ 130 |       expect({
+     `----
+  help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+
+  ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+     ,-[test/assets.test.ts:133:15]
+ 132 |         status: response.status,
+ 133 |         body: await response.text(),
+     :               ^^^^^
+ 134 |       }).toEqual({
+     `----
+  help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+
+  ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+     ,-[test/assets.test.ts:159:24]
+ 158 |     ]) {
+ 159 |       const response = await app.request(path);
+     :                        ^^^^^
+ 160 |       expect({
+     `----
+  help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+
+  ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+     ,-[test/assets.test.ts:163:18]
+ 162 |         status: response.status,
+ 163 |         leaked: (await response.text()).includes("SECRET"),
+     :                  ^^^^^
+ 164 |       }).toEqual({ path, status: 404, leaked: false });
+     `----
+  help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+
+  ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+     ,-[test/assets.test.ts:178:24]
+ 177 |     ] as const) {
+ 178 |       const response = await app.request(path);
+     :                        ^^^^^
+ 179 |       expect({ reason, status: response.status }).toEqual({
+     `----
+  help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+
+  ! react-perf(jsx-no-new-function-as-prop): JSX attribute values should not contain functions created in the same scope.
+     ,-[src/ui/chat.tsx:108:12]
+ 107 | 
+ 108 |   function submit(event: FormEvent<HTMLFormElement>): void {
+     :            ^^^|^^
+     :               `-- The prop was declared here
+ 109 |     event.preventDefault();
+ 110 |     const reply = input.trim();
+ 111 |     if (!reply || busy) return;
+ 112 |     setInput("");
+ 113 |     void agent.sendMessage(reply);
+ 114 |   }
+ 115 | 
+ 116 |   return (
+ 117 |     <main className="shell">
+ 118 |       <header className="masthead">
+ 119 |         <div>
+ 120 |           <p className="eyebrow">
+ 121 |             {readOnly ? "Brunch / Flue observer" : "Brunch / Flue chat"}
+ 122 |           </p>
+ 123 |           <h1>
+ 124 |             {readOnly ? "Canonical conversation" : "Plain Flue conversation"}
+ 125 |           </h1>
+ 126 |         </div>
+ 127 |         <span className={`status status--${agent.status}`}>
+ 128 |           {readOnly ? `read-only · ${agent.status}` : agent.status}
+ 129 |         </span>
+ 130 |       </header>
+ 131 | 
+ 132 |       <section className="transcript" aria-live="polite" aria-busy={busy}>
+ 133 |         {agent.messages.map((message) => (
+ 134 |           <VisibleMessage key={message.id} message={message} />
+ 135 |         ))}
+ 136 |         {agent.error ? <p className="error">{agent.error.message}</p> : null}
+ 137 |       </section>
+ 138 | 
+ 139 |       {readOnly ? null : (
+ 140 |         <form className="composer" onSubmit={submit}>
+     :                                              ^^^|^^
+     :                                                 `-- And used here
+ 141 |           <label htmlFor="reply">Your message</label>
+     `----
+  help: simplify props or memoize props in the parent component (https://react.dev/reference/react/memo#my-component-rerenders-when-a-prop-is-an-object-or-array).
+
+  ! react-perf(jsx-no-new-function-as-prop): JSX attribute values should not contain functions created in the same scope.
+     ,-[src/ui/chat.tsx:146:25]
+ 145 |               value={input}
+ 146 |               onChange={(event) => setInput(event.target.value)}
+     :                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 147 |               placeholder="Ask something."
+     `----
+  help: simplify props or memoize props in the parent component (https://react.dev/reference/react/memo#my-component-rerenders-when-a-prop-is-an-object-or-array).
+
+Found 14 warnings and 0 errors.
+Finished in 2.5s on 86 files with 239 rules using 16 threads.

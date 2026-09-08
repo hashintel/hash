@@ -1,0 +1,846 @@
+• turbo 2.10.12
+
+   • Packages in scope: @apps/brunch-agent, @hashintel/brunch-agent-plugin-sdcpn
+   • Running build, test:unit, lint:tsc, lint:eslint in 2 packages
+   • Remote caching disabled, using shared worktree cache
+
+@hashintel/brunch-agent:build: cache bypass, force executing ccafff2f799c7105
+@local/status:build: cache bypass, force executing c718005c85429c24
+@local/harpc-client:build: cache bypass, force executing df079127575f5356
+@local/hash-isomorphic-utils:codegen: cache bypass, force executing 49d6c2ad760abc67
+@hashintel/petrinaut-core:build: cache bypass, force executing 32b2c4e12707d952
+@local/eslint:build: cache bypass, force executing cdf5b182c6a1c043
+@hashintel/brunch-agent-transport-aisdk:build: cache bypass, force executing f7b0e4b7858d2cf0
+@local/internal-api-client:build: cache bypass, force executing 8180ee2b953b63d2
+@local/advanced-types:build: cache bypass, force executing 931188bea2841ecb
+@rust/hash-codec:build:types: cache bypass, force executing 7d7faae36f87bd22
+@hashintel/petrinaut-core:build: TypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.
+@hashintel/petrinaut-core:build: Emit types with @typescript/native-preview@7.0.0-dev.20260511.1
+@hashintel/petrinaut-core:build: vite v8.2.2 building client environment for production...
+@hashintel/petrinaut-core:build: transforming...
+@hashintel/brunch-agent-transport-aisdk:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent-transport-aisdk:build: transforming...
+@hashintel/brunch-agent-transport-aisdk:build: ✓ 9 modules transformed.
+@hashintel/brunch-agent-transport-aisdk:build: rendering chunks...
+@hashintel/brunch-agent-transport-aisdk:build: computing gzip size...
+@hashintel/brunch-agent-transport-aisdk:build: dist/headers.js   0.20 kB │ gzip: 0.17 kB │ map:  0.35 kB
+@hashintel/brunch-agent-transport-aisdk:build: dist/index.js    16.17 kB │ gzip: 5.09 kB │ map: 52.92 kB
+@hashintel/brunch-agent-transport-aisdk:build: 
+@hashintel/brunch-agent-transport-aisdk:build: ✓ built in 13ms
+@blockprotocol/type-system-rs:build:types: cache bypass, force executing c268c199a53d6621
+@rust/hash-codec:build:types:    Compiling proc-macro2 v1.0.106
+@rust/hash-codec:build:types:    Compiling quote v1.0.46
+@rust/hash-codec:build:types:    Compiling unicode-ident v1.0.24
+@rust/hash-codec:build:types:    Compiling cfg-if v1.0.4
+@rust/hash-codec:build:types:    Compiling rustversion v1.0.22
+@rust/hash-codec:build:types:    Compiling unicode-segmentation v1.13.3
+@rust/hash-codec:build:types:    Compiling siphasher v1.0.3
+@rust/hash-codec:build:types:    Compiling static_assertions v1.1.0
+@rust/hash-codec:build:types:    Compiling serde_core v1.0.228
+@rust/hash-codec:build:types:    Compiling thiserror v2.0.18
+@rust/hash-codec:build:types:    Compiling owo-colors v4.3.0
+@rust/hash-codec:build:types:    Compiling unicode-width v0.2.2
+@rust/hash-codec:build:types:    Compiling smawk v0.3.3
+@rust/hash-codec:build:types:    Compiling allocator-api2 v0.2.21
+@rust/hash-codec:build:types:    Compiling itoa v1.0.18
+@rust/hash-codec:build:types:    Compiling unicode-linebreak v0.1.5
+@rust/hash-codec:build:types:    Compiling bitflags v2.13.0
+@rust/hash-codec:build:types:    Compiling rustc-hash v2.1.2
+@rust/hash-codec:build:types:    Compiling phf_shared v0.13.1
+@rust/hash-codec:build:types:    Compiling fastrand v2.4.1
+@rust/hash-codec:build:types:    Compiling textwrap v0.16.2
+@rust/hash-codec:build:types:    Compiling serde v1.0.228
+@rust/hash-codec:build:types:    Compiling ryu v1.0.23
+@rust/hash-codec:build:types:    Compiling oxc_data_structures v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_estree v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling cow-utils v0.1.3
+@rust/hash-codec:build:types:    Compiling autocfg v1.5.1
+@rust/hash-codec:build:types:    Compiling phf v0.13.1
+@rust/hash-codec:build:types:    Compiling phf_generator v0.13.1
+@rust/hash-codec:build:types:    Compiling unicode-id-start v1.4.0
+@rust/hash-codec:build:types:    Compiling percent-encoding v2.3.2
+@rust/hash-codec:build:types:    Compiling nonmax v0.5.5
+@rust/hash-codec:build:types:    Compiling hashbrown v0.15.5
+@rust/hash-codec:build:types:    Compiling bumpalo v3.19.0
+@rust/hash-codec:build:types:    Compiling dragonbox_ecma v0.0.5
+@rust/hash-codec:build:types:    Compiling zmij v1.0.21
+@rust/hash-codec:build:types:    Compiling libc v0.2.186
+@rust/hash-codec:build:types:    Compiling serde_json v1.0.150
+@rust/hash-codec:build:types:    Compiling memchr v2.8.2
+@rust/hash-codec:build:types:    Compiling num-traits v0.2.19
+@rust/hash-codec:build:types:    Compiling outref v0.5.2
+@rust/hash-codec:build:types:    Compiling oxc_sourcemap v6.1.1
+@hashintel/brunch-agent:build: vite v8.2.2 building client environment for production...
+@rust/hash-codec:build:types:    Compiling vsimd v0.8.0
+@hashintel/brunch-agent:build: transforming...
+@hashintel/brunch-agent:build: ✓ 20 modules transformed.
+@hashintel/brunch-agent:build: rendering chunks...
+@rust/hash-codec:build:types:    Compiling oxc_allocator v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@hashintel/brunch-agent:build: computing gzip size...
+@hashintel/brunch-agent:build: dist/storage.js                0.20 kB │ gzip: 0.15 kB
+@hashintel/brunch-agent:build: dist/client-tools.js           0.45 kB │ gzip: 0.30 kB │ map:  1.22 kB
+@hashintel/brunch-agent:build: dist/json-value-DfyVmP73.js    0.56 kB │ gzip: 0.35 kB │ map:  1.54 kB
+@hashintel/brunch-agent:build: dist/question-marker.js        0.59 kB │ gzip: 0.37 kB │ map:  1.27 kB
+@hashintel/brunch-agent:build: dist/naming-B-X_Ur_R.js        0.80 kB │ gzip: 0.49 kB │ map:  4.33 kB
+@hashintel/brunch-agent:build: dist/workpiece.js              2.97 kB │ gzip: 1.16 kB │ map:  9.97 kB
+@hashintel/brunch-agent:build: dist/session-log-g_FZuAXm.js   5.94 kB │ gzip: 2.12 kB │ map: 18.62 kB
+@hashintel/brunch-agent:build: dist/flue.js                  22.00 kB │ gzip: 8.43 kB │ map:  9.70 kB
+@hashintel/brunch-agent:build: dist/index.js                 24.89 kB │ gzip: 7.64 kB │ map: 76.56 kB
+@hashintel/brunch-agent:build: 
+@hashintel/brunch-agent:build: ✓ built in 69ms
+@rust/hash-codec:build:types:    Compiling either v1.16.0
+@blockprotocol/type-system-rs:build:wasm: cache bypass, force executing e8ae925f3404f91a
+@rust/hash-codec:build:types:    Compiling getrandom v0.3.4
+@local/hash-isomorphic-utils:codegen: ❯ Parse Configuration
+@local/hash-isomorphic-utils:codegen: ✔ Parse Configuration
+@local/hash-isomorphic-utils:codegen: ❯ Generate outputs
+@local/hash-isomorphic-utils:codegen: ❯ Generate to ./src/graphql/fragment-types.gen.json
+@local/hash-isomorphic-utils:codegen: ❯ Generate to ./src/graphql/api-types.gen.ts
+@local/hash-isomorphic-utils:codegen: ❯ Load GraphQL schemas
+@local/hash-isomorphic-utils:codegen: ❯ Load GraphQL schemas
+@rust/hash-codec:build:types:    Compiling itertools v0.14.0
+@rust/hash-codec:build:types:    Compiling base64-simd v0.8.0
+@rust/hash-codec:build:types:    Compiling self_cell v1.2.2
+@local/hash-isomorphic-utils:codegen: ✔ Load GraphQL schemas
+@local/hash-isomorphic-utils:codegen: ✔ Load GraphQL schemas
+@local/hash-isomorphic-utils:codegen: ❯ Load GraphQL documents
+@local/hash-isomorphic-utils:codegen: ❯ Load GraphQL documents
+@local/hash-isomorphic-utils:codegen: ✔ Load GraphQL documents
+@local/hash-isomorphic-utils:codegen: ❯ Generate
+@local/hash-isomorphic-utils:codegen: ✔ Generate
+@local/hash-isomorphic-utils:codegen: ✔ Generate to ./src/graphql/fragment-types.gen.json
+@rust/hash-codec:build:types:    Compiling dashu-int v0.4.3
+@local/hash-isomorphic-utils:codegen: ✔ Load GraphQL documents
+@local/hash-isomorphic-utils:codegen: ❯ Generate
+@rust/hash-codec:build:types:    Compiling json-escape-simd v3.0.2
+@hashintel/brunch-agent-binding-flue:build: cache bypass, force executing 62dec1d54085d55a
+@local/hash-isomorphic-utils:codegen: ✔ Generate
+@local/hash-isomorphic-utils:codegen: ✔ Generate to ./src/graphql/api-types.gen.ts
+@local/hash-isomorphic-utils:codegen: ✔ Generate outputs
+@hashintel/brunch-agent-plugin-dafny:build: cache bypass, force executing 5b10cc28719df883
+@rust/hash-codec:build:types:    Compiling ctor-proc-macro v0.0.6
+@rust/hash-codec:build:types:    Compiling rustix v1.1.4
+@hashintel/brunch-agent-plugin-gherkin:build: cache bypass, force executing ec05668bf5eef91d
+@rust/hash-codec:build:types:    Compiling Inflector v0.11.4
+@rust/hash-codec:build:types:    Compiling ctor v0.4.3
+@rust/hash-codec:build:types:    Compiling convert_case v0.10.0
+@rust/hash-codec:build:types:    Compiling simple-mermaid v0.2.0
+@hashintel/petrinaut-core:build: ✓ 385 modules transformed.
+@rust/hash-codec:build:types:    Compiling unicode-xid v0.2.6
+@rust/hash-codec:build:types:    Compiling seq-macro v0.3.6
+@rust/hash-codec:build:types:    Compiling dashu-base v0.4.3
+@rust/hash-graph-authorization:build:types: cache bypass, force executing 10cc0c6f3db4e038
+@rust/hash-codec:build:types:    Compiling num-modular v0.6.4
+@hashintel/petrinaut-core:build: rendering chunks...
+@rust/hash-codec:build:types:    Compiling syn v2.0.118
+@rust/hash-codec:build:types:    Compiling once_cell v1.21.4
+@rust/hash-codec:build:types:    Compiling similar v2.7.0
+@rust/hash-codec:build:types:    Compiling harpc-types v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/@local/harpc/types)
+@hashintel/petrinaut-core:build: computing gzip size...
+@hashintel/petrinaut-core:build: dist/selection.js                            0.11 kB │ gzip:     0.11 kB
+@hashintel/petrinaut-core:build: dist/support-QFmoRTi4.js                     0.17 kB │ gzip:     0.16 kB │ map:   1.19 kB
+@hashintel/petrinaut-core:build: dist/workers/lsp.js                          0.25 kB │ gzip:     0.19 kB │ map:   0.76 kB
+@hashintel/petrinaut-core:build: dist/workers/simulation.js                   0.25 kB │ gzip:     0.19 kB │ map:   0.60 kB
+@hashintel/petrinaut-core:build: dist/hir-runtime.js                          0.29 kB │ gzip:     0.18 kB
+@hashintel/petrinaut-core:build: dist/selection.d.ts                          0.31 kB │ gzip:     0.16 kB
+@hashintel/petrinaut-core:build: dist/examples/index.js                       0.31 kB │ gzip:     0.22 kB
+@hashintel/petrinaut-core:build: dist/time-DeDKdkwN.js                        0.31 kB │ gzip:     0.23 kB │ map:   1.26 kB
+@hashintel/petrinaut-core:build: dist/compute-next-frame-C-jZtFBX.d.ts        0.57 kB │ gzip:     0.32 kB │ map:   9.03 kB
+@hashintel/petrinaut-core:build: dist/workers/lsp.d.ts                        0.72 kB │ gzip:     0.36 kB │ map:   0.54 kB
+@hashintel/petrinaut-core:build: dist/selection-RzC-zvk4.js                   0.79 kB │ gzip:     0.50 kB │ map:   4.68 kB
+@hashintel/petrinaut-core:build: dist/experiment-stores-DVh6E0s0.js           0.87 kB │ gzip:     0.46 kB │ map:   3.89 kB
+@hashintel/petrinaut-core:build: dist/hir-runtime.d.ts                        1.06 kB │ gzip:     0.34 kB
+@hashintel/petrinaut-core:build: dist/ai.js                                   1.07 kB │ gzip:     0.49 kB
+@hashintel/petrinaut-core:build: dist/capacity-Dj6JeNjt.js                    1.23 kB │ gzip:     0.65 kB │ map:   7.08 kB
+@hashintel/petrinaut-core:build: dist/hir.js                                  1.29 kB │ gzip:     0.59 kB
+@hashintel/petrinaut-core:build: dist/parameter-values-eu_sZKJb.js            1.32 kB │ gzip:     0.63 kB │ map:   5.68 kB
+@hashintel/petrinaut-core:build: dist/optimization.js                         1.54 kB │ gzip:     0.51 kB
+@hashintel/petrinaut-core:build: dist/instantiate-Cxld0cne.js                 1.64 kB │ gzip:     0.79 kB │ map:  12.54 kB
+@hashintel/petrinaut-core:build: dist/record-keys-1sJBaBt0.js                 1.73 kB │ gzip:     0.79 kB │ map:   7.26 kB
+@hashintel/petrinaut-core:build: dist/workers/monte-carlo.d.ts                1.78 kB │ gzip:     0.60 kB │ map:   1.38 kB
+@hashintel/petrinaut-core:build: dist/ai.d.ts                                 2.10 kB │ gzip:     0.58 kB
+@hashintel/petrinaut-core:build: dist/selection-D9ffUDiZ.d.ts                 2.37 kB │ gzip:     1.08 kB │ map:   2.99 kB
+@hashintel/petrinaut-core:build: dist/compiled-model.d.ts                     3.44 kB │ gzip:     1.23 kB │ map:   4.55 kB
+@hashintel/petrinaut-core:build: dist/type-policies-Bh5NEOvT.js               3.63 kB │ gzip:     1.31 kB │ map:  17.78 kB
+@hashintel/petrinaut-core:build: dist/optimization.d.ts                       3.67 kB │ gzip:     0.66 kB
+@hashintel/petrinaut-core:build: dist/surface-context-BCMn0Ywq.js             3.68 kB │ gzip:     1.32 kB │ map:  19.40 kB
+@hashintel/petrinaut-core:build: dist/extensions-C8I_9D-1.d.ts                4.00 kB │ gzip:     1.26 kB │ map:   5.83 kB
+@hashintel/petrinaut-core:build: dist/token-layout-BvitVYQC.js                4.07 kB │ gzip:     1.55 kB │ map:  21.47 kB
+@hashintel/petrinaut-core:build: dist/hir.d.ts                                4.44 kB │ gzip:     1.23 kB
+@hashintel/petrinaut-core:build: dist/experiments.d.ts                        4.47 kB │ gzip:     1.68 kB │ map:   6.93 kB
+@hashintel/petrinaut-core:build: dist/experiment-CN3O8DTt.d.ts                4.99 kB │ gzip:     1.85 kB │ map:   7.55 kB
+@hashintel/petrinaut-core:build: dist/workers/monte-carlo.js                  5.12 kB │ gzip:     1.90 kB │ map:  17.85 kB
+@hashintel/petrinaut-core:build: dist/workers/simulation.d.ts                 5.44 kB │ gzip:     1.99 kB │ map:  10.28 kB
+@hashintel/petrinaut-core:build: dist/webgpu.d.ts                             5.88 kB │ gzip:     2.39 kB │ map:  15.69 kB
+@hashintel/petrinaut-core:build: dist/experiments.js                          6.53 kB │ gzip:     2.38 kB │ map:  26.87 kB
+@hashintel/petrinaut-core:build: dist/examples/index.d.ts                     9.33 kB │ gzip:     3.77 kB │ map:  10.45 kB
+@hashintel/petrinaut-core:build: dist/api-L5t-x6dS.d.ts                       9.55 kB │ gzip:     3.54 kB │ map:  12.41 kB
+@hashintel/petrinaut-core:build: dist/experiment-backend--dHxenV2.d.ts       10.28 kB │ gzip:     3.95 kB │ map:  14.03 kB
+@hashintel/petrinaut-core:build: dist/sdcpn-CmLg1nPY.d.ts                    11.80 kB │ gzip:     4.00 kB │ map:  15.64 kB
+@hashintel/petrinaut-core:build: dist/experiment-Cw9P3MTS.js                 13.42 kB │ gzip:     4.35 kB │ map:  54.26 kB
+@hashintel/petrinaut-core:build: dist/compiled-model.js                      15.93 kB │ gzip:     5.15 kB │ map:  66.55 kB
+@hashintel/petrinaut-core:build: dist/optimization-DK5oBwQm.js               17.12 kB │ gzip:     4.86 kB │ map:  54.19 kB
+@hashintel/petrinaut-core:build: dist/hir-runtime-CaVQSVhv.d.ts              19.08 kB │ gzip:     6.46 kB │ map:  27.06 kB
+@hashintel/petrinaut-core:build: dist/messages-ChKNREKi.d.ts                 20.41 kB │ gzip:     5.56 kB │ map:  26.95 kB
+@hashintel/petrinaut-core:build: dist/user-defined-lYOWZg_0.js               22.75 kB │ gzip:     6.87 kB │ map:  84.32 kB
+@hashintel/petrinaut-core:build: dist/scenario-schema-CkXxxKxa.js            27.15 kB │ gzip:     8.34 kB │ map:  49.57 kB
+@hashintel/petrinaut-core:build: dist/typecheck-DJ4DWDrQ.js                  27.52 kB │ gzip:     6.80 kB │ map:  89.76 kB
+@hashintel/petrinaut-core:build: dist/index.d.ts                             27.54 kB │ gzip:     6.53 kB
+@hashintel/petrinaut-core:build: dist/hir-metric-D4uEpZOA.js                 29.72 kB │ gzip:     8.56 kB │ map: 106.23 kB
+@hashintel/petrinaut-core:build: dist/ai-CmUEIcuN.js                         31.97 kB │ gzip:    10.47 kB │ map:  60.41 kB
+@hashintel/petrinaut-core:build: dist/extensions-BznQh6CW.js                 50.95 kB │ gzip:    13.39 kB │ map: 177.21 kB
+@hashintel/petrinaut-core:build: dist/instance-dQJMEYM8.d.ts                 67.03 kB │ gzip:     6.48 kB │ map: 164.88 kB
+@hashintel/petrinaut-core:build: dist/webgpu.js                              78.09 kB │ gzip:    23.80 kB │ map: 323.21 kB
+@hashintel/petrinaut-core:build: dist/hir-DCpzVv-F.js                        84.05 kB │ gzip:    20.34 kB │ map: 259.97 kB
+@hashintel/petrinaut-core:build: dist/index.js                               88.73 kB │ gzip:    24.16 kB │ map: 311.35 kB
+@hashintel/petrinaut-core:build: dist/simulation.worker-C2Mxugw1.js         118.52 kB │ gzip:    33.64 kB │ map:   0.09 kB
+@hashintel/petrinaut-core:build: dist/ai-jgIk4czs.d.ts                      128.59 kB │ gzip:     8.50 kB │ map: 284.62 kB
+@hashintel/petrinaut-core:build: dist/monte-carlo.worker-WQ0YZbjg.js        131.60 kB │ gzip:    37.58 kB │ map:   0.09 kB
+@hashintel/petrinaut-core:build: dist/examples-ubXygPF4.js                  155.60 kB │ gzip:    32.28 kB │ map: 229.24 kB
+@hashintel/petrinaut-core:build: dist/hir-CWid-6fO.d.ts                     211.09 kB │ gzip:    45.69 kB │ map: 355.96 kB
+@hashintel/petrinaut-core:build: dist/language-server.worker-Diq9yLSu.js  3,960.93 kB │ gzip: 1,059.96 kB │ map:   0.09 kB
+@hashintel/petrinaut-core:build: 
+@hashintel/petrinaut-core:build: ✓ built in 2.64s
+@hashintel/petrinaut-core:build:   ok   index.js (external: zod, uuid, immer, elkjs, vscode-languageserver-types, js-yaml)
+@hashintel/petrinaut-core:build:   ok   webgpu.js (external: zod)
+@hashintel/petrinaut-core:build:   ok   hir-runtime.js (no external imports)
+@hashintel/petrinaut-core:build: 
+@hashintel/petrinaut-core:build: All browser-facing entries are free of Node-only imports.
+@rust/hash-graph-store:build:types: cache bypass, force executing f73731ffa8501f97
+@hashintel/brunch-agent-plugin-sdcpn:build: cache bypass, force executing ccb7427fa0428415
+@hashintel/brunch-agent-plugin-sdcpn:test:unit: cache bypass, force executing 1b8a5e8c4f5b059e
+@rust/hash-codec:build:types:    Compiling castaway v0.2.4
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:wasm: [INFO]: 🎯  Checking for the Wasm target...
+@blockprotocol/type-system-rs:build:wasm: [INFO]: 🌀  Compiling to Wasm...
+@blockprotocol/type-system-rs:build:wasm:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-codec:build:types:    Compiling thiserror-impl v2.0.18
+@rust/hash-codec:build:types:    Compiling oxc-miette-derive v2.7.1
+@rust/hash-codec:build:types:    Compiling serde_derive v1.0.228
+@rust/hash-codec:build:types:    Compiling oxc_ast_macros v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling phf_macros v0.13.1
+@rust/hash-codec:build:types:    Compiling specta-macros v2.0.0-rc.18 (https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245)
+@rust/hash-codec:build:types:    Compiling derive_more-impl v2.1.1
+@rust/hash-codec:build:types:    Compiling num-integer v0.1.46
+@rust/hash-codec:build:types:    Compiling num-bigint v0.4.6
+@rust/hash-codec:build:types:    Compiling errno v0.3.14
+@blockprotocol/type-system-rs:build:wasm:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-codec:build:types:    Compiling derive_more v2.1.1
+@blockprotocol/type-system-rs:build:wasm:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-codec:build:types:    Compiling specta v2.0.0-rc.22 (https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245)
+@blockprotocol/type-system-rs:build:wasm:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on build directory
+@rust/hash-graph-store:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:wasm:    Compiling unicode-ident v1.0.24
+@blockprotocol/type-system-rs:build:wasm:    Compiling proc-macro2 v1.0.106
+@blockprotocol/type-system-rs:build:wasm:    Compiling quote v1.0.46
+@blockprotocol/type-system-rs:build:wasm:    Compiling serde_core v1.0.228
+@blockprotocol/type-system-rs:build:wasm:    Compiling rustversion v1.0.22
+@blockprotocol/type-system-rs:build:wasm:    Compiling memchr v2.8.2
+@blockprotocol/type-system-rs:build:wasm:    Compiling wasm-bindgen-shared v0.2.108
+@blockprotocol/type-system-rs:build:wasm:    Compiling stable_deref_trait v1.2.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling serde v1.0.228
+@blockprotocol/type-system-rs:build:wasm:    Compiling cfg-if v1.0.4
+@blockprotocol/type-system-rs:build:wasm:    Compiling zmij v1.0.21
+@blockprotocol/type-system-rs:build:wasm:    Compiling serde_json v1.0.150
+@blockprotocol/type-system-rs:build:wasm:    Compiling bumpalo v3.19.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling writeable v0.6.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling litemap v0.8.2
+@blockprotocol/type-system-rs:build:wasm:    Compiling itoa v1.0.18
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_normalizer_data v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling utf8_iter v1.0.4
+@blockprotocol/type-system-rs:build:wasm:    Compiling once_cell v1.21.4
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_properties_data v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling dashu-int v0.4.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling unicode-segmentation v1.13.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling dashu-base v0.4.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling time-core v0.1.9
+@blockprotocol/type-system-rs:build:wasm:    Compiling num-modular v0.6.4
+@rust/hash-graph-store:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on build directory
+@hashintel/brunch-agent-binding-flue:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent-binding-flue:build: transforming...
+@hashintel/brunch-agent-binding-flue:build: ✓ 7 modules transformed.
+@hashintel/brunch-agent-binding-flue:build: rendering chunks...
+@hashintel/brunch-agent-binding-flue:build: computing gzip size...
+@hashintel/brunch-agent-binding-flue:build: dist/index.js  10.81 kB │ gzip: 3.85 kB │ map: 30.78 kB
+@hashintel/brunch-agent-binding-flue:build: 
+@hashintel/brunch-agent-binding-flue:build: ✓ built in 11ms
+@rust/hash-graph-store:build:types:     Blocking waiting for file lock on build directory
+@hashintel/brunch-agent-plugin-sdcpn:lint:tsc: cache bypass, force executing 481ea9d2825ffa81
+@blockprotocol/type-system-rs:build:wasm:    Compiling convert_case v0.10.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling aho-corasick v1.1.4
+@hashintel/brunch-agent-plugin-gherkin:build: vite v8.2.2 building client environment for production...
+@blockprotocol/type-system-rs:build:wasm:    Compiling num-conv v0.2.2
+@hashintel/brunch-agent-plugin-gherkin:build: transforming...
+@hashintel/brunch-agent-plugin-gherkin:build: ✓ 9 modules transformed.
+@hashintel/brunch-agent-plugin-gherkin:build: rendering chunks...
+@hashintel/brunch-agent-plugin-gherkin:build: computing gzip size...
+@hashintel/brunch-agent-plugin-gherkin:build: dist/index.js   0.18 kB │ gzip:  0.17 kB │ map: 0.77 kB
+@hashintel/brunch-agent-plugin-gherkin:build: dist/flue.js   31.54 kB │ gzip: 10.81 kB │ map: 1.94 kB
+@hashintel/brunch-agent-plugin-gherkin:build: 
+@hashintel/brunch-agent-plugin-gherkin:build: ✓ built in 11ms
+@hashintel/brunch-agent-plugin-sdcpn:lint:eslint: cache bypass, force executing 83bf955a5017c8d5
+@blockprotocol/type-system-rs:build:wasm:    Compiling semver v1.0.28
+@blockprotocol/type-system-rs:build:wasm:    Compiling regex-syntax v0.8.11
+@hashintel/brunch-agent-plugin-dafny:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent-plugin-dafny:build: transforming...
+@hashintel/brunch-agent-plugin-dafny:build: ✓ 6 modules transformed.
+@hashintel/brunch-agent-plugin-dafny:build: rendering chunks...
+@hashintel/brunch-agent-plugin-dafny:build: computing gzip size...
+@hashintel/brunch-agent-plugin-dafny:build: dist/index.js  0.19 kB │ gzip: 0.18 kB │ map: 0.83 kB
+@hashintel/brunch-agent-plugin-dafny:build: dist/flue.js   2.24 kB │ gzip: 1.10 kB │ map: 1.22 kB
+@hashintel/brunch-agent-plugin-dafny:build: 
+@hashintel/brunch-agent-plugin-dafny:build: ✓ built in 10ms
+@local/hash-graph-client:codegen: cache bypass, force executing 699fb27734230955
+@rust/hash-codec:build:types:    Compiling compact_str v0.9.1
+@rust/hash-codec:build:types:    Compiling tempfile v3.27.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling smallvec v1.15.2
+@rust/hash-codec:build:types:    Compiling insta v1.48.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling unicode-xid v0.2.6
+@blockprotocol/type-system-rs:build:wasm:    Compiling static_assertions v1.1.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling rustc_version v0.4.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling time-macros v0.2.30
+@blockprotocol/type-system-rs:build:wasm:    Compiling sha1_smol v1.0.1
+@hashintel/brunch-agent-plugin-sdcpn:test:unit: 
+@hashintel/brunch-agent-plugin-sdcpn:test:unit:  RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/@hashintel/brunch-agent/packages/plugin-sdcpn
+@hashintel/brunch-agent-plugin-sdcpn:test:unit: 
+@hashintel/brunch-agent-plugin-sdcpn:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent-plugin-sdcpn:build: transforming...
+@hashintel/brunch-agent-plugin-sdcpn:build: ✓ 14 modules transformed.
+@hashintel/brunch-agent-plugin-sdcpn:build: rendering chunks...
+@hashintel/brunch-agent-plugin-sdcpn:build: computing gzip size...
+@hashintel/brunch-agent-plugin-sdcpn:build: dist/index.js   4.32 kB │ gzip:  1.86 kB │ map: 14.34 kB
+@hashintel/brunch-agent-plugin-sdcpn:build: dist/flue.js   55.45 kB │ gzip: 18.37 kB │ map: 22.31 kB
+@hashintel/brunch-agent-plugin-sdcpn:build: 
+@hashintel/brunch-agent-plugin-sdcpn:build: ✓ built in 22ms
+@blockprotocol/type-system-rs:build:wasm:    Compiling powerfmt v0.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling error-stack v0.8.0 (/Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/error-stack)
+@rust/hash-codec:build:types:    Compiling oxc-miette v2.7.1
+@rust/hash-codec:build:types:    Compiling dashu-float v0.4.5
+@blockprotocol/type-system-rs:build:wasm:    Compiling regex-automata v0.4.14
+@blockprotocol/type-system-rs:build:wasm:    Compiling thiserror v2.0.18
+@blockprotocol/type-system-rs:build:wasm:    Compiling minimal-lexical v0.2.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling simple-mermaid v0.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling percent-encoding v2.3.2
+@hashintel/brunch-agent-plugin-sdcpn:test:unit: 
+@hashintel/brunch-agent-plugin-sdcpn:test:unit:  Test Files  5 passed (5)
+@hashintel/brunch-agent-plugin-sdcpn:test:unit:       Tests  58 passed (58)
+@hashintel/brunch-agent-plugin-sdcpn:test:unit:    Start at  14:21:09
+@hashintel/brunch-agent-plugin-sdcpn:test:unit:    Duration  783ms (transform 416ms, setup 0ms, import 1.21s, tests 81ms, environment 0ms)
+@hashintel/brunch-agent-plugin-sdcpn:test:unit: 
+@blockprotocol/type-system-rs:build:wasm:    Compiling form_urlencoded v1.2.2
+@rust/hash-codec:build:types:    Compiling oxc_index v4.1.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling nom v7.1.3
+@rust/hash-codec:build:types:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/@local/codec/rust)
+@blockprotocol/type-system-rs:build:wasm:    Compiling regex v1.12.4
+@blockprotocol/type-system-rs:build:wasm:    Compiling either v1.16.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling wasm-bindgen v0.2.108
+@blockprotocol/type-system-rs:build:wasm:    Compiling itertools v0.14.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling iso8601-duration v0.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling email_address v0.2.9
+@blockprotocol/type-system-rs:build:wasm:    Compiling bytes v1.12.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling syn v2.0.118
+@blockprotocol/type-system-rs:build:wasm:    Compiling deranged v0.5.8
+@blockprotocol/type-system-rs:build:wasm:    Compiling uuid v1.23.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling time v0.3.51
+@blockprotocol/type-system-rs:build:wasm:    Compiling synstructure v0.13.2
+@blockprotocol/type-system-rs:build:wasm:    Compiling wasm-bindgen-macro-support v0.2.108
+@blockprotocol/type-system-rs:build:wasm:    Compiling serde_derive_internals v0.29.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling zerofrom-derive v0.1.7
+@blockprotocol/type-system-rs:build:wasm:    Compiling yoke-derive v0.8.2
+@blockprotocol/type-system-rs:build:wasm:    Compiling zerovec-derive v0.11.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling serde_derive v1.0.228
+@blockprotocol/type-system-rs:build:wasm:    Compiling displaydoc v0.2.6
+@blockprotocol/type-system-rs:build:wasm:    Compiling derive_more-impl v2.1.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling thiserror-impl v2.0.18
+@blockprotocol/type-system-rs:build:wasm:    Compiling derive-where v1.6.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling tsify-macros v0.5.6
+@rust/hash-codec:build:types:    Compiling oxc_span v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_diagnostics v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@local/hash-graph-client:codegen: 
+@local/hash-graph-client:codegen:     ╔═══════════════════════════════════════════════════════╗
+@local/hash-graph-client:codegen:     ║                                                       ║
+@local/hash-graph-client:codegen:     ║  A new version of Redocly CLI (2.51.2) is available.  ║
+@local/hash-graph-client:codegen:     ║  Update now: `npm i -g @redocly/cli@latest`.          ║
+@local/hash-graph-client:codegen:     ║  Changelog: https://redocly.com/docs/cli/changelog/   ║
+@local/hash-graph-client:codegen:     ║                                                       ║
+@local/hash-graph-client:codegen:     ╚═══════════════════════════════════════════════════════╝
+@local/hash-graph-client:codegen: 
+@local/hash-graph-client:codegen: bundling ../../api/openapi/openapi.json...
+@local/hash-graph-client:codegen: 📦 Created a bundle for ../../api/openapi/openapi.json at openapi.bundle.json 66ms.
+@blockprotocol/type-system-rs:build:wasm:    Compiling zerofrom v0.1.8
+@blockprotocol/type-system-rs:build:wasm:    Compiling wasm-bindgen-macro v0.2.108
+@blockprotocol/type-system-rs:build:wasm:    Compiling derive_more v2.1.1
+@rust/hash-codec:build:types:    Compiling oxc_syntax v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_regular_expression v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@hashintel/brunch-agent-plugin-sdcpn:lint:eslint: Found 0 warnings and 0 errors.
+@hashintel/brunch-agent-plugin-sdcpn:lint:eslint: Finished in 1.5s on 14 files with 179 rules using 16 threads.
+@rust/hash-codec:build:types:    Compiling oxc_ast v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:wasm:    Compiling dashu-float v0.4.5
+@blockprotocol/type-system-rs:build:wasm:    Compiling yoke v0.8.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/@local/codec/rust)
+@local/hash-graph-client:codegen: Download 6.6.0 ...
+@blockprotocol/type-system-rs:build:wasm:    Compiling zerovec v0.11.6
+@blockprotocol/type-system-rs:build:wasm:    Compiling zerotrie v0.2.4
+@blockprotocol/type-system-rs:build:wasm:    Compiling hash-graph-temporal-versioning v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/@local/graph/temporal-versioning)
+@rust/hash-codec:build:types:    Compiling oxc_ecmascript v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_ast_visit v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_parser v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_semantic v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:wasm:    Compiling js-sys v0.3.85
+@blockprotocol/type-system-rs:build:wasm:    Compiling console_error_panic_hook v0.1.7
+@rust/hash-codec:build:types:    Compiling oxc_codegen v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:wasm:    Compiling tinystr v0.8.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling potential_utf v0.1.5
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_collections v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_locale_core v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_provider v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_properties v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_normalizer v2.2.0
+@rust/hash-codec:build:types:    Compiling oxc v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling hash-codegen v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/@local/codegen)
+@local/hash-graph-client:codegen: Downloaded 6.6.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling idna_adapter v1.2.2
+@blockprotocol/type-system-rs:build:wasm:    Compiling idna v1.1.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling url v2.5.8
+@rust/hash-codec:build:types:     Finished `test` profile [unoptimized + debuginfo] target(s) in 14.92s
+@rust/hash-codec:build:types:      Running tests/codegen.rs (/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/hash-codec/ac4a733b509c7198/out/codegen-ac4a733b509c7198)
+@blockprotocol/type-system-rs:build:wasm:    Compiling web-sys v0.3.85
+@blockprotocol/type-system-rs:build:types:    Compiling libc v0.2.186
+@blockprotocol/type-system-rs:build:types:    Compiling serde_core v1.0.228
+@blockprotocol/type-system-rs:build:types:    Compiling equivalent v1.0.2
+@blockprotocol/type-system-rs:build:types:    Compiling hashbrown v0.17.1
+@blockprotocol/type-system-rs:build:types:    Compiling serde v1.0.228
+@blockprotocol/type-system-rs:build:types:    Compiling regex-syntax v0.8.11
+@blockprotocol/type-system-rs:build:types:    Compiling pin-project-lite v0.2.17
+@blockprotocol/type-system-rs:build:types:    Compiling aho-corasick v1.1.4
+@blockprotocol/type-system-rs:build:types:    Compiling bytes v1.12.0
+@blockprotocol/type-system-rs:build:types:    Compiling either v1.16.0
+@blockprotocol/type-system-rs:build:types:    Compiling futures-core v0.3.32
+@blockprotocol/type-system-rs:build:types:    Compiling futures-sink v0.3.32
+@blockprotocol/type-system-rs:build:types:    Compiling syn v2.0.118
+@blockprotocol/type-system-rs:build:types:    Compiling anyhow v1.0.102
+@blockprotocol/type-system-rs:build:types:    Compiling log v0.4.33
+@blockprotocol/type-system-rs:build:types:    Compiling shlex v2.0.1
+@blockprotocol/type-system-rs:build:types:    Compiling find-msvc-tools v0.1.9
+@blockprotocol/type-system-rs:build:types:    Compiling fixedbitset v0.5.7
+@blockprotocol/type-system-rs:build:types:    Compiling smallvec v1.15.2
+@blockprotocol/type-system-rs:build:types:    Compiling libm v0.2.16
+@blockprotocol/type-system-rs:build:types:    Compiling stable_deref_trait v1.2.1
+@blockprotocol/type-system-rs:build:types:    Compiling itertools v0.14.0
+@blockprotocol/type-system-rs:build:types:    Compiling serde_json v1.0.150
+@rust/hash-codec:build:types: 
+@rust/hash-codec:build:types: running 1 test
+@blockprotocol/type-system-rs:build:types:    Compiling cc v1.2.65
+@blockprotocol/type-system-rs:build:types:    Compiling num-traits v0.2.19
+@blockprotocol/type-system-rs:build:types:    Compiling prettyplease v0.2.37
+@rust/hash-codec:build:types: test index ... ok
+@rust/hash-codec:build:types: 
+@rust/hash-codec:build:types: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+@rust/hash-codec:build:types: 
+@rust/hash-codec:build:types: done: no snapshots to review
+@local/hash-codec:codegen: cache bypass, force executing 53084984e728990b
+@blockprotocol/type-system-rs:build:types:    Compiling indexmap v2.14.0
+@blockprotocol/type-system-rs:build:types:    Compiling pulldown-cmark v0.13.4
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.github.benmanes.caffeine.cache.UnsafeAccess (file:/Users/lunelson/.herdr/worktrees/hash/m7-carriers/node_modules/@openapitools/openapi-generator-cli/versions/6.6.0.jar)
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] WARNING: Please consider reporting this to the maintainers of class com.github.benmanes.caffeine.cache.UnsafeAccess
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+@blockprotocol/type-system-rs:build:types:    Compiling parking_lot_core v0.9.12
+@blockprotocol/type-system-rs:build:types:    Compiling unicode-xid v0.2.6
+@blockprotocol/type-system-rs:build:types:    Compiling slab v0.4.12
+@blockprotocol/type-system-rs:build:types:    Compiling futures-channel v0.3.32
+@blockprotocol/type-system-rs:build:types:    Compiling mio v1.2.1
+@blockprotocol/type-system-rs:build:types:    Compiling socket2 v0.6.4
+@blockprotocol/type-system-rs:build:types:    Compiling errno v0.3.14
+@blockprotocol/type-system-rs:build:types:    Compiling regex-automata v0.4.14
+@blockprotocol/type-system-rs:build:types:    Compiling rustix v1.1.4
+@blockprotocol/type-system-rs:build:types:    Compiling getrandom v0.3.4
+@local/hash-codec:build: cache bypass, force executing 8c704e0e8e1df349
+@blockprotocol/type-system-rs:build:types:    Compiling tracing-core v0.1.36
+@blockprotocol/type-system-rs:build:types:    Compiling unicase v2.9.0
+@blockprotocol/type-system-rs:build:types:    Compiling strsim v0.11.1
+@blockprotocol/type-system-rs:build:types:    Compiling foldhash v0.1.5
+@blockprotocol/type-system-rs:build:types:    Compiling fnv v1.0.7
+@blockprotocol/type-system-rs:build:types:    Compiling ident_case v1.0.1
+@blockprotocol/type-system-rs:build:types:    Compiling hashbrown v0.15.5
+@blockprotocol/type-system-rs:build:types:    Compiling getrandom v0.2.17
+@blockprotocol/type-system-rs:build:types:    Compiling futures-task v0.3.32
+@blockprotocol/type-system-rs:build:types:    Compiling heck v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling rand_core v0.10.1
+@blockprotocol/type-system-rs:build:types:    Compiling scopeguard v1.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling once_cell v1.21.4
+@blockprotocol/type-system-rs:build:types:    Compiling getrandom v0.4.3
+@blockprotocol/type-system-rs:build:types:    Compiling futures-io v0.3.32
+@blockprotocol/type-system-rs:build:types:    Compiling lock_api v0.4.14
+@blockprotocol/type-system-rs:build:types:    Compiling petgraph v0.8.3
+@blockprotocol/type-system-rs:build:types:    Compiling tempfile v3.27.0
+@blockprotocol/type-system-rs:build:types:    Compiling multimap v0.10.1
+@blockprotocol/type-system-rs:build:types:    Compiling litemap v0.8.2
+@blockprotocol/type-system-rs:build:types:    Compiling writeable v0.6.3
+@blockprotocol/type-system-rs:build:types:    Compiling ring v0.17.14
+@blockprotocol/type-system-rs:build:types:    Compiling http v1.4.2
+@blockprotocol/type-system-rs:build:types:    Compiling utf8_iter v1.0.4
+@blockprotocol/type-system-rs:build:types:    Compiling icu_properties_data v2.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling icu_normalizer_data v2.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling version_check v0.9.5
+@blockprotocol/type-system-rs:build:types:    Compiling regex v1.12.4
+@blockprotocol/type-system-rs:build:types:    Compiling synstructure v0.13.2
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] [main] WARN  o.o.codegen.DefaultCodegen - PathExpression_path_inner (oneOf schema) already has `string` defined and therefore it's skipped.
+@blockprotocol/type-system-rs:build:types:    Compiling httparse v1.10.1
+@blockprotocol/type-system-rs:build:types:    Compiling zeroize v1.9.0
+@blockprotocol/type-system-rs:build:types:    Compiling http-body v1.0.1
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] ################################################################################
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] # Thanks for using OpenAPI Generator.                                          #
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] # Please consider donation to help us maintain this project 🙏                 #
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] # https://opencollective.com/openapi_generator/donate                          #
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] ################################################################################
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] java -Dlog.level=warn -jar "/Users/lunelson/.herdr/worktrees/hash/m7-carriers/node_modules/@openapitools/openapi-generator-cli/versions/6.6.0.jar" generate --input-spec="openapi.bundle.json" --generate-alias-as-model --generator-name="typescript-axios" --output="/Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/@local/graph/client/typescript" --additional-properties="npmName=@local/hash-graph-client,npmVersion=0.0.0-private,supportsES6=true,withInterfaces=true,disallowAdditionalPropertiesIfNotPresent=true,withNodeImports=true,sortModelPropertiesByRequiredFlag=false" exited with code 0
+@local/hash-graph-client:codegen: [ts] openapi.bundle.json
+@blockprotocol/type-system-rs:build:types:    Compiling rustls-pki-types v1.14.1
+@blockprotocol/type-system-rs:build:types:    Compiling generic-array v0.14.7
+@blockprotocol/type-system-rs:build:types:    Compiling typeid v1.0.3
+@blockprotocol/type-system-rs:build:types:    Compiling atomic-waker v1.1.2
+@blockprotocol/type-system-rs:build:types:    Compiling core-foundation-sys v0.8.7
+@blockprotocol/type-system-rs:build:types:    Compiling try-lock v0.2.5
+@blockprotocol/type-system-rs:build:types:    Compiling sha1_smol v1.0.1
+@blockprotocol/type-system-rs:build:types:    Compiling untrusted v0.9.0
+@blockprotocol/type-system-rs:build:types:    Compiling want v0.3.1
+@blockprotocol/type-system-rs:build:types:    Compiling phf_generator v0.13.1
+@blockprotocol/type-system-rs:build:types:    Compiling semver v1.0.28
+@blockprotocol/type-system-rs:build:types:    Compiling rustls v0.23.41
+@blockprotocol/type-system-rs:build:types:    Compiling tower-service v0.3.3
+@blockprotocol/type-system-rs:build:types:    Compiling typenum v1.20.1
+@blockprotocol/type-system-rs:build:types:    Compiling httpdate v1.0.3
+@blockprotocol/type-system-rs:build:types:    Compiling erased-serde v0.4.10
+@blockprotocol/type-system-rs:build:types:    Compiling crc32fast v1.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling rustc_version v0.4.1
+@blockprotocol/type-system-rs:build:types:    Compiling serde_derive v1.0.228
+@blockprotocol/type-system-rs:build:types:    Compiling thiserror-impl v2.0.18
+@blockprotocol/type-system-rs:build:types:    Compiling tokio-macros v2.7.0
+@blockprotocol/type-system-rs:build:types:    Compiling prost-derive v0.14.4
+@blockprotocol/type-system-rs:build:types:    Compiling zerofrom-derive v0.1.7
+@blockprotocol/type-system-rs:build:types:    Compiling yoke-derive v0.8.2
+@blockprotocol/type-system-rs:build:types:    Compiling zerovec-derive v0.11.3
+@blockprotocol/type-system-rs:build:types:    Compiling displaydoc v0.2.6
+@blockprotocol/type-system-rs:build:types:    Compiling tokio v1.52.3
+@blockprotocol/type-system-rs:build:types:    Compiling tracing-attributes v0.1.31
+@blockprotocol/type-system-rs:build:types:    Compiling futures-macro v0.3.32
+@blockprotocol/type-system-rs:build:types:    Compiling pulldown-cmark-to-cmark v22.0.0
+@blockprotocol/type-system-rs:build:types:    Compiling thiserror v2.0.18
+@blockprotocol/type-system-rs:build:wasm:    Compiling gloo-utils v0.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling futures-util v0.3.32
+@blockprotocol/type-system-rs:build:types:    Compiling prost v0.14.4
+@blockprotocol/type-system-rs:build:types:    Compiling zerofrom v0.1.8
+@blockprotocol/type-system-rs:build:types:    Compiling derive_more-impl v2.1.1
+@blockprotocol/type-system-rs:build:types:    Compiling oxc-miette-derive v2.7.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling tsify v0.5.6
+@blockprotocol/type-system-rs:build:types:    Compiling uuid v1.23.3
+@blockprotocol/type-system-rs:build:types:    Compiling tracing v0.1.44
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_ast_macros v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling phf_macros v0.13.1
+@blockprotocol/type-system-rs:build:types:    Compiling core-foundation v0.10.1
+@blockprotocol/type-system-rs:build:types:    Compiling security-framework-sys v2.17.0
+@blockprotocol/type-system-rs:build:types:    Compiling tonic-build v0.14.6
+@blockprotocol/type-system-rs:build:types:    Compiling object v0.37.3
+@blockprotocol/type-system-rs:build:types:    Compiling lazy_static v1.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling subtle v2.6.1
+@blockprotocol/type-system-rs:build:types:    Compiling simd-adler32 v0.3.9
+@blockprotocol/type-system-rs:build:types:    Compiling adler2 v2.0.1
+@blockprotocol/type-system-rs:build:types:    Compiling typetag v0.2.22
+@blockprotocol/type-system-rs:build:types:    Compiling miniz_oxide v0.8.9
+@blockprotocol/type-system-rs:build:types:    Compiling specta-macros v2.0.0-rc.18 (https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245)
+@local/hash-graph-client:codegen: done.
+@local/hash-graph-client:build: cache bypass, force executing d89ab7d1d8821da1
+@blockprotocol/type-system-rs:build:types:    Compiling derive_more v2.1.1
+@blockprotocol/type-system-rs:build:types:    Compiling security-framework v3.7.0
+@blockprotocol/type-system-rs:build:types:    Compiling phf v0.13.1
+@blockprotocol/type-system-rs:build:types:    Compiling oxc-miette v2.7.1
+@blockprotocol/type-system-rs:build:types:    Compiling prost-types v0.14.4
+@blockprotocol/type-system-rs:build:types:    Compiling yoke v0.8.3
+@blockprotocol/type-system-rs:build:types:    Compiling rustls-webpki v0.103.13
+@blockprotocol/type-system-rs:build:wasm:    Compiling type-system v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/@blockprotocol/type-system/rust)
+@blockprotocol/type-system-rs:build:types:    Compiling prost-build v0.14.4
+@blockprotocol/type-system-rs:build:types:    Compiling pbjson-build v0.9.0
+@blockprotocol/type-system-rs:build:types:    Compiling tokio-util v0.7.18
+@blockprotocol/type-system-rs:build:types:    Compiling prost-wkt-build v0.7.1
+@blockprotocol/type-system-rs:build:types:    Compiling tonic-prost-build v0.14.6
+@blockprotocol/type-system-rs:build:types:    Compiling error-stack v0.8.0 (/Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/error-stack)
+@blockprotocol/type-system-rs:build:types:    Compiling typetag-impl v0.2.22
+@blockprotocol/type-system-rs:build:types:    Compiling pin-project-internal v1.1.13
+@blockprotocol/type-system-rs:build:types:    Compiling darling_core v0.21.3
+@blockprotocol/type-system-rs:build:types:    Compiling h2 v0.4.18
+@blockprotocol/type-system-rs:build:types:    Compiling form_urlencoded v1.2.2
+@blockprotocol/type-system-rs:build:types:    Compiling sync_wrapper v1.0.2
+@blockprotocol/type-system-rs:build:types:    Compiling tower-layer v0.3.3
+@blockprotocol/type-system-rs:build:types:    Compiling inventory v0.3.24
+@blockprotocol/type-system-rs:build:types:    Compiling base64 v0.22.1
+@blockprotocol/type-system-rs:build:types:    Compiling num-conv v0.2.2
+@blockprotocol/type-system-rs:build:types:    Compiling zerocopy v0.8.55
+@blockprotocol/type-system-rs:build:types:    Compiling time-core v0.1.9
+@blockprotocol/type-system-rs:build:types:    Compiling chrono v0.4.45
+@blockprotocol/type-system-rs:build:types:    Compiling time-macros v0.2.30
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_index v4.1.0
+@blockprotocol/type-system-rs:build:types:    Compiling tower v0.5.3
+@blockprotocol/type-system-rs:build:types:    Compiling futures-executor v0.3.32
+@blockprotocol/type-system-rs:build:types:    Compiling pin-project v1.1.13
+@blockprotocol/type-system-rs:build:types:    Compiling hyper v1.10.1
+@blockprotocol/type-system-rs:build:types:    Compiling temporalio-protos v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling prost-wkt-types v0.7.1
+@blockprotocol/type-system-rs:build:types:    Compiling flate2 v1.1.9
+@blockprotocol/type-system-rs:build:types:    Compiling darling_macro v0.21.3
+@blockprotocol/type-system-rs:build:types:    Compiling tokio-stream v0.1.18
+@blockprotocol/type-system-rs:build:types:    Compiling hyper-util v0.1.20
+@blockprotocol/type-system-rs:build:types:    Compiling rustls-native-certs v0.8.4
+@blockprotocol/type-system-rs:build:types:    Compiling specta v2.0.0-rc.22 (https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245)
+@blockprotocol/type-system-rs:build:types:    Compiling crypto-common v0.1.7
+@blockprotocol/type-system-rs:build:types:    Compiling block-buffer v0.10.4
+@blockprotocol/type-system-rs:build:types:    Compiling async-trait v0.1.89
+@blockprotocol/type-system-rs:build:types:    Compiling http-body-util v0.1.3
+@blockprotocol/type-system-rs:build:types:    Compiling deranged v0.5.8
+@blockprotocol/type-system-rs:build:types:    Compiling cpufeatures v0.2.17
+@blockprotocol/type-system-rs:build:types:    Compiling powerfmt v0.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling keccak v0.1.6
+@blockprotocol/type-system-rs:build:types:    Compiling ar_archive_writer v0.5.2
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_span v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling zerovec v0.11.6
+@blockprotocol/type-system-rs:build:types:    Compiling zerotrie v0.2.4
+@blockprotocol/type-system-rs:build:types:    Compiling hyper-timeout v0.5.2
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_diagnostics v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling parking_lot v0.12.5
+@blockprotocol/type-system-rs:build:types:    Compiling digest v0.10.7
+@blockprotocol/type-system-rs:build:types:    Compiling time v0.3.51
+@blockprotocol/type-system-rs:build:types:    Compiling darling v0.21.3
+@blockprotocol/type-system-rs:build:types:    Compiling futures v0.3.32
+@blockprotocol/type-system-rs:build:types:    Compiling sharded-slab v0.1.7
+@blockprotocol/type-system-rs:build:types:    Compiling derive-where v1.6.1
+@blockprotocol/type-system-rs:build:types:    Compiling prost-wkt v0.7.1
+@blockprotocol/type-system-rs:build:types:    Compiling matchers v0.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling darling_core v0.23.0
+@blockprotocol/type-system-rs:build:types:    Compiling phf_shared v0.11.3
+@blockprotocol/type-system-rs:build:types:    Compiling tokio-rustls v0.26.4
+@blockprotocol/type-system-rs:build:types:    Compiling thread_local v1.1.9
+@blockprotocol/type-system-rs:build:types:    Compiling same-file v1.0.6
+@blockprotocol/type-system-rs:build:types:    Compiling tonic v0.14.6
+@blockprotocol/type-system-rs:build:types:    Compiling precomputed-hash v0.1.1
+@blockprotocol/type-system-rs:build:types:    Compiling minimal-lexical v0.2.1
+@blockprotocol/type-system-rs:build:types:    Compiling new_debug_unreachable v1.0.6
+@blockprotocol/type-system-rs:build:types:    Compiling bit-vec v0.8.0
+@blockprotocol/type-system-rs:build:types:    Compiling term v1.2.1
+@blockprotocol/type-system-rs:build:types:    Compiling nu-ansi-term v0.50.3
+@blockprotocol/type-system-rs:build:types:    Compiling bit-set v0.8.0
+@blockprotocol/type-system-rs:build:types:    Compiling tracing-subscriber v0.3.23
+@blockprotocol/type-system-rs:build:types:    Compiling ascii-canvas v4.0.0
+@blockprotocol/type-system-rs:build:types:    Compiling nom v7.1.3
+@blockprotocol/type-system-rs:build:types:    Compiling string_cache v0.8.9
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_syntax v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_regular_expression v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling walkdir v2.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling psm v0.1.31
+@blockprotocol/type-system-rs:build:wasm:     Finished `release` profile [optimized] target(s) in 23.72s
+@blockprotocol/type-system-rs:build:wasm: [INFO]: ⬇️  Installing wasm-bindgen...
+@blockprotocol/type-system-rs:build:types:    Compiling tinystr v0.8.3
+@blockprotocol/type-system-rs:build:wasm: [INFO]: found wasm-opt at "/Users/lunelson/.local/share/mise/installs/github-web-assembly-binaryen/version_131/bin/wasm-opt"
+@blockprotocol/type-system-rs:build:wasm: [INFO]: Optimizing wasm binaries with `wasm-opt`...
+@blockprotocol/type-system-rs:build:wasm: [INFO]: ✨   Done in 23.93s
+@blockprotocol/type-system-rs:build:wasm: [INFO]: 📦   Your wasm pkg is ready to publish at pkg.
+@blockprotocol/type-system-rs:build:types:    Compiling icu_locale_core v2.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling potential_utf v0.1.5
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_ast v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling icu_collections v2.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling sha3 v0.10.9
+@blockprotocol/type-system-rs:build:types:    Compiling ppv-lite86 v0.2.21
+@blockprotocol/type-system-rs:build:types:    Compiling pbjson v0.9.0
+@blockprotocol/type-system-rs:build:types:    Compiling num-integer v0.1.46
+@blockprotocol/type-system-rs:build:types:    Compiling lalrpop-util v0.22.2
+@blockprotocol/type-system-rs:build:types:    Compiling rand_core v0.6.4
+@blockprotocol/type-system-rs:build:types:    Compiling petgraph v0.7.1
+@blockprotocol/type-system-rs:build:types:    Compiling icu_provider v2.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling darling_macro v0.23.0
+@blockprotocol/type-system-rs:build:types:    Compiling ena v0.14.4
+@blockprotocol/type-system-rs:build:types:    Compiling tinyvec_macros v0.1.1
+@blockprotocol/type-system-rs:build:types:    Compiling pico-args v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling rand_chacha v0.3.1
+@blockprotocol/type-system-rs:build:types:    Compiling tinyvec v1.11.0
+@blockprotocol/type-system-rs:build:types:    Compiling bon-macros v3.9.3
+@blockprotocol/type-system-rs:build:types:    Compiling icu_properties v2.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling icu_normalizer v2.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling num-bigint v0.4.6
+@blockprotocol/type-system-rs:build:types:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/@local/codec/rust)
+@blockprotocol/type-system-rs:build:types:    Compiling iso8601-duration v0.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling darling v0.23.0
+@blockprotocol/type-system-rs:build:types:    Compiling temporalio-common v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling enum-ordinalize-derive v4.3.2
+@blockprotocol/type-system-rs:build:types:    Compiling lalrpop v0.22.2
+@blockprotocol/type-system-rs:build:types:    Compiling idna_adapter v1.2.2
+@blockprotocol/type-system-rs:build:types:    Compiling idna v1.1.0
+@blockprotocol/type-system-rs:build:types:    Compiling chacha20 v0.10.0
+@blockprotocol/type-system-rs:build:types:    Compiling url v2.5.8
+@blockprotocol/type-system-rs:build:types:    Compiling stacker v0.1.24
+@blockprotocol/type-system-rs:build:types:    Compiling ref-cast v1.0.25
+@blockprotocol/type-system-rs:build:types:    Compiling tonic-prost v0.14.6
+@blockprotocol/type-system-rs:build:types:    Compiling email_address v0.2.9
+@blockprotocol/type-system-rs:build:types:    Compiling rand v0.10.1
+@blockprotocol/type-system-rs:build:types: error: linking with `cc` failed: exit status: 1
+@blockprotocol/type-system-rs:build:types:   |
+@blockprotocol/type-system-rs:build:types:   = note:  "cc" "/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/stacker/bd90ba916cbbd19e/out/rustck880Ry/symbols.o" "<2 object files omitted>" "/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/cc/1822294d2532e95f/out/libcc-1822294d2532e95f.rlib" "/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/find-msvc-tools/27f6e59e21172fe0/out/libfind_msvc_tools-27f6e59e21172fe0.rlib" "/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/shlex/a5477aae6d6f02af/out/libshlex-a5477aae6d6f02af.rlib" "<sysroot>/lib/rustlib/aarch64-apple-darwin/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-lSystem" "-lc" "-lm" "-arch" "arm64" "-mmacosx-version-min=11.0.0" "-L" "<sysroot>/lib/rustlib/aarch64-apple-darwin/lib" "-o" "/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/stacker/bd90ba916cbbd19e/out/build_script_build" "-Wl,-dead_strip" "-nodefaultlibs"
+@blockprotocol/type-system-rs:build:types:   = note: some arguments are omitted. use `--verbose` to show all linker arguments
+@blockprotocol/type-system-rs:build:types:   = note: ld: write() failed, errno=28 (No space left on device)
+@blockprotocol/type-system-rs:build:types:           clang: error: linker command failed with exit code 1 (use -v to see invocation)
+@blockprotocol/type-system-rs:build:types:           
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: rustc-LLVM ERROR: IO failure on output stream: No space left on device
+@blockprotocol/type-system-rs:build:types: error: linking with `cc` failed: exit status: 1
+@blockprotocol/type-system-rs:build:types:   |
+@blockprotocol/type-system-rs:build:types:   = note:  "cc" "/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/ref-cast/6c91cca60ae7e182/out/rustcNEI6on/symbols.o" "<2 object files omitted>" "<sysroot>/lib/rustlib/aarch64-apple-darwin/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-lSystem" "-lc" "-lm" "-arch" "arm64" "-mmacosx-version-min=11.0.0" "-L" "<sysroot>/lib/rustlib/aarch64-apple-darwin/lib" "-o" "/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/ref-cast/6c91cca60ae7e182/out/build_script_build" "-Wl,-dead_strip" "-nodefaultlibs"
+@blockprotocol/type-system-rs:build:types:   = note: some arguments are omitted. use `--verbose` to show all linker arguments
+@blockprotocol/type-system-rs:build:types:   = note: ld: write() failed, errno=28 (No space left on device)
+@blockprotocol/type-system-rs:build:types:           clang: error: linker command failed with exit code 1 (use -v to see invocation)
+@blockprotocol/type-system-rs:build:types:           
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: error: could not compile `stacker` (build script) due to 1 previous error
+@blockprotocol/type-system-rs:build:types: warning: build failed, waiting for other jobs to finish...
+@blockprotocol/type-system-rs:build:types: error: could not compile `tonic` (lib)
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: Caused by:
+@blockprotocol/type-system-rs:build:types:   process didn't exit successfully: `/Users/lunelson/.rustup/toolchains/nightly-2026-08-03-aarch64-apple-darwin/bin/rustc --crate-name tonic --edition=2024 /Users/lunelson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tonic-0.14.6/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -Z codegen-backend=llvm -C debuginfo=2 -C split-debuginfo=unpacked --cfg 'feature="_tls-any"' --cfg 'feature="channel"' --cfg 'feature="codegen"' --cfg 'feature="gzip"' --cfg 'feature="server"' --cfg 'feature="tls-connect-info"' --cfg 'feature="tls-native-roots"' --cfg 'feature="tls-ring"' --cfg 'feature="transport"' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("_tls-any", "channel", "codegen", "default", "deflate", "gzip", "router", "server", "tls-aws-lc", "tls-connect-info", "tls-native-roots", "tls-ring", "tls-webpki-roots", "transport", "zstd"))' -C metadata=1e91520c3ad743a3 -C extra-filename=-cc519f7f35fb55c3 --out-dir /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tonic/cc519f7f35fb55c3/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/adler2/1f39e868c852eaba/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/async-trait/888fc1309a313f38/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/atomic-waker/c08c6d883f7f9377/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/base64/305f2260a2950489/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/bitflags/3fade50ed80cfba7/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/bytes/4b86fd3a201d03b3/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/cfg-if/27087b9c660ee98a/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/core-foundation/1af83ebcf2b3cc3e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/core-foundation-sys/4da5668d425f68f8/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/crc32fast/febe86c30da8e3eb/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/equivalent/07edc6ede09f52e6/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/flate2/62b7d4d54d2d0a1f/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/fnv/640710b78cd2e369/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/futures-channel/3df49c6b8a025365/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/futures-core/052111d4a2f99f16/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/futures-io/4144ab3504db5fe8/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/futures-macro/4c55b88eca2773f0/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/futures-sink/c711274212c04f37/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/futures-task/a0460d22f5d8d99a/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/futures-util/fd87cd7408e90804/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/getrandom/224662e50afd8f45/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/h2/eac3a3a6f6bf6285/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/hashbrown/14ec664e29d3a944/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/http/7cf9ec865abdf75e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/http-body/0f4b428f8d2ed980/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/http-body-util/b3e3a0b7be791aaa/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/httparse/476a9054177dbfaa/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/httpdate/ebd8a92b83253250/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/hyper/edf5142bb6996b2b/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/hyper-timeout/9894991c9285a103/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/hyper-util/66b73e87e556b4b8/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/indexmap/e294997390d8fa37/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/itoa/069eed1ebe0c6d0e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/libc/e0ce476b9e67e53e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/log/9e79bf1b9abda53a/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/memchr/c126016e646142b7/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/miniz_oxide/28c55782ec24336a/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/mio/8255b22778fd1f53/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/once_cell/71c888b05996ef07/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/percent-encoding/c3d81f07c44d72b9/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/pin-project/e85abe28f2aa3a8d/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/pin-project-internal/002752bc82f88242/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/pin-project-lite/8d71a5446b4f2224/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/ring/b255164abf789a4e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/rustls/9587a15673ad5bdb/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/rustls-native-certs/c61350eb18c32180/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/rustls-pki-types/19d457d1215ae7b0/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/rustls-webpki/16620aa3fb1eddb8/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/security-framework/0c39960ab2e1441e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/security-framework-sys/46e9d02fc24be3d6/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/simd-adler32/07c36b316e1101c6/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/slab/da3c1dc9fb0c90de/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/smallvec/120b442b5f6c24a5/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/socket2/d663ec3fe9113afe/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/subtle/8f21acd3bf808121/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/sync_wrapper/999149bc3263a20d/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tokio/a882d9d3a1dbd422/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tokio-macros/d714f2ebfa9e28ef/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tokio-rustls/d021d369fb6db08c/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tokio-stream/42a7ca6705a9e053/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tokio-util/a704c39f5b0da404/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tower/d4415808bb6f12e9/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tower-layer/688eb87a097de215/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tower-service/6b4653e1333c6d10/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tracing/b2239956b34253b9/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tracing-attributes/6d0658a12c2fd781/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tracing-core/c25558b7f25fc4c7/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/try-lock/4ebe05716e185edb/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/untrusted/0219bfd48c1da2fb/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/want/238cce6762a4b4bf/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/zeroize/45e27ce57e62b78e/out --extern 'priv:async_trait=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/async-trait/888fc1309a313f38/out/libasync_trait-888fc1309a313f38.dylib' --extern 'priv:base64=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/base64/305f2260a2950489/out/libbase64-305f2260a2950489.rmeta' --extern 'priv:bytes=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/bytes/4b86fd3a201d03b3/out/libbytes-4b86fd3a201d03b3.rmeta' --extern 'priv:flate2=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/flate2/62b7d4d54d2d0a1f/out/libflate2-62b7d4d54d2d0a1f.rmeta' --extern 'priv:h2=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/h2/eac3a3a6f6bf6285/out/libh2-eac3a3a6f6bf6285.rmeta' --extern 'priv:http=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/http/7cf9ec865abdf75e/out/libhttp-7cf9ec865abdf75e.rmeta' --extern 'priv:http_body=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/http-body/0f4b428f8d2ed980/out/libhttp_body-0f4b428f8d2ed980.rmeta' --extern 'priv:http_body_util=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/http-body-util/b3e3a0b7be791aaa/out/libhttp_body_util-b3e3a0b7be791aaa.rmeta' --extern 'priv:hyper=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/hyper/edf5142bb6996b2b/out/libhyper-edf5142bb6996b2b.rmeta' --extern 'priv:hyper_timeout=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/hyper-timeout/9894991c9285a103/out/libhyper_timeout-9894991c9285a103.rmeta' --extern 'priv:hyper_util=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/hyper-util/66b73e87e556b4b8/out/libhyper_util-66b73e87e556b4b8.rmeta' --extern 'priv:percent_encoding=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/percent-encoding/c3d81f07c44d72b9/out/libpercent_encoding-c3d81f07c44d72b9.rmeta' --extern 'priv:pin_project=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/pin-project/e85abe28f2aa3a8d/out/libpin_project-e85abe28f2aa3a8d.rmeta' --extern 'priv:rustls_native_certs=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/rustls-native-certs/c61350eb18c32180/out/librustls_native_certs-c61350eb18c32180.rmeta' --extern 'priv:socket2=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/socket2/d663ec3fe9113afe/out/libsocket2-d663ec3fe9113afe.rmeta' --extern 'priv:sync_wrapper=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/sync_wrapper/999149bc3263a20d/out/libsync_wrapper-999149bc3263a20d.rmeta' --extern 'priv:tokio=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tokio/a882d9d3a1dbd422/out/libtokio-a882d9d3a1dbd422.rmeta' --extern 'priv:tokio_rustls=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tokio-rustls/d021d369fb6db08c/out/libtokio_rustls-d021d369fb6db08c.rmeta' --extern 'priv:tokio_stream=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tokio-stream/42a7ca6705a9e053/out/libtokio_stream-42a7ca6705a9e053.rmeta' --extern 'priv:tower=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tower/d4415808bb6f12e9/out/libtower-d4415808bb6f12e9.rmeta' --extern 'priv:tower_layer=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tower-layer/688eb87a097de215/out/libtower_layer-688eb87a097de215.rmeta' --extern 'priv:tower_service=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tower-service/6b4653e1333c6d10/out/libtower_service-6b4653e1333c6d10.rmeta' --extern 'priv:tracing=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tracing/b2239956b34253b9/out/libtracing-b2239956b34253b9.rmeta' -Z unstable-options --cap-lints allow --force-warn=unused_crate_dependencies -L native=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/ring/eac251cae9b45382/out` (exit status: 101)
+@blockprotocol/type-system-rs:build:types: error: could not compile `ref-cast` (build script) due to 1 previous error
+@blockprotocol/type-system-rs:build:types: error: failed to write `/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tonic-prost/5ae52e03fab8f04f/fingerprint/lib-tonic_prost.json`
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: Caused by:
+@blockprotocol/type-system-rs:build:types:   No space left on device (os error 28)
+@blockprotocol/type-system-rs:build:types: error: could not write output to /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/bon-macros/301f90eddadd2fa3/out/bon_macros-301f90eddadd2fa3.bon_macros.868a81d2e3a58e22-cgu.12.rcgu.o: No space left on device
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: error: could not write output to /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/prost-wkt-types/df26a27287393108/out/prost_wkt_types-df26a27287393108.prost_wkt_types.852b7cdcae1cfff5-cgu.09.rcgu.o: No space left on device
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: error: could not parse/generate dep info at: /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/psm/1918d4031b5eed54/out/psm-1918d4031b5eed54.d
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: Caused by:
+@blockprotocol/type-system-rs:build:types:   failed to write `/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/psm/1918d4031b5eed54/fingerprint/dep-lib-psm`
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: Caused by:
+@blockprotocol/type-system-rs:build:types:   No space left on device (os error 28)
+@blockprotocol/type-system-rs:build:types: error: could not compile `prost-wkt-types` (lib) due to 1 previous error
+@blockprotocol/type-system-rs:build:types: error: could not compile `bon-macros` (lib) due to 1 previous error
+@blockprotocol/type-system-rs:build:types: rustc-LLVM ERROR: IO failure on output stream: No space left on device
+@blockprotocol/type-system-rs:build:types: error: could not compile `url` (lib)
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: Caused by:
+@blockprotocol/type-system-rs:build:types:   process didn't exit successfully: `/Users/lunelson/.rustup/toolchains/nightly-2026-08-03-aarch64-apple-darwin/bin/rustc --crate-name url --edition=2018 /Users/lunelson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/url-2.5.8/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -Z codegen-backend=llvm -C debuginfo=2 -C split-debuginfo=unpacked --cfg 'feature="default"' --cfg 'feature="serde"' --cfg 'feature="std"' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("debugger_visualizer", "default", "expose_internals", "serde", "std"))' -C metadata=82da105056757b53 -C extra-filename=-8d6927e3fae72ff7 --out-dir /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/url/8d6927e3fae72ff7/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/displaydoc/9f717820d34b1618/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/form_urlencoded/d216742bf5218956/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/icu_collections/1ae1df23a9ddfa90/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/icu_locale_core/6539d0abcf9273b4/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/icu_normalizer/394a5b70deea9e86/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/icu_normalizer_data/0408dd4f50fd5a41/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/icu_properties/545145a0f9f99333/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/icu_properties_data/3041498f21cff98e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/icu_provider/4bb745a3572ec143/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/idna/e37cb38bc4136dce/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/idna_adapter/ecb60e3eeef24a69/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/litemap/bfb18a6bf5d8b21e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/percent-encoding/c3d81f07c44d72b9/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/potential_utf/ba801fa9d6e22ed5/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/serde/715ac4ddc57234ed/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/serde_core/d397b3b973126ab9/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/serde_derive/07c4bbcbb6460700/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/smallvec/120b442b5f6c24a5/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/stable_deref_trait/178ed9a084f176bc/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tinystr/26d697183e4890ea/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/utf8_iter/e20b4dca930977e2/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/writeable/0b139837d3c5b747/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/yoke/9c2ce7a9c9cf926e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/yoke-derive/0a027e9476ee015a/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/zerofrom/92b47d2cd336ded1/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/zerofrom-derive/df1a3aaac74b631d/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/zerotrie/16af6d8c8aa93578/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/zerovec/05524278224addab/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/zerovec-derive/9db4e78dc3eaedb1/out --extern 'priv:form_urlencoded=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/form_urlencoded/d216742bf5218956/out/libform_urlencoded-d216742bf5218956.rmeta' --extern 'priv:idna=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/idna/e37cb38bc4136dce/out/libidna-e37cb38bc4136dce.rmeta' --extern 'priv:percent_encoding=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/percent-encoding/c3d81f07c44d72b9/out/libpercent_encoding-c3d81f07c44d72b9.rmeta' --extern 'priv:serde=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/serde/715ac4ddc57234ed/out/libserde-715ac4ddc57234ed.rmeta' --extern 'priv:serde_derive=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/serde_derive/07c4bbcbb6460700/out/libserde_derive-07c4bbcbb6460700.dylib' -Z unstable-options --cap-lints allow --force-warn=unused_crate_dependencies` (exit status: 101)
+@blockprotocol/type-system-rs:build:types: error: failed to write /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/idna/e37cb38bc4136dce/out/rustcGDNDDk/lib.rmeta: No space left on device (os error 28)
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: error: could not compile `idna` (lib) due to 1 previous error
+@blockprotocol/type-system-rs:build:types: rustc-LLVM ERROR: IO failure on output stream: No space left on device
+@blockprotocol/type-system-rs:build:types: error: could not compile `hash-codec` (lib)
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: Caused by:
+@blockprotocol/type-system-rs:build:types:   process didn't exit successfully: `/Users/lunelson/.rustup/toolchains/nightly-2026-08-03-aarch64-apple-darwin/bin/rustc --crate-name hash_codec --edition=2024 'libs/@local/codec/rust/src/lib.rs' --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -Z codegen-backend=llvm -C debuginfo=2 -C split-debuginfo=unpacked '--warn=clippy::restriction' '--warn=clippy::pedantic' '--warn=clippy::nursery' --warn=nonstandard_style --warn=future_incompatible '--warn=clippy::all' '--allow=clippy::unwrap_in_result' --deny=unsafe_code --warn=unreachable_pub '--allow=clippy::unreachable' '--allow=clippy::unneeded_field_pattern' '--allow=clippy::unimplemented' '--allow=clippy::tests_outside_test_module' '--allow=clippy::single_char_lifetime_names' '--allow=clippy::single_call_fn' '--allow=clippy::shadow_unrelated' '--allow=clippy::shadow_same' '--allow=clippy::shadow_reuse' '--allow=clippy::separated_literal_suffix' '--allow=clippy::semicolon_outside_block' '--allow=clippy::ref_patterns' '--allow=clippy::redundant_pub_crate' '--allow=clippy::question_mark_used' '--allow=clippy::pub_with_shorthand' '--allow=clippy::pub_use' '--allow=clippy::pattern_type_mismatch' '--allow=clippy::partial_pub_fields' '--allow=clippy::panic' '--allow=clippy::multiple_unsafe_ops_per_block' '--allow=clippy::multiple_inherent_impl' '--allow=clippy::module_name_repetitions' '--allow=clippy::mod_module_files' '--allow=clippy::missing_trait_methods' '--allow=clippy::missing_inline_in_public_items' '--allow=clippy::missing_docs_in_private_items' '--allow=clippy::missing_assert_message' '--allow=clippy::let_underscore_must_use' '--allow=clippy::iter_over_hash_type' '--allow=clippy::inline_trait_bounds' '--allow=clippy::inline_modules' '--allow=clippy::implicit_return' '--allow=clippy::impl_trait_in_params' '--allow=clippy::expect_used' '--allow=clippy::exhaustive_structs' '--allow=clippy::exhaustive_enums' '--allow=clippy::default_numeric_fallback' '--allow=clippy::cognitive_complexity' '--allow=clippy::blanket_clippy_restriction_lints' '--allow=clippy::as_conversions' '--allow=clippy::arithmetic_side_effects' '--allow=clippy::arbitrary_source_item_ordering' '--allow=clippy::allow_attributes_without_reason' '--allow=clippy::absolute_paths' --cfg 'feature="bytes"' --cfg 'feature="codegen"' --cfg 'feature="numeric"' --cfg 'feature="serde"' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("bytes", "codegen", "harpc", "numeric", "postgres", "serde", "utoipa"))' -C metadata=eaf010328de98475 -C extra-filename=-43fa334a4e89d087 --out-dir /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/hash-codec/43fa334a4e89d087/out -C incremental=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/incremental -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/aho-corasick/316bfc1970ccb28a/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/bytes/4b86fd3a201d03b3/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/cfg-if/27087b9c660ee98a/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/ctor/bb52857cb6371f8d/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/ctor-proc-macro/d948bb999f361ea4/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/dashu-base/eadf5fb50266d9f2/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/dashu-float/55bc41db840c0de1/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/dashu-int/6b77cd2426cb9370/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/deranged/d8137492cf7171ba/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/derive-where/e3035d43159b6eae/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/derive_more/e88bf471f04d294f/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/derive_more-impl/64eeb7c1e4274353/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/equivalent/07edc6ede09f52e6/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/error-stack/8bad3cf84c20322e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/futures-core/052111d4a2f99f16/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/futures-sink/c711274212c04f37/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/getrandom/7e467c0e8e81e91e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/hashbrown/14ec664e29d3a944/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/indexmap/e294997390d8fa37/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/itoa/069eed1ebe0c6d0e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/libc/e0ce476b9e67e53e/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/memchr/c126016e646142b7/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/mio/8255b22778fd1f53/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/num-conv/03e393fd8a334386/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/num-modular/ea24adc3009adbf9/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/pin-project-lite/8d71a5446b4f2224/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/powerfmt/c9bee149832ddb02/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/rand_core/62386c8e5d664bd6/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/regex/345cf004a8c250b3/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/regex-automata/c3da222ed819358a/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/regex-syntax/5e714f2096a64b94/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/rustversion/620766a7bf9ed91c/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/serde/715ac4ddc57234ed/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/serde_core/d397b3b973126ab9/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/serde_derive/07c4bbcbb6460700/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/serde_json/820c2dc70d512f35/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/sha1_smol/92998e7121f34fc2/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/simple-mermaid/1e440ba99795db15/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/socket2/d663ec3fe9113afe/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/specta/15b9d6b2e99ba557/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/specta-macros/c90c956cb7cec2ce/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/static_assertions/3c29547f21099c51/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/time/fe883e8d79370b5a/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/time-core/27d2325a0b1b781a/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/time-macros/4270af551466751c/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tokio/a882d9d3a1dbd422/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tokio-macros/d714f2ebfa9e28ef/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tokio-util/a704c39f5b0da404/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/uuid/f0caee9f6d9b9285/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/zmij/6ca17bc9a05416ad/out --extern bytes=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/bytes/4b86fd3a201d03b3/out/libbytes-4b86fd3a201d03b3.rmeta --extern 'priv:dashu_base=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/dashu-base/eadf5fb50266d9f2/out/libdashu_base-eadf5fb50266d9f2.rmeta' --extern 'priv:dashu_float=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/dashu-float/55bc41db840c0de1/out/libdashu_float-55bc41db840c0de1.rmeta' --extern 'priv:derive_where=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/derive-where/e3035d43159b6eae/out/libderive_where-e3035d43159b6eae.dylib' --extern 'priv:derive_more=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/derive_more/e88bf471f04d294f/out/libderive_more-e88bf471f04d294f.rmeta' --extern error_stack=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/error-stack/8bad3cf84c20322e/out/liberror_stack-8bad3cf84c20322e.rmeta --extern regex=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/regex/345cf004a8c250b3/out/libregex-345cf004a8c250b3.rmeta --extern 'priv:serde=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/serde/715ac4ddc57234ed/out/libserde-715ac4ddc57234ed.rmeta' --extern serde_core=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/serde_core/d397b3b973126ab9/out/libserde_core-d397b3b973126ab9.rmeta --extern 'priv:serde_json=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/serde_json/820c2dc70d512f35/out/libserde_json-820c2dc70d512f35.rmeta' --extern 'priv:simple_mermaid=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/simple-mermaid/1e440ba99795db15/out/libsimple_mermaid-1e440ba99795db15.rmeta' --extern specta=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/specta/15b9d6b2e99ba557/out/libspecta-15b9d6b2e99ba557.rmeta --extern 'priv:time=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/time/fe883e8d79370b5a/out/libtime-fe883e8d79370b5a.rmeta' --extern tokio_util=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/tokio-util/a704c39f5b0da404/out/libtokio_util-a704c39f5b0da404.rmeta --extern uuid=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/uuid/f0caee9f6d9b9285/out/libuuid-f0caee9f6d9b9285.rmeta -Z unstable-options --force-warn=unused_crate_dependencies` (exit status: 101)
+@blockprotocol/type-system-rs:build:types: error: failed to write `/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/temporalio-common/0e9d33bb7fd1992a/run/stdout`
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: Caused by:
+@blockprotocol/type-system-rs:build:types:   No space left on device (os error 28)
+@blockprotocol/type-system-rs:build:types: error: couldn't create a temp dir: No space left on device (os error 28) at path "/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/rand/82939f35119b35bf/out/rmetaogHx5O"
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: error: could not compile `rand` (lib) due to 1 previous error
+@blockprotocol/type-system-rs:build:types: error: failed to write to `/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/oxc_ast/a74becc0d34c1834/out/rmetaOgBnlG/full.rmeta`: No space left on device (os error 28)
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: error: could not compile `oxc_ast` (lib) due to 1 previous error
+@blockprotocol/type-system-rs:build:types: error: error writing dependencies to `/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/temporalio-protos/bd384d2b6241869c/out/temporalio_protos-bd384d2b6241869c.d`: No space left on device (os error 28)
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: error: could not compile `temporalio-protos` (lib) due to 1 previous error
+@blockprotocol/type-system-rs:build:types: error: failed to write to `/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/lalrpop/f90254756eac9bc2/out/rmetaX7O9pd/full.rmeta`: No space left on device (os error 28)
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: error: could not compile `lalrpop` (lib) due to 1 previous error
+@blockprotocol/type-system-rs:build:types: done: no snapshots to review
+@blockprotocol/type-system-rs#build:types:  WARNING  command finished with error, but continuing...
+@blockprotocol/type-system:codegen: cache bypass, force executing 87f922ea6c678cd4
+@rust/hash-graph-authorization:build:types:    Compiling memchr v2.8.2
+@rust/hash-graph-authorization:build:types:    Compiling phf_macros v0.13.1
+@rust/hash-graph-authorization:build:types:    Compiling getrandom v0.4.3
+@rust/hash-graph-authorization:build:types:    Compiling parking_lot_core v0.9.12
+@rust/hash-graph-authorization:build:types:    Compiling scopeguard v1.2.0
+@rust/hash-graph-authorization:build:types:    Compiling regex-syntax v0.8.11
+@rust/hash-graph-authorization:build:types:    Compiling regex-automata v0.4.14
+@rust/hash-graph-authorization:build:types:    Compiling error-stack v0.8.0 (/Users/lunelson/.herdr/worktrees/hash/m7-carriers/libs/error-stack)
+@rust/hash-graph-authorization:build:types:    Compiling log v0.4.33
+@rust/hash-graph-authorization:build:types:    Compiling smallvec v1.15.2
+@rust/hash-graph-authorization:build:types:    Compiling itertools v0.14.0
+@rust/hash-graph-authorization:build:types:    Compiling derive_more-impl v2.1.1
+@rust/hash-graph-authorization:build:types:    Compiling tokio v1.52.3
+@rust/hash-graph-authorization:build:types:    Compiling lock_api v0.4.14
+@rust/hash-graph-authorization:build:types:    Compiling stacker v0.1.24
+@rust/hash-graph-authorization:build:types:    Compiling ref-cast v1.0.25
+@rust/hash-graph-authorization:build:types:    Compiling oxc_sourcemap v6.1.1
+@rust/hash-graph-authorization:build:types: error: linking with `cc` failed: exit status: 1
+@rust/hash-graph-authorization:build:types:   |
+@rust/hash-graph-authorization:build:types: @rust/hash-graph-authorization:build:types:   = note: some arguments are omitted. use `--verbose` to show all linker arguments
+@rust/hash-graph-authorization:build:types:   = note: ld: write() failed, errno=28 (No space left on device)
+@rust/hash-graph-authorization:build:types:           clang: error: linker command failed with exit code 1 (use -v to see invocation)
+@rust/hash-graph-authorization:build:types:           
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: error: could not parse/generate dep info at: /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/log/3e54f8e8714af9cc/out/log-3e54f8e8714af9cc.d
+
+@rust/hash-graph-authorization:build:types: Caused by:
+@rust/hash-graph-authorization:build:types:   failed to write `/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/log/3e54f8e8714af9cc/fingerprint/dep-lib-log`
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: Caused by:
+@rust/hash-graph-authorization:build:types:   No space left on device (os error 28)
+@rust/hash-graph-authorization:build:types: warning: build failed, waiting for other jobs to finish...
+@rust/hash-graph-authorization:build:types: error: failed to write /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/ref-cast/6c91cca60ae7e182/out/rustcsuyaRn/symbols.o: No space left on device (os error 28)
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: rustc-LLVM ERROR: IO failure on output stream: No space left on device
+@rust/hash-graph-authorization:build:types: rustc-LLVM ERROR: IO failure on output stream: No space left on device
+@rust/hash-graph-authorization:build:types: error: failed to build archive at `/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/parking_lot_core/c69a46a63af12d70/out/libparking_lot_core-c69a46a63af12d70.rlib`: couldn't create the temp file: No space left on device (os error 28)
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: error: failed to build archive at `/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/smallvec/5eff75ce62b00d04/out/libsmallvec-5eff75ce62b00d04.rlib`: failed to rename archive file: No space left on device (os error 28)
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: error: could not compile `lock_api` (lib)
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: Caused by:
+@rust/hash-graph-authorization:build:types:   process didn't exit successfully: `/Users/lunelson/.rustup/toolchains/nightly-2026-08-03-aarch64-apple-darwin/bin/rustc --crate-name lock_api --edition=2021 /Users/lunelson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lock_api-0.4.14/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -Z codegen-backend=llvm --cfg 'feature="atomic_usize"' --cfg 'feature="default"' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("arc_lock", "atomic_usize", "default", "nightly", "owning_ref", "serde"))' -C metadata=0a851a97163c9370 -C extra-filename=-7847e4d82fae251f --out-dir /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/lock_api/7847e4d82fae251f/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/scopeguard/a63b61b63dd35e28/out --extern 'priv:scopeguard=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/scopeguard/a63b61b63dd35e28/out/libscopeguard-a63b61b63dd35e28.rmeta' -Z unstable-options --cap-lints allow --force-warn=unused_crate_dependencies` (exit status: 101)
+@rust/hash-graph-authorization:build:types: error: could not compile `stacker` (build script) due to 1 previous error
+@rust/hash-graph-authorization:build:types: error: could not compile `error-stack` (build script)
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: Caused by:
+@rust/hash-graph-authorization:build:types:   process didn't exit successfully: `/Users/lunelson/.rustup/toolchains/nightly-2026-08-03-aarch64-apple-darwin/bin/rustc --crate-name build_script_build --edition=2021 libs/error-stack/build.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type bin --emit=dep-info,link -C embed-bitcode=no -Z codegen-backend=llvm '--warn=clippy::restriction' '--warn=clippy::pedantic' '--warn=clippy::nursery' --warn=nonstandard_style --warn=future_incompatible '--warn=clippy::all' '--allow=clippy::unwrap_in_result' --deny=unsafe_code --warn=unreachable_pub '--allow=clippy::unreachable' '--allow=clippy::unneeded_field_pattern' '--allow=clippy::unimplemented' '--allow=clippy::tests_outside_test_module' '--allow=clippy::single_char_lifetime_names' '--allow=clippy::single_call_fn' '--allow=clippy::shadow_unrelated' '--allow=clippy::shadow_same' '--allow=clippy::shadow_reuse' '--allow=clippy::separated_literal_suffix' '--allow=clippy::semicolon_outside_block' '--allow=clippy::ref_patterns' '--allow=clippy::redundant_pub_crate' '--allow=clippy::question_mark_used' '--allow=clippy::pub_with_shorthand' '--allow=clippy::pub_use' '--allow=clippy::pattern_type_mismatch' '--allow=clippy::partial_pub_fields' '--allow=clippy::panic' '--allow=clippy::multiple_unsafe_ops_per_block' '--allow=clippy::multiple_inherent_impl' '--allow=clippy::module_name_repetitions' '--allow=clippy::mod_module_files' '--allow=clippy::missing_trait_methods' '--allow=clippy::missing_inline_in_public_items' '--allow=clippy::missing_docs_in_private_items' '--allow=clippy::missing_assert_message' '--allow=clippy::let_underscore_must_use' '--allow=clippy::iter_over_hash_type' '--allow=clippy::inline_trait_bounds' '--allow=clippy::inline_modules' '--allow=clippy::implicit_return' '--allow=clippy::impl_trait_in_params' '--allow=clippy::expect_used' '--allow=clippy::exhaustive_structs' '--allow=clippy::exhaustive_enums' '--allow=clippy::default_numeric_fallback' '--allow=clippy::cognitive_complexity' '--allow=clippy::blanket_clippy_restriction_lints' '--allow=clippy::as_conversions' '--allow=clippy::arithmetic_side_effects' '--allow=clippy::arbitrary_source_item_ordering' '--allow=clippy::allow_attributes_without_reason' '--allow=clippy::absolute_paths' --cfg 'feature="std"' --cfg 'feature="unstable"' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("anyhow", "backtrace", "default", "eyre", "futures", "hooks", "serde", "spantrace", "std", "tracing", "unstable"))' -C metadata=616871e99124fa21 --out-dir /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/error-stack/ddddc2b2963c781e/out -C incremental=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/incremental -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/rustc_version/2df5bc8dc0645d9f/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/semver/5d5cc1bb6421ed1c/out --extern rustc_version=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/rustc_version/2df5bc8dc0645d9f/out/librustc_version-2df5bc8dc0645d9f.rlib --force-warn=unused_crate_dependencies` (exit status: 101)
+@rust/hash-graph-authorization:build:types: error: could not compile `ref-cast` (build script) due to 1 previous error
+@rust/hash-graph-authorization:build:types: error: could not compile `parking_lot_core` (lib) due to 1 previous error
+@rust/hash-graph-authorization:build:types: error: linking with `cc` failed: exit status: 1
+@rust/hash-graph-authorization:build:types:   |
+@rust/hash-graph-authorization:build:types:   = note:  "cc" "/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/getrandom/bc93e067e1819919/out/rustcYfAZJw/symbols.o" "<2 object files omitted>" "<sysroot>/lib/rustlib/aarch64-apple-darwin/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-lSystem" "-lc" "-lm" "-arch" "arm64" "-mmacosx-version-min=11.0.0" "-L" "<sysroot>/lib/rustlib/aarch64-apple-darwin/lib" "-o" "/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/getrandom/bc93e067e1819919/out/build_script_build" "-Wl,-dead_strip" "-nodefaultlibs"
+@rust/hash-graph-authorization:build:types:   = note: some arguments are omitted. use `--verbose` to show all linker arguments
+@rust/hash-graph-authorization:build:types:   = note: ld: ftruncate() failed, errno=28 (No space left on device) for '/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/getrandom/bc93e067e1819919/out/build_script_build'
+@rust/hash-graph-authorization:build:types:           clang: error: linker command failed with exit code 1 (use -v to see invocation)
+@rust/hash-graph-authorization:build:types:           
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: error: could not compile `smallvec` (lib) due to 1 previous error
+@rust/hash-graph-authorization:build:types: error: could not compile `getrandom` (build script) due to 1 previous error
+@rust/hash-graph-authorization:build:types: rustc-LLVM ERROR: IO failure on output stream: No space left on device
+@rust/hash-graph-authorization:build:types: error: could not compile `phf_macros` (lib)
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: Caused by:
+@rust/hash-graph-authorization:build:types:   process didn't exit successfully: `/Users/lunelson/.rustup/toolchains/nightly-2026-08-03-aarch64-apple-darwin/bin/rustc --crate-name phf_macros --edition=2021 /Users/lunelson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/phf_macros-0.13.1/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type proc-macro --emit=dep-info,link -C prefer-dynamic -C embed-bitcode=no -Z codegen-backend=llvm --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("uncased", "uncased_", "unicase", "unicase_"))' -C metadata=cf2dad1e8e7341ba -C extra-filename=-7cbe889e384f5608 --out-dir /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/phf_macros/7cbe889e384f5608/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/fastrand/0c4dc3ef82d970d9/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/phf_generator/04ba62372d60599f/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/phf_shared/642f527e68895ffa/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/proc-macro2/7237f8e332bbb0e4/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/quote/b03a5c6bc6a747d8/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/siphasher/6400978b5a05d4af/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/syn/b039116af6cb656c/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/unicode-ident/dc1a77d81d04cc97/out --extern 'priv:phf_generator=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/phf_generator/04ba62372d60599f/out/libphf_generator-04ba62372d60599f.rlib' --extern 'priv:phf_shared=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/phf_shared/642f527e68895ffa/out/libphf_shared-642f527e68895ffa.rlib' --extern 'priv:proc_macro2=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/proc-macro2/7237f8e332bbb0e4/out/libproc_macro2-7237f8e332bbb0e4.rlib' --extern 'priv:quote=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/quote/b03a5c6bc6a747d8/out/libquote-b03a5c6bc6a747d8.rlib' --extern 'priv:syn=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/syn/b039116af6cb656c/out/libsyn-b039116af6cb656c.rlib' --extern proc_macro -Z unstable-options --cap-lints allow --force-warn=unused_crate_dependencies` (exit status: 101)
+@rust/hash-graph-authorization:build:types: error: could not write output to /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/oxc_sourcemap/5e0c820375c7d39c/out/oxc_sourcemap.oxc_sourcemap.58164c4d83b621c1-cgu.0.rcgu.o: No space left on device
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: error: failed to write to `/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/memchr/5013a1a662fca6f2/out/rmetaSB4QRj/full.rmeta`: No space left on device (os error 28)
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: error: could not compile `oxc_sourcemap` (lib) due to 1 previous error
+@rust/hash-graph-authorization:build:types: error: could not compile `memchr` (lib) due to 1 previous error
+@rust/hash-graph-authorization:build:types: rustc-LLVM ERROR: IO failure on output stream: No space left on device
+@rust/hash-graph-authorization:build:types: error: could not compile `derive_more-impl` (lib)
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: Caused by:
+@rust/hash-graph-authorization:build:types:   process didn't exit successfully: `/Users/lunelson/.rustup/toolchains/nightly-2026-08-03-aarch64-apple-darwin/bin/rustc --crate-name derive_more_impl --edition=2021 /Users/lunelson/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/derive_more-impl-2.1.1/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type proc-macro --emit=dep-info,link -C prefer-dynamic -C embed-bitcode=no -Z codegen-backend=llvm --cfg 'feature="default"' --cfg 'feature="display"' --cfg 'feature="error"' --cfg 'feature="from"' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("add", "add_assign", "as_ref", "constructor", "debug", "default", "deref", "deref_mut", "display", "eq", "error", "from", "from_str", "full", "index", "index_mut", "into", "into_iterator", "is_variant", "mul", "mul_assign", "not", "sum", "testing-helpers", "try_from", "try_into", "try_unwrap", "unwrap"))' -C metadata=3042cb2000a22847 -C extra-filename=-9bc1214bc329e485 --out-dir /Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/derive_more-impl/9bc1214bc329e485/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/convert_case/34ca2b78cf379345/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/proc-macro2/7237f8e332bbb0e4/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/quote/b03a5c6bc6a747d8/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/syn/b039116af6cb656c/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/unicode-ident/dc1a77d81d04cc97/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/unicode-segmentation/50310954f18af51d/out -L dependency=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/unicode-xid/4940335c5bc24ea9/out --extern 'priv:convert_case=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/convert_case/34ca2b78cf379345/out/libconvert_case-34ca2b78cf379345.rlib' --extern 'priv:proc_macro2=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/proc-macro2/7237f8e332bbb0e4/out/libproc_macro2-7237f8e332bbb0e4.rlib' --extern 'priv:quote=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/quote/b03a5c6bc6a747d8/out/libquote-b03a5c6bc6a747d8.rlib' --extern 'priv:syn=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/syn/b039116af6cb656c/out/libsyn-b039116af6cb656c.rlib' --extern 'priv:unicode_xid=/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/unicode-xid/4940335c5bc24ea9/out/libunicode_xid-4940335c5bc24ea9.rlib' --extern proc_macro -Z unstable-options --cap-lints allow --force-warn=unused_crate_dependencies` (exit status: 101)
+@rust/hash-graph-authorization:build:types: error: couldn't create a temp dir: No space left on device (os error 28) at path "/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/regex-syntax/d6fa56c6fb9907d7/out/rmetaCXzSsS"
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: error: could not compile `regex-syntax` (lib) due to 1 previous error
+@rust/hash-graph-authorization:build:types: error: failed to write to `/Users/lunelson/.herdr/worktrees/hash/m7-carriers/target/debug/build/itertools/4732e176035df6f3/out/rmetaFubgxn/full.rmeta`: No space left on device (os error 28)
+  x Internal errors encountered: No space left on device (os error 28)
+
