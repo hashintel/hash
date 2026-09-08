@@ -4,21 +4,22 @@
 
 **Live as of 2026-09-08** for
 [FE-1626](https://linear.app/hash/issue/FE-1626/add-cors-handling-to-brunch-agents-agents-routes-for-the-petrinaut)
-on `kafe-1626-cors-agents-routes`, cut directly from `main` after
+on `kafe/fe-1626-cors-agents-routes`, cut directly from `main` after
 [FE-1574](https://github.com/hashintel/hash/pull/9528) established
 `/agents/chat/:instanceId` as the Petrinaut browser's Brunch transport and
-[FE-1625](https://github.com/hashintel/hash/pull/9573) made the image deployable on ECS.
+[FE-1625](https://github.com/hashintel/hash/pull/9573) made the image deployable.
 This file is the branch's sole execution authority.
 
 The owner selected deployment-configured exact origins over wildcard preview-host patterns or a
-new same-origin proxy. The policy is a browser boundary only: it does not authenticate a caller,
-authorize a conversation, or make public exposure safe by itself.
+new same-origin proxy. CORS governs whether a conforming browser exposes a cross-origin response
+to client code; it does not authenticate or restrict non-browser callers, authorize a
+conversation, or make public exposure safe by itself.
 
 ## Imperative
 
 Let a deployed Petrinaut website use the Brunch `/agents/*` Flue routes from an explicitly trusted
-browser origin while granting no cross-origin access to unlisted origins. Do this now because the
-Petrinaut Vercel deployment and Brunch ECS service are separate origins and
+browser origin while causing browsers to withhold cross-origin access from unlisted origins. Do
+this now because the deployed website and Brunch service are separate origins and
 [SRE-1042](https://linear.app/hash/issue/SRE-1042/configure-petrinauts-deployment-variables-for-the-brunch-agent-chat)
 cannot point the browser at the deployed Brunch route until preflight and response headers work.
 
@@ -34,13 +35,14 @@ Petrinaut browser at one configured exact origin
 → response exposes the Flue/Durable Streams headers the browser SDK reads
 ```
 
-`BRUNCH_CORS_ALLOWED_ORIGINS` is a comma-separated list of exact HTTP(S) origins read when the app
-starts. Values may have surrounding whitespace and an origin's optional trailing slash; they are
-normalized through `URL.origin` and deduplicated. A configured value containing credentials, a
-non-root path, query, fragment, wildcard, opaque origin, or non-HTTP(S) scheme is a startup
-configuration error. Missing or blank configuration means an empty allowlist: same-origin and
-non-browser callers continue through the existing route, but no cross-origin caller receives a
-CORS grant.
+`BRUNCH_CORS_ALLOWED_ORIGINS` is read once at startup as a comma-separated list of exact HTTP(S)
+origins. Parsing trims whitespace, normalizes an optional trailing slash through `URL.origin`, and
+deduplicates values. Credentials, non-root paths, queries, fragments, wildcards, opaque origins,
+and non-HTTP(S) schemes are startup configuration errors. Missing or blank configuration means an
+empty allowlist: same-origin and non-browser callers continue through the existing route, but
+browser code at another origin receives no CORS grant. See the
+[Brunch application README](../../../apps/brunch-agent/README.md#production-container) for
+operator configuration details.
 
 The middleware applies only to `/agents/*` and runs before `agentOwnershipGuard`, so a valid
 preflight does not need conversation headers. It permits `GET`, `POST`, and `OPTIONS`; permits
@@ -56,9 +58,10 @@ installed Flue 2.0.3 and Durable Streams 0.2.6 clients:
 - `stream-sse-data-encoding`
 
 Hono's maintained CORS middleware owns header emission, `Vary` handling, and the `OPTIONS` response.
-An unlisted origin may still receive an ordinary HTTP response when it directly sends a request,
-but that response carries no `Access-Control-Allow-Origin`; the browser therefore grants it no
-cross-origin access.
+Non-browser callers can still send requests and receive ordinary HTTP responses because CORS is
+enforced by browsers, not by the service as caller authentication. A response to an unlisted
+browser origin carries no `Access-Control-Allow-Origin`, so the browser withholds that response
+from client code.
 
 ## Proof
 
@@ -83,9 +86,8 @@ configuration, a deployed endpoint, or end-to-end remote verification.
    missing or mismatched identity. Oracle: CORS route-scope tests plus the existing
    `apps/brunch-agent/test/agent-ownership.test.ts`.
 5. **The shipped artifact and operator contract agree.** Brunch's README documents the variable,
-   exact-origin examples (`https://demo.petrinaut.org`, `https://petrinaut.stage.hash.ai`, and a
-   selected stable `petrinaut-git-<branch>.stage.hash.ai` alias), empty-list behavior, and the fact
-   that CORS is not authentication. Oracle:
+   exact-origin configuration, empty-list behavior, and the fact that CORS governs browser access
+   rather than authenticating or restricting non-browser callers. Oracle:
    `yarn workspace @apps/brunch-agent test:unit`,
    `yarn workspace @apps/brunch-agent lint:tsc`,
    `yarn workspace @apps/brunch-agent lint:eslint`, and
@@ -123,12 +125,12 @@ configuration, a deployed endpoint, or end-to-end remote verification.
 ## Fog-line
 
 - Infrastructure repository access is unavailable in this worktree, so this branch can prove only
-  the application contract. The ECS task definition must supply the chosen origins before remote
-  verification.
-- Exact origins intentionally do not cover every random Vercel deployment URL. Use canonical
-  domains and stable branch aliases; add a one-off random deployment origin only when a named test
-  requires it. Re-enter constrained patterns or a same-origin proxy only if maintaining stable
-  aliases becomes observed operational strain.
+  the application contract. Runtime deployment configuration must supply the chosen origins before
+  remote verification.
+- Exact origins intentionally do not cover every ephemeral deployment URL. Prefer stable,
+  explicitly named origins; add an ephemeral origin only when a named test requires it. Re-enter
+  constrained patterns or a same-origin proxy only if maintaining the exact list becomes observed
+  operational strain.
 - The allowed and exposed headers are pinned to the installed Flue and Durable Streams clients.
   Re-evaluate them from client source when either dependency changes.
 
@@ -148,7 +150,7 @@ separate release gates.
 
 ## Deferred
 
-- SRE-1013 owns injection of the allowlist into the Brunch ECS task. SRE-1042 owns
+- SRE-1013 owns injection of the allowlist into the Brunch runtime deployment. SRE-1042 owns
   `VITE_BRUNCH_CHAT_ENDPOINT`, Voice deployment variables, and the deployed browser verification
   after this application contract lands.
 - FE-1615 and FE-1616 retain authentication and rate-limit work. CORS does not discharge either.
