@@ -1,6 +1,6 @@
 /** Unpaid production registration, rejection, continuation and active-Stop probe. */
 /* eslint-disable no-await-in-loop -- One faux response queue; ordering is the assertion boundary. */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -43,9 +43,10 @@ import type { AdmissionVoiceEvidence } from "./admission-voice-evidence.ts";
 import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 
 const directory =
-  process.env.A2_OUTPUT_DIRECTORY ??
-  join(tmpdir(), `admission-${crypto.randomUUID()}`);
-mkdirSync(directory, { recursive: true });
+  process.env.A2_OUTPUT_DIRECTORY ?? mkdtempSync(join(tmpdir(), "admission-"));
+if (process.env.A2_OUTPUT_DIRECTORY !== undefined) {
+  mkdirSync(directory, { recursive: true });
+}
 process.env.BRUNCH_CHAT_MODEL = "claude-sonnet-4-6";
 process.env.BRUNCH_DEV_DB_PATH = join(directory, "conversation.db");
 const save = (name: string, value: unknown) =>

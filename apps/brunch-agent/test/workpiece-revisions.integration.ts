@@ -1,6 +1,6 @@
 /** Unpaid premises through the built ChatAgent and its mounted HTTP route. */
 /* eslint-disable no-await-in-loop -- Cases share one faux-provider response queue; execution order is itself a premise. */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -30,8 +30,10 @@ import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 
 const runId = `a2-faux-${crypto.randomUUID()}`;
 const outputDirectory =
-  process.env.A2_OUTPUT_DIRECTORY ?? join(tmpdir(), runId);
-mkdirSync(outputDirectory, { recursive: true });
+  process.env.A2_OUTPUT_DIRECTORY ?? mkdtempSync(join(tmpdir(), "a2-faux-"));
+if (process.env.A2_OUTPUT_DIRECTORY !== undefined) {
+  mkdirSync(outputDirectory, { recursive: true });
+}
 process.env.BRUNCH_CHAT_MODEL = "claude-sonnet-4-6";
 process.env.BRUNCH_DEV_DB_PATH = join(outputDirectory, "conversation.db");
 const save = (name: string, value: unknown) =>

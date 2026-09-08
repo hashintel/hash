@@ -1,6 +1,6 @@
 /** Unpaid regression replay of the isolated Mission 7 A1 carrier boundary. */
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -36,8 +36,7 @@ assert(
 );
 const modelId = "claude-sonnet-4-6";
 const runId = `a1-faux-${crypto.randomUUID()}`;
-const outputDirectory = join(tmpdir(), runId);
-mkdirSync(outputDirectory);
+const outputDirectory = mkdtempSync(join(tmpdir(), "a1-faux-"));
 process.env.BRUNCH_CHAT_MODEL = modelId;
 process.env.BRUNCH_DEV_DB_PATH = join(outputDirectory, "conversation.db");
 const save = (name: string, value: unknown) =>
