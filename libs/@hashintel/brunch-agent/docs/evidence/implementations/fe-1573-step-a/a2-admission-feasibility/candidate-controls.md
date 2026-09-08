@@ -1,5 +1,7 @@
 # A2 admission controls: capability investigation
 
+This records the investigation before the owner decision. Lu subsequently selected the bounded buffered-rejection route; see `handoff.md` for the exact selection and the still-required integration-owned authority amendment. No diagnostic candidate is mounted in production.
+
 ## Scope and result
 
 This is an unpaid, synthetic investigation of the existing built ChatAgent mount, not a production admission implementation. Installed `@flue/runtime@2.0.3` resolves its actual execution dependency to `@earendil-works/pi-agent-core@0.83.0`, and its provider dependency to `@earendil-works/pi-ai@0.83.0`. Resolution used Node's ESM resolver with the runtime's URL as parent, not an assumption based on a root package version. `source-manifest.json` pins declarations, implementation, docs, lockfile and final built artifacts.

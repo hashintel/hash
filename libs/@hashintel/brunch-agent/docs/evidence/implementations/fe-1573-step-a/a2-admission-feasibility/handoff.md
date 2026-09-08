@@ -2,19 +2,19 @@
 
 ## Verdict
 
-**Blocked on a bounded interaction-policy / production-registration decision, not on lack of any supported capability.** The built mount still violates both admission obligations. A supported custom-provider experiment can reject whole mixed proposals before they enter Flue's client stream, but it buffers output and fails the submission. This alternative is not silently installed as product policy, and no settled-citation join has been implemented.
+**Lu selected the bounded buffered-rejection route after reviewing this handoff's decision prompt. Dependent implementation awaits the integration owner's authority amendment and production registration; it is not blocked on lack of any supported capability.** The built mount still violates both admission obligations. A supported custom-provider experiment can reject whole mixed proposals before they enter Flue's client stream, but it buffers output and fails the submission. This alternative is not silently installed as product policy, and no settled-citation join has been implemented.
 
 | Obligation | Current production | New evidence |
 | --- | --- | --- |
 | Revision/construction exclusion, with explicit settled revision consumption | **Fail / incomplete.** The ordinary mixed-batch safety test stays red and unchanged. Canonical `addType` still has no joined settled-basis envelope. | Buffered rejection refuses all tested mixed revision/browser permutations, including after an older revision has settled, without tool-input publication or state replacement. This demonstrates a candidate admission boundary, **not explicit citation enforcement**. |
-| Marker/client-result barrier without any revision call | **Fail.** Marker + `addType`, in either order, makes 2 provider calls before a client result. | Buffered rejection fails that entire proposal after 1 provider call, admitting no mutation. A separate admitted browser call waits, receives its correlated result, and resumes the same conversation. **Rejecting an invalid submission rather than preserving/waiting on a mixed one needs the owner decision below.** |
+| Marker/client-result barrier without any revision call | **Fail.** Marker + `addType`, in either order, makes 2 provider calls before a client result. | Buffered rejection fails that entire proposal after 1 provider call, admitting no mutation. A separate admitted browser call waits, receives its correlated result, and resumes the same conversation. **The owner selected this rejection policy below; authority promotion and implementation remain outstanding.** |
 
 No paid calls or reservations; **US$0**. Shared usage remains the owner's 5 calls / US$0.09113535; ledger unchanged. No actual-browser, genuine Vestera, full A2 durability, Step A acceptance or Step B claim.
 
 ## Branch, commits and write set
 
 - Worktree `/Users/lunelson/.herdr/worktrees/hash/m7-admission`, branch `ln/fe-1573-admission-feasibility`; inspected clean at `e1b2989738adbdfabb3b5514ea107fc9de6ad4eb` before editing.
-- Source/test commit: **`c45c1a67c8f414ce004980b364321fd7fa4b2555` — Probe production admission controls with a faux provider**. Evidence commit **`5b9c4fbb7c76f3fc9923c5c16b6c0bcef6acc307`** contains this packet. A final evidence-only hash-refresh commit follows; its ID is provided in the relay message.
+- Source/test commit: **`c45c1a67c8f414ce004980b364321fd7fa4b2555` — Probe production admission controls with a faux provider**. Evidence commit **`5b9c4fbb7c76f3fc9923c5c16b6c0bcef6acc307`** contains the investigation packet; **`f3b7ad080938ef0ebc31df5719db0814c9ec9e97`** refreshes its hashes after commit-time JSON formatting. A subsequent evidence-only commit records Lu's route selection; its ID is provided in the relay message.
 - `apps/brunch-agent/test/admission-controls.integration.ts`: controlled public observer/interceptor/provider experiments on the existing built production mount, disposable stores, full event/wire/request capture and canonical headless execution. It is not a production import or registration.
 - `apps/brunch-agent/test/admission-controls.test.ts`: four normal-discovery capability discriminators and positive controls. They do not replace, skip, invert or modify the original red safety assertion.
 - `apps/brunch-agent/test/architecture/boundaries.integration.ts`: one exact hermetic-inventory entry for the new runtime-using instrument. Exact set equality and existing assertions remain unchanged.
@@ -58,9 +58,9 @@ Artifacts per final control: `observations.json` (histories, receipts, failures,
 
 ## Owner decision and concrete production proposal
 
-**One decision for Lu:** may the production route adopt fail-closed, buffered whole-proposal rejection for mixed browser/server calls, accepting that it delays streaming and fails the entire invalid submission rather than continuing it?
+**Owner decision received:** Lu selected **“Authorize the bounded buffered-rejection route (Recommended)”** in response to: “May the integration owner adopt buffered, fail-closed rejection of mixed browser/server proposals, accepting delayed streaming and a failed invalid submission rather than automatic repair?” The choice's stated scope was the supported provider registration seam, with owner coordination of policy, cancellation/Voice checks and the settled-citation join. The prompt explicitly required the integration owner to record any accepted policy change before dependent implementation. This evidence records the selection; it does not substitute for the required authority-only `MISSION.md` amendment.
 
-**Recommendation: authorize that narrowly bounded option for the integration owner if those interaction consequences are acceptable.** It uses a supported registration already exercised by the build, requires no dependency patch, preserves the server tools' definitions and can reject before the earliest tool-input publication. This is a recommendation, not an adopted policy or permission to begin the protected edits. Retain the raw-proposal audit limitation: a rejected proposal is not admitted into canonical tool history; a visible failure is recorded, and no parallel production ledger is proposed.
+**Selected recommendation: that narrowly bounded option for the integration owner.** It uses a supported registration already exercised by the build, requires no dependency patch, preserves the server tools' definitions and can reject before the earliest tool-input publication. Lu has selected the route, but the authority amendment is still outstanding; do not begin protected edits against this evidence alone. Retain the raw-proposal audit limitation: a rejected proposal is not admitted into canonical tool history; a visible failure is recorded, and no parallel production ledger is proposed.
 
 Concrete follow-on seam if approved: the owner registers a complete, scoped provider decorator at the existing application registration boundary (`apps/brunch-agent/src/app.ts`, or the existing owner-selected registration module), not a second route/agent/server. Reuse the actual provider and public `setProvider`; gate its full proposal before releasing tool-bearing output. The current test-only `stream()` refusal and broad controlled catalogue are not a shippable provider implementation. Preserve a single model declaration and unchanged compaction forwarding. Recheck cancellation/Voice streaming behavior under the new buffering policy before claiming it preserves that interaction path.
 
@@ -68,7 +68,7 @@ Then the owner coordinates the already-required core-current-revision exposure a
 
 If buffering or failed-submission behavior is unacceptable, the smallest alternative is an **owner-authorized runtime capability intervention**: add pre-publication whole-batch admission, with durable/recovery-compatible refusal, plus a continuation decision that accounts for outstanding client results independently of unanimous tool termination. Preserve marker/revision semantics. A termination `every → some` patch alone is not sufficient; a tool-run-only veto is also too late. No particular release or upstream patch has been claimed to exist or installed.
 
-Until the owner selects one of these routes, do not mount the diagnostic control, weaken the original oracle, add prompt-only sequencing, or proceed to the provenance/browser join on the assumption that admission is fixed.
+Until the integration owner promotes the selected route into mission authority and implements/verifies it, do not mount the diagnostic control as-is, weaken the original oracle, add prompt-only sequencing, or proceed to the provenance/browser join on the assumption that admission is fixed.
 
 ## Verification and remaining uncertainty
 
