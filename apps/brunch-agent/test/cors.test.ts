@@ -33,10 +33,24 @@ describe("parseCorsAllowedOrigins", () => {
   });
 
   test.each([
+    ",https://demo.petrinaut.org",
+    "https://demo.petrinaut.org,",
+    "https://demo.petrinaut.org,,https://petrinaut.stage.hash.ai",
+  ])("rejects an empty comma-separated entry in %s", (value) => {
+    expect(() => parseCorsAllowedOrigins(value)).toThrow(
+      BRUNCH_CORS_ALLOWED_ORIGINS_ENV,
+    );
+  });
+
+  test.each([
     "ftp://demo.petrinaut.org",
     "https://user:secret@demo.petrinaut.org",
+    "https://@demo.petrinaut.org",
     "https://demo.petrinaut.org/path",
+    "https://demo.petrinaut.org/a/..",
+    "https://demo.petrinaut.org?",
     "https://demo.petrinaut.org?preview=true",
+    "https://demo.petrinaut.org#",
     "https://demo.petrinaut.org#preview",
     "https://*.stage.hash.ai",
     "not-an-origin",
@@ -102,45 +116,90 @@ test("answers an allowed preflight before ownership", async () => {
   );
 });
 
-test("grants an allowed origin access to an owned agent response", async () => {
+test.each(["GET", "POST"])(
+  "grants an allowed origin access to an owned %s agent response",
+  async (method) => {
+    const response = await buildCorsTestApp().fetch(
+      new Request(conversationUrl, {
+        method,
+        headers: {
+          Origin: allowedOrigin,
+          ...agentOwnershipHeaders(identity),
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBe(
+      allowedOrigin,
+    );
+    expect(response.headers.get("access-control-expose-headers")).toBe(
+      [
+        "flue-error-ref",
+        "Stream-Next-Offset",
+        "Stream-Cursor",
+        "Stream-Up-To-Date",
+        "Stream-Closed",
+        "stream-sse-data-encoding",
+      ].join(","),
+    );
+  },
+);
+
+test.each([
+  ["bare", {}],
+  ["missing-origin", { "Access-Control-Request-Method": "POST" }],
+  ["blank-origin", { Origin: "  ", "Access-Control-Request-Method": "POST" }],
+  ["missing-request-method", { Origin: allowedOrigin }],
+  [
+    "blank-request-method",
+    { Origin: allowedOrigin, "Access-Control-Request-Method": "  " },
+  ],
+] satisfies [string, Record<string, string>][])(
+  "does not let a %s OPTIONS request bypass ownership",
+  async (_kind, headers) => {
+    const response = await buildCorsTestApp().fetch(
+      new Request(conversationUrl, {
+        method: "OPTIONS",
+        headers,
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "unauthorized" });
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+  },
+);
+
+test("gives a syntactically valid rejected-origin preflight no CORS grant", async () => {
   const response = await buildCorsTestApp().fetch(
     new Request(conversationUrl, {
+      method: "OPTIONS",
       headers: {
-        Origin: allowedOrigin,
-        ...agentOwnershipHeaders(identity),
+        Origin: rejectedOrigin,
+        "Access-Control-Request-Method": "POST",
       },
     }),
   );
 
-  expect(response.status).toBe(200);
-  expect(response.headers.get("access-control-allow-origin")).toBe(
-    allowedOrigin,
-  );
-  expect(response.headers.get("access-control-expose-headers")).toBe(
-    [
-      "flue-error-ref",
-      "Stream-Next-Offset",
-      "Stream-Cursor",
-      "Stream-Up-To-Date",
-      "Stream-Closed",
-      "stream-sse-data-encoding",
-    ].join(","),
-  );
+  expect(response.status).toBe(204);
+  expect(response.headers.get("access-control-allow-origin")).toBeNull();
 });
 
-test.each(["OPTIONS", "GET"])(
-  "gives a rejected origin no CORS grant for %s",
+test.each(["GET", "POST"])(
+  "gives a rejected origin no CORS grant for an owned %s",
   async (method) => {
     const response = await buildCorsTestApp().fetch(
       new Request(conversationUrl, {
         method,
         headers: {
           Origin: rejectedOrigin,
-          ...(method === "GET" ? agentOwnershipHeaders(identity) : {}),
+          ...agentOwnershipHeaders(identity),
         },
       }),
     );
 
+    expect(response.status).toBe(200);
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
   },
 );

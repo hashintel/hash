@@ -23,6 +23,8 @@ const AGENT_CORS_RESPONSE_HEADERS = [
   "Stream-Closed",
   "stream-sse-data-encoding",
 ];
+const exactHttpOriginPattern =
+  /^https?:\/\/(?:\[[0-9a-f:.]+\]|[^\s:/?#@\\]+)(?::[0-9]+)?\/?$/iu;
 
 const invalidOriginConfiguration = (): Error =>
   new Error(
@@ -30,6 +32,10 @@ const invalidOriginConfiguration = (): Error =>
   );
 
 const normalizeCorsOrigin = (value: string): string => {
+  if (!exactHttpOriginPattern.test(value)) {
+    throw invalidOriginConfiguration();
+  }
+
   let url: URL;
   try {
     url = new URL(value);
@@ -60,24 +66,36 @@ export const parseCorsAllowedOrigins = (
     return [];
   }
 
-  return [
-    ...new Set(
-      value
-        .split(",")
-        .map((entry) => entry.trim())
-        .filter((entry) => entry.length > 0)
-        .map(normalizeCorsOrigin),
-    ),
-  ];
+  const entries = value.split(",").map((entry) => entry.trim());
+  if (entries.some((entry) => entry.length === 0)) {
+    throw invalidOriginConfiguration();
+  }
+
+  return [...new Set(entries.map(normalizeCorsOrigin))];
 };
 
 export const createAgentCors = (
   allowedOrigins: readonly string[],
-): MiddlewareHandler =>
-  cors({
+): MiddlewareHandler => {
+  const honoCors = cors({
     origin: [...allowedOrigins],
     allowMethods: AGENT_CORS_METHODS,
     allowHeaders: AGENT_CORS_REQUEST_HEADERS,
     exposeHeaders: AGENT_CORS_RESPONSE_HEADERS,
     maxAge: 600,
   });
+
+  return async (context, next) => {
+    const isOptions = context.req.method === "OPTIONS";
+    const hasOrigin = (context.req.header("Origin")?.trim().length ?? 0) > 0;
+    const hasRequestedMethod =
+      (context.req.header("Access-Control-Request-Method")?.trim().length ??
+        0) > 0;
+
+    if (isOptions && (!hasOrigin || !hasRequestedMethod)) {
+      return next();
+    }
+
+    return honoCors(context, next);
+  };
+};

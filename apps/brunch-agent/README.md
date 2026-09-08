@@ -91,10 +91,13 @@ rather than a message. On SIGTERM Flue drains active work for up to 30 seconds, 
 Postgres runner, whose close hook shuts the OpenTelemetry providers down; a 60-second outer timer
 force-exits. Give the ECS task a stop timeout above 60 seconds.
 
-Only `/api/chat` should be reachable by the restricted diagnostic caller. The load balancer or
-access boundary must not expose `/`, `/assets/*`, or `/agents/chat/:id`; caller-supplied principals,
-CORS, and conversation hashes are not authentication. Desired count remains one until
-same-conversation ownership across replicas is separately proven.
+`/api/chat` remains reachable only by the restricted diagnostic caller and must not be included in
+Petrinaut browser ingress. The Petrinaut browser transport requires production ingress for only
+`/agents/chat/:instanceId`, and that exposure must wait until separate authentication,
+authorization, ingress, and rate/spend release gates are satisfied. Do not expose `/`, `/assets/*`,
+or other unrelated routes through browser ingress. CORS, caller-supplied principals, and
+conversation hashes are not authentication. Desired count remains one until same-conversation
+ownership across replicas is separately proven.
 
 The deployed chat path stores Flue conversations, submissions, compaction records, attachments,
 claims, leases, and settlement state in Postgres. The separate Brunch capture store is not used by
