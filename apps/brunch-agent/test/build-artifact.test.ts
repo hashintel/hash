@@ -103,8 +103,12 @@ describe("the emitted server bundle", () => {
     expect(bundle).toContain(
       "app.route(chatAgentMount, createAgentRouter(ChatAgent));",
     );
+    expect(bundle).toContain(`agentMount = "/agents"`);
     expect(bundle).toContain(
-      `chatAgentMount = \`/agents/\${CHAT_AGENT_ROUTE}\``,
+      `chatAgentMount = \`\${agentMount}/\${CHAT_AGENT_ROUTE}\``,
+    );
+    expect(bundle).toContain(
+      `app.use(\`\${agentMount}/*\`, createAgentCors(parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS)))`,
     );
     expect(bundle).toContain("app.get(HEALTH_ROUTE, healthHandler);");
     expect(bundle).toContain("application/health+json");
