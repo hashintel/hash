@@ -67,7 +67,6 @@ class PetrinautOptimizer:
         pn_model: OptimizationSession,
         *,
         description: OptimizationDescribeResult | Mapping[str, Any] | None = None,
-        **sampler_options: Any,
     ) -> None:
         raw = pn_model.describe() if description is None else description
         # Test doubles and stored payloads hand over plain mappings; a real
@@ -83,7 +82,7 @@ class PetrinautOptimizer:
         self.parameters = self.description.parameters
         self.direction = self.description.direction
         self.n_trials = self.description.trials
-        self.study = optimizer_core.create_study(self.description, **sampler_options)
+        self.study = optimizer_core.create_study(self.description)
         self.pn_model = pn_model
         self.lock = threading.Lock()
 

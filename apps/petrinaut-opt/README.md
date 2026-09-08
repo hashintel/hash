@@ -122,10 +122,12 @@ flat parameters that are not fixed, each one a descriptor such as:
 `suggest_categorical`, and the study seed seeds the sampler. That mapping, the
 description's cross-field rules, and the seeded study construction come from
 [`@local/petrinaut-optimizer-core`](../../libs/@local/petrinaut-optimizer-core/README.md),
-which the in-browser optimizer runs under Pyodide, so a study proposes the same
-values in both places. The bindings'
-[usage manual](../../libs/@local/petrinaut-python/README.md) documents the full
-response.
+a pure-Python package written to load under Pyodide as well (the browser
+runtime is FE-1582), so a study proposes the same values wherever the core
+runs. A TPE study draws a third of its requested trials at random before
+modelling the objective, at least 2 and at most Optuna's default of 10. The
+bindings' [usage manual](../../libs/@local/petrinaut-python/README.md)
+documents the full response.
 
 `objective(parameter_values)` evaluates one trial and returns one finite number.
 Fixed-value injection, scenario compilation, initial-state materialization,

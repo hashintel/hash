@@ -10,10 +10,16 @@ from optuna.trial import TrialState
 
 from petrinaut_optimizer_core import (
     create_study,
-    objective_of,
     parse_description,
     run_study,
     suggest,
+)
+from petrinaut_optimizer_core.ask_tell import (
+    best_summary,
+    objective_of,
+    study_summary,
+    told_trials,
+    trial_event,
 )
 
 from .conftest import objective_of_values
@@ -34,6 +40,7 @@ class Harness:
     def start(
         self, evaluate: Any = None, **options: Any
     ) -> asyncio.Task[dict[str, Any]]:
+        options.setdefault("trials", self.description.trials)
         return asyncio.ensure_future(
             run_study(
                 self.study,
@@ -115,7 +122,6 @@ def test_tells_each_objective_and_reports_every_trial(
     best_objective = max(event["objective"] for event in harness.events)
     assert harness.events[-1]["best"]["objective"] == best_objective
     assert summary == {
-        "requestedTrials": 3,
         "completedTrials": 3,
         "prunedTrials": 0,
         "failedTrials": 0,
@@ -149,13 +155,11 @@ def test_further_trials_continue_the_same_study(
     harness = Harness(optimization_description)
 
     first = harness.run(trials=2)
-    second = harness.run(trials=3, requested_trials=5)
+    second = harness.run(trials=3)
 
     assert [event["trial"] for event in harness.events] == [0, 1, 2, 3, 4]
-    assert first["requestedTrials"] == 2
     assert first["completedTrials"] == 2
     assert second == {
-        "requestedTrials": 5,
         "completedTrials": 5,
         "prunedTrials": 0,
         "failedTrials": 0,
@@ -171,7 +175,7 @@ def test_a_continued_tpe_study_keeps_its_sampler_history(
     optimization_description["study"]["trials"] = 15
     continued = Harness(optimization_description)
     continued.run(trials=10)
-    continued.run(trials=5, requested_trials=15)
+    continued.run(trials=5)
     straight = Harness(optimization_description)
     straight.run()
     restarted = Harness(optimization_description)
@@ -208,7 +212,6 @@ def test_parallel_trials_are_asked_ahead_and_told_in_completion_order(
         for event in harness.events
     )
     assert summary["completedTrials"] == 5
-    assert summary["requestedTrials"] == 5
     best = max(harness.events, key=lambda event: event["objective"])
     assert summary["best"]["trial"] == best["trial"]
 
@@ -231,7 +234,7 @@ def test_cancellation_waits_for_the_trials_in_flight_and_the_study_continues(
         harness.settle(2)
         stopped = await run
         harness.cancelled = False
-        resumed_run = harness.start(trials=2, requested_trials=5)
+        resumed_run = harness.start(trials=2)
         await until(lambda: 3 in harness.pending)
         harness.settle(3)
         await until(lambda: 4 in harness.pending)
@@ -248,14 +251,13 @@ def test_cancellation_waits_for_the_trials_in_flight_and_the_study_continues(
     assert [event["trial"] for event in harness.events] == [3, 4]
     assert resumed["completedTrials"] == 2
     assert resumed["failedTrials"] == 3
-    assert resumed["requestedTrials"] == 5
     assert resumed["cancelled"] is False
     assert [trial.state for trial in harness.study.get_trials(deepcopy=False)] == [
         TrialState.FAIL
     ] * 3 + [TrialState.COMPLETE] * 2
 
 
-def test_an_evaluation_error_cancels_the_trials_in_flight(
+def test_an_evaluation_error_cancels_and_fails_the_trials_in_flight(
     optimization_description: dict[str, Any],
 ) -> None:
     harness = ParallelHarness(optimization_description)
@@ -271,6 +273,9 @@ def test_an_evaluation_error_cancels_the_trials_in_flight(
 
     assert sorted(harness.interrupted) == [0, 2]
     assert harness.events == []
+    assert [trial.state for trial in harness.study.get_trials(deepcopy=False)] == [
+        TrialState.FAIL
+    ] * 3, "every asked trial is told failed, none stays running"
 
 
 @pytest.mark.parametrize("options", [{"trials": 0}, {"parallelism": 0}])
@@ -282,20 +287,15 @@ def test_rejects_a_run_without_trials_or_parallelism(
         Harness(optimization_description).run(**options)
 
 
-@pytest.mark.parametrize(
-    "pruned_outcome",
-    [{"pruned": "simulation failed"}, {"kind": "pruned", "reason": "cancelled"}],
-)
 def test_records_pruned_outcomes_without_an_objective(
     optimization_description: dict[str, Any],
-    pruned_outcome: dict[str, Any],
 ) -> None:
     harness = Harness(optimization_description)
 
     async def evaluate(values: dict[str, Any]) -> dict[str, Any]:
         if len(harness.evaluations) == 1:
             harness.evaluations.append(values)
-            return pruned_outcome
+            return {"pruned": "simulation failed"}
         return await harness.evaluate(values)
 
     summary = harness.run(evaluate)
@@ -309,21 +309,6 @@ def test_records_pruned_outcomes_without_an_objective(
     assert harness.events[1]["best"]["trial"] == 0
     assert summary["completedTrials"] == 2
     assert summary["prunedTrials"] == 1
-
-
-def test_accepts_the_channel_tagged_objective_form(
-    optimization_description: dict[str, Any],
-) -> None:
-    harness = Harness(optimization_description)
-
-    async def evaluate(values: dict[str, Any]) -> dict[str, Any]:
-        return {
-            "kind": "objective",
-            "objective": objective_of_values(values),
-            "replicates": [],
-        }
-
-    assert harness.run(evaluate)["completedTrials"] == 3
 
 
 @pytest.mark.parametrize(
@@ -354,18 +339,6 @@ def test_a_non_finite_objective_ends_the_study(
         harness.run(evaluate)
 
     assert harness.events == []
-
-
-def test_evaluation_errors_propagate(
-    optimization_description: dict[str, Any],
-) -> None:
-    harness = Harness(optimization_description)
-
-    async def evaluate(_values: dict[str, Any]) -> dict[str, Any]:
-        raise RuntimeError("worker crashed")
-
-    with pytest.raises(RuntimeError, match="worker crashed"):
-        harness.run(evaluate)
 
 
 def test_cancellation_after_an_evaluate_fails_the_trial_without_an_event(
@@ -404,6 +377,7 @@ def test_cancellation_between_trials_keeps_the_told_trials(
         run_study(
             harness.study,
             harness.description,
+            trials=harness.description.trials,
             evaluate=harness.evaluate,
             on_trial=on_trial,
             is_cancelled=lambda: harness.cancelled,
@@ -415,3 +389,64 @@ def test_cancellation_between_trials_keeps_the_told_trials(
     assert summary["completedTrials"] == 1
     assert summary["best"] == harness.events[0]["best"]
     assert summary["cancelled"] is True
+
+
+def test_told_trials_counts_the_trials_with_an_outcome(
+    optimization_description: dict[str, Any],
+) -> None:
+    description = parse_description(optimization_description)
+    study = create_study(description)
+
+    first = study.ask()
+    suggest(first, description.parameters)
+    study.tell(first, 1.5)
+    second = study.ask()
+    suggest(second, description.parameters)
+    study.tell(second, state=TrialState.PRUNED)
+    third = study.ask()
+    suggest(third, description.parameters)
+    study.tell(third, state=TrialState.FAIL)
+    suggest(study.ask(), description.parameters)
+
+    assert told_trials(study) == 2
+
+
+def test_trial_events_and_summary_track_best_and_states(
+    optimization_description: dict[str, Any],
+) -> None:
+    description = parse_description(optimization_description)
+    study = create_study(description)
+
+    assert best_summary(study) is None
+
+    first = study.ask()
+    suggest(first, description.parameters)
+    first_event = trial_event(study, study.tell(first, 1.5))
+    second = study.ask()
+    suggest(second, description.parameters)
+    second_event = trial_event(study, study.tell(second, state=TrialState.PRUNED))
+    third = study.ask()
+    suggest(third, description.parameters)
+    third_event = trial_event(study, study.tell(third, 4.0))
+
+    assert first_event == {
+        "trial": 0,
+        "parameters": dict(first.params),
+        "objective": 1.5,
+        "state": "complete",
+        "best": {"trial": 0, "parameters": dict(first.params), "objective": 1.5},
+    }
+    assert second_event["state"] == "pruned"
+    assert second_event["objective"] is None
+    assert second_event["best"]["trial"] == 0
+    assert third_event["best"] == {
+        "trial": 2,
+        "parameters": dict(third.params),
+        "objective": 4.0,
+    }
+    assert study_summary(study) == {
+        "completedTrials": 2,
+        "prunedTrials": 1,
+        "failedTrials": 0,
+        "best": third_event["best"],
+    }

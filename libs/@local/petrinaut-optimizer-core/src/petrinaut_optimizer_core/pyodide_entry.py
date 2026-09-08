@@ -1,6 +1,6 @@
-"""The functions the browser worker calls once this package is imported in Pyodide.
+"""The functions a Pyodide host calls once this package is imported there.
 
-A study lives in a `StudyHandle` between runs, so the worker can stop a study
+A study lives in a `StudyHandle` between runs, so the host can stop a study
 and later ask for more trials on the same sampler history. Nothing here imports
 `pyodide`: the JavaScript callbacks arrive as proxies and a proxy's result is
 unwrapped by duck-typing its `to_py`, so the module runs under CPython too and
@@ -18,14 +18,14 @@ from typing import Any, cast
 import optuna
 from optuna.exceptions import ExperimentalWarning
 
-from .ask_tell import run_study
+from .ask_tell import run_study, told_trials
 from .description import MAX_STUDY_TRIALS, StudyDescription, parse_description
-from .study import Scalar, create_study, told_trials
+from .study import Scalar, create_study
 
 
 @dataclass
 class StudyHandle:
-    """A study the worker keeps between runs.
+    """A study kept between runs.
 
     `requested` is the number of trials the study is heading for: the trials
     told so far plus those still to run in the current segment. `study` is
@@ -60,10 +60,11 @@ def _positive_integer(value: object, name: str) -> int:
 def create_browser_study(description_json: str, parallelism: int = 1) -> StudyHandle:
     """Parse the description and build its study.
 
-    `parallelism` above 1 makes the TPE sampler account for trials in flight.
-    The warning Optuna raises for that experimental argument is silenced
-    around the construction; the worker is single-threaded, so swapping the
-    process-wide warning filters is safe here.
+    `parallelism` is how many trials every run on the handle keeps in flight;
+    above 1 it makes the TPE sampler account for trials in flight. The warning
+    Optuna raises for that experimental argument is silenced around the
+    construction; the host is single-threaded, so swapping the process-wide
+    warning filters is safe here.
     """
     description = parse_description(
         _object(json.loads(description_json), "optimization description")
@@ -81,17 +82,15 @@ def run_browser_study(
     evaluate: Callable[[dict[str, Scalar]], Awaitable[object]],
     on_trial: Callable[[dict[str, Any]], object],
     is_cancelled: Callable[[], object],
-    parallelism: int | None = None,
 ) -> Awaitable[dict[str, Any]]:
     """Run `trials` more trials on the handle's study and return the awaitable summary.
 
     The arguments are checked and `handle.requested` grows by `trials` before
-    this returns, so the caller can report the new total as soon as the run is
-    scheduled. A stopped run drops the trials it never reported from
-    `requested`, so the next segment counts from the trials the study holds.
-    `evaluate` receives each trial's suggested values as a Python dict and may
-    resolve to a JavaScript object; `on_trial` receives plain dicts.
-    `parallelism` defaults to the value the study was created with.
+    this returns. Once the run settles, `handle.requested` is the number of
+    trials the study was told an outcome for, so the segment after a stop or
+    an error counts from the trials the study holds. `evaluate` receives each
+    trial's suggested values as a Python dict and may resolve to a JavaScript
+    object; `on_trial` receives plain dicts.
     """
     study = handle.study
     if study is None:
@@ -103,11 +102,6 @@ def run_browser_study(
         raise ValueError(
             f"an optimization study must not exceed {MAX_STUDY_TRIALS} trials"
         )
-    segment_parallelism = (
-        handle.parallelism
-        if parallelism is None
-        else _positive_integer(parallelism, "parallelism")
-    )
     handle.requested += trials
     handle.running = True
 
@@ -119,18 +113,17 @@ def run_browser_study(
             summary = await run_study(
                 study,
                 handle.description,
+                trials=trials,
                 evaluate=evaluate_trial,
                 on_trial=on_trial,
-                is_cancelled=lambda: bool(to_python(is_cancelled())),
-                trials=trials,
-                parallelism=segment_parallelism,
-                requested_trials=handle.requested,
+                is_cancelled=lambda: bool(is_cancelled()),
+                parallelism=handle.parallelism,
             )
+            summary["requestedTrials"] = handle.requested
+            return summary
         finally:
             handle.running = False
-        if summary["cancelled"]:
             handle.requested = told_trials(study)
-        return summary
 
     return run()
 

@@ -6,18 +6,9 @@ from typing import Any
 import optuna
 import pytest
 from optuna.exceptions import ExperimentalWarning
-from optuna.trial import TrialState
 
-from petrinaut_optimizer_core import (
-    best_summary,
-    create_study,
-    parse_description,
-    study_summary,
-    suggest,
-    told_trials,
-    tpe_startup_trials,
-    trial_event,
-)
+from petrinaut_optimizer_core import create_study, parse_description, suggest
+from petrinaut_optimizer_core.study import tpe_startup_trials
 
 
 def test_maps_float_integer_step_and_boolean_descriptors_to_optuna(
@@ -55,19 +46,6 @@ def test_uses_the_description_seed_for_deterministic_sampling(
     )
 
 
-def test_sampler_options_override_the_description_seed(
-    optimization_description: dict[str, Any],
-) -> None:
-    description = parse_description(optimization_description)
-
-    def first_suggestion(**sampler_options: Any) -> dict[str, Any]:
-        study = create_study(description, **sampler_options)
-        return suggest(study.ask(), description.parameters)
-
-    assert first_suggestion(seed=7) == first_suggestion(seed=7)
-    assert first_suggestion(seed=7) != first_suggestion()
-
-
 def test_builds_the_sampler_and_direction_from_the_description(
     optimization_description: dict[str, Any],
 ) -> None:
@@ -95,68 +73,6 @@ def test_constant_liar_reaches_only_the_tpe_sampler(
     assert isinstance(random_study.sampler, optuna.samplers.RandomSampler)
     assert liar_study.sampler._constant_liar is True
     assert plain_study.sampler._constant_liar is False
-
-
-def test_told_trials_counts_the_trials_with_an_outcome(
-    optimization_description: dict[str, Any],
-) -> None:
-    description = parse_description(optimization_description)
-    study = create_study(description)
-
-    first = study.ask()
-    suggest(first, description.parameters)
-    study.tell(first, 1.5)
-    second = study.ask()
-    suggest(second, description.parameters)
-    study.tell(second, state=TrialState.PRUNED)
-    third = study.ask()
-    suggest(third, description.parameters)
-    study.tell(third, state=TrialState.FAIL)
-    suggest(study.ask(), description.parameters)
-
-    assert told_trials(study) == 2
-
-
-def test_trial_events_and_summary_track_best_and_states(
-    optimization_description: dict[str, Any],
-) -> None:
-    description = parse_description(optimization_description)
-    study = create_study(description)
-
-    assert best_summary(study) is None
-
-    first = study.ask()
-    suggest(first, description.parameters)
-    first_event = trial_event(study, study.tell(first, 1.5))
-    second = study.ask()
-    suggest(second, description.parameters)
-    second_event = trial_event(study, study.tell(second, state=TrialState.PRUNED))
-    third = study.ask()
-    suggest(third, description.parameters)
-    third_event = trial_event(study, study.tell(third, 4.0))
-
-    assert first_event == {
-        "trial": 0,
-        "parameters": dict(first.params),
-        "objective": 1.5,
-        "state": "complete",
-        "best": {"trial": 0, "parameters": dict(first.params), "objective": 1.5},
-    }
-    assert second_event["state"] == "pruned"
-    assert second_event["objective"] is None
-    assert second_event["best"]["trial"] == 0
-    assert third_event["best"] == {
-        "trial": 2,
-        "parameters": dict(third.params),
-        "objective": 4.0,
-    }
-    assert study_summary(study, description.trials) == {
-        "requestedTrials": 3,
-        "completedTrials": 2,
-        "prunedTrials": 1,
-        "failedTrials": 0,
-        "best": third_event["best"],
-    }
 
 
 @pytest.mark.parametrize(
@@ -191,15 +107,11 @@ def test_tpe_study_models_after_its_scaled_startup_trials(
     assert third_suggestion([1.0, 2.0]) != third_suggestion([2.0, 1.0])
 
 
-def test_explicit_startup_trials_win_and_the_random_sampler_ignores_them(
+def test_the_random_sampler_receives_the_seed_alone(
     optimization_description: dict[str, Any],
 ) -> None:
-    optimization_description["study"] = {"trials": 6, "sampler": "tpe", "seed": 42}
-    tpe_study = create_study(
-        parse_description(optimization_description), n_startup_trials=5
-    )
-    assert tpe_study.sampler._n_startup_trials == 5
-
     optimization_description["study"] = {"trials": 6, "sampler": "random", "seed": 42}
     random_study = create_study(parse_description(optimization_description))
+
+    assert isinstance(random_study.sampler, optuna.samplers.RandomSampler)
     assert not hasattr(random_study.sampler, "_n_startup_trials")

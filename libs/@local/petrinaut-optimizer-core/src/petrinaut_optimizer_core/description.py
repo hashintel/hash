@@ -1,9 +1,9 @@
 """The parsed form of an `optimization.describe` result.
 
-The result arrives as JSON: from the CLI through the Python bindings in the
-service, from the TypeScript describe helper in the browser. Parsing turns it
-into plain dataclasses and checks the cross-field rules no schema expresses:
-bound ordering, log-scale domains, duplicate identifiers, and the study limits.
+The result arrives as JSON, from the CLI through the Python bindings or from
+the TypeScript describe helper. Parsing turns it into plain dataclasses and
+checks the cross-field rules no schema expresses: bound ordering, log-scale
+domains, duplicate identifiers, and the study limits.
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from typing import Any, Literal, TypeAlias, cast
 
 MAX_STUDY_TRIALS = 1000
-MAX_SEEDS_PER_TRIAL = 100
 
 Direction: TypeAlias = Literal["maximize", "minimize"]
 SamplerName: TypeAlias = Literal["tpe", "random"]
@@ -54,7 +53,6 @@ class StudyDescription:
     sampler: SamplerName
     trials: int
     seed: int
-    seeds_per_trial: int
     parameters: tuple[Parameter, ...]
 
 
@@ -167,16 +165,6 @@ def parse_description(raw: Mapping[str, Any]) -> StudyDescription:
         raise ValueError(
             "optimization.describe study.seed must be a non-negative integer"
         )
-    raw_seeds_per_trial = study.get("seedsPerTrial")
-    seeds_per_trial = (
-        1
-        if raw_seeds_per_trial is None
-        else _integer(raw_seeds_per_trial, "study.seedsPerTrial")
-    )
-    if not 1 <= seeds_per_trial <= MAX_SEEDS_PER_TRIAL:
-        raise ValueError(
-            f"optimization.describe study.seedsPerTrial must be between 1 and {MAX_SEEDS_PER_TRIAL}"
-        )
 
     raw_parameters = raw.get("parameters")
     if not isinstance(raw_parameters, list):
@@ -199,6 +187,5 @@ def parse_description(raw: Mapping[str, Any]) -> StudyDescription:
         sampler=sampler,
         trials=trials,
         seed=seed,
-        seeds_per_trial=seeds_per_trial,
         parameters=tuple(parameters),
     )

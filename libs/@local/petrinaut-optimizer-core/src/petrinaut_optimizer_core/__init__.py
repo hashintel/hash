@@ -1,75 +1,37 @@
-"""Optuna study logic shared by the optimizer service and the in-browser optimizer.
+"""Optuna study logic for Petrinaut optimization.
 
 Pure Python over Optuna: parse an `optimization.describe` result, build the
 seeded study, map parameters onto Optuna suggestions, and drive an ask/tell
 loop whose trials the caller evaluates. No threads, no event-loop ownership,
-no file or network access, so the same modules run under CPython in the
-FastAPI service and under Pyodide in a browser worker.
+no file or network access, so the modules run under CPython in the FastAPI
+service and are written to load under Pyodide.
 
 @layerRoot optimizer-core
-@role Optuna study construction, suggestion and ask/tell loop shared by the service and the browser worker
+@role Optuna study construction, suggestion and ask/tell loop for the optimizer service, written to load under Pyodide
 """
 
-from .ask_tell import Evaluate, IsCancelled, OnTrial, objective_of, run_study
+from .ask_tell import run_study
 from .description import (
-    MAX_SEEDS_PER_TRIAL,
     MAX_STUDY_TRIALS,
     BooleanParameter,
-    Direction,
     FloatParameter,
     IntParameter,
     Parameter,
-    SamplerName,
     StudyDescription,
     parse_description,
 )
-from .pyodide_entry import (
-    StudyHandle,
-    create_browser_study,
-    release_browser_study,
-    run_browser_study,
-    to_python,
-)
-from .study import (
-    SAMPLERS,
-    Scalar,
-    best_summary,
-    create_study,
-    study_summary,
-    suggest,
-    told_trials,
-    tpe_startup_trials,
-    trial_event,
-)
+from .study import Scalar, create_study, suggest
 
 __all__ = [
-    "MAX_SEEDS_PER_TRIAL",
     "MAX_STUDY_TRIALS",
-    "SAMPLERS",
     "BooleanParameter",
-    "Direction",
-    "Evaluate",
     "FloatParameter",
     "IntParameter",
-    "IsCancelled",
-    "OnTrial",
     "Parameter",
-    "SamplerName",
     "Scalar",
     "StudyDescription",
-    "StudyHandle",
-    "best_summary",
-    "create_browser_study",
     "create_study",
-    "objective_of",
     "parse_description",
-    "release_browser_study",
-    "run_browser_study",
     "run_study",
-    "study_summary",
     "suggest",
-    "to_python",
-    "told_trials",
-    "tpe_startup_trials",
-    "trial_event",
 ]

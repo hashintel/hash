@@ -23,20 +23,11 @@ def test_parses_the_describe_result_into_plain_dataclasses(
     assert description.sampler == "random"
     assert description.trials == 3
     assert description.seed == 42
-    assert description.seeds_per_trial == 1
     assert description.parameters == (
         FloatParameter("rate", minimum=0.1, maximum=2.0, log=True),
         IntParameter("count", minimum=2, maximum=8, step=2, log=False),
         BooleanParameter("enabled"),
     )
-
-
-def test_reads_seeds_per_trial_when_reported(
-    optimization_description: dict[str, Any],
-) -> None:
-    optimization_description["study"]["seedsPerTrial"] = 5
-
-    assert parse_description(optimization_description).seeds_per_trial == 5
 
 
 def test_accepts_the_result_after_a_json_round_trip(
@@ -74,17 +65,6 @@ def test_accepts_the_result_after_a_json_round_trip(
         (
             {"study": {"trials": 1, "sampler": "random", "seed": -1}},
             "study.seed must be a non-negative integer",
-        ),
-        (
-            {
-                "study": {
-                    "trials": 1,
-                    "sampler": "random",
-                    "seed": 1,
-                    "seedsPerTrial": 0,
-                }
-            },
-            "study.seedsPerTrial must be between 1 and 100",
         ),
         (
             {"study": {"trials": 1.5, "sampler": "random", "seed": 1}},
