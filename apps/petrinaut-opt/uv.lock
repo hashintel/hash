@@ -996,6 +996,7 @@ dependencies = [
     { name = "opentelemetry-instrumentation-fastapi" },
     { name = "opentelemetry-sdk" },
     { name = "optuna" },
+    { name = "petrinaut-optimizer-core" },
     { name = "petrinaut-python" },
     { name = "pydantic" },
     { name = "python-dotenv" },
@@ -1017,7 +1018,8 @@ requires-dist = [
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.44.0" },
     { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
     { name = "opentelemetry-sdk", specifier = ">=1.44.0" },
-    { name = "optuna", specifier = ">=3.6" },
+    { name = "optuna", specifier = ">=4.9,<5" },
+    { name = "petrinaut-optimizer-core", editable = "../../libs/@local/petrinaut-optimizer-core" },
     { name = "petrinaut-python", editable = "../../libs/@local/petrinaut-python" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
@@ -1028,6 +1030,24 @@ requires-dist = [
 dev = [
     { name = "basedpyright", specifier = ">=1.39.10" },
     { name = "httpx", specifier = ">=0.28" },
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "ruff", specifier = ">=0.16.4" },
+]
+
+[[package]]
+name = "petrinaut-optimizer-core"
+version = "0.1.0"
+source = { editable = "../../libs/@local/petrinaut-optimizer-core" }
+dependencies = [
+    { name = "optuna" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "optuna", specifier = ">=4.9,<5" }]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "basedpyright", specifier = ">=1.39.10" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "ruff", specifier = ">=0.16.4" },
 ]
