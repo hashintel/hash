@@ -68,8 +68,8 @@ def crash(kind):
     return {"case": kind, "verdict": "Pass", "pointer": pointer, "nextOrdinal": 2, "atomicBatchSequence": outcomes[0]["seq"], "faults": faults, "recoveryInstrumentation": False}
 
 
-def overflow():
-    directory = one("overflow-*")
+def overflow(kind):
+    directory = one(f"overflow-{kind}-*")
     before = load(directory / "before.json")
     after = load(directory / "after.json")
     preserved(before, after)
@@ -77,12 +77,30 @@ def overflow():
     events = load(directory / "create-events.json")
     assert any(event["type"] == "compaction_start" and event["reason"] == "overflow" for event in events)
     folds = [event for event in events if event["type"] == "compaction" and not event["isError"]]
-    assert any(event["messagesBefore"] == 20 and event["messagesAfter"] == 3 for event in folds)
+    if kind == "silent":
+        assert any(event["messagesBefore"] == 20 and event["messagesAfter"] == 3 for event in folds)
+    else:
+        assert any(event["messagesBefore"] > event["messagesAfter"] for event in folds)
     trace = [json.loads(line) for line in (directory / "create-observe-runtime-trace.jsonl").read_text().splitlines()]
-    assert not [event for event in trace if event["boundary"] == "continueRebuilt"], "Completed successful stop must not be retried from an assistant tail"
+    continuations = [event for event in trace if event["boundary"] == "continueRebuilt"]
+    if kind == "silent":
+        assert not continuations, "Completed successful stop must not be retried from an assistant tail"
+    else:
+        assert len(continuations) == 1 and continuations[0]["messages"][-1]["role"] in ("user", "toolResult"), "Explicit error must retry from a valid retained canonical tail"
     assert "Cannot continue from message role: assistant" not in (directory / "create.log").read_text()
     assert load(directory / "reopen-result.json")["historyEqual"] is True
-    return {"verdict": "Pass", "scope": "Retained successful-stop silent overflow; next real user submission continues from compacted canonical context. Not universal provider-error recovery.", "compactions": folds, "publicRecordsPreserved": len(before["messages"]), "inventedUserMessages": 0, "completedToolReissues": 0}
+    return {"verdict": "Pass", "scope": f"{kind} overflow; not universal provider-error recovery.", "continuations": continuations, "compactions": folds, "publicRecordsPreserved": len(before["messages"]), "inventedUserMessages": 0, "completedToolReissues": 0}
+
+
+def cancelled_overflow():
+    directory = one("overflow-cancelled-*")
+    result = load(directory / "cancellation.json")
+    assert result["verdict"] == "Pass" and result["compactionAborted"]
+    preserved(load(directory / "before.json"), load(directory / "cancelled-history.json"))
+    events = load(directory / "create-events.json")
+    assert any(event["type"] == "compaction_start" and event["reason"] == "overflow" for event in events)
+    assert not any(event["type"] == "compaction" and not event["isError"] for event in events)
+    return result
 
 
 def browser():
@@ -114,7 +132,8 @@ def browser():
 
 report = {"scope": "Local forward recovery safety in new original SQLite stores; synthetic provider; not legacy-store repair, power loss, genuine testimony or Mission acceptance", "checks": [], "failures": []}
 checks = [(kind, lambda kind=kind: crash(kind)) for kind in ("plain", "observe", "after-outcome", "before-outcome", "direct-after-outcome", "repair-after-repair", "repair-after-outcome")]
-checks.append(("overflow", overflow))
+checks.extend([(f"overflow-{kind}", lambda kind=kind: overflow(kind)) for kind in ("silent", "explicit")])
+checks.append(("overflow-cancelled", cancelled_overflow))
 if mode == "all":
     checks.append(("browser-threshold-reopen", browser))
 for name, check in checks:

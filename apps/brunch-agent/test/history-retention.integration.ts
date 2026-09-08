@@ -58,6 +58,15 @@ const contextWindow = 16000;
 const maxTokens = 1024;
 const keepRecentTokens = 256;
 const overflowProbe = process.env.A4_OVERFLOW_PROBE === "1";
+const explicitOverflow = process.env.A4_OVERFLOW_ERROR === "1";
+const cancelOverflow = process.env.A4_OVERFLOW_CANCEL === "1";
+assert(!explicitOverflow || overflowProbe);
+assert(!cancelOverflow || (overflowProbe && !explicitOverflow));
+let compactionEntered = () => {};
+const compactionStarted = new Promise<void>((resolve) => {
+  compactionEntered = resolve;
+});
+let compactionAborted = false;
 process.env.BRUNCH_CHAT_MODEL = modelId;
 process.env.BRUNCH_DEV_DB_PATH = dbPath;
 process.env.BRUNCH_TEST_KEEP_RECENT_TOKENS = String(keepRecentTokens);
@@ -89,12 +98,26 @@ const contexts: {
   context: unknown;
 }[] = [];
 const responses: ReturnType<typeof fauxAssistantMessage>[] = [];
-const nextResponse: FauxResponseStep = (context) => {
+const nextResponse: FauxResponseStep = async (context, options) => {
   contexts.push({
     purpose,
     context: JSON.parse(JSON.stringify(context)) as unknown,
   });
   if (purpose === "compaction" || purpose === "compaction_prefix") {
+    if (cancelOverflow) {
+      const signal = options?.signal;
+      assert(signal, "The real summarizer must receive active cancellation");
+      compactionEntered();
+      await new Promise<void>((_resolve, reject) => {
+        const abort = () => {
+          compactionAborted = true;
+          reject(new Error("Synthetic summary cancelled"));
+        };
+        if (signal.aborted) abort();
+        else signal.addEventListener("abort", abort, { once: true });
+      });
+      assert.fail("Cancelled compaction must not publish a summary");
+    }
     // The runtime requests, persists and applies this controlled provider summary.
     // Its deliberately lossy text is never substituted for historical source evidence.
     return fauxAssistantMessage(
@@ -322,6 +345,13 @@ try {
     );
     await save("pending.json", pending);
     await save("before-ui.json", project(before));
+    if (explicitOverflow)
+      responses.push(
+        fauxAssistantMessage("", {
+          stopReason: "error",
+          errorMessage: "Synthetic explicit overflow (request_too_large)",
+        }),
+      );
     responses.push(
       fauxAssistantMessage("A4 filler acknowledged."),
       fauxAssistantMessage(
@@ -331,150 +361,218 @@ try {
     const agentCallsBeforeFiller = contexts.filter(
       (entry) => entry.purpose === "agent",
     ).length;
-    await send(
-      {
-        kind: "user",
-        body: `A4 transparent threshold filler, not domain evidence. ${"synthetic-padding ".repeat(overflowProbe ? 4000 : 1350)}`,
-      },
-      admission.uid,
-    );
-    await save("after-threshold.json", await client.history());
-    assert.equal(
-      contexts.filter((entry) => entry.purpose === "agent").length,
-      agentCallsBeforeFiller + 1,
-      "A retained successful stop must settle after folding, not restart a completed response",
-    );
-    await send(
-      {
-        kind: "user",
-        body: "A4 final short turn: finish the retention probe without tools.",
-      },
-      admission.uid,
-    );
-    const after = await client.history();
-    const compactions = events.filter((event) => event.type === "compaction");
-    assert(
-      compactions.some(
-        (event) => !event.isError && event.messagesAfter < event.messagesBefore,
-      ),
-      "Actual successful folding must reduce runtime context messages",
-    );
-    assert(
-      events.some(
-        (event) =>
-          event.type === "compaction_start" &&
-          event.reason === (overflowProbe ? "overflow" : "threshold"),
-      ),
-      "The selected threshold/overflow boundary must actually be reached",
-    );
-    assert(
-      contexts.some((context) => context.purpose === "compaction"),
-      "Runtime must invoke the summarizer",
-    );
-    const lastAgentContext = contexts.findLast(
-      (context) => context.purpose === "agent",
-    );
-    assert(lastAgentContext);
-    const lastContextJson = JSON.stringify(lastAgentContext.context);
-    assert(
-      lastContextJson.includes("A4 controlled summary:"),
-      "A subsequent real agent turn must consume the folded context",
-    );
-    assert(
-      !lastContextJson.includes("violet gear"),
-      "Exact old source text must actually leave model context",
-    );
-    assert(
-      !lastContextJson.includes("a4-ping-early"),
-      "Old tool records must actually leave model context",
-    );
-    const afterById = new Map(
-      after.messages.map((message) => [message.id, message]),
-    );
-    const lost = before.messages.filter(
-      (message) => !afterById.has(message.id),
-    );
-    const changed = before.messages.filter(
-      (message) =>
-        afterById.has(message.id) &&
-        JSON.stringify(afterById.get(message.id)) !== JSON.stringify(message),
-    );
-    await save("after.json", after);
-    await save("after-ui.json", project(after));
-    await save("comparison.json", {
-      beforeIds: before.messages.map((message) => message.id),
-      afterIds: after.messages.map((message) => message.id),
-      lost,
-      changed,
-      beforeKinds: projectFlueHistoryForSweep(before),
-      afterKinds: projectFlueHistoryForSweep(after),
-      clientResultsBefore: clientResults,
-      clientResultsAfter: clientToolHistoryFrom(after.messages).results,
-    });
-    await save("identity.json", {
-      identity,
-      instanceId,
-      dbPath,
-      pid: process.pid,
-      admission,
-      conversationId: after.conversationId,
-      incarnation: after.incarnation,
-      authorization: authorizationResult,
-      modelId,
-      contextWindow,
-      maxTokens,
-      keepRecentTokens,
-      buildHashes: Object.fromEntries(
-        await Promise.all(
-          (await readdir(new URL("../dist/", import.meta.url)))
-            .filter((name) => name.endsWith(".mjs"))
-            .sort()
-            .map(
-              async (name) =>
-                [
-                  name,
-                  createHash("sha256")
-                    .update(
-                      await readFile(
-                        new URL(`../dist/${name}`, import.meta.url),
-                      ),
-                    )
-                    .digest("hex"),
-                ] as const,
-            ),
+    const filler: DeliveredMessage = {
+      kind: "user",
+      body: `A4 transparent threshold filler, not domain evidence. ${"synthetic-padding ".repeat(overflowProbe ? 4000 : 1350)}`,
+    };
+    if (cancelOverflow) {
+      const receipt = await client.send({
+        uid: admission.uid,
+        message: filler,
+      });
+      const settlement = client
+        .read(receipt, { signal: AbortSignal.timeout(20000) })
+        .then(
+          () => null,
+          (error: unknown) =>
+            error instanceof Error ? error.message : String(error),
+        );
+      await Promise.race([
+        compactionStarted,
+        settlement.then(() =>
+          assert.fail("Submission settled before compaction was reached"),
         ),
-      ),
-    });
-    // Survival is the prospective oracle, not a snapshot blessing. Persist failures first.
-    assert.deepEqual(lost, [], "Public history lost pre-compaction source IDs");
-    assert.deepEqual(
-      changed,
-      [],
-      "Public history changed pre-compaction source records",
-    );
-    assert.deepEqual(
-      clientToolHistoryFrom(after.messages).results,
-      clientResults,
-    );
-    assert.equal(
-      after.messages.filter(
-        (message) => message.role === "user" && message.purpose === "user",
-      ).length,
-      5,
-      "Only the five actually submitted user messages may exist; recovery must not invent one",
-    );
-    assert.deepEqual(
-      after.messages
-        .flatMap((message) => message.parts)
-        .filter((part) => part.type === "dynamic-tool"),
-      publicTools,
-      "Completed calls/results must remain unchanged without reissue",
-    );
-    assert.deepEqual(
-      project(after).slice(0, project(before).length),
-      project(before),
-      "Reopened UI projection must retain completed causal tools and question data",
-    );
+      ]);
+      await client.abort();
+      const error = await settlement;
+      await save("cancellation-observation.json", {
+        receipt,
+        readError: error,
+        compactionAborted,
+        history: await client.history(),
+      });
+      assert(compactionAborted);
+      assert.equal(
+        contexts.filter((entry) => entry.purpose === "agent").length,
+        agentCallsBeforeFiller + 1,
+      );
+      const stopped = await client.history();
+      // This Stop interrupts post-response compaction: the successful assistant
+      // stop already exists. Preserve that completed settlement, not an invented
+      // rollback; active unfinished-response cancellation has separate oracles.
+      assert.equal(
+        stopped.settlements.find(
+          (item) => item.submissionId === receipt.submissionId,
+        )?.outcome,
+        "completed",
+      );
+      const byId = new Map(
+        stopped.messages.map((message) => [message.id, message]),
+      );
+      assert(
+        before.messages.every(
+          (message) =>
+            JSON.stringify(byId.get(message.id)) === JSON.stringify(message),
+        ),
+      );
+      assert.deepEqual(
+        clientToolHistoryFrom(stopped.messages).results,
+        clientResults,
+      );
+      await save("cancellation.json", {
+        verdict: "Pass",
+        receipt,
+        error,
+        compactionAborted,
+        retainedSuccessfulStop: true,
+        completedToolReissues: 0,
+      });
+      await save("cancelled-history.json", stopped);
+    } else {
+      await send(filler, admission.uid);
+      await save("after-threshold.json", await client.history());
+      assert.equal(
+        contexts.filter((entry) => entry.purpose === "agent").length,
+        agentCallsBeforeFiller + (explicitOverflow ? 2 : 1),
+        "Only an explicit error retries; a retained successful stop must settle after folding",
+      );
+      await send(
+        {
+          kind: "user",
+          body: "A4 final short turn: finish the retention probe without tools.",
+        },
+        admission.uid,
+      );
+      const after = await client.history();
+      const compactions = events.filter((event) => event.type === "compaction");
+      assert(
+        compactions.some(
+          (event) =>
+            !event.isError && event.messagesAfter < event.messagesBefore,
+        ),
+        "Actual successful folding must reduce runtime context messages",
+      );
+      assert(
+        events.some(
+          (event) =>
+            event.type === "compaction_start" &&
+            event.reason === (overflowProbe ? "overflow" : "threshold"),
+        ),
+        "The selected threshold/overflow boundary must actually be reached",
+      );
+      assert(
+        contexts.some((context) => context.purpose === "compaction"),
+        "Runtime must invoke the summarizer",
+      );
+      const lastAgentContext = contexts.findLast(
+        (context) => context.purpose === "agent",
+      );
+      assert(lastAgentContext);
+      const lastContextJson = JSON.stringify(lastAgentContext.context);
+      assert(
+        lastContextJson.includes("A4 controlled summary:"),
+        "A subsequent real agent turn must consume the folded context",
+      );
+      assert(
+        !lastContextJson.includes("violet gear"),
+        "Exact old source text must actually leave model context",
+      );
+      assert(
+        !lastContextJson.includes("a4-ping-early"),
+        "Old tool records must actually leave model context",
+      );
+      const afterById = new Map(
+        after.messages.map((message) => [message.id, message]),
+      );
+      const lost = before.messages.filter(
+        (message) => !afterById.has(message.id),
+      );
+      const changed = before.messages.filter(
+        (message) =>
+          afterById.has(message.id) &&
+          JSON.stringify(afterById.get(message.id)) !== JSON.stringify(message),
+      );
+      await save("after.json", after);
+      await save("after-ui.json", project(after));
+      await save("comparison.json", {
+        beforeIds: before.messages.map((message) => message.id),
+        afterIds: after.messages.map((message) => message.id),
+        lost,
+        changed,
+        beforeKinds: projectFlueHistoryForSweep(before),
+        afterKinds: projectFlueHistoryForSweep(after),
+        clientResultsBefore: clientResults,
+        clientResultsAfter: clientToolHistoryFrom(after.messages).results,
+      });
+      await save("identity.json", {
+        identity,
+        instanceId,
+        dbPath,
+        pid: process.pid,
+        admission,
+        conversationId: after.conversationId,
+        incarnation: after.incarnation,
+        authorization: authorizationResult,
+        modelId,
+        contextWindow,
+        maxTokens,
+        keepRecentTokens,
+        buildHashes: Object.fromEntries(
+          await Promise.all(
+            (await readdir(new URL("../dist/", import.meta.url)))
+              .filter((name) => name.endsWith(".mjs"))
+              .sort()
+              .map(
+                async (name) =>
+                  [
+                    name,
+                    createHash("sha256")
+                      .update(
+                        await readFile(
+                          new URL(`../dist/${name}`, import.meta.url),
+                        ),
+                      )
+                      .digest("hex"),
+                  ] as const,
+              ),
+          ),
+        ),
+      });
+      // Survival is the prospective oracle, not a snapshot blessing. Persist failures first.
+      assert.deepEqual(
+        lost,
+        [],
+        "Public history lost pre-compaction source IDs",
+      );
+      assert.deepEqual(
+        changed,
+        [],
+        "Public history changed pre-compaction source records",
+      );
+      assert.deepEqual(
+        clientToolHistoryFrom(after.messages).results,
+        clientResults,
+      );
+      assert.equal(
+        after.messages.filter(
+          (message) => message.role === "user" && message.purpose === "user",
+        ).length,
+        5,
+        "Only the five actually submitted user messages may exist; recovery must not invent one",
+      );
+      assert.deepEqual(
+        after.messages
+          .flatMap((message) => message.parts)
+          .filter((part) => part.type === "dynamic-tool"),
+        publicTools,
+        "Completed calls/results must remain unchanged without reissue",
+      );
+      assert.deepEqual(
+        project(after).slice(0, project(before).length),
+        project(before),
+        "Reopened UI projection must retain completed causal tools and question data",
+      );
+    }
   } else {
     const original = JSON.parse(
       await readFile(join(directory, "identity.json"), "utf8"),
@@ -541,7 +639,11 @@ try {
       historyProviderCalls: 0,
     });
   }
-  assert.equal(responses.length, 0, "All intended agent steps must execute");
+  assert.equal(
+    responses.length,
+    cancelOverflow ? 1 : 0,
+    "Only active cancellation may withhold the intended follow-up response",
+  );
   process.stdout.write(`A4_${phase.toUpperCase()}_PASS\n`);
 } finally {
   try {

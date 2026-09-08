@@ -63,9 +63,16 @@ for boundary in after-repair after-outcome; do
   run 137 "$directory/interrupted-recovery.log" env A4_DIAGNOSTIC_DIRECTORY="$directory" A4_PHASE=recover A4_FAULT="$boundary" node --experimental-strip-types --import ./test/history-retention-runtime-hook.ts test/history-retention-crash.integration.ts
   run 0 "$directory/recover.log" env A4_DIAGNOSTIC_DIRECTORY="$directory" A4_PHASE=recover node --experimental-strip-types test/history-retention-crash.integration.ts
 done
-directory=$(mktemp -d "$OUT/overflow-XXXXXXXX")
-run 0 "$directory/create.log" env A4_DIAGNOSTIC_DIRECTORY="$directory" A4_OUTPUT_DIRECTORY="$directory" A4_OVERFLOW_PROBE=1 node --experimental-strip-types --import ./test/history-retention-runtime-hook.ts test/history-retention.integration.ts
-run 0 "$directory/reopen.log" env A4_OUTPUT_DIRECTORY="$directory" A4_PHASE=reopen node --experimental-strip-types test/history-retention.integration.ts
+for kind in silent explicit cancelled; do
+  directory=$(mktemp -d "$OUT/overflow-$kind-XXXXXXXX")
+  extra=()
+  if [[ "$kind" == explicit ]]; then extra=(A4_OVERFLOW_ERROR=1); fi
+  if [[ "$kind" == cancelled ]]; then extra=(A4_OVERFLOW_CANCEL=1); fi
+  run 0 "$directory/create.log" env A4_DIAGNOSTIC_DIRECTORY="$directory" A4_OUTPUT_DIRECTORY="$directory" A4_OVERFLOW_PROBE=1 "${extra[@]}" node --experimental-strip-types --import ./test/history-retention-runtime-hook.ts test/history-retention.integration.ts
+  if [[ "$kind" != cancelled ]]; then
+    run 0 "$directory/reopen.log" env A4_OUTPUT_DIRECTORY="$directory" A4_PHASE=reopen node --experimental-strip-types test/history-retention.integration.ts
+  fi
+done
 run 0 "$OUT/audit.log" python3 test/history-retention-audit.py "$OUT" "$MODE"
 printf 'Safety replay exit=%s; all failures retained in %s\n' "$failed" "$OUT"
 exit "$failed"
