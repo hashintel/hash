@@ -3,6 +3,20 @@
  * append-only conversation projection.
  */
 
+import type { JsonValue } from "./json-value";
+
+export const workpieceRevisionStateKey = "brunch.workpiece.current.v1";
+
+/** Current settled artifact; ordinal is presentation only, never citation identity. */
+export interface WorkpieceRevision {
+  readonly revisionId: string;
+  readonly sha256: string;
+  readonly ordinal: number;
+  readonly markdown: string;
+  /** Unverified carriage, never an authorization or causal-support claim. */
+  readonly evidence?: JsonValue;
+}
+
 export const preparedWorkpieceSignalType = "brunch.fixture.prepared";
 export const preparedWorkpieceSignalTag = "prepared-fixture";
 export const preparedWorkpieceAuthorship = "test-authored";

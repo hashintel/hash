@@ -3,8 +3,10 @@ import {
   defineTool,
   useDataWriter,
   useModel,
+  usePersistentState,
   useSkill,
   useTool,
+  type StateSetter,
 } from "@flue/runtime";
 import * as v from "valibot";
 
@@ -21,12 +23,17 @@ import {
   elicitationSkill,
 } from "./skills/elicitation/skill";
 import { skillFromMarkdown } from "./skills/skill-markdown";
+import {
+  prepareWorkpieceRevision,
+  updateWorkpieceInputSchema,
+} from "./update-workpiece";
+import { workpieceRevisionStateKey, type WorkpieceRevision } from "./workpiece";
 
 /**
  * Mount the contributions owned by Brunch core and return its system prompt.
  *
  * Core contributes the always-on universal prompt, one `elicitation`
- * capability skill, and the formalism-independent question marker.
+ * capability skill, the question marker, and durable workpiece revisions.
  */
 export function useBrunchAgent(
   model: string,
@@ -38,6 +45,11 @@ export function useBrunchAgent(
     schema: BrunchQuestionDataSchema,
   });
   useTool(createBrunchQuestionMarkerTool(writeQuestion));
+  const [, setRevision] = usePersistentState<WorkpieceRevision | null>(
+    workpieceRevisionStateKey,
+    null,
+  );
+  useTool(createUpdateWorkpieceTool(setRevision));
   return systemPrompt.replace(/^\s+|\s+$/gu, "");
 }
 
@@ -56,4 +68,42 @@ export const createBrunchQuestionMarkerTool = (
     },
   });
 
+export const createUpdateWorkpieceTool = (
+  setRevision: StateSetter<WorkpieceRevision | null>,
+) =>
+  defineTool({
+    name: "update_workpiece",
+    description:
+      "Settle the full current Markdown workpiece and return its revisionId and SHA-256. This server tool does not end the response. Never combine it with browser construction in one batch. Optional evidence is unverified carriage, not proof of user support.",
+    input: updateWorkpieceInputSchema,
+    output: v.object({
+      revisionId: v.string(),
+      sha256: v.string(),
+      ordinal: v.number(),
+    }),
+    durable: true,
+    run({ data, toolCallId }) {
+      const revision = prepareWorkpieceRevision(data, toolCallId);
+      const pointer = {
+        revisionId: revision.revisionId,
+        sha256: revision.sha256,
+        ordinal: 0,
+      };
+      // Buffered state commits with the tool batch, not an external effect. A
+      // separate step checkpoint could skip an uncommitted write on replay.
+      setRevision((previous) => {
+        pointer.ordinal =
+          previous?.revisionId === toolCallId
+            ? previous.ordinal
+            : (previous?.ordinal ?? 0) + 1;
+        return { ...revision, ordinal: pointer.ordinal };
+      });
+      return { output: pointer, terminate: false };
+    },
+  });
+
 export { ELICITATION_SKILL_NAME, elicitationSkill, skillFromMarkdown };
+export {
+  workpieceMarkdownByteCeiling,
+  updateWorkpieceInputSchema,
+} from "./update-workpiece";
