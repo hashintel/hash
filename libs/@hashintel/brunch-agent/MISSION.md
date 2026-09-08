@@ -1,191 +1,243 @@
-# Voice interruption by speaking
+# Mission 7 — Construct and explain one real Vestera net region
 
 ## Status
 
-**Live as of 2026-09-09** for
-[FE-1604](https://linear.app/hash/issue/FE-1604/allow-voice-interruption-by-speaking)
-on `kostandin/fe-1604-recut-voice-interruption`, cut from post-deployment `main` at
-`ef0f4449876d63d82657147fb4e29cdf024e9f79`.
-
-This is an independent semantic recut of the interruption-only delta from the
-stale, conflicting [PR #9550](https://github.com/hashintel/hash/pull/9550) head
-`f69ac17034dfe4290691d34b64930e5a07245480`. It must not merge the old branch or
-carry its unrelated Brunch stack. The open settlement port in
-[PR #9588](https://github.com/hashintel/hash/pull/9588) is a separate sibling and
-is not part of this branch.
-
-On 2026-09-10 the owner explicitly approved closing this interruption-only
-recut without the production Voice/Stop/second-tab continuity witness. The
-installed Flue 2.0.3 contract cannot durably project direct-user Voice origin,
-and FE-1604 does not recut that transport or history boundary. This is a scoped
-deferral, not continuity evidence: the post-FE-1604 re-entry gate remains in
-`MISSION.next.md`.
-
-## Supplemental FE-1580 settlement follow-up
-
-**Live as of 2026-09-08** for
-[PR #9588](https://github.com/hashintel/hash/pull/9588) on
-`kostandin/fe-1580-port-voice-settlement-fixes`, based directly on current
-`main` after #9564 and #9537 merged. This supplement preserves the accepted
-Voice contract without changing the CORS authority in this file.
-
-- **Imperative:** semantically port the omitted #9531 commit `9415e1b007`;
-  release silent Voice ownership and settle completed submissions without
-  canonical prose. Preserve failed durable Stop errors and remove the stale
-  browser `brunch_ask` catalogue entry.
-- **Throughline:** OpenAI terminal output → session/bridge/controller ownership;
-  correlated Brunch settlement → next Voice turn; panel Stop rejection →
-  deferred browser-tool termination; shared browser catalogue →
-  transport/history.
-- **Proof:** donor session/bridge/controller and preview regressions; panel DOM
-  tests for persistent Stop failure and withheld continuation; catalogue and
-  fixture tests; focused unit, build, TypeScript, ESLint and formatting checks.
-  These tests establish local settlement behavior, not paid-provider behavior,
-  audible latency or a new microphone witness.
-- **Constraints:** preserve current `main`'s accepted Voice and CORS joins; no
-  #9538 grounding, #9550 VAD/interruption, snapshot-overlay or provenance
-  rollback work, generic interactive tools, obsolete shim, or `brunch_ask`
-  restoration.
-- **Stop or reorient:** stop if the port erases errors, releases unrelated
-  playback, revives withheld tools, weakens the CORS policy, or disturbs other
-  work.
+**Live — Step A only, cut on 2026-09-07.** Branch `ln/fe-1573-construct-and-explain`, [FE-1573](https://linear.app/hash/issue/FE-1573/construct-and-explain-one-real-net-region-from-a-genuine-conversation), based on Mission 6's owner-close commit [`9b94604cb0`](https://github.com/hashintel/hash/commit/9b94604cb0bc34765ec7e7e8616ac907a061b1fb). Mission 6 is [archived](docs/mission-archive/6-resumable-workpiece-petrinaut.md). Implementation and paid evidence have not begun. This contract authorizes the integrated adversarial tracer, four probes, two measurements, and bounded rework below; Step B requires Lu Nelson's separate acceptance and an authority-only amendment commit. The [Step B packet](docs/mission-drafts/7-explainable-construction.md) is not execution authority.
 
 ## Imperative
 
-Let a person interrupt Voice assistant playback by speaking without losing the
-interrupting utterance. Keep the existing **Your turn** handoff as a
-browser-saved half-duplex fallback, and reject likely prompt regurgitation or
-assistant self-echo before a completed interruption transcript becomes an
-answer.
+Establish whether Brunch can elicit a genuinely complex operational account, maintain its meaning and uncertainty, construct a meaningful Petrinaut region from it, and explain every ordinary behaviour-affecting element and field through declared basis and recorded effects. Prove the mechanics and complete the contracts within this one mission; do not turn the mission into a sequence of toy demonstrations or separate subsystem missions.
 
-The interruption must stop playback immediately while preserving completed
-transcription as the sole answer authority and the existing Brunch admission
-path as the sole submission authority.
+**Visible product goal:** talk to Brunch about Vestera's multi-line production eligibility and changeovers, watch that region take shape, then ask why an element or rule exists and see the governing workpiece passage, its evidential standing, and the recorded construction steps. Deliberately unsupported and hand-edited examples must refuse honestly. A reviewer can reopen the genuine conversation and understand the model without reconstructing its history manually.
+
+**Demo goal:** reopen the genuine Vestera conversation and net in the local Brunch panel, inspect the workpiece and revision history, ask why by an ordinary element's name, and inspect the answer; then ask about the hand-edited and basis-less controls and observe honest refusals. The [full demo contract](docs/mission-drafts/7-explainable-construction.md#proposed-visible-product-advance) remains Step B's gated completion obligation, not Step A acceptance.
+
+**Previously impossible:** Mission 6 established one browser mutation and two-tab resume over an honestly prepared fixture, not genuine conversation-to-construction provenance. Mission 3's nested provider-schema path failed; Mission 4 supplied no full-run candidate. Neither a hand-authored correspondence section nor a parser-valid empty net answers this mission's question.
+
+**Architecture under test:** the CURRENT combined core `elicitation` and plugin `sdcpn-modelling` guidance must capture, conserve, and map the selected complexity. Required revision/basis/tool protocol teaching is admitted, but a directional-versus-neutral teaching redesign is not assumed necessary. Record acquisition failures, workpiece losses, construction misunderstandings, unsupported assumptions, and interaction strain at the real boundaries. If the architecture is insufficient, expose the failure rather than feed the model an answer key, reduce the region, or quietly replace the subject of the test.
+
+**Deployment and completion:** local `yarn dev:brunch`, one authorized principal, one conversation bound to one document incarnation. Step A ends at an owner decision, not a product release. The eventual full mission completes only after the separately authorized Step B readiness and human demo gates; its detailed demo and closure portfolios live only in the amendment packet.
 
 ## Throughline
 
+### Scenario and admission
+
+The owner selected the existing [Vestera case](evaluations/cases/vestera-scheduling/) and accepted a region spanning production eligibility across multiple lines, shared changeover crew contention, asymmetric family changes, product/line restrictions, and preserved unknowns. The region must remain operationally meaningful: not the whole plant or an optimiser, but not one disconnected resource arc either. Include the stage/availability/occupancy distinctions needed to implement those rules. Broader breakdown, materials, QA, continuous dynamics, and optimisation modelling are not silently folded into this region.
+
+The interviewee alone receives the existing situation pack. The elicitor receives the normal opening and operational replies, never this mission's case details, the case pack, truth ledger, frozen expected net, or evaluation instructions. A bounded operational request to focus on the selected region may be given as a user request; it may not disclose hidden facts or formal-model answers. Do not copy Vestera nouns or facts into reusable prompts/skills. The model must discover practice, restrictions, contextual values, and unknowns through conversation. Existing baseline protocols and results remain immutable; new evidence is a new instrument, not a baseline rerun.
+
+Scenario selection is interpretive; schema derivation is mechanical. The following is the required operation-class envelope, not permission to mount all Petrinaut tools. Each admitted operation records the Vestera requirement or correction/negative obligation it discharges; unsupported operations remain visibly unavailable. A1 first proves one genuinely nested input such as `addType.elements`; one success does not establish every admitted schema class.
+
+| Class and canonical operations | Requirement and boundary |
+| --- | --- |
+| Places: `addPlace`, `updatePlace`, `removePlace`; transitions: `addTransition`, `updateTransition`, `removeTransition` | Line availability, work/occupied states, production and changeover steps; correction and delete/recreate control. No mandatory process-node blueprint. |
+| Arcs: `addArc`, `removeArc`, `updateArcWeight`, `updateArcType`, `updateArcPlace` | Shared crew acquisition/release, flow, enabling and eligibility, multiplicity, corrected connectivity. Use canonical semantics rather than a convenient but false read/consume encoding. |
+| Types and elements: `addType`, `updateType`, `removeType`, `addTypeElement`, `updateTypeElement`, `removeTypeElement` | Behaviourally consequential product family, line qualification, and source/destination mode distinctions; the nested carrier and correction obligations. No forced colour for a distinction the chosen representation does not need. |
+| Scenarios: `addScenario`, `updateScenario`, `removeScenario` | Initial populations/availability and competing-work setup; initial-state correction. Synthetic test initial conditions remain labelled test conditions, not claims of the plant's observed inventory. |
+| Parameters: `addParameter`, `updateParameter`, `removeParameter`, only when used by the workpiece-supported representation | Direction-dependent changeover quantities or explicitly unresolved symbolic quantities. No invented rates, distributions, objective weights, or false exactness. Parameterising an unknown does not resolve it. |
+| `getLatestNetDefinition`, `getNetCompilationErrors`, `applyAutoLayout`, `setNetTitle` | Inspect and check the constructed region and make it reviewable. Title/layout are recorded operations; purely cosmetic fields are disclosed exclusions from semantic explanation coverage. Preserve stock consent rules for existing layouts. |
+
+Subnets, component instances, type-element moves, arbitrary position tools, differential equations, and executable metrics are not admitted by default. Vestera's scheduling goals do not authorize invented metric weights. If canonical capabilities cannot express a required accepted rule, record the representational loss and stop for reorientation; do not remove the rule from the claim. More complex cases are required later proof under [Mission 9's allocation obligation](docs/mission-drafts/9-traceable-projection.md#scenario-breadth-obligation).
+
+### Real boundary and responsibility crossings
+
 ```text
-OpenAI Realtime microphone input remains enabled during canonical playback
-→ input_audio_buffer.speech_started
-→ response.cancel + output_audio_buffer.clear, without input_audio_buffer.clear
-→ completed transcription for the same input item
-→ interruption-only prompt-regurgitation and active-playback self-echo checks
-→ retain while the previous Brunch turn settles, if necessary
-→ existing Voice bridge and panel admission path exactly once
-→ canonical Brunch turn and ordinary Voice lifecycle
+genuine human/persona conversation → mounted /agents/chat/:instanceId → production ChatAgent
+  → core update_workpiece settles Markdown, revisionId, sha256 and display ordinal
+  → next render exposes current revision; plugin reads the live Petrinaut definition
+  → mutation cites a settled revision and declared basis (or explicit absence)
+  → actual browser validates bound identity/base and canonical input
+  → pre/post observations produce verifiable effects and a correlated transition record
+  → client-tool-result resumes the same conversation; agent reconciles and checks compilation
+  → reviewer asks why by name/id; authorized lookup resolves record → basis → passage → evidence/context
+  → live document reconciliation; structured result interpreted by assistant in the minimal real pane
+  → retain/reopen the genuine conversation; repeat the same authorized product why operation
 ```
 
-The playback menu owns a default-on **Interruption by speaking** preference.
-Disabling it restores the existing half-duplex microphone closure and
-acknowledged **Your turn** handoff.
+Core owns revision and generic query semantics. Plugin owns SDCPN operation/effect semantics, canonical tool admission, template conformance and element locators. Binding/app own authorized history acquisition and why composition. Transport carries projections and correlations; UI executes against the bound document. Petrinaut owns schemas, validation, mutation callbacks, compilation, and document state, and gains no Brunch semantics.
+
+Browser and headless hosts currently execute separately; a headless non-throw returning `applied: true` is not proof of effect or no-op honesty. Prove actual browser pre/post observation in A3, then reuse effect semantics across hosts where that removes real divergence. A generic Brunch-free host extension is allowed only if independent observation at the actual execution boundary requires it. Chunk-arrival timing must not impersonate an atomic pre-apply observation.
+
+### Execution graph and delegation
+
+```text
+authority commit
+  ├─ A1 canonical schema carrier + first real nested mutation
+  ├─ A2 settled workpiece revision path + tool/state/batch premise pins
+  ├─ A3 real browser effect path + independently observed transition record
+  └─ A4 existing-history compaction/reopen pins; repeat on A2/A3 records
+       → integration owner joins settled citation, basis, host records and authorized lookup
+       → A5 minimal real model-facing why + current-workpiece pane
+       → A6 adversarial genuine tracer, four probe verdicts and two measurements
+       → Lu's owner gate: amendment eligibility / named rework / terminal stop
+       → STOP (Step B is not authorized by this graph)
+```
+
+| Chunk | Owned work and handoff | Dependency and oracle |
+| --- | --- | --- |
+| A1 | Plugin carrier machinery and schema alignment tests; return mechanically derived schema, real provider arguments/result, class-specific blocker if any. Do not independently change tool mounting or termination. | Starts immediately; carrier oracle below. |
+| A2 | Core settled-revision machinery and focused app tests. First prove call-ID equality in public history, state setter from tool execution, and mixed-batch behaviour; return the minimal earned revision API. | Starts immediately; revision/protocol oracles below. |
+| A3 | Browser observation, plugin effect semantics, and headless parity where consumed. Return canonical pre/post evidence, outcomes and diff accounting, not merely an effect summary. | Starts on one existing canonical mutation; full basis join consumes A1/A2. Browser-record oracle below. |
+| A4 | Binding/history investigation. Existing tools may establish an early compaction/reopen pin while A1–A3 run; actual revision/mutation records must pass before the final verdict. Retain the archive fail branch. | Early overlap allowed; final compaction/materialization probes consume genuine A2/A3 records. |
+| A5 | Integrate citation refusals, authorized evidence validation, record resolution, live reconciliation, assistant interpretation and minimal pane. A deterministic resolver alone or mock pane does not prove the interaction. | Consumes A1–A4 handoffs; reopened why safety and visible-interaction oracles. |
+| A6 | Genuine tracer, passage-policy probe, cadence/basis measurement, safety/utility adjudication and gate packet. | Requires integrated A5, not detached subsystem tests. |
+
+One integration owner exclusively controls `packages/plugin-sdcpn/src/flue.ts`, `apps/brunch-agent/src/agents/chat-agent/agent.ts`, website client-tool/transport registration, the basis-envelope join, and this authority. A1/A3 may both work in the plugin only with explicit disjoint files. Assign any shared transport or browser-host file to one worker; integrate other requests serially. Delegates own bounded work, not policy. Their briefs name protected sources, destinations, permitted semantic deltas, exact write sets, handoff contracts, oracles and stop conditions. Unlisted semantic changes return to the owner.
+
+The pane and persona-host adaptation can proceed in parallel with integration after their data contracts have been exercised. Do not invent a generalized history API or companion store to enable parallelism. `real-headless` remains an admitted genuine-conversation route, but cannot substitute for the separate browser-effect witness. A human browser conversation is also admitted. A browser-driven persona executor is only a candidate if the test path needs it; first verify attachment and correlated continuation using existing machinery. No new runner daemon, second server or second elicitor agent.
+
+### Cold-start reads
+
+Read the current source, not only prior claims. These are required entrypoints, not permission to implement historical specs:
+
+- [Mission 6 archive](docs/mission-archive/6-resumable-workpiece-petrinaut.md), its [implementation evidence](docs/evidence/implementations/fe-1575-resumable-workpiece-petrinaut.md), r2 browser witness and human gates; [Mission 5 transport evidence](docs/evidence/implementations/mission-5-direct-voice-flue/README.md). Consume transport/mutation/resume viability, not a provenance pair or a waived human check.
+- [Mission 2](docs/mission-archive/2-mechanical-capture-sweep.md), [Mission 3](docs/mission-archive/3-structurally-typed-runbook-to-headless-pn.md), its [construction evidence](docs/evidence/implementations/fe-1525-headless-runbook-pn.md), and [Mission 4](docs/mission-archive/4-core-plugin-elicitation-proof-of-life.md): archive capability versus rejected capture semantics, falsified nested carrier, accepted core/plugin split, and no full-run candidate.
+- [Decision log](docs/evidence/design/provenance-and-tooling-decision-log-2026-09-04.md), [mini spec](docs/evidence/design/provenance-by-lineage-mini-spec-2026-09-04.md), [independent review](docs/evidence/design/provenance-by-lineage-independent-review-2026-09-04.md), [follow-up review](docs/evidence/design/provenance-by-lineage-follow-up-review-2026-09-04.md), especially final H dispositions and their evidence lists. This cut supersedes earlier conflicting diagrams and partial-coverage suggestions. [Pre-split draft commit](https://github.com/hashintel/hash/commit/d6b7ea829f) retains the complete planning source; the spine records conversion destinations.
+- Core `packages/core/src/flue.ts`, `client-tools.ts`, `workpiece.ts`, `prompts/SYSTEM.md`, and `skills/elicitation/`; app `apps/brunch-agent/src/conversation/workpiece.ts` (currently hashes the selected fenced revision). Core now owns the new settling tool; the tagged prepared route stays distinct.
+- Plugin `packages/plugin-sdcpn/src/flue.ts`, `tools/petrinaut-construction.ts`, `test/construction-tools.test.ts`, `skills/sdcpn-modelling/SKILL.md`, its `templates/workpiece.md` and `references/{profile,pn-construction,checks}.md`. The inherited carrier uses an empty loose object with JSON Schema in description; admission remains fixture/headless-only until this cut is implemented.
+- `packages/binding-flue/src/history-reader.ts`, `packages/transport-aisdk/src/client-tool-history.ts`; app `src/agents/chat-agent/agent.ts`, `src/conversation/identity.ts`, `src/http/ownership.ts`, `src/capture/apply-sweep.ts`: composition, principal/conversation identity, host-owned history URL and archive lane, opaque cumulative result records.
+- `apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md`, `src/evaluations/persona/brunch-turn.ts`, `src/evaluations/runbook/headless-petrinaut-client.ts`: none/mock/real-headless hosts, evidence directory, tool budget and workpiece recovery. Paths beginning `apps/` are repository-root paths, not relative to this context root.
+- `libs/@hashintel/petrinaut-core/src/{ai,action-schemas,command-schemas}.ts`, `schemas/{entity-schemas,metric-schema}.ts`, `file-format/types.ts`; `libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.tsx`; website `src/main/app/local-storage-demo/` document binding/history/transport code. Strict canonical entities have no provenance slot; reuse contracts, never copy fields.
+- [Flue routing](docs/reference/architecture/flue-routing.md), architecture cheatsheet and [source-read evidence](docs/evidence/audits/flue-entry-projection-source-read-2026-08-18.md). Flue 2.0.3 documentation in installed `@flue/runtime/docs/reference/{agent-api,agent-hooks-api}.md` and `docs/guide/models.md` supplies priors for batch termination, tool-call identity, hook/state and compaction pins. Inspect the authoritative runtime when a pin contradicts those priors; an old source read is not a new behavioral pass.
+- [Evaluation guidance](evaluations/README.md), Vestera inputs and oracles; [Petrinaut user guide](../petrinaut/docs/ai-assistant.md). New observed evidence belongs under `docs/evidence/`, not evaluation source directories.
+- Mission 8 historical handoff: `git show 157730cc5a214dd9c543e8d95c7193a219c48aef:libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-8-deployment-handoff.md`. Its old `/api/chat` route is superseded, not inherited. Local image proof never established remote deployment.
 
 ## Proof
 
-1. **Immediate, input-preserving cancellation.** Session tests observe
-   `speech_started → response.cancel → output_audio_buffer.clear`, no input
-   buffer clear, and completion of the same input item.
-2. **Exactly-once admission.** Bridge and controller tests cover duplicate
-   completions, delayed Brunch admission, an unsettled previous turn, follow-on
-   canonical speech, queued playback, and lifecycle cleanup.
-3. **Local false-transcript rejection.** Tests cover configured transcription
-   prompt regurgitation and exact active canonical self-echo, while preserving
-   short novel answers and leaving ordinary non-interruption capture unchanged.
-4. **Retained-answer visibility.** Controller tests prove that later empty,
-   failed, prompt-regurgitated, or self-echo transcripts cannot erase an
-   earlier retained answer or submit a replacement.
-5. **User control.** Shared Petrinaut tests prove the preference is default-on,
-   browser-saved, exposed in the existing playback menu, and controls whether
-   **Your turn** is visible.
-6. **Continuity projection guard.**
-   `local-storage-demo/voice-history-continuity.integration.test.tsx` mounts the
-   real history projector and Petrinaut panel against prepared before/after
-   observations, then remounts the observer. It proves typed history, supported
-   Voice client-tool attribution, aborted-settlement rendering, and the local
-   **Exit voice mode** versus injected **Stop** port remain distinct at those
-   component boundaries. It does not prove production Voice provenance
-   creation, `requestFlueStop`/Flue abort persistence, a fresh Flue client or
-   second browser tab, or direct-user Voice source reconstruction after reopen.
-   The owner-approved FE-1604 deferral above leaves those claims open rather
-   than treating this prepared fixture as a substitute.
-7. **Package integrity.** Focused Voice unit tests, Petrinaut unit tests,
-   TypeScript checks, ESLint, the website and library builds, architecture-doc
-   lint, repository formatting, and `git diff --check` distinguish a working
-   recut from code presence alone.
+### Adversarial throughline and architecture pressure
 
-Mocked protocol tests establish event ordering and state behavior; they do not
-establish real microphone latency, speaker echo cancellation, or acoustic
-classifier accuracy.
+One genuine Vestera conversation over the production agent must contain at least two distinguishable workpiece passages, two mutations with declared basis, a failed/no-op attempt, a correction changing passage and element, a hand edit outside the conversation, a carried-forward passage, non-adjacent evidence, and multi-source synthesis. Also exercise duplicate wording, a rejected quotation, constructor inference, and unrelated context. The structural minimum is not the complexity target: the account must expose the accepted region's contention, direction-dependent meaning and qualifications. Preserve the interviewer's information wall even when scheduling adversarial controls; author any additional interviewee control before the run and label it without rewriting the reusable case.
 
-### Expected touched paths
+The browser must execute at least one independently observed canonical mutation; if the main interview is headless, retain a separately labelled browser witness exercising the same record contract, and still reopen/query the genuine conversation through the product. Persona-generated or human-generated sources are labelled accurately. Hand edits, negative controls, and test initial states are distinguished from interviewee testimony. A fabricated assistant record, prepared derivation, restored projection pretending to be canonical history, or diagnostic-only why lookup fails.
 
-```text
-~ apps/petrinaut-website/src/main/app/voice-interview/  session, bridge, controller, preference, tests
-~ apps/petrinaut-website/src/main/app/local-storage-demo/ history projection and remount guard
-~ apps/petrinaut-website/src/server/voice/              Realtime VAD and transcription policy
-~ apps/petrinaut-website/src/shared/                    shared transcription vocabulary
-~ apps/petrinaut-website/README.md                      website behavior
-~ libs/@hashintel/petrinaut/                            shared state, playback control, user guide
-~ libs/@hashintel/brunch-agent/docs/adr/                Voice turn-shell decision
-+ .changeset/                                           Petrinaut patch release note
-```
+Before declaring the tracer safe, implement the safety premises it consumes: settled citation and supersession refusal, true-user evidence validation, independently verifiable effects, conflicting-result handling, bound identity, live reconciliation, honest absent basis and complete tracer inventory. The minimal pane must expose current workpiece and actual model-facing why output. Revision list/diff breadth is Step B, but measuring interaction only against mocks is not admitted.
+
+### Inventory and explanation standard
+
+The owner accepted **100% useful explanation coverage for ordinary behaviour-affecting items in the accepted region**, overall and within every represented class. Freeze this rule before generation. Enumerate the final canonical definition mechanically by entity identity and canonical field path; include identity-bearing entities, arcs and their attributes, types/elements, expressions/conditions, quantities/multiplicities, scenarios and initial state, parameters if used, consequential document settings and derived effects. Test unknown-preservation and omitted required meaning against the workpiece separately: a missing rule cannot vanish by being absent from the generated inventory.
+
+Exactly one disposition per item: supported, partially supported, basis-absent, external, retired, or refused. Publish full denominator, useful numerator, each disposition count, per-class counts, and explicit exclusions. Keep deliberately hand-edited and deliberately basis-less controls in the full inventory as named separate cohorts with expected refusals. Report ordinary coverage separately; do not reclassify an ordinary failure as a control after seeing output. Purely cosmetic layout is excluded from semantic utility with count and reason, not from mutation history or effect accounting. A generated node/edge count alone is not the denominator.
+
+A useful answer identifies the governing passage and revision, distinguishes elicited evidence from normalization/inference/assumption/default/formalism constraint, explains the current definition and relevant correction, and gives the reviewer enough information to assess whether the model is right. A valid locator, circular Construction note, broad temporal range, or plausible unsupported prose is not useful support. An explicitly justified modelling inference can qualify; pretending an unknown operational fact was supplied cannot. Safe refusal is necessary for unsupported material but does not pass ordinary utility coverage.
+
+Lu Nelson owns the semantic/utility adjudication and product acceptance. Supply the fixed rubric, workpiece, product answer and relevant records, not the producer's preferred verdict or troubleshooting trajectory. Lu knows the design; do not claim design blindness. Record semantic correspondence, reviewer utility, and product operation as separate judgments. Step A measures the threshold and eligibility; the full-region release gate remains Step B. Below-threshold Step A utility means named rework, not permission to lower the agreed final bar.
+
+### Behavioural discriminator
+
+Author the prospective test at `evaluations/oracles/vestera-scheduling/mission-7-behaviour.test.ts`, against the generated canonical region using Petrinaut's real headless execution/analysis APIs: two simultaneous changeover demands cannot both hold the sole crew; completion releases it so another eligible changeover can proceed; a product cannot execute on an unqualified line. Include a positive eligible case so blocking everything cannot pass. Human semantic review additionally checks asymmetric family changes and preserved unknowns against the workpiece. Name any synthetic marking and timing assumption as test conditions, never evidence of actual plant operation.
+
+Implement the check after elicitation supplies the concrete workpiece and before adjudicating construction. Freeze the assertion semantics above now; pin the exact executable and fixture before the proving run, and do not edit it to accept a failed net. Failure to express or execute a required property is an observed blocker, not permission to replace execution with schema validity. Step A establishes the discriminator's feasibility on its constructed portion; the full accepted region and unchanged handoff to Missions 9/10 remain Step B obligations.
+
+### Probe outcomes and owner gate
+
+Each probe records Pass, Partial, or Fail, retained evidence, and its selected branch. An early A4 pin is preliminary; the final compaction/materialization verdict uses actual settled revision/mutation records from the genuine path.
+
+| Probe | Pass | Partial | Fail and re-entry |
+| --- | --- | --- | --- |
+| Compaction: low `keepRecentTokens`, cross threshold, query public `history()` for folded revision inputs, mutations and true-user lines | Lineage reads history | Current Markdown from state; scope historical claims to retained window, disclose every affected answer | Harden the existing session-log archive lane into an immutable lineage projection before exact-line claims; no new log/capture envelopes. Re-enter on supported pre-compaction history. |
+| Materialization: retain/export, relocate if supported, reopen, authorize and query genuine conversation | Supported retained-store or relocation route | Record and enforce identity rebinding | Use the retained live store; pursue relocation upstream, never prepared projections for why. No genuine reopen route at all is terminal. |
+| Passage policy: rename, move, paraphrase, split, merge, deletion, reintroduction, duplicates on tracer workpiece | Selected locator scheme satisfies policy | Unsupported continuity classes explicitly refuse | Revision-local spans only; no cross-revision introduced-by claim. Re-enter when a cheaper policy-compliant anchor lifecycle exists. |
+| Carrier: real scenario-required nested canonical mutation, raw provider input and canonical result | Tested class carried; earn remaining class admission separately | Carried classes only; nested blocker named | Crisp upstream Standard Schema/supplied JSON Schema requirement, no hand-copied fields. Continue useful carried-class work but do not drop accepted Vestera rules or claim nested success. |
+
+Measure **revision cadence and basis quality** (unprompted workpiece updates, relevance, contradiction, granularity, omitted dependencies, circularity, cost) and **reviewer utility** (fixed rubric above, not merely coverage of fields). Partial cadence/basis allows one bounded wording/pane adjustment under the semantic envelope, then rerun and measure. Coarser ranges must be disclosed. Utility below the accepted bar requires named rework; it does not redefine the bar.
+
+| Observed outcome | Eligibility | Owner-gate consequence |
+| --- | --- | --- |
+| Safe integrated tracer; all probes pass; cadence/basis and measured utility meet their requirements | Eligible for Step B amendment | Lu may authorize the separately committed Step B packet; no automatic continuation. |
+| Compaction partial/fail; relocation partial/fail with a genuine retained-store route; passage partial/fail; carrier partial/fail with useful carried classes | Eligible after named rework | Apply the corresponding branch and disclose its limits. Preserve consolidated construction/explanation and required scenario meaning; rework is not scope reduction. |
+| Cadence/basis partial, utility below full ordinary coverage, or missing accepted region meaning | Eligible after named rework | Name failure and permitted bounded adjustment, rerun within budget, and return evidence. No release until required meaning and utility are restored. |
+| False attribution that the records cannot prevent; no genuine reopened-conversation route; effects cannot be mechanically derived | Terminal for this shape | Stop and return to design; do not amend past the failed premise. |
+| Basis remains absent or circular after the one rework round, or no admitted class yields useful explanations | Terminal for explanation under this shape | Withhold the explanation release; construction evidence may stand on its own gates but is not Mission 7 success. Lu decides the reorientation. |
+
+The gate packet lists every leaf below, outcome, artefact, limit, probe branch, inventory count, spent/remaining budget, and proposed rework or amendment. Lu performs the gate. Producing reports is not acceptance, and a stop verdict can be a valid Step A result without a successful product claim.
+
+### Exact prospective oracles and evidence
+
+Paths beginning `packages/`, `evaluations/` or `docs/` are context-root paths; `apps/` and `libs/` are repository-root paths. These are prospective tests, not claims they already exist. Record implementation-driven renames with equivalent assertions in this authority before delegation; never silently weaken an assertion. Run evidence root is `docs/evidence/implementations/fe-1573-step-a/<run-id>/`.
+
+| Claim | Discriminating oracle |
+| --- | --- |
+| Revision identity/state/validation and actual batch semantics | `packages/core/test/update-workpiece.test.ts`: "returns revisionId equal to toolCallId and sha256 of the Markdown", "persists Markdown with the pointer", "refuses empty Markdown", "refuses Markdown over the size ceiling", "declares a non-terminating result", "captures the persistent-state setter at render and writes from run". `apps/brunch-agent/test/workpiece-revisions.integration.ts`: "the built agent settles a revision over the mounted route", "public history preserves the tool call identity", "mixed workpiece and browser tool batch does not apply a mutation". Retain `revision-protocol.json`. |
+| No mixed batch; explicit settled citation | `packages/plugin-sdcpn/test/construction-tools.test.ts`: "never mounts update_workpiece in a batch with a terminating construction tool"; `packages/plugin-sdcpn/test/declared-basis.test.ts`: "accepts a basis citing the settled revision", "refuses a citation of an unknown revisionId", "refuses a superseded revision unless supersession is intended". Retain `basis-citations.json`; actual mixed-batch safety is the mounted test above, not a static mounting assertion alone. |
+| Evidence is authorized and genuinely user-authored | `apps/brunch-agent/test/workpiece-evidence.integration.ts`: "accepts bound true-user evidence", "refuses assistant, signal and prepared ids as elicited evidence", "refuses another principal or conversation", "preserves unchanged passage evidence without inventing new support". Retain `evidence-relations.json`. |
+| Browser effects and conflicts are verifiable | `apps/petrinaut-website/src/main/app/local-storage-demo/transition-record.test.ts`: "observes the pre-apply hash independently of the request", "derives disjoint created, updated, deleted, derived sets from pre and post definitions", "refuses a record whose effects do not account for the diff", "marks conflicting duplicate browser outcomes unknown and retains both deliveries". `apps/brunch-agent/test/transition-records.integration.ts`: "correlates the real browser transition record and resumes without reapplying". Retain browser `transition-records.json`, canonical pre/post definitions and `browser-witness.md`; headless evidence separately labelled. |
+| Current state and bound identity are not invented | `apps/brunch-agent/test/reconciliation.test.ts`: "reports not attributable when the live hash has no recorded transition", "labels an answer as of the last reconciled state when the live hash is unavailable", "refuses a mismatched conversation or document incarnation". Retain `hand-edit-result.md`. |
+| Origin/change/attempt distinction and epochs | `packages/core/test/identity-epochs.test.ts`: "opens a new epoch on delete and recreate", "refuses reuse of a retired id", "does not attribute failed or no-op attempts as changes"; `epochs.json`. Exercise epoch semantics if the tracer correction deletes/recreates; complete the required delete/recreate case no later than Step B. |
+| Passage identity is earned, not guessed | `packages/core/test/passage-identity.test.ts`, one assertion for no reuse after deletion, split/merge predecessor/successor sets, ambiguous paraphrase refusal, reintroduction as new identity, immutable revision-local span, duplicate headings/quotes, and overbroad-basis failure. `passage-identity-result.md` records every edit class and the branch. |
+| Compaction preserves exactly the claimed sources | `compaction-result.md`: threshold, folding evidence, exact retained/lost user/revision/mutation ids, current state after compaction, branch, disclosure. Existing-tool pin and genuine new-record recheck are separate results. |
+| Genuine materialization and authorized reopened why | `materialization-result.md`: retention/export, attempted supported relocation, original/reopened identities, authorization and query; `apps/brunch-agent/test/reopened-why.integration.ts`: "reopens genuine revision and mutation records through the authorized product why operation". |
+| Canonical carrier carries nested data | `packages/plugin-sdcpn/test/schema-carrier.test.ts`: "derives a Valibot schema structurally equal to the canonical JSON Schema for each admitted class"; `carrier-result.md` records provider/model, generated schema, raw arguments, runtime/canonical result, retries, latency, cost and per-operation admission. Schema-copying fails regardless of output. |
+| Every tracer item is accounted for safely and usefully | Frozen `inventory-rule.json`, generated `inventory.json`, `apps/brunch-agent/test/why-safety.integration.ts` with one test per disposition through the reopened product operation; `utility-adjudication.md` by Lu against the fixed rubric. Test assistant interpretation as well as deterministic lookup. Deliberate controls are predeclared, not post-hoc exclusions. |
+| Guidance handles the selected complexity | `guidance-manifest.json` pins core/plugin prompt/skill/resource hashes, admitted protocol deltas, build and model; `semantic-adjudication.md` compares conversation → workpiece → net for contention, asymmetry, qualification, correction and unknowns, classifying acquisition/conservation/construction/nondisclosure failures. Lu adjudicates. No toy or answer-key-assisted substitute. |
+| Cadence, basis and behavioral evidence discriminate | `cadence-and-basis.json` records every revision/mutation and quality assessment; `behaviour-result.md` records the exact Vestera test/fixture hash, executed assertions and limitations. Prospective test: `evaluations/oracles/vestera-scheduling/mission-7-behaviour.test.ts`. |
+| Visible minimal interaction and stock coexistence | `browser-witness.md` plus inspected screenshots: current workpiece, ordinary why, hand-edit refusal, absent-basis refusal; stock host-mode test and Mission 6 witness pattern. Full list/diff, carried human resume and final PM demo stay in Step B. |
+| Step A acceptance is owner-performed | `gate-packet.md` and `owner-gate.md`, naming Lu, actual decision, each probe eligibility, rework bounds, remaining flags and any Step B authorization. No agent-generated acceptance. |
+
+Verification is inside-out: unit contracts; built production `ChatAgent` over the actual mount with browser results; real local browser and reopened authorized queries; semantic/behavioral checks; Lu's independent review. Run root Turbo `test:unit`, `lint:tsc`, `lint:eslint`, `build` for affected `@apps/brunch-agent`, `@apps/petrinaut-website`, `@hashintel/brunch-agent`, `@hashintel/brunch-agent-plugin-sdcpn`, `@hashintel/brunch-agent-binding-flue`, `@hashintel/brunch-agent-transport-aisdk`, and `@hashintel/petrinaut`; add `@hashintel/petrinaut-core` if changed. Run the named discriminator explicitly if workspace discovery does not include it. Existing green checks are regression priors, not new Step A evidence.
 
 ## Constraints
 
-- A completed provider transcription is the only Voice-answer authority.
-  Provisional text remains display-only.
-- Interruption cancellation is immediate and is never gated on transcript
-  classification. It clears output, never the interrupting input buffer.
-- Only input that began while canonical playback was active is classified as an
-  interruption. Ordinary capture behavior remains unchanged.
-- Self-echo compares only with the exact canonical text active when speech
-  started, not queued speech or conversation history.
-- Comparison may normalize Unicode, case, punctuation, and whitespace, but
-  admitted wording, casing, and punctuation remain unchanged.
-- Rejection diagnostics contain operational metadata and a reason, never the
-  transcript, transcription prompt, or assistant text.
-- Short novel answers such as “stop”, “no”, and “wait” remain admissible.
-- Mute, pause, Stop, end, reconnect, exact question replay, and exact full
-  response replay retain their current behavior in both preference modes.
-- Keep FE-1604 independent from PR #9588. If that sibling lands, update from
-  `main` and resolve overlap semantically instead of importing its branch.
-- Update the Petrinaut user guide and retain exactly one Petrinaut patch
-  changeset.
+### Revision, provenance and effect contracts
+
+- `update_workpiece { markdown, evidence? }` is core-owned, non-terminating and durable server-side. `revisionId` is `ToolContext.toolCallId`; SHA-256 is content identity; ordinal revision is display-only. Validate non-empty/size in core and template conformance in plugin. Capture `usePersistentState` setter at render, invoke from `run`; persist current Markdown with pointer so model context compaction cannot remove the current artifact. No hook calls from callbacks or state interpolated into invariant instructions.
+- Revision settles before mutation; `update_workpiece` never shares a batch with a terminating construction tool. Mutation explicitly cites settled id/hash, not latest/sibling order. Refuse unknown or superseded citation unless supersession is marked intended. A2 must determine an enforceable production protocol; prompt wording alone cannot establish the mixed-batch safety claim. If existing runtime controls cannot enforce it, stop for a bounded authority decision before weakening it or changing termination.
+- Mutation basis is `declared { revisionId, sha256, locators, rationale, scope }` or `absent { reason }`. Scope is operation-level unless explicit intended-effect mappings name elements/locators. Unanticipated/unmapped effects do not automatically inherit all request locators. Preserve the declared envelope in canonical history and strip it before canonical Petrinaut execution; Construction notes cannot substitute for it.
+- Optional revision-time relation: `evidence: [{ locator, messageIds, kind }]`, with elicited, inference, default, formalism-constraint, external or correction standing. Elicited ids must resolve to authorized `role: user`, `purpose: user` messages in the bound conversation. Assistant, dispatch, prepared, or other-principal material cannot become expert evidence. Unchanged carried-forward passages inherit their relation; absence is explicitly temporal context, never implied causal support. Validate actual relevance separately from valid ids.
+- Passage policy: immutable revision-local spans; no identity reuse after deletion; split/merge predecessor/successor sets; ambiguous paraphrase refuses continuity; reintroduction is new unless continuity is declared; duplicate headings/quotes tested; overbroad sufficient-looking spans fail quality when materially narrower support exists. Probe the locator mechanism rather than assume heading paths, anchors or companion manifests. Revision-local fallback does not establish introduced-by continuity.
+- A browser transition records call id, bound document/incarnation, requested base hash, independently observed pre-hash, post-hash only when observed, outcome (applied/no-op/failed/stale/unknown), disjoint mechanically derived created/updated/deleted/derived effects and diff accounting. Retain enough canonical observation to independently check the diff, not merely self-reported ids/hashes. First well-formed outcome stands unless a conflicting delivery makes it unknown; retain both deliveries as attempts. Duplicate delivery must not apply twice. Failed/no-op/stale/unknown attempts are never presented as causes.
+- Keep origin, current-state composition, applied change history and attempt history distinct. IDs are never reused across identity epochs; delete/recreate opens a new epoch. Bind one conversation to one document incarnation and check every mutation and why request; mismatches refuse. Cross-conversation access and its document-scoped owner are Mission 9 breadth, not implicitly available.
+- Reconcile why with the live browser hash or label it as of the last reconciled recorded hash. Unrecorded hand edits are not attributable. External import, when Step B admits it, records parent hash, canonical diff, actor or unknown, principal and reason; changed fields remain external/unsupported until a recorded transition replaces them. Import never retrospectively supplies provenance.
+- Recorded roles only: assistant tool call, local browser executor, user under principal key, test-authored fixture author. Human identity unknown unless separately established; time is stream order, not guessed wall-clock causation. Retrieved text is untrusted evidence in the smallest necessary authorized range. Deterministic structured lookup constrains assistant interpretation; it does not authorize invented prose links.
+
+### Ownership, teaching and scope
+
+- Preserve `useBrunchAgent()` + `useSdcpnPlugin()`, inward dependencies and dedicated `./flue` resources. The app composes, plugin owns formalism semantics, core stays universal. The core tool is earned because revision/query semantics apply independently of Petrinaut. No parallel conversation route, log, capture ledger, derivation store, ontology, graph database, observer, workflow engine, second production agent/server or general projection engine.
+- This cut explicitly replaces Mission 6's ordinary-conversation construction restriction with scenario-selected admission after carrier evidence, and replaces fenced blocks for model-produced workpieces with settled tool revisions. Keep the tagged prepared-signal source honestly test-authored. Migration inspection starts with affected persisted/wire consumers; final retirement and dual-read removal gates live in Step B. Do not maintain duplicate model-produced authorities or silently break retained evidence to simplify the change.
+- Maintain stock assistant behavior when Brunch is absent/unselected, no content-bearing telemetry, and local-only claims. Published Petrinaut changes require applicable patch changesets and user-doc updates; a real new architectural folder requires its local declaration and arch-doc lint. Inspect rendered changed UI states, not screenshots alone; update guide screenshots or prompt replacement.
+- Freeze CURRENT core/plugin guidance and the necessary protocol additions before paid runs. Allowed initial deltas: replace fenced emission with settlement, teach explicit basis/citation and mounted construction/check sequencing, and teach honest use of structured why results. Preserve existing elicitation methods, operational vocabulary, domain-neutrality, authorship, uncertainty and no-invented-operational-facts rules. No scenario nouns or tailored answers in reusable teaching.
+- One cadence/basis wording or pane adjustment is permitted within those semantics and budget; retain both instruments and failure evidence. A material recut of core/plugin architecture, meaning, policy or the frozen acceptance instrument is owner-reviewed and committed separately before dependent implementation/evaluation. Do not rewrite prompts to mirror the checker or fit frozen answers. The owner's neutral "understand a Petri net" teaching suggestion remains a hypothesis to assess under observed strain, not a required rewrite.
+- Chris/Yannis discovery has not occurred and the owner explicitly waived it as a dependency for this construction proof. Optimisation is a later special case, not a retrospective gate here. Later consumer discovery and expanded scenario selection remain in Missions 9/11.
+
+### Paid evidence envelope
+
+The owner authorized a first **US$100 total Step A budget** and models **at least Sonnet-class**. Select `anthropic/claude-sonnet-4-6` for Brunch and, when used, the simulated interviewee; the exact model id is already used by the repository's prior production protocol. Configure `BRUNCH_CHAT_MODEL=claude-sonnet-4-6` for the elicitor and explicitly select the same persona model. Record actual provider-reported ids; no silent fallback to the app's Haiku default. If unavailable, stop rather than downgrade. This cut selects a model; it does not claim provider availability has just been tested.
+
+Keep the proposed conservative **200 combined provider-call operational cap** in addition to the dollar ceiling, whichever is reached first. Count probes, elicitor, persona, model-assisted evaluation, failures and retries together, across all workers. Unit/faux-provider tests are not paid evidence. Step B receives no calls or spend from this authority. Shared delegation does not multiply the budget.
+
+The integration owner maintains `usage-ledger.json` and `attempt-ledger.md` under the Step A evidence root, allocates bounded reservations before parallel paid work, and records actual usage/cost including failed or uncertain requests. Each call has a token bound and a conservative cost reservation; refuse a launch if remaining budget cannot cover it. Uncertain cost or unavailable accounting stops paid work, not the ledger. Limit a rejected canonical operation to three attempts before a visible repair-budget failure; record exhaustion and ask for reorientation rather than looping. More spend, more calls, model changes, extra adjustment rounds, or Step B execution require new owner authorization.
 
 ## Fog-line
 
-- Browser echo cancellation may still allow speaker feedback to trigger VAD or
-  transcription. A deterministic completed-transcript classifier reduces false
-  admission but cannot prevent playback from stopping after a false VAD event.
-- Real interruption latency and acoustic behavior remain unmeasured until a
-  human browser/microphone witness is retained.
-- The classifier is intentionally conservative. Evidence of rejected novel
-  speech or admitted repeated playback requires threshold or feature
-  re-evaluation before release.
+- Compaction survival and public history/state contracts at the real mounted runtime, including call-ID equality, post-settlement visibility, and enforceable mixed-batch prevention.
+- Genuine retention/relocation/reopen route and identity rebinding; snapshots remain diagnostics, not arbitrary canonical import permission.
+- Passage locator mechanism under the accepted identity policy; optional evidence relation's compliance and whether it drifts toward assertion-card complexity.
+- Local carrier derivation versus upstream support and each admitted class's real provider behavior; no shape-preserving claim from description text.
+- Actual browser pre/post observation seam and headless parity; ability to distinguish effect categories and account for all changed fields without Brunch logic in Petrinaut.
+- Whether current guidance elicits/conserves enough Vestera complexity and produces useful, non-circular basis at an affordable cadence; classify acquisition, conservation, construction and interviewee nondisclosure rather than assume a prompt defect.
+- One versus two model-facing why tools, full-document token cost, when a structured patch earns its complexity, and whether the real user interaction needs browser-driven persona execution.
+- Concrete generated representation for the behavioural test. Known semantic assertions are fixed; exact representation is discovered, not handed to the model as an answer.
+
+These are implementation/probe questions, not unresolved permission to shrink the region, reduce explanation coverage, skip an owner gate or select a cheaper model. An answer changing accepted policy or ownership returns to Lu before implementation continues.
 
 ## Stop or reorient
 
-Stop if the recut requires unrelated stale-branch files, a second Voice
-submission path, delayed cancellation, input-buffer clearing, transcript
-logging, or assistant-generated classification.
+Stop and report the evidence if any of these occurs:
 
-Stop if current-main APIs cannot preserve the same input item through
-cancellation and completion, if an interruption can submit twice, if a rejected
-completion can replace or erase a retained answer, or if disabling the
-preference no longer restores the acknowledged half-duplex handoff.
+- The integrated tracer cannot answer or explicitly refuse without guessing after the permitted adjustment; ordinary missing basis is relabelled as a deliberate control; the inventory/exclusion rule is chosen after seeing the net.
+- A useful result depends on giving the elicitor case truth, a prepared workpiece/net, hand-authored derivation, retrospective basis or a simpler substitute for accepted contention/asymmetry/qualification complexity.
+- Mixed update/mutation batching is required for progress, a revision cannot be cited reliably, or the only proposed remedy changes accepted termination/interaction semantics without owner amendment.
+- Effects cannot be derived and independently checked, result correlation is ambiguous, duplicate delivery mutates twice, conflicting outcomes are treated as success, or partial/unknown state is blessed as settled.
+- A hand edit/import is attributed to the conversation, temporal context is presented as evidence, unknown becomes a guessed operational fact, an id is reused, or another conversation/principal can reach the bound document.
+- Compaction requires a second log rather than the existing permitted archive lane; no genuine conversation can be reopened; relocation requires pretending prepared projections are genuine canonical history.
+- Carrier repair requires copied Petrinaut fields, required Vestera meaning cannot be expressed/checked, or one successful class is presented as broad admission. Follow the probe branch; do not finish the planned neighbourhood past contradictory evidence.
+- The pane or why operation needs Brunch semantics inside Petrinaut, or implementation invents a graph/observer/typed domain model/new service before observed strain warrants owner reorientation.
+- A frozen instrument or accepted teaching policy is silently changed, the reviewer is fed the producer's preferred verdict, a test is weakened to match output, or budget/accounting limits are exceeded.
+- Work broadens into repeat/change/concurrency breadth, other complex scenarios, remote durability, reviewer authority, optimisation or the uncut fast-preview feature.
 
 ## Deferred
 
-- PR #9588 owns the omitted Voice settlement port and remains a separate
-  mainline update.
-- A human browser/microphone witness owns claims about speaker feedback,
-  acoustic false interruption, and audible interruption latency.
-- Preventing a false VAD event from stopping playback is outside FE-1604.
-- The projection guard in Proof 6 does not discharge the combined durable
-  continuity witness required by `MISSION.next.md`. That witness still needs a
-  production Voice input, production **Stop**/Flue abort, destroyed browser
-  client, independently created second-tab client, and persisted-history
-  hydration. Direct-user Voice source reconstruction remains blocked because
-  Flue 2.0.3 projects neither caller metadata nor idempotency keys on canonical
-  user messages, while browser-side correlation and visible text encoding
-  remain prohibited. Re-entry remains governed by
-  `docs/evidence/implementations/mission-5-voice-safety-parity/provenance-blocker.md`.
+- **Step B:** the [amendment packet](docs/mission-drafts/7-explainable-construction.md) alone holds B1 lineage, B2 mutation/reconciliation and B3 product/lifecycle closure, the full-region proving run, revision list/diff, migration/rollback and dual-read removal, external import and second-conversation refusal breadth, subtraction inventory, final behavioral/utility/product gates, and Mission 6's genuine typed/Voice/stopped-entry two-tab check. Return here only after the Step A owner gate and a separate authority commit; no automatic promotion.
+- **Missions 9/10:** [Mission 9](docs/mission-drafts/9-traceable-projection.md) owns repeat, changed input, retirement/concurrency breadth, cross-conversation access, additional schema classes and required complex-scenario allocation. [Mission 10](docs/mission-drafts/10-bounded-reviewer-revision.md) owns authorized reviewer revision. Both consume the accepted basis/transition/epoch/evidence seam and unchanged behavioral discriminator, not an imagined one. The packet preserves exact re-entry gates/oracles.
+- **Later capabilities:** [Mission 11](docs/mission-drafts/11-optimisation-handoff.md) owns the accepted optimisation consumer contract; Mission 8 successor/pre-remote gate owns remote durability. Mission 6's remaining recovery/fixture-promotion concerns keep their spine homes and strain triggers.
+- **PM fast preview and teaching hypothesis:** [the future spine](MISSION.next.md#explicit-assumption-based-preview) records the requested offer to fill gaps/guess when time is tight, the necessary distinction from evidence and modelling inference, and the hypothesis of neutral Petri-net understanding guidance. This cut does not authorize that new mode or silently relax current no-invention behavior.
+- **Rejected mechanisms and rationale:** full prepared pairs, hand-authored derivation, adjacency-as-causation, hash-only effect joins, document provenance slots without a consumer, blanket tool admission, capture folds, default assertion cards, closed ontologies and a separate probe mission remain rejected. The packet and spine preserve reasons/re-entry; historical design evidence is retained, not executed as authority.
