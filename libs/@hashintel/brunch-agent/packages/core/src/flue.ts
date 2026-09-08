@@ -1,4 +1,5 @@
 import {
+  type CompactionConfig,
   defineTool,
   useDataWriter,
   useModel,
@@ -27,8 +28,11 @@ import { skillFromMarkdown } from "./skills/skill-markdown";
  * Core contributes the always-on universal prompt, one `elicitation`
  * capability skill, and the formalism-independent question marker.
  */
-export function useBrunchAgent(model: string): string {
-  useModel(model);
+export function useBrunchAgent(
+  model: string,
+  compaction?: CompactionConfig,
+): string {
+  useModel(model, compaction === undefined ? undefined : { compaction });
   useSkill(elicitationSkill);
   const writeQuestion = useDataWriter(BRUNCH_QUESTION_DATA_NAME, {
     schema: BrunchQuestionDataSchema,

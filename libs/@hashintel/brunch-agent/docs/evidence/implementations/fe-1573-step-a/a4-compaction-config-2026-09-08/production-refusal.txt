@@ -1,0 +1,13 @@
+file:///Users/lunelson/.herdr/worktrees/hash/alpha/apps/brunch-agent/dist/node-server-_uC97QG8.mjs:18984
+	if (environment.NODE_ENV !== void 0 && environment.NODE_ENV !== "development" && environment.NODE_ENV !== "test") throw new Error("BRUNCH_TEST_KEEP_RECENT_TOKENS is only allowed in local development or tests, never production.");
+	                                                                                                                        ^
+
+Error: BRUNCH_TEST_KEEP_RECENT_TOKENS is only allowed in local development or tests, never production.
+    at loadTestCompactionConfig (file:///Users/lunelson/.herdr/worktrees/hash/alpha/apps/brunch-agent/dist/node-server-_uC97QG8.mjs:18984:122)
+    at file:///Users/lunelson/.herdr/worktrees/hash/alpha/apps/brunch-agent/dist/node-server-_uC97QG8.mjs:19015:28
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async loadBuiltBrunchApplication (file:///Users/lunelson/.herdr/worktrees/hash/alpha/apps/brunch-agent/src/evaluations/runbook/load-built-application.ts:18:26)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/alpha/apps/brunch-agent/src/evaluations/runbook/schema-carrier-probe.ts:98:21
+
+Node.js v24.20.0

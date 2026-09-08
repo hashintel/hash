@@ -16,6 +16,7 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
 
+import { loadTestCompactionConfig } from "./test-compaction-config.ts";
 import { ping } from "./tools/ping.ts";
 
 export const CHAT_MODEL_ID =
@@ -25,8 +26,13 @@ export const RUNBOOK_SKILL_NAME = SDCPN_MODELLING_SKILL_NAME;
 
 export const ACTIVATE_SKILL_TOOL_NAME = "activate_skill";
 
+const testCompactionConfig = loadTestCompactionConfig();
+
 export function ChatAgent() {
-  const coreSystemPrompt = useBrunchAgent(`anthropic/${CHAT_MODEL_ID}`);
+  const coreSystemPrompt = useBrunchAgent(
+    `anthropic/${CHAT_MODEL_ID}`,
+    testCompactionConfig,
+  );
   useSdcpnPlugin();
 
   useInstruction(
