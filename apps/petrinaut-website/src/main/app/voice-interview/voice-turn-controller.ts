@@ -624,6 +624,16 @@ export class VoiceTurnController {
         return;
       }
       if (
+        this.#snapshot.inputNotice === "answer-pending" &&
+        event.reason !== "pending"
+      ) {
+        this.#inputTurnPending = false;
+        this.#transcriptItemId = null;
+        this.#transcriptKey = null;
+        this.#update({});
+        return;
+      }
+      if (
         event.reason === "prompt-regurgitation" ||
         event.reason === "self-echo"
       ) {
@@ -892,7 +902,11 @@ export class VoiceTurnController {
       this.#inputTurnPending = false;
       this.#transcriptItemId = null;
       this.#transcriptKey = null;
-      this.#update({ partialText: "" });
+      this.#update(
+        this.#snapshot.inputNotice === "answer-pending"
+          ? {}
+          : { partialText: "" },
+      );
       return;
     }
     if (this.#transcriptKey !== null && this.#transcriptKey !== key) return;
