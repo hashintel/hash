@@ -29,6 +29,7 @@ use crate::{
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
+    morton::MortonTile,
     salt::postings::artifact::Membership,
     serve::{
         WireRow,
@@ -361,7 +362,7 @@ pub(crate) struct TileHead<'doc> {
     /// Key 1: the variant index, echoing the route.
     pub variant: u64,
     /// Key 2: the tile coordinate, echoing the route.
-    pub coordinate: TileCoordinate,
+    pub coordinate: MortonTile,
     /// Key 3: the delivery mode, echoing the request.
     pub mode: Mode,
     /// Key 6: the first bucket of the runs array.
@@ -422,17 +423,6 @@ impl TileHead<'_> {
         cbor.uint(10);
         cbor.boolean(trailer);
     }
-}
-
-/// A tile address, the route's `z/x/y` echoed as `HEAD` key 2.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Deserialize, schemars::JsonSchema)]
-pub(crate) struct TileCoordinate {
-    /// The zoom, a subdivision depth.
-    pub z: u8,
-    /// The cell's x index on the `2^z` grid.
-    pub x: u32,
-    /// The cell's y index on the `2^z` grid.
-    pub y: u32,
 }
 
 /// `HEAD` key 8: metadata of the entire post-intersection visible set.

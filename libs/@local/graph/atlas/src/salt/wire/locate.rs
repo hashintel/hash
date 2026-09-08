@@ -32,7 +32,7 @@ use super::{
     cbor::CborWriter,
     edges::{write_column, write_identities},
     envelope::EnvelopeWriter,
-    tile::{TileCoordinate, encode_details},
+    tile::encode_details,
 };
 use crate::{
     bitset::DenseBitSlice,
@@ -40,6 +40,7 @@ use crate::{
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::Vec2,
+    morton::MortonTile,
     postgres::id::ArchivedEntityId,
     salt::postings::artifact::Membership,
     serve::{
@@ -61,7 +62,7 @@ pub(crate) struct LocateResponse<'doc> {
     ///
     /// The client's fly-to target. The cell's own `z` is the zoom; both keys ride the wire by the
     /// pinned schema.
-    pub cell: TileCoordinate,
+    pub cell: MortonTile,
     /// `HEAD` key 6: `false` when the locate edge cap truncated the subgraph.
     pub complete: bool,
     /// `HEAD` key 7: the source's upstream entity id, `bstr(32)`.

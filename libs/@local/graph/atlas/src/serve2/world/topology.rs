@@ -1,7 +1,7 @@
 //! Directed graph queries in stable node and edge row order.
 //!
 //! [`Topology`] combines fitted endpoint bindings with the changes captured by an [`Epoch`].
-//! Adjacency queries exclude withdrawn edges.
+//! Adjacency queries exclude withdrawn edges and edges with an invisible endpoint node.
 
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 
@@ -131,10 +131,14 @@ impl Topology {
     /// Panics if this topology does not belong to the epoch's world.
     pub(crate) fn endpoints(&self, epoch: &Epoch, edge: EdgeRowId) -> Option<[NodeRowId; 2]> {
         let base = NaiveTopologyProvider::from_ref(self);
-        epoch
+        let endpoints = epoch
             .topology(self)
             .provider(base)
-            .provide_endpoints_at(edge, epoch.revision())
+            .provide_endpoints_at(edge, epoch.revision())?;
+        endpoints
+            .iter()
+            .all(|&node| epoch.contains_node(node))
+            .then_some(endpoints)
     }
 
     /// Returns visible incoming edges in ascending row order at the captured revision.
@@ -152,6 +156,7 @@ impl Topology {
             .topology(self)
             .provider(base)
             .into_incoming_at(node, epoch.revision())
+            .filter(move |&edge| self.endpoints(epoch, edge).is_some())
     }
 
     /// Returns visible outgoing edges in ascending row order at the captured revision.
@@ -169,6 +174,7 @@ impl Topology {
             .topology(self)
             .provider(base)
             .into_outgoing_at(node, epoch.revision())
+            .filter(move |&edge| self.endpoints(epoch, edge).is_some())
     }
 
     /// Returns the allocated edge count, including withdrawn and unbound rows.

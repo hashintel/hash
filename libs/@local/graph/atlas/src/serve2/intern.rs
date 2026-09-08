@@ -1,7 +1,10 @@
 use core::hash::{BuildHasher as _, Hash};
 
-use hashbrown::{DefaultHashBuilder, HashTable};
-use hashql_core::id::{Id, IdSlice, IdVec, newtype};
+use hashbrown::HashTable;
+use hashql_core::{
+    collections::FastHasher,
+    id::{Id, IdSlice, IdVec, newtype},
+};
 use moka::Equivalent;
 
 newtype! {
@@ -10,7 +13,7 @@ newtype! {
 }
 
 pub(crate) struct InternTable<T> {
-    hasher: DefaultHashBuilder,
+    hasher: FastHasher,
     table: IdVec<TableIndex<T>, T>,
     reverse: HashTable<TableIndex<T>>,
 }
@@ -21,7 +24,7 @@ where
 {
     pub(crate) fn new() -> Self {
         Self {
-            hasher: DefaultHashBuilder::default(),
+            hasher: FastHasher::default(),
             table: IdVec::new(),
             reverse: HashTable::new(),
         }

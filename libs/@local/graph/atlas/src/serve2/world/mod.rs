@@ -8,7 +8,7 @@ use std::io;
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 
 use super::{schedule::BucketSchedule, secret::ServeSecret};
-use crate::file::generation::Generation;
+use crate::{file::generation::Generation, math::Bounds2};
 
 mod cache;
 mod encoding;
@@ -95,6 +95,11 @@ impl World {
         }
 
         sink.finish_ok(this)
+    }
+
+    /// Returns the coordinate bounds before wire-frame normalization.
+    pub(crate) fn fitted_bounds(&self) -> Bounds2 {
+        self.generation.repository().metadata.evidence.lod.world
     }
 
     /// Removes the generation's directory from the filesystem and drops the world.

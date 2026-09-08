@@ -4,7 +4,10 @@ use core::ptr;
 use arc_swap::Guard;
 
 use super::{Delta, DeltaRevision, layout::LayoutDelta, topology::TopologyDelta};
-use crate::serve2::world::{layout::Layout, topology::Topology};
+use crate::{
+    identity::NodeRowId,
+    serve2::world::{layout::Layout, topology::Topology},
+};
 
 /// A guard retaining one immutable delta publication for a request.
 ///
@@ -16,6 +19,11 @@ pub(crate) struct Epoch {
 impl Epoch {
     pub(crate) fn revision(&self) -> DeltaRevision {
         self.delta.revision
+    }
+
+    /// Returns whether a node has a visible placement at the captured revision.
+    pub(crate) fn contains_node(&self, node: NodeRowId) -> bool {
+        self.delta.world.layout.position(self, node).is_some()
     }
 
     /// Borrows the captured layout changes after checking their world association.

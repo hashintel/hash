@@ -8,21 +8,28 @@ mod placement;
 mod projector;
 pub(crate) mod topology;
 
+#[cfg(test)]
+mod tests;
+
 use alloc::sync::Arc;
 
 use hashql_core::id::Id as _;
 use rand::TryCryptoRng;
 
 use self::{
-    layout::LayoutDelta,
-    overlay::{IdentityProviderResidual, NaiveIdentityProvider},
-    topology::TopologyDelta,
+    layout::{LayoutDelta, provider::NaiveLayoutProvider},
+    overlay::{
+        DeltaIdentityProvider, IdentityProviderResidual, NaiveIdentityProvider,
+        VersionedIdentityProvider as _,
+    },
+    topology::{TopologyDelta, provider::NaiveTopologyProvider},
 };
 use super::world::World;
 use crate::{
     dataset::auxiliary::{OwnedIcon, OwnedLegend},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedOntologyTypeUuid},
+    math::Vec2,
+    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
 };
 
 hashql_core::id::newtype! {
@@ -83,37 +90,133 @@ impl Delta {
         })
     }
 
-    fn withdraw(&mut self, entity: ArchivedEntityUuid) -> bool {
-        let Self {
-            world,
-            id,
-            revision,
-            ontology,
-            node,
-            edge,
-            topology,
-            layout,
-        } = self;
+    /// Resolves an allocated node row, including a withdrawn node.
+    fn node_row(&self, entity: ArchivedEntityId) -> Option<NodeRowId> {
+        DeltaIdentityProvider::from_parts(
+            &self.node,
+            NaiveIdentityProvider::from_ref(&self.world.layout.index.identity),
+        )
+        .provide_allocated_row_of(entity)
+    }
 
-        let mut changed = false;
+    /// Returns a node's retained wire coordinates, including after withdrawal.
+    fn node_position(&self, entity: ArchivedEntityId) -> Option<Vec2> {
+        self.layout.recorded_position(
+            &NaiveLayoutProvider::new(&self.world.layout),
+            self.node_row(entity)?,
+        )
+    }
 
-        // changed |= self
-        //     .node
-        //     .withdraw(&self.world.layout.index.identity, self.revision, entity);
-        // changed |= self
-        //     .edge
-        //     .withdraw(&self.world.topology.identity, self.revision, entity);
+    /// Hides an entity's identity and geometry without releasing its row.
+    fn withdraw(&mut self, entity: ArchivedEntityId) -> bool {
+        let node = self.node_row(entity);
+        let edge = DeltaIdentityProvider::from_parts(
+            &self.edge,
+            NaiveIdentityProvider::from_ref(&self.world.topology.identity),
+        )
+        .provide_allocated_row_of(entity);
 
-        // changed |= topology.withdraw(&self.world.topology, entity, self.revision);
-        // changed |= layout.withdraw(&self.world.layout, entity, self.revision);
+        let mut changed = self.node.withdraw(
+            NaiveIdentityProvider::from_ref(&self.world.layout.index.identity),
+            self.revision,
+            entity,
+        );
+        changed |= self.edge.withdraw(
+            NaiveIdentityProvider::from_ref(&self.world.topology.identity),
+            self.revision,
+            entity,
+        );
+
+        if let Some(node) = node {
+            changed |= self.layout.withdraw(
+                &NaiveLayoutProvider::new(&self.world.layout),
+                node,
+                self.revision,
+            );
+        }
+
+        if let Some(edge) = edge {
+            changed |= self.topology.withdraw(
+                NaiveTopologyProvider::from_ref(&self.world.topology),
+                edge,
+                self.revision,
+            );
+        }
         changed
     }
 
-    fn update(&mut self, entity: ArchivedEntityUuid) -> bool {
-        todo!()
+    /// Activates a node and replaces its legend, retaining its first placement.
+    ///
+    /// `position` uses the [wire frame](crate::salt::lod::stage::WIRE_FRAME). Returns whether state
+    /// changed, or `None` when no node row remains available.
+    fn update_node(
+        &mut self,
+        entity: ArchivedEntityId,
+        legend: OwnedLegend,
+        position: Vec2,
+    ) -> Option<bool> {
+        let (node, mut changed) = self.node.insert(
+            NaiveIdentityProvider::from_ref(&self.world.layout.index.identity),
+            self.revision,
+            entity,
+            legend,
+        )?;
+        self.topology
+            .reserve_node(NaiveTopologyProvider::from_ref(&self.world.topology), node);
+
+        changed |= self.layout.insert(
+            &NaiveLayoutProvider::new(&self.world.layout),
+            node,
+            position,
+            self.revision,
+        );
+        Some(changed)
     }
 
-    fn register_ontology(&mut self) {}
+    /// Records an edge legend and activates a resolved endpoint pair.
+    ///
+    /// An edge retains its first bound pair.
+    ///
+    /// An unresolved pair reserves the edge row without binding it. Returns whether state changed,
+    /// or `None` when no edge row remains available.
+    fn update_edge(
+        &mut self,
+        entity: ArchivedEntityId,
+        legend: OwnedLegend,
+        endpoints: Option<[NodeRowId; 2]>,
+    ) -> Option<bool> {
+        let (edge, mut changed) = self.edge.insert(
+            NaiveIdentityProvider::from_ref(&self.world.topology.identity),
+            self.revision,
+            entity,
+            legend,
+        )?;
+
+        let base = NaiveTopologyProvider::from_ref(&self.world.topology);
+
+        self.topology.reserve_edge(base, edge);
+        if let Some(endpoints) = endpoints {
+            changed |= self.topology.insert(base, edge, endpoints, self.revision);
+        }
+
+        Some(changed)
+    }
+
+    /// Resolves an ontology row and replaces its icon.
+    ///
+    /// Returns the row and whether state changed, or `None` when no ontology row remains available.
+    fn register_ontology(
+        &mut self,
+        ontology: ArchivedOntologyTypeUuid,
+        icon: OwnedIcon,
+    ) -> Option<(OntologyRowId, bool)> {
+        self.ontology.insert(
+            NaiveIdentityProvider::from_ref(&self.world.ontology.identity),
+            self.revision,
+            ontology,
+            icon,
+        )
+    }
 }
 
 impl Clone for Delta {

@@ -10,6 +10,8 @@
 
 use core::{error::Error, fmt};
 
+use hashql_core::id::Id as _;
+
 use crate::{
     math::Log2,
     morton::{Depth, Zoom},
@@ -89,8 +91,7 @@ impl BucketSchedule {
             "the schedule serves zooms 0..=max_tile_depth",
         );
 
-        Depth::new(z.get() + self.0.span.get())
-            .expect("construction validated the schedule's deepest cut")
+        z.saturating_depth(self.0.span)
     }
 
     /// Returns the deepest served bucket, the catch-all.
@@ -108,7 +109,8 @@ impl BucketSchedule {
     /// When `z` exceeds [`max_tile_depth`](Self::max_tile_depth).
     pub(super) fn cut_buckets(self, z: Zoom) -> impl Iterator<Item = Depth> {
         let cut = self.cut(z);
-        (0..=cut.get()).map(|bucket| Depth::new(bucket).expect("bounded by the validated cut"))
+
+        Depth::MIN..=cut
     }
 
     /// Returns the first zoom whose cumulative schedule delivers `bucket`.
@@ -116,7 +118,6 @@ impl BucketSchedule {
     /// Bucket `b` enters the schedule at zoom `b - span`, clamped to the root for the buckets the
     /// root itself spans.
     pub(super) const fn first_zoom(self, bucket: Depth) -> Zoom {
-        Zoom::new(bucket.get().saturating_sub(self.0.span.get()))
-            .expect("a bucket within the key width enters at a zoom within it")
+        bucket.first_zoom(self.span())
     }
 }

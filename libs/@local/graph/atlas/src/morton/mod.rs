@@ -58,6 +58,10 @@ impl Depth {
         Zoom(Self::MAX.get() - self.get())
     }
 
+    pub const fn first_zoom(self, span: Log2) -> Zoom {
+        Zoom(self.get().saturating_sub(span.get()))
+    }
+
     pub const fn zoom(self, span: Log2) -> Zoom {
         Zoom(self.get().saturating_sub(span.get()))
     }
@@ -90,6 +94,40 @@ impl Depth {
     #[inline]
     pub fn all() -> impl DoubleEndedIterator<Item = Self> {
         Self::MIN..=Self::MAX
+    }
+}
+
+impl serde::Serialize for Depth {
+    /// Serializes as the plain depth.
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u8(self.get())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Depth {
+    /// Deserializes a plain depth, refusing values above [`Depth::MAX`].
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = u8::deserialize(deserializer)?;
+        Self::try_new(value).ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Unsigned(u64::from(value)),
+                &"a subdivision depth within the key width",
+            )
+        })
+    }
+}
+
+impl schemars::JsonSchema for Depth {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        "Depth".into()
+    }
+
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({
+            "type": "integer",
+            "minimum": Self::MIN.get(),
+            "maximum": Self::MAX.get(),
+        })
     }
 }
 
@@ -224,6 +262,17 @@ impl<'de> serde::Deserialize<'de> for Zoom {
     }
 }
 
+/// A tile address, the route's `z/x/y` echoed as `HEAD` key 2.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Deserialize, schemars::JsonSchema)]
+pub(crate) struct MortonTile {
+    /// The zoom, a subdivision depth.
+    pub z: Depth,
+    /// The cell's x index on the `2^z` grid.
+    pub x: u32,
+    /// The cell's y index on the `2^z` grid.
+    pub y: u32,
+}
+
 /// A Z-order key interleaving two 32-bit axes into one `u64`.
 ///
 /// `x` occupies the even bits and `y` the odd bits, starting at bit 0, so key order is Z-order
@@ -268,6 +317,17 @@ impl MortonKey {
     #[must_use]
     pub const fn coordinates(self) -> [u32; 2] {
         [compact_bits(self.0), compact_bits(self.0 >> 1)]
+    }
+
+    pub const fn tile(self, depth: Depth) -> MortonTile {
+        const AXIS_BITS: u8 = (size_of::<MortonTile>() * 8) as u8;
+        let [x, y] = self.coordinates();
+
+        MortonTile {
+            z: depth,
+            x: x >> (AXIS_BITS - depth.get()),
+            y: y >> (AXIS_BITS - depth.get()),
+        }
     }
 
     /// Returns the cell index at `depth`.
@@ -374,6 +434,10 @@ impl MortonCell {
             min: MortonKey::new(x << shift, y << shift).to_bits(),
             depth,
         })
+    }
+
+    pub const fn from_tile(tile: MortonTile) -> Option<Self> {
+        Self::new(tile.z, tile.x, tile.y)
     }
 
     /// Returns the cell's depth.

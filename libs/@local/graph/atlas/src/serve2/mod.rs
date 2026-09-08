@@ -1,5 +1,6 @@
 mod codec;
 mod delta;
+mod density;
 mod document;
 mod intern;
 mod membership;

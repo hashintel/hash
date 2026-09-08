@@ -30,6 +30,22 @@ pub(crate) struct LayoutDelta {
 }
 
 impl LayoutDelta {
+    /// Returns an added node's retained position or the base provider's position.
+    pub(super) fn recorded_position(
+        &self,
+        base: &(impl VersionedLayoutProvider + ?Sized),
+        node: NodeRowId,
+    ) -> Option<Vec2> {
+        if let Some(delta) = DeltaRowId::derive(base.provide_node_universe(), node) {
+            return self
+                .positions
+                .get(delta)?
+                .as_ref()
+                .map(|entry| *entry.data());
+        }
+        base.provide_position(node)
+    }
+
     fn get(
         &self,
         base: &(impl VersionedLayoutProvider + ?Sized),

@@ -31,6 +31,9 @@ where
 {
     fn provide_universe(&self) -> Universe<R>;
 
+    /// Resolves an allocated row regardless of visibility.
+    fn provide_allocated_row_of(&self, key: K) -> Option<R>;
+
     fn provide_key_of_at(&self, row: R, revision: DeltaRevision) -> Option<K>;
 
     fn provide_row_of_at(&self, key: K, revision: DeltaRevision) -> Option<R>;
@@ -47,6 +50,10 @@ where
 {
     fn provide_universe(&self) -> Universe<R> {
         T::provide_universe(self)
+    }
+
+    fn provide_allocated_row_of(&self, key: K) -> Option<R> {
+        T::provide_allocated_row_of(self, key)
     }
 
     fn provide_key_of_at(&self, row: R, revision: DeltaRevision) -> Option<K> {
@@ -139,6 +146,11 @@ where
     }
 
     #[inline]
+    fn provide_allocated_row_of(&self, key: K) -> Option<R> {
+        self.row_of(key)
+    }
+
+    #[inline]
     fn provide_key_of_at(&self, row: R, _: DeltaRevision) -> Option<K> {
         self.key_of(row)
     }
@@ -187,6 +199,64 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
         }
     }
 
+    /// Records local activation and a current payload without changing an allocated row.
+    ///
+    /// Returns the row and whether visibility or payload changed. `None` leaves the residual
+    /// unchanged when no row remains available.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `revision` precedes the key's latest recorded visibility transition.
+    pub(crate) fn insert(
+        &mut self,
+        base: &impl VersionedIdentityProvider<K, R>,
+        revision: DeltaRevision,
+        key: K,
+        payload: P,
+    ) -> Option<(R, bool)>
+    where
+        K: Key<Payload: PartialEq> + Hash + Eq,
+        R: Row,
+        P: Borrow<K::Payload>,
+    {
+        let (row, mut changed) = if let Some(&row) = self.forward.get(&key) {
+            let delta = DeltaRowId::derive(base.provide_universe(), row)
+                .expect("an added identity row must follow the fitted rows");
+            (row, self.inverse[delta].push(EntryKind::Live, revision))
+        } else if let Some(row) = base.provide_allocated_row_of(key) {
+            let changed = self
+                .history
+                .get_mut(&row)
+                .is_some_and(|history| history.push(EntryKind::Live, revision));
+            (row, changed)
+        } else {
+            let (universe, row) = self.universe.grow()?;
+            self.universe = universe;
+            self.forward.insert(key, row);
+            self.inverse.push(Versioned::new(key, revision));
+            (row, true)
+        };
+
+        let previous = self
+            .payload
+            .get(&key)
+            .map(Borrow::borrow)
+            .or_else(|| base.payload_of_key(key));
+        if previous != Some(payload.borrow()) {
+            self.payload.insert(key, payload);
+            changed = true;
+        }
+
+        Some((row, changed))
+    }
+
+    /// Hides a key while preserving its row and payload for revival.
+    ///
+    /// Returns whether visibility changed.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `revision` precedes the key's latest recorded visibility transition.
     pub(crate) fn withdraw(
         &mut self,
         base: &impl VersionedIdentityProvider<K, R>,
@@ -204,9 +274,8 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
             };
 
             let inverse = &mut self.inverse[delta];
-            inverse.push(EntryKind::Withdrawn, revision);
-            true
-        } else if let Some(row) = base.row_of(key) {
+            inverse.push(EntryKind::Withdrawn, revision)
+        } else if let Some(row) = base.provide_allocated_row_of(key) {
             let mut has_changed = false;
 
             let entry = self.history.entry(row).or_insert_with(|| {
@@ -387,6 +456,14 @@ where
 {
     fn provide_universe(&self) -> Universe<R> {
         self.data.universe
+    }
+
+    fn provide_allocated_row_of(&self, key: K) -> Option<R> {
+        self.data
+            .forward
+            .get(&key)
+            .copied()
+            .or_else(|| self.base.provide_allocated_row_of(key))
     }
 
     fn provide_key_of_at(&self, row: R, revision: DeltaRevision) -> Option<K> {

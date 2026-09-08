@@ -41,7 +41,7 @@ use super::{
     envelope::EnvelopeWriter,
     locate::{LocateResponse, LocateTrailer, PropertyMap, PropertyValue},
     tests::{directory, section},
-    tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
+    tile::{DeliveredSet, GlobalHead, TileHead, TileResponse, TileTrailer},
 };
 use crate::{
     bitset::DenseBitSlice,
@@ -49,6 +49,7 @@ use crate::{
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
+    morton::MortonTile,
     postgres::id::ArchivedEntityId,
     salt::postings::artifact::Membership,
     serve::{
@@ -318,7 +319,7 @@ fn g1_minimal_tile() -> Fixture {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0x11; 32]),
             variant: 0,
-            coordinate: TileCoordinate { z: 2, x: 3, y: 1 },
+            coordinate: MortonTile { z: 2, x: 3, y: 1 },
             mode: Mode::Delta,
             first_bucket: 4,
             runs: &[3],
@@ -383,7 +384,7 @@ fn g2_root_tile() -> Fixture {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0x22; 32]),
             variant: 0,
-            coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
+            coordinate: MortonTile { z: 0, x: 0, y: 0 },
             mode: Mode::Delta,
             first_bucket: 0,
             runs: &[1, 0, 2],
@@ -464,7 +465,7 @@ fn g3_total_tile() -> Fixture {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0x33; 32]),
             variant: 0,
-            coordinate: TileCoordinate { z: 1, x: 1, y: 0 },
+            coordinate: MortonTile { z: 1, x: 1, y: 0 },
             mode: Mode::Total,
             first_bucket: 0,
             runs: &[1, 0, 3, 2],
@@ -517,7 +518,7 @@ fn g4_empty_root() -> Fixture {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0x44; 32]),
             variant: 0,
-            coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
+            coordinate: MortonTile { z: 0, x: 0, y: 0 },
             mode: Mode::Delta,
             first_bucket: 0,
             runs: &[0, 0, 0],
@@ -589,7 +590,7 @@ fn g5_trailer_tile() -> Fixture {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0x55; 32]),
             variant: 0,
-            coordinate: TileCoordinate { z: 1, x: 1, y: 0 },
+            coordinate: MortonTile { z: 1, x: 1, y: 0 },
             mode: Mode::Delta,
             first_bucket: 3,
             runs: &[4],
@@ -817,7 +818,7 @@ fn g7_locate() -> Fixture {
     let response = LocateResponse {
         generation: Sha256Digest::from_bytes_unchecked([0x77; 32]),
         variant: 0,
-        cell: TileCoordinate { z: 3, x: 5, y: 2 },
+        cell: MortonTile { z: 3, x: 5, y: 2 },
         complete: false,
         entity_id: identity_of(0x42, 0x24),
         type_ids_complete: true,
@@ -1031,7 +1032,7 @@ fn g8_appended_slot() -> Fixture {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0x88; 32]),
             variant: 0,
-            coordinate: TileCoordinate { z: 3, x: 5, y: 2 },
+            coordinate: MortonTile { z: 3, x: 5, y: 2 },
             mode: Mode::Delta,
             first_bucket: 5,
             runs: &[3],
@@ -1117,7 +1118,7 @@ fn g9_padding_low() -> Fixture {
             // The variant, z, and firstBucket take two-byte arguments
             // and x and y three-byte ones, sizing the HEAD to 63
             // bytes: pad 1.
-            coordinate: TileCoordinate {
+            coordinate: MortonTile {
                 z: 24,
                 x: 1000,
                 y: 3000,
@@ -1189,7 +1190,7 @@ fn g10_padding_high() -> Fixture {
             // The variant, z, y, and firstBucket take two-byte
             // arguments and x a three-byte one, sizing the HEAD to 62
             // bytes: pad 2.
-            coordinate: TileCoordinate {
+            coordinate: MortonTile {
                 z: 25,
                 x: 300,
                 y: 170,
