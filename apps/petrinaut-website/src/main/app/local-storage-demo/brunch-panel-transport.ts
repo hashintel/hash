@@ -233,7 +233,13 @@ const decorateBrunchStream = (
 export const createBrunchPanelTransport = (
   clientPromise: Promise<FlueClient>,
   tracker: BrunchPanelConversationTracker,
-  hooks?: {
+  options?: {
+    /** Fixture-scoped client tools; defaults to the Petrinaut docs reader alone. */
+    readonly clientToolNames?: ReadonlySet<string>;
+    readonly mapClientToolInput?: (input: {
+      readonly input: unknown;
+      readonly toolName: string;
+    }) => unknown;
     readonly onAdmission?: (admission: AgentSendResult) => void;
   },
 ): PetrinautAiChatTransport => ({
@@ -244,10 +250,13 @@ export const createBrunchPanelTransport = (
         const client = await clientPromise;
         const transport = createFlueChatTransport({
           client,
-          clientToolNames: brunchClientToolNames,
+          clientToolNames: options?.clientToolNames ?? brunchClientToolNames,
+          ...(options?.mapClientToolInput === undefined
+            ? {}
+            : { mapClientToolInput: options.mapClientToolInput }),
           onAdmission: (event) => {
             tracker.recordAdmission(event);
-            hooks?.onAdmission?.(event.admission);
+            options?.onAdmission?.(event.admission);
           },
           onResponseMessage: ({ messageId, submissionId }) =>
             tracker.recordResponse(messageId, submissionId),
@@ -255,4 +264,13 @@ export const createBrunchPanelTransport = (
         return decorateBrunchStream(await transport.sendMessages(sendOptions));
       })(),
     ),
+});
+
+export const createUnavailableBrunchPanelTransport = (
+  reason: string,
+): PetrinautAiChatTransport => ({
+  reconnectToStream: async () => null,
+  sendMessages: async () => {
+    throw new Error(reason);
+  },
 });

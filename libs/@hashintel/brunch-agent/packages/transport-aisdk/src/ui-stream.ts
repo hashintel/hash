@@ -4,6 +4,10 @@ import type { UIMessageChunk } from "ai";
 export interface FlueUiStreamOptions {
   readonly submissionId: AgentSendResult["submissionId"];
   readonly clientToolNames: ReadonlySet<string>;
+  readonly mapClientToolInput?: (input: {
+    readonly input: unknown;
+    readonly toolName: string;
+  }) => unknown;
   readonly write: (chunk: UIMessageChunk) => void;
 }
 
@@ -66,6 +70,13 @@ export const createFlueUiStream = (
           if (messageId === undefined) {
             messageId = chunk.messageId;
             options.write({ type: "start", messageId });
+          } else if (
+            chunk.messageId !== messageId &&
+            pendingClientToolCallIds.size > 0
+          ) {
+            // Flue may append a waiting reply after yielding to the browser.
+            // An empty trailing AI SDK step would strand the client tool.
+            return;
           }
           finishTurn();
           turnId = chunk.turnId ?? `${messageId}:turn`;
@@ -129,7 +140,13 @@ export const createFlueUiStream = (
             type: "tool-input-available",
             toolCallId: chunk.toolCallId,
             toolName: chunk.toolName,
-            input: chunk.input,
+            input:
+              isClientTool && options.mapClientToolInput !== undefined
+                ? options.mapClientToolInput({
+                    input: chunk.input,
+                    toolName: chunk.toolName,
+                  })
+                : chunk.input,
             ...(isClientTool ? {} : { providerExecuted: true }),
           });
           return;

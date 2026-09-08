@@ -16,6 +16,10 @@ import {
   LocalStorageDemoApp,
   requestFlueStop,
 } from "./local-storage-demo-app";
+import {
+  crewReservationConversationId,
+  crewReservationFixtureId,
+} from "./prepared-crew-reservation-fixture";
 
 import type { FlueClient } from "@flue/sdk";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
@@ -26,6 +30,7 @@ const defaultTransportOptions = vi.hoisted(() => ({
 
 const editorProps = vi.hoisted(() => ({
   current: null as {
+    aiAssistant?: unknown;
     navigation?: unknown;
     createNewNet?: (params: {
       petriNetDefinition: unknown;
@@ -334,5 +339,38 @@ describe("local storage demo URL navigation", () => {
     });
 
     expect(mountedNavigation().state.selection).toEqual([]);
+  });
+});
+
+describe("local storage demo prepared fixture", () => {
+  afterEach(() => {
+    cleanup();
+    editorProps.current = null;
+  });
+
+  test("neither advertises nor opens the fixture while Brunch is unconfigured", () => {
+    // These tests run without `VITE_BRUNCH_CHAT_ENDPOINT`, so there is no Flue
+    // client to prepare the fixture conversation. Opening the fixture URL
+    // anyway once left the banner on "preparing" forever with every send
+    // unavailable; the URL now falls back to the ordinary per-net demo.
+    seedStoredNet();
+
+    render(
+      <LocalStorageDemoApp
+        onSearchChange={() => {}}
+        search={{ "brunch-fixture": crewReservationFixtureId }}
+      />,
+    );
+
+    expect(
+      document.querySelector('[aria-label="Prepared fixture selector"]'),
+    ).toBeNull();
+    expect(
+      document.querySelector('[aria-label="Prepared fixture status"]'),
+    ).toBeNull();
+    const aiAssistant = editorProps.current?.aiAssistant as
+      | { conversationId?: string }
+      | undefined;
+    expect(aiAssistant?.conversationId).not.toBe(crewReservationConversationId);
   });
 });

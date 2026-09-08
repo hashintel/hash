@@ -1,0 +1,7 @@
+{
+  "origin": "http://127.0.0.1:4915",
+  "historyRoute": "/agents/chat/<redacted-instance>?view=history",
+  "status": 200,
+  "retainedAuthorizationHeaders": false,
+  "retainedProviderPayloads": false
+}

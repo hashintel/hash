@@ -19,6 +19,10 @@ export type UiHistoryMessage = Omit<
 
 export interface SnapshotToUiMessagesOptions {
   readonly clientToolNames: ReadonlySet<string>;
+  readonly mapClientToolInput?: (input: {
+    readonly input: unknown;
+    readonly toolName: string;
+  }) => unknown;
 }
 
 const unhandledConversationPart = (part: never): never => {
@@ -71,17 +75,24 @@ const clientToolResultsFrom = (
 
 const toolPartFrom = (
   part: Extract<FlueConversationPart, { type: "dynamic-tool" }>,
-  clientToolNames: ReadonlySet<string>,
+  options: SnapshotToUiMessagesOptions,
   clientOutputs: ReadonlyMap<string, unknown>,
 ): UiMessagePart => {
-  const isClientTool = clientToolNames.has(part.toolName);
+  const isClientTool = options.clientToolNames.has(part.toolName);
   const hasClientOutput = clientOutputs.has(part.toolCallId);
+  const input =
+    isClientTool && options.mapClientToolInput !== undefined
+      ? options.mapClientToolInput({
+          input: part.input,
+          toolName: part.toolName,
+        })
+      : part.input;
   if (part.state === "output-error") {
     return {
       type: `tool-${part.toolName}`,
       toolCallId: part.toolCallId,
       state: "output-error",
-      input: part.input,
+      input,
       errorText: part.errorText,
       ...(isClientTool ? {} : { providerExecuted: true }),
     };
@@ -91,7 +102,7 @@ const toolPartFrom = (
       type: `tool-${part.toolName}`,
       toolCallId: part.toolCallId,
       state: "input-available",
-      input: part.input,
+      input,
     };
   }
   const output = isClientTool
@@ -104,7 +115,7 @@ const toolPartFrom = (
       type: `tool-${part.toolName}`,
       toolCallId: part.toolCallId,
       state: "output-available",
-      input: part.input,
+      input,
       output,
       ...(isClientTool ? {} : { providerExecuted: true }),
     };
@@ -113,7 +124,7 @@ const toolPartFrom = (
     type: `tool-${part.toolName}`,
     toolCallId: part.toolCallId,
     state: "input-available",
-    input: part.input,
+    input,
     ...(isClientTool ? {} : { providerExecuted: true }),
   };
 };
@@ -134,7 +145,7 @@ const partsFrom = (
       continue;
     }
     if (part.type === "dynamic-tool") {
-      parts.push(toolPartFrom(part, options.clientToolNames, clientOutputs));
+      parts.push(toolPartFrom(part, options, clientOutputs));
       continue;
     }
     if (part.type === "file") {
@@ -168,12 +179,14 @@ export const snapshotToUiMessages = (
   // message it resumes; the snapshot records that continuation as a separate
   // Flue message behind the `client-tool-result` dispatch, so fold it back.
   let resumableAssistant: UiHistoryMessage | undefined;
+  let awaitingClientResult = false;
   let continuationPending = false;
   for (const message of snapshot.messages) {
     if (
       message.purpose === "dispatch" &&
       message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL
     ) {
+      awaitingClientResult = false;
       continuationPending = resumableAssistant !== undefined;
       continue;
     }
@@ -183,15 +196,18 @@ export const snapshotToUiMessages = (
     const parts = partsFrom(message, options, clientOutputs);
     if (message.role === "user") {
       resumableAssistant = undefined;
+      awaitingClientResult = false;
       continuationPending = false;
     }
     if (parts.length === 0) continue;
     if (
       message.role === "assistant" &&
-      continuationPending &&
+      (awaitingClientResult || continuationPending) &&
       resumableAssistant !== undefined
     ) {
-      resumableAssistant.parts.push(...parts);
+      // Live continuations start a new step. Keep that boundary after reopen
+      // so completedClientToolResults still selects only the latest step.
+      resumableAssistant.parts.push({ type: "step-start" }, ...parts);
       continuationPending = false;
       continue;
     }
@@ -203,6 +219,12 @@ export const snapshotToUiMessages = (
     messages.push(projected);
     if (message.role === "assistant") {
       resumableAssistant = projected;
+      awaitingClientResult = message.parts.some(
+        (part) =>
+          part.type === "dynamic-tool" &&
+          options.clientToolNames.has(part.toolName) &&
+          !clientOutputs.has(part.toolCallId),
+      );
     }
   }
   return messages;

@@ -52,6 +52,49 @@ test("leaves an unfinished client tool available to run", () => {
   ]);
 });
 
+test("keeps a pending client tool on the final assistant message", () => {
+  const snapshot: FlueConversationSnapshot = {
+    ...snapshotWithPendingClientTool,
+    messages: [
+      ...snapshotWithPendingClientTool.messages,
+      {
+        id: "assistant-waiting",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        parts: [
+          {
+            type: "text",
+            text: "Waiting for the browser.",
+            state: "done",
+          },
+        ],
+      },
+    ],
+  };
+
+  expect(snapshotToUiMessages(snapshot, projectionOptions)).toEqual([
+    {
+      id: "assistant-1",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-readPetrinautDoc",
+          toolCallId: "tool-doc-1",
+          state: "input-available",
+          input: { doc: "ai-assistant" },
+        },
+        { type: "step-start" },
+        {
+          type: "text",
+          text: "Waiting for the browser.",
+          state: "done",
+        },
+      ],
+    },
+  ]);
+});
+
 test("uses a recorded browser result even when it is null", () => {
   const snapshot: FlueConversationSnapshot = {
     ...snapshotWithPendingClientTool,
@@ -220,6 +263,7 @@ test("folds a client-tool continuation into the assistant message it resumed", (
           input: { doc: "ai-assistant" },
           output: "The guide.",
         },
+        { type: "step-start" },
         { type: "text", text: "The guide says hello.", state: "done" },
       ],
     },

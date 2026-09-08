@@ -2,7 +2,10 @@ import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
 import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
-import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
+import {
+  normalizePetrinautAiToolInput,
+  petrinautAiTools,
+} from "@hashintel/petrinaut-core/ai";
 
 export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
   "getLatestNetDefinition",
@@ -13,8 +16,14 @@ export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
   "addArc",
 ] as const satisfies readonly (keyof typeof petrinautAiTools)[];
 
+export const petrinautFixtureToolNames = [
+  "getLatestNetDefinition",
+  "addArc",
+] as const satisfies readonly (keyof typeof petrinautAiTools)[];
+
 export type PetrinautConstructionToolName =
   (typeof PETRINAUT_CONSTRUCTION_TOOL_NAMES)[number];
+type PetrinautFixtureToolName = (typeof petrinautFixtureToolNames)[number];
 
 const issuePathFrom = (
   input: Record<string, unknown>,
@@ -46,15 +55,22 @@ const canonicalInputFor = (toolName: PetrinautConstructionToolName) => {
   return {
     description: [
       canonicalTool.description,
+      ...(toolName === "addArc"
+        ? [
+            "A finite numeric-string weight is normalized to a number before canonical validation.",
+          ]
+        : []),
       "Canonical Petrinaut input JSON Schema:",
       JSON.stringify(jsonSchema),
     ].join("\n"),
     schema: v.pipe(
       v.looseObject({}),
       v.rawTransform((context) => {
-        const parsed = canonicalTool.inputSchema.safeParse(
+        const normalizedInput = normalizePetrinautAiToolInput(
+          toolName,
           context.dataset.value,
         );
+        const parsed = canonicalTool.inputSchema.safeParse(normalizedInput);
         if (parsed.success) return parsed.data;
 
         for (const issue of parsed.error.issues) {
@@ -90,4 +106,17 @@ const definePetrinautConstructionTool = (
 
 export const petrinautConstructionTools = PETRINAUT_CONSTRUCTION_TOOL_NAMES.map(
   definePetrinautConstructionTool,
+);
+
+const isPetrinautFixtureTool = (
+  tool: (typeof petrinautConstructionTools)[number],
+): tool is (typeof petrinautConstructionTools)[number] & {
+  readonly name: PetrinautFixtureToolName;
+} =>
+  petrinautFixtureToolNames.some((fixtureToolName) => {
+    return fixtureToolName === tool.name;
+  });
+
+export const petrinautFixtureTools = petrinautConstructionTools.filter(
+  isPetrinautFixtureTool,
 );

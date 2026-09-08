@@ -1,7 +1,11 @@
 import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
-import { createFlueChatTransport } from "../src";
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  createFlueChatTransport,
+  snapshotToUiMessages,
+} from "../src";
 
 import type { FlueChatTransportOptions } from "../src";
 import type {
@@ -175,6 +179,105 @@ test("submits results from the latest assistant step with completed client tools
   );
 });
 
+test("after snapshot fold, submits only the latest client-tool step", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const clientToolNames = new Set(["getLatestNetDefinition", "addArc"]);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames,
+  });
+  const folded = snapshotToUiMessages(
+    {
+      messages: [
+        {
+          id: "assistant-1",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "read-before-1",
+              toolName: "getLatestNetDefinition",
+              state: "output-available",
+              input: {},
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+        {
+          id: "signal-1",
+          role: "system",
+          purpose: "dispatch",
+          display: "hidden",
+          signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+          parts: [
+            {
+              type: "text",
+              text: '[{"toolCallId":"read-before-1","toolName":"getLatestNetDefinition","output":{"revision":0}}]',
+              state: "done",
+            },
+          ],
+        },
+        {
+          id: "assistant-2",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "mutation-latest",
+              toolName: "addArc",
+              state: "output-available",
+              input: {},
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+        {
+          id: "signal-2",
+          role: "system",
+          purpose: "dispatch",
+          display: "hidden",
+          signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+          parts: [
+            {
+              type: "text",
+              text: '[{"toolCallId":"mutation-latest","toolName":"addArc","output":{"applied":true}}]',
+              state: "done",
+            },
+          ],
+        },
+      ],
+    },
+    { clientToolNames },
+  );
+
+  await readChunks(
+    await transport.sendMessages(sendOptions([...folded], "assistant-1")),
+  );
+
+  expect(send).toHaveBeenCalledWith(
+    expect.objectContaining({
+      message: {
+        kind: "signal",
+        type: "client-tool-result",
+        tagName: "client-tool-result",
+        body: JSON.stringify([
+          {
+            toolCallId: "mutation-latest",
+            toolName: "addArc",
+            output: { applied: true },
+          },
+        ]),
+        attributes: { toolCallIds: "mutation-latest" },
+      },
+      signal: undefined,
+    }),
+  );
+});
+
 test("admits one user message and projects a finite per-turn stream", async () => {
   const { client, send } = clientWith(completedEvents);
   const transport = createFlueChatTransport({
@@ -194,6 +297,7 @@ test("admits one user message and projects a finite per-turn stream", async () =
 
   expect(send).toHaveBeenCalledOnce();
   expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:user:user-1",
     message: { kind: "user", body: "Run the transport tracer." },
     signal: undefined,
   });
@@ -238,6 +342,7 @@ test("admits one client-tool result signal and resumes its assistant id", async 
   );
 
   expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:client-tools:assistant-original:tool-1",
     message: {
       kind: "signal",
       type: "client-tool-result",
@@ -257,6 +362,30 @@ test("admits one client-tool result signal and resumes its assistant id", async 
     type: "start",
     messageId: "assistant-original",
   });
+});
+
+test("derives the same idempotency key for exact AI SDK retries", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+  });
+  const options = sendOptions([
+    {
+      id: "stable-user-message",
+      role: "user",
+      parts: [{ type: "text", text: "Admit this once." }],
+    },
+  ]);
+
+  await transport.sendMessages(options);
+  await transport.sendMessages(options);
+
+  expect(send).toHaveBeenCalledTimes(2);
+  expect(send.mock.calls.map(([input]) => input.idempotencyKey)).toEqual([
+    "ai-sdk:user:stable-user-message",
+    "ai-sdk:user:stable-user-message",
+  ]);
 });
 
 test("starts with history-only reconnection", async () => {

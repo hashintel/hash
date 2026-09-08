@@ -1,0 +1,6 @@
+{
+  "fixtureUrl": "http://127.0.0.1:4915/?brunch-fixture=crew-reservation-v1",
+  "mountedRoute": "/agents/chat/<redacted-instance-id>",
+  "sameMountedInstanceAcrossTabs": true,
+  "browserErrors": []
+}

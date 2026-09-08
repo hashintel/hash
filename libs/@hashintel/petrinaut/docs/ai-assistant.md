@@ -26,6 +26,18 @@ If an assistant request fails, Petrinaut shows the error in a brief toast rather
 
 Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio.
 
+### Prepared local demo fixture
+
+The local Petrinaut development demo offers a labelled crew-reservation fixture when Brunch is
+configured. Opening it restores a test-authored Markdown workpiece, a non-empty final-inspection
+net, and their canonical Brunch conversation. The status panel distinguishes prepared text from
+model-produced revisions and states the fixture's non-claims.
+
+The document is mirrored to browser local storage automatically; there is no separate Save action.
+Wait for the status panel to report a settled bundle before reopening the same fixture in another
+tab. A refused status leaves the previous coherent bundle selected and names the failed history,
+workpiece, mutation-correlation, or document check instead of claiming that partial state settled.
+
 When the Brunch voice preview is enabled and available, an empty composer shows a waveform action
 titled **Start voice mode**. Typing non-whitespace text replaces it with **Send**. The same dynamic
 action appears in the first-run prompt and the assistant panel; if voice is unavailable, the empty

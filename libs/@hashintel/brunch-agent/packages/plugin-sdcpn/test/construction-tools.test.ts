@@ -4,8 +4,15 @@ import { describe, expect, test } from "vitest";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {
+  sdcpnInitialDataSchema,
+  VALIDATED_CONSTRUCTION_MODE,
+  validatedFixtureMutationMode,
+} from "../src/flue";
+import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+  petrinautFixtureToolNames,
   petrinautConstructionTools,
+  petrinautFixtureTools,
 } from "../src/tools/petrinaut-construction";
 
 const toolByName = (toolName: string) => {
@@ -18,9 +25,34 @@ const toolByName = (toolName: string) => {
 };
 
 describe("Petrinaut construction tools", () => {
+  test("accepts only the ordinary headless and prepared-fixture modes", () => {
+    expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
+    expect(
+      v.parse(sdcpnInitialDataSchema, {
+        mode: VALIDATED_CONSTRUCTION_MODE,
+      }),
+    ).toEqual({ mode: VALIDATED_CONSTRUCTION_MODE });
+    expect(
+      v.parse(sdcpnInitialDataSchema, {
+        mode: validatedFixtureMutationMode,
+      }),
+    ).toEqual({ mode: validatedFixtureMutationMode });
+    expect(() =>
+      v.parse(sdcpnInitialDataSchema, {
+        mode: "unrestricted-construction",
+      }),
+    ).toThrow(/Invalid type/u);
+  });
+
   test("exposes exactly the bounded canonical subset", () => {
     expect(petrinautConstructionTools.map((tool) => tool.name)).toEqual([
       ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+    ]);
+  });
+
+  test("limits prepared fixtures to one canonical read and arc mutation", () => {
+    expect(petrinautFixtureTools.map((tool) => tool.name)).toEqual([
+      ...petrinautFixtureToolNames,
     ]);
   });
 
@@ -53,6 +85,19 @@ describe("Petrinaut construction tools", () => {
     expect(v.safeParse(addArc.input!, validArc).success).toBe(
       petrinautAiTools.addArc.inputSchema.safeParse(validArc).success,
     );
+  });
+
+  test("normalizes a finite provider numeric-string arc weight", () => {
+    const addArc = toolByName("addArc");
+    const result = v.parse(addArc.input!, {
+      transitionId: "transition",
+      arcDirection: "input",
+      placeId: "place",
+      weight: "1",
+      type: "standard",
+    });
+
+    expect(result).toMatchObject({ weight: 1 });
   });
 
   test("retains nested values in canonical validation paths", () => {

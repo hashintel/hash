@@ -1,0 +1,51 @@
+{
+  "calls": [
+    {
+      "messageId": "entry_01M1NQGD1NRR36CBAX78EA666J",
+      "submissionId": "sub_ik_dd2eb7be21980998b89ae9a9da085fb2",
+      "toolCallId": "toolu_01KLHzRE7gbPbFfPaXe3RTry",
+      "state": "output-available",
+      "input": {
+        "transitionId": "start-final-inspection",
+        "arcDirection": "input",
+        "placeId": "dispatch-crew-available",
+        "weight": "1",
+        "type": "standard"
+      }
+    }
+  ],
+  "results": [
+    {
+      "toolCallId": "toolu_01KLHzRE7gbPbFfPaXe3RTry",
+      "toolName": "addArc",
+      "output": {
+        "title": "Added input arc",
+        "detail": "Dispatch crew available <-> Start final inspection",
+        "target": {
+          "kind": "selection",
+          "item": {
+            "type": "arc",
+            "id": "$A_place:dispatch-crew-available___start-final-inspection"
+          }
+        },
+        "applied": true
+      }
+    },
+    {
+      "toolCallId": "toolu_01KLHzRE7gbPbFfPaXe3RTry",
+      "toolName": "addArc",
+      "output": {
+        "title": "Added input arc",
+        "detail": "Dispatch crew available <-> Start final inspection",
+        "target": {
+          "kind": "selection",
+          "item": {
+            "type": "arc",
+            "id": "$A_place:dispatch-crew-available___start-final-inspection"
+          }
+        },
+        "applied": true
+      }
+    }
+  ]
+}

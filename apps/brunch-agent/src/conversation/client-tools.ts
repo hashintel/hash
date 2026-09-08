@@ -1,6 +1,9 @@
 /** Flue-side client-tool signal contract: awaiting sentinel, result signal, tool names. */
 
-import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import {
+  petrinautFixtureToolNames,
+  READ_PETRINAUT_DOC_TOOL_NAME,
+} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { CLIENT_TOOL_RESULT_SIGNAL } from "@hashintel/brunch-agent-transport-aisdk";
 import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
 
@@ -9,6 +12,7 @@ export { CLIENT_TOOL_RESULT_SIGNAL };
 
 export const clientToolNames: ReadonlySet<string> = new Set([
   READ_PETRINAUT_DOC_TOOL_NAME,
+  ...petrinautFixtureToolNames,
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

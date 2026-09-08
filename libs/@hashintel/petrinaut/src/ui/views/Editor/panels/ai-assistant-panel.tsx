@@ -1,11 +1,23 @@
 import { useChat } from "@ai-sdk/react";
-import { generateId, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import {
+  generateId,
+  getStaticToolName,
+  isToolUIPart,
+  lastAssistantMessageIsCompleteWithToolCalls,
+  type ChatOnToolCallCallback,
+} from "ai";
+import {
+  use,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   aiCommandActionInputSchemas,
   type AiCommandActionName,
-  createPetrinautAiWritableCallbacks,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   mutationActionInputSchemas as petrinautAiMutationToolInputSchemas,
@@ -37,6 +49,7 @@ import {
   REVIEW_CHIPS,
   STARTER_CHIPS,
 } from "./ai-assistant-panel/ai-assistant-contents/prompt-chips";
+import { applyPetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
 import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
@@ -51,7 +64,6 @@ import {
   type AiToolCall,
   type AiToolTarget,
   summarizeApplyAutoLayout,
-  summarizePetrinautAiToolCall,
   toPetrinautAiToolOutput,
 } from "./ai-assistant-panel/tool-summaries";
 
@@ -72,6 +84,10 @@ export type {
   PetrinautAiMessageMetadata,
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
+
+type PetrinautAiToolCall = Parameters<
+  ChatOnToolCallCallback<PetrinautAiMessage>
+>[0]["toolCall"];
 
 const selectTarget = (
   target: AiToolTarget,
@@ -104,6 +120,36 @@ type QueuedVoiceInput = {
   /** Detaches the input's abort listener once the queue no longer owns it. */
   readonly release: () => void;
   readonly resolve: (result: PetrinautAiComposerSubmitTextResult) => void;
+};
+
+type PetrinautAiMessagePart = PetrinautAiMessage["parts"][number];
+type RunnableStaticToolPart = Extract<
+  PetrinautAiMessagePart,
+  { state: "input-available" }
+> & { type: `tool-${string}` };
+
+/** A static browser tool call the panel still owes an execution for. */
+const isRunnableStaticToolPart = (
+  part: PetrinautAiMessagePart,
+): part is RunnableStaticToolPart =>
+  isToolUIPart(part) &&
+  part.type !== "dynamic-tool" &&
+  part.providerExecuted !== true &&
+  part.state === "input-available";
+
+/**
+ * True when the last assistant message ends in static tool calls the panel
+ * will execute and then continue, so the turn is not over even though the AI
+ * SDK reports `ready`.
+ */
+const hasRunnableStaticToolCalls = (
+  messages: PetrinautAiMessage[],
+): boolean => {
+  const message = messages.at(-1);
+  return (
+    message?.role === "assistant" &&
+    message.parts.some((part) => isRunnableStaticToolPart(part))
+  );
 };
 
 const voiceInputWithdrawn = (signal: AbortSignal | undefined): unknown =>
@@ -255,25 +301,6 @@ const waitForDiagnosticsRefresh = async ({
 
     check();
   });
-};
-
-const applyPetrinautAiMutation = ({
-  aiToolCall,
-  instance,
-}: {
-  aiToolCall: Extract<AiToolCall, { toolName: PetrinautAiMutationToolName }>;
-  instance: Petrinaut;
-}): AiToolOutput => {
-  const definition = instance.definition.get();
-  const toolCallbacks = createPetrinautAiWritableCallbacks(instance);
-  const summary = summarizePetrinautAiToolCall(aiToolCall, { definition });
-  const callback = toolCallbacks[aiToolCall.toolName] as (
-    input: typeof aiToolCall.input,
-  ) => void;
-
-  callback(aiToolCall.input);
-
-  return toPetrinautAiToolOutput(summary);
 };
 
 const applyPetrinautAiCommand = async ({
@@ -525,6 +552,234 @@ const ConversationAiAssistantPanel = ({
   const submissionGenerationRef = useRef(0);
   const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
   const hydratedConversationIdRef = useRef<string | null>(null);
+  const automaticToolCallExecutionsRef = useRef(new Set<string>());
+  const pendingAutomaticToolCallExecutionsRef = useRef(new Set<string>());
+  // AI SDK's implicit addToolOutput continuation races its stream-to-ready
+  // cleanup. Static browser tools instead await output and explicitly continue.
+  const automaticToolContinuationTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const suppressedAutomaticSendsRef = useRef(0);
+  const addToolOutputRef = useRef<
+    ReturnType<typeof useChat<PetrinautAiMessage>>["addToolOutput"] | null
+  >(null);
+  const sendAutomaticToolContinuationRef = useRef<(() => Promise<void>) | null>(
+    null,
+  );
+  // Stop was pressed during the step that just ended in client tool calls.
+  // Flue had nothing left to abort once that step settled, so withholding the
+  // follow-up is what makes the Stop real.
+  const withholdContinuationForStop = () => {
+    stopRequestedRef.current = false;
+    setContinuationPending(false);
+    setStreamError(null);
+    setStopped(true);
+  };
+  const addAutomaticToolOutput = async (
+    params: Parameters<
+      ReturnType<typeof useChat<PetrinautAiMessage>>["addToolOutput"]
+    >[0],
+  ): Promise<void> => {
+    const currentAddToolOutput = addToolOutputRef.current;
+    if (currentAddToolOutput === null) {
+      throw new Error("The AI assistant tool host is not ready.");
+    }
+    const executionKey = `${aiAssistant.conversationId ?? "local"}:${params.toolCallId}`;
+    pendingAutomaticToolCallExecutionsRef.current.delete(executionKey);
+    // Prevent addToolOutput's fire-and-forget continuation from racing the
+    // explicit continuation chained to its promise below.
+    suppressedAutomaticSendsRef.current += 1;
+    await Promise.resolve()
+      .then(() => currentAddToolOutput(params))
+      .then(
+        () => {
+          suppressedAutomaticSendsRef.current -= 1;
+        },
+        (caught: unknown) => {
+          suppressedAutomaticSendsRef.current -= 1;
+          throw caught;
+        },
+      );
+  };
+
+  const executeToolCall: ChatOnToolCallCallback<PetrinautAiMessage> = async ({
+    toolCall,
+  }) => {
+    if (!instance) {
+      throw new Error(
+        "The AI assistant cannot run without an editor instance.",
+      );
+    }
+
+    if (toolCall.dynamic) {
+      resolveDynamicInteractiveTool(
+        toolCall.toolName,
+        toolCall.input,
+        aiAssistant.interactiveTools ?? [],
+      );
+      return;
+    }
+
+    if (toolCall.toolName === getLatestNetDefinitionToolName) {
+      await addAutomaticToolOutput({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        output: {
+          title: titleRef.current,
+          definition: instance.definition.get(),
+          extensions: instance.extensions,
+        },
+      });
+      return;
+    }
+
+    if (toolCall.toolName === getNetCompilationErrorsToolName) {
+      await waitForDiagnosticsRefresh({
+        consumePendingMutationDiagnosticsVersion: () => {
+          const pendingVersion = pendingMutationDiagnosticsVersionRef.current;
+          pendingMutationDiagnosticsVersionRef.current = null;
+          return pendingVersion;
+        },
+        diagnosticsVersionRef,
+      });
+      await addAutomaticToolOutput({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        output: diagnosticsContextRef.current,
+      });
+      return;
+    }
+
+    if (toolCall.toolName === readPetrinautDocToolName) {
+      const { doc } = readPetrinautDocToolInputSchema.parse(toolCall.input);
+      await addAutomaticToolOutput({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        output: petrinautDocsContent[doc],
+      });
+      return;
+    }
+
+    if (toolCall.toolName === setNetTitleToolName) {
+      const setNetTitleReadOnlyReason = readOnlyReasonRef.current;
+      if (setNetTitleReadOnlyReason !== null) {
+        await addAutomaticToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: {
+            applied: false,
+            blocked: setNetTitleReadOnlyReason.kind,
+            reason: formatReadOnlyReason(setNetTitleReadOnlyReason),
+          } satisfies AiToolOutput,
+        });
+        return;
+      }
+
+      const parsedSetNetTitleInput = setNetTitleToolInputSchema.parse(
+        toolCall.input,
+      );
+      const previousTitle = titleRef.current;
+      setTitle(parsedSetNetTitleInput.title);
+
+      await addAutomaticToolOutput({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        output: {
+          applied: true,
+          title: `Renamed net to "${parsedSetNetTitleInput.title}"`,
+          detail:
+            previousTitle && previousTitle !== parsedSetNetTitleInput.title
+              ? `Previous title: ${previousTitle}`
+              : undefined,
+        } satisfies AiToolOutput,
+      });
+      return;
+    }
+
+    const toolName = toolCall.toolName;
+    if (
+      !isPetrinautAiMutationToolName(toolName) &&
+      !isPetrinautAiCommandToolName(toolName)
+    ) {
+      throw new Error(`Unknown AI tool: ${String(toolName as string)}`);
+    }
+
+    const currentReadOnlyReason = readOnlyReasonRef.current;
+    if (currentReadOnlyReason !== null) {
+      const isSimulateAllowedMutation =
+        isPetrinautAiMutationToolName(toolName) &&
+        simulateModeAllowedMutationNames.has(toolName);
+      const allowedDespiteReadOnly =
+        isSimulateAllowedMutation &&
+        currentReadOnlyReason.kind !== "host-readonly";
+
+      if (!allowedDespiteReadOnly) {
+        await addAutomaticToolOutput({
+          tool: toolName,
+          toolCallId: toolCall.toolCallId,
+          output: {
+            applied: false,
+            blocked: currentReadOnlyReason.kind,
+            reason: formatReadOnlyReason(currentReadOnlyReason),
+          } satisfies AiToolOutput,
+        });
+        return;
+      }
+    }
+
+    if (isPetrinautAiCommandToolName(toolName)) {
+      const commandInput = aiCommandActionInputSchemas[toolName].parse(
+        toolCall.input,
+      );
+      if (
+        getInteractiveTool(toolName, commandInput, aiAssistant.interactiveTools)
+      ) {
+        return;
+      }
+
+      pendingMutationDiagnosticsVersionRef.current =
+        diagnosticsVersionRef.current;
+
+      const aiToolCall = {
+        toolName,
+        input: commandInput,
+      } as Extract<AiToolCall, { toolName: AiCommandActionName }>;
+
+      const output = await applyPetrinautAiCommand({
+        aiToolCall,
+        instance,
+      });
+      await addAutomaticToolOutput({
+        tool: toolName,
+        toolCallId: toolCall.toolCallId,
+        output,
+      });
+      return;
+    }
+
+    const toolInput = petrinautAiMutationToolInputSchemas[toolName].parse(
+      toolCall.input,
+    );
+
+    pendingMutationDiagnosticsVersionRef.current =
+      diagnosticsVersionRef.current;
+
+    const aiToolCall = {
+      toolName,
+      input: toolInput,
+    } as Extract<AiToolCall, { toolName: PetrinautAiMutationToolName }>;
+
+    const output = applyPetrinautAiMutation({
+      aiToolCall,
+      instance,
+    });
+
+    await addAutomaticToolOutput({
+      tool: toolName,
+      toolCallId: toolCall.toolCallId,
+      output,
+    });
+  };
 
   const {
     error,
@@ -541,8 +796,11 @@ const ConversationAiAssistantPanel = ({
       : { id: aiAssistant.conversationId }),
     messages: aiAssistant.messages,
     transport: diagnosticsTransportState.transport,
+    // Interactive tools retain AI SDK's native continuation; static tools
+    // suppress it while addAutomaticToolOutput owns the explicit chain.
     sendAutomaticallyWhen: ({ messages: currentMessages }) => {
       if (
+        suppressedAutomaticSendsRef.current !== 0 ||
         !lastAssistantMessageIsCompleteWithToolCalls({
           messages: currentMessages,
         })
@@ -554,13 +812,7 @@ const ConversationAiAssistantPanel = ({
         // never observe the `ready` between this check and that request.
         return true;
       }
-      // Stop was pressed during the step that just ended in client tool
-      // calls. Flue had nothing left to abort once that step settled, so
-      // withholding the follow-up is what makes the Stop real.
-      stopRequestedRef.current = false;
-      setContinuationPending(false);
-      setStreamError(null);
-      setStopped(true);
+      withholdContinuationForStop();
       return false;
     },
     // Without throttling, every reasoning-delta / text-delta chunk triggers a
@@ -585,9 +837,10 @@ const ConversationAiAssistantPanel = ({
       const followUpPending =
         !isAbort &&
         !isError &&
-        lastAssistantMessageIsCompleteWithToolCalls({
+        (lastAssistantMessageIsCompleteWithToolCalls({
           messages: finishedMessages,
-        });
+        }) ||
+          hasRunnableStaticToolCalls(finishedMessages));
       setContinuationPending(followUpPending);
       if (isAbort) {
         // The SDK fires `onFinish` for every abort. Only act on a deliberate
@@ -626,194 +879,61 @@ const ConversationAiAssistantPanel = ({
       setStreamError(null);
       setStopped(false);
     },
-    onToolCall: async ({ toolCall }) => {
-      if (!instance) {
-        throw new Error(
-          "The AI assistant cannot run without an editor instance.",
-        );
-      }
-
-      if (toolCall.dynamic) {
-        resolveDynamicInteractiveTool(
-          toolCall.toolName,
-          toolCall.input,
-          aiAssistant.interactiveTools ?? [],
-        );
-        return;
-      }
-
-      if (toolCall.toolName === getLatestNetDefinitionToolName) {
-        safelyAddToolOutput(addToolOutput, {
-          tool: toolCall.toolName,
-          toolCallId: toolCall.toolCallId,
-          output: {
-            title: titleRef.current,
-            definition: instance.definition.get(),
-            extensions: instance.extensions,
-          },
-        });
-        return;
-      }
-
-      if (toolCall.toolName === getNetCompilationErrorsToolName) {
-        await waitForDiagnosticsRefresh({
-          consumePendingMutationDiagnosticsVersion: () => {
-            const pendingVersion = pendingMutationDiagnosticsVersionRef.current;
-            pendingMutationDiagnosticsVersionRef.current = null;
-            return pendingVersion;
-          },
-          diagnosticsVersionRef,
-        });
-        safelyAddToolOutput(addToolOutput, {
-          tool: toolCall.toolName,
-          toolCallId: toolCall.toolCallId,
-          output: diagnosticsContextRef.current,
-        });
-        return;
-      }
-
-      if (toolCall.toolName === readPetrinautDocToolName) {
-        const { doc } = readPetrinautDocToolInputSchema.parse(toolCall.input);
-        safelyAddToolOutput(addToolOutput, {
-          tool: toolCall.toolName,
-          toolCallId: toolCall.toolCallId,
-          output: petrinautDocsContent[doc],
-        });
-        return;
-      }
-
-      if (toolCall.toolName === setNetTitleToolName) {
-        const setNetTitleReadOnlyReason = readOnlyReasonRef.current;
-        if (setNetTitleReadOnlyReason !== null) {
-          safelyAddToolOutput(addToolOutput, {
-            tool: toolCall.toolName,
-            toolCallId: toolCall.toolCallId,
-            output: {
-              applied: false,
-              blocked: setNetTitleReadOnlyReason.kind,
-              reason: formatReadOnlyReason(setNetTitleReadOnlyReason),
-            } satisfies AiToolOutput,
-          });
-          return;
-        }
-
-        const parsedSetNetTitleInput = setNetTitleToolInputSchema.parse(
-          toolCall.input,
-        );
-        const previousTitle = titleRef.current;
-        setTitle(parsedSetNetTitleInput.title);
-
-        safelyAddToolOutput(addToolOutput, {
-          tool: toolCall.toolName,
-          toolCallId: toolCall.toolCallId,
-          output: {
-            applied: true,
-            title: `Renamed net to "${parsedSetNetTitleInput.title}"`,
-            detail:
-              previousTitle && previousTitle !== parsedSetNetTitleInput.title
-                ? `Previous title: ${previousTitle}`
-                : undefined,
-          } satisfies AiToolOutput,
-        });
-        return;
-      }
-
-      const toolName = toolCall.toolName;
-      if (
-        !isPetrinautAiMutationToolName(toolName) &&
-        !isPetrinautAiCommandToolName(toolName)
-      ) {
-        throw new Error(`Unknown AI tool: ${String(toolName as string)}`);
-      }
-
-      const currentReadOnlyReason = readOnlyReasonRef.current;
-      if (currentReadOnlyReason !== null) {
-        // Scenario and metric mutations stay live in simulate mode and
-        // during an active simulation — the Simulate panel itself drives
-        // them, so `usePetrinautMutations` only blocks them when the host
-        // is fully read-only. Mirror that here so the assistant can do
-        // what the UI already permits.
-        const isSimulateAllowedMutation =
-          isPetrinautAiMutationToolName(toolName) &&
-          simulateModeAllowedMutationNames.has(toolName);
-        const allowedDespiteReadOnly =
-          isSimulateAllowedMutation &&
-          currentReadOnlyReason.kind !== "host-readonly";
-
-        if (!allowedDespiteReadOnly) {
-          safelyAddToolOutput(addToolOutput, {
-            tool: toolName,
-            toolCallId: toolCall.toolCallId,
-            output: {
-              applied: false,
-              blocked: currentReadOnlyReason.kind,
-              reason: formatReadOnlyReason(currentReadOnlyReason),
-            } satisfies AiToolOutput,
-          });
-          return;
-        }
-      }
-
-      if (isPetrinautAiCommandToolName(toolName)) {
-        const commandInput = aiCommandActionInputSchemas[toolName].parse(
-          toolCall.input,
-        );
-        if (
-          getInteractiveTool(
-            toolName,
-            commandInput,
-            aiAssistant.interactiveTools,
-          )
-        ) {
-          // Defer: the surface will render the widget and call
-          // onInteractiveToolSubmit when the user decides.
-          return;
-        }
-
-        pendingMutationDiagnosticsVersionRef.current =
-          diagnosticsVersionRef.current;
-
-        const aiToolCall = {
-          toolName,
-          input: commandInput,
-        } as Extract<AiToolCall, { toolName: AiCommandActionName }>;
-
-        const output = await applyPetrinautAiCommand({
-          aiToolCall,
-          instance,
-        });
-        safelyAddToolOutput(addToolOutput, {
-          tool: toolName,
-          toolCallId: toolCall.toolCallId,
-          output,
-        });
-        return;
-      }
-
-      const toolInput = petrinautAiMutationToolInputSchemas[toolName].parse(
-        toolCall.input,
-      );
-
-      pendingMutationDiagnosticsVersionRef.current =
-        diagnosticsVersionRef.current;
-
-      const aiToolCall = {
-        toolName,
-        input: toolInput,
-      } as Extract<AiToolCall, { toolName: PetrinautAiMutationToolName }>;
-
-      const output = applyPetrinautAiMutation({
-        aiToolCall,
-        instance,
-      });
-
-      safelyAddToolOutput(addToolOutput, {
-        tool: toolName,
-        toolCallId: toolCall.toolCallId,
-        output,
-      });
-    },
+    // AI SDK does not auto-submit outputs added while a response is still
+    // streaming. The ready-state effect below owns static tool execution.
+    onToolCall: ({ toolCall }) =>
+      toolCall.dynamic ? executeToolCall({ toolCall }) : undefined,
   });
+  useLayoutEffect(() => {
+    addToolOutputRef.current = addToolOutput;
+    sendAutomaticToolContinuationRef.current = () => sendMessage();
+    return () => {
+      if (addToolOutputRef.current === addToolOutput) {
+        addToolOutputRef.current = null;
+      }
+      sendAutomaticToolContinuationRef.current = null;
+    };
+  }, [addToolOutput, sendMessage]);
+  useEffect(() => {
+    if (
+      chatStatus !== "ready" ||
+      !continuationPending ||
+      pendingAutomaticToolCallExecutionsRef.current.size > 0 ||
+      !lastAssistantMessageIsCompleteWithToolCalls({ messages }) ||
+      automaticToolContinuationTimerRef.current !== null
+    ) {
+      return;
+    }
+
+    automaticToolContinuationTimerRef.current = setTimeout(() => {
+      automaticToolContinuationTimerRef.current = null;
+      if (stopRequestedRef.current) {
+        withholdContinuationForStop();
+        return;
+      }
+      const sendContinuation = sendAutomaticToolContinuationRef.current;
+      if (sendContinuation === null) {
+        setContinuationPending(false);
+        setStreamError(new Error("The AI assistant tool host is not ready."));
+        return;
+      }
+      void sendContinuation().catch((caught: unknown) => {
+        setContinuationPending(false);
+        setStreamError(
+          caught instanceof Error ? caught : new Error(String(caught)),
+        );
+      });
+    }, 0);
+  }, [chatStatus, continuationPending, messages]);
+  useEffect(
+    () => () => {
+      if (automaticToolContinuationTimerRef.current !== null) {
+        clearTimeout(automaticToolContinuationTimerRef.current);
+      }
+    },
+    [],
+  );
+  const executeToolCallRef = useLatest(executeToolCall);
 
   const status: PetrinautAiComposerStatus =
     continuationPending && chatStatus === "ready" ? "submitted" : chatStatus;
@@ -824,6 +944,9 @@ const ConversationAiAssistantPanel = ({
       status !== "ready" ||
       hydratedConversationIdRef.current === conversationId
     ) {
+      return;
+    }
+    if (aiAssistant.messages.length === 0 && messages.length === 0) {
       return;
     }
     // A turn submitted before the host's history arrived is already visible
@@ -843,6 +966,51 @@ const ConversationAiAssistantPanel = ({
     hydratedConversationIdRef.current = conversationId;
     setMessages(aiAssistant.messages);
   }, [aiAssistant.messages, conversationId, messages, setMessages, status]);
+
+  useEffect(() => {
+    // Keyed on the SDK's own status: the derived composer status stays busy
+    // for exactly the continuation this effect drives.
+    if (chatStatus !== "ready") {
+      return;
+    }
+
+    for (const message of messages) {
+      for (const part of message.parts) {
+        if (!isRunnableStaticToolPart(part)) {
+          continue;
+        }
+
+        const toolCall = {
+          dynamic: false,
+          input: part.input,
+          toolCallId: part.toolCallId,
+          toolName: getStaticToolName(part),
+        } as PetrinautAiToolCall;
+        const executionKey = `${aiAssistant.conversationId ?? "local"}:${toolCall.toolCallId}`;
+        if (automaticToolCallExecutionsRef.current.has(executionKey)) continue;
+        automaticToolCallExecutionsRef.current.add(executionKey);
+        pendingAutomaticToolCallExecutionsRef.current.add(executionKey);
+        // React can publish the ready render before AI SDK has finished its
+        // internal request cleanup. Cross that boundary before updating the
+        // message; addAutomaticToolOutput then submits the explicit continuation.
+        setTimeout(() => {
+          // A resumed hydrated call has no onFinish to mark the turn busy.
+          setContinuationPending(true);
+          void Promise.resolve(executeToolCallRef.current({ toolCall })).catch(
+            (caught: unknown) => {
+              pendingAutomaticToolCallExecutionsRef.current.delete(
+                executionKey,
+              );
+              setContinuationPending(false);
+              setStreamError(
+                caught instanceof Error ? caught : new Error(String(caught)),
+              );
+            },
+          );
+        }, 0);
+      }
+    }
+  }, [aiAssistant.conversationId, chatStatus, executeToolCallRef, messages]);
 
   const composerSubmissionStateRef = useLatest({
     addToolOutput,
