@@ -673,7 +673,7 @@ services:
     volumes:
       - logs:/logs
       - ../../var/atlas-generations:/atlas-generations
-    command: atlas
+    command: atlas serve
     environment:
       HASH_GRAPH_ATLAS_HOST: "0.0.0.0"
       HASH_GRAPH_ATLAS_PORT: "4003"
@@ -701,7 +701,7 @@ services:
     ports:
       - "127.0.0.1:${HASH_GRAPH_ATLAS_PORT:-4003}:4003"
     healthcheck:
-      test: ["CMD", "/hash-graph", "atlas", "--healthcheck"]
+      test: ["CMD", "/hash-graph", "atlas", "healthcheck"]
       interval: 2s
       timeout: 2s
       retries: 10

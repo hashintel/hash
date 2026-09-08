@@ -38,17 +38,28 @@ pub struct AtlasAddress {
 }
 
 /// CLI arguments for the `atlas` subcommand.
-///
-/// Without a subcommand, `atlas` serves the root's active generation - the deployment default
-/// (`command: atlas` in the compose stack). `atlas fit` runs one production generation over the
-/// live store.
 #[derive(Debug, Parser)]
 pub struct AtlasArgs {
+    #[command(subcommand)]
+    pub command: AtlasCommand,
+}
+
+/// The atlas operations.
+#[derive(Debug, clap::Subcommand)]
+pub enum AtlasCommand {
+    /// Serves the read API over the root's active generation.
+    Serve(Box<AtlasServeArgs>),
+    /// Fits one generation over the live store and activates it on admission.
+    Fit(Box<AtlasFitArgs>),
+    /// Probes the liveness endpoint of a serving atlas process.
+    Healthcheck(AtlasHealthcheckArgs),
+}
+
+/// CLI arguments for `atlas serve`.
+#[derive(Debug, Parser)]
+pub struct AtlasServeArgs {
     #[clap(flatten)]
     pub address: AtlasAddress,
-
-    #[clap(flatten)]
-    pub healthcheck: HealthcheckArgs,
 
     #[clap(flatten)]
     pub root: cli::RootArgs,
@@ -72,11 +83,8 @@ pub struct AtlasArgs {
     ///
     /// Sent as the `Authorization: HASH-Service <secret>` credential next to
     /// `X-Authenticated-User-Actor-Id`.
-    //
-    // Optional at parse time so `--healthcheck` does not require the environment variable. The
-    // serve refuses to start without it.
     #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
-    pub service_secret: Option<PasswordString>,
+    pub service_secret: PasswordString,
 
     #[clap(flatten)]
     pub rate_limit: RateLimitConfig,
@@ -87,23 +95,37 @@ pub struct AtlasArgs {
     /// carry stay equal to the exclusions the store's own workflow starts carry.
     #[clap(long, env = "HASH_GRAPH_SKIP_FILTER_PROTECTION")]
     pub skip_filter_protection: bool,
-
-    #[command(subcommand)]
-    pub command: Option<AtlasCommand>,
 }
 
-/// The explicit atlas operations. When absent, the subcommand serves.
-#[derive(Debug, clap::Subcommand)]
-pub enum AtlasCommand {
-    /// Fits one generation over the live store and activates it on
-    /// admission.
-    Fit {
-        #[clap(flatten)]
-        args: cli::FitArgs,
+/// CLI arguments for `atlas fit`.
+#[derive(Debug, Parser)]
+pub struct AtlasFitArgs {
+    #[clap(flatten)]
+    pub root: cli::RootArgs,
 
-        #[clap(flatten)]
-        credential: cli::EmbedderArgs,
-    },
+    #[clap(flatten)]
+    pub db_info: DatabaseConnectionInfo,
+
+    #[clap(flatten)]
+    pub fit: cli::FitArgs,
+
+    #[clap(flatten)]
+    pub credential: cli::EmbedderArgs,
+}
+
+/// CLI arguments for `atlas healthcheck`.
+#[derive(Debug, Parser)]
+pub struct AtlasHealthcheckArgs {
+    #[clap(flatten)]
+    pub address: AtlasAddress,
+
+    /// Waits for the healthcheck to become healthy.
+    #[clap(long, default_value_t = false)]
+    pub wait: bool,
+
+    /// Timeout for the wait flag in seconds.
+    #[clap(long, requires = "wait")]
+    pub timeout: Option<u64>,
 }
 
 struct AtlasTelemetry {
@@ -112,7 +134,7 @@ struct AtlasTelemetry {
 
 /// Runs the atlas server, shutting down when `shutdown` is cancelled.
 async fn run_atlas(
-    args: AtlasArgs,
+    args: AtlasServeArgs,
     telemetry: &AtlasTelemetry,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
@@ -129,15 +151,7 @@ async fn run_atlas(
     };
     let exclusions = filter_protection.embedding_exclusions().clone();
 
-    let service_secret = args
-        .service_secret
-        .map(cli::SecretString::from)
-        .ok_or_else(|| {
-            Report::new(GraphError).attach(
-                "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set and non-empty when \
-                 running the atlas server",
-            )
-        })?;
+    let service_secret = cli::SecretString::from(args.service_secret);
 
     // A single pool serves the whole process, so the detail trailers, the permission
     // resolution, and the credential chain's actor lookups behind every request read through
@@ -228,31 +242,36 @@ fn print_verdict(verdict: &cli::FitVerdict) {
     clippy::exit,
     reason = "Force shutdown on double ctrl-c is intentional"
 )]
-pub async fn atlas(mut args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<GraphError>> {
-    if let Some(AtlasCommand::Fit {
-        args: fit_args,
-        credential,
-    }) = args.command.take()
-    {
-        let mut client = cli::connect(&args.db_info.url())
-            .await
-            .map_err(Report::new)
-            .change_context(GraphError)?;
-        let verdict = cli::FitCommand::new(args.root, fit_args)
-            .run(&mut client, credential)
-            .await
-            .map_err(Report::new)
-            .change_context(GraphError)?;
-        print_verdict(&verdict);
+pub async fn atlas(args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<GraphError>> {
+    let serve_args = match args.command {
+        AtlasCommand::Fit(fit_args) => {
+            let mut client = cli::connect(&fit_args.db_info.url())
+                .await
+                .map_err(Report::new)
+                .change_context(GraphError)?;
+            let verdict = cli::FitCommand::new(fit_args.root, fit_args.fit)
+                .run(&mut client, fit_args.credential)
+                .await
+                .map_err(Report::new)
+                .change_context(GraphError)?;
+            print_verdict(&verdict);
 
-        return Ok(());
-    }
-
-    if args.healthcheck.healthcheck {
-        return wait_healthcheck(|| healthcheck(args.address.clone()), &args.healthcheck)
+            return Ok(());
+        }
+        AtlasCommand::Healthcheck(healthcheck_args) => {
+            return wait_healthcheck(
+                || healthcheck(healthcheck_args.address.clone()),
+                &HealthcheckArgs {
+                    healthcheck: true,
+                    wait: healthcheck_args.wait,
+                    timeout: healthcheck_args.timeout,
+                },
+            )
             .await
             .change_context(GraphError);
-    }
+        }
+        AtlasCommand::Serve(serve_args) => serve_args,
+    };
 
     let telemetry = AtlasTelemetry {
         meter: telemetry.meter("Graph Atlas API"),
@@ -261,7 +280,7 @@ pub async fn atlas(mut args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Rep
     let lifecycle = ServerLifecycle::new();
     let shutdown = lifecycle.shutdown.clone();
     lifecycle.spawn("Atlas", async move {
-        run_atlas(args, &telemetry, shutdown).await
+        run_atlas(*serve_args, &telemetry, shutdown).await
     });
 
     // Wait for shutdown signal or unexpected server exit
