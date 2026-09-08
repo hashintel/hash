@@ -1,0 +1,5 @@
+# Original test stores remain local; no DB/WAL/SHM import artifacts in this packet.
+**/*.db
+**/*.db-*
+**/*.sqlite
+**/*.sqlite-*

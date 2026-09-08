@@ -1,0 +1,69 @@
+{
+  "reviewBase": "46aa1908f65a05d48a1f22e239debb0182a7c68e",
+  "testCommit": "6c6dcac5c912dc650b8ae1e5e6be0b42b1e7adf6",
+  "node": "v22.21.1",
+  "priorIdentityFile": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/local-recovery-wnhhyezf/identities.json",
+  "priorIdentitySha256": "af6b80b96ba8bcb19154d4b296d12e3a565de34576520462969d7f93d7098d59",
+  "priorEvidenceManifestSha256": "1d8eb0c4f4387d90cd04c2b597c273090eb10a27f38c3394e0da68a64a923560",
+  "verifiedUnchangedProtectedFiles": 1108,
+  "verifiedUnchangedBuiltFiles": 106,
+  "verifiedUnchangedPriorArtifacts": 728,
+  "installed": {
+    "node_modules/@flue/runtime/package.json": {
+      "sha256": "c5e309215be49579b62219d6a28f3bcae842a535d1f5466a06c1e82d666e4ee5",
+      "bytes": 3032
+    },
+    "node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs": {
+      "sha256": "7d0cdbd54e9ee150645d53f70e613d4df2cd81903fd8b2eefbce9bb044888240",
+      "bytes": 252831
+    },
+    "node_modules/@flue/runtime/dist/sql-agent-execution-store-RrAtlpSL.mjs": {
+      "sha256": "4cdce40d85dd9eb54c5b2963414cced3ddd1cab08489b2b34bc853dc0701c8d1",
+      "bytes": 35015
+    },
+    "node_modules/@flue/runtime/dist/use-persistent-state-DUUiJyWP.mjs": {
+      "sha256": "15b73239ac938dfb76e31577e890aae88257f8d68c6acbb22d0e3a4f3377da2a",
+      "bytes": 3947
+    },
+    "node_modules/@flue/runtime/dist/tool-DZ5dxCl_.mjs": {
+      "sha256": "92e4d89c3e37b7db9dcb37732495f7e08d3f34fca0fc01ae3adbf7041f0753ae",
+      "bytes": 10055
+    },
+    "node_modules/@flue/runtime/dist/schema-DIDpvZZa.mjs": {
+      "sha256": "dbe9e224c56c6e135c704f4b4659f642c90fa5dd471dd35cb41ac804ab948e97",
+      "bytes": 3943
+    },
+    "node_modules/@earendil-works/pi-ai/package.json": {
+      "sha256": "a3e39900a10bc5d6fd01e8de86899ac15991a849160bae1b4bd741eeaddf05d8",
+      "bytes": 2642
+    },
+    "node_modules/@earendil-works/pi-agent-core/package.json": {
+      "sha256": "33aa9a2c1435a59e3a0d62ebd29cd4f8f39c4b4dfb1dc6bce4762835950ee0c5",
+      "bytes": 1383
+    },
+    "node_modules/@earendil-works/pi-agent-core/dist/agent.js": {
+      "sha256": "02e5f6dfcea09280d7c6818fd264dc9a1219087f1d6c49115752b7086f6f2b62",
+      "bytes": 15635
+    },
+    "node_modules/@openapitools/openapi-generator-cli/package.json": {
+      "sha256": "96ea2b86a90b78fe5936fb237f8b6b463a5b8ccc7b61f2a6f1cfff9a620cbc0f",
+      "bytes": 2267
+    }
+  },
+  "unchangedPatchLockMission": {
+    "yarn.lock": "7a401548d3dd2d705003220703ee3ae99c63d6cdd906e045911541ca41fe58a5",
+    ".yarn/patches/@flue-runtime-npm-2.0.3-192c31f50c.patch": "23edc7ab8a09bad83be8a6eacc4f40df92c9ec4c5b42c0075d41888a3b0f7efd",
+    ".yarn/patches/@earendil-works-pi-ai-npm-0.83.0-c607801251.patch": "9f712c9ebbfddcf6da3904dce21ae81cb132dee1e0c451da95e568cd76792818",
+    ".yarn/patches/@earendil-works-pi-agent-core-npm-0.83.0-6cd8fe314f.patch": "dedc8f8cb350f86901e59493eb143badf3eae05256db13b3aa650ea4823a71d9",
+    "libs/@hashintel/brunch-agent/MISSION.md": "aabf05cc4230b673cec603b2f1a0c486e88e8dabc1aae3dbd989f633a704aa99"
+  },
+  "testSources": {
+    "apps/brunch-agent/test/history-retention-audit.py": "fd4883df25977573afb9615c874ecb4056ee84ff8d96bae41fde598631c2884f",
+    "apps/brunch-agent/test/history-retention-diagnostics.sh": "3916046d1509e970ccd66f017d0d5c025655fbadf6c9610c264b037789325e31",
+    "apps/brunch-agent/test/history-retention-history-fault.ts": "57396b8d0618c018aabba14dca90574926fbb4aa4223138a3b84fafe74385919",
+    "apps/brunch-agent/test/history-retention.integration.ts": "1f62498c647f736b5dbccc61799f1d44e9f3a6ef13ae528df9f0829e110ce82a",
+    "apps/brunch-agent/test/history-retention.test.ts": "61121a08bf76f677f301d5b7f8955eceb9f802e79352230e4320d149e357949a"
+  },
+  "finalMatrixSourceBuildPinsMatch": true,
+  "buildInstallOrProductEdits": false
+}
