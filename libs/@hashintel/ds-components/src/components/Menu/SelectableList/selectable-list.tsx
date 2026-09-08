@@ -295,6 +295,9 @@ export const SelectableList = ({
   selected,
   size = "md",
   emptyState,
+  header,
+  footer,
+  reverseHeadAndFootOnFlip = false,
 }: {
   /** Which ark-ui primitive set to render inside. Defaults to Menu. */
   as?: SelectableListAs;
@@ -303,6 +306,15 @@ export const SelectableList = ({
   size?: FormInputSize;
   selected?: string[] | Set<string>;
   emptyState?: React.ReactNode;
+  /** Pinned above the items, outside the scrollable area. */
+  header?: React.ReactNode;
+  /** Pinned below the items, outside the scrollable area. */
+  footer?: React.ReactNode;
+  /**
+   * Swap the header and footer when the dropdown flips to open upward
+   * (placement `top*`), keeping the header on the edge nearest the trigger.
+   */
+  reverseHeadAndFootOnFlip?: boolean;
 }) => {
   const selectedSet = useMemo(() => new Set(selected ?? []), [selected]);
   const normalizedItems = useItemsWithCustomIds(items);
@@ -321,11 +333,44 @@ export const SelectableList = ({
     contentClassName: classes.content,
   };
 
-  const body = isEmpty ? (
+  const listBody = isEmpty ? (
     <div className={classes.emptyContainer}>{emptyState}</div>
   ) : (
     normalizedItems.map((item) => renderEntry(item, ctx))
   );
+
+  const hasHeader = header !== undefined && header !== null;
+  const hasFooter = footer !== undefined && footer !== null;
+  const reverseOnFlip = reverseHeadAndFootOnFlip ? "" : undefined;
+
+  // With a header/footer, scrolling moves to an inner wrapper so they stay
+  // pinned while the items scroll.
+  const body =
+    hasHeader || hasFooter ? (
+      <>
+        {hasHeader && (
+          <div
+            className={classes.header}
+            data-selectable-list-reverse-on-flip={reverseOnFlip}
+          >
+            {header}
+          </div>
+        )}
+        <div className={classes.scrollArea} data-selectable-list-scroll="">
+          {listBody}
+        </div>
+        {hasFooter && (
+          <div
+            className={classes.footer}
+            data-selectable-list-reverse-on-flip={reverseOnFlip}
+          >
+            {footer}
+          </div>
+        )}
+      </>
+    ) : (
+      listBody
+    );
 
   if (as === "Select") {
     return (

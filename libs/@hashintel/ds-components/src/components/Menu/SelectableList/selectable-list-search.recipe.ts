@@ -15,19 +15,6 @@ export const searchRow = cva({
     paddingBottom: "1",
     background: "neutral.s10",
     borderBottom: "1px solid {colors.neutral.s35}",
-    // When the dropdown flips above the trigger, move the search to the
-    // bottom edge so it stays adjacent to the trigger (the list content is a
-    // flex column, so `order` relocates it without changing DOM order)
-    "[data-placement^='top'] &": {
-      order: "[1]",
-      marginTop: "0.5",
-      marginBottom:
-        "[calc(-1 * (var(--spacing-1) + var(--selectable-list-padding-y)))]",
-      paddingTop: "1",
-      paddingBottom: "1.5",
-      borderBottom: "none",
-      borderTop: "1px solid {colors.neutral.s35}",
-    },
   },
 });
 

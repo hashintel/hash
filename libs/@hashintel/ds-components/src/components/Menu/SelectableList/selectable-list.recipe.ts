@@ -3,17 +3,28 @@ import { sva } from "@hashintel/ds-helpers/css";
 import type { FormInputSize } from "../../../util/form-shared";
 
 export const styles = sva({
-  slots: ["content", "group", "groupLabel", "emptyContainer", "customItem"],
+  slots: [
+    "content",
+    "group",
+    "groupLabel",
+    "emptyContainer",
+    "customItem",
+    "scrollArea",
+    "header",
+    "footer",
+  ],
   base: {
     content: {
-      // A flex column so rows can re-order themselves by placement (the
-      // search row moves to the bottom edge when the dropdown flips upward).
-      // Children must not shrink, or long lists would compress rows to fit
-      // maxHeight instead of scrolling.
+      // A flex column so the header/footer can swap edges by placement when
+      // reverseHeadAndFootOnFlip is set. Children must not shrink, or long
+      // lists would compress rows to fit maxHeight instead of scrolling.
       display: "flex",
       flexDirection: "column",
       "& > *": {
         flexShrink: "0",
+      },
+      "& > [data-selectable-list-scroll]": {
+        flexShrink: "1",
       },
       backgroundColor: "white",
       border: "1px solid {colors.bd.subtle}",
@@ -64,10 +75,46 @@ export const styles = sva({
       width: "full",
       paddingX: "[var(--selectable-list-padding-x)]",
       paddingY: "[var(--selectable-list-padding-y)]",
-      // A search row moves to the bottom edge when the dropdown flips upward
+    },
+    scrollArea: {
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "0",
+      overflowY: "auto",
+      scrollbarWidth: "[thin]",
+      "& > *": {
+        flexShrink: "0",
+      },
+    },
+    header: {
+      paddingX: "[var(--selectable-list-padding-x)]",
+      paddingY: "[var(--selectable-list-padding-y)]",
+      borderBottom: "1px solid {colors.neutral.s30}",
+      marginBottom: "1",
+      // With reverse-on-flip, an upward-opening dropdown puts the header on
+      // the bottom edge (nearest the trigger), swapping its divider side
       "[data-placement^='top'] &": {
-        "&:has([data-selectable-list-search])": {
+        "&[data-selectable-list-reverse-on-flip]": {
           order: "[1]",
+          borderBottomWidth: "0",
+          borderTop: "1px solid {colors.neutral.s30}",
+          marginBottom: "0",
+          marginTop: "1",
+        },
+      },
+    },
+    footer: {
+      paddingX: "[var(--selectable-list-padding-x)]",
+      paddingY: "[var(--selectable-list-padding-y)]",
+      borderTop: "1px solid {colors.neutral.s30}",
+      marginTop: "1",
+      "[data-placement^='top'] &": {
+        "&[data-selectable-list-reverse-on-flip]": {
+          order: "[-1]",
+          borderTopWidth: "0",
+          borderBottom: "1px solid {colors.neutral.s30}",
+          marginTop: "0",
+          marginBottom: "1",
         },
       },
     },
@@ -93,6 +140,12 @@ export const styles = sva({
         customItem: {
           textStyle: "xxs",
         },
+        header: {
+          textStyle: "xxs",
+        },
+        footer: {
+          textStyle: "xxs",
+        },
       },
       xs: {
         content: {
@@ -109,6 +162,12 @@ export const styles = sva({
           textStyle: "xxs",
         },
         customItem: {
+          textStyle: "xs",
+        },
+        header: {
+          textStyle: "xs",
+        },
+        footer: {
           textStyle: "xs",
         },
       },
@@ -129,6 +188,12 @@ export const styles = sva({
         customItem: {
           textStyle: "sm",
         },
+        header: {
+          textStyle: "sm",
+        },
+        footer: {
+          textStyle: "sm",
+        },
       },
       md: {
         content: {
@@ -147,6 +212,12 @@ export const styles = sva({
         customItem: {
           textStyle: "base",
         },
+        header: {
+          textStyle: "base",
+        },
+        footer: {
+          textStyle: "base",
+        },
       },
       lg: {
         content: {
@@ -163,6 +234,12 @@ export const styles = sva({
           textStyle: "sm",
         },
         customItem: {
+          textStyle: "base",
+        },
+        header: {
+          textStyle: "base",
+        },
+        footer: {
           textStyle: "base",
         },
       },

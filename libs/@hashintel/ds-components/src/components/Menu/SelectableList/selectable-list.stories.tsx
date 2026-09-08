@@ -99,6 +99,27 @@ export const CustomItems: Story<SelectableListProps> = (args) => (
   </div>
 );
 
+export const HeaderAndFooter: Story<SelectableListProps> = (args) => (
+  <div
+    className={css({
+      // The static menu has no positioner to set --available-height, so
+      // provide it here — short enough that the items must scroll, showing
+      // the header and footer stay pinned outside the scroll area.
+      "--available-height": "240px",
+    })}
+  >
+    <StaticMenu>
+      <SelectableList
+        {...args}
+        items={groupedItems}
+        selected={defaultSelected}
+        header={<span>Header — outside the scroll area</span>}
+        footer={<span>Footer — outside the scroll area</span>}
+      />
+    </StaticMenu>
+  </div>
+);
+
 export const Disabled: Story<SelectableListProps> = (args) => (
   <StaticMenu>
     <SelectableList
