@@ -1,8 +1,10 @@
-# FE-1630 — Improved Relay prerequisite evidence
+# FE-1630 — Improved Relay evidence
 
 ## Status
 
-Blocked before prompt or delivery changes by the supported Voice-context prerequisite. Local credentials and routing now work, and two synthetic-speech baseline turns crossed the real provider/Flue path. This is not an implemented optimization, a human naturalness verdict, or a replacement for the accepted Mission 6b authority. No new live mission has been cut.
+Implemented as a bounded experiment under the separately committed [live mission](../../../../MISSION.md), including Kostandin's explicitly approved [local Flue 2.0.3 context patch](flue-context-patch.md). This is **not upstream-supported functionality**. The credential/routing blockers below are historical. Real local before/after observations and an inspected audible demonstration now exist; preview and human acceptance remain gated.
+
+**Recommendation: the relay still fails for short local follow-ups; use this evidence to reconsider #9571.** The final clarification remained 151 words and required the Brunch round trip before even a non-substantive notice (7.437 seconds after completed transcription). Bounded delivery fixed automatic report reading and the observed Realtime preamble, not conversational responsiveness. This recommendation does not authorize or establish the correctness of split ownership; the long-report/tool-stall findings alone do not select it.
 
 - Issue: [FE-1630 — Optimize and measure the Brunch Voice relay](https://linear.app/hash/issue/FE-1630/optimize-and-measure-the-brunch-voice-relay) _(internal)_, created in FE / brunch-agent, Todo, assigned to Kostandin Angjellari.
 - Branch: `kostandin/fe-1630-improved-voice-relay`.
@@ -28,9 +30,11 @@ The worktree initially matched remote [704f961aea2109a2297efa877898a76bb6e29818]
 
 #9564 remained **OPEN**, with `mergedAt: null`, when checked on 2026-09-08. No preview deployment was tested. If the parent moves again, the final reviewable PR must be restacked and all affected evidence re-pinned; the old checks do not establish the new base.
 
+The latest subsequently available head was [743c3c89c1f11309f49fe97ab97f93b3437adb0e](https://github.com/hashintel/hash/commit/743c3c89c1f11309f49fe97ab97f93b3437adb0e). Its exact Git tree equals the tested pin's tree (`7faa9e5e5724f57eba3021979634e24af638d4fb`). Thus this experiment uses the latest available parent **content**, but child ancestry still needs updating after Lu's final restack. No parent/sibling or remote history was rewritten. Keep the PR draft until ancestry and merge-gated preview are resolved.
+
 ### No supported per-turn Voice hint on canonical user deliveries
 
-Both installed `@flue/sdk` and `@flue/runtime` are exactly 2.0.3. Their public `DeliveredMessage` contracts allow `kind: "user"`, `body`, and optional image attachments. Only `kind: "signal"` supports attributes. `send` admits a message, creation-only `initialData`, `uid`, and an idempotency key; it has no per-turn instruction/context option. `useDelivery()` exposes the message, not its idempotency key or HTTP request context. `useInitialData()` is immutable and cannot distinguish later typed and Voice turns in the same conversation.
+At baseline, both installed `@flue/sdk` and `@flue/runtime` were unpatched 2.0.3. Their upstream public `DeliveredMessage` contracts allow `kind: "user"`, `body`, and optional image attachments. Only `kind: "signal"` supports attributes. `send` admits a message, creation-only `initialData`, `uid`, and an idempotency key; it has no per-turn instruction/context option. `useDelivery()` exposes the message, not its idempotency key or HTTP request context. `useInitialData()` is immutable and cannot distinguish later typed and Voice turns in the same conversation.
 
 Authoritative 2.0.3 source: release [bf86b8726f5ba189844185fdbeca0e194344ded1](https://github.com/withastro/flue/commit/bf86b8726f5ba189844185fdbeca0e194344ded1), pointing to source [ac610378741d879a9d12d3f927ff9634e0b4f7ae](https://github.com/withastro/flue/commit/ac610378741d879a9d12d3f927ff9634e0b4f7ae).
 
@@ -39,7 +43,7 @@ Authoritative 2.0.3 source: release [bf86b8726f5ba189844185fdbeca0e194344ded1](h
 - [HTTP admission validation](https://github.com/withastro/flue/blob/ac610378741d879a9d12d3f927ff9634e0b4f7ae/packages/runtime/src/runtime/schemas.ts).
 - [Delivery hook](https://github.com/withastro/flue/blob/ac610378741d879a9d12d3f927ff9634e0b4f7ae/packages/runtime/src/hooks/use-delivery.ts) and [instruction hook](https://github.com/withastro/flue/blob/ac610378741d879a9d12d3f927ff9634e0b4f7ae/packages/runtime/src/hooks/use-instruction.ts).
 
-Changing Voice users into signals, adding a separate admission, carrying mode in user text, or storing an application-side mode map would not establish the requested supported per-turn system-context contract. None was implemented. A supported substrate capability or explicit owner-approved change to the constraints is required before choosing that mechanism.
+Changing Voice users into signals, adding a separate admission, carrying mode in user text, or storing an application-side mode map would not establish the requested supported per-turn system-context contract. None was implemented. Kostandin subsequently approved the version-pinned dependency-patch exception, recorded separately in the live mission and patch maintenance note. It adds delivery-scoped JSON context and recovery in existing records, without a new store or provenance claim.
 
 ### Real local baseline blocked by provider authentication
 
@@ -68,7 +72,7 @@ Browser-received event timings, **not first-audible measurements**: short input 
 
 The short response was still Speaking at the capture. Clicking **Your turn** cleared the output buffer, received the provider's clear acknowledgement, and permitted the second input; it was not a durable Stop test. The long report was also still Speaking when the browser session ended. Provider output-transcript completion is not proof of completed playback. Both screenshots were inspected for visible canonical text, Voice status, and unchanged fixture revision. A silent browser recording was captured diagnostically, but it is not an audible demonstration of an optimized relay.
 
-Remaining evidence: no after observation, human naturalness judgment, audible latency measurement, durable Stop/reopen witness, or optimized demonstration video. No preview test was run; #9564 was still open at the pinned head on this retry.
+At this baseline checkpoint, after observations, human naturalness judgment, audible latency measurement, durable Stop/reopen witness, and optimized demonstration were still missing. The after section below records which gaps are now addressed. No preview test was run.
 
 ## Local verification
 
@@ -92,10 +96,58 @@ Additional baseline checks passed:
 - `yarn workspace @apps/petrinaut-website lint:eslint`: zero errors, one existing React set-state-in-effect warning at `voice-interview-control.tsx:627`.
 - `yarn oxfmt --check` on `realtime-brunch-bridge.ts`, `openai-realtime-session.ts`, `voice-turn-controller.ts`, and `openai-voice-policy.ts`: all four matched files formatted correctly.
 
-These checks must be rerun for the eventual implementation; no implementation exists to validate yet. This documentation packet is checked with `git diff --check`; Brunch Markdown is excluded from repository Oxfmt/Markdownlint policy.
+Those are baseline checks, not implementation verification. Brunch Markdown is excluded from repository Oxfmt/Markdownlint policy.
 
-## Remaining proof and decision
+## Implementation and after observations — 2026-09-08
 
-After resolving the supported-context prerequisite, cut the bounded live mission separately before implementation. Preserve these synthetic baseline inputs and method for comparison, and obtain a real audible witness before making naturalness claims. Test typed isolation, concise Voice clarification, complete visible long report with opt-in exact reading, non-substantive bridging, interruption versus durable Stop, and no autoplay/duplicate canonical content on reopen. Retain comparable observations and a demonstration video, and document latency, repetition, long-response, and interruption limitations. Test preview only after #9564 merges.
+The transport derives `{ responseMode: "voice" }` from live Voice metadata on the existing user admission and causally linked browser-tool results. Automatic static-tool continuations inherit the originating live user preference; dynamic interactive answers use their own source. Automatic results are not labelled user-authored Voice evidence. Brunch reads only the fixed preference through `useDelivery` and adds fixed system instructions; arbitrary context instructions are ignored. Typed effective prompts remain byte-identical in the real-runtime isolation test.
 
-Neither requested recommendation is supported yet: the optimized relay has not been implemented or exercised. The baseline establishes verbosity, automatic long-report reading, and an unsolicited Realtime preamble; it does not establish that bounded optimization cannot succeed. Keep #9571 unchanged; the missing context capability and these baseline observations do not select split ownership.
+The application withholds automatic reading above 120 whitespace-delimited words, 1,200 characters, or a fenced code block. This is a delivery budget, never canonical truncation. An already-completed short step can speak before a later long continuation appears; this does not predict future response length. Once a long response is ready, the application requests exactly “The full response is on screen. Choose Read full response to hear it.” Realtime receives no tools, `conversation: "none"`, and a bounded 256-token request. Autonomous semantic-VAD responses remain disabled. Bridging has distinct metadata/events and `speechKind: "bridging"` diagnostics, remains absent from canonical content, and is not counted as first canonical TTS latency.
+
+### Comparable final run
+
+[After record](after-2026-09-08.json) retains exact canonical text, relevant Realtime events, contexts, UI text, and Stop/reopen evidence. [Audible demonstration](demo-2026-09-08.mp4) is approximately 98 seconds, encoded at 15 fps with synchronized synthetic microphone and received remote audio. It was inspected with audio and screenshots, not merely captured. The same Samantha WAV inputs, models, prepared revision-zero fixture, and local Chrome path were used; the after run used a fresh conversation. Transcription omitted the long input's final period; its substance was unchanged. These are individual diagnostic observations, not statistical benchmarks or a paid evaluation campaign.
+
+| Check | Before | After / verdict |
+| --- | --- | --- |
+| Short clarification | 192 words; additional unsolicited 12-word Realtime preamble | 151 canonical words, still repetitive and not suitably concise. It crosses the delivery budget, so only the offer is spoken. **Failed desired short-answer experience.** |
+| Typed isolation | Ordinary typed behavior | Actual typed HTTP admission omitted context; real runtime test compares typed → Voice → Voice signal → typed → unknown preference. Typed system context is unchanged. |
+| Long report | 11-word intro + 1,178-word report automatically queued | Complete 952-word report, including Summary, retained in UI. No canonical speech request before explicit reading; only the fixed offer. Real `getLatestNetDefinition` continuation retained Voice context. |
+| Bridging authority | Unsolicited preamble absent from Brunch text | Both final offer transcripts exactly match the fixed string. No substantive claims, tools, or canonical transcript insertion. Observed compliance is not a provider guarantee. |
+| Requested reading | Automatic report playback | **Read full response** submitted all 952 canonical words unchanged. Received text before cancellation is an exact prefix without paraphrase. Full uninterrupted acoustic reproduction was not tested. |
+| Interruption | Your turn acknowledged buffer clear | During requested reading, Your turn sent cancel + buffer clear; provider reported `client_cancelled`; UI returned to Listening and retained the report. This did not abort Brunch. |
+| Durable Stop and reopen | Not witnessed in baseline | A separately admitted typed turn received HTTP 202, then Stop called `/abort`. Stored Flue settlement is `aborted`. Two reloads emitted no POST/autoplay and retained each user turn once, plus the previous report. The transient “Response stopped” notice was not visible after reload; durable evidence is the Flue settlement. |
+
+Final browser event timings, **not first-audible measurements**:
+
+- Short input end → completed transcription: **9.015 seconds**; completed transcription → bridge audio-buffer-start: **7.437 seconds**, versus baseline 11.497 seconds to its first audio event. The after event is a notice, **not the answer**, so this is not a like-for-like answer-latency win.
+- Long input end → completed transcription: **2.714 seconds**; completed transcription → offer audio-buffer-start: **34.709 seconds**. Baseline preliminary audio was 16.044 seconds and report audio 41.248 seconds; after intentionally waits for complete visible content before offering.
+- Requested reading was interrupted about **7.4 seconds** after the application request. Generation runs ahead of playback; the received prefix does not establish which complete sentences were heard.
+
+Demo landmarks: first offer around 00:29, silent report streaming around 00:54–01:22, report offer around 01:22, explicit reading around 01:27, Your turn around 01:34. It intentionally shows the failed concise-clarification outcome as well as successful bounded delivery.
+
+### Retained negative findings and limitations
+
+1. The initial after clarification was also verbose (roughly 170 words). Preferring one or two spoken sentences did not reliably fix it: the final answer is still 151 words and repeats its explanation. It contains literal `<brunch_mark_question>` markup instead of a proper marker tool call. The relay preserves that Brunch defect rather than silently editing it.
+2. An initial long after turn settled in Flue but remained Thinking after `activate_skill` + `getLatestNetDefinition`; no client-result admission arrived. The final fresh run completed the real automatic continuation. The initial cause remains unestablished, so this is an unresolved reproduction, not a claimed fix or evidence selecting new architecture. No parent tool-order fix was broadened.
+3. The initial 128-token offer budget was insufficient: one live response ended `incomplete / max_output_tokens` (29 text + 99 audio tokens), terminating the session. The budget was raised to 256, with failing-then-passing request tests; final offers completed at 117 and 143 output tokens. The finite ceiling still cannot guarantee provider behavior.
+4. Canonical domain quality was not adjudicated. The report contains unsupported-looking capacity claims and a strong “correct” conclusion; preserving text does not validate those claims. No workpiece or net change occurred. The overlay and scrolling panel remain visually dense. No human participant accepted naturalness, and no first-audible latency benchmark was run.
+
+### Final targeted verification
+
+```sh
+yarn workspace @apps/brunch-agent exec vitest run \
+  test/petrinaut-chat.test.ts test/flue-delivery-context.test.ts \
+  test/voice-context.test.ts test/architecture/boundaries.test.ts
+yarn workspace @hashintel/brunch-agent-transport-aisdk test:unit
+yarn workspace @apps/petrinaut-website exec vitest run \
+  src/main/app/voice-interview src/server/voice/openai-voice-policy.test.ts
+```
+
+Results: Brunch **4 files / 33 tests**, transport **4 / 49**, website **10 / 176**. The session budget regression also passed **41 tests** after the 256-token correction. Builds passed for Brunch, transport, and website. `lint:tsc` and `lint:eslint` passed for all three affected workspaces, with zero errors; transport retains two existing sequential-await warnings and website one existing set-state-in-effect warning. Changed TypeScript/JSON Oxfmt and `git diff --check` complete the packet checks. Selecting `boundaries.integration.ts` directly found no tests; the correct wrapper `boundaries.test.ts` subsequently passed.
+
+The root package commit hook attempted an unrelated Rust `task-dependencies` build and exhausted local disk. Only that attempt's generated `target/` was removed; the dependency patch commit excluded that hook, retaining other hooks. No full monorepo clean-build claim is made.
+
+## Remaining gate and decision
+
+Reconsider #9571 using the failed short-follow-up experience and its current Brunch round trip; do not describe the optimized relay as adequate. Bounded delivery is independently useful, but a notice is not an answer, Voice prompting is unreliable, and long reports remain slow. This is a scoped recommendation, not architecture approval or human acceptance. Keep #9571 untouched. Final parent ancestry/restack, merge-gated preview, and owner review of the demonstration remain outstanding; the live mission is not marked accepted.
