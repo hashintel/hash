@@ -1,0 +1,3 @@
+Registered OpenTelemetry (traces + logs + metrics) at endpoint http://localhost:4317 for Brunch Agent
+
+Instrument exit 0; structured result retained in observations.json (not duplicated in this log).

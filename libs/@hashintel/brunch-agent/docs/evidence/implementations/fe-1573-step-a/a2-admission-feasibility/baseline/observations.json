@@ -1,0 +1,491 @@
+{
+  "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  ",
+  "settled": [
+    {
+      "type": "dynamic-tool",
+      "toolName": "update_workpiece",
+      "toolCallId": "settled-revision",
+      "state": "output-available",
+      "input": {
+        "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+      },
+      "output": {
+        "revisionId": "settled-revision",
+        "sha256": "f6a6e097317c3e5fbb7fdff1412fa54188495f66477f3115d1459792d98eaead",
+        "ordinal": 1
+      },
+      "durationMs": 2
+    }
+  ],
+  "reopened": [
+    {
+      "type": "dynamic-tool",
+      "toolName": "update_workpiece",
+      "toolCallId": "settled-revision",
+      "state": "output-available",
+      "input": {
+        "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+      },
+      "output": {
+        "revisionId": "settled-revision",
+        "sha256": "f6a6e097317c3e5fbb7fdff1412fa54188495f66477f3115d1459792d98eaead",
+        "ordinal": 1
+      },
+      "durationMs": 2
+    }
+  ],
+  "second": [
+    {
+      "type": "dynamic-tool",
+      "toolName": "update_workpiece",
+      "toolCallId": "settled-revision",
+      "state": "output-available",
+      "input": {
+        "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+      },
+      "output": {
+        "revisionId": "settled-revision",
+        "sha256": "f6a6e097317c3e5fbb7fdff1412fa54188495f66477f3115d1459792d98eaead",
+        "ordinal": 1
+      },
+      "durationMs": 2
+    },
+    {
+      "type": "dynamic-tool",
+      "toolName": "update_workpiece",
+      "toolCallId": "second-revision",
+      "state": "output-available",
+      "input": {
+        "markdown": "# Second synthetic account"
+      },
+      "output": {
+        "revisionId": "second-revision",
+        "sha256": "e3388bf9f4151879ccff3520bc9b8d78b19c7f0874f32c647e684d477907244d",
+        "ordinal": 2
+      },
+      "durationMs": 0
+    }
+  ],
+  "mixed": [
+    {
+      "caseId": "brunch_mark_question-addType",
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-addType-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-addType-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        }
+      ],
+      "tools": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_mark_question",
+          "toolCallId": "brunch_mark_question-addType-brunch_mark_question",
+          "state": "output-available",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "output": {
+            "marked": true
+          },
+          "durationMs": 2
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "addType",
+          "toolCallId": "brunch_mark_question-addType-addType",
+          "state": "output-available",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 2
+        }
+      ],
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": ["brunch_mark_question-addType-addType"],
+      "results": [
+        {
+          "toolCallId": "brunch_mark_question-addType-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "update_workpiece-addType",
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-addType-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-addType-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        }
+      ],
+      "tools": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "update_workpiece",
+          "toolCallId": "update_workpiece-addType-update_workpiece",
+          "state": "output-available",
+          "input": {
+            "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+          },
+          "output": {
+            "revisionId": "update_workpiece-addType-update_workpiece",
+            "sha256": "f6a6e097317c3e5fbb7fdff1412fa54188495f66477f3115d1459792d98eaead",
+            "ordinal": 1
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "addType",
+          "toolCallId": "update_workpiece-addType-addType",
+          "state": "output-available",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1
+        }
+      ],
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": ["update_workpiece-addType-addType"],
+      "results": [
+        {
+          "toolCallId": "update_workpiece-addType-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "brunch_mark_question-update_workpiece-addType",
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-update_workpiece-addType-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-update_workpiece-addType-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        }
+      ],
+      "tools": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_mark_question",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-brunch_mark_question",
+          "state": "output-available",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "update_workpiece",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+          "state": "output-available",
+          "input": {
+            "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+          },
+          "output": {
+            "revisionId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+            "sha256": "f6a6e097317c3e5fbb7fdff1412fa54188495f66477f3115d1459792d98eaead",
+            "ordinal": 1
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "addType",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-addType",
+          "state": "output-available",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1
+        }
+      ],
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": [
+        "brunch_mark_question-update_workpiece-addType-addType"
+      ],
+      "results": [
+        {
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "addType-update_workpiece-brunch_mark_question",
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "addType-update_workpiece-brunch_mark_question-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "addType-update_workpiece-brunch_mark_question-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        }
+      ],
+      "tools": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "addType",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-addType",
+          "state": "output-available",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 2
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "update_workpiece",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+          "state": "output-available",
+          "input": {
+            "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+          },
+          "output": {
+            "revisionId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+            "sha256": "f6a6e097317c3e5fbb7fdff1412fa54188495f66477f3115d1459792d98eaead",
+            "ordinal": 1
+          },
+          "durationMs": 2
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_mark_question",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-brunch_mark_question",
+          "state": "output-available",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "output": {
+            "marked": true
+          },
+          "durationMs": 2
+        }
+      ],
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": [
+        "addType-update_workpiece-brunch_mark_question-addType"
+      ],
+      "results": [
+        {
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    }
+  ]
+}

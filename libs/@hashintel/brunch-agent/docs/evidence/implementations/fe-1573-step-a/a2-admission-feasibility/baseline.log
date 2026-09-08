@@ -1,0 +1,60 @@
+
+ RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent
+
+ ❯ test/workpiece-revisions.test.ts (3 tests | 1 failed) 653ms
+   × mixed workpiece and browser tool batch does not apply a mutation 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/workpiece-revisions.test.ts > mixed workpiece and browser tool batch does not apply a mutation
+AssertionError: expected [ { …(3) }, { …(3) }, { …(3) } ] to deeply equal [ { …(3) }, { …(3) }, { …(3) } ]
+
+- Expected
++ Received
+
+  [
+    {
+      "caseId": "update_workpiece-addType",
+-     "mutationApplied": false,
+-     "pendingMutationIds": [],
++     "mutationApplied": true,
++     "pendingMutationIds": [
++       "update_workpiece-addType-addType",
++     ],
+    },
+    {
+      "caseId": "brunch_mark_question-update_workpiece-addType",
+-     "mutationApplied": false,
+-     "pendingMutationIds": [],
++     "mutationApplied": true,
++     "pendingMutationIds": [
++       "brunch_mark_question-update_workpiece-addType-addType",
++     ],
+    },
+    {
+      "caseId": "addType-update_workpiece-brunch_mark_question",
+-     "mutationApplied": false,
+-     "pendingMutationIds": [],
++     "mutationApplied": true,
++     "pendingMutationIds": [
++       "addType-update_workpiece-brunch_mark_question-addType",
++     ],
+    },
+  ]
+
+ ❯ test/workpiece-revisions.test.ts:67:5
+     65|       pendingMutationIds,
+     66|     })),
+     67|   ).toEqual(
+       |     ^
+     68|     workpieceBatches.map(({ caseId }) => ({
+     69|       caseId,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  14:08:27
+   Duration  845ms (transform 11ms, setup 0ms, import 17ms, tests 653ms, environment 0ms)
+

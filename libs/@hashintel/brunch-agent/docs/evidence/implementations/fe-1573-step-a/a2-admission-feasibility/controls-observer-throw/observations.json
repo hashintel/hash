@@ -1,0 +1,4018 @@
+{
+  "control": "observer-throw",
+  "observations": [
+    {
+      "caseId": "brunch_mark_question-addType",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/508098efcf4eb824a5a86960c9602bdc38beb8a7914a6ae2fc94402165fb55c8",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCDSAQ0070C0G09F429T9",
+          "uid": "inst_01M20FCDSC9MW3KVVWFV6VYC51"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCDSCG4TQ19J2K7RKMB41",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEU0FRMDA3MEMwRzA5RjQyOVQ5",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDSAQ0070C0G09F429T9",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDTBS33WMQ2V4XAD4V3J",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDSAQ0070C0G09F429T9",
+            "turnId": "turn_01M20FCDTAQHW58JJKFJ3M1TRW",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "brunch_mark_question-addType-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "brunch_mark_question-addType-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 3
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCDSAQ0070C0G09F429T9",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDSAQ0070C0G09F429T9"
+          }
+        ],
+        "incarnation": "inc_01M20FCDSAY72ZFDHJKDVKDS4E"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-addType-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-addType-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/508098efcf4eb824a5a86960c9602bdc38beb8a7914a6ae2fc94402165fb55c8",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCDTWSPZ79H2YXASEWD09",
+          "uid": "inst_01M20FCDSC9MW3KVVWFV6VYC51"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCDSCG4TQ19J2K7RKMB41",
+        "offset": "0000000000000000_0000000000000030",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEU0FRMDA3MEMwRzA5RjQyOVQ5",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDSAQ0070C0G09F429T9",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDTBS33WMQ2V4XAD4V3J",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDSAQ0070C0G09F429T9",
+            "turnId": "turn_01M20FCDTAQHW58JJKFJ3M1TRW",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "brunch_mark_question-addType-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "brunch_mark_question-addType-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 3
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEVFdTUFo3OUgyWVhBU0VXRDA5",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDTWSPZ79H2YXASEWD09",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDV1MBJDKX99ENB7TMMC",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDTWSPZ79H2YXASEWD09",
+            "turnId": "turn_01M20FCDTZWD5C2Z33AX9NJP2Z",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "brunch_mark_question",
+                "toolCallId": "brunch_mark_question-addType-brunch_mark_question",
+                "state": "output-available",
+                "input": {
+                  "question": "What remains unknown?"
+                },
+                "output": {
+                  "marked": true
+                },
+                "durationMs": 3
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "addType",
+                "toolCallId": "brunch_mark_question-addType-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 3
+              },
+              {
+                "type": "data-brunch-question",
+                "data": {
+                  "question": "What remains unknown?",
+                  "toolCallId": "brunch_mark_question-addType-brunch_mark_question"
+                }
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCDSAQ0070C0G09F429T9",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDSAQ0070C0G09F429T9"
+          },
+          {
+            "submissionId": "sub_01M20FCDTWSPZ79H2YXASEWD09",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDTWSPZ79H2YXASEWD09"
+          }
+        ],
+        "incarnation": "inc_01M20FCDSAY72ZFDHJKDVKDS4E"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": ["brunch_mark_question-addType-addType"],
+      "results": [
+        {
+          "toolCallId": "brunch_mark_question-addType-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "addType-brunch_mark_question",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/e387e183215c1f2d4d70879449843ea206b0168b59e53e90ff7a0d41c6941c97",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCDVKP5N43X47V2XQ34YY",
+          "uid": "inst_01M20FCDVM7D7PGPA3751MQJ4D"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCDVM9ATWCBM63VA4VB9Z",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEVktQNU40M1g0N1YyWFEzNFlZ",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDVKP5N43X47V2XQ34YY",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDVRV2F0V5FV3WN1E930",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDVKP5N43X47V2XQ34YY",
+            "turnId": "turn_01M20FCDVQYCAR2P4FXBB7PB10",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-brunch_mark_question-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-brunch_mark_question-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCDVKP5N43X47V2XQ34YY",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDVKP5N43X47V2XQ34YY"
+          }
+        ],
+        "incarnation": "inc_01M20FCDVKF9C9QWFZ5WX7E131"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "addType-brunch_mark_question-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "addType-brunch_mark_question-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/e387e183215c1f2d4d70879449843ea206b0168b59e53e90ff7a0d41c6941c97",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCDW252D9D1Q0SJRCZMJX",
+          "uid": "inst_01M20FCDVM7D7PGPA3751MQJ4D"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCDVM9ATWCBM63VA4VB9Z",
+        "offset": "0000000000000000_0000000000000030",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEVktQNU40M1g0N1YyWFEzNFlZ",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDVKP5N43X47V2XQ34YY",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDVRV2F0V5FV3WN1E930",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDVKP5N43X47V2XQ34YY",
+            "turnId": "turn_01M20FCDVQYCAR2P4FXBB7PB10",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-brunch_mark_question-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-brunch_mark_question-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEVzI1MkQ5RDFRMFNKUkNaTUpY",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDW252D9D1Q0SJRCZMJX",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDW6MS7HGNV9RANS8RPH",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDW252D9D1Q0SJRCZMJX",
+            "turnId": "turn_01M20FCDW5CKXGK9711D62GWBS",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addType",
+                "toolCallId": "addType-brunch_mark_question-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "brunch_mark_question",
+                "toolCallId": "addType-brunch_mark_question-brunch_mark_question",
+                "state": "output-available",
+                "input": {
+                  "question": "What remains unknown?"
+                },
+                "output": {
+                  "marked": true
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "data-brunch-question",
+                "data": {
+                  "question": "What remains unknown?",
+                  "toolCallId": "addType-brunch_mark_question-brunch_mark_question"
+                }
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCDVKP5N43X47V2XQ34YY",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDVKP5N43X47V2XQ34YY"
+          },
+          {
+            "submissionId": "sub_01M20FCDW252D9D1Q0SJRCZMJX",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDW252D9D1Q0SJRCZMJX"
+          }
+        ],
+        "incarnation": "inc_01M20FCDVKF9C9QWFZ5WX7E131"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": ["addType-brunch_mark_question-addType"],
+      "results": [
+        {
+          "toolCallId": "addType-brunch_mark_question-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "update_workpiece-addType",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/8ba34cbf7bca31d37f86439e8e94f46f80ef47e8e26f46b0452c638f97569615",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCDWPTYRZ9J8ADZMZXT4Y",
+          "uid": "inst_01M20FCDWPAEGHX3RHVRTC0WEX"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCDWPGGF56JE3WQCVDHNX",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEV1BUWVJaOUo4QURaTVpYVDRZ",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDWPTYRZ9J8ADZMZXT4Y",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDWWYVC45M9VZBQ5YMSV",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDWPTYRZ9J8ADZMZXT4Y",
+            "turnId": "turn_01M20FCDWV9GZNN4H7DBR152A0",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "update_workpiece-addType-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "update_workpiece-addType-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCDWPTYRZ9J8ADZMZXT4Y",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDWPTYRZ9J8ADZMZXT4Y"
+          }
+        ],
+        "incarnation": "inc_01M20FCDWPF5YMZSJKBVW73J1K"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-addType-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-addType-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/8ba34cbf7bca31d37f86439e8e94f46f80ef47e8e26f46b0452c638f97569615",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCDX5XR3G2GK5BFNKQH5M",
+          "uid": "inst_01M20FCDWPAEGHX3RHVRTC0WEX"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCDWPGGF56JE3WQCVDHNX",
+        "offset": "0000000000000000_0000000000000029",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEV1BUWVJaOUo4QURaTVpYVDRZ",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDWPTYRZ9J8ADZMZXT4Y",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDWWYVC45M9VZBQ5YMSV",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDWPTYRZ9J8ADZMZXT4Y",
+            "turnId": "turn_01M20FCDWV9GZNN4H7DBR152A0",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "update_workpiece-addType-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "update_workpiece-addType-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEWDVYUjNHMkdLNUJGTktRSDVN",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDX5XR3G2GK5BFNKQH5M",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDX9GG923ZEPCJ6HKRMA",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDX5XR3G2GK5BFNKQH5M",
+            "turnId": "turn_01M20FCDX872KKV3VB710GJH8S",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "update_workpiece-addType-update_workpiece",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic replacement\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "update_workpiece-addType-update_workpiece",
+                  "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+                  "ordinal": 2
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "addType",
+                "toolCallId": "update_workpiece-addType-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCDWPTYRZ9J8ADZMZXT4Y",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDWPTYRZ9J8ADZMZXT4Y"
+          },
+          {
+            "submissionId": "sub_01M20FCDX5XR3G2GK5BFNKQH5M",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDX5XR3G2GK5BFNKQH5M"
+          }
+        ],
+        "incarnation": "inc_01M20FCDWPF5YMZSJKBVW73J1K"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": ["update_workpiece-addType-addType"],
+      "results": [
+        {
+          "toolCallId": "update_workpiece-addType-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "addType-update_workpiece",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/c0fab77186b264fa16835313659eb6f35dfbf85ec8555e295641102aeaf93777",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCDXQEDGDEWJ3WVAG6TB5",
+          "uid": "inst_01M20FCDXRTWR01ZQY37514GXE"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCDXR50RGP12E9SH9YXZQ",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEWFFFREdERVdKM1dWQUc2VEI1",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDXQEDGDEWJ3WVAG6TB5",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDXWNPADV05CNES66EDY",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDXQEDGDEWJ3WVAG6TB5",
+            "turnId": "turn_01M20FCDXVRP9171PPV1EZ7RAM",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-update_workpiece-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-update_workpiece-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCDXQEDGDEWJ3WVAG6TB5",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDXQEDGDEWJ3WVAG6TB5"
+          }
+        ],
+        "incarnation": "inc_01M20FCDXQX6BCC7D7008TQWW0"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "addType-update_workpiece-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "addType-update_workpiece-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/c0fab77186b264fa16835313659eb6f35dfbf85ec8555e295641102aeaf93777",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCDY4Q8C4XZKXTDC31CDQ",
+          "uid": "inst_01M20FCDXRTWR01ZQY37514GXE"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCDXR50RGP12E9SH9YXZQ",
+        "offset": "0000000000000000_0000000000000029",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEWFFFREdERVdKM1dWQUc2VEI1",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDXQEDGDEWJ3WVAG6TB5",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDXWNPADV05CNES66EDY",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDXQEDGDEWJ3WVAG6TB5",
+            "turnId": "turn_01M20FCDXVRP9171PPV1EZ7RAM",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-update_workpiece-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-update_workpiece-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEWTRROEM0WFpLWFREQzMxQ0RR",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDY4Q8C4XZKXTDC31CDQ",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDY8NK0V2QTYGCDDCTR0",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDY4Q8C4XZKXTDC31CDQ",
+            "turnId": "turn_01M20FCDY7ABRKY3T6MJC7YCGX",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addType",
+                "toolCallId": "addType-update_workpiece-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-update_workpiece-update_workpiece",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic replacement\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-update_workpiece-update_workpiece",
+                  "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+                  "ordinal": 2
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCDXQEDGDEWJ3WVAG6TB5",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDXQEDGDEWJ3WVAG6TB5"
+          },
+          {
+            "submissionId": "sub_01M20FCDY4Q8C4XZKXTDC31CDQ",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDY4Q8C4XZKXTDC31CDQ"
+          }
+        ],
+        "incarnation": "inc_01M20FCDXQX6BCC7D7008TQWW0"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": ["addType-update_workpiece-addType"],
+      "results": [
+        {
+          "toolCallId": "addType-update_workpiece-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "brunch_mark_question-update_workpiece-addType",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/db98ab138a364bf870ee67dc746992008c04eba83d5818209c4836ada8f1c528",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCDYNDRVBM1T8QGEW0RDW",
+          "uid": "inst_01M20FCDYNWHAYEF1BX1R4XRXQ"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCDYNEY3V1N4YDEN57GCB",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEWU5EUlZCTTFUOFFHRVcwUkRX",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDYNDRVBM1T8QGEW0RDW",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDYSMN6W26SAX0CVJ1RM",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDYNDRVBM1T8QGEW0RDW",
+            "turnId": "turn_01M20FCDYSKPBJ7R17YY397WA0",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "brunch_mark_question-update_workpiece-addType-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "brunch_mark_question-update_workpiece-addType-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCDYNDRVBM1T8QGEW0RDW",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDYNDRVBM1T8QGEW0RDW"
+          }
+        ],
+        "incarnation": "inc_01M20FCDYNX8ZWAQGFYG64V44R"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-update_workpiece-addType-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-update_workpiece-addType-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/db98ab138a364bf870ee67dc746992008c04eba83d5818209c4836ada8f1c528",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCDZ2X7WM9168SNSHXM0S",
+          "uid": "inst_01M20FCDYNWHAYEF1BX1R4XRXQ"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCDYNEY3V1N4YDEN57GCB",
+        "offset": "0000000000000000_0000000000000032",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEWU5EUlZCTTFUOFFHRVcwUkRX",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDYNDRVBM1T8QGEW0RDW",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDYSMN6W26SAX0CVJ1RM",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDYNDRVBM1T8QGEW0RDW",
+            "turnId": "turn_01M20FCDYSKPBJ7R17YY397WA0",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "brunch_mark_question-update_workpiece-addType-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "brunch_mark_question-update_workpiece-addType-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNEWjJYN1dNOTE2OFNOU0hYTTBT",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDZ2X7WM9168SNSHXM0S",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCDZ6K4H2M35MM0TXTPBZ",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCDZ2X7WM9168SNSHXM0S",
+            "turnId": "turn_01M20FCDZ5HR2F8YWE1QY3B2RC",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "brunch_mark_question",
+                "toolCallId": "brunch_mark_question-update_workpiece-addType-brunch_mark_question",
+                "state": "output-available",
+                "input": {
+                  "question": "What remains unknown?"
+                },
+                "output": {
+                  "marked": true
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic replacement\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+                  "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+                  "ordinal": 2
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "addType",
+                "toolCallId": "brunch_mark_question-update_workpiece-addType-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "data-brunch-question",
+                "data": {
+                  "question": "What remains unknown?",
+                  "toolCallId": "brunch_mark_question-update_workpiece-addType-brunch_mark_question"
+                }
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCDYNDRVBM1T8QGEW0RDW",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDYNDRVBM1T8QGEW0RDW"
+          },
+          {
+            "submissionId": "sub_01M20FCDZ2X7WM9168SNSHXM0S",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCDZ2X7WM9168SNSHXM0S"
+          }
+        ],
+        "incarnation": "inc_01M20FCDYNX8ZWAQGFYG64V44R"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": [
+        "brunch_mark_question-update_workpiece-addType-addType"
+      ],
+      "results": [
+        {
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "brunch_mark_question-addType-update_workpiece",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/0e56cee7f59204322d5272c39ec69cb11bc762f0efb8adb60b172430946b765d",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCE0CXQPWHS420WVFW13M",
+          "uid": "inst_01M20FCE0CJJNQ34ZBMKH3CMD6"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE0C2KQ5AQ75JEWXZ3Q6",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFMENYUVBXSFM0MjBXVkZXMTNN",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE0CXQPWHS420WVFW13M",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE0GJWXYHCGWA01641KW",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE0CXQPWHS420WVFW13M",
+            "turnId": "turn_01M20FCE0F5N6TS4B4YMFRRMZ4",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "brunch_mark_question-addType-update_workpiece-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "brunch_mark_question-addType-update_workpiece-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE0CXQPWHS420WVFW13M",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE0CXQPWHS420WVFW13M"
+          }
+        ],
+        "incarnation": "inc_01M20FCE0CSQK9X55697BFFXKA"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-addType-update_workpiece-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-addType-update_workpiece-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/0e56cee7f59204322d5272c39ec69cb11bc762f0efb8adb60b172430946b765d",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCE0S9TFE2V339QMC7VC4",
+          "uid": "inst_01M20FCE0CJJNQ34ZBMKH3CMD6"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE0C2KQ5AQ75JEWXZ3Q6",
+        "offset": "0000000000000000_0000000000000032",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFMENYUVBXSFM0MjBXVkZXMTNN",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE0CXQPWHS420WVFW13M",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE0GJWXYHCGWA01641KW",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE0CXQPWHS420WVFW13M",
+            "turnId": "turn_01M20FCE0F5N6TS4B4YMFRRMZ4",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "brunch_mark_question-addType-update_workpiece-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "brunch_mark_question-addType-update_workpiece-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFMFM5VEZFMlYzMzlRTUM3VkM0",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE0S9TFE2V339QMC7VC4",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE0XW2W696HJK9PJNEA2",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE0S9TFE2V339QMC7VC4",
+            "turnId": "turn_01M20FCE0WZNBCYHH8PMTPS8A0",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "brunch_mark_question",
+                "toolCallId": "brunch_mark_question-addType-update_workpiece-brunch_mark_question",
+                "state": "output-available",
+                "input": {
+                  "question": "What remains unknown?"
+                },
+                "output": {
+                  "marked": true
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "addType",
+                "toolCallId": "brunch_mark_question-addType-update_workpiece-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic replacement\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+                  "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+                  "ordinal": 2
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "data-brunch-question",
+                "data": {
+                  "question": "What remains unknown?",
+                  "toolCallId": "brunch_mark_question-addType-update_workpiece-brunch_mark_question"
+                }
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE0CXQPWHS420WVFW13M",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE0CXQPWHS420WVFW13M"
+          },
+          {
+            "submissionId": "sub_01M20FCE0S9TFE2V339QMC7VC4",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE0S9TFE2V339QMC7VC4"
+          }
+        ],
+        "incarnation": "inc_01M20FCE0CSQK9X55697BFFXKA"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": [
+        "brunch_mark_question-addType-update_workpiece-addType"
+      ],
+      "results": [
+        {
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "update_workpiece-brunch_mark_question-addType",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/d672a2961dd1a5c6ec6217fcea125edc5d8dadcbc1b46170b98cba7face8d990",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCE1CD7F8GSNP03N9YKJK",
+          "uid": "inst_01M20FCE1DXYSYDRHTAAG4VHJD"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE1D4H8Q2S581WXRXNJD",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFMUNEN0Y4R1NOUDAzTjlZS0pL",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE1CD7F8GSNP03N9YKJK",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE1JD86R55EF7E64FRPS",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE1CD7F8GSNP03N9YKJK",
+            "turnId": "turn_01M20FCE1HBB475W26MKQVZBBF",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "update_workpiece-brunch_mark_question-addType-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "update_workpiece-brunch_mark_question-addType-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE1CD7F8GSNP03N9YKJK",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE1CD7F8GSNP03N9YKJK"
+          }
+        ],
+        "incarnation": "inc_01M20FCE1CSSNABRYBPJ8M2ZYZ"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-brunch_mark_question-addType-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-brunch_mark_question-addType-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/d672a2961dd1a5c6ec6217fcea125edc5d8dadcbc1b46170b98cba7face8d990",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCE1W4WT6NXQ9QBGBNVKM",
+          "uid": "inst_01M20FCE1DXYSYDRHTAAG4VHJD"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE1D4H8Q2S581WXRXNJD",
+        "offset": "0000000000000000_0000000000000032",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFMUNEN0Y4R1NOUDAzTjlZS0pL",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE1CD7F8GSNP03N9YKJK",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE1JD86R55EF7E64FRPS",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE1CD7F8GSNP03N9YKJK",
+            "turnId": "turn_01M20FCE1HBB475W26MKQVZBBF",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "update_workpiece-brunch_mark_question-addType-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "update_workpiece-brunch_mark_question-addType-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFMVc0V1Q2TlhROVFCR0JOVktN",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE1W4WT6NXQ9QBGBNVKM",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE1ZY5V2AD88MTN81KYA",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE1W4WT6NXQ9QBGBNVKM",
+            "turnId": "turn_01M20FCE1YN09M5KWVV5WC6VJS",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic replacement\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+                  "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+                  "ordinal": 2
+                },
+                "durationMs": 2
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "brunch_mark_question",
+                "toolCallId": "update_workpiece-brunch_mark_question-addType-brunch_mark_question",
+                "state": "output-available",
+                "input": {
+                  "question": "What remains unknown?"
+                },
+                "output": {
+                  "marked": true
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "addType",
+                "toolCallId": "update_workpiece-brunch_mark_question-addType-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "data-brunch-question",
+                "data": {
+                  "question": "What remains unknown?",
+                  "toolCallId": "update_workpiece-brunch_mark_question-addType-brunch_mark_question"
+                }
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE1CD7F8GSNP03N9YKJK",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE1CD7F8GSNP03N9YKJK"
+          },
+          {
+            "submissionId": "sub_01M20FCE1W4WT6NXQ9QBGBNVKM",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE1W4WT6NXQ9QBGBNVKM"
+          }
+        ],
+        "incarnation": "inc_01M20FCE1CSSNABRYBPJ8M2ZYZ"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": [
+        "update_workpiece-brunch_mark_question-addType-addType"
+      ],
+      "results": [
+        {
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "update_workpiece-addType-brunch_mark_question",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/f7c698e472da5a4c56dc755a4eb0e30637b701f6b5a686f446f872965e2e3ad5",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCE2D788FZBNAZ2VBS2EM",
+          "uid": "inst_01M20FCE2DVMD8DAW1P3RRRS94"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE2D02S7F2K1AE24YVKW",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFMkQ3ODhGWkJOQVoyVkJTMkVN",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE2D788FZBNAZ2VBS2EM",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE2H0M7DTE2C4XDZ5ZYA",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE2D788FZBNAZ2VBS2EM",
+            "turnId": "turn_01M20FCE2G0NB5ZRWC0YERJSMN",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "update_workpiece-addType-brunch_mark_question-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "update_workpiece-addType-brunch_mark_question-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE2D788FZBNAZ2VBS2EM",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE2D788FZBNAZ2VBS2EM"
+          }
+        ],
+        "incarnation": "inc_01M20FCE2DYZ3T4YW0C6XXSTKX"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-addType-brunch_mark_question-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-addType-brunch_mark_question-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/f7c698e472da5a4c56dc755a4eb0e30637b701f6b5a686f446f872965e2e3ad5",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCE2RYSD1QNXDR0Z93XNE",
+          "uid": "inst_01M20FCE2DVMD8DAW1P3RRRS94"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE2D02S7F2K1AE24YVKW",
+        "offset": "0000000000000000_0000000000000032",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFMkQ3ODhGWkJOQVoyVkJTMkVN",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE2D788FZBNAZ2VBS2EM",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE2H0M7DTE2C4XDZ5ZYA",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE2D788FZBNAZ2VBS2EM",
+            "turnId": "turn_01M20FCE2G0NB5ZRWC0YERJSMN",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "update_workpiece-addType-brunch_mark_question-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "update_workpiece-addType-brunch_mark_question-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFMlJZU0QxUU5YRFIwWjkzWE5F",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE2RYSD1QNXDR0Z93XNE",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE2WN9TX3AA0KYB6AW6J",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE2RYSD1QNXDR0Z93XNE",
+            "turnId": "turn_01M20FCE2VYPNZ9A0YT7XDABM8",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic replacement\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+                  "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+                  "ordinal": 2
+                },
+                "durationMs": 2
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "addType",
+                "toolCallId": "update_workpiece-addType-brunch_mark_question-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 2
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "brunch_mark_question",
+                "toolCallId": "update_workpiece-addType-brunch_mark_question-brunch_mark_question",
+                "state": "output-available",
+                "input": {
+                  "question": "What remains unknown?"
+                },
+                "output": {
+                  "marked": true
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "data-brunch-question",
+                "data": {
+                  "question": "What remains unknown?",
+                  "toolCallId": "update_workpiece-addType-brunch_mark_question-brunch_mark_question"
+                }
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE2D788FZBNAZ2VBS2EM",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE2D788FZBNAZ2VBS2EM"
+          },
+          {
+            "submissionId": "sub_01M20FCE2RYSD1QNXDR0Z93XNE",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE2RYSD1QNXDR0Z93XNE"
+          }
+        ],
+        "incarnation": "inc_01M20FCE2DYZ3T4YW0C6XXSTKX"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": [
+        "update_workpiece-addType-brunch_mark_question-addType"
+      ],
+      "results": [
+        {
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "addType-brunch_mark_question-update_workpiece",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/90efd5d6cd3c800494c730142d6c9549d8f6d0f6938beb2c48218cfb4ee79256",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCE39BEF5Q4RD1K83YJH7",
+          "uid": "inst_01M20FCE39YDEJ6H7T461VRG9K"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE391C1H78HJHVV5CKJ5",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFMzlCRUY1UTRSRDFLODNZSkg3",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE39BEF5Q4RD1K83YJH7",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE3C7X3N4CVSPTZE7HEB",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE39BEF5Q4RD1K83YJH7",
+            "turnId": "turn_01M20FCE3BN8VAJ3JFT4NAJKR0",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-brunch_mark_question-update_workpiece-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-brunch_mark_question-update_workpiece-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE39BEF5Q4RD1K83YJH7",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE39BEF5Q4RD1K83YJH7"
+          }
+        ],
+        "incarnation": "inc_01M20FCE39S87P7KRSXMWN83GB"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "addType-brunch_mark_question-update_workpiece-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "addType-brunch_mark_question-update_workpiece-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/90efd5d6cd3c800494c730142d6c9549d8f6d0f6938beb2c48218cfb4ee79256",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCE3M5JMZ924EQN30C49F",
+          "uid": "inst_01M20FCE39YDEJ6H7T461VRG9K"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE391C1H78HJHVV5CKJ5",
+        "offset": "0000000000000000_0000000000000032",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFMzlCRUY1UTRSRDFLODNZSkg3",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE39BEF5Q4RD1K83YJH7",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE3C7X3N4CVSPTZE7HEB",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE39BEF5Q4RD1K83YJH7",
+            "turnId": "turn_01M20FCE3BN8VAJ3JFT4NAJKR0",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-brunch_mark_question-update_workpiece-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-brunch_mark_question-update_workpiece-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFM001Sk1aOTI0RVFOMzBDNDlG",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE3M5JMZ924EQN30C49F",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE3Q3Q3TNT70MMYK4S6P",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE3M5JMZ924EQN30C49F",
+            "turnId": "turn_01M20FCE3QH46B154M1GZCSMCS",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addType",
+                "toolCallId": "addType-brunch_mark_question-update_workpiece-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "brunch_mark_question",
+                "toolCallId": "addType-brunch_mark_question-update_workpiece-brunch_mark_question",
+                "state": "output-available",
+                "input": {
+                  "question": "What remains unknown?"
+                },
+                "output": {
+                  "marked": true
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic replacement\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+                  "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+                  "ordinal": 2
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "data-brunch-question",
+                "data": {
+                  "question": "What remains unknown?",
+                  "toolCallId": "addType-brunch_mark_question-update_workpiece-brunch_mark_question"
+                }
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE39BEF5Q4RD1K83YJH7",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE39BEF5Q4RD1K83YJH7"
+          },
+          {
+            "submissionId": "sub_01M20FCE3M5JMZ924EQN30C49F",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE3M5JMZ924EQN30C49F"
+          }
+        ],
+        "incarnation": "inc_01M20FCE39S87P7KRSXMWN83GB"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": [
+        "addType-brunch_mark_question-update_workpiece-addType"
+      ],
+      "results": [
+        {
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "addType-update_workpiece-brunch_mark_question",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/1ec3e70f4d366b3b4414ce44ff51ad794fbfb5f1ae571b5eb4d4c2cefec6c793",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCE44N2CEE3TKSMS1A2QQ",
+          "uid": "inst_01M20FCE454RXSCVGSKDPMKGJA"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE45FWQ675WEFH7BMDBM",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNDROMkNFRTNUS1NNUzFBMlFR",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE44N2CEE3TKSMS1A2QQ",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE49BPPX85JQKXNSXQHR",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE44N2CEE3TKSMS1A2QQ",
+            "turnId": "turn_01M20FCE48NX0SRPD52H53FYBR",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-update_workpiece-brunch_mark_question-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-update_workpiece-brunch_mark_question-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE44N2CEE3TKSMS1A2QQ",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE44N2CEE3TKSMS1A2QQ"
+          }
+        ],
+        "incarnation": "inc_01M20FCE44DP4D65P9GVEHJG8Q"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "addType-update_workpiece-brunch_mark_question-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "addType-update_workpiece-brunch_mark_question-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/1ec3e70f4d366b3b4414ce44ff51ad794fbfb5f1ae571b5eb4d4c2cefec6c793",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCE4GQF5PGFN48PX384M0",
+          "uid": "inst_01M20FCE454RXSCVGSKDPMKGJA"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE45FWQ675WEFH7BMDBM",
+        "offset": "0000000000000000_0000000000000032",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNDROMkNFRTNUS1NNUzFBMlFR",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE44N2CEE3TKSMS1A2QQ",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE49BPPX85JQKXNSXQHR",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE44N2CEE3TKSMS1A2QQ",
+            "turnId": "turn_01M20FCE48NX0SRPD52H53FYBR",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-update_workpiece-brunch_mark_question-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-update_workpiece-brunch_mark_question-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNEdRRjVQR0ZONDhQWDM4NE0w",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE4GQF5PGFN48PX384M0",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE4KKZZ66V711KGEDX2Z",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE4GQF5PGFN48PX384M0",
+            "turnId": "turn_01M20FCE4JZZ57PFZ45X1ZH636",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addType",
+                "toolCallId": "addType-update_workpiece-brunch_mark_question-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic replacement\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+                  "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+                  "ordinal": 2
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "brunch_mark_question",
+                "toolCallId": "addType-update_workpiece-brunch_mark_question-brunch_mark_question",
+                "state": "output-available",
+                "input": {
+                  "question": "What remains unknown?"
+                },
+                "output": {
+                  "marked": true
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "data-brunch-question",
+                "data": {
+                  "question": "What remains unknown?",
+                  "toolCallId": "addType-update_workpiece-brunch_mark_question-brunch_mark_question"
+                }
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE44N2CEE3TKSMS1A2QQ",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE44N2CEE3TKSMS1A2QQ"
+          },
+          {
+            "submissionId": "sub_01M20FCE4GQF5PGFN48PX384M0",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE4GQF5PGFN48PX384M0"
+          }
+        ],
+        "incarnation": "inc_01M20FCE44DP4D65P9GVEHJG8Q"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": [
+        "addType-update_workpiece-brunch_mark_question-addType"
+      ],
+      "results": [
+        {
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "addType-unmounted_admission_probe",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/6686426ea22fd6c322da11e379aa1ddf779b908048275e4bff469aee71551f62",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCE50XYJJWF4QHJ8J7VQX",
+          "uid": "inst_01M20FCE51K4D5XMCQ9741V2V6"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE51TH7EGKR460P7H57P",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNTBYWUpKV0Y0UUhKOEo3VlFY",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE50XYJJWF4QHJ8J7VQX",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE547DCJ49MTVZVNND1Z",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE50XYJJWF4QHJ8J7VQX",
+            "turnId": "turn_01M20FCE53T8D7Y21MTNG9XAZG",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-unmounted_admission_probe-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-unmounted_admission_probe-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE50XYJJWF4QHJ8J7VQX",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE50XYJJWF4QHJ8J7VQX"
+          }
+        ],
+        "incarnation": "inc_01M20FCE50PD5583DRPKR3Z9W9"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "addType-unmounted_admission_probe-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "addType-unmounted_admission_probe-unmounted_admission_probe",
+          "name": "unmounted_admission_probe",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/6686426ea22fd6c322da11e379aa1ddf779b908048275e4bff469aee71551f62",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCE5BX2FSHNEKPTGRH931",
+          "uid": "inst_01M20FCE51K4D5XMCQ9741V2V6"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE51TH7EGKR460P7H57P",
+        "offset": "0000000000000000_0000000000000029",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNTBYWUpKV0Y0UUhKOEo3VlFY",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE50XYJJWF4QHJ8J7VQX",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE547DCJ49MTVZVNND1Z",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE50XYJJWF4QHJ8J7VQX",
+            "turnId": "turn_01M20FCE53T8D7Y21MTNG9XAZG",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-unmounted_admission_probe-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-unmounted_admission_probe-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNUJYMkZTSE5FS1BUR1JIOTMx",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE5BX2FSHNEKPTGRH931",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE5FBSN3F6ARQG3R90T7",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE5BX2FSHNEKPTGRH931",
+            "turnId": "turn_01M20FCE5EGBKWQAMJWGEMGXES",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addType",
+                "toolCallId": "addType-unmounted_admission_probe-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "unmounted_admission_probe",
+                "toolCallId": "addType-unmounted_admission_probe-unmounted_admission_probe",
+                "state": "output-error",
+                "input": {
+                  "question": "What remains unknown?"
+                },
+                "errorText": "Tool unmounted_admission_probe not found",
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE50XYJJWF4QHJ8J7VQX",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE50XYJJWF4QHJ8J7VQX"
+          },
+          {
+            "submissionId": "sub_01M20FCE5BX2FSHNEKPTGRH931",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE5BX2FSHNEKPTGRH931"
+          }
+        ],
+        "incarnation": "inc_01M20FCE50PD5583DRPKR3Z9W9"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": ["addType-unmounted_admission_probe-addType"],
+      "results": [
+        {
+          "toolCallId": "addType-unmounted_admission_probe-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "addType",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/f01df1d708de40c89ef8f7710cda2459f31b597276396a8320921c10871cd141",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCE5SD526H1MCRFCE43D9",
+          "uid": "inst_01M20FCE5TBA0H71NACKRXK1SD"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE5TQHY15GN0GSJZ1SV1",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNVNENTI2SDFNQ1JGQ0U0M0Q5",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE5SD526H1MCRFCE43D9",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE5XGNMQV30JM0NT6DPR",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE5SD526H1MCRFCE43D9",
+            "turnId": "turn_01M20FCE5W8TXVGVX135PQXWZ3",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE5SD526H1MCRFCE43D9",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE5SD526H1MCRFCE43D9"
+          }
+        ],
+        "incarnation": "inc_01M20FCE5SKZ6ZACNFQ12ZH49K"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "addType-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/f01df1d708de40c89ef8f7710cda2459f31b597276396a8320921c10871cd141",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCE64WHPSN8M2M4G512C8",
+          "uid": "inst_01M20FCE5TBA0H71NACKRXK1SD"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE5TQHY15GN0GSJZ1SV1",
+        "offset": "0000000000000000_0000000000000022",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNVNENTI2SDFNQ1JGQ0U0M0Q5",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE5SD526H1MCRFCE43D9",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE5XGNMQV30JM0NT6DPR",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE5SD526H1MCRFCE43D9",
+            "turnId": "turn_01M20FCE5W8TXVGVX135PQXWZ3",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "addType-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNjRXSFBTTjhNMk00RzUxMkM4",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE64WHPSN8M2M4G512C8",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE67GYFMK3004STZC0FM",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE64WHPSN8M2M4G512C8",
+            "turnId": "turn_01M20FCE66QDKTD7DJMTDAJEEJ",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addType",
+                "toolCallId": "addType-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 1
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE5SD526H1MCRFCE43D9",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE5SD526H1MCRFCE43D9"
+          },
+          {
+            "submissionId": "sub_01M20FCE64WHPSN8M2M4G512C8",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE64WHPSN8M2M4G512C8"
+          }
+        ],
+        "incarnation": "inc_01M20FCE5SKZ6ZACNFQ12ZH49K"
+      },
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": ["addType-addType"],
+      "results": [
+        {
+          "toolCallId": "addType-addType",
+          "toolName": "addType",
+          "output": {
+            "applied": true
+          }
+        }
+      ],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [
+          {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        ],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": true,
+      "continuation": {
+        "outcome": {
+          "receipt": {
+            "streamUrl": "http://brunch.local/agents/chat/f01df1d708de40c89ef8f7710cda2459f31b597276396a8320921c10871cd141",
+            "offset": "0000000000000000_0000000000000022",
+            "submissionId": "sub_01M20FCE6DM0DV6R04MA976TXA",
+            "uid": "inst_01M20FCE5TBA0H71NACKRXK1SD"
+          },
+          "error": null
+        },
+        "history": {
+          "v": 1,
+          "conversationId": "conv_01M20FCE5TQHY15GN0GSJZ1SV1",
+          "offset": "0000000000000000_0000000000000030",
+          "messages": [
+            {
+              "id": "entry_direct_c3ViXzAxTTIwRkNFNVNENTI2SDFNQ1JGQ0U0M0Q5",
+              "role": "user",
+              "purpose": "user",
+              "display": "visible",
+              "submissionId": "sub_01M20FCE5SD526H1MCRFCE43D9",
+              "parts": [
+                {
+                  "type": "text",
+                  "text": "Record this synthetic account.",
+                  "state": "done"
+                }
+              ]
+            },
+            {
+              "id": "entry_01M20FCE5XGNMQV30JM0NT6DPR",
+              "role": "assistant",
+              "purpose": "assistant",
+              "display": "visible",
+              "submissionId": "sub_01M20FCE5SD526H1MCRFCE43D9",
+              "turnId": "turn_01M20FCE5W8TXVGVX135PQXWZ3",
+              "parts": [
+                {
+                  "type": "dynamic-tool",
+                  "toolName": "update_workpiece",
+                  "toolCallId": "addType-old-revision",
+                  "state": "output-available",
+                  "input": {
+                    "markdown": "# Synthetic settled account\nUnknown timing."
+                  },
+                  "output": {
+                    "revisionId": "addType-old-revision",
+                    "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                    "ordinal": 1
+                  },
+                  "durationMs": 1
+                },
+                {
+                  "type": "text",
+                  "text": "Recorded the synthetic account.",
+                  "state": "done"
+                }
+              ]
+            },
+            {
+              "id": "entry_direct_c3ViXzAxTTIwRkNFNjRXSFBTTjhNMk00RzUxMkM4",
+              "role": "user",
+              "purpose": "user",
+              "display": "visible",
+              "submissionId": "sub_01M20FCE64WHPSN8M2M4G512C8",
+              "parts": [
+                {
+                  "type": "text",
+                  "text": "Synthetic admission-control probe; no plant facts.",
+                  "state": "done"
+                }
+              ]
+            },
+            {
+              "id": "entry_01M20FCE67GYFMK3004STZC0FM",
+              "role": "assistant",
+              "purpose": "assistant",
+              "display": "visible",
+              "submissionId": "sub_01M20FCE64WHPSN8M2M4G512C8",
+              "turnId": "turn_01M20FCE66QDKTD7DJMTDAJEEJ",
+              "parts": [
+                {
+                  "type": "dynamic-tool",
+                  "toolName": "addType",
+                  "toolCallId": "addType-addType",
+                  "state": "output-available",
+                  "input": {
+                    "id": "synthetic-type",
+                    "name": "SyntheticType",
+                    "iconSlug": "circle",
+                    "displayColor": "#808080",
+                    "elements": []
+                  },
+                  "output": {
+                    "awaiting": "client"
+                  },
+                  "durationMs": 1
+                }
+              ]
+            },
+            {
+              "id": "entry_direct_c3ViXzAxTTIwRkNFNkRNMERWNlIwNE1BOTc2VFhB",
+              "role": "system",
+              "purpose": "dispatch",
+              "display": "diagnostic",
+              "submissionId": "sub_01M20FCE6DM0DV6R04MA976TXA",
+              "signal": {
+                "tagName": "client-tool-result"
+              },
+              "parts": [
+                {
+                  "type": "text",
+                  "text": "[{\"toolCallId\":\"addType-addType\",\"toolName\":\"addType\",\"output\":{\"applied\":true}}]",
+                  "state": "done"
+                }
+              ]
+            },
+            {
+              "id": "entry_01M20FCE6G6M8CGH1H1JJ23YXQ",
+              "role": "assistant",
+              "purpose": "assistant",
+              "display": "visible",
+              "submissionId": "sub_01M20FCE6DM0DV6R04MA976TXA",
+              "turnId": "turn_01M20FCE6F6DZ0076GH3B4K7JQ",
+              "parts": [
+                {
+                  "type": "text",
+                  "text": "The correlated synthetic client result is received.",
+                  "state": "done"
+                }
+              ]
+            }
+          ],
+          "settlements": [
+            {
+              "submissionId": "sub_01M20FCE5SD526H1MCRFCE43D9",
+              "outcome": "completed",
+              "answeredBySubmissionId": "sub_01M20FCE5SD526H1MCRFCE43D9"
+            },
+            {
+              "submissionId": "sub_01M20FCE64WHPSN8M2M4G512C8",
+              "outcome": "completed",
+              "answeredBySubmissionId": "sub_01M20FCE64WHPSN8M2M4G512C8"
+            },
+            {
+              "submissionId": "sub_01M20FCE6DM0DV6R04MA976TXA",
+              "outcome": "completed",
+              "answeredBySubmissionId": "sub_01M20FCE6DM0DV6R04MA976TXA"
+            }
+          ],
+          "incarnation": "inc_01M20FCE5SKZ6ZACNFQ12ZH49K"
+        },
+        "projected": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNVNENTI2SDFNQ1JGQ0U0M0Q5",
+            "role": "user",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE5XGNMQV30JM0NT6DPR",
+            "role": "assistant",
+            "parts": [
+              {
+                "type": "tool-update_workpiece",
+                "toolCallId": "addType-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "addType-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "providerExecuted": true
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNjRXSFBTTjhNMk00RzUxMkM4",
+            "role": "user",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE67GYFMK3004STZC0FM",
+            "role": "assistant",
+            "parts": [
+              {
+                "type": "tool-addType",
+                "toolCallId": "addType-addType",
+                "state": "output-available",
+                "input": {
+                  "id": "synthetic-type",
+                  "name": "SyntheticType",
+                  "iconSlug": "circle",
+                  "displayColor": "#808080",
+                  "elements": []
+                },
+                "output": {
+                  "applied": true
+                }
+              },
+              {
+                "type": "text",
+                "text": "The correlated synthetic client result is received.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "definitionAfterResume": {
+          "places": [],
+          "transitions": [],
+          "types": [
+            {
+              "id": "synthetic-type",
+              "name": "SyntheticType",
+              "iconSlug": "circle",
+              "displayColor": "#808080",
+              "elements": []
+            }
+          ],
+          "differentialEquations": [],
+          "parameters": []
+        },
+        "totalProviderCalls": 2
+      },
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "brunch_mark_question",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/8161810fa38ccad40dfe9cf5c0dfb920f4047aa588e1f7a4ce49fd7f0fbd89ed",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCE6MZ84VWZS20D0JQQTY",
+          "uid": "inst_01M20FCE6NHCWHVBT9QXSD1X33"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE6NBV8QANN9DVB6WNWD",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNk1aODRWV1pTMjBEMEpRUVRZ",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE6MZ84VWZS20D0JQQTY",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE6STSEXKN3PBDGKRESK",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE6MZ84VWZS20D0JQQTY",
+            "turnId": "turn_01M20FCE6RV35BJBHX4PFXYKGT",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "brunch_mark_question-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "brunch_mark_question-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE6MZ84VWZS20D0JQQTY",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE6MZ84VWZS20D0JQQTY"
+          }
+        ],
+        "incarnation": "inc_01M20FCE6MTJXTTY3GRJV8EDYF"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/8161810fa38ccad40dfe9cf5c0dfb920f4047aa588e1f7a4ce49fd7f0fbd89ed",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCE6ZE87G9F8XV8X16B41",
+          "uid": "inst_01M20FCE6NHCWHVBT9QXSD1X33"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE6NBV8QANN9DVB6WNWD",
+        "offset": "0000000000000000_0000000000000028",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNk1aODRWV1pTMjBEMEpRUVRZ",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE6MZ84VWZS20D0JQQTY",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE6STSEXKN3PBDGKRESK",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE6MZ84VWZS20D0JQQTY",
+            "turnId": "turn_01M20FCE6RV35BJBHX4PFXYKGT",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "brunch_mark_question-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "brunch_mark_question-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFNlpFODdHOUY4WFY4WDE2QjQx",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE6ZE87G9F8XV8X16B41",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE72ND95MX5X1TXA9QZG",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE6ZE87G9F8XV8X16B41",
+            "turnId": "turn_01M20FCE71TR1M6W7KY7X93NP9",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "brunch_mark_question",
+                "toolCallId": "brunch_mark_question-brunch_mark_question",
+                "state": "output-available",
+                "input": {
+                  "question": "What remains unknown?"
+                },
+                "output": {
+                  "marked": true
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "data-brunch-question",
+                "data": {
+                  "question": "What remains unknown?",
+                  "toolCallId": "brunch_mark_question-brunch_mark_question"
+                }
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE6MZ84VWZS20D0JQQTY",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE6MZ84VWZS20D0JQQTY"
+          },
+          {
+            "submissionId": "sub_01M20FCE6ZE87G9F8XV8X16B41",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE6ZE87G9F8XV8X16B41"
+          }
+        ],
+        "incarnation": "inc_01M20FCE6MTJXTTY3GRJV8EDYF"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": [],
+      "results": [],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": false,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "update_workpiece-brunch_mark_question",
+      "seed": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/375cd290b47e6ca05e1206ba8b8e8db43b7c4b9939910f9e7489c3b6eaa78a3f",
+          "offset": "0000000000000000_0000000000000000",
+          "submissionId": "sub_01M20FCE7D53WWKDADW9J5FNRV",
+          "uid": "inst_01M20FCE7EHNBRTP5JJP7PX48T"
+        },
+        "error": null
+      },
+      "seeded": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE7E44PKT21VS5G54STT",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFN0Q1M1dXS0RBRFc5SjVGTlJW",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE7D53WWKDADW9J5FNRV",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE7H571RWKVW0ZJ5NBZE",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE7D53WWKDADW9J5FNRV",
+            "turnId": "turn_01M20FCE7GYBA56ERED7VRT76H",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "update_workpiece-brunch_mark_question-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "update_workpiece-brunch_mark_question-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE7D53WWKDADW9J5FNRV",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE7D53WWKDADW9J5FNRV"
+          }
+        ],
+        "incarnation": "inc_01M20FCE7DADGTTDDPCZD09QAY"
+      },
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-brunch_mark_question-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-brunch_mark_question-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        }
+      ],
+      "attempt": {
+        "receipt": {
+          "streamUrl": "http://brunch.local/agents/chat/375cd290b47e6ca05e1206ba8b8e8db43b7c4b9939910f9e7489c3b6eaa78a3f",
+          "offset": "0000000000000000_0000000000000014",
+          "submissionId": "sub_01M20FCE7RJDM21YEDNB7XPG2N",
+          "uid": "inst_01M20FCE7EHNBRTP5JJP7PX48T"
+        },
+        "error": null
+      },
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20FCE7E44PKT21VS5G54STT",
+        "offset": "0000000000000000_0000000000000030",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFN0Q1M1dXS0RBRFc5SjVGTlJW",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE7D53WWKDADW9J5FNRV",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Record this synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE7H571RWKVW0ZJ5NBZE",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE7D53WWKDADW9J5FNRV",
+            "turnId": "turn_01M20FCE7GYBA56ERED7VRT76H",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "update_workpiece-brunch_mark_question-old-revision",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic settled account\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "update_workpiece-brunch_mark_question-old-revision",
+                  "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+                  "ordinal": 1
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "text",
+                "text": "Recorded the synthetic account.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_direct_c3ViXzAxTTIwRkNFN1JKRE0yMVlFRE5CN1hQRzJO",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE7RJDM21YEDNB7XPG2N",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic admission-control probe; no plant facts.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20FCE7VADEF21JCNKFYMQ7W",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20FCE7RJDM21YEDNB7XPG2N",
+            "turnId": "turn_01M20FCE7TWW4B4RWHFCK4NJFQ",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "update_workpiece-brunch_mark_question-update_workpiece",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Synthetic replacement\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "update_workpiece-brunch_mark_question-update_workpiece",
+                  "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+                  "ordinal": 2
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "brunch_mark_question",
+                "toolCallId": "update_workpiece-brunch_mark_question-brunch_mark_question",
+                "state": "output-available",
+                "input": {
+                  "question": "What remains unknown?"
+                },
+                "output": {
+                  "marked": true
+                },
+                "durationMs": 1
+              },
+              {
+                "type": "data-brunch-question",
+                "data": {
+                  "question": "What remains unknown?",
+                  "toolCallId": "update_workpiece-brunch_mark_question-brunch_mark_question"
+                }
+              },
+              {
+                "type": "text",
+                "text": "Continuation without a client result.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20FCE7D53WWKDADW9J5FNRV",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE7D53WWKDADW9J5FNRV"
+          },
+          {
+            "submissionId": "sub_01M20FCE7RJDM21YEDNB7XPG2N",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20FCE7RJDM21YEDNB7XPG2N"
+          }
+        ],
+        "incarnation": "inc_01M20FCE7DADGTTDDPCZD09QAY"
+      },
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": [],
+      "results": [],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": false,
+      "actualBrowserApplied": null
+    }
+  ]
+}

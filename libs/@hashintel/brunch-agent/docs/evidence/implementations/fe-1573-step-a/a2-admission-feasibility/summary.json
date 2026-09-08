@@ -1,0 +1,4643 @@
+[
+  {
+    "control": "baseline",
+    "caseId": "brunch_mark_question-addType",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": ["brunch_mark_question-addType-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-addType-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 94,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC2Z8CD3FV92TR77CAAB",
+          "messageId": "entry_01M20FCC4RV0JDBZ2703T1SGMA",
+          "toolCallId": "brunch_mark_question-addType-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:13.082Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 107,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC2Z8CD3FV92TR77CAAB",
+          "messageId": "entry_01M20FCC4RV0JDBZ2703T1SGMA",
+          "toolCallId": "brunch_mark_question-addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:13.083Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 128,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC2Z8CD3FV92TR77CAAB",
+          "toolCallId": "brunch_mark_question-addType-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 3,
+          "timestamp": "2026-09-08T12:20:13.087Z",
+          "position": {
+            "batch": 24,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 130,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC2Z8CD3FV92TR77CAAB",
+          "toolCallId": "brunch_mark_question-addType-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:13.087Z",
+          "position": {
+            "batch": 24,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "addType-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": ["addType-brunch_mark_question-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-brunch_mark_question-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 256,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC5C2RJVV77H5PZ99Q8N",
+          "messageId": "entry_01M20FCC5XR17RH8Z85HD9JHA5",
+          "toolCallId": "addType-brunch_mark_question-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:13.118Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 262,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC5C2RJVV77H5PZ99Q8N",
+          "messageId": "entry_01M20FCC5XR17RH8Z85HD9JHA5",
+          "toolCallId": "addType-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:13.119Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 283,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC5C2RJVV77H5PZ99Q8N",
+          "toolCallId": "addType-brunch_mark_question-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.121Z",
+          "position": {
+            "batch": 24,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 285,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC5C2RJVV77H5PZ99Q8N",
+          "toolCallId": "addType-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.121Z",
+          "position": {
+            "batch": 24,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "update_workpiece-addType",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": ["update_workpiece-addType-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-addType-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 405,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC6D707Z5DW71KYZX9B2",
+          "messageId": "entry_01M20FCC71TGH8PTSCRYMXPQWT",
+          "toolCallId": "update_workpiece-addType-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:13.154Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 422,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC6D707Z5DW71KYZX9B2",
+          "messageId": "entry_01M20FCC71TGH8PTSCRYMXPQWT",
+          "toolCallId": "update_workpiece-addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:13.154Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 442,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC6D707Z5DW71KYZX9B2",
+          "toolCallId": "update_workpiece-addType-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-addType-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.156Z",
+          "position": {
+            "batch": 23,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 444,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC6D707Z5DW71KYZX9B2",
+          "toolCallId": "update_workpiece-addType-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.156Z",
+          "position": {
+            "batch": 23,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "addType-update_workpiece",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": ["addType-update_workpiece-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-update_workpiece-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 571,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC7FG9H4C6HQSH6V27S5",
+          "messageId": "entry_01M20FCC81X502SYAWF23HF4SH",
+          "toolCallId": "addType-update_workpiece-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:13.186Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 581,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC7FG9H4C6HQSH6V27S5",
+          "messageId": "entry_01M20FCC81X502SYAWF23HF4SH",
+          "toolCallId": "addType-update_workpiece-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:13.186Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 601,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC7FG9H4C6HQSH6V27S5",
+          "toolCallId": "addType-update_workpiece-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.188Z",
+          "position": {
+            "batch": 23,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 603,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC7FG9H4C6HQSH6V27S5",
+          "toolCallId": "addType-update_workpiece-update_workpiece",
+          "output": {
+            "revisionId": "addType-update_workpiece-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.188Z",
+          "position": {
+            "batch": 23,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "brunch_mark_question-update_workpiece-addType",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [
+      "brunch_mark_question-update_workpiece-addType-addType"
+    ],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 724,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC8EP0JX1N99DPR42QTB",
+          "messageId": "entry_01M20FCC90SDYHJAJVSNBKGFZZ",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:13.217Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 732,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC8EP0JX1N99DPR42QTB",
+          "messageId": "entry_01M20FCC90SDYHJAJVSNBKGFZZ",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:13.218Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 748,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC8EP0JX1N99DPR42QTB",
+          "messageId": "entry_01M20FCC90SDYHJAJVSNBKGFZZ",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:13.218Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 772,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC8EP0JX1N99DPR42QTB",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.220Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 775,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC8EP0JX1N99DPR42QTB",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+          "output": {
+            "revisionId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.220Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 776,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC8EP0JX1N99DPR42QTB",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.220Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "brunch_mark_question-addType-update_workpiece",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [
+      "brunch_mark_question-addType-update_workpiece-addType"
+    ],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 896,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC9DBAD7DFJP830N46Y8",
+          "messageId": "entry_01M20FCCA612145NXTZJWZFGN6",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:13.255Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 906,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC9DBAD7DFJP830N46Y8",
+          "messageId": "entry_01M20FCCA612145NXTZJWZFGN6",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:13.256Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 916,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCC9DBAD7DFJP830N46Y8",
+          "messageId": "entry_01M20FCCA612145NXTZJWZFGN6",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:13.257Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 940,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC9DBAD7DFJP830N46Y8",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.258Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 943,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC9DBAD7DFJP830N46Y8",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.258Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 944,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCC9DBAD7DFJP830N46Y8",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+          "output": {
+            "revisionId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 0,
+          "timestamp": "2026-09-08T12:20:13.258Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "update_workpiece-brunch_mark_question-addType",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [
+      "update_workpiece-brunch_mark_question-addType-addType"
+    ],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1065,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCAPFX08C4ER6WRN4T9W",
+          "messageId": "entry_01M20FCCB7CYP1JK62BMGNA72S",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:13.288Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1074,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCAPFX08C4ER6WRN4T9W",
+          "messageId": "entry_01M20FCCB7CYP1JK62BMGNA72S",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:13.288Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1090,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCAPFX08C4ER6WRN4T9W",
+          "messageId": "entry_01M20FCCB7CYP1JK62BMGNA72S",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:13.289Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1114,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCAPFX08C4ER6WRN4T9W",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:13.291Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1117,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCAPFX08C4ER6WRN4T9W",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:13.291Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 1118,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCAPFX08C4ER6WRN4T9W",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.291Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "update_workpiece-addType-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [
+      "update_workpiece-addType-brunch_mark_question-addType"
+    ],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1239,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCBMM1V1RSK8TWSVY1RN",
+          "messageId": "entry_01M20FCCC3861RC32MK93KYK0X",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:13.316Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1257,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCBMM1V1RSK8TWSVY1RN",
+          "messageId": "entry_01M20FCCC3861RC32MK93KYK0X",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:13.317Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1265,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCBMM1V1RSK8TWSVY1RN",
+          "messageId": "entry_01M20FCCC3861RC32MK93KYK0X",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:13.317Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1289,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCBMM1V1RSK8TWSVY1RN",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:13.319Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1292,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCBMM1V1RSK8TWSVY1RN",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:13.319Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 1293,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCBMM1V1RSK8TWSVY1RN",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.319Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "addType-brunch_mark_question-update_workpiece",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [
+      "addType-brunch_mark_question-update_workpiece-addType"
+    ],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1420,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCCG503ZGSF01BB2Y36H",
+          "messageId": "entry_01M20FCCD14ZRE75ZBE2KJC8TM",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:13.347Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1429,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCCG503ZGSF01BB2Y36H",
+          "messageId": "entry_01M20FCCD14ZRE75ZBE2KJC8TM",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:13.347Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1439,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCCG503ZGSF01BB2Y36H",
+          "messageId": "entry_01M20FCCD14ZRE75ZBE2KJC8TM",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:13.347Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1463,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCCG503ZGSF01BB2Y36H",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:13.350Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1466,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCCG503ZGSF01BB2Y36H",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:13.350Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 1467,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCCG503ZGSF01BB2Y36H",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+          "output": {
+            "revisionId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 0,
+          "timestamp": "2026-09-08T12:20:13.350Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "addType-update_workpiece-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [
+      "addType-update_workpiece-brunch_mark_question-addType"
+    ],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1592,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCDHMX4HEA5FKH0R36ZR",
+          "messageId": "entry_01M20FCCE5P6M0EE0X7XPNTP51",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:13.383Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1603,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCDHMX4HEA5FKH0R36ZR",
+          "messageId": "entry_01M20FCCE5P6M0EE0X7XPNTP51",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:13.384Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1609,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCDHMX4HEA5FKH0R36ZR",
+          "messageId": "entry_01M20FCCE5P6M0EE0X7XPNTP51",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:13.384Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1633,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCDHMX4HEA5FKH0R36ZR",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:13.387Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1636,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCDHMX4HEA5FKH0R36ZR",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+          "output": {
+            "revisionId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:13.387Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 1637,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCDHMX4HEA5FKH0R36ZR",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.387Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "addType-unmounted_admission_probe",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": ["addType-unmounted_admission_probe-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-unmounted_admission_probe-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1763,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCERJ0YM4GAMCM6E0XVJ",
+          "messageId": "entry_01M20FCCFBJK9E68W5JXVK5R5A",
+          "toolCallId": "addType-unmounted_admission_probe-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:13.420Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1771,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCERJ0YM4GAMCM6E0XVJ",
+          "messageId": "entry_01M20FCCFBJK9E68W5JXVK5R5A",
+          "toolCallId": "addType-unmounted_admission_probe-unmounted_admission_probe",
+          "toolName": "unmounted_admission_probe",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:13.420Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1790,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCERJ0YM4GAMCM6E0XVJ",
+          "toolCallId": "addType-unmounted_admission_probe-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.422Z",
+          "position": {
+            "batch": 23,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1791,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCCERJ0YM4GAMCM6E0XVJ",
+          "toolCallId": "addType-unmounted_admission_probe-unmounted_admission_probe",
+          "errorText": "Tool unmounted_admission_probe not found",
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.422Z",
+          "position": {
+            "batch": 23,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "addType",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": ["addType-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1915,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCFVAFQFXFP84X4YJTT2",
+          "messageId": "entry_01M20FCCGC98TBZD23HV6TY78A",
+          "toolCallId": "addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:13.454Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1924,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCFVAFQFXFP84X4YJTT2",
+          "toolCallId": "addType-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.456Z",
+          "position": {
+            "batch": 21,
+            "index": 0
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 2064,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCGV7ACPN57TJPPXAQYS",
+          "messageId": "entry_01M20FCCHB30TE6WZ311D7BMXG",
+          "toolCallId": "brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:13.484Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 2076,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCGV7ACPN57TJPPXAQYS",
+          "toolCallId": "brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.486Z",
+          "position": {
+            "batch": 22,
+            "index": 0
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "baseline",
+    "caseId": "update_workpiece-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-brunch_mark_question-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 2194,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCHNF9EWQDGEMVV00JZK",
+          "messageId": "entry_01M20FCCJ4C9WZWQRWKXK2F66Q",
+          "toolCallId": "update_workpiece-brunch_mark_question-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:13.509Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 2201,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCCHNF9EWQDGEMVV00JZK",
+          "messageId": "entry_01M20FCCJ4C9WZWQRWKXK2F66Q",
+          "toolCallId": "update_workpiece-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:13.509Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 2222,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCHNF9EWQDGEMVV00JZK",
+          "toolCallId": "update_workpiece-brunch_mark_question-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-brunch_mark_question-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:13.511Z",
+          "position": {
+            "batch": 24,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 2224,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCCHNF9EWQDGEMVV00JZK",
+          "toolCallId": "update_workpiece-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:13.511Z",
+          "position": {
+            "batch": 24,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "brunch_mark_question-addType",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": ["brunch_mark_question-addType-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-addType-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 96,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCDSCG4TQ19J2K7RKMB41",
+          "messageId": "entry_01M20FCDV1MBJDKX99ENB7TMMC",
+          "toolCallId": "brunch_mark_question-addType-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:14.818Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 110,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCDSCG4TQ19J2K7RKMB41",
+          "messageId": "entry_01M20FCDV1MBJDKX99ENB7TMMC",
+          "toolCallId": "brunch_mark_question-addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:14.819Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 131,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCDSCG4TQ19J2K7RKMB41",
+          "toolCallId": "brunch_mark_question-addType-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 3,
+          "timestamp": "2026-09-08T12:20:14.824Z",
+          "position": {
+            "batch": 24,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 133,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCDSCG4TQ19J2K7RKMB41",
+          "toolCallId": "brunch_mark_question-addType-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 3,
+          "timestamp": "2026-09-08T12:20:14.824Z",
+          "position": {
+            "batch": 24,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "addType-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": ["addType-brunch_mark_question-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-brunch_mark_question-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 254,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCDVM9ATWCBM63VA4VB9Z",
+          "messageId": "entry_01M20FCDW6MS7HGNV9RANS8RPH",
+          "toolCallId": "addType-brunch_mark_question-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:14.855Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 263,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCDVM9ATWCBM63VA4VB9Z",
+          "messageId": "entry_01M20FCDW6MS7HGNV9RANS8RPH",
+          "toolCallId": "addType-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:14.856Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 284,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCDVM9ATWCBM63VA4VB9Z",
+          "toolCallId": "addType-brunch_mark_question-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:14.858Z",
+          "position": {
+            "batch": 24,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 286,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCDVM9ATWCBM63VA4VB9Z",
+          "toolCallId": "addType-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:14.858Z",
+          "position": {
+            "batch": 24,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "update_workpiece-addType",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": ["update_workpiece-addType-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-addType-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 406,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCDWPGGF56JE3WQCVDHNX",
+          "messageId": "entry_01M20FCDX9GG923ZEPCJ6HKRMA",
+          "toolCallId": "update_workpiece-addType-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:14.891Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 422,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCDWPGGF56JE3WQCVDHNX",
+          "messageId": "entry_01M20FCDX9GG923ZEPCJ6HKRMA",
+          "toolCallId": "update_workpiece-addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:14.891Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 442,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCDWPGGF56JE3WQCVDHNX",
+          "toolCallId": "update_workpiece-addType-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-addType-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:14.893Z",
+          "position": {
+            "batch": 23,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 444,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCDWPGGF56JE3WQCVDHNX",
+          "toolCallId": "update_workpiece-addType-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:14.893Z",
+          "position": {
+            "batch": 23,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "addType-update_workpiece",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": ["addType-update_workpiece-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-update_workpiece-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 570,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCDXR50RGP12E9SH9YXZQ",
+          "messageId": "entry_01M20FCDY8NK0V2QTYGCDDCTR0",
+          "toolCallId": "addType-update_workpiece-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:14.922Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 579,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCDXR50RGP12E9SH9YXZQ",
+          "messageId": "entry_01M20FCDY8NK0V2QTYGCDDCTR0",
+          "toolCallId": "addType-update_workpiece-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:14.922Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 599,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCDXR50RGP12E9SH9YXZQ",
+          "toolCallId": "addType-update_workpiece-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:14.924Z",
+          "position": {
+            "batch": 23,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 601,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCDXR50RGP12E9SH9YXZQ",
+          "toolCallId": "addType-update_workpiece-update_workpiece",
+          "output": {
+            "revisionId": "addType-update_workpiece-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:14.924Z",
+          "position": {
+            "batch": 23,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "brunch_mark_question-update_workpiece-addType",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [
+      "brunch_mark_question-update_workpiece-addType-addType"
+    ],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 721,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCDYNEY3V1N4YDEN57GCB",
+          "messageId": "entry_01M20FCDZ6K4H2M35MM0TXTPBZ",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:14.952Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 728,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCDYNEY3V1N4YDEN57GCB",
+          "messageId": "entry_01M20FCDZ6K4H2M35MM0TXTPBZ",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:14.953Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 745,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCDYNEY3V1N4YDEN57GCB",
+          "messageId": "entry_01M20FCDZ6K4H2M35MM0TXTPBZ",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:14.953Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 769,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCDYNEY3V1N4YDEN57GCB",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:14.956Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 772,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCDYNEY3V1N4YDEN57GCB",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+          "output": {
+            "revisionId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:14.956Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 773,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCDYNEY3V1N4YDEN57GCB",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0,
+          "timestamp": "2026-09-08T12:20:14.956Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "brunch_mark_question-addType-update_workpiece",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [
+      "brunch_mark_question-addType-update_workpiece-addType"
+    ],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 895,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE0C2KQ5AQ75JEWXZ3Q6",
+          "messageId": "entry_01M20FCE0XW2W696HJK9PJNEA2",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:15.007Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 907,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE0C2KQ5AQ75JEWXZ3Q6",
+          "messageId": "entry_01M20FCE0XW2W696HJK9PJNEA2",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:15.009Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 918,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE0C2KQ5AQ75JEWXZ3Q6",
+          "messageId": "entry_01M20FCE0XW2W696HJK9PJNEA2",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:15.009Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 942,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE0C2KQ5AQ75JEWXZ3Q6",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.011Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 945,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE0C2KQ5AQ75JEWXZ3Q6",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.011Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 946,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE0C2KQ5AQ75JEWXZ3Q6",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+          "output": {
+            "revisionId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 0,
+          "timestamp": "2026-09-08T12:20:15.011Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "update_workpiece-brunch_mark_question-addType",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [
+      "update_workpiece-brunch_mark_question-addType-addType"
+    ],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1065,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE1D4H8Q2S581WXRXNJD",
+          "messageId": "entry_01M20FCE1ZY5V2AD88MTN81KYA",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:15.040Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1072,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE1D4H8Q2S581WXRXNJD",
+          "messageId": "entry_01M20FCE1ZY5V2AD88MTN81KYA",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:15.041Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1089,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE1D4H8Q2S581WXRXNJD",
+          "messageId": "entry_01M20FCE1ZY5V2AD88MTN81KYA",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:15.042Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1113,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE1D4H8Q2S581WXRXNJD",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:15.044Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1116,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE1D4H8Q2S581WXRXNJD",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.044Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 1117,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE1D4H8Q2S581WXRXNJD",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.044Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "update_workpiece-addType-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [
+      "update_workpiece-addType-brunch_mark_question-addType"
+    ],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1233,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE2D02S7F2K1AE24YVKW",
+          "messageId": "entry_01M20FCE2WN9TX3AA0KYB6AW6J",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:15.069Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1253,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE2D02S7F2K1AE24YVKW",
+          "messageId": "entry_01M20FCE2WN9TX3AA0KYB6AW6J",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:15.069Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1262,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE2D02S7F2K1AE24YVKW",
+          "messageId": "entry_01M20FCE2WN9TX3AA0KYB6AW6J",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:15.070Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1286,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE2D02S7F2K1AE24YVKW",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:15.072Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1289,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE2D02S7F2K1AE24YVKW",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:15.072Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 1290,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE2D02S7F2K1AE24YVKW",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.072Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "addType-brunch_mark_question-update_workpiece",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [
+      "addType-brunch_mark_question-update_workpiece-addType"
+    ],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1412,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE391C1H78HJHVV5CKJ5",
+          "messageId": "entry_01M20FCE3Q3Q3TNT70MMYK4S6P",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:15.097Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1419,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE391C1H78HJHVV5CKJ5",
+          "messageId": "entry_01M20FCE3Q3Q3TNT70MMYK4S6P",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:15.097Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1430,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE391C1H78HJHVV5CKJ5",
+          "messageId": "entry_01M20FCE3Q3Q3TNT70MMYK4S6P",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:15.097Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1454,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE391C1H78HJHVV5CKJ5",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.100Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1457,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE391C1H78HJHVV5CKJ5",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.100Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 1458,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE391C1H78HJHVV5CKJ5",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+          "output": {
+            "revisionId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 0,
+          "timestamp": "2026-09-08T12:20:15.100Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "addType-update_workpiece-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [
+      "addType-update_workpiece-brunch_mark_question-addType"
+    ],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1583,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE45FWQ675WEFH7BMDBM",
+          "messageId": "entry_01M20FCE4KKZZ66V711KGEDX2Z",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:15.125Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1594,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE45FWQ675WEFH7BMDBM",
+          "messageId": "entry_01M20FCE4KKZZ66V711KGEDX2Z",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:15.125Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1601,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE45FWQ675WEFH7BMDBM",
+          "messageId": "entry_01M20FCE4KKZZ66V711KGEDX2Z",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:15.125Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1625,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE45FWQ675WEFH7BMDBM",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.127Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1628,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE45FWQ675WEFH7BMDBM",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+          "output": {
+            "revisionId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.127Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 1629,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE45FWQ675WEFH7BMDBM",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 0,
+          "timestamp": "2026-09-08T12:20:15.127Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "addType-unmounted_admission_probe",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": ["addType-unmounted_admission_probe-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-unmounted_admission_probe-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1754,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE51TH7EGKR460P7H57P",
+          "messageId": "entry_01M20FCE5FBSN3F6ARQG3R90T7",
+          "toolCallId": "addType-unmounted_admission_probe-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:15.152Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1763,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE51TH7EGKR460P7H57P",
+          "messageId": "entry_01M20FCE5FBSN3F6ARQG3R90T7",
+          "toolCallId": "addType-unmounted_admission_probe-unmounted_admission_probe",
+          "toolName": "unmounted_admission_probe",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:15.153Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1782,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE51TH7EGKR460P7H57P",
+          "toolCallId": "addType-unmounted_admission_probe-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.154Z",
+          "position": {
+            "batch": 23,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1783,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCE51TH7EGKR460P7H57P",
+          "toolCallId": "addType-unmounted_admission_probe-unmounted_admission_probe",
+          "errorText": "Tool unmounted_admission_probe not found",
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.154Z",
+          "position": {
+            "batch": 23,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "addType",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": ["addType-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1907,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE5TQHY15GN0GSJZ1SV1",
+          "messageId": "entry_01M20FCE67GYFMK3004STZC0FM",
+          "toolCallId": "addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:15.176Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1916,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE5TQHY15GN0GSJZ1SV1",
+          "toolCallId": "addType-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.178Z",
+          "position": {
+            "batch": 21,
+            "index": 0
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 2053,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE6NBV8QANN9DVB6WNWD",
+          "messageId": "entry_01M20FCE72ND95MX5X1TXA9QZG",
+          "toolCallId": "brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:15.203Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 2065,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE6NBV8QANN9DVB6WNWD",
+          "toolCallId": "brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.205Z",
+          "position": {
+            "batch": 22,
+            "index": 0
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "observer-throw",
+    "caseId": "update_workpiece-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-brunch_mark_question-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 2183,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE7E44PKT21VS5G54STT",
+          "messageId": "entry_01M20FCE7VADEF21JCNKFYMQ7W",
+          "toolCallId": "update_workpiece-brunch_mark_question-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:15.229Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 2190,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCE7E44PKT21VS5G54STT",
+          "messageId": "entry_01M20FCE7VADEF21JCNKFYMQ7W",
+          "toolCallId": "update_workpiece-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:15.229Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 2211,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE7E44PKT21VS5G54STT",
+          "toolCallId": "update_workpiece-brunch_mark_question-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-brunch_mark_question-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.230Z",
+          "position": {
+            "batch": 24,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 2213,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCE7E44PKT21VS5G54STT",
+          "toolCallId": "update_workpiece-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:15.230Z",
+          "position": {
+            "batch": 24,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "brunch_mark_question-addType",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-addType-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 96,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFEG1BQ8D7B6VCC2QGRZ",
+          "messageId": "entry_01M20FCFG6BH2HE4B02628EYY9",
+          "toolCallId": "brunch_mark_question-addType-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:16.519Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 109,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFEG1BQ8D7B6VCC2QGRZ",
+          "messageId": "entry_01M20FCFG6BH2HE4B02628EYY9",
+          "toolCallId": "brunch_mark_question-addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:16.521Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 131,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFEG1BQ8D7B6VCC2QGRZ",
+          "toolCallId": "brunch_mark_question-addType-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 3,
+          "timestamp": "2026-09-08T12:20:16.525Z",
+          "position": {
+            "batch": 24,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 133,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCFEG1BQ8D7B6VCC2QGRZ",
+          "toolCallId": "brunch_mark_question-addType-addType",
+          "errorText": "Diagnostic per-tool refusal of mixed batch",
+          "durationMs": 3,
+          "timestamp": "2026-09-08T12:20:16.525Z",
+          "position": {
+            "batch": 24,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "addType-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-brunch_mark_question-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 257,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFGSNGRCBSPETM6VAXEN",
+          "messageId": "entry_01M20FCFHK88PQCRB7173GQWB8",
+          "toolCallId": "addType-brunch_mark_question-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:16.567Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 265,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFGSNGRCBSPETM6VAXEN",
+          "messageId": "entry_01M20FCFHK88PQCRB7173GQWB8",
+          "toolCallId": "addType-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:16.569Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 287,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCFGSNGRCBSPETM6VAXEN",
+          "toolCallId": "addType-brunch_mark_question-addType",
+          "errorText": "Diagnostic per-tool refusal of mixed batch",
+          "durationMs": 3,
+          "timestamp": "2026-09-08T12:20:16.574Z",
+          "position": {
+            "batch": 24,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 289,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFGSNGRCBSPETM6VAXEN",
+          "toolCallId": "addType-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 3,
+          "timestamp": "2026-09-08T12:20:16.575Z",
+          "position": {
+            "batch": 24,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "update_workpiece-addType",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-addType-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 406,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFJGMK2X975C123KKERJ",
+          "messageId": "entry_01M20FCFK5YVTM54W01CQEGGCW",
+          "toolCallId": "update_workpiece-addType-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:16.614Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 425,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFJGMK2X975C123KKERJ",
+          "messageId": "entry_01M20FCFK5YVTM54W01CQEGGCW",
+          "toolCallId": "update_workpiece-addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:16.615Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 446,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFJGMK2X975C123KKERJ",
+          "toolCallId": "update_workpiece-addType-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-addType-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.617Z",
+          "position": {
+            "batch": 23,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 448,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCFJGMK2X975C123KKERJ",
+          "toolCallId": "update_workpiece-addType-addType",
+          "errorText": "Diagnostic per-tool refusal of mixed batch",
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.617Z",
+          "position": {
+            "batch": 23,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "addType-update_workpiece",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-update_workpiece-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 574,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFKMQK4Y80TVV29KBPFK",
+          "messageId": "entry_01M20FCFM6TX8XFMZ5HPZPD734",
+          "toolCallId": "addType-update_workpiece-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:16.648Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 584,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFKMQK4Y80TVV29KBPFK",
+          "messageId": "entry_01M20FCFM6TX8XFMZ5HPZPD734",
+          "toolCallId": "addType-update_workpiece-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:16.649Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 605,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCFKMQK4Y80TVV29KBPFK",
+          "toolCallId": "addType-update_workpiece-addType",
+          "errorText": "Diagnostic per-tool refusal of mixed batch",
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:16.651Z",
+          "position": {
+            "batch": 23,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 607,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFKMQK4Y80TVV29KBPFK",
+          "toolCallId": "addType-update_workpiece-update_workpiece",
+          "output": {
+            "revisionId": "addType-update_workpiece-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.651Z",
+          "position": {
+            "batch": 23,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "brunch_mark_question-update_workpiece-addType",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 728,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFMN2X5DSJMN9XGNN7WK",
+          "messageId": "entry_01M20FCFN66ERBQRG6ZVFAK8ST",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:16.680Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 736,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFMN2X5DSJMN9XGNN7WK",
+          "messageId": "entry_01M20FCFN66ERBQRG6ZVFAK8ST",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:16.681Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 754,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFMN2X5DSJMN9XGNN7WK",
+          "messageId": "entry_01M20FCFN66ERBQRG6ZVFAK8ST",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:16.682Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 780,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFMN2X5DSJMN9XGNN7WK",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:16.684Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 782,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFMN2X5DSJMN9XGNN7WK",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+          "output": {
+            "revisionId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.684Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 783,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCFMN2X5DSJMN9XGNN7WK",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-addType",
+          "errorText": "Diagnostic per-tool refusal of mixed batch",
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.684Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "brunch_mark_question-addType-update_workpiece",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 906,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFNNGQX0W9A9W1MP46ES",
+          "messageId": "entry_01M20FCFP4F5T8QBDBXCWY3E98",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:16.709Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 920,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFNNGQX0W9A9W1MP46ES",
+          "messageId": "entry_01M20FCFP4F5T8QBDBXCWY3E98",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:16.710Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 930,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFNNGQX0W9A9W1MP46ES",
+          "messageId": "entry_01M20FCFP4F5T8QBDBXCWY3E98",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:16.710Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 956,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFNNGQX0W9A9W1MP46ES",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.712Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 958,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCFNNGQX0W9A9W1MP46ES",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-addType",
+          "errorText": "Diagnostic per-tool refusal of mixed batch",
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.712Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 959,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFNNGQX0W9A9W1MP46ES",
+          "toolCallId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+          "output": {
+            "revisionId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 0,
+          "timestamp": "2026-09-08T12:20:16.712Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "update_workpiece-brunch_mark_question-addType",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1077,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFPHAVQJR610TCF7YVRZ",
+          "messageId": "entry_01M20FCFQ0JZEMMX5JFP7RD2BZ",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:16.737Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1085,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFPHAVQJR610TCF7YVRZ",
+          "messageId": "entry_01M20FCFQ0JZEMMX5JFP7RD2BZ",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:16.737Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1101,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFPHAVQJR610TCF7YVRZ",
+          "messageId": "entry_01M20FCFQ0JZEMMX5JFP7RD2BZ",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:16.738Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1127,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFPHAVQJR610TCF7YVRZ",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:16.740Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1129,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFPHAVQJR610TCF7YVRZ",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:16.740Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 1130,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCFPHAVQJR610TCF7YVRZ",
+          "toolCallId": "update_workpiece-brunch_mark_question-addType-addType",
+          "errorText": "Diagnostic per-tool refusal of mixed batch",
+          "durationMs": 0,
+          "timestamp": "2026-09-08T12:20:16.739Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "update_workpiece-addType-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1247,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFQCK5KYQAP7W61CQPR3",
+          "messageId": "entry_01M20FCFQVNFCKGMEHQ5ZB7T5R",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:16.764Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1265,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFQCK5KYQAP7W61CQPR3",
+          "messageId": "entry_01M20FCFQVNFCKGMEHQ5ZB7T5R",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:16.764Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1273,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFQCK5KYQAP7W61CQPR3",
+          "messageId": "entry_01M20FCFQVNFCKGMEHQ5ZB7T5R",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:16.765Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1299,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFQCK5KYQAP7W61CQPR3",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.766Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1301,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCFQCK5KYQAP7W61CQPR3",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-addType",
+          "errorText": "Diagnostic per-tool refusal of mixed batch",
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.766Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 1302,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFQCK5KYQAP7W61CQPR3",
+          "toolCallId": "update_workpiece-addType-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 0,
+          "timestamp": "2026-09-08T12:20:16.766Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "addType-brunch_mark_question-update_workpiece",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1432,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFR74VVW34MP64PEB482",
+          "messageId": "entry_01M20FCFRPVSGBNVSMBNEVRC9A",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:16.791Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1439,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFR74VVW34MP64PEB482",
+          "messageId": "entry_01M20FCFRPVSGBNVSMBNEVRC9A",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:16.792Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1451,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFR74VVW34MP64PEB482",
+          "messageId": "entry_01M20FCFRPVSGBNVSMBNEVRC9A",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:16.792Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1477,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCFR74VVW34MP64PEB482",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-addType",
+          "errorText": "Diagnostic per-tool refusal of mixed batch",
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.794Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1479,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFR74VVW34MP64PEB482",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:16.795Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 1480,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFR74VVW34MP64PEB482",
+          "toolCallId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+          "output": {
+            "revisionId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.795Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "addType-update_workpiece-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1605,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFS25F4CDKPGDNVDNMG5",
+          "messageId": "entry_01M20FCFSG46ZE858HRP3XQEV6",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:16.818Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1616,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFS25F4CDKPGDNVDNMG5",
+          "messageId": "entry_01M20FCFSG46ZE858HRP3XQEV6",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:16.818Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1624,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFS25F4CDKPGDNVDNMG5",
+          "messageId": "entry_01M20FCFSG46ZE858HRP3XQEV6",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:16.818Z",
+          "position": {
+            "batch": 20,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1650,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCFS25F4CDKPGDNVDNMG5",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-addType",
+          "errorText": "Diagnostic per-tool refusal of mixed batch",
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.820Z",
+          "position": {
+            "batch": 26,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1652,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFS25F4CDKPGDNVDNMG5",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+          "output": {
+            "revisionId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.820Z",
+          "position": {
+            "batch": 26,
+            "index": 1
+          }
+        }
+      },
+      {
+        "sequence": 1653,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFS25F4CDKPGDNVDNMG5",
+          "toolCallId": "addType-update_workpiece-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 0,
+          "timestamp": "2026-09-08T12:20:16.820Z",
+          "position": {
+            "batch": 26,
+            "index": 2
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "addType-unmounted_admission_probe",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-unmounted_admission_probe-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1777,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFSWBZB7PM5M82G0RZH5",
+          "messageId": "entry_01M20FCFTAHTWYDAKA9P29JKGG",
+          "toolCallId": "addType-unmounted_admission_probe-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:16.844Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1785,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFSWBZB7PM5M82G0RZH5",
+          "messageId": "entry_01M20FCFTAHTWYDAKA9P29JKGG",
+          "toolCallId": "addType-unmounted_admission_probe-unmounted_admission_probe",
+          "toolName": "unmounted_admission_probe",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:16.844Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1805,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCFSWBZB7PM5M82G0RZH5",
+          "toolCallId": "addType-unmounted_admission_probe-addType",
+          "errorText": "Diagnostic per-tool refusal of mixed batch",
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.845Z",
+          "position": {
+            "batch": 23,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1806,
+        "chunk": {
+          "type": "tool-output-error",
+          "conversationId": "conv_01M20FCFSWBZB7PM5M82G0RZH5",
+          "toolCallId": "addType-unmounted_admission_probe-unmounted_admission_probe",
+          "errorText": "Tool unmounted_admission_probe not found",
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.845Z",
+          "position": {
+            "batch": 23,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "addType",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": ["addType-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1930,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFTP9EZ948BA8F2QVM28",
+          "messageId": "entry_01M20FCFV3Y2JH42A58W4XW3PH",
+          "toolCallId": "addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:16.868Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1939,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFTP9EZ948BA8F2QVM28",
+          "toolCallId": "addType-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:16.870Z",
+          "position": {
+            "batch": 21,
+            "index": 0
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 2077,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFVKMMSRXKRH7RGC0Z8N",
+          "messageId": "entry_01M20FCFW4AEMACRFGJH96AH8F",
+          "toolCallId": "brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:16.901Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 2091,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFVKMMSRXKRH7RGC0Z8N",
+          "toolCallId": "brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.903Z",
+          "position": {
+            "batch": 22,
+            "index": 0
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "tool-veto",
+    "caseId": "update_workpiece-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-brunch_mark_question-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 2209,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFWEGR0SRND6A0GDG552",
+          "messageId": "entry_01M20FCFWWWH25J6577J1SM1VW",
+          "toolCallId": "update_workpiece-brunch_mark_question-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:16.925Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 2216,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCFWEGR0SRND6A0GDG552",
+          "messageId": "entry_01M20FCFWWWH25J6577J1SM1VW",
+          "toolCallId": "update_workpiece-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:16.925Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 2237,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFWEGR0SRND6A0GDG552",
+          "toolCallId": "update_workpiece-brunch_mark_question-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-brunch_mark_question-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.927Z",
+          "position": {
+            "batch": 24,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 2239,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCFWEGR0SRND6A0GDG552",
+          "toolCallId": "update_workpiece-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:16.927Z",
+          "position": {
+            "batch": 24,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "brunch_mark_question-addType",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": "FlueExecutionError: Agent submission sub_01M20FCH44MQ04E0FTHXF7QKGE failed: direct(sub_01M20FCH44MQ04E0FTHXF7QKGE) failed: Diagnostic admission refusal: mixed browser/server proposal",
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-addType-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "addType-brunch_mark_question",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": "FlueExecutionError: Agent submission sub_01M20FCH4XV2NF3S7H2VVRD4P6 failed: direct(sub_01M20FCH4XV2NF3S7H2VVRD4P6) failed: Diagnostic admission refusal: mixed browser/server proposal",
+    "currentRevision": {
+      "revisionId": "addType-brunch_mark_question-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "update_workpiece-addType",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": "FlueExecutionError: Agent submission sub_01M20FCH5J6RPNKEKR65AZDRJX failed: direct(sub_01M20FCH5J6RPNKEKR65AZDRJX) failed: Diagnostic admission refusal: mixed browser/server proposal",
+    "currentRevision": {
+      "revisionId": "update_workpiece-addType-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "addType-update_workpiece",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": "FlueExecutionError: Agent submission sub_01M20FCH675PZME58FJWSBT9QH failed: direct(sub_01M20FCH675PZME58FJWSBT9QH) failed: Diagnostic admission refusal: mixed browser/server proposal",
+    "currentRevision": {
+      "revisionId": "addType-update_workpiece-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "brunch_mark_question-update_workpiece-addType",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": "FlueExecutionError: Agent submission sub_01M20FCH6T57JWCN331BDWHW81 failed: direct(sub_01M20FCH6T57JWCN331BDWHW81) failed: Diagnostic admission refusal: mixed browser/server proposal",
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-update_workpiece-addType-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "brunch_mark_question-addType-update_workpiece",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": "FlueExecutionError: Agent submission sub_01M20FCH7FSQGD67MR86SJZ3DT failed: direct(sub_01M20FCH7FSQGD67MR86SJZ3DT) failed: Diagnostic admission refusal: mixed browser/server proposal",
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-addType-update_workpiece-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "update_workpiece-brunch_mark_question-addType",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": "FlueExecutionError: Agent submission sub_01M20FCH84NM3EB8G8F414GNK5 failed: direct(sub_01M20FCH84NM3EB8G8F414GNK5) failed: Diagnostic admission refusal: mixed browser/server proposal",
+    "currentRevision": {
+      "revisionId": "update_workpiece-brunch_mark_question-addType-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "update_workpiece-addType-brunch_mark_question",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": "FlueExecutionError: Agent submission sub_01M20FCH8PWYHQDFWNTEHVQEGK failed: direct(sub_01M20FCH8PWYHQDFWNTEHVQEGK) failed: Diagnostic admission refusal: mixed browser/server proposal",
+    "currentRevision": {
+      "revisionId": "update_workpiece-addType-brunch_mark_question-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "addType-brunch_mark_question-update_workpiece",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": "FlueExecutionError: Agent submission sub_01M20FCH99FCYMPS2SE98N9NMX failed: direct(sub_01M20FCH99FCYMPS2SE98N9NMX) failed: Diagnostic admission refusal: mixed browser/server proposal",
+    "currentRevision": {
+      "revisionId": "addType-brunch_mark_question-update_workpiece-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "addType-update_workpiece-brunch_mark_question",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": "FlueExecutionError: Agent submission sub_01M20FCH9TJ4R6M801JCZVSNNE failed: direct(sub_01M20FCH9TJ4R6M801JCZVSNNE) failed: Diagnostic admission refusal: mixed browser/server proposal",
+    "currentRevision": {
+      "revisionId": "addType-update_workpiece-brunch_mark_question-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "addType-unmounted_admission_probe",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": "FlueExecutionError: Agent submission sub_01M20FCHABS59X36HHT5Q19AMP failed: direct(sub_01M20FCHABS59X36HHT5Q19AMP) failed: Diagnostic admission refusal: mixed browser/server proposal",
+    "currentRevision": {
+      "revisionId": "addType-unmounted_admission_probe-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "addType",
+    "providerCallsBeforeClientResult": 1,
+    "pendingMutationIds": ["addType-addType"],
+    "mutationApplied": true,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "addType-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1166,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCHAHBBVW6SP11EM2TV2P",
+          "messageId": "entry_01M20FCHB0SXEGS7BMTA32RVYA",
+          "toolCallId": "addType-addType",
+          "toolName": "addType",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "timestamp": "2026-09-08T12:20:18.400Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1175,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCHAHBBVW6SP11EM2TV2P",
+          "toolCallId": "addType-addType",
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 2,
+          "timestamp": "2026-09-08T12:20:18.403Z",
+          "position": {
+            "batch": 21,
+            "index": 0
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "brunch_mark_question-old-revision",
+      "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+      "markdown": "# Synthetic settled account\nUnknown timing.",
+      "ordinal": 1
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1320,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCHBKQ27JFK54YFPZ3FY9",
+          "messageId": "entry_01M20FCHC4C8PX7K9Y75YWHM0N",
+          "toolCallId": "brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:18.436Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1334,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCHBKQ27JFK54YFPZ3FY9",
+          "toolCallId": "brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:18.438Z",
+          "position": {
+            "batch": 22,
+            "index": 0
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  },
+  {
+    "control": "provider-reject",
+    "caseId": "update_workpiece-brunch_mark_question",
+    "providerCallsBeforeClientResult": 2,
+    "pendingMutationIds": [],
+    "mutationApplied": false,
+    "submissionError": null,
+    "currentRevision": {
+      "revisionId": "update_workpiece-brunch_mark_question-update_workpiece",
+      "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+      "markdown": "# Synthetic replacement\nUnknown timing.",
+      "ordinal": 2
+    },
+    "attemptedWireEvents": [
+      {
+        "sequence": 1461,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCHCE5FKB1SR91MDBM8RN",
+          "messageId": "entry_01M20FCHCWR57TDNH2ZQ24S85A",
+          "toolCallId": "update_workpiece-brunch_mark_question-update_workpiece",
+          "toolName": "update_workpiece",
+          "input": {
+            "markdown": "# Synthetic replacement\nUnknown timing."
+          },
+          "timestamp": "2026-09-08T12:20:18.461Z",
+          "position": {
+            "batch": 18,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1469,
+        "chunk": {
+          "type": "tool-input",
+          "conversationId": "conv_01M20FCHCE5FKB1SR91MDBM8RN",
+          "messageId": "entry_01M20FCHCWR57TDNH2ZQ24S85A",
+          "toolCallId": "update_workpiece-brunch_mark_question-brunch_mark_question",
+          "toolName": "brunch_mark_question",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "timestamp": "2026-09-08T12:20:18.461Z",
+          "position": {
+            "batch": 19,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1489,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCHCE5FKB1SR91MDBM8RN",
+          "toolCallId": "update_workpiece-brunch_mark_question-update_workpiece",
+          "output": {
+            "revisionId": "update_workpiece-brunch_mark_question-update_workpiece",
+            "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+            "ordinal": 2
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:18.463Z",
+          "position": {
+            "batch": 24,
+            "index": 0
+          }
+        }
+      },
+      {
+        "sequence": 1490,
+        "chunk": {
+          "type": "tool-output",
+          "conversationId": "conv_01M20FCHCE5FKB1SR91MDBM8RN",
+          "toolCallId": "update_workpiece-brunch_mark_question-brunch_mark_question",
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1,
+          "timestamp": "2026-09-08T12:20:18.463Z",
+          "position": {
+            "batch": 24,
+            "index": 1
+          }
+        }
+      }
+    ],
+    "actualBrowserApplied": null
+  }
+]

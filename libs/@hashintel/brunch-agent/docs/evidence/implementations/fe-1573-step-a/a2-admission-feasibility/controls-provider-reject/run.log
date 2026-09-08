@@ -1,0 +1,223 @@
+Registered OpenTelemetry (traces + logs + metrics) at endpoint http://localhost:4317 for Brunch Agent
+[flue:submission-processing] {
+  submissionId: 'sub_01M20FCH44MQ04E0FTHXF7QKGE',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20FCH44MQ04E0FTHXF7QKGE) failed: Diagnostic admission refusal: mixed browser/server proposal
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20FCH44MQ04E0FTHXF7QKGE)',
+    reason: 'Diagnostic admission refusal: mixed browser/server proposal'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20FCH4XV2NF3S7H2VVRD4P6',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20FCH4XV2NF3S7H2VVRD4P6) failed: Diagnostic admission refusal: mixed browser/server proposal
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20FCH4XV2NF3S7H2VVRD4P6)',
+    reason: 'Diagnostic admission refusal: mixed browser/server proposal'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20FCH5J6RPNKEKR65AZDRJX',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20FCH5J6RPNKEKR65AZDRJX) failed: Diagnostic admission refusal: mixed browser/server proposal
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20FCH5J6RPNKEKR65AZDRJX)',
+    reason: 'Diagnostic admission refusal: mixed browser/server proposal'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20FCH675PZME58FJWSBT9QH',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20FCH675PZME58FJWSBT9QH) failed: Diagnostic admission refusal: mixed browser/server proposal
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20FCH675PZME58FJWSBT9QH)',
+    reason: 'Diagnostic admission refusal: mixed browser/server proposal'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20FCH6T57JWCN331BDWHW81',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20FCH6T57JWCN331BDWHW81) failed: Diagnostic admission refusal: mixed browser/server proposal
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20FCH6T57JWCN331BDWHW81)',
+    reason: 'Diagnostic admission refusal: mixed browser/server proposal'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20FCH7FSQGD67MR86SJZ3DT',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20FCH7FSQGD67MR86SJZ3DT) failed: Diagnostic admission refusal: mixed browser/server proposal
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20FCH7FSQGD67MR86SJZ3DT)',
+    reason: 'Diagnostic admission refusal: mixed browser/server proposal'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20FCH84NM3EB8G8F414GNK5',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20FCH84NM3EB8G8F414GNK5) failed: Diagnostic admission refusal: mixed browser/server proposal
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20FCH84NM3EB8G8F414GNK5)',
+    reason: 'Diagnostic admission refusal: mixed browser/server proposal'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20FCH8PWYHQDFWNTEHVQEGK',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20FCH8PWYHQDFWNTEHVQEGK) failed: Diagnostic admission refusal: mixed browser/server proposal
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20FCH8PWYHQDFWNTEHVQEGK)',
+    reason: 'Diagnostic admission refusal: mixed browser/server proposal'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20FCH99FCYMPS2SE98N9NMX',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20FCH99FCYMPS2SE98N9NMX) failed: Diagnostic admission refusal: mixed browser/server proposal
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20FCH99FCYMPS2SE98N9NMX)',
+    reason: 'Diagnostic admission refusal: mixed browser/server proposal'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20FCH9TJ4R6M801JCZVSNNE',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20FCH9TJ4R6M801JCZVSNNE) failed: Diagnostic admission refusal: mixed browser/server proposal
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20FCH9TJ4R6M801JCZVSNNE)',
+    reason: 'Diagnostic admission refusal: mixed browser/server proposal'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20FCHABS59X36HHT5Q19AMP',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20FCHABS59X36HHT5Q19AMP) failed: Diagnostic admission refusal: mixed browser/server proposal
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20FCHABS59X36HHT5Q19AMP)',
+    reason: 'Diagnostic admission refusal: mixed browser/server proposal'
+  },
+  cause: undefined
+}
+
+Instrument exit 0; structured result retained in observations.json (not duplicated in this log).

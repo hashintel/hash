@@ -1,0 +1,1029 @@
+[
+  {
+    "path": "agents/brunch-chat-agent/03eeab53e229ee12b1dd8b5ebf361b4579dd6e288aa20738d5d79fad136153da",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCCRWCXMC4WD90KS4VTM",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCCG503ZGSF01BB2Y36H",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.336Z",
+        "submissionId": "sub_01M20FCCCG8DA342VV51MAZBKF",
+        "attemptId": "attempt_01M20FCCCGDPAAX3VM33F1668A",
+        "operationId": "op_01M20FCCCH0FV9PW9EEMEJFER5",
+        "turnId": "turn_01M20FCCCK9JHDW53Q01YBY3GR",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "addType-brunch_mark_question-update_workpiece-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NDTUdaRkdWRkQxUVdEQ0Y1VDg",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCCG503ZGSF01BB2Y36H",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.336Z",
+        "submissionId": "sub_01M20FCCCG8DA342VV51MAZBKF",
+        "attemptId": "attempt_01M20FCCCGDPAAX3VM33F1668A",
+        "operationId": "op_01M20FCCCH0FV9PW9EEMEJFER5",
+        "turnId": "turn_01M20FCCCK9JHDW53Q01YBY3GR",
+        "assistantMessageId": "entry_01M20FCCCMGZFGVFD1QWDCF5T8",
+        "parentId": "entry_01M20FCCCMGZFGVFD1QWDCF5T8",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NDTUdaRkdWRkQxUVdEQ0Y1VDg_YWRkVHlwZS1icnVuY2hfbWFya19xdWVzdGlvbi11cGRhdGVfd29ya3BpZWNlLW9sZC1yZXZpc2lvbg"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/03eeab53e229ee12b1dd8b5ebf361b4579dd6e288aa20738d5d79fad136153da",
+    "seq": 26,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCD859VRCRT63BYV6SYB",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCCG503ZGSF01BB2Y36H",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.352Z",
+        "submissionId": "sub_01M20FCCCYFSMGH5XJESCYYWZC",
+        "attemptId": "attempt_01M20FCCCY7GESZM4RBE0JQBPY",
+        "operationId": "op_01M20FCCCYBGQRJFCBRDEZT23Z",
+        "turnId": "turn_01M20FCCD0B9TRD0WMZ72XW4ST",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "addType-brunch_mark_question-update_workpiece-update_workpiece",
+          "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+          "markdown": "# Synthetic replacement\nUnknown timing.",
+          "ordinal": 2
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NEMTRaUkU3NVpCRTJLSkM4VE0",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCCG503ZGSF01BB2Y36H",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.352Z",
+        "submissionId": "sub_01M20FCCCYFSMGH5XJESCYYWZC",
+        "attemptId": "attempt_01M20FCCCY7GESZM4RBE0JQBPY",
+        "operationId": "op_01M20FCCCYBGQRJFCBRDEZT23Z",
+        "turnId": "turn_01M20FCCD0B9TRD0WMZ72XW4ST",
+        "assistantMessageId": "entry_01M20FCCD14ZRE75ZBE2KJC8TM",
+        "parentId": "entry_01M20FCCD14ZRE75ZBE2KJC8TM",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NEMTRaUkU3NVpCRTJLSkM4VE0_YWRkVHlwZS1icnVuY2hfbWFya19xdWVzdGlvbi11cGRhdGVfd29ya3BpZWNlLWFkZFR5cGU",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NEMTRaUkU3NVpCRTJLSkM4VE0_YWRkVHlwZS1icnVuY2hfbWFya19xdWVzdGlvbi11cGRhdGVfd29ya3BpZWNlLWJydW5jaF9tYXJrX3F1ZXN0aW9u",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NEMTRaUkU3NVpCRTJLSkM4VE0_YWRkVHlwZS1icnVuY2hfbWFya19xdWVzdGlvbi11cGRhdGVfd29ya3BpZWNlLXVwZGF0ZV93b3JrcGllY2U"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/058271e2267a5521c1c4124369e3c68b2dcd940d41a70b28cf0eff9e0bed856c",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCC7PJRNRSQ2XXV4VHXFT",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCC7FG9H4C6HQSH6V27S5",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.174Z",
+        "submissionId": "sub_01M20FCC7E71Z0BXQA3EKN2CK1",
+        "attemptId": "attempt_01M20FCC7FN3NA4DQEV7JXJBKQ",
+        "operationId": "op_01M20FCC7G6MQH199H1QPQHXWM",
+        "turnId": "turn_01M20FCC7JYZ22KCBBYBSANKDE",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "addType-update_workpiece-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0M3TUtWTkhURjNWQjdXNFMzWFg",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCC7FG9H4C6HQSH6V27S5",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.174Z",
+        "submissionId": "sub_01M20FCC7E71Z0BXQA3EKN2CK1",
+        "attemptId": "attempt_01M20FCC7FN3NA4DQEV7JXJBKQ",
+        "operationId": "op_01M20FCC7G6MQH199H1QPQHXWM",
+        "turnId": "turn_01M20FCC7JYZ22KCBBYBSANKDE",
+        "assistantMessageId": "entry_01M20FCC7MKVNHTF3VB7W4S3XX",
+        "parentId": "entry_01M20FCC7MKVNHTF3VB7W4S3XX",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M3TUtWTkhURjNWQjdXNFMzWFg_YWRkVHlwZS11cGRhdGVfd29ya3BpZWNlLW9sZC1yZXZpc2lvbg"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/058271e2267a5521c1c4124369e3c68b2dcd940d41a70b28cf0eff9e0bed856c",
+    "seq": 23,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCC85D62JGKKRTJ0CSPBW",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCC7FG9H4C6HQSH6V27S5",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.189Z",
+        "submissionId": "sub_01M20FCC7X8HT3E7VW7GG1ZJAC",
+        "attemptId": "attempt_01M20FCC7XH4JE1AK6YRG489JF",
+        "operationId": "op_01M20FCC7YB481VW5XRY92D0AG",
+        "turnId": "turn_01M20FCC80PSYCVS6H6G3DGTCJ",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "addType-update_workpiece-update_workpiece",
+          "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+          "markdown": "# Synthetic replacement\nUnknown timing.",
+          "ordinal": 2
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0M4MVg1MDJTWUFXRjIzSEY0U0g",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCC7FG9H4C6HQSH6V27S5",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.189Z",
+        "submissionId": "sub_01M20FCC7X8HT3E7VW7GG1ZJAC",
+        "attemptId": "attempt_01M20FCC7XH4JE1AK6YRG489JF",
+        "operationId": "op_01M20FCC7YB481VW5XRY92D0AG",
+        "turnId": "turn_01M20FCC80PSYCVS6H6G3DGTCJ",
+        "assistantMessageId": "entry_01M20FCC81X502SYAWF23HF4SH",
+        "parentId": "entry_01M20FCC81X502SYAWF23HF4SH",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M4MVg1MDJTWUFXRjIzSEY0U0g_YWRkVHlwZS11cGRhdGVfd29ya3BpZWNlLWFkZFR5cGU",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M4MVg1MDJTWUFXRjIzSEY0U0g_YWRkVHlwZS11cGRhdGVfd29ya3BpZWNlLXVwZGF0ZV93b3JrcGllY2U"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/2fb77f452bc2c095309e19885290fc4785a2ffea2537351e7e81608f61f2ce24",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCC6NQDW3SQ0WKCQCZ026",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCC6D707Z5DW71KYZX9B2",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.141Z",
+        "submissionId": "sub_01M20FCC6DS9HYCTQNS6XWPZMQ",
+        "attemptId": "attempt_01M20FCC6DYGMCCH0N35VACVCZ",
+        "operationId": "op_01M20FCC6ECA2T7M2X3PBHS2A3",
+        "turnId": "turn_01M20FCC6GN24B9FBGFAFRZCP6",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "update_workpiece-addType-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0M2SlBBNE02QkFEUFNQNU5BOUY",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCC6D707Z5DW71KYZX9B2",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.141Z",
+        "submissionId": "sub_01M20FCC6DS9HYCTQNS6XWPZMQ",
+        "attemptId": "attempt_01M20FCC6DYGMCCH0N35VACVCZ",
+        "operationId": "op_01M20FCC6ECA2T7M2X3PBHS2A3",
+        "turnId": "turn_01M20FCC6GN24B9FBGFAFRZCP6",
+        "assistantMessageId": "entry_01M20FCC6JPA4M6BADPSP5NA9F",
+        "parentId": "entry_01M20FCC6JPA4M6BADPSP5NA9F",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M2SlBBNE02QkFEUFNQNU5BOUY_dXBkYXRlX3dvcmtwaWVjZS1hZGRUeXBlLW9sZC1yZXZpc2lvbg"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/2fb77f452bc2c095309e19885290fc4785a2ffea2537351e7e81608f61f2ce24",
+    "seq": 23,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCC75W69MZD2XNKFJ94A6",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCC6D707Z5DW71KYZX9B2",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.157Z",
+        "submissionId": "sub_01M20FCC6X424370QXCSVWHYVT",
+        "attemptId": "attempt_01M20FCC6XTABAMHHX90AHK114",
+        "operationId": "op_01M20FCC6YEPTNKRGQ44SMVPED",
+        "turnId": "turn_01M20FCC709CKBG9QJ09EMWTHC",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "update_workpiece-addType-update_workpiece",
+          "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+          "markdown": "# Synthetic replacement\nUnknown timing.",
+          "ordinal": 2
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0M3MVRHSDhQVFNDUllNWFBRV1Q",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCC6D707Z5DW71KYZX9B2",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.157Z",
+        "submissionId": "sub_01M20FCC6X424370QXCSVWHYVT",
+        "attemptId": "attempt_01M20FCC6XTABAMHHX90AHK114",
+        "operationId": "op_01M20FCC6YEPTNKRGQ44SMVPED",
+        "turnId": "turn_01M20FCC709CKBG9QJ09EMWTHC",
+        "assistantMessageId": "entry_01M20FCC71TGH8PTSCRYMXPQWT",
+        "parentId": "entry_01M20FCC71TGH8PTSCRYMXPQWT",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M3MVRHSDhQVFNDUllNWFBRV1Q_dXBkYXRlX3dvcmtwaWVjZS1hZGRUeXBlLXVwZGF0ZV93b3JrcGllY2U",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M3MVRHSDhQVFNDUllNWFBRV1Q_dXBkYXRlX3dvcmtwaWVjZS1hZGRUeXBlLWFkZFR5cGU"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/5c65a50bdfc21cc03683acb6dc621fec473c55d2feb0f2958cc01e78fcbb5985",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCEZHBP3HRDPPX1XWASS",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCERJ0YM4GAMCM6E0XVJ",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.407Z",
+        "submissionId": "sub_01M20FCCER4TTDF0ZAT8H3MJKG",
+        "attemptId": "attempt_01M20FCCERA85G9YYBNS9V2W15",
+        "operationId": "op_01M20FCCESBBGDTPV3ZA8E34WS",
+        "turnId": "turn_01M20FCCEW7YGQH4GG9T2YJEB9",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "addType-unmounted_admission_probe-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NFWDJEWU1KQlNNRU00NURRRk4",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCERJ0YM4GAMCM6E0XVJ",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.407Z",
+        "submissionId": "sub_01M20FCCER4TTDF0ZAT8H3MJKG",
+        "attemptId": "attempt_01M20FCCERA85G9YYBNS9V2W15",
+        "operationId": "op_01M20FCCESBBGDTPV3ZA8E34WS",
+        "turnId": "turn_01M20FCCEW7YGQH4GG9T2YJEB9",
+        "assistantMessageId": "entry_01M20FCCEX2DYMJBSMEM45DQFN",
+        "parentId": "entry_01M20FCCEX2DYMJBSMEM45DQFN",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NFWDJEWU1KQlNNRU00NURRRk4_YWRkVHlwZS11bm1vdW50ZWRfYWRtaXNzaW9uX3Byb2JlLW9sZC1yZXZpc2lvbg"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/607683980cbee825a1a634ca70eb43cd0029bf754e2e925f754211cb15082097",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCC8MASN6NFZMRKQBC0AW",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCC8EP0JX1N99DPR42QTB",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.204Z",
+        "submissionId": "sub_01M20FCC8ECP2S3T5T3B2WN7FH",
+        "attemptId": "attempt_01M20FCC8EFP4B6WE8AN7ATGTZ",
+        "operationId": "op_01M20FCC8F79XMSPAKCJJS0AD5",
+        "turnId": "turn_01M20FCC8HHV858T5W312WRBXD",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "brunch_mark_question-update_workpiece-addType-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0M4SkIwWDJNQ0NDODRaRjkxMVI",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCC8EP0JX1N99DPR42QTB",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.204Z",
+        "submissionId": "sub_01M20FCC8ECP2S3T5T3B2WN7FH",
+        "attemptId": "attempt_01M20FCC8EFP4B6WE8AN7ATGTZ",
+        "operationId": "op_01M20FCC8F79XMSPAKCJJS0AD5",
+        "turnId": "turn_01M20FCC8HHV858T5W312WRBXD",
+        "assistantMessageId": "entry_01M20FCC8JB0X2MCCC84ZF911R",
+        "parentId": "entry_01M20FCC8JB0X2MCCC84ZF911R",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M4SkIwWDJNQ0NDODRaRjkxMVI_YnJ1bmNoX21hcmtfcXVlc3Rpb24tdXBkYXRlX3dvcmtwaWVjZS1hZGRUeXBlLW9sZC1yZXZpc2lvbg"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/607683980cbee825a1a634ca70eb43cd0029bf754e2e925f754211cb15082097",
+    "seq": 26,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCC9531E1NFRHSPS7KGP9",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCC8EP0JX1N99DPR42QTB",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.221Z",
+        "submissionId": "sub_01M20FCC8VF40ZT5W3C87Y1GFD",
+        "attemptId": "attempt_01M20FCC8WPNEFRDNCYFZEPPWN",
+        "operationId": "op_01M20FCC8WAA5Y7Z96HK24SPH4",
+        "turnId": "turn_01M20FCC8YVED7HYKKNSEQBY1H",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+          "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+          "markdown": "# Synthetic replacement\nUnknown timing.",
+          "ordinal": 2
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0M5MFNEWUhKQUpWU05CS0dGWlo",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCC8EP0JX1N99DPR42QTB",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.221Z",
+        "submissionId": "sub_01M20FCC8VF40ZT5W3C87Y1GFD",
+        "attemptId": "attempt_01M20FCC8WPNEFRDNCYFZEPPWN",
+        "operationId": "op_01M20FCC8WAA5Y7Z96HK24SPH4",
+        "turnId": "turn_01M20FCC8YVED7HYKKNSEQBY1H",
+        "assistantMessageId": "entry_01M20FCC90SDYHJAJVSNBKGFZZ",
+        "parentId": "entry_01M20FCC90SDYHJAJVSNBKGFZZ",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M5MFNEWUhKQUpWU05CS0dGWlo_YnJ1bmNoX21hcmtfcXVlc3Rpb24tdXBkYXRlX3dvcmtwaWVjZS1hZGRUeXBlLWJydW5jaF9tYXJrX3F1ZXN0aW9u",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M5MFNEWUhKQUpWU05CS0dGWlo_YnJ1bmNoX21hcmtfcXVlc3Rpb24tdXBkYXRlX3dvcmtwaWVjZS1hZGRUeXBlLXVwZGF0ZV93b3JrcGllY2U",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M5MFNEWUhKQUpWU05CS0dGWlo_YnJ1bmNoX21hcmtfcXVlc3Rpb24tdXBkYXRlX3dvcmtwaWVjZS1hZGRUeXBlLWFkZFR5cGU"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/61635252404eb5a3f76e318efee1b6dc275f96b12f629a8ba4939876f1da1651",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCAWW3KT7TK4PN3P81AT",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCAPFX08C4ER6WRN4T9W",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.276Z",
+        "submissionId": "sub_01M20FCCAN05Q06MNMTFHP6MZW",
+        "attemptId": "attempt_01M20FCCAPMRXES2X6GJPMQ7S5",
+        "operationId": "op_01M20FCCAQ46ZPKAM84VR84A7Q",
+        "turnId": "turn_01M20FCCASASZ0EZJ0X81HGRPW",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "update_workpiece-brunch_mark_question-addType-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NBU1JDUjI3RERGSzZYVlM2UFE",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCAPFX08C4ER6WRN4T9W",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.276Z",
+        "submissionId": "sub_01M20FCCAN05Q06MNMTFHP6MZW",
+        "attemptId": "attempt_01M20FCCAPMRXES2X6GJPMQ7S5",
+        "operationId": "op_01M20FCCAQ46ZPKAM84VR84A7Q",
+        "turnId": "turn_01M20FCCASASZ0EZJ0X81HGRPW",
+        "assistantMessageId": "entry_01M20FCCASRCR27DDFK6XVS6PQ",
+        "parentId": "entry_01M20FCCASRCR27DDFK6XVS6PQ",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NBU1JDUjI3RERGSzZYVlM2UFE_dXBkYXRlX3dvcmtwaWVjZS1icnVuY2hfbWFya19xdWVzdGlvbi1hZGRUeXBlLW9sZC1yZXZpc2lvbg"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/61635252404eb5a3f76e318efee1b6dc275f96b12f629a8ba4939876f1da1651",
+    "seq": 26,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCBCXZBEC97X5BDAVVSF",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCAPFX08C4ER6WRN4T9W",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.292Z",
+        "submissionId": "sub_01M20FCCB2MVJHZWFFXG1ETZFP",
+        "attemptId": "attempt_01M20FCCB3932XMQKCQ8F0ZFTD",
+        "operationId": "op_01M20FCCB3PNCEX5D3SWZATG8R",
+        "turnId": "turn_01M20FCCB594DMWWQJ4ESNR9KS",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "update_workpiece-brunch_mark_question-addType-update_workpiece",
+          "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+          "markdown": "# Synthetic replacement\nUnknown timing.",
+          "ordinal": 2
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NCN0NZUDFKSzYyQk1HTkE3MlM",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCAPFX08C4ER6WRN4T9W",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.292Z",
+        "submissionId": "sub_01M20FCCB2MVJHZWFFXG1ETZFP",
+        "attemptId": "attempt_01M20FCCB3932XMQKCQ8F0ZFTD",
+        "operationId": "op_01M20FCCB3PNCEX5D3SWZATG8R",
+        "turnId": "turn_01M20FCCB594DMWWQJ4ESNR9KS",
+        "assistantMessageId": "entry_01M20FCCB7CYP1JK62BMGNA72S",
+        "parentId": "entry_01M20FCCB7CYP1JK62BMGNA72S",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NCN0NZUDFKSzYyQk1HTkE3MlM_dXBkYXRlX3dvcmtwaWVjZS1icnVuY2hfbWFya19xdWVzdGlvbi1hZGRUeXBlLXVwZGF0ZV93b3JrcGllY2U",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NCN0NZUDFKSzYyQk1HTkE3MlM_dXBkYXRlX3dvcmtwaWVjZS1icnVuY2hfbWFya19xdWVzdGlvbi1hZGRUeXBlLWJydW5jaF9tYXJrX3F1ZXN0aW9u",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NCN0NZUDFKSzYyQk1HTkE3MlM_dXBkYXRlX3dvcmtwaWVjZS1icnVuY2hfbWFya19xdWVzdGlvbi1hZGRUeXBlLWFkZFR5cGU"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/6ea0064fadf72d9dd917ef0f827f8eabcd03a1e67e0653f5c35fc28fd5d888be",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCC9TWXH5SJEX1HKDD8FH",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCC9DBAD7DFJP830N46Y8",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.242Z",
+        "submissionId": "sub_01M20FCC9D7TZAAXQA195PDNT3",
+        "attemptId": "attempt_01M20FCC9E59EX87YY5FBMK6BM",
+        "operationId": "op_01M20FCC9E98CK2KZZ7C90FM3K",
+        "turnId": "turn_01M20FCC9MCHTPTVR3A5QZ1XF6",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "brunch_mark_question-addType-update_workpiece-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0M5TkMzNFcyWllONlpRWVEzQTA",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCC9DBAD7DFJP830N46Y8",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.242Z",
+        "submissionId": "sub_01M20FCC9D7TZAAXQA195PDNT3",
+        "attemptId": "attempt_01M20FCC9E59EX87YY5FBMK6BM",
+        "operationId": "op_01M20FCC9E98CK2KZZ7C90FM3K",
+        "turnId": "turn_01M20FCC9MCHTPTVR3A5QZ1XF6",
+        "assistantMessageId": "entry_01M20FCC9NC34W2ZYN6ZQYQ3A0",
+        "parentId": "entry_01M20FCC9NC34W2ZYN6ZQYQ3A0",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M5TkMzNFcyWllONlpRWVEzQTA_YnJ1bmNoX21hcmtfcXVlc3Rpb24tYWRkVHlwZS11cGRhdGVfd29ya3BpZWNlLW9sZC1yZXZpc2lvbg"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/6ea0064fadf72d9dd917ef0f827f8eabcd03a1e67e0653f5c35fc28fd5d888be",
+    "seq": 26,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCAC2FW4DKTR3TNYRB93",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCC9DBAD7DFJP830N46Y8",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.260Z",
+        "submissionId": "sub_01M20FCCA21XN35NH6CDNHGNAF",
+        "attemptId": "attempt_01M20FCCA3C6D4KHZ6C3R2SBW0",
+        "operationId": "op_01M20FCCA35EYXZYA954XYPHYF",
+        "turnId": "turn_01M20FCCA5DN0TTTPCP4HHXX65",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "brunch_mark_question-addType-update_workpiece-update_workpiece",
+          "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+          "markdown": "# Synthetic replacement\nUnknown timing.",
+          "ordinal": 2
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NBNjEyMTQ1TlhUWkpXWkZHTjY",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCC9DBAD7DFJP830N46Y8",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.260Z",
+        "submissionId": "sub_01M20FCCA21XN35NH6CDNHGNAF",
+        "attemptId": "attempt_01M20FCCA3C6D4KHZ6C3R2SBW0",
+        "operationId": "op_01M20FCCA35EYXZYA954XYPHYF",
+        "turnId": "turn_01M20FCCA5DN0TTTPCP4HHXX65",
+        "assistantMessageId": "entry_01M20FCCA612145NXTZJWZFGN6",
+        "parentId": "entry_01M20FCCA612145NXTZJWZFGN6",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NBNjEyMTQ1TlhUWkpXWkZHTjY_YnJ1bmNoX21hcmtfcXVlc3Rpb24tYWRkVHlwZS11cGRhdGVfd29ya3BpZWNlLWJydW5jaF9tYXJrX3F1ZXN0aW9u",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NBNjEyMTQ1TlhUWkpXWkZHTjY_YnJ1bmNoX21hcmtfcXVlc3Rpb24tYWRkVHlwZS11cGRhdGVfd29ya3BpZWNlLWFkZFR5cGU",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NBNjEyMTQ1TlhUWkpXWkZHTjY_YnJ1bmNoX21hcmtfcXVlc3Rpb24tYWRkVHlwZS11cGRhdGVfd29ya3BpZWNlLXVwZGF0ZV93b3JrcGllY2U"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/7ee353adf536a731b0c6c15daaf786df0615de697e2903aa49cbf8d8321ae8d6",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCHWM8V875S4F447QN0Z",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCHNF9EWQDGEMVV00JZK",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.500Z",
+        "submissionId": "sub_01M20FCCHNZ9NT9TRAG3F659BC",
+        "attemptId": "attempt_01M20FCCHPAR355PHCMSN85DYX",
+        "operationId": "op_01M20FCCHPHZMD5SBD54AJG6AZ",
+        "turnId": "turn_01M20FCCHSN1C8V5EZ269317BB",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "update_workpiece-brunch_mark_question-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NIU1Y5QVdKNlZYOEhCNzA3NzU",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCHNF9EWQDGEMVV00JZK",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.500Z",
+        "submissionId": "sub_01M20FCCHNZ9NT9TRAG3F659BC",
+        "attemptId": "attempt_01M20FCCHPAR355PHCMSN85DYX",
+        "operationId": "op_01M20FCCHPHZMD5SBD54AJG6AZ",
+        "turnId": "turn_01M20FCCHSN1C8V5EZ269317BB",
+        "assistantMessageId": "entry_01M20FCCHSV9AWJ6VX8HB70775",
+        "parentId": "entry_01M20FCCHSV9AWJ6VX8HB70775",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NIU1Y5QVdKNlZYOEhCNzA3NzU_dXBkYXRlX3dvcmtwaWVjZS1icnVuY2hfbWFya19xdWVzdGlvbi1vbGQtcmV2aXNpb24"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/7ee353adf536a731b0c6c15daaf786df0615de697e2903aa49cbf8d8321ae8d6",
+    "seq": 24,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCJ8JHYYVG4RFJ6ZGNQ0",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCHNF9EWQDGEMVV00JZK",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.512Z",
+        "submissionId": "sub_01M20FCCJ1WDNT0SZ07K5W522P",
+        "attemptId": "attempt_01M20FCCJ1XB3FT1B9M4CJCEVA",
+        "operationId": "op_01M20FCCJ1SCNPANYX1V9B5KNJ",
+        "turnId": "turn_01M20FCCJ3M7FWK2XPZ0VG0ANE",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "update_workpiece-brunch_mark_question-update_workpiece",
+          "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+          "markdown": "# Synthetic replacement\nUnknown timing.",
+          "ordinal": 2
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NKNEM5V1pXUVJXS1hLMkY2NlE",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCHNF9EWQDGEMVV00JZK",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.512Z",
+        "submissionId": "sub_01M20FCCJ1WDNT0SZ07K5W522P",
+        "attemptId": "attempt_01M20FCCJ1XB3FT1B9M4CJCEVA",
+        "operationId": "op_01M20FCCJ1SCNPANYX1V9B5KNJ",
+        "turnId": "turn_01M20FCCJ3M7FWK2XPZ0VG0ANE",
+        "assistantMessageId": "entry_01M20FCCJ4C9WZWQRWKXK2F66Q",
+        "parentId": "entry_01M20FCCJ4C9WZWQRWKXK2F66Q",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NKNEM5V1pXUVJXS1hLMkY2NlE_dXBkYXRlX3dvcmtwaWVjZS1icnVuY2hfbWFya19xdWVzdGlvbi11cGRhdGVfd29ya3BpZWNl",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NKNEM5V1pXUVJXS1hLMkY2NlE_dXBkYXRlX3dvcmtwaWVjZS1icnVuY2hfbWFya19xdWVzdGlvbi1icnVuY2hfbWFya19xdWVzdGlvbg"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/a3590b325e6cbb40396a8061e8f6c0924233f5e27d52d9f5842267740ea5f398",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCC48JGZ24FZZTPSYV1JJ",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCC2Z8CD3FV92TR77CAAB",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.064Z",
+        "submissionId": "sub_01M20FCC2X3GMZT58W56CPP4NT",
+        "attemptId": "attempt_01M20FCC310WAD2Q42PMPSGF7R",
+        "operationId": "op_01M20FCC3QMVG8V31TJBGPBE6M",
+        "turnId": "turn_01M20FCC40PQ4BR1RKZ0K0T3K4",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "brunch_mark_question-addType-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0M0MVBIRksxTVJDWDBCNkgwRDI",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCC2Z8CD3FV92TR77CAAB",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.064Z",
+        "submissionId": "sub_01M20FCC2X3GMZT58W56CPP4NT",
+        "attemptId": "attempt_01M20FCC310WAD2Q42PMPSGF7R",
+        "operationId": "op_01M20FCC3QMVG8V31TJBGPBE6M",
+        "turnId": "turn_01M20FCC40PQ4BR1RKZ0K0T3K4",
+        "assistantMessageId": "entry_01M20FCC41PHFK1MRCX0B6H0D2",
+        "parentId": "entry_01M20FCC41PHFK1MRCX0B6H0D2",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M0MVBIRksxTVJDWDBCNkgwRDI_YnJ1bmNoX21hcmtfcXVlc3Rpb24tYWRkVHlwZS1vbGQtcmV2aXNpb24"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/ab4736fd46be830b522c1c4914fd9301d3265c485a3c4415f0cea87fa0ba6e5a",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCH1MAV7GQSHW5TFXRDD",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCGV7ACPN57TJPPXAQYS",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.473Z",
+        "submissionId": "sub_01M20FCCGVVPKGM1ENXY1AQX8F",
+        "attemptId": "attempt_01M20FCCGVW3S5GTDYY79ZQXTA",
+        "operationId": "op_01M20FCCGWW543DR78CA9TQB5G",
+        "turnId": "turn_01M20FCCGYDR5F5QY495X0Y59Q",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "brunch_mark_question-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NHWk5RNzA0QTNLR1ZBUTRXU1A",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCGV7ACPN57TJPPXAQYS",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.473Z",
+        "submissionId": "sub_01M20FCCGVVPKGM1ENXY1AQX8F",
+        "attemptId": "attempt_01M20FCCGVW3S5GTDYY79ZQXTA",
+        "operationId": "op_01M20FCCGWW543DR78CA9TQB5G",
+        "turnId": "turn_01M20FCCGYDR5F5QY495X0Y59Q",
+        "assistantMessageId": "entry_01M20FCCGZNQ704A3KGVAQ4WSP",
+        "parentId": "entry_01M20FCCGZNQ704A3KGVAQ4WSP",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NHWk5RNzA0QTNLR1ZBUTRXU1A_YnJ1bmNoX21hcmtfcXVlc3Rpb24tb2xkLXJldmlzaW9u"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/af49ca2231ce4ed019a70b65733335f3e0e40b4be07abf918d4a4b26c46c1565",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCDSWZXTDA776RF1G99R",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCDHMX4HEA5FKH0R36ZR",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.369Z",
+        "submissionId": "sub_01M20FCCDG6HQ5DVJVF284BSES",
+        "attemptId": "attempt_01M20FCCDHHFCMSFR0Q6P3VY78",
+        "operationId": "op_01M20FCCDJEDSN8BG6NYPQF64A",
+        "turnId": "turn_01M20FCCDM2SAMP5GE8ZY3DBXE",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "addType-update_workpiece-brunch_mark_question-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NETjc3TVZLMDJQQUhYRTZTWTM",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCDHMX4HEA5FKH0R36ZR",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.369Z",
+        "submissionId": "sub_01M20FCCDG6HQ5DVJVF284BSES",
+        "attemptId": "attempt_01M20FCCDHHFCMSFR0Q6P3VY78",
+        "operationId": "op_01M20FCCDJEDSN8BG6NYPQF64A",
+        "turnId": "turn_01M20FCCDM2SAMP5GE8ZY3DBXE",
+        "assistantMessageId": "entry_01M20FCCDN77MVK02PAHXE6SY3",
+        "parentId": "entry_01M20FCCDN77MVK02PAHXE6SY3",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NETjc3TVZLMDJQQUhYRTZTWTM_YWRkVHlwZS11cGRhdGVfd29ya3BpZWNlLWJydW5jaF9tYXJrX3F1ZXN0aW9uLW9sZC1yZXZpc2lvbg"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/af49ca2231ce4ed019a70b65733335f3e0e40b4be07abf918d4a4b26c46c1565",
+    "seq": 26,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCEDG8SHXAV2DJ0A96VA",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCDHMX4HEA5FKH0R36ZR",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.389Z",
+        "submissionId": "sub_01M20FCCE0Q8KW1T51D0Z2X0BQ",
+        "attemptId": "attempt_01M20FCCE19NA3YQAA778PVYF5",
+        "operationId": "op_01M20FCCE1377TW0NQVSG5HAQ1",
+        "turnId": "turn_01M20FCCE4Y1PZ7VT782JV89NC",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+          "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+          "markdown": "# Synthetic replacement\nUnknown timing.",
+          "ordinal": 2
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NFNVA2TTBFRTBYN1hQTlRQNTE",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCDHMX4HEA5FKH0R36ZR",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.389Z",
+        "submissionId": "sub_01M20FCCE0Q8KW1T51D0Z2X0BQ",
+        "attemptId": "attempt_01M20FCCE19NA3YQAA778PVYF5",
+        "operationId": "op_01M20FCCE1377TW0NQVSG5HAQ1",
+        "turnId": "turn_01M20FCCE4Y1PZ7VT782JV89NC",
+        "assistantMessageId": "entry_01M20FCCE5P6M0EE0X7XPNTP51",
+        "parentId": "entry_01M20FCCE5P6M0EE0X7XPNTP51",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NFNVA2TTBFRTBYN1hQTlRQNTE_YWRkVHlwZS11cGRhdGVfd29ya3BpZWNlLWJydW5jaF9tYXJrX3F1ZXN0aW9uLWFkZFR5cGU",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NFNVA2TTBFRTBYN1hQTlRQNTE_YWRkVHlwZS11cGRhdGVfd29ya3BpZWNlLWJydW5jaF9tYXJrX3F1ZXN0aW9uLXVwZGF0ZV93b3JrcGllY2U",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NFNVA2TTBFRTBYN1hQTlRQNTE_YWRkVHlwZS11cGRhdGVfd29ya3BpZWNlLWJydW5jaF9tYXJrX3F1ZXN0aW9uLWJydW5jaF9tYXJrX3F1ZXN0aW9u"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/b13c2736d9267e6bf1e0d0a02ba96307d50dcaf54db88bb1017a94ad1eff46d9",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCC5KVW2BEXRJA463JZ94",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCC5C2RJVV77H5PZ99Q8N",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.107Z",
+        "submissionId": "sub_01M20FCC5BPHNKE0W5M8D2284G",
+        "attemptId": "attempt_01M20FCC5CNXQCA14PTAKYY64M",
+        "operationId": "op_01M20FCC5DQRVDKKQAQE8YEM51",
+        "turnId": "turn_01M20FCC5FG32352A8158ARB61",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "addType-brunch_mark_question-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0M1R0hSN0VQNEFQU0QyVlpKOVg",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCC5C2RJVV77H5PZ99Q8N",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.107Z",
+        "submissionId": "sub_01M20FCC5BPHNKE0W5M8D2284G",
+        "attemptId": "attempt_01M20FCC5CNXQCA14PTAKYY64M",
+        "operationId": "op_01M20FCC5DQRVDKKQAQE8YEM51",
+        "turnId": "turn_01M20FCC5FG32352A8158ARB61",
+        "assistantMessageId": "entry_01M20FCC5GHR7EP4APSD2VZJ9X",
+        "parentId": "entry_01M20FCC5GHR7EP4APSD2VZJ9X",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0M1R0hSN0VQNEFQU0QyVlpKOVg_YWRkVHlwZS1icnVuY2hfbWFya19xdWVzdGlvbi1vbGQtcmV2aXNpb24"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/c31c5a55a75babfd10fd533979062f7b7401b3e5579a4d44e6dc847c68bd2937",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCG2PRDP263HV8ZW9ACY",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCFVAFQFXFP84X4YJTT2",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.442Z",
+        "submissionId": "sub_01M20FCCFVJPC98N6WKA8MBPM0",
+        "attemptId": "attempt_01M20FCCFWT683BFE5XAJ4MX0N",
+        "operationId": "op_01M20FCCFX9MBMBSJHWAKJYQQP",
+        "turnId": "turn_01M20FCCFZJPX9BJ7XTX7NSRZ3",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "addType-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NHMDUxSlBLNTRYRThNU0ZHVlg",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCFVAFQFXFP84X4YJTT2",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.442Z",
+        "submissionId": "sub_01M20FCCFVJPC98N6WKA8MBPM0",
+        "attemptId": "attempt_01M20FCCFWT683BFE5XAJ4MX0N",
+        "operationId": "op_01M20FCCFX9MBMBSJHWAKJYQQP",
+        "turnId": "turn_01M20FCCFZJPX9BJ7XTX7NSRZ3",
+        "assistantMessageId": "entry_01M20FCCG051JPK54XE8MSFGVX",
+        "parentId": "entry_01M20FCCG051JPK54XE8MSFGVX",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NHMDUxSlBLNTRYRThNU0ZHVlg_YWRkVHlwZS1vbGQtcmV2aXNpb24"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/c4f46af5b85c8009dafd3ee75f11aa02eea778e6a5d82fd4fca1eea9b9ede2b4",
+    "seq": 8,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCBTFT34H9219Y7YPCYQ",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCBMM1V1RSK8TWSVY1RN",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.306Z",
+        "submissionId": "sub_01M20FCCBKQ83A7V9F57C2P9VQ",
+        "attemptId": "attempt_01M20FCCBMRK8NWMFCG4YPYHTC",
+        "operationId": "op_01M20FCCBMJY7508VFM2KT53A1",
+        "turnId": "turn_01M20FCCBP4DSPHS7PZMJTXWM1",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "update_workpiece-addType-brunch_mark_question-old-revision",
+          "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+          "markdown": "# Synthetic settled account\nUnknown timing.",
+          "ordinal": 1
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NCUTlTSDg2UVdKMUY1VlRQTlY",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCBMM1V1RSK8TWSVY1RN",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.306Z",
+        "submissionId": "sub_01M20FCCBKQ83A7V9F57C2P9VQ",
+        "attemptId": "attempt_01M20FCCBMRK8NWMFCG4YPYHTC",
+        "operationId": "op_01M20FCCBMJY7508VFM2KT53A1",
+        "turnId": "turn_01M20FCCBP4DSPHS7PZMJTXWM1",
+        "assistantMessageId": "entry_01M20FCCBQ9SH86QWJ1F5VTPNV",
+        "parentId": "entry_01M20FCCBQ9SH86QWJ1F5VTPNV",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NCUTlTSDg2UVdKMUY1VlRQTlY_dXBkYXRlX3dvcmtwaWVjZS1hZGRUeXBlLWJydW5jaF9tYXJrX3F1ZXN0aW9uLW9sZC1yZXZpc2lvbg"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "agents/brunch-chat-agent/c4f46af5b85c8009dafd3ee75f11aa02eea778e6a5d82fd4fca1eea9b9ede2b4",
+    "seq": 26,
+    "records": [
+      {
+        "v": 1,
+        "id": "record_01M20FCCC8D5H79E42NTM36DJM",
+        "type": "state_write",
+        "conversationId": "conv_01M20FCCBMM1V1RSK8TWSVY1RN",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.320Z",
+        "submissionId": "sub_01M20FCCC0QY94GKAZN3RW9Q8B",
+        "attemptId": "attempt_01M20FCCC0YVH8SB3RZ4W2GB3P",
+        "operationId": "op_01M20FCCC1Q29ARP9J81ZAWBBP",
+        "turnId": "turn_01M20FCCC2XM9W1SXRWK598D5R",
+        "name": "brunch.workpiece.current.v1",
+        "value": {
+          "revisionId": "update_workpiece-addType-brunch_mark_question-update_workpiece",
+          "sha256": "0578cfb3b5b3b93db87d8d761131a018028465ba9e8dc3691aafb3139270f13f",
+          "markdown": "# Synthetic replacement\nUnknown timing.",
+          "ordinal": 2
+        }
+      },
+      {
+        "v": 1,
+        "id": "record_tool_results_committed_ZW50cnlfMDFNMjBGQ0NDMzg2MVJDMzJNSzkzS1lLMFg",
+        "type": "tool_results_committed",
+        "conversationId": "conv_01M20FCCBMM1V1RSK8TWSVY1RN",
+        "harness": "default",
+        "session": "default",
+        "timestamp": "2026-09-08T12:20:13.320Z",
+        "submissionId": "sub_01M20FCCC0QY94GKAZN3RW9Q8B",
+        "attemptId": "attempt_01M20FCCC0YVH8SB3RZ4W2GB3P",
+        "operationId": "op_01M20FCCC1Q29ARP9J81ZAWBBP",
+        "turnId": "turn_01M20FCCC2XM9W1SXRWK598D5R",
+        "assistantMessageId": "entry_01M20FCCC3861RC32MK93KYK0X",
+        "parentId": "entry_01M20FCCC3861RC32MK93KYK0X",
+        "outcomeIds": [
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NDMzg2MVJDMzJNSzkzS1lLMFg_dXBkYXRlX3dvcmtwaWVjZS1hZGRUeXBlLWJydW5jaF9tYXJrX3F1ZXN0aW9uLXVwZGF0ZV93b3JrcGllY2U",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NDMzg2MVJDMzJNSzkzS1lLMFg_dXBkYXRlX3dvcmtwaWVjZS1hZGRUeXBlLWJydW5jaF9tYXJrX3F1ZXN0aW9uLWFkZFR5cGU",
+          "record_tool_outcome_ZW50cnlfMDFNMjBGQ0NDMzg2MVJDMzJNSzkzS1lLMFg_dXBkYXRlX3dvcmtwaWVjZS1hZGRUeXBlLWJydW5jaF9tYXJrX3F1ZXN0aW9uLWJydW5jaF9tYXJrX3F1ZXN0aW9u"
+        ]
+      }
+    ]
+  }
+]

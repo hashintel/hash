@@ -1,0 +1,256 @@
+Registered OpenTelemetry (traces + logs + metrics) at endpoint http://localhost:4317 for Brunch Agent
+[flue:observe] subscriber failed: Error: Diagnostic observer refusal
+    at observe (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent/test/admission-controls.integration.ts:81:15)
+    at dispatchGlobalEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/events-BhCLb2HD.mjs:81:36)
+    at publishEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:356:3)
+    at emitEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:360:3)
+    at Session.eventCallback (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:313:4)
+    at Session.emit (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3737:23)
+    at Session.emitTurn (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2095:8)
+    at file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2376:12
+    at async Agent.processEvents (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:409:13)
+    at async streamAssistantResponse (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:240:17)
+    at async runLoop (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:106:29)
+    at async runAgentLoopContinue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:69:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:272:13
+    at async Agent.runWithLifecycle (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:331:13)
+    at async Agent.runContinuation (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:271:9)
+    at async Agent.continue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:250:9)
+    at async Session.runModelTurnWithRecovery (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3989:5)
+    at async Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4369:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11)
+[flue:observe] subscriber failed: Error: Diagnostic observer refusal
+    at observe (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent/test/admission-controls.integration.ts:81:15)
+    at dispatchGlobalEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/events-BhCLb2HD.mjs:81:36)
+    at publishEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:356:3)
+    at emitEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:360:3)
+    at Session.eventCallback (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:313:4)
+    at Session.emit (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3737:23)
+    at Session.emitTurn (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2095:8)
+    at file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2376:12
+    at async Agent.processEvents (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:409:13)
+    at async streamAssistantResponse (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:240:17)
+    at async runLoop (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:106:29)
+    at async runAgentLoopContinue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:69:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:272:13
+    at async Agent.runWithLifecycle (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:331:13)
+    at async Agent.runContinuation (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:271:9)
+    at async Agent.continue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:250:9)
+    at async Session.runModelTurnWithRecovery (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3989:5)
+    at async Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4369:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11)
+[flue:observe] subscriber failed: Error: Diagnostic observer refusal
+    at observe (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent/test/admission-controls.integration.ts:81:15)
+    at dispatchGlobalEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/events-BhCLb2HD.mjs:81:36)
+    at publishEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:356:3)
+    at emitEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:360:3)
+    at Session.eventCallback (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:313:4)
+    at Session.emit (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3737:23)
+    at Session.emitTurn (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2095:8)
+    at file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2376:12
+    at async Agent.processEvents (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:409:13)
+    at async streamAssistantResponse (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:240:17)
+    at async runLoop (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:106:29)
+    at async runAgentLoopContinue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:69:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:272:13
+    at async Agent.runWithLifecycle (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:331:13)
+    at async Agent.runContinuation (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:271:9)
+    at async Agent.continue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:250:9)
+    at async Session.runModelTurnWithRecovery (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3989:5)
+    at async Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4369:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11)
+[flue:observe] subscriber failed: Error: Diagnostic observer refusal
+    at observe (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent/test/admission-controls.integration.ts:81:15)
+    at dispatchGlobalEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/events-BhCLb2HD.mjs:81:36)
+    at publishEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:356:3)
+    at emitEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:360:3)
+    at Session.eventCallback (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:313:4)
+    at Session.emit (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3737:23)
+    at Session.emitTurn (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2095:8)
+    at file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2376:12
+    at async Agent.processEvents (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:409:13)
+    at async streamAssistantResponse (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:240:17)
+    at async runLoop (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:106:29)
+    at async runAgentLoopContinue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:69:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:272:13
+    at async Agent.runWithLifecycle (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:331:13)
+    at async Agent.runContinuation (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:271:9)
+    at async Agent.continue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:250:9)
+    at async Session.runModelTurnWithRecovery (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3989:5)
+    at async Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4369:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11)
+[flue:observe] subscriber failed: Error: Diagnostic observer refusal
+    at observe (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent/test/admission-controls.integration.ts:81:15)
+    at dispatchGlobalEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/events-BhCLb2HD.mjs:81:36)
+    at publishEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:356:3)
+    at emitEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:360:3)
+    at Session.eventCallback (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:313:4)
+    at Session.emit (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3737:23)
+    at Session.emitTurn (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2095:8)
+    at file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2376:12
+    at async Agent.processEvents (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:409:13)
+    at async streamAssistantResponse (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:240:17)
+    at async runLoop (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:106:29)
+    at async runAgentLoopContinue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:69:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:272:13
+    at async Agent.runWithLifecycle (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:331:13)
+    at async Agent.runContinuation (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:271:9)
+    at async Agent.continue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:250:9)
+    at async Session.runModelTurnWithRecovery (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3989:5)
+    at async Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4369:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11)
+[flue:observe] subscriber failed: Error: Diagnostic observer refusal
+    at observe (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent/test/admission-controls.integration.ts:81:15)
+    at dispatchGlobalEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/events-BhCLb2HD.mjs:81:36)
+    at publishEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:356:3)
+    at emitEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:360:3)
+    at Session.eventCallback (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:313:4)
+    at Session.emit (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3737:23)
+    at Session.emitTurn (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2095:8)
+    at file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2376:12
+    at async Agent.processEvents (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:409:13)
+    at async streamAssistantResponse (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:240:17)
+    at async runLoop (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:106:29)
+    at async runAgentLoopContinue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:69:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:272:13
+    at async Agent.runWithLifecycle (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:331:13)
+    at async Agent.runContinuation (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:271:9)
+    at async Agent.continue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:250:9)
+    at async Session.runModelTurnWithRecovery (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3989:5)
+    at async Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4369:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11)
+[flue:observe] subscriber failed: Error: Diagnostic observer refusal
+    at observe (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent/test/admission-controls.integration.ts:81:15)
+    at dispatchGlobalEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/events-BhCLb2HD.mjs:81:36)
+    at publishEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:356:3)
+    at emitEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:360:3)
+    at Session.eventCallback (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:313:4)
+    at Session.emit (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3737:23)
+    at Session.emitTurn (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2095:8)
+    at file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2376:12
+    at async Agent.processEvents (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:409:13)
+    at async streamAssistantResponse (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:240:17)
+    at async runLoop (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:106:29)
+    at async runAgentLoopContinue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:69:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:272:13
+    at async Agent.runWithLifecycle (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:331:13)
+    at async Agent.runContinuation (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:271:9)
+    at async Agent.continue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:250:9)
+    at async Session.runModelTurnWithRecovery (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3989:5)
+    at async Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4369:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11)
+[flue:observe] subscriber failed: Error: Diagnostic observer refusal
+    at observe (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent/test/admission-controls.integration.ts:81:15)
+    at dispatchGlobalEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/events-BhCLb2HD.mjs:81:36)
+    at publishEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:356:3)
+    at emitEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:360:3)
+    at Session.eventCallback (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:313:4)
+    at Session.emit (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3737:23)
+    at Session.emitTurn (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2095:8)
+    at file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2376:12
+    at async Agent.processEvents (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:409:13)
+    at async streamAssistantResponse (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:240:17)
+    at async runLoop (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:106:29)
+    at async runAgentLoopContinue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:69:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:272:13
+    at async Agent.runWithLifecycle (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:331:13)
+    at async Agent.runContinuation (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:271:9)
+    at async Agent.continue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:250:9)
+    at async Session.runModelTurnWithRecovery (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3989:5)
+    at async Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4369:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11)
+[flue:observe] subscriber failed: Error: Diagnostic observer refusal
+    at observe (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent/test/admission-controls.integration.ts:81:15)
+    at dispatchGlobalEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/events-BhCLb2HD.mjs:81:36)
+    at publishEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:356:3)
+    at emitEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:360:3)
+    at Session.eventCallback (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:313:4)
+    at Session.emit (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3737:23)
+    at Session.emitTurn (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2095:8)
+    at file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2376:12
+    at async Agent.processEvents (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:409:13)
+    at async streamAssistantResponse (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:240:17)
+    at async runLoop (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:106:29)
+    at async runAgentLoopContinue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:69:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:272:13
+    at async Agent.runWithLifecycle (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:331:13)
+    at async Agent.runContinuation (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:271:9)
+    at async Agent.continue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:250:9)
+    at async Session.runModelTurnWithRecovery (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3989:5)
+    at async Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4369:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11)
+[flue:observe] subscriber failed: Error: Diagnostic observer refusal
+    at observe (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent/test/admission-controls.integration.ts:81:15)
+    at dispatchGlobalEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/events-BhCLb2HD.mjs:81:36)
+    at publishEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:356:3)
+    at emitEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:360:3)
+    at Session.eventCallback (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:313:4)
+    at Session.emit (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3737:23)
+    at Session.emitTurn (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2095:8)
+    at file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2376:12
+    at async Agent.processEvents (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:409:13)
+    at async streamAssistantResponse (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:240:17)
+    at async runLoop (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:106:29)
+    at async runAgentLoopContinue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:69:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:272:13
+    at async Agent.runWithLifecycle (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:331:13)
+    at async Agent.runContinuation (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:271:9)
+    at async Agent.continue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:250:9)
+    at async Session.runModelTurnWithRecovery (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3989:5)
+    at async Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4369:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11)
+[flue:observe] subscriber failed: Error: Diagnostic observer refusal
+    at observe (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent/test/admission-controls.integration.ts:81:15)
+    at dispatchGlobalEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/events-BhCLb2HD.mjs:81:36)
+    at publishEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:356:3)
+    at emitEvent (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:360:3)
+    at Session.eventCallback (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/builtin-providers-DW08g5fh.mjs:313:4)
+    at Session.emit (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3737:23)
+    at Session.emitTurn (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2095:8)
+    at file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:2376:12
+    at async Agent.processEvents (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:409:13)
+    at async streamAssistantResponse (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:240:17)
+    at async runLoop (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:106:29)
+    at async runAgentLoopContinue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:69:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:272:13
+    at async Agent.runWithLifecycle (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:331:13)
+    at async Agent.runContinuation (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:271:9)
+    at async Agent.continue (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@earendil-works/pi-agent-core/dist/agent.js:250:9)
+    at async Session.runModelTurnWithRecovery (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3989:5)
+    at async Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4369:5)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11)
+
+Instrument exit 0; structured result retained in observations.json (not duplicated in this log).
