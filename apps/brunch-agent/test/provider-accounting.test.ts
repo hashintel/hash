@@ -1,4 +1,10 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -74,6 +80,7 @@ const setup = () => {
       usage?: AssistantMessage["usage"];
       partialUsage?: AssistantMessage["usage"];
       terminal?: { usage: AssistantMessage["usage"] };
+      journalPending?: boolean;
     }[],
   };
   const save = () => writeFileSync(ledgerPath, JSON.stringify(ledger));
@@ -203,6 +210,32 @@ for (const method of ["stream", "streamSimple"] as const) {
   });
 }
 
+test("completed native usage survives cancellation after approval without publishing output", async () => {
+  const fixture = setup();
+  const controller = new AbortController();
+  const admitted = withBufferedToolAdmission(
+    fixture.metered,
+    () => true,
+    new Set(),
+  );
+  await fixture.run(async () => {
+    const stream = admitted.streamSimple(
+      model,
+      { messages: [] },
+      { ...fixture.options, signal: controller.signal },
+    );
+    await stream.result();
+    controller.abort();
+    await expect(stream.result()).rejects.toThrow(/cancelled/);
+    await expect(stream[Symbol.asyncIterator]().next()).rejects.toThrow(
+      /cancelled/,
+    );
+    expect(fixture.read().calls.at(0)?.status).toBe("complete");
+    expect(fixture.read().totals.spentUsd).toBe(0.00045);
+    expect(fixture.read().totals.spentCalls).toBe(1);
+  });
+});
+
 test("no opt-in means no instrument, invalid configuration fails without printing input", () => {
   expect(createStepARequestAccounting(undefined)).toBeUndefined();
   expect(() => createStepARequestAccounting("SECRET-invalid")).toThrow(
@@ -283,7 +316,13 @@ test("a provider retry cannot cross the SDK dispatch boundary a second time", as
   expect(fixture.starts()).toBe(1);
 });
 
-for (const breach of ["tokens", "cost", "zero", "error"] as const) {
+for (const breach of [
+  "tokens",
+  "cost",
+  "underpriced",
+  "zero",
+  "error",
+] as const) {
   test(`${breach}: terminal observation does not release an uncertain reservation`, async () => {
     const fixture = setup();
     const message = structuredClone(complete);
@@ -294,6 +333,10 @@ for (const breach of ["tokens", "cost", "zero", "error"] as const) {
     if (breach === "cost") {
       message.usage.cost.input = 8;
       message.usage.cost.total = 8.00015;
+    }
+    if (breach === "underpriced") {
+      message.usage.cost.input = 0.000003;
+      message.usage.cost.total = 0.000153;
     }
     if (breach === "zero") {
       message.usage = {
@@ -324,6 +367,57 @@ for (const breach of ["tokens", "cost", "zero", "error"] as const) {
     expect(fixture.starts()).toBe(1);
   });
 }
+
+test("a failed journal append remains a durable stop after the journal becomes writable and the instrument restarts", async () => {
+  const fixture = setup();
+  fixture.hold();
+  const journalPath = join(fixture.directory, "attempt-ledger.md");
+  await fixture.run(async () => {
+    const stream = fixture.metered.streamSimple(
+      model,
+      { messages: [] },
+      fixture.options,
+    );
+    const priorJournal = readFileSync(journalPath, "utf8");
+    rmSync(journalPath);
+    mkdirSync(journalPath);
+    fixture.upstream.push({ type: "done", reason: "stop", message: complete });
+    await stream.result();
+    rmSync(journalPath, { recursive: true });
+    writeFileSync(journalPath, priorJournal);
+  });
+  const restarted = createStepARequestAccounting(
+    JSON.stringify({ ledgerPath: fixture.ledgerPath, runId: "TEST-run" }),
+  )!;
+  let restartedStarts = 0;
+  const provider = restarted.wrap(
+    {
+      ...native,
+      streamSimple: () => {
+        restartedStarts++;
+        return createAssistantMessageEventStream();
+      },
+    },
+    () => true,
+  );
+  await expect(
+    restarted.interceptor(
+      { type: "model", turnId: "TEST-next" },
+      {
+        instanceId: "TEST-instance",
+        conversationId: "TEST-conversation",
+        submissionId: "TEST-submission",
+        operationId: "TEST-operation",
+        turnId: "TEST-next",
+      },
+      async () => {
+        provider.streamSimple(model, { messages: [] }, fixture.options);
+      },
+    ),
+  ).rejects.toThrow(/accounting refused/);
+  expect(restartedStarts).toBe(0);
+  expect(fixture.read().calls.at(0)?.journalPending).toBe(true);
+});
 
 test("partial usage survives a zero terminal error without summing snapshots", async () => {
   const fixture = setup();

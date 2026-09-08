@@ -9,6 +9,7 @@ import {
 } from "node:fs";
 import { dirname } from "node:path";
 
+import { calculateCost } from "@earendil-works/pi-ai";
 import * as v from "valibot";
 
 import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
@@ -68,6 +69,7 @@ const callSchema = v.looseObject({
   usage: v.optional(usageSchema),
   partialUsage: v.optional(usageSchema),
   accountingVersion: v.optional(v.literal(1)),
+  journalPending: v.optional(v.boolean()),
   runId: v.optional(id),
   identity: v.optional(identitySchema),
   provider: v.optional(v.literal("anthropic")),
@@ -185,6 +187,7 @@ export class RequestLedger {
     if (
       ledger.limits.calls > 200 ||
       ledger.limits.usd > 100 ||
+      ledger.calls.some((call) => call.journalPending === true) ||
       Object.entries(totals).some(
         ([key, value]) =>
           !near(value, ledger.totals[key as keyof typeof totals]),
@@ -194,7 +197,8 @@ export class RequestLedger {
           call.sequence !== index + 1 ||
           (call.accountingVersion === undefined
             ? call.status !== "complete"
-            : !call.identity ||
+            : call.journalPending === undefined ||
+              !call.identity ||
               !call.runId ||
               !call.invocation ||
               !call.transport ||
@@ -224,22 +228,27 @@ export class RequestLedger {
     // Flush + rename: interrupted writes cannot leave a truncated authority that
     // looks free. A leftover temporary file is not consulted as another ledger.
     const temporary = `${this.path}.${process.pid}.tmp`;
-    const descriptor = openSync(temporary, "wx", 0o600);
-    try {
-      writeFileSync(descriptor, `${JSON.stringify(ledger, null, 2)}\n`);
-      fsyncSync(descriptor);
-    } finally {
-      closeSync(descriptor);
-    }
-    renameSync(temporary, this.path);
-    const directory = openSync(dirname(this.path), "r");
-    try {
-      fsyncSync(directory);
-    } finally {
-      closeSync(directory);
-    }
-    // If this append fails, JSON already retains the attempt. Poison this process
-    // too; neither a journal error nor an observer error authorizes a new launch.
+    const replace = () => {
+      const descriptor = openSync(temporary, "wx", 0o600);
+      try {
+        writeFileSync(descriptor, `${JSON.stringify(ledger, null, 2)}\n`);
+        fsyncSync(descriptor);
+      } finally {
+        closeSync(descriptor);
+      }
+      renameSync(temporary, this.path);
+      const directory = openSync(dirname(this.path), "r");
+      try {
+        fsyncSync(directory);
+      } finally {
+        closeSync(directory);
+      }
+    };
+    // Two files are not an atomic transaction. Persist that uncertainty in the
+    // SAME authority before touching the journal; any reread refuses until both
+    // writes were flushed. A crash after append but before clearing also stops.
+    call.journalPending = true;
+    replace();
     const journal = openSync(this.attemptPath, "a");
     try {
       writeFileSync(
@@ -250,6 +259,8 @@ export class RequestLedger {
     } finally {
       closeSync(journal);
     }
+    call.journalPending = false;
+    replace();
   }
 
   prepare(context: FlueExecutionContext | undefined, model: Model<Api>) {
@@ -310,6 +321,7 @@ export class RequestLedger {
     const call: Call = {
       sequence: ledger.calls.length + 1,
       accountingVersion: 1,
+      journalPending: false,
       runId: this.runId,
       identity,
       provider: "anthropic",
@@ -394,7 +406,15 @@ export class RequestLedger {
             usage.cost.total > 0;
           if (!complete && current.transport === "not-started")
             current.status = "not-started";
+          // The native cost is a catalogue estimate, not an invoice. Compare
+          // against the installed estimator without replacing the observation.
+          const estimate = calculateCost(model, structuredClone(usage));
+          const catalogueCostMatches = Object.entries(estimate).every(
+            ([component, value]) =>
+              near(value, usage.cost[component as keyof typeof estimate]),
+          );
           const withinBounds =
+            catalogueCostMatches &&
             usage.input + usage.cacheRead + usage.cacheWrite <=
               model.contextWindow &&
             usage.output <= bounds.maxOutputTokens &&
