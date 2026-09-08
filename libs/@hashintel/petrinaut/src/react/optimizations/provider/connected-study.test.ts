@@ -268,6 +268,52 @@ describe("createConnectedStudy", () => {
     expect(latest()?.selection?.key).toBe(`infected_ratio=${bestPosition}`);
   });
 
+  it("a parked point that becomes the best climbs past its early stop", async () => {
+    const { study, startTrial, latest, refinementRuns } = setup();
+    study.trialReported(trialEvent(0, 0.05, 0.1));
+    startTrial(1, 0.02);
+    study.setNavigation({ positions: { infected_ratio: 10 } });
+    const parkedValue = optimizationAxisValueAt(axis, 10);
+    // Eight runs around 0.3 cannot beat a best of 0.1: the ladder stops.
+    refinementRuns.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [
+          distributionFrame(metricId, 180, [
+            [0.29, 4],
+            [0.31, 4],
+          ]),
+        ],
+        runsCompleted: 8,
+      }),
+    );
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    expect(latest()?.selection).toMatchObject({
+      key: "infected_ratio=10",
+      runsCompleted: 8,
+      runTarget: null,
+      note: "8 runs · cannot beat the best",
+    });
+    expect(refinementRuns.runs).toHaveLength(1);
+
+    // A trial lands on the parked point and beats the best: the point is the
+    // best now and climbs on from its cached rung.
+    study.trialReported(trialEvent(2, parkedValue, 0.05));
+    expect(refinementRuns.runs).toHaveLength(2);
+    expect(refinementRuns.runs[1]?.request).toMatchObject({
+      runCount: 17,
+      scenarioParameterValues: { infected_ratio: parkedValue },
+    });
+    expect(latest()?.selection).toMatchObject({
+      key: "infected_ratio=10",
+      runTarget: 25,
+      computing: true,
+      note: null,
+    });
+  });
+
   it("takes the best the terminal event carries, and stays at the midpoint without any", () => {
     const { study, latest, refinementRuns } = setup();
 

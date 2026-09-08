@@ -274,6 +274,10 @@ export const createConnectedStudy = ({
     },
   });
 
+  /** The navigation key of the best trial's point; null without a best. */
+  const bestKey = (): string | null =>
+    best === null ? null : keyOf(navigationAt(best.parameters, false));
+
   const refineHere = () => {
     const key = keyOf(navigation);
     refinement.refine({
@@ -284,8 +288,7 @@ export const createConnectedStudy = ({
         booleanIdentifiers,
         navigation,
       ),
-      isBest:
-        best !== null && key === keyOf(navigationAt(best.parameters, false)),
+      isBest: key === bestKey(),
     });
   };
 
@@ -437,8 +440,15 @@ export const createConnectedStudy = ({
       publish();
     },
     trialReported: (event) => {
-      if (!disposed) {
-        best = foldBestTrial(direction, best, event);
+      if (disposed) {
+        return;
+      }
+      const previousBestKey = bestKey();
+      best = foldBestTrial(direction, best, event);
+      // A parked point's standing against the best may have changed: as the
+      // best it climbs past an early stop, no longer the best it may stop.
+      if (!navigation.followTrials && bestKey() !== previousBestKey) {
+        refineHere();
       }
     },
     settle: (outcome, settledBest) => {
@@ -451,6 +461,9 @@ export const createConnectedStudy = ({
       }
       if (navigation.followTrials && !followed) {
         settleOnBest();
+      } else if (!navigation.followTrials) {
+        // A parked point keeps its place; the settled best may be its own.
+        refineHere();
       }
     },
     resume: () => {
