@@ -835,7 +835,7 @@ export class OpenAIRealtimeSession {
       type: "response-terminal" as const,
     };
 
-    if (this.#cancelledCanonicalResponseIds.delete(responseId)) {
+    if (this.#cancelledCanonicalResponseIds.has(responseId)) {
       if (this.#speakingResponseId === responseId) {
         this.#emit({
           connectionEpoch,

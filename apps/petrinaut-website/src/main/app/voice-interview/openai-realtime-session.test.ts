@@ -902,6 +902,49 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
   });
 
+  test("ignores leftover output after a cancelled response is already done", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("question", "Canonical question"),
+    ]);
+    const responseCreate = sentEvents(channel)[0]!;
+
+    void harness.session.cancelOutput();
+
+    channel.receive({
+      response: {
+        id: "response-canonical",
+        metadata: (responseCreate.response as Record<string, unknown>).metadata,
+      },
+      type: "response.created",
+    });
+    channel.receive({
+      response: {
+        id: "response-canonical",
+        output: [],
+        status: "cancelled",
+      },
+      type: "response.done",
+    });
+    channel.receive({
+      response_id: "response-canonical",
+      type: "output_audio_buffer.started",
+    });
+
+    expect(harness.events).not.toContainEqual(
+      expect.objectContaining({ type: "error" }),
+    );
+    expect(harness.events).not.toContainEqual(
+      expect.objectContaining({ type: "output-started" }),
+    );
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
+    expect(sentEvents(channel).at(-1)).toEqual({
+      type: "output_audio_buffer.clear",
+    });
+  });
+
   test("retries a correlated canonical response after the active response ends", async () => {
     const harness = createHarness();
     await harness.session.connect();
