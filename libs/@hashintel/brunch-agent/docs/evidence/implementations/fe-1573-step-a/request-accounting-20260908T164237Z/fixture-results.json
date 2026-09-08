@@ -1,0 +1,1013 @@
+{
+  "scope": "TEST INPUT/OUTPUT — unpaid readiness, catalogue estimates not invoice amounts",
+  "directory": "/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/TEST-provider-accounting-sSJcKs",
+  "starts": 6,
+  "syntheticFetches": 6,
+  "forbiddenFetches": 0,
+  "requestIdentities": [
+    {
+      "instanceId": "0e6b260da1995983ddf0c8cd3f8e857788b3d95d668ba768d2461a1b96a42eef",
+      "conversationId": "conv_01M20ZT2WXZ36NZ4PYVDZDJVXY",
+      "submissionId": "sub_01M20ZT2WX5D4Y3HG09QSY6547",
+      "operationId": "op_01M20ZT2WYAF3GZPRQ8Y2EX4AX",
+      "turnId": "turn_01M20ZT2X0Q8EGTRT8CT8054DC"
+    },
+    {
+      "instanceId": "04e5f5b798527e338d2aa72211edbea60b015986ff1d4fb2567970632130f475",
+      "conversationId": "conv_01M20ZT33HRDFBXETM0H6Y1XNY",
+      "submissionId": "sub_01M20ZT33GKW6GK1TF0PT6VSST",
+      "operationId": "op_01M20ZT33JKFN72Y18RT62JWHP",
+      "turnId": "turn_01M20ZT33K3TN7JTNM5V8BEFY5"
+    },
+    {
+      "instanceId": "2fe0a9dc6fff44902da2cabbc9b4d064c54d9415a4145ab4c00f51aa2720daef",
+      "conversationId": "conv_01M20ZT38PF30E1S4G84XQVMME",
+      "submissionId": "sub_01M20ZT38PXNPN7VT506QGTJNM",
+      "operationId": "op_01M20ZT38R85YD8XXSBF3CW159",
+      "turnId": "turn_01M20ZT38SDJS8ZSD654ZN2YV2"
+    },
+    {
+      "instanceId": "3a7af2ddcac3e2f9f4a0dc0354fac53f2deb1d92f2288cc92eef73e2a400b1c4",
+      "conversationId": "conv_01M20ZT3E16FZWXD9N5Z401JBD",
+      "submissionId": "sub_01M20ZT3E1DNMCG70QJ8Q9AAQN",
+      "operationId": "op_01M20ZT3E2HYZR9ZRGG9E4RXQN",
+      "turnId": "turn_01M20ZT3E3413XK4DHK73JQTKY"
+    },
+    {
+      "instanceId": "5134ee2c2740c1e6ab4ce2d4ee13a3d601fdf9cf8e7c2ee98b4a2382adcac862",
+      "conversationId": "conv_01M20ZT3JRAMEGH8ZZSQ873J0F",
+      "submissionId": "sub_01M20ZT3JQXPZ2TZFW78BJ8HMP",
+      "operationId": "op_01M20ZT3JS1H0RY8JSVTBHAWWJ",
+      "turnId": "turn_01M20ZT3JSS1M811Q0Q2NHBB3K"
+    },
+    {
+      "instanceId": "675036c52ebed61cb1263c375739201ab08c4b0d8fede039d1de9baf54aa1192",
+      "conversationId": "conv_01M20ZT3PV8DSXCA41RQNNQA2Z",
+      "submissionId": "sub_01M20ZT3PVMTEYYDKKKRDY82Q7",
+      "operationId": "op_01M20ZT3PWHF09VYAG01EB1Y5T",
+      "turnId": "turn_01M20ZT3PX5R72SYTP3CBABSDV"
+    }
+  ],
+  "observations": [
+    {
+      "case": "unreserved",
+      "nativeStarts": 0
+    },
+    {
+      "case": "exhausted",
+      "nativeStarts": 0
+    },
+    {
+      "case": "invalid",
+      "nativeStarts": 0
+    },
+    {
+      "case": "underfunded",
+      "nativeStarts": 0
+    },
+    {
+      "case": "accepted",
+      "ledger": {
+        "limits": {
+          "calls": 200,
+          "usd": 100
+        },
+        "reservation": {
+          "runId": "TEST-run",
+          "status": "active",
+          "calls": 1,
+          "usd": 20,
+          "perCall": {
+            "maxOutputTokens": 16,
+            "reservedUsd": 7
+          },
+          "owner": "TEST"
+        },
+        "totals": {
+          "spentCalls": 1,
+          "spentUsd": 0.00057975,
+          "remainingCalls": 199,
+          "remainingUsd": 99.99942025,
+          "outstandingReservedCalls": 0,
+          "outstandingReservedUsd": 0
+        },
+        "calls": [
+          {
+            "sequence": 1,
+            "status": "complete",
+            "reservedUsd": 7,
+            "usage": {
+              "input": 100,
+              "output": 10,
+              "cacheRead": 20,
+              "cacheWrite": 30,
+              "totalTokens": 160,
+              "cacheWrite1h": 5,
+              "reasoning": 3,
+              "cost": {
+                "input": 0.00030000000000000003,
+                "output": 0.00015000000000000001,
+                "cacheRead": 0.000006,
+                "cacheWrite": 0.00012375,
+                "total": 0.00057975
+              }
+            },
+            "partialUsage": {
+              "input": 100,
+              "output": 10,
+              "cacheRead": 20,
+              "cacheWrite": 30,
+              "totalTokens": 160,
+              "cacheWrite1h": 5,
+              "reasoning": 3,
+              "cost": {
+                "input": 0.00030000000000000003,
+                "output": 0.00015000000000000001,
+                "cacheRead": 0.000006,
+                "cacheWrite": 0.00012375,
+                "total": 0.00057975
+              }
+            },
+            "accountingVersion": 1,
+            "journalPending": false,
+            "runId": "TEST-run",
+            "identity": {
+              "instanceId": "0e6b260da1995983ddf0c8cd3f8e857788b3d95d668ba768d2461a1b96a42eef",
+              "conversationId": "conv_01M20ZT2WXZ36NZ4PYVDZDJVXY",
+              "submissionId": "sub_01M20ZT2WX5D4Y3HG09QSY6547",
+              "operationId": "op_01M20ZT2WYAF3GZPRQ8Y2EX4AX",
+              "turnId": "turn_01M20ZT2X0Q8EGTRT8CT8054DC"
+            },
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "maxOutputTokens": 16,
+            "inputTokenCeiling": 1000000,
+            "invocation": "started",
+            "transport": "started",
+            "terminal": {
+              "provider": "anthropic",
+              "model": "claude-sonnet-4-6",
+              "stopReason": "stop",
+              "responseId": "msg_TEST_accounting",
+              "usage": {
+                "input": 100,
+                "output": 10,
+                "cacheRead": 20,
+                "cacheWrite": 30,
+                "totalTokens": 160,
+                "cacheWrite1h": 5,
+                "reasoning": 3,
+                "cost": {
+                  "input": 0.00030000000000000003,
+                  "output": 0.00015000000000000001,
+                  "cacheRead": 0.000006,
+                  "cacheWrite": 0.00012375,
+                  "total": 0.00057975
+                }
+              }
+            },
+            "actualUsd": 0.00057975
+          }
+        ],
+        "authority": "TEST INPUT — not paid authorization"
+      },
+      "turn": {
+        "conversationId": "conv_01M20ZT2WXZ36NZ4PYVDZDJVXY",
+        "submissionId": "sub_01M20ZT2WX5D4Y3HG09QSY6547",
+        "operationId": "op_01M20ZT2WYAF3GZPRQ8Y2EX4AX",
+        "turnId": "turn_01M20ZT2X0Q8EGTRT8CT8054DC"
+      },
+      "receipt": {
+        "streamUrl": "http://brunch.local/agents/chat/0e6b260da1995983ddf0c8cd3f8e857788b3d95d668ba768d2461a1b96a42eef",
+        "offset": "0000000000000000_0000000000000000",
+        "submissionId": "sub_01M20ZT2WX5D4Y3HG09QSY6547",
+        "uid": "inst_01M20ZT2WXHBVD35D4EYAW7J83"
+      },
+      "publishedTools": 0
+    },
+    {
+      "case": "rejected",
+      "ledger": {
+        "limits": {
+          "calls": 200,
+          "usd": 100
+        },
+        "reservation": {
+          "runId": "TEST-run",
+          "status": "active",
+          "calls": 1,
+          "usd": 20,
+          "perCall": {
+            "maxOutputTokens": 16,
+            "reservedUsd": 7
+          },
+          "owner": "TEST"
+        },
+        "totals": {
+          "spentCalls": 1,
+          "spentUsd": 0.00057975,
+          "remainingCalls": 199,
+          "remainingUsd": 99.99942025,
+          "outstandingReservedCalls": 0,
+          "outstandingReservedUsd": 0
+        },
+        "calls": [
+          {
+            "sequence": 1,
+            "status": "complete",
+            "reservedUsd": 7,
+            "usage": {
+              "input": 100,
+              "output": 10,
+              "cacheRead": 20,
+              "cacheWrite": 30,
+              "totalTokens": 160,
+              "cacheWrite1h": 5,
+              "reasoning": 3,
+              "cost": {
+                "input": 0.00030000000000000003,
+                "output": 0.00015000000000000001,
+                "cacheRead": 0.000006,
+                "cacheWrite": 0.00012375,
+                "total": 0.00057975
+              }
+            },
+            "partialUsage": {
+              "input": 100,
+              "output": 10,
+              "cacheRead": 20,
+              "cacheWrite": 30,
+              "totalTokens": 160,
+              "cacheWrite1h": 5,
+              "reasoning": 3,
+              "cost": {
+                "input": 0.00030000000000000003,
+                "output": 0.00015000000000000001,
+                "cacheRead": 0.000006,
+                "cacheWrite": 0.00012375,
+                "total": 0.00057975
+              }
+            },
+            "accountingVersion": 1,
+            "journalPending": false,
+            "runId": "TEST-run",
+            "identity": {
+              "instanceId": "04e5f5b798527e338d2aa72211edbea60b015986ff1d4fb2567970632130f475",
+              "conversationId": "conv_01M20ZT33HRDFBXETM0H6Y1XNY",
+              "submissionId": "sub_01M20ZT33GKW6GK1TF0PT6VSST",
+              "operationId": "op_01M20ZT33JKFN72Y18RT62JWHP",
+              "turnId": "turn_01M20ZT33K3TN7JTNM5V8BEFY5"
+            },
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "maxOutputTokens": 16,
+            "inputTokenCeiling": 1000000,
+            "invocation": "started",
+            "transport": "started",
+            "terminal": {
+              "provider": "anthropic",
+              "model": "claude-sonnet-4-6",
+              "stopReason": "toolUse",
+              "responseId": "msg_TEST_accounting",
+              "usage": {
+                "input": 100,
+                "output": 10,
+                "cacheRead": 20,
+                "cacheWrite": 30,
+                "totalTokens": 160,
+                "cacheWrite1h": 5,
+                "reasoning": 3,
+                "cost": {
+                  "input": 0.00030000000000000003,
+                  "output": 0.00015000000000000001,
+                  "cacheRead": 0.000006,
+                  "cacheWrite": 0.00012375,
+                  "total": 0.00057975
+                }
+              }
+            },
+            "actualUsd": 0.00057975
+          }
+        ],
+        "authority": "TEST INPUT — not paid authorization"
+      },
+      "turn": {
+        "conversationId": "conv_01M20ZT33HRDFBXETM0H6Y1XNY",
+        "submissionId": "sub_01M20ZT33GKW6GK1TF0PT6VSST",
+        "operationId": "op_01M20ZT33JKFN72Y18RT62JWHP",
+        "turnId": "turn_01M20ZT33K3TN7JTNM5V8BEFY5"
+      },
+      "receipt": {
+        "streamUrl": "http://brunch.local/agents/chat/04e5f5b798527e338d2aa72211edbea60b015986ff1d4fb2567970632130f475",
+        "offset": "0000000000000000_0000000000000000",
+        "submissionId": "sub_01M20ZT33GKW6GK1TF0PT6VSST",
+        "uid": "inst_01M20ZT33H9KZ3WG7REBSJJPHZ"
+      },
+      "publishedTools": 0
+    },
+    {
+      "case": "partial",
+      "atCancellation": {
+        "limits": {
+          "calls": 200,
+          "usd": 100
+        },
+        "reservation": {
+          "runId": "TEST-run",
+          "status": "active",
+          "calls": 2,
+          "usd": 20,
+          "perCall": {
+            "maxOutputTokens": 16,
+            "reservedUsd": 7
+          },
+          "owner": "TEST"
+        },
+        "totals": {
+          "spentCalls": 1,
+          "spentUsd": 0,
+          "remainingCalls": 199,
+          "remainingUsd": 100,
+          "outstandingReservedCalls": 1,
+          "outstandingReservedUsd": 7
+        },
+        "calls": [
+          {
+            "sequence": 1,
+            "status": "unknown",
+            "reservedUsd": 7,
+            "usage": {
+              "input": 100,
+              "output": 1,
+              "cacheRead": 20,
+              "cacheWrite": 30,
+              "totalTokens": 151,
+              "cacheWrite1h": 5,
+              "cost": {
+                "input": 0.00030000000000000003,
+                "output": 0.000015,
+                "cacheRead": 0.000006,
+                "cacheWrite": 0.00012375,
+                "total": 0.00044475
+              }
+            },
+            "partialUsage": {
+              "input": 100,
+              "output": 1,
+              "cacheRead": 20,
+              "cacheWrite": 30,
+              "totalTokens": 151,
+              "cacheWrite1h": 5,
+              "cost": {
+                "input": 0.00030000000000000003,
+                "output": 0.000015,
+                "cacheRead": 0.000006,
+                "cacheWrite": 0.00012375,
+                "total": 0.00044475
+              }
+            },
+            "accountingVersion": 1,
+            "journalPending": false,
+            "runId": "TEST-run",
+            "identity": {
+              "instanceId": "2fe0a9dc6fff44902da2cabbc9b4d064c54d9415a4145ab4c00f51aa2720daef",
+              "conversationId": "conv_01M20ZT38PF30E1S4G84XQVMME",
+              "submissionId": "sub_01M20ZT38PXNPN7VT506QGTJNM",
+              "operationId": "op_01M20ZT38R85YD8XXSBF3CW159",
+              "turnId": "turn_01M20ZT38SDJS8ZSD654ZN2YV2"
+            },
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "maxOutputTokens": 16,
+            "inputTokenCeiling": 1000000,
+            "invocation": "started",
+            "transport": "started",
+            "cancelledOrFailed": true,
+            "terminal": {
+              "provider": "anthropic",
+              "model": "claude-sonnet-4-6",
+              "stopReason": "aborted",
+              "responseId": "msg_TEST_accounting",
+              "usage": {
+                "input": 100,
+                "output": 1,
+                "cacheRead": 20,
+                "cacheWrite": 30,
+                "totalTokens": 151,
+                "cacheWrite1h": 5,
+                "cost": {
+                  "input": 0.00030000000000000003,
+                  "output": 0.000015,
+                  "cacheRead": 0.000006,
+                  "cacheWrite": 0.00012375,
+                  "total": 0.00044475
+                }
+              }
+            }
+          }
+        ],
+        "authority": "TEST INPUT — not paid authorization"
+      },
+      "after": {
+        "limits": {
+          "calls": 200,
+          "usd": 100
+        },
+        "reservation": {
+          "runId": "TEST-run",
+          "status": "active",
+          "calls": 2,
+          "usd": 20,
+          "perCall": {
+            "maxOutputTokens": 16,
+            "reservedUsd": 7
+          },
+          "owner": "TEST"
+        },
+        "totals": {
+          "spentCalls": 1,
+          "spentUsd": 0,
+          "remainingCalls": 199,
+          "remainingUsd": 100,
+          "outstandingReservedCalls": 1,
+          "outstandingReservedUsd": 7
+        },
+        "calls": [
+          {
+            "sequence": 1,
+            "status": "unknown",
+            "reservedUsd": 7,
+            "usage": {
+              "input": 100,
+              "output": 1,
+              "cacheRead": 20,
+              "cacheWrite": 30,
+              "totalTokens": 151,
+              "cacheWrite1h": 5,
+              "cost": {
+                "input": 0.00030000000000000003,
+                "output": 0.000015,
+                "cacheRead": 0.000006,
+                "cacheWrite": 0.00012375,
+                "total": 0.00044475
+              }
+            },
+            "partialUsage": {
+              "input": 100,
+              "output": 1,
+              "cacheRead": 20,
+              "cacheWrite": 30,
+              "totalTokens": 151,
+              "cacheWrite1h": 5,
+              "cost": {
+                "input": 0.00030000000000000003,
+                "output": 0.000015,
+                "cacheRead": 0.000006,
+                "cacheWrite": 0.00012375,
+                "total": 0.00044475
+              }
+            },
+            "accountingVersion": 1,
+            "journalPending": false,
+            "runId": "TEST-run",
+            "identity": {
+              "instanceId": "2fe0a9dc6fff44902da2cabbc9b4d064c54d9415a4145ab4c00f51aa2720daef",
+              "conversationId": "conv_01M20ZT38PF30E1S4G84XQVMME",
+              "submissionId": "sub_01M20ZT38PXNPN7VT506QGTJNM",
+              "operationId": "op_01M20ZT38R85YD8XXSBF3CW159",
+              "turnId": "turn_01M20ZT38SDJS8ZSD654ZN2YV2"
+            },
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "maxOutputTokens": 16,
+            "inputTokenCeiling": 1000000,
+            "invocation": "started",
+            "transport": "started",
+            "cancelledOrFailed": true,
+            "terminal": {
+              "provider": "anthropic",
+              "model": "claude-sonnet-4-6",
+              "stopReason": "aborted",
+              "responseId": "msg_TEST_accounting",
+              "usage": {
+                "input": 100,
+                "output": 1,
+                "cacheRead": 20,
+                "cacheWrite": 30,
+                "totalTokens": 151,
+                "cacheWrite1h": 5,
+                "cost": {
+                  "input": 0.00030000000000000003,
+                  "output": 0.000015,
+                  "cacheRead": 0.000006,
+                  "cacheWrite": 0.00012375,
+                  "total": 0.00044475
+                }
+              }
+            }
+          }
+        ],
+        "authority": "TEST INPUT — not paid authorization"
+      }
+    },
+    {
+      "case": "zero",
+      "atCancellation": {
+        "limits": {
+          "calls": 200,
+          "usd": 100
+        },
+        "reservation": {
+          "runId": "TEST-run",
+          "status": "active",
+          "calls": 2,
+          "usd": 20,
+          "perCall": {
+            "maxOutputTokens": 16,
+            "reservedUsd": 7
+          },
+          "owner": "TEST"
+        },
+        "totals": {
+          "spentCalls": 1,
+          "spentUsd": 0,
+          "remainingCalls": 199,
+          "remainingUsd": 100,
+          "outstandingReservedCalls": 1,
+          "outstandingReservedUsd": 7
+        },
+        "calls": [
+          {
+            "sequence": 1,
+            "status": "unknown",
+            "reservedUsd": 7,
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "partialUsage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "accountingVersion": 1,
+            "journalPending": false,
+            "runId": "TEST-run",
+            "identity": {
+              "instanceId": "3a7af2ddcac3e2f9f4a0dc0354fac53f2deb1d92f2288cc92eef73e2a400b1c4",
+              "conversationId": "conv_01M20ZT3E16FZWXD9N5Z401JBD",
+              "submissionId": "sub_01M20ZT3E1DNMCG70QJ8Q9AAQN",
+              "operationId": "op_01M20ZT3E2HYZR9ZRGG9E4RXQN",
+              "turnId": "turn_01M20ZT3E3413XK4DHK73JQTKY"
+            },
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "maxOutputTokens": 16,
+            "inputTokenCeiling": 1000000,
+            "invocation": "started",
+            "transport": "started",
+            "cancelledOrFailed": true,
+            "terminal": {
+              "provider": "anthropic",
+              "model": "claude-sonnet-4-6",
+              "stopReason": "aborted",
+              "usage": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "totalTokens": 0,
+                "cost": {
+                  "input": 0,
+                  "output": 0,
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "total": 0
+                }
+              }
+            }
+          }
+        ],
+        "authority": "TEST INPUT — not paid authorization"
+      },
+      "after": {
+        "limits": {
+          "calls": 200,
+          "usd": 100
+        },
+        "reservation": {
+          "runId": "TEST-run",
+          "status": "active",
+          "calls": 2,
+          "usd": 20,
+          "perCall": {
+            "maxOutputTokens": 16,
+            "reservedUsd": 7
+          },
+          "owner": "TEST"
+        },
+        "totals": {
+          "spentCalls": 1,
+          "spentUsd": 0,
+          "remainingCalls": 199,
+          "remainingUsd": 100,
+          "outstandingReservedCalls": 1,
+          "outstandingReservedUsd": 7
+        },
+        "calls": [
+          {
+            "sequence": 1,
+            "status": "unknown",
+            "reservedUsd": 7,
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "partialUsage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "accountingVersion": 1,
+            "journalPending": false,
+            "runId": "TEST-run",
+            "identity": {
+              "instanceId": "3a7af2ddcac3e2f9f4a0dc0354fac53f2deb1d92f2288cc92eef73e2a400b1c4",
+              "conversationId": "conv_01M20ZT3E16FZWXD9N5Z401JBD",
+              "submissionId": "sub_01M20ZT3E1DNMCG70QJ8Q9AAQN",
+              "operationId": "op_01M20ZT3E2HYZR9ZRGG9E4RXQN",
+              "turnId": "turn_01M20ZT3E3413XK4DHK73JQTKY"
+            },
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "maxOutputTokens": 16,
+            "inputTokenCeiling": 1000000,
+            "invocation": "started",
+            "transport": "started",
+            "cancelledOrFailed": true,
+            "terminal": {
+              "provider": "anthropic",
+              "model": "claude-sonnet-4-6",
+              "stopReason": "aborted",
+              "usage": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "totalTokens": 0,
+                "cost": {
+                  "input": 0,
+                  "output": 0,
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "total": 0
+                }
+              }
+            }
+          }
+        ],
+        "authority": "TEST INPUT — not paid authorization"
+      }
+    },
+    {
+      "case": "late",
+      "atCancellation": {
+        "limits": {
+          "calls": 200,
+          "usd": 100
+        },
+        "reservation": {
+          "runId": "TEST-run",
+          "status": "active",
+          "calls": 2,
+          "usd": 20,
+          "perCall": {
+            "maxOutputTokens": 16,
+            "reservedUsd": 7
+          },
+          "owner": "TEST"
+        },
+        "totals": {
+          "spentCalls": 1,
+          "spentUsd": 0,
+          "remainingCalls": 199,
+          "remainingUsd": 100,
+          "outstandingReservedCalls": 1,
+          "outstandingReservedUsd": 7
+        },
+        "calls": [
+          {
+            "sequence": 1,
+            "status": "unknown",
+            "reservedUsd": 7,
+            "accountingVersion": 1,
+            "journalPending": false,
+            "runId": "TEST-run",
+            "identity": {
+              "instanceId": "5134ee2c2740c1e6ab4ce2d4ee13a3d601fdf9cf8e7c2ee98b4a2382adcac862",
+              "conversationId": "conv_01M20ZT3JRAMEGH8ZZSQ873J0F",
+              "submissionId": "sub_01M20ZT3JQXPZ2TZFW78BJ8HMP",
+              "operationId": "op_01M20ZT3JS1H0RY8JSVTBHAWWJ",
+              "turnId": "turn_01M20ZT3JSS1M811Q0Q2NHBB3K"
+            },
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "maxOutputTokens": 16,
+            "inputTokenCeiling": 1000000,
+            "invocation": "started",
+            "transport": "started",
+            "cancelledOrFailed": true
+          }
+        ],
+        "authority": "TEST INPUT — not paid authorization"
+      },
+      "after": {
+        "limits": {
+          "calls": 200,
+          "usd": 100
+        },
+        "reservation": {
+          "runId": "TEST-run",
+          "status": "active",
+          "calls": 2,
+          "usd": 20,
+          "perCall": {
+            "maxOutputTokens": 16,
+            "reservedUsd": 7
+          },
+          "owner": "TEST"
+        },
+        "totals": {
+          "spentCalls": 1,
+          "spentUsd": 0,
+          "remainingCalls": 199,
+          "remainingUsd": 100,
+          "outstandingReservedCalls": 1,
+          "outstandingReservedUsd": 7
+        },
+        "calls": [
+          {
+            "sequence": 1,
+            "status": "unknown",
+            "reservedUsd": 7,
+            "accountingVersion": 1,
+            "journalPending": false,
+            "runId": "TEST-run",
+            "identity": {
+              "instanceId": "5134ee2c2740c1e6ab4ce2d4ee13a3d601fdf9cf8e7c2ee98b4a2382adcac862",
+              "conversationId": "conv_01M20ZT3JRAMEGH8ZZSQ873J0F",
+              "submissionId": "sub_01M20ZT3JQXPZ2TZFW78BJ8HMP",
+              "operationId": "op_01M20ZT3JS1H0RY8JSVTBHAWWJ",
+              "turnId": "turn_01M20ZT3JSS1M811Q0Q2NHBB3K"
+            },
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "maxOutputTokens": 16,
+            "inputTokenCeiling": 1000000,
+            "invocation": "started",
+            "transport": "started",
+            "cancelledOrFailed": true,
+            "terminal": {
+              "provider": "anthropic",
+              "model": "claude-sonnet-4-6",
+              "stopReason": "stop",
+              "usage": {
+                "input": 100,
+                "output": 10,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "totalTokens": 110,
+                "cost": {
+                  "input": 0.0003,
+                  "output": 0.00015,
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "total": 0.00045
+                }
+              }
+            },
+            "usage": {
+              "input": 100,
+              "output": 10,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 110,
+              "cost": {
+                "input": 0.0003,
+                "output": 0.00015,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0.00045
+              }
+            }
+          }
+        ],
+        "authority": "TEST INPUT — not paid authorization"
+      }
+    },
+    {
+      "case": "never",
+      "atCancellation": {
+        "limits": {
+          "calls": 200,
+          "usd": 100
+        },
+        "reservation": {
+          "runId": "TEST-run",
+          "status": "active",
+          "calls": 2,
+          "usd": 20,
+          "perCall": {
+            "maxOutputTokens": 16,
+            "reservedUsd": 7
+          },
+          "owner": "TEST"
+        },
+        "totals": {
+          "spentCalls": 1,
+          "spentUsd": 0,
+          "remainingCalls": 199,
+          "remainingUsd": 100,
+          "outstandingReservedCalls": 1,
+          "outstandingReservedUsd": 7
+        },
+        "calls": [
+          {
+            "sequence": 1,
+            "status": "unknown",
+            "reservedUsd": 7,
+            "accountingVersion": 1,
+            "journalPending": false,
+            "runId": "TEST-run",
+            "identity": {
+              "instanceId": "675036c52ebed61cb1263c375739201ab08c4b0d8fede039d1de9baf54aa1192",
+              "conversationId": "conv_01M20ZT3PV8DSXCA41RQNNQA2Z",
+              "submissionId": "sub_01M20ZT3PVMTEYYDKKKRDY82Q7",
+              "operationId": "op_01M20ZT3PWHF09VYAG01EB1Y5T",
+              "turnId": "turn_01M20ZT3PX5R72SYTP3CBABSDV"
+            },
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "maxOutputTokens": 16,
+            "inputTokenCeiling": 1000000,
+            "invocation": "started",
+            "transport": "started",
+            "cancelledOrFailed": true
+          }
+        ],
+        "authority": "TEST INPUT — not paid authorization"
+      },
+      "after": {
+        "limits": {
+          "calls": 200,
+          "usd": 100
+        },
+        "reservation": {
+          "runId": "TEST-run",
+          "status": "active",
+          "calls": 2,
+          "usd": 20,
+          "perCall": {
+            "maxOutputTokens": 16,
+            "reservedUsd": 7
+          },
+          "owner": "TEST"
+        },
+        "totals": {
+          "spentCalls": 1,
+          "spentUsd": 0,
+          "remainingCalls": 199,
+          "remainingUsd": 100,
+          "outstandingReservedCalls": 1,
+          "outstandingReservedUsd": 7
+        },
+        "calls": [
+          {
+            "sequence": 1,
+            "status": "unknown",
+            "reservedUsd": 7,
+            "accountingVersion": 1,
+            "journalPending": false,
+            "runId": "TEST-run",
+            "identity": {
+              "instanceId": "675036c52ebed61cb1263c375739201ab08c4b0d8fede039d1de9baf54aa1192",
+              "conversationId": "conv_01M20ZT3PV8DSXCA41RQNNQA2Z",
+              "submissionId": "sub_01M20ZT3PVMTEYYDKKKRDY82Q7",
+              "operationId": "op_01M20ZT3PWHF09VYAG01EB1Y5T",
+              "turnId": "turn_01M20ZT3PX5R72SYTP3CBABSDV"
+            },
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "maxOutputTokens": 16,
+            "inputTokenCeiling": 1000000,
+            "invocation": "started",
+            "transport": "started",
+            "cancelledOrFailed": true
+          }
+        ],
+        "authority": "TEST INPUT — not paid authorization"
+      }
+    },
+    {
+      "case": "abrupt-process-death",
+      "exitCode": 73,
+      "ledger": {
+        "limits": {
+          "calls": 200,
+          "usd": 100
+        },
+        "reservation": {
+          "runId": "TEST-run",
+          "status": "active",
+          "calls": 2,
+          "usd": 20,
+          "perCall": {
+            "maxOutputTokens": 16,
+            "reservedUsd": 7
+          },
+          "owner": "TEST"
+        },
+        "totals": {
+          "spentCalls": 1,
+          "spentUsd": 0,
+          "remainingCalls": 199,
+          "remainingUsd": 100,
+          "outstandingReservedCalls": 1,
+          "outstandingReservedUsd": 7
+        },
+        "calls": [
+          {
+            "sequence": 1,
+            "status": "unknown",
+            "reservedUsd": 7,
+            "accountingVersion": 1,
+            "journalPending": false,
+            "runId": "TEST-run",
+            "identity": {
+              "instanceId": "cbd3fc20d63f637ab99e25781955213ddd964e0984e2e545f899e356ade77e31",
+              "conversationId": "conv_01M20ZT49ENC69T66T1N3RN9PY",
+              "submissionId": "sub_01M20ZT49B00B0770HTQ1A97Z9",
+              "operationId": "op_01M20ZT4ADDJJ4MJ9WE6HT8VP1",
+              "turnId": "turn_01M20ZT4AK4CKN9CG8E3RTGK98"
+            },
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "maxOutputTokens": 16,
+            "inputTokenCeiling": 1000000,
+            "invocation": "started",
+            "transport": "not-started"
+          }
+        ],
+        "authority": "TEST INPUT — not paid authorization"
+      }
+    },
+    {
+      "case": "--restart",
+      "exitCode": 0,
+      "ledgerUnchanged": true
+    },
+    {
+      "case": "--disabled",
+      "exitCode": 0,
+      "ledgerUnchanged": true
+    }
+  ]
+}

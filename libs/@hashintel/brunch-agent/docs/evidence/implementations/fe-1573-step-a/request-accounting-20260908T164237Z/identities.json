@@ -1,0 +1,88 @@
+{
+  "base": "113c8ada6f9a74d097bfbeb1b944db8c39223759",
+  "node": "v22.21.1",
+  "packages": {
+    "@flue/runtime": "2.0.3",
+    "@flue/sdk": "2.0.3",
+    "@earendil-works/pi-ai": "0.83.0",
+    "@earendil-works/pi-agent-core": "0.83.0",
+    "valibot": "1.4.2"
+  },
+  "protectedFiles": {
+    "libs/@hashintel/brunch-agent/MISSION.md": {
+      "sha256": "069515ea0da6283a8541c6abd549d32aba3aac35b687a3d422d49e7210e6b111",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/usage-ledger.json": {
+      "sha256": "d5041ddc422a1889ce013b002ce6ed0250a2992ae4ab19501188d51a9c6eedf4",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/attempt-ledger.md": {
+      "sha256": "da55752de0b939ac817f7679ab1dadd9ff058fdcaa2e602063e04d188a5d0833",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/provider-boundary-20260908T142056Z/handoff.md": {
+      "sha256": "090bdfd0757ca3eb04588eb8ffc9fdd39e7057b34f2b591524a52d69bca0fb6a",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/provider-boundary-20260908T142056Z/usage.test.ts": {
+      "sha256": "1796c125d264fe711a5e8fbd0ee9210cf20b67cf665496c1f91b9ca36e1afbb3",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/provider-boundary-20260908T142056Z/usage.json": {
+      "sha256": "84adfb3c3d52aece26a62dea2d4bfdbeba51e235323b4c6bef13d8578845e9ac",
+      "unchangedFromBase": true
+    },
+    "apps/brunch-agent/src/evaluations/runbook/schema-carrier-probe.ts": {
+      "sha256": "d9efba11b8019612c1bbd5a3ca4d3c3b0300c40a7df9002d848f3cdbd82a22fc",
+      "unchangedFromBase": true
+    },
+    "apps/brunch-agent/src/provider-admission.ts": {
+      "sha256": "9bbeff61d12ccbc881db4239b0e8c1eb8104d52168ed0c59a6412ce925f5b5d0",
+      "unchangedFromBase": true
+    },
+    "apps/brunch-agent/src/agents/chat-agent/agent.ts": {
+      "sha256": "8d6bb55d9f061aa7fcb1c2d91bd32caaf18186b78f4f98bea6d3d5509ce7ec38",
+      "unchangedFromBase": true
+    },
+    "apps/brunch-agent/src/conversation/root-arc.ts": {
+      "sha256": "48cf500b643a0a9ae622b6a424cff6b552ebb5b099f6efaf60e5b0d3e1398d67",
+      "unchangedFromBase": true
+    },
+    "apps/brunch-agent/test/workpiece-revisions.test.ts": {
+      "sha256": "8239231ff0c31b0b4a6186c14111215542fcf45146685372239341ee21c91357",
+      "unchangedFromBase": true
+    },
+    "apps/brunch-agent/test/workpiece-revisions.integration.ts": {
+      "sha256": "5c958286d5a87ef793628e419710799837c8449d726ed901df759061035bcc87",
+      "unchangedFromBase": true
+    },
+    "apps/brunch-agent/test/architecture/boundaries.integration.ts": {
+      "sha256": "c75a87ddc4dd95fca20fefa24bac9857c12cbf3cb898b38843e11f45f78602d5",
+      "unchangedFromBase": true
+    },
+    "apps/brunch-agent/package.json": {
+      "sha256": "c6c25c36cee8be6f272f2472ae937d2f6af3e7aa057852b8a9a2cbc66c00d859",
+      "unchangedFromBase": true
+    },
+    "package.json": {
+      "sha256": "c93da99504e44d5d380fba8c907189a920e1bd1af0e135c331a58284815f4157",
+      "unchangedFromBase": true
+    },
+    "yarn.lock": {
+      "sha256": "9576beb6393964527ca535744f38118b5b8437eaffa02a6281fba79d09256b6f",
+      "unchangedFromBase": true
+    }
+  },
+  "sourceFiles": {
+    "apps/brunch-agent/src/app.ts": "df96d768344c512771d3ebdfe1d38307d8df625ad8e07dcd23a59ad6c5ad9237",
+    "apps/brunch-agent/src/provider-accounting.ts": "8d4467bbe50793f9cc62141bc2251612b6aeefcbd9fd2f3551de4249c93ea21c",
+    "apps/brunch-agent/src/provider-accounting/request-ledger.ts": "8350c1d2b25f086b8ff9242bb85ff081800115e81a6e2bdfb4ef6d00f491dfff",
+    "apps/brunch-agent/test/provider-accounting.test.ts": "a5f98d00c9bc42266fe79b92ae20633007254f84cd08d6d01257635c63757e63",
+    "apps/brunch-agent/test/provider-accounting.integration.ts": "8cfe563359b40c482e16bc304b98357c56ec959a3cc6d1496b3d3575d224c313",
+    "node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs": "7d7c413cef14f401b5977a7c64ff1d9365cc78932ec624ca87b05ec9f0a7e1c4",
+    "node_modules/@earendil-works/pi-ai/dist/api/anthropic-messages.js": "b0facd0b3e2bac08e749e83c6810735281beb344eaf977715daa009275f8421a",
+    "node_modules/@earendil-works/pi-ai/dist/models.js": "ceb81be470cd45410f5586844b27ee65a70c474acc7eae7e8911752b5dfa7c2e",
+    "node_modules/@earendil-works/pi-agent-core/dist/agent.js": "02e5f6dfcea09280d7c6818fd264dc9a1219087f1d6c49115752b7086f6f2b62"
+  }
+}
