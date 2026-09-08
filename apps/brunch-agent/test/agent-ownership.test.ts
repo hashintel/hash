@@ -9,9 +9,9 @@ import { expect, test } from "vitest";
 
 import {
   agentOwnershipHeaders,
+  BRUNCH_CONVERSATION_HEADER,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
-import { BRUNCH_CONVERSATION_HEADER } from "../src/conversation/payload.ts";
 import { agentOwnershipGuard } from "../src/http/ownership.ts";
 import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
 

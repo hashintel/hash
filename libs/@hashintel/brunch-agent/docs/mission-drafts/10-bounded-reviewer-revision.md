@@ -8,7 +8,7 @@
 
 A fresh builder must read these sources before cutting or implementing this cluster:
 
-- [`MISSION.md`](../../MISSION.md) — closure pointer for Mission 4. Mission 4 produced no full-run workpiece candidate; consume only the source/workpiece pair explicitly selected and promoted by Mission 7 or a predecessor addendum.
+- [`MISSION.md`](../../MISSION.md) — live Mission 5 Voice authority on this branch; it supplies no Mission 10 execution authority or workpiece candidate. Consume only the source/workpiece pair explicitly selected and promoted by Mission 7 or a predecessor addendum.
 - [`MISSION.next.md`](../../MISSION.next.md) — compact shared frame, standing locks, and current mission joins.
 - [`README.md`](README.md) — durable draft authority, lifecycle, conversion, and oracle-gap rules.
 - [`docs/mission-archive/2-mechanical-capture-sweep.md`](../mission-archive/2-mechanical-capture-sweep.md) — exact-evidence capture, idempotency, Flue-history authority, and model-free scheduling.
@@ -61,7 +61,7 @@ Stale-base revision and legitimate impact widening are cross-class failure/exten
 ```text
 scenario declares reviewer authority + selected region + base revisions
 → reviewer enters the deployed Petrinaut assistant panel
-→ AI SDK /api/chat transport resumes the owning Flue conversation
+→ host-supplied browser `ChatTransport` over `@flue/sdk` resumes the owning Flue conversation at the mounted route
 → foreground Brunch agent conducts 3–5 focused operational-language turns
 → Flue history retains the canonical conversation
 → harness-owned mechanical sweep durably captures the settled reviewer range
@@ -126,7 +126,7 @@ Breadth beyond the named classes and accepted scenario portfolio remains unearne
 
 ## Candidate evidence and oracles
 
-- `apps/brunch-agent/test/petrinaut-chat.test.ts`, test **“the committed /api/chat door streams a plain Flue agent through server and client tools”**, currently proves the production AI SDK/Flue door, client-tool correlation, history recovery, ownership refusal, exact capture excerpts, idempotent recapture, and absence of sweep/construction tools on the interviewer. It does not prove reviewer revision or deployed infrastructure.
+- `apps/brunch-agent/test/petrinaut-chat.test.ts`, test **“the committed /api/chat door streams a plain Flue agent through server and client tools”** (re-expressed by recut Mission 5 through the browser Flue transport at the mounted route; cite its successor), currently proves the production AI SDK/Flue door, client-tool correlation, history recovery, ownership refusal, exact capture excerpts, idempotent recapture, and absence of sweep/construction tools on the interviewer. It does not prove reviewer revision or deployed infrastructure.
 - `apps/brunch-agent/test/headless-petrinaut-client.test.ts`, tests **“constructs a parser-accepted document through the bounded callbacks”** and **“refuses tools outside the side-quest subset”**, currently prove only the six-tool construct subset and parser acceptance. They are evidence for bounded capability/refusal, not a scoped update patch or semantic fidelity.
 - `evaluations/oracles/ir-quality-ruler-v1.md` supplies stable `CONFLICT-COLLAPSE`, `CONS-MISS`, `CONS-DISTORT`, `INVENT`, `HARDEN`, `SCOPE`, and `GAP-MISCLASS` judgments. Its own scope excludes successive revision and PN construction, so it may seed but cannot settle the revision claim.
 - `docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md` records one correction preserved in a workpiece and healthy ordinary-turn timing. It does not prove authorization, successive revision, or patch locality.

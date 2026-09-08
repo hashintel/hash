@@ -5,9 +5,9 @@
  *
  *   yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversationId>
  *
- * Identity matches POST /api/chat: principal + conversation id hash to the
- * Flue instance. The mounted URL requires those same values as headers. This
- * is a read of canonical Flue history, not a second log.
+ * Identity matches the mounted Flue route: principal + conversation id hash
+ * to the Flue instance, with those values also sent as ownership headers.
+ * This is a read of canonical Flue history, not a second log.
  */
 
 import { createFlueClient } from "@flue/sdk";

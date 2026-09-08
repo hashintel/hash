@@ -19,6 +19,8 @@ import { fileURLToPath } from "node:url";
 
 import { beforeAll, describe, expect, test } from "vitest";
 
+import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application";
+
 const DEV_APP = fileURLToPath(new URL("..", import.meta.url)).replace(
   /[/\\]$/u,
   "",
@@ -115,6 +117,19 @@ describe("the emitted server bundle", () => {
     // SQLite remains available to local/test execution only.
     expect(bundle).toContain("BRUNCH_DEV_DB_PATH");
     expect(bundle).toContain(".data-wipe-me");
+  });
+
+  test("serves only the guarded Flue conversation door", async () => {
+    const application = await loadBuiltBrunchApplication();
+    const [legacyResponse, flueResponse] = await Promise.all([
+      application.fetch(new Request("http://brunch.test/api/chat")),
+      application.fetch(
+        new Request("http://brunch.test/agents/chat/missing-identity"),
+      ),
+    ]);
+
+    expect(legacyResponse.status).toBe(404);
+    expect(flueResponse.status).toBe(401);
   });
 
   test("packages the authored skill without the retired filesystem loader", () => {

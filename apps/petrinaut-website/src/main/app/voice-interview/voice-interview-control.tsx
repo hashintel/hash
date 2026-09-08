@@ -12,7 +12,11 @@ import { css } from "@hashintel/ds-helpers/css";
 import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
 import { selectCanonicalSpeechSegments } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
-import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
+import {
+  RealtimeBrunchBridge,
+  type RealtimeBrunchAdmissionTarget,
+  type VoiceSubmissionSettlement,
+} from "./realtime-brunch-bridge";
 import { toVoiceSessionState } from "./voice-session-state";
 import {
   VoiceTurnController,
@@ -20,7 +24,80 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { AgentSendResult } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
+
+type ResolveSubmission = (
+  messageId: string,
+) => AgentSendResult["submissionId"] | undefined;
+type ResolveSubmissions = (
+  messageId: string,
+) => readonly AgentSendResult["submissionId"][] | undefined;
+type SubscribeToAdmission = (
+  target: RealtimeBrunchAdmissionTarget,
+  listener: (submissionId: AgentSendResult["submissionId"]) => void,
+) => () => void;
+type SubmitInterviewAnswer = ConstructorParameters<
+  typeof RealtimeBrunchBridge
+>[0]["submitInterviewAnswer"];
+type SubmitInterviewAnswerInput = Parameters<SubmitInterviewAnswer>[0];
+type SubmitInterviewAnswerResult = Awaited<ReturnType<SubmitInterviewAnswer>>;
+
+export const submitVoiceInputWithAdmission = async ({
+  input,
+  resolveInputSubmission,
+  submitVoiceInput,
+  subscribeToAdmission,
+}: {
+  readonly input: SubmitInterviewAnswerInput;
+  readonly resolveInputSubmission?: ResolveSubmission;
+  readonly submitVoiceInput: PetrinautAiVoiceModeContext["submitVoiceInput"];
+  readonly subscribeToAdmission?: SubscribeToAdmission;
+}): Promise<SubmitInterviewAnswerResult> => {
+  let unsubscribe = () => {};
+  let removeAbortListener = () => {};
+  const cancelled = new Promise<never>((_resolve, reject) => {
+    const rejectForAbort = () =>
+      reject(new DOMException("Voice admission cancelled", "AbortError"));
+    if (input.signal.aborted) {
+      rejectForAbort();
+      return;
+    }
+    input.signal.addEventListener("abort", rejectForAbort, { once: true });
+    removeAbortListener = () =>
+      input.signal.removeEventListener("abort", rejectForAbort);
+  });
+  const admissionObserved =
+    subscribeToAdmission === undefined
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => {
+          unsubscribe = subscribeToAdmission(
+            input.admissionTarget,
+            (submissionId) => {
+              input.onAdmission(submissionId);
+              resolve();
+            },
+          );
+        });
+  try {
+    const [result] = await Promise.race([
+      Promise.all([submitVoiceInput(input), admissionObserved]),
+      cancelled,
+    ]);
+    if (result.kind !== "message") return result;
+    const submissionId = resolveInputSubmission?.(result.messageId);
+    if (resolveInputSubmission !== undefined && submissionId === undefined) {
+      throw new Error("The Flue admission could not be correlated.");
+    }
+    return {
+      ...result,
+      ...(submissionId === undefined ? {} : { submissionId }),
+    };
+  } finally {
+    removeAbortListener();
+    unsubscribe();
+  }
+};
 
 export interface OpenAIVoiceConfig {
   readonly available: true;
@@ -213,7 +290,7 @@ const VoiceInterviewDisclosure = ({
 const recordLatency = (event: VoiceLatencyEvent): void => {
   try {
     performance.measure(`voice-interview:${event.name}`, {
-      detail: { questionId: event.questionId },
+      detail: { correlationId: event.correlationId },
       duration: event.elapsedMs,
       start: 0,
     });
@@ -225,9 +302,17 @@ const recordLatency = (event: VoiceLatencyEvent): void => {
 const AvailableVoiceInterviewControl = ({
   config,
   context,
+  resolveInputSubmission,
+  resolveResponseSubmission,
+  settlements,
+  subscribeToAdmission,
 }: {
   config: OpenAIVoiceConfig;
   context: PetrinautAiVoiceModeContext;
+  resolveInputSubmission?: ResolveSubmission;
+  resolveResponseSubmission?: ResolveSubmissions;
+  settlements?: readonly VoiceSubmissionSettlement[];
+  subscribeToAdmission?: SubscribeToAdmission;
 }) => {
   "use no memo";
 
@@ -236,6 +321,8 @@ const AvailableVoiceInterviewControl = ({
     // bridge, so these callbacks read what the layout effect below installs
     // rather than what was captured here.
     let latestSubmitVoiceInput = context.submitVoiceInput;
+    let latestResolveInputSubmission = resolveInputSubmission;
+    let latestSubscribeToAdmission = subscribeToAdmission;
     const session = new OpenAIRealtimeSession({
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
@@ -251,7 +338,13 @@ const AvailableVoiceInterviewControl = ({
     });
     const bridge = new RealtimeBrunchBridge({
       session,
-      submitInterviewAnswer: (input) => latestSubmitVoiceInput(input),
+      submitInterviewAnswer: (input) =>
+        submitVoiceInputWithAdmission({
+          input,
+          resolveInputSubmission: latestResolveInputSubmission,
+          submitVoiceInput: latestSubmitVoiceInput,
+          subscribeToAdmission: latestSubscribeToAdmission,
+        }),
     });
     const controller = new VoiceTurnController({
       bridge,
@@ -266,8 +359,14 @@ const AvailableVoiceInterviewControl = ({
         controller.subscribe(listener),
       updateSubmissionContext: (
         nextSubmitVoiceInput: PetrinautAiVoiceModeContext["submitVoiceInput"],
+        nextResolveInputSubmission:
+          | ((messageId: string) => string | undefined)
+          | undefined,
+        nextSubscribeToAdmission: SubscribeToAdmission | undefined,
       ) => {
         latestSubmitVoiceInput = nextSubmitVoiceInput;
+        latestResolveInputSubmission = nextResolveInputSubmission;
+        latestSubscribeToAdmission = nextSubscribeToAdmission;
       },
     };
   });
@@ -289,10 +388,22 @@ const AvailableVoiceInterviewControl = ({
   } = context;
 
   useLayoutEffect(() => {
-    store.updateSubmissionContext(context.submitVoiceInput);
+    store.updateSubmissionContext(
+      context.submitVoiceInput,
+      resolveInputSubmission,
+      subscribeToAdmission,
+    );
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
-      canonicalSegments: selectCanonicalSpeechSegments(context.messages),
+      canonicalSegments: selectCanonicalSpeechSegments(context.messages).map(
+        (segment) => {
+          const submissionIds = resolveResponseSubmission?.(segment.messageId);
+          return submissionIds === undefined || submissionIds.length === 0
+            ? segment
+            : { ...segment, submissionIds };
+        },
+      ),
+      settlements,
       status: context.status,
     });
   }, [
@@ -300,6 +411,10 @@ const AvailableVoiceInterviewControl = ({
     context.messages,
     context.status,
     context.submitVoiceInput,
+    resolveInputSubmission,
+    resolveResponseSubmission,
+    settlements,
+    subscribeToAdmission,
     store,
   ]);
 
@@ -412,13 +527,25 @@ const AvailableVoiceInterviewControl = ({
 
 export const VoiceInterviewControl = ({
   config,
+  resolveInputSubmission,
+  resolveResponseSubmission,
+  settlements,
+  subscribeToAdmission,
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
+  readonly resolveInputSubmission?: ResolveSubmission;
+  readonly resolveResponseSubmission?: ResolveSubmissions;
+  readonly settlements?: readonly VoiceSubmissionSettlement[];
+  readonly subscribeToAdmission?: SubscribeToAdmission;
 }) => (
   <AvailableVoiceInterviewControl
     key={context.conversationId}
     config={config}
     context={context}
+    resolveInputSubmission={resolveInputSubmission}
+    resolveResponseSubmission={resolveResponseSubmission}
+    settlements={settlements}
+    subscribeToAdmission={subscribeToAdmission}
   />
 );

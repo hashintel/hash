@@ -58,6 +58,7 @@ import {
 import type { PetrinautAiAssistant } from "../../../petrinaut";
 import type {
   PetrinautAiComposerControlContext,
+  PetrinautAiComposerStatus,
   PetrinautAiComposerSubmitTextResult,
   PetrinautAiInputMode,
   PetrinautAiVoiceModeContext,
@@ -100,8 +101,17 @@ type QueuedVoiceInput = {
     PetrinautAiVoiceModeContext["submitVoiceInput"]
   >[0];
   readonly reject: (reason?: unknown) => void;
+  /** Detaches the input's abort listener once the queue no longer owns it. */
+  readonly release: () => void;
   readonly resolve: (result: PetrinautAiComposerSubmitTextResult) => void;
 };
+
+const voiceInputWithdrawn = (signal: AbortSignal | undefined): unknown =>
+  signal?.reason ??
+  new DOMException(
+    "The voice input was withdrawn before submission.",
+    "AbortError",
+  );
 
 const markVoiceToolOrigin = (
   messages: PetrinautAiMessage[],
@@ -284,19 +294,21 @@ const applyPetrinautAiCommand = async ({
   }
 };
 
-export const AiAssistantPanel = ({
-  aiAssistant,
-  initialInteractionMode,
-  initialMessage,
-  onInitialInteractionModeConsumed,
-  onInitialMessageConsumed,
-}: {
+interface AiAssistantPanelProps {
   aiAssistant: PetrinautAiAssistant;
   initialInteractionMode?: PetrinautAiInputMode | null;
   initialMessage?: string | null;
   onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
-}) => {
+}
+
+const ConversationAiAssistantPanel = ({
+  aiAssistant,
+  initialInteractionMode,
+  initialMessage,
+  onInitialInteractionModeConsumed,
+  onInitialMessageConsumed,
+}: AiAssistantPanelProps) => {
   // The wrapped AI transport closes over several refs (diagnostics version,
   // pending mutation version, diagnostics context) so the transport's
   // `sendMessages` can read the latest values when it eventually runs. React
@@ -436,6 +448,11 @@ export const AiAssistantPanel = ({
   // response. Cleared whenever a new turn begins so it never lingers across
   // sends or a fresh conversation.
   const [stopped, setStopped] = useState(false);
+  // The SDK reports `ready` between a step that ended in client tool calls and
+  // the follow-up it sends automatically. That gap is not the end of the turn,
+  // so hosts keep seeing a busy conversation until the follow-up starts or a
+  // Stop withholds it.
+  const [continuationPending, setContinuationPending] = useState(false);
 
   const requestInputMode = useCallback(
     (nextMode: PetrinautAiInputMode) => {
@@ -503,7 +520,11 @@ export const AiAssistantPanel = ({
   );
 
   const stopRequestedRef = useRef(false);
+  // Advances on every composer submission so an asynchronous Stop can tell
+  // whether the turn it was pressed for is still the current one.
+  const submissionGenerationRef = useRef(0);
   const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
+  const hydratedConversationIdRef = useRef<string | null>(null);
 
   const {
     error,
@@ -512,7 +533,7 @@ export const AiAssistantPanel = ({
     addToolOutput,
     sendMessage,
     setMessages,
-    status,
+    status: chatStatus,
     stop,
   } = useChat<PetrinautAiMessage>({
     ...(aiAssistant.conversationId === undefined
@@ -520,7 +541,28 @@ export const AiAssistantPanel = ({
       : { id: aiAssistant.conversationId }),
     messages: aiAssistant.messages,
     transport: diagnosticsTransportState.transport,
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    sendAutomaticallyWhen: ({ messages: currentMessages }) => {
+      if (
+        !lastAssistantMessageIsCompleteWithToolCalls({
+          messages: currentMessages,
+        })
+      ) {
+        return false;
+      }
+      if (!stopRequestedRef.current) {
+        // Left pending until the follow-up's own status change lands, so hosts
+        // never observe the `ready` between this check and that request.
+        return true;
+      }
+      // Stop was pressed during the step that just ended in client tool
+      // calls. Flue had nothing left to abort once that step settled, so
+      // withholding the follow-up is what makes the Stop real.
+      stopRequestedRef.current = false;
+      setContinuationPending(false);
+      setStreamError(null);
+      setStopped(true);
+      return false;
+    },
     // Without throttling, every reasoning-delta / text-delta chunk triggers a
     // full re-render of `AiAssistantContents`, and the SDK `structuredClone`s
     // the active message on each one. For a long markdown reply that locks
@@ -535,8 +577,18 @@ export const AiAssistantPanel = ({
       pendingSubmissionRecoveryRef.current = null;
       recoverPendingSubmission?.();
     },
-    onFinish: ({ messages: finishedMessages, isAbort }) => {
+    onFinish: ({ messages: finishedMessages, isAbort, isError }) => {
       pendingSubmissionRecoveryRef.current = null;
+      // A step that ended in client tool calls is followed automatically by
+      // the SDK unless it was aborted or errored; that follow-up is still part
+      // of this turn.
+      const followUpPending =
+        !isAbort &&
+        !isError &&
+        lastAssistantMessageIsCompleteWithToolCalls({
+          messages: finishedMessages,
+        });
+      setContinuationPending(followUpPending);
       if (isAbort) {
         // The SDK fires `onFinish` for every abort. Only act on a deliberate
         // Stop — clearing the chat or unmounting also aborts, and those paths
@@ -560,13 +612,19 @@ export const AiAssistantPanel = ({
         return;
       }
 
+      aiAssistant.onMessages?.(finishedMessages);
+      if (followUpPending) {
+        // The turn is not over: a Stop pressed during this step must still be
+        // able to withhold the follow-up, so its intent survives this step.
+        return;
+      }
+
       // A response that runs to completion clears any pending Stop intent so a
       // later incidental abort can't replay the deliberate-stop path, and
       // drops a stale "Response stopped" note left over from an earlier turn.
       stopRequestedRef.current = false;
       setStreamError(null);
       setStopped(false);
-      aiAssistant.onMessages?.(finishedMessages);
     },
     onToolCall: async ({ toolCall }) => {
       if (!instance) {
@@ -757,6 +815,35 @@ export const AiAssistantPanel = ({
     },
   });
 
+  const status: PetrinautAiComposerStatus =
+    continuationPending && chatStatus === "ready" ? "submitted" : chatStatus;
+
+  useEffect(() => {
+    if (
+      aiAssistant.messages === undefined ||
+      status !== "ready" ||
+      hydratedConversationIdRef.current === conversationId
+    ) {
+      return;
+    }
+    // A turn submitted before the host's history arrived is already visible
+    // locally. A snapshot that predates it would erase that turn and latch, so
+    // wait for a snapshot that carries every locally streamed reply.
+    const canonicalMessageIds = new Set(
+      aiAssistant.messages.map((message) => message.id),
+    );
+    if (
+      messages.some(
+        (message) =>
+          message.role === "assistant" && !canonicalMessageIds.has(message.id),
+      )
+    ) {
+      return;
+    }
+    hydratedConversationIdRef.current = conversationId;
+    setMessages(aiAssistant.messages);
+  }, [aiAssistant.messages, conversationId, messages, setMessages, status]);
+
   const composerSubmissionStateRef = useLatest({
     addToolOutput,
     interactiveTools: aiAssistant.interactiveTools,
@@ -894,6 +981,7 @@ export const AiAssistantPanel = ({
         setStreamError(null);
         setStopped(false);
         stopRequestedRef.current = false;
+        submissionGenerationRef.current += 1;
         composerToolSubmissionsRef.current.add(mappedToolCall.toolCallId);
         try {
           await addMappedToolOutput({
@@ -928,6 +1016,7 @@ export const AiAssistantPanel = ({
       setStreamError(null);
       setStopped(false);
       stopRequestedRef.current = false;
+      submissionGenerationRef.current += 1;
       await submitMessage({
         id: messageId,
         ...(source === "voice" ? { metadata: { source } } : {}),
@@ -939,7 +1028,11 @@ export const AiAssistantPanel = ({
     [composerSubmissionStateRef],
   );
 
-  const stopStateRef = useLatest({ status, stop });
+  const stopStateRef = useLatest({
+    requestStop: aiAssistant.requestStop,
+    status,
+    stop,
+  });
 
   const submitVoiceInput = useCallback<
     PetrinautAiVoiceModeContext["submitVoiceInput"]
@@ -960,11 +1053,28 @@ export const AiAssistantPanel = ({
         return submitText({ ...voiceInput, source: "voice" });
       }
 
+      const { signal } = voiceInput;
+      if (signal?.aborted) {
+        return Promise.reject(voiceInputWithdrawn(signal));
+      }
+
       setVoiceInputQueued(true);
       return new Promise((resolve, reject) => {
+        const withdraw = (): void => {
+          // Only the entry still holding this input may be withdrawn; a
+          // dequeued input has already been handed to the composer.
+          if (queuedVoiceInputRef.current?.input !== voiceInput) {
+            return;
+          }
+          queuedVoiceInputRef.current = null;
+          setVoiceInputQueued(false);
+          reject(voiceInputWithdrawn(signal));
+        };
+        signal?.addEventListener("abort", withdraw, { once: true });
         queuedVoiceInputRef.current = {
           input: voiceInput,
           reject,
+          release: () => signal?.removeEventListener("abort", withdraw),
           resolve,
         };
       });
@@ -980,6 +1090,7 @@ export const AiAssistantPanel = ({
     if (status === "error") {
       queuedVoiceInputRef.current = null;
       setVoiceInputQueued(false);
+      queued.release();
       queued.reject(new Error("Voice mode could not accept that input."));
       return;
     }
@@ -989,6 +1100,7 @@ export const AiAssistantPanel = ({
 
     queuedVoiceInputRef.current = null;
     setVoiceInputQueued(false);
+    queued.release();
     void submitText({ ...queued.input, source: "voice" }).then(
       (result) => queued.resolve(result),
       (caught: unknown) => queued.reject(caught),
@@ -997,9 +1109,9 @@ export const AiAssistantPanel = ({
 
   useEffect(
     () => () => {
-      queuedVoiceInputRef.current?.reject(
-        new Error("The voice conversation changed."),
-      );
+      const queued = queuedVoiceInputRef.current;
+      queued?.release();
+      queued?.reject(new Error("The voice conversation changed."));
       queuedVoiceInputRef.current = null;
       setVoiceInputQueued(false);
     },
@@ -1008,13 +1120,39 @@ export const AiAssistantPanel = ({
 
   // Like submitText, stop is exposed to host controls and must stay stable.
   const stopComposer = useCallback(async () => {
-    const { status: currentStatus, stop: stopCurrentResponse } =
-      stopStateRef.current;
+    const {
+      requestStop,
+      status: currentStatus,
+      stop: stopCurrentResponse,
+    } = stopStateRef.current;
     if (currentStatus !== "submitted" && currentStatus !== "streaming") {
       return;
     }
 
+    const generation = submissionGenerationRef.current;
     stopRequestedRef.current = true;
+    if (requestStop !== undefined) {
+      try {
+        const result = await requestStop();
+        if (submissionGenerationRef.current !== generation) {
+          // A newer turn started while the durable stop was in flight; that
+          // turn owns its own Stop and must not inherit this result.
+          return;
+        }
+        if (result === "stop-requested") {
+          await stopCurrentResponse();
+        }
+      } catch (caught) {
+        if (submissionGenerationRef.current !== generation) {
+          return;
+        }
+        stopRequestedRef.current = false;
+        setStreamError(
+          caught instanceof Error ? caught : new Error(String(caught)),
+        );
+      }
+      return;
+    }
     await stopCurrentResponse();
   }, [stopStateRef]);
 
@@ -1217,7 +1355,9 @@ export const AiAssistantPanel = ({
 
   return (
     <AiAssistantContents
-      clearMessagesDisabled={voiceActive}
+      clearMessagesDisabled={
+        voiceActive || aiAssistant.canClearMessages === false
+      }
       composerFocusRequest={composerFocusRequest}
       composerControl={composerControl}
       error={streamError ?? error}
@@ -1238,6 +1378,7 @@ export const AiAssistantPanel = ({
         setInput("");
         setStreamError(null);
         setStopped(false);
+        setContinuationPending(false);
         setMessages([]);
         aiAssistant.onMessages?.([]);
         aiAssistant.onClearMessages?.();
@@ -1334,3 +1475,11 @@ export const AiAssistantPanel = ({
     />
   );
 };
+
+/** Replace every conversation-owned hook and callback together when identity changes. */
+export const AiAssistantPanel = (props: AiAssistantPanelProps) => (
+  <ConversationAiAssistantPanel
+    key={props.aiAssistant.conversationId ?? "generated-conversation"}
+    {...props}
+  />
+);

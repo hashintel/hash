@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { createFlueUiStream } from "../src/conversation/ui-stream.ts";
+import { createFlueUiStream } from "../src";
 
 import type { ConversationStreamChunk } from "@flue/sdk";
 import type { UIMessageChunk } from "ai";
@@ -20,40 +20,7 @@ const project = (
   return written;
 };
 
-test("projects a Flue data-part onto the matching AI SDK data-* chunk", () => {
-  const written = project([
-    {
-      type: "message-started",
-      conversationId: "conversation-1",
-      messageId: "message-1",
-      submissionId: "submission-1",
-      turnId: "turn-1",
-      position: position(0),
-    },
-    {
-      type: "data-part",
-      conversationId: "conversation-1",
-      messageId: "message-1",
-      name: "orderCard",
-      data: { orderId: "42", status: "loaded" },
-      position: position(1),
-    },
-    {
-      type: "submission-settled",
-      conversationId: "conversation-1",
-      submissionId: "submission-1",
-      outcome: "completed",
-      position: position(2),
-    },
-  ]);
-
-  expect(written).toContainEqual({
-    type: "data-orderCard",
-    data: { orderId: "42", status: "loaded" },
-  });
-});
-
-test("projects Flue message-metadata onto the AI SDK message-metadata chunk", () => {
+test("projects data and metadata onto the AI SDK stream", () => {
   const written = project([
     {
       type: "message-started",
@@ -71,11 +38,19 @@ test("projects Flue message-metadata onto the AI SDK message-metadata chunk", ()
       position: position(1),
     },
     {
+      type: "data-part",
+      conversationId: "conversation-1",
+      messageId: "message-1",
+      name: "orderCard",
+      data: { orderId: "42", status: "loaded" },
+      position: position(2),
+    },
+    {
       type: "submission-settled",
       conversationId: "conversation-1",
       submissionId: "submission-1",
       outcome: "completed",
-      position: position(2),
+      position: position(3),
     },
   ]);
 
@@ -83,9 +58,13 @@ test("projects Flue message-metadata onto the AI SDK message-metadata chunk", ()
     type: "message-metadata",
     messageMetadata: { elapsedMs: 17 },
   });
+  expect(written).toContainEqual({
+    type: "data-orderCard",
+    data: { orderId: "42", status: "loaded" },
+  });
 });
 
-test("does not project Flue observe/reconnect chunks onto the AI SDK stream", () => {
+test("ignores observation catch-up chunks in a submission stream", () => {
   const written = project([
     {
       type: "message-started",

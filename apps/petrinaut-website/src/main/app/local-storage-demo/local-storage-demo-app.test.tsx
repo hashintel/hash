@@ -8,11 +8,16 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
+import { brunchClientToolNames } from "./brunch-client-tools";
+import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import {
+  brunchInteractiveTools,
   getBrunchVoiceMode,
   LocalStorageDemoApp,
+  requestFlueStop,
 } from "./local-storage-demo-app";
 
+import type { FlueClient } from "@flue/sdk";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 
 const defaultTransportOptions = vi.hoisted(() => ({
@@ -87,6 +92,13 @@ describe("local storage demo Brunch voice integration", () => {
     });
   });
 
+  test("registers only interactive widgets that answer declared client tools", () => {
+    expect(brunchInteractiveTools.length).toBeGreaterThan(0);
+    for (const tool of brunchInteractiveTools) {
+      expect(brunchClientToolNames.has(tool.toolName)).toBe(true);
+    }
+  });
+
   test("correlates the existing Brunch transport request", () => {
     const options = defaultTransportOptions.current as {
       readonly headers: () => Record<string, string>;
@@ -95,6 +107,46 @@ describe("local storage demo Brunch voice integration", () => {
     expect(options.headers()["x-request-id"]).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
     );
+  });
+
+  test.each([
+    [true, "stop-requested"],
+    [false, "already-settled"],
+  ] as const)(
+    "maps Flue abort result %s onto the host Stop contract",
+    async (aborted, expected) => {
+      const abort = vi.fn<FlueClient["abort"]>(async () => ({ aborted }));
+      const client = { abort } as Pick<FlueClient, "abort"> as FlueClient;
+
+      await expect(
+        requestFlueStop(
+          Promise.resolve(client),
+          new BrunchPanelConversationTracker(),
+        ),
+      ).resolves.toBe(expected);
+      expect(abort).toHaveBeenCalledOnce();
+    },
+  );
+
+  test("lets an in-flight admission land before requesting the durable abort", async () => {
+    const abort = vi.fn<FlueClient["abort"]>(async () => ({ aborted: true }));
+    const client = { abort } as Pick<FlueClient, "abort"> as FlueClient;
+    const tracker = new BrunchPanelConversationTracker();
+    let admit: (() => void) | undefined;
+    void tracker.trackSubmission(
+      new Promise<void>((resolve) => {
+        admit = resolve;
+      }),
+    );
+
+    const stop = requestFlueStop(Promise.resolve(client), tracker);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(abort).not.toHaveBeenCalled();
+
+    admit?.();
+    await expect(stop).resolves.toBe("stop-requested");
+    expect(abort).toHaveBeenCalledOnce();
   });
 });
 

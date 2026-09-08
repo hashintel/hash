@@ -6,12 +6,12 @@ import {
 } from "@flue/sdk";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
-import { flueConversationIdWeb } from "../conversation/identity-web.ts";
 import {
-  BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_PRINCIPAL_HEADER,
-  LOCAL_UI_PRINCIPAL,
-} from "../conversation/payload.ts";
+  agentOwnershipHeaders,
+  flueConversationIdWeb,
+} from "@hashintel/brunch-agent-transport-aisdk";
+
+import { LOCAL_UI_PRINCIPAL } from "../conversation/payload.ts";
 import { CHAT_AGENT_ROUTE } from "../http/routes.ts";
 
 type ChatConfiguration =
@@ -165,18 +165,12 @@ export function Chat() {
     if (configuration.mode === "observer-error") return;
 
     let cancelled = false;
-    void flueConversationIdWeb(
-      configuration.principalKey,
-      configuration.conversationId,
-    ).then((instanceId) => {
+    void flueConversationIdWeb(configuration).then((instanceId) => {
       if (cancelled) return;
       setClient(
         createFlueClient({
           url: `/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
-          headers: {
-            [BRUNCH_PRINCIPAL_HEADER]: configuration.principalKey,
-            [BRUNCH_CONVERSATION_HEADER]: configuration.conversationId,
-          },
+          headers: agentOwnershipHeaders(configuration),
         }),
       );
     });

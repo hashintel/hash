@@ -5,7 +5,7 @@
 ## Cold-start reads
 
 - [FE-1575](https://linear.app/hash/issue/FE-1575/resume-one-brunch-workpiece-and-petrinaut-document-across-tabs) — tracker projection for this future branch mission; the eventual branch `MISSION.md` remains execution authority.
-- [`../../MISSION.md`](../../MISSION.md) — Mission 4 closure pointer and explicit absence of a full-run candidate.
+- [`../../MISSION.md`](../../MISSION.md) — live Mission 5 Voice authority on this branch; it supplies no Mission 6 execution authority and does not change Mission 4's explicit absence of a full-run candidate.
 - [`../../MISSION.next.md`](../../MISSION.next.md) — shared workpiece, projection, evidence, and product constraints.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) and [`../evidence/implementations/fe-1525-headless-runbook-pn.md`](../evidence/implementations/fe-1525-headless-runbook-pn.md) — accepted workpiece viability, hermetic callback route, and failed real-model nested-schema carrier.
 - [`../mission-archive/4-core-plugin-elicitation-proof-of-life.md`](../mission-archive/4-core-plugin-elicitation-proof-of-life.md) — accepted core/plugin architecture and exact proof exclusions.
@@ -17,7 +17,7 @@
 
 **Release note:** Brunch edits the Petrinaut net you are looking at from the conversation, and your work survives closing the tab.
 
-**Demo script (no engineer present):** open the stable demo fixture; the canonical Brunch conversation, current Markdown workpiece, and associated Petrinaut document come back together. Tell Brunch one new realistic thing about the process. Watch the workpiece update and a meaningful change appear in the live net. Save. Open the same fixture in a second tab and continue the conversation from the saved state.
+**Demo script (no engineer present):** open the stable demo fixture; the canonical Brunch conversation, current Markdown workpiece, and associated Petrinaut document come back together. Tell Brunch one new realistic thing about the process. Watch the workpiece update and a meaningful change appear in the live net. Save. Open the same fixture in a second tab and continue the conversation from the saved state. Confirm that messages retain their typed/Voice provenance and that an aborted assistant entry still presents as stopped rather than as an ordinary truncated answer.
 
 **Previously impossible:** Brunch only produced off-canvas net JSON for manual load; nothing it did touched the live document or survived a reload.
 
@@ -65,7 +65,7 @@ For one deliberately prepared fixture:
 2. one new realistic conversation turn produces an inspectable workpiece revision without erasing the unknown or unsupported meaning;
 3. through the real browser client-tool boundary, Brunch reads the associated Petrinaut document and applies one meaningful supported change derived from the current workpiece;
 4. canonical Petrinaut state is non-empty and visibly corresponds to the selected meaning; and
-5. after save, a second tab opens the same fixture id, observes the same settled conversation/workpiece/document revision, and successfully continues or reads it without duplicate submission or identity drift.
+5. after save, a second tab opens the same fixture id, observes the same settled conversation/workpiece/document revision, preserves per-message typed/Voice provenance and stopped-turn presentation, and successfully continues or reads it without duplicate submission or identity drift.
 
 One pass through those five steps is the first internal milestone, not mission completion. The retained oracles are the stable demo URL or fixture selector plus the before/after fixture manifest, exact Flue snapshot, Markdown workpiece revisions, and canonical Petrinaut document revisions; they are evidence for the builder, not the visible advance. This proves viability, not automatic full-net projection, selected-pair provenance breadth, remote replacement durability, concurrent editing, or Mission 3/4 quality superiority.
 
@@ -91,14 +91,14 @@ This gate is the mission's completion bar: the demo script above must work for t
 | Browser executes real Petrinaut read/write tools | Production-boundary integration records tool call ids, canonical parsed inputs, execution outcomes, correlated result signals, and current document state. |
 | Change is meaningful | Human comparison binds one workpiece meaning to a visible canonical type/parameter/place/transition/arc change appropriate to the fixture; non-empty/parser-valid alone fails. |
 | Save is coherent | Injected workpiece-save or document-save failure leaves the prior current bundle revision selected and exposes the partial result for recovery. |
-| Second tab resumes stable state | Open the same stable fixture selector after save and compare conversation id/history, workpiece revision/hash, document id/revision, and canonical definition before continuing. |
+| Second tab resumes stable state | Open the same stable fixture selector after save and compare conversation id/history, per-message typed/Voice provenance, stopped-turn presentation, workpiece revision/hash, document id/revision, and canonical definition before continuing. An aborted entry rendered as ordinary truncated content fails this check even if a global latest-settlement banner still says stopped. |
 | No typed domain IR was smuggled in | Public-schema and dependency inspection finds only fixture identity/revision links and canonical Petrinaut payloads, not a closed process ontology or typed capture-to-workpiece model. |
 
 ## Verification approach
 
 - **Inner:** fixture-manifest parse/version/stale checks, explicit identity separation, coherent-revision publication, idempotent client-tool result handling, and canonical Petrinaut mutation tests.
 - **Middle:** drive the production Brunch agent through Flue, update the Markdown artifact, execute actual browser callbacks against the fixture-bound Petrinaut instance, and retain before/after artifacts plus one injected failure.
-- **Outer:** from the real demo route or equivalent product selector, perform the update/save in Tab A and reopen/continue from the same fixture in Tab B. A headless callback alone does not establish this mission.
+- **Outer:** from the real demo route or equivalent product selector, perform the update/save in Tab A and reopen/continue from the same fixture in Tab B. Include one Voice-origin message and one durably stopped assistant turn in the comparison; a headless callback or content-only transcript match does not establish this mission.
 - **Semantic:** a cold human judges whether the workpiece remained honest and the changed net region corresponds to it.
 
 ## Inputs and joins
@@ -113,7 +113,8 @@ This gate is the mission's completion bar: the demo script above must work for t
 - If a realistic prepared conversation/workpiece cannot support one meaningful mutation without richer typed structure, record the exact lookup, identity, or ambiguity strain before adding any schema.
 - If existing per-action provider schemas cannot carry the required nested mutation, reduce to the smallest meaningful supported action only if semantic correspondence survives; otherwise stop with the crisp provider/Flue schema blocker.
 - If coherent save cannot span existing workpiece/document stores, the least fixture-scoped commit marker may publish only after both writes; do not invent distributed transactions before a failure demonstrates the need.
-- If direct browser tool servicing needs a transport abstraction, extract only tool-call/result correlation from the existing AI SDK adapter; do not require the chat UI or duplicate Flue observation.
+- If direct browser tool servicing needs a transport abstraction, extract only tool-call/result correlation from the browser `ChatTransport` in `transport-aisdk` (recut Mission 5); do not require the chat UI or duplicate Flue observation.
+- The 2026-09-04 Mission 5 witness established that message content and the global stopped settlement can survive while the UI loses message-source metadata and renders the stopped assistant entry as ordinary truncated content. Repair the projection at the canonical history-to-Petrinaut boundary; do not create a second transcript store. The small **Show transcript** control and the separation between local **Exit voice mode** and durable composer **Stop** are additional discoverability observations to account for in the resumed surface.
 
 ## Accepted constraints and guarded invariants
 

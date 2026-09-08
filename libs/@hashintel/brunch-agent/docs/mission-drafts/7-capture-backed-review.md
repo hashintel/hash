@@ -8,7 +8,7 @@
 
 A fresh builder must resolve the current repository and the deployment handoff rather than treating this draft as a specification:
 
-- [`../../MISSION.md`](../../MISSION.md) — closure pointer; Mission 4 produced no full-run conversation/workpiece candidate and this draft must not imply otherwise.
+- [`../../MISSION.md`](../../MISSION.md) — live Mission 5 Voice authority on this branch; it supplies no Mission 7 execution authority or conversation/workpiece candidate, and Mission 4 produced no full-run candidate.
 - [`6-resumable-workpiece-petrinaut-fixture.md`](6-resumable-workpiece-petrinaut-fixture.md) — independent viability predecessor. If accepted, its deliberately prepared and honestly labelled fixture may become this mission's selected pair after a separate provenance-suitability decision; a complete persona workpiece is not intrinsically required.
 - [`../../MISSION.next.md`](../../MISSION.next.md) — compact future spine, FE-1476 product frame, shared proof obligations, standing locks, and any later evidence admitted after this draft was written.
 - [`../mission-archive/2-mechanical-capture-sweep.md`](../mission-archive/2-mechanical-capture-sweep.md) — accepted mechanical capture throughline, exact close evidence, empty-payload boundary, conversation identity, and carried flags.
@@ -150,7 +150,7 @@ Do not carry selected-pair provenance breadth, capture durability, owner refusal
 
 | Claim leaf | Existing evidence or candidate oracle |
 | --- | --- |
-| Explicit harness-owned sweep over real Flue history; no interviewer sweep tool; exact excerpt, `{}` payload, idempotent retry | Existing `apps/brunch-agent/test/petrinaut-chat.test.ts`, test `the committed /api/chat door streams a plain Flue agent through server and client tools`, driven by `apps/brunch-agent/test/petrinaut-chat.integration.ts`. Run `yarn workspace @apps/brunch-agent test:unit`. |
+| Explicit harness-owned sweep over real Flue history; no interviewer sweep tool; exact excerpt, `{}` payload, idempotent retry | Existing `apps/brunch-agent/test/petrinaut-chat.test.ts`, test `the committed /api/chat door streams a plain Flue agent through server and client tools`, driven by `apps/brunch-agent/test/petrinaut-chat.integration.ts`; recut Mission 5 re-expresses this scenario through the browser Flue transport against the mounted route while preserving its assertions, so cite the successor test it leaves behind. Run `yarn workspace @apps/brunch-agent test:unit`. |
 | Capture command closure, source evidence, all-or-nothing refusal, supersession/conflict guards, persisted parse | Existing `libs/@hashintel/brunch-agent/packages/core/test/capture-store.test.ts`, suite `capture-store contract`. Run `yarn workspace @hashintel/brunch-agent test:unit`. These tests are evidence for internal historical mechanics, not permission to expose typed payload semantics. |
 | Owner refusal, tmp-and-rename persistence, serialization, invalid-format failure | Existing `libs/@hashintel/brunch-agent/packages/binding-flue/test/local-capture-store.test.ts`, suite `local capture store`. Run `yarn workspace @hashintel/brunch-agent-binding-flue test:unit`. This is local-file evidence only. |
 | Panel executes client tools and resumes one turn through AI SDK | Existing `apps/brunch-agent/test/petrinaut-chat.test.ts` plus `libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel.test.tsx`, test `adds one dynamic output and sends one automatic follow-up`. Run `yarn workspace @apps/brunch-agent test:unit` and `yarn workspace @hashintel/petrinaut test:unit --run`. |

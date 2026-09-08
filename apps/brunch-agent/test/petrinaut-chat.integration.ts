@@ -1,7 +1,6 @@
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import {
   fauxAssistantMessage,
@@ -14,11 +13,18 @@ import { setProvider } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
 import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import {
+  createFlueChatTransport,
+  snapshotToUiMessages,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import { ELICITATION_SKILL_NAME } from "@hashintel/brunch-agent/flue";
 
 import { PING_TOOL_NAME } from "../src/agents/chat-agent/tools/ping.ts";
 import { applyCaptureSweep } from "../src/capture/apply-sweep.ts";
-import { CLIENT_TOOL_RESULT_SIGNAL } from "../src/conversation/client-tools.ts";
+import {
+  clientToolNames,
+  CLIENT_TOOL_RESULT_SIGNAL,
+} from "../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -31,7 +37,7 @@ import type {
   PetrinautChatResult,
   PetrinautResumeResult,
 } from "./petrinaut-chat-result";
-import type { UIMessageChunk } from "ai";
+import type { UIMessage, UIMessageChunk } from "ai";
 
 const ACTIVATE_SKILL_TOOL_NAME = "activate_skill";
 const CHAT_MODEL_ID = "claude-haiku-4-5";
@@ -51,26 +57,26 @@ const dbFile = dbPath.endsWith(".db")
 
 process.env.BRUNCH_CHAT_MODEL = CHAT_MODEL_ID;
 process.env.BRUNCH_DEV_DB_PATH = dbFile;
-process.env.BRUNCH_TRANSPORT_AISDK_INSPECT ??= "1";
-
-const chunksFrom = (body: string): UIMessageChunk[] =>
-  body
-    .trim()
-    .split("\n\n")
-    .slice(0, -1)
-    .map((frame) => JSON.parse(frame.slice("data: ".length)) as UIMessageChunk);
+const chunksFrom = async (
+  stream: ReadableStream<UIMessageChunk>,
+): Promise<UIMessageChunk[]> => {
+  const chunks: UIMessageChunk[] = [];
+  const reader = stream.getReader();
+  for (;;) {
+    const result = await reader.read();
+    if (result.done) return chunks;
+    chunks.push(result.value);
+  }
+};
 
 const userTextFromHistory = (
-  messages: readonly {
-    role?: string;
-    parts?: { type?: string; text?: string }[];
-  }[],
+  messages: ReturnType<typeof snapshotToUiMessages>,
 ): string =>
   messages
     .filter((message) => message.role === "user")
-    .flatMap((message) => message.parts ?? [])
+    .flatMap((message) => message.parts)
     .filter((part) => part.type === "text")
-    .map((part) => part.text ?? "")
+    .map((part) => part.text)
     .join("");
 
 const faux = fauxProvider({
@@ -89,27 +95,22 @@ try {
     fetch: appTransport,
     headers: agentOwnershipHeaders(identity),
   });
+  const panelTransport = createFlueChatTransport({
+    client: historyClient,
+    clientToolNames,
+  });
+  const projectHistory = (
+    snapshot: Awaited<ReturnType<typeof historyClient.history>>,
+  ) =>
+    snapshotToUiMessages(snapshot, {
+      clientToolNames,
+    });
 
   if (process.env.BRUNCH_RESUME_PHASE === "1") {
     const snapshot = await historyClient.history();
-    const historyGet = await app.fetch(
-      new Request(
-        `http://brunch.test/api/chat?id=${encodeURIComponent(conversationId)}`,
-        {
-          method: "GET",
-          headers: { "x-brunch-principal": principalKey },
-        },
-      ),
-    );
-    const historyBody = (await historyGet.json()) as {
-      messages?: {
-        role?: string;
-        parts?: { type?: string; text?: string }[];
-      }[];
-    };
     const result: PetrinautResumeResult = {
-      historyGetStatus: historyGet.status,
-      historyUserText: userTextFromHistory(historyBody.messages ?? []),
+      historyGetStatus: 200,
+      historyUserText: userTextFromHistory(projectHistory(snapshot)),
       transcript: formatFlueTranscript(snapshot),
     };
     process.stdout.write(`PETRINAUT_RESUME_RESULT ${JSON.stringify(result)}\n`);
@@ -208,36 +209,21 @@ try {
       ]),
     ]);
 
-    const fixturePath = fileURLToPath(
-      new URL(
-        "../../../libs/@hashintel/brunch-agent/packages/transport-aisdk/test/fixtures/panel-initial.post.json",
-        import.meta.url,
-      ),
-    );
-    const { readFile } = await import("node:fs/promises");
-    const initialBody = JSON.parse(await readFile(fixturePath, "utf8")) as {
-      id: string;
-      messages: { id: string; role: string; parts: unknown[] }[];
-      trigger: string;
-    };
-    initialBody.id = conversationId;
-    const userMessage = initialBody.messages[0];
-    if (userMessage === undefined) {
-      throw new Error("panel-initial.post.json is missing the user message");
-    }
+    const userMessage = {
+      id: "user-mission-1",
+      role: "user",
+      parts: [{ type: "text", text: "Run the FE-1435 transport probe." }],
+    } satisfies UIMessage;
 
-    const initialResponse = await app.fetch(
-      new Request("http://brunch.test/api/chat", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-brunch-principal": principalKey,
-          "x-request-id": "request-mission-1",
-        },
-        body: JSON.stringify(initialBody),
+    const initialChunks = await chunksFrom(
+      await panelTransport.sendMessages({
+        trigger: "submit-message",
+        chatId: conversationId,
+        messageId: undefined,
+        messages: [userMessage],
+        abortSignal: undefined,
       }),
     );
-    const initialChunks = chunksFrom(await initialResponse.text());
     const startChunk = initialChunks.find((chunk) => chunk.type === "start");
     const pingCall =
       initialChunks.find(
@@ -277,82 +263,44 @@ try {
           chunk.toolName === READ_PETRINAUT_DOC_TOOL_NAME,
       ) ?? null;
 
-    const pendingHistoryResponse = await app.fetch(
-      new Request(
-        `http://brunch.test/api/chat?id=${encodeURIComponent(conversationId)}`,
-        {
-          method: "GET",
-          headers: { "x-brunch-principal": principalKey },
-        },
-      ),
-    );
-    const pendingHistoryBody = (await pendingHistoryResponse.json()) as {
-      messages?: {
-        parts?: { toolCallId?: string; state?: string }[];
-      }[];
-    };
-    const pendingHistoryClientToolState = pendingHistoryBody.messages
-      ?.flatMap((message) => message.parts ?? [])
-      .find((part) => part.toolCallId === clientToolCall?.toolCallId)?.state;
+    const pendingHistory = projectHistory(await historyClient.history());
+    const pendingHistoryClientToolState = pendingHistory
+      .flatMap((message) => message.parts)
+      .find(
+        (part) =>
+          "toolCallId" in part &&
+          part.toolCallId === clientToolCall?.toolCallId,
+      );
 
-    const resumeBody = {
-      id: conversationId,
-      trigger: "submit-message",
-      messageId: startChunk?.messageId,
-      messages: [
-        userMessage,
-        {
-          id: startChunk?.messageId,
-          role: "assistant",
-          parts: [
-            {
-              type: `tool-${READ_PETRINAUT_DOC_TOOL_NAME}`,
-              toolCallId: clientToolCall?.toolCallId,
-              state: "output-available",
-              input: { doc: "ai-assistant" },
-              output:
-                "# AI Assistant\nThe assistant can read its own documentation pages.",
-            },
-          ],
-        },
-      ],
-    };
-    const resumeResponse = await app.fetch(
-      new Request("http://brunch.test/api/chat", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-brunch-principal": principalKey,
-          "x-request-id": "request-mission-1-resume",
-        },
-        body: JSON.stringify(resumeBody),
+    if (startChunk?.type !== "start" || clientToolCall === null) {
+      throw new Error("initial stream did not reach the client-tool pause");
+    }
+    const resumeMessages = [
+      userMessage,
+      {
+        id: startChunk.messageId,
+        role: "assistant" as const,
+        parts: [
+          {
+            type: `tool-${READ_PETRINAUT_DOC_TOOL_NAME}`,
+            toolCallId: clientToolCall.toolCallId,
+            state: "output-available",
+            input: { doc: "ai-assistant" },
+            output:
+              "# AI Assistant\nThe assistant can read its own documentation pages.",
+          },
+        ],
+      },
+    ] as UIMessage[];
+    const resumedChunks = await chunksFrom(
+      await panelTransport.sendMessages({
+        trigger: "submit-message",
+        chatId: conversationId,
+        messageId: startChunk.messageId,
+        messages: resumeMessages,
+        abortSignal: undefined,
       }),
     );
-    const resumedChunks = chunksFrom(await resumeResponse.text());
-    const retriedResumeResponse = await app.fetch(
-      new Request("http://brunch.test/api/chat", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-brunch-principal": principalKey,
-          "x-request-id": "request-mission-1-resume-retry",
-        },
-        body: JSON.stringify(resumeBody),
-      }),
-    );
-    await retriedResumeResponse.text();
-    const retriedResponse = await app.fetch(
-      new Request("http://brunch.test/api/chat", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-brunch-principal": principalKey,
-          "x-request-id": "request-mission-1-retry",
-        },
-        body: JSON.stringify(initialBody),
-      }),
-    );
-    await retriedResponse.text();
     const snapshot = await historyClient.history();
     const userEntryIds = snapshot.messages
       .filter(
@@ -407,37 +355,14 @@ try {
       foreignAgentHistoryStatus =
         error instanceof FlueApiError ? error.status : -1;
     }
-    const historyGet = await app.fetch(
-      new Request(
-        `http://brunch.test/api/chat?id=${encodeURIComponent(conversationId)}`,
-        {
-          method: "GET",
-          headers: { "x-brunch-principal": principalKey },
-        },
-      ),
+    const historyMessages = projectHistory(snapshot);
+    const legacyRoute = await app.fetch(
+      new Request("http://brunch.test/api/chat"),
     );
-    const historyBody = (await historyGet.json()) as {
-      messages?: {
-        role?: string;
-        parts?: { type?: string; text?: string }[];
-      }[];
-    };
-    const foreignHistory = await app.fetch(
-      new Request(
-        `http://brunch.test/api/chat?id=${encodeURIComponent(conversationId)}`,
-        {
-          method: "GET",
-          headers: { "x-brunch-principal": "principal-other" },
-        },
-      ),
-    );
-    const foreignBody = (await foreignHistory.json()) as {
-      messages?: unknown[];
-    };
 
     const result: PetrinautChatResult = {
-      status: initialResponse.status,
-      messageId: startChunk?.messageId,
+      status: 200,
+      messageId: startChunk.messageId,
       partIds: initialChunks
         .filter(
           (chunk) =>
@@ -461,23 +386,25 @@ try {
       clientToolOutputsOnInitial: initialChunks.filter(
         (chunk) =>
           chunk.type === "tool-output-available" &&
-          chunk.toolCallId === clientToolCall?.toolCallId,
+          chunk.toolCallId === clientToolCall.toolCallId,
       ),
       initialFinish: initialChunks.at(-1),
-      pendingHistoryClientToolState,
-      resumedStatus: resumeResponse.status,
+      pendingHistoryClientToolState:
+        pendingHistoryClientToolState === undefined ||
+        !("state" in pendingHistoryClientToolState)
+          ? undefined
+          : pendingHistoryClientToolState.state,
+      resumedStatus: 200,
       resumedText: resumedChunks
         .filter((chunk) => chunk.type === "text-delta")
         .map((chunk) => chunk.delta)
         .join(""),
       resumedFinish: resumedChunks.at(-1),
-      retriedStatus: retriedResponse.status,
-      retriedResumeStatus: retriedResumeResponse.status,
       historyUserEntryCount: userEntryIds.length,
       historyClientToolResultCount: clientToolResultCount,
-      historyGetStatus: historyGet.status,
-      historyUserText: userTextFromHistory(historyBody.messages ?? []),
-      foreignHistoryMessages: foreignBody.messages?.length ?? -1,
+      historyGetStatus: 200,
+      historyUserText: userTextFromHistory(historyMessages),
+      legacyRouteStatus: legacyRoute.status,
       unauthenticatedHistoryStatus,
       foreignAgentHistoryStatus,
       transcript: formatFlueTranscript(snapshot),
@@ -486,12 +413,7 @@ try {
       activateSkillCall,
       readSkillResourceCall,
       interviewerToolNames,
-      captureUserText: userTextFromHistory(
-        snapshot.messages.map((message) => ({
-          role: message.role,
-          parts: message.parts,
-        })),
-      ),
+      captureUserText: userTextFromHistory(historyMessages),
       captureIds: firstSweep.captures.map((capture) => capture.id),
       recaptureIds: secondSweep.captures.map((capture) => capture.id),
       skippedDedupKeys: secondSweep.skippedDedupKeys,

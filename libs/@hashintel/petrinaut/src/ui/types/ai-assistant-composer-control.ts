@@ -10,7 +10,11 @@ export type { PetrinautAiVoiceSessionPhase, PetrinautAiVoiceSessionState };
 /** The active way a user is providing input to the AI assistant. */
 export type PetrinautAiInputMode = "text" | "voice";
 
-/** Current lifecycle state of Petrinaut's AI SDK conversation. */
+/**
+ * Current lifecycle state of Petrinaut's conversation. Stays busy across the
+ * automatic follow-up to a step that ended in client tool calls, so hosts
+ * never read the SDK's momentary `ready` between them as the end of a turn.
+ */
 export type PetrinautAiComposerStatus =
   | "submitted"
   | "streaming"
@@ -99,7 +103,14 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
     params: Omit<
       Parameters<PetrinautAiComposerControlContext["submitText"]>[0],
       "source"
-    >,
+    > & {
+      /**
+       * Withdraws a retained turn that has not been submitted yet, for example
+       * when the Voice session ends while chat is still busy. A turn already
+       * handed to the composer is not cancelled.
+       */
+      readonly signal?: AbortSignal;
+    },
   ) => Promise<PetrinautAiComposerSubmitTextResult>;
 };
 

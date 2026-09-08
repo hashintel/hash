@@ -38,8 +38,8 @@
             "message": "Brunch libraries must not depend on Petrinaut implementations."
           },
           {
-            "group": ["@flue/*", "@earendil-works/*"],
-            "message": "Brunch transports must remain substrate-independent."
+            "group": ["@flue/!(sdk)", "@earendil-works/*"],
+            "message": "Brunch transports may depend on the public Flue SDK, but not a runtime or provider substrate."
           },
           {
             "group": ["@hashintel/brunch-agent/*", "@hashintel/brunch-agent-*"],

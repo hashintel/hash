@@ -1,4 +1,4 @@
-/** Human-readable and UI-message projections of Flue's public conversation snapshot. */
+/** Human-readable projection of Flue's public conversation snapshot. */
 
 import {
   type FlueConversationMessage,
@@ -6,38 +6,7 @@ import {
   type FlueConversationSnapshot,
 } from "@flue/sdk";
 
-import {
-  CLIENT_TOOL_RESULT_SIGNAL,
-  isAwaitingClient,
-  providerExecutedFor,
-} from "./client-tools.ts";
-
-type UiMessagePart =
-  | { readonly type: "text"; readonly text: string; readonly state: "done" }
-  | {
-      readonly type: "reasoning";
-      readonly text: string;
-      readonly state: "done";
-    }
-  | {
-      readonly type: `data-${string}`;
-      readonly data: unknown;
-    }
-  | {
-      readonly type: "file";
-      readonly mediaType: string;
-      readonly url: string;
-      readonly filename?: string;
-    }
-  | {
-      readonly type: `tool-${string}`;
-      readonly toolCallId: string;
-      readonly state: "output-available" | "output-error" | "input-available";
-      readonly input: unknown;
-      readonly output?: unknown;
-      readonly errorText?: string;
-      readonly providerExecuted?: boolean;
-    };
+import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
 
 const unhandledConversationPart = (part: never): never => {
   throw new Error(`Unhandled Flue conversation part: ${JSON.stringify(part)}`);
@@ -47,12 +16,6 @@ const isFlueDataPart = (
   part: FlueConversationPart,
 ): part is Extract<FlueConversationPart, { type: `data-${string}` }> =>
   part.type.startsWith("data-");
-
-export interface UiHistoryMessage {
-  readonly id: string;
-  readonly role: "user" | "assistant";
-  readonly parts: readonly UiMessagePart[];
-}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -106,95 +69,6 @@ const resolveToolOutput = (
     return part.output;
   }
   return clientOutput;
-};
-
-const toolPartFrom = (
-  part: Extract<FlueConversationPart, { type: "dynamic-tool" }>,
-  clientOutputs: ReadonlyMap<string, unknown>,
-): UiMessagePart => {
-  const output = resolveToolOutput(part, clientOutputs);
-  const providerExecuted =
-    part.state === "output-available"
-      ? providerExecutedFor(isAwaitingClient(part.output))
-      : undefined;
-  if (part.state === "output-error") {
-    return {
-      type: `tool-${part.toolName}`,
-      toolCallId: part.toolCallId,
-      state: "output-error",
-      input: part.input,
-      errorText: part.errorText,
-      ...(providerExecuted === undefined ? {} : { providerExecuted }),
-    };
-  }
-  if (output !== undefined) {
-    return {
-      type: `tool-${part.toolName}`,
-      toolCallId: part.toolCallId,
-      state: "output-available",
-      input: part.input,
-      output,
-      ...(providerExecuted === undefined ? {} : { providerExecuted }),
-    };
-  }
-  return {
-    type: `tool-${part.toolName}`,
-    toolCallId: part.toolCallId,
-    state: "input-available",
-    input: part.input,
-  };
-};
-
-const partsFrom = (
-  message: FlueConversationMessage,
-  clientOutputs: ReadonlyMap<string, unknown>,
-): UiMessagePart[] => {
-  const parts: UiMessagePart[] = [];
-  for (const part of message.parts) {
-    if (part.type === "text") {
-      parts.push({ type: "text", text: part.text, state: "done" });
-      continue;
-    }
-    if (part.type === "reasoning") {
-      parts.push({ type: "reasoning", text: part.text, state: "done" });
-      continue;
-    }
-    if (part.type === "dynamic-tool") {
-      parts.push(toolPartFrom(part, clientOutputs));
-      continue;
-    }
-    if (part.type === "file") {
-      parts.push({
-        type: "file",
-        mediaType: part.mediaType,
-        url: part.url ?? "",
-        ...(part.filename === undefined ? {} : { filename: part.filename }),
-      });
-      continue;
-    }
-    if (isFlueDataPart(part)) {
-      parts.push({ type: part.type, data: part.data });
-      continue;
-    }
-    unhandledConversationPart(part);
-  }
-  return parts;
-};
-
-export const snapshotToUiMessages = (
-  snapshot: FlueConversationSnapshot,
-): UiHistoryMessage[] => {
-  const clientOutputs = clientToolResultsFrom(snapshot);
-  const messages: UiHistoryMessage[] = [];
-  for (const message of snapshot.messages) {
-    if (message.display !== "visible") continue;
-    if (message.purpose !== "user" && message.purpose !== "assistant") continue;
-    if (message.role !== "user" && message.role !== "assistant") continue;
-    const parts = partsFrom(message, clientOutputs);
-    if (parts.length === 0) continue;
-    messages.push({ id: message.id, role: message.role, parts });
-  }
-  return messages;
 };
 
 const textOf = (message: FlueConversationMessage): string =>

@@ -1,6 +1,6 @@
 # Topology: verification and specification
 
-**Status: ratified 2026-08-17 (Lu), application layout updated 2026-08-31 — recorded as [ADR-0002](../../adr/0002-topology-and-placement-rules.md); this file remains the living reference.** Verifies the current app/package topology against the three-lane model (cheatsheet, boundary summary), spec §12.2, and Flue's project-layout guide; then specifies where upcoming work lands. Pseudo-style: tree nodes with rules; `✓` complies today, `✗` violates, `→` normative rule for what's next.
+**Status: ratified 2026-08-17 (Lu), application layout updated 2026-08-31 and conversation transport updated by FE-1574 / Mission 5 on 2026-09-03 — recorded as [ADR-0002](../../adr/0002-topology-and-placement-rules.md); this file remains the living reference.** Verifies the current app/package topology against the three-lane model (cheatsheet, boundary summary), spec §12.2, and Flue's project-layout guide; then specifies where upcoming work lands. Pseudo-style: tree nodes with rules; `✓` complies today, `✗` violates, `→` normative rule for what's next.
 
 ## Verification — the tree as it stands
 
@@ -36,12 +36,13 @@ packages/binding-flue              LANE 2 (translate harness ↔ Flue dialect)
                          archive, legacy provisioning, parse-on-read, tmp+rename, per-path
                          queue). One per deploy target per binding. Never: business rules.
 
-packages/transport-aisdk           UI REPLY WIRE (substrate-neutral)
-└─ index.ts            ✓ validates Petrinaut's POST, drives an application-supplied harness turn,
-                         and encodes
-                         harness reply events with `ai` only. Opt-in inspection emits metadata
-                         out-of-band. Never: binding/Flue imports, inference, conversation
-                         rendering, or diagnostics dispatched as user evidence.
+packages/transport-aisdk           BROWSER FLUE → AI SDK PROJECTION
+├─ index.ts            ✓ adapts one caller-supplied public `FlueClient` to an AI SDK `ChatTransport`;
+│                        sends one user message or client-tool-result signal and follows only the
+│                        admitted submission. Never: `@flue/runtime`, core, plugin, or binding imports.
+├─ ui-stream.ts        ✓ projects Flue conversation chunks into one finite AI SDK response stream
+├─ transcript.ts       ✓ projects SDK-maintained canonical state into renderable UI messages
+└─ identity.ts         ✓ browser-safe principal + logical-conversation identity and ownership headers
 
 packages/plugin-gherkin            TARGET POLICY + Flue-native contribution bundle (not yet composed)
 ├─ index.ts           ✓  pairing identity only (YAML definition removed 2026-09-02)
@@ -70,10 +71,10 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 │  ├─ agent.ts        ✓  sole directive-marked registration and composition point: generic core,
 │  │                     selected SDCPN/Petrinaut plugin, and deployment instructions
 │  └─ tools/ping.ts   ✓  app-only server-path diagnostic
-├─ src/http/          ✓  HTTP authority: assets, route names, ownership guard, local origins,
-│                        and `/api/chat` composition
-├─ src/conversation/  ✓  identity and projection authority: shared payload, client-tool signal,
-│                        Flue-history transcript, and AI SDK stream projection
+├─ src/http/          ✓  HTTP authority: assets, mounted route names, ownership guard, and local origins;
+│                        `/agents/chat/:instanceId` is the sole Brunch conversation door
+├─ src/conversation/  ✓  server identity verification, client-tool catalog, and operator transcript;
+│                        browser AI SDK projection lives in `transport-aisdk`
 ├─ src/capture/       ✓  Mission 2 application composition over binding-owned history/store ports;
 │                        no elicitation policy
 ├─ src/evaluations/runbook/ ✓ runbook experiment drivers, artifact recovery, and headless client;
