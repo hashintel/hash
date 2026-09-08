@@ -205,7 +205,9 @@ export const snapshotToUiMessages = (
       (awaitingClientResult || continuationPending) &&
       resumableAssistant !== undefined
     ) {
-      resumableAssistant.parts.push(...parts);
+      // Live continuations start a new step. Keep that boundary after reopen
+      // so completedClientToolResults still selects only the latest step.
+      resumableAssistant.parts.push({ type: "step-start" }, ...parts);
       continuationPending = false;
       continue;
     }

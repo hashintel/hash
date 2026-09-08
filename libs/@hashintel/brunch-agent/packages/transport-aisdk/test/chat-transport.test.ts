@@ -1,7 +1,11 @@
 import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
-import { createFlueChatTransport } from "../src";
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  createFlueChatTransport,
+  snapshotToUiMessages,
+} from "../src";
 
 import type { FlueChatTransportOptions } from "../src";
 import type {
@@ -153,6 +157,109 @@ test("submits results from the latest assistant step with completed client tools
         "assistant-original",
       ),
     ),
+  );
+
+  expect(send).toHaveBeenCalledWith(
+    expect.objectContaining({
+      message: {
+        kind: "signal",
+        type: "client-tool-result",
+        tagName: "client-tool-result",
+        body: JSON.stringify([
+          {
+            toolCallId: "mutation-latest",
+            toolName: "addArc",
+            output: { applied: true },
+          },
+        ]),
+        attributes: { toolCallIds: "mutation-latest" },
+      },
+      signal: undefined,
+    }),
+  );
+});
+
+test("after snapshot fold, submits only the latest client-tool step", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const clientToolNames = new Set(["getLatestNetDefinition", "addArc"]);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames,
+  });
+  const folded = snapshotToUiMessages(
+    {
+      v: 1,
+      conversationId: "conversation-1",
+      offset: "0",
+      messages: [
+        {
+          id: "assistant-1",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "read-before-1",
+              toolName: "getLatestNetDefinition",
+              state: "output-available",
+              input: {},
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+        {
+          id: "signal-1",
+          role: "system",
+          purpose: "dispatch",
+          display: "hidden",
+          signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+          parts: [
+            {
+              type: "text",
+              text: '[{"toolCallId":"read-before-1","toolName":"getLatestNetDefinition","output":{"revision":0}}]',
+              state: "done",
+            },
+          ],
+        },
+        {
+          id: "assistant-2",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "mutation-latest",
+              toolName: "addArc",
+              state: "output-available",
+              input: {},
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+        {
+          id: "signal-2",
+          role: "system",
+          purpose: "dispatch",
+          display: "hidden",
+          signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+          parts: [
+            {
+              type: "text",
+              text: '[{"toolCallId":"mutation-latest","toolName":"addArc","output":{"applied":true}}]',
+              state: "done",
+            },
+          ],
+        },
+      ],
+      settlements: [],
+    },
+    { clientToolNames },
+  );
+
+  await readChunks(
+    await transport.sendMessages(sendOptions([...folded], "assistant-1")),
   );
 
   expect(send).toHaveBeenCalledWith(

@@ -84,6 +84,7 @@ test("keeps a pending client tool on the final assistant message", () => {
           state: "input-available",
           input: { doc: "ai-assistant" },
         },
+        { type: "step-start" },
         {
           type: "text",
           text: "Waiting for the browser.",
@@ -262,6 +263,7 @@ test("folds a client-tool continuation into the assistant message it resumed", (
           input: { doc: "ai-assistant" },
           output: "The guide.",
         },
+        { type: "step-start" },
         { type: "text", text: "The guide says hello.", state: "done" },
       ],
     },
