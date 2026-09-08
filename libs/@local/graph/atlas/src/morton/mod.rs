@@ -155,7 +155,7 @@ impl schemars::JsonSchema for Depth {
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
-pub struct Zoom(u8);
+pub(crate) struct Zoom(u8);
 
 impl Zoom {
     /// The maximum zoom level, [`Depth::MAX`].
@@ -375,14 +375,13 @@ impl MortonKey {
     }
 
     pub const fn tile(self, depth: Depth) -> MortonTile {
-        const AXIS_BITS: u8 = (size_of::<MortonTile>() * 8) as u8;
         let [x, y] = self.coordinates();
-
         MortonTile {
-            z: depth,
-            x: x >> (AXIS_BITS - depth.get()),
-            y: y >> (AXIS_BITS - depth.get()),
+            z: Depth::MAX,
+            x,
+            y,
         }
+        .ancestor(depth)
     }
 
     /// Returns the cell index at `depth`.

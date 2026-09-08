@@ -589,8 +589,8 @@ impl WalkBench {
         code_bits: &[u64],
         lengths: &[u64],
         row_of_position: Vec<u32>,
-        span: Log2,
-        max_zoom: Zoom,
+        span: u8,
+        max_zoom: u8,
     ) -> Self {
         assert!(
             lengths.len() <= SEGMENTS,
@@ -636,8 +636,8 @@ impl WalkBench {
             position_of_key,
             key_order_of_position,
             segments,
-            span,
-            max_zoom,
+            span: log2_of(span),
+            max_zoom: zoom_of(max_zoom),
             visible,
         }
     }
@@ -761,7 +761,8 @@ impl WalkBench {
     ///
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn reached(&self, z: Zoom, x: u32, y: u32) -> Vec<u64> {
+    pub fn reached(&self, z: u8, x: u32, y: u32) -> Vec<u64> {
+        let z = zoom_of(z);
         assert!(
             z <= self.max_zoom,
             "the schedule serves zooms up to {}",
@@ -775,7 +776,7 @@ impl WalkBench {
         };
 
         let mut keys = Vec::new();
-        for range in &ranges[..=self.cut_of(z).as_usize()] {
+        for range in &ranges[..=usize::from(self.cut_of(z).get())] {
             for position in range.clone() {
                 if self
                     .visible
@@ -796,8 +797,8 @@ impl WalkBench {
     ///
     /// This panics when the coordinate lies off the grid.
     #[must_use]
-    pub fn scheduled(&self, z: Zoom, x: u32, y: u32) -> usize {
-        self.budget_of(z, x, y)
+    pub fn scheduled(&self, z: u8, x: u32, y: u32) -> usize {
+        self.budget_of(zoom_of(z), x, y)
     }
 
     /// Returns the corpus row count.
@@ -814,16 +815,16 @@ impl WalkBench {
 
     /// Returns the deepest tile zoom the schedule serves.
     #[must_use]
-    pub const fn max_zoom(&self) -> Zoom {
-        self.max_zoom
+    pub const fn max_zoom(&self) -> u8 {
+        self.max_zoom.get()
     }
 
     /// Returns the cut's span exponent `m`.
     ///
     /// A tile at zoom `z` cuts at depth `z + m`.
     #[must_use]
-    pub const fn span(&self) -> Log2 {
-        self.span
+    pub const fn span(&self) -> u8 {
+        self.span.get()
     }
 
     /// Returns the root-to-deepest descent path through the densest cells.
@@ -835,8 +836,8 @@ impl WalkBench {
         clippy::missing_panics_doc,
         reason = "the expects name children of on-grid cells, on the grid by construction"
     )]
-    pub fn descent(&self) -> Vec<(Zoom, u32, u32)> {
-        let mut path = vec![(Zoom::MIN, 0_u32, 0_u32)];
+    pub fn descent(&self) -> Vec<(u8, u32, u32)> {
+        let mut path = vec![(0_u8, 0_u32, 0_u32)];
         let (mut x, mut y) = (0_u32, 0_u32);
 
         for z in (Zoom::MIN..=self.max_zoom).skip(1) {
@@ -858,7 +859,7 @@ impl WalkBench {
                 break;
             }
             (x, y) = (best.1, best.2);
-            path.push((z, x, y));
+            path.push((z.get(), x, y));
         }
 
         path
@@ -870,7 +871,8 @@ impl WalkBench {
     ///
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn independent(&self, z: Zoom, x: u32, y: u32) -> Selection {
+    pub fn independent(&self, z: u8, x: u32, y: u32) -> Selection {
+        let z = zoom_of(z);
         let taken = DenseBitSet::new_empty(0);
         let mut delivered = Vec::new();
         self.walk(z, x, y, &taken, &mut delivered, FillTarget::Scheduled)
@@ -888,7 +890,8 @@ impl WalkBench {
     ///
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn chained(&self, z: Zoom, x: u32, y: u32) -> Selection {
+    pub fn chained(&self, z: u8, x: u32, y: u32) -> Selection {
+        let z = zoom_of(z);
         let mut taken = DenseBitSet::new_empty(self.codes.len());
         let mut delivered = Vec::new();
         let mut scanned = 0_usize;
@@ -930,7 +933,8 @@ impl WalkBench {
     ///
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn independent_delivery(&self, z: Zoom, x: u32, y: u32) -> Vec<u32> {
+    pub fn independent_delivery(&self, z: u8, x: u32, y: u32) -> Vec<u32> {
+        let z = zoom_of(z);
         let taken = DenseBitSet::new_empty(0);
         let mut delivered = Vec::new();
         self.walk(z, x, y, &taken, &mut delivered, FillTarget::Scheduled);
@@ -947,7 +951,8 @@ impl WalkBench {
     ///
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn chained_delivery(&self, z: Zoom, x: u32, y: u32) -> Vec<u32> {
+    pub fn chained_delivery(&self, z: u8, x: u32, y: u32) -> Vec<u32> {
+        let z = zoom_of(z);
         let mut taken = DenseBitSet::new_empty(self.codes.len());
         let mut delivered = Vec::new();
 
@@ -1070,7 +1075,8 @@ impl WalkBench {
     ///
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn gather(&self, z: Zoom, x: u32, y: u32) -> VisibleColumn {
+    pub fn gather(&self, z: u8, x: u32, y: u32) -> VisibleColumn {
+        let z = zoom_of(z);
         assert!(
             z <= self.max_zoom,
             "the schedule serves zooms up to {}",
@@ -1668,11 +1674,12 @@ impl WalkBench {
     pub fn deliver(
         &self,
         rule: FillRule,
-        z: Zoom,
+        z: u8,
         x: u32,
         y: u32,
         view: VisibleView<'_>,
     ) -> Selection {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         self.chain(
             rule,
@@ -1699,11 +1706,12 @@ impl WalkBench {
     pub fn delivery(
         &self,
         rule: FillRule,
-        z: Zoom,
+        z: u8,
         x: u32,
         y: u32,
         view: VisibleView<'_>,
     ) -> Vec<u32> {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         self.chain(
             rule,
@@ -1731,11 +1739,12 @@ impl WalkBench {
     pub fn cumulative_delivery(
         &self,
         rule: FillRule,
-        z: Zoom,
+        z: u8,
         x: u32,
         y: u32,
         view: VisibleView<'_>,
     ) -> Vec<u32> {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         let mut inside = Vec::new();
         self.chain(
@@ -1763,8 +1772,8 @@ impl WalkBench {
     ///
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn occupied_cells(&self, z: Zoom, x: u32, y: u32, depth: Depth) -> HashSet<u64> {
-        let cell = cell_of(z, x, y);
+    pub fn occupied_cells(&self, z: u8, x: u32, y: u32, depth: Depth) -> HashSet<u64> {
+        let cell = cell_of(zoom_of(z), x, y);
         let mut cells = HashSet::new();
         for (position, code) in self.codes.iter().enumerate() {
             if cell.contains(*code)
@@ -1792,11 +1801,12 @@ impl WalkBench {
     pub fn audit(
         &self,
         rule: FillRule,
-        z: Zoom,
+        z: u8,
         x: u32,
         y: u32,
         view: VisibleView<'_>,
     ) -> ChainAudit {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         let mut inside = Vec::new();
         let chain = self.chain(
@@ -1854,16 +1864,17 @@ impl WalkBench {
         let pyramid = view.pyramid;
         let ChainBuffers { own, mut inside } = buffers;
         let tile_depth = Depth::from_zoom(z);
+        let tile_entry = usize::from(tile_depth.get());
         let key = cell_of(z, x, y).min_key();
         let mut taken = DenseBitSet::new_empty(self.codes.len());
         let mut delivered = Vec::new();
         // Chain deliveries by the deepest chain level whose cell holds them: a position counts
         // inside every level at or above its entry.
-        let mut nesting = vec![0_usize; tile_depth.as_usize() + 1];
+        let mut nesting = vec![0_usize; tile_entry + 1];
         // The cell rule re-reads the chain's positions at each level's own cut depth, so the
         // history stays grouped by the deepest level holding them.
         let mut history: Vec<Vec<u32>> = if rule == FillRule::CoverageCells {
-            vec![Vec::new(); tile_depth.as_usize() + 1]
+            vec![Vec::new(); tile_entry + 1]
         } else {
             Vec::new()
         };
@@ -1872,7 +1883,7 @@ impl WalkBench {
 
         for level in Zoom::MIN..z {
             let (ancestor_x, ancestor_y) = ancestor_of(z, level, x, y);
-            let inherited: usize = nesting[Depth::from_zoom(level).as_usize()..].iter().sum();
+            let inherited: usize = nesting[usize::from(level.get())..].iter().sum();
             let cut = self.cut_of(level);
             let covered = covered_of(rule, cell_of(level, ancestor_x, ancestor_y), cut, pyramid);
             let mut represented = HashSet::new();
@@ -1892,15 +1903,17 @@ impl WalkBench {
 
             for &position in &delivered {
                 taken.insert(BasePosition::from_u32(position));
-                let entry = self.codes[position as usize]
-                    .shared_depth(key)
-                    .min(tile_depth)
-                    .as_usize();
+                let entry = usize::from(
+                    self.codes[position as usize]
+                        .shared_depth(key)
+                        .min(tile_depth)
+                        .get(),
+                );
                 nesting[entry] += 1;
                 if rule == FillRule::CoverageCells {
                     history[entry].push(position);
                 }
-                if entry == tile_depth.as_usize()
+                if entry == tile_entry
                     && let Some(inside) = inside.as_deref_mut()
                 {
                     inside.push(position);
@@ -1918,7 +1931,7 @@ impl WalkBench {
             }
         }
 
-        let inherited = nesting[tile_depth.as_usize()];
+        let inherited = nesting[tile_entry];
         let cut = self.cut_of(z);
         // The audit reports the tile's covered count under every rule; the coverage rules need it
         // for the target itself.
@@ -2160,11 +2173,12 @@ impl WalkBench {
     pub fn served_deliver(
         &self,
         rule: FillRule,
-        z: Zoom,
+        z: u8,
         x: u32,
         y: u32,
         generation: &ServedGeneration,
     ) -> Selection {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         self.served_chain(
             served_plan(rule),
@@ -2190,11 +2204,12 @@ impl WalkBench {
     pub fn served_delivery(
         &self,
         rule: FillRule,
-        z: Zoom,
+        z: u8,
         x: u32,
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         self.served_chain(
             served_plan(rule),
@@ -2221,11 +2236,12 @@ impl WalkBench {
     pub fn served_cumulative_delivery(
         &self,
         rule: FillRule,
-        z: Zoom,
+        z: u8,
         x: u32,
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         let mut inside = Vec::new();
         self.served_chain(
@@ -2257,11 +2273,12 @@ impl WalkBench {
     pub fn served_audit(
         &self,
         rule: FillRule,
-        z: Zoom,
+        z: u8,
         x: u32,
         y: u32,
         generation: &ServedGeneration,
     ) -> ChainAudit {
+        let z = zoom_of(z);
         let mut delivered = Vec::new();
         let mut inside = Vec::new();
         let chain = self.served_chain(
@@ -2312,12 +2329,13 @@ impl WalkBench {
     #[must_use]
     pub fn served_representatives(
         &self,
-        z: Zoom,
+        z: u8,
         x: u32,
         y: u32,
         depth: Depth,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
+        let z = zoom_of(z);
         assert!(
             z <= self.max_zoom,
             "the schedule serves zooms up to {}",
@@ -2350,7 +2368,12 @@ impl WalkBench {
     ///
     /// This panics when `z` lies beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn uniform_grid_depth(&self, z: Zoom, additional_depth: Log2) -> Depth {
+    pub fn uniform_grid_depth(&self, z: u8, additional_depth: u8) -> Depth {
+        self.grid_depth(zoom_of(z), log2_of(additional_depth))
+    }
+
+    /// Returns one zoom's uniform-grid depth over the typed vocabulary.
+    fn grid_depth(&self, z: Zoom, additional_depth: Log2) -> Depth {
         assert!(
             z <= self.max_zoom,
             "the schedule serves zooms up to {}",
@@ -2378,8 +2401,8 @@ impl WalkBench {
         } else {
             generation.narrowed(cell_of(z, x, y), &generation.segments, &self.codes)
         };
-        let first = previous.map_or(0, |previous| previous.as_usize() + 1);
-        let last = depth.as_usize();
+        let first = previous.map_or(0, |previous| usize::from(previous.get()) + 1);
+        let last = usize::from(depth.get());
         if first > last {
             return Vec::new();
         }
@@ -2412,16 +2435,18 @@ impl WalkBench {
     #[must_use]
     pub fn uniform_delivery(
         &self,
-        additional_depth: Log2,
-        z: Zoom,
+        additional_depth: u8,
+        z: u8,
         x: u32,
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
-        let depth = self.uniform_grid_depth(z, additional_depth);
+        let additional_depth = log2_of(additional_depth);
+        let z = zoom_of(z);
+        let depth = self.grid_depth(z, additional_depth);
         let previous = z
             .shallower()
-            .map(|parent| self.uniform_grid_depth(parent, additional_depth));
+            .map(|parent| self.grid_depth(parent, additional_depth));
         self.uniform_positions((z, x, y), (depth, previous), generation)
     }
 
@@ -2437,13 +2462,14 @@ impl WalkBench {
     #[must_use]
     pub fn uniform_cumulative_delivery(
         &self,
-        additional_depth: Log2,
-        z: Zoom,
+        additional_depth: u8,
+        z: u8,
         x: u32,
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
-        let depth = self.uniform_grid_depth(z, additional_depth);
+        let z = zoom_of(z);
+        let depth = self.grid_depth(z, log2_of(additional_depth));
         self.uniform_positions((z, x, y), (depth, None), generation)
     }
 
@@ -2456,7 +2482,12 @@ impl WalkBench {
     ///
     /// This panics when `z` lies beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn uniform_step_grid_depth(&self, refine_from_zoom: Zoom, z: Zoom) -> Depth {
+    pub fn uniform_step_grid_depth(&self, refine_from_zoom: u8, z: u8) -> Depth {
+        self.step_grid_depth(threshold_of(refine_from_zoom), zoom_of(z))
+    }
+
+    /// Returns one zoom's stepped-grid depth over the typed vocabulary.
+    fn step_grid_depth(&self, refine_from_zoom: Zoom, z: Zoom) -> Depth {
         assert!(
             z <= self.max_zoom,
             "the schedule serves zooms up to {}",
@@ -2471,7 +2502,7 @@ impl WalkBench {
         } else {
             Log2::ZERO
         };
-        self.uniform_grid_depth(z, additional_depth)
+        self.grid_depth(z, additional_depth)
     }
 
     /// Delivers one tile from a public one-level refinement step.
@@ -2488,16 +2519,18 @@ impl WalkBench {
     #[must_use]
     pub fn uniform_step_delivery(
         &self,
-        refine_from_zoom: Zoom,
-        z: Zoom,
+        refine_from_zoom: u8,
+        z: u8,
         x: u32,
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
-        let depth = self.uniform_step_grid_depth(refine_from_zoom, z);
+        let refine_from_zoom = threshold_of(refine_from_zoom);
+        let z = zoom_of(z);
+        let depth = self.step_grid_depth(refine_from_zoom, z);
         let previous = z
             .shallower()
-            .map(|parent| self.uniform_step_grid_depth(refine_from_zoom, parent));
+            .map(|parent| self.step_grid_depth(refine_from_zoom, parent));
         self.uniform_positions((z, x, y), (depth, previous), generation)
     }
 
@@ -2512,13 +2545,14 @@ impl WalkBench {
     #[must_use]
     pub fn uniform_step_cumulative_delivery(
         &self,
-        refine_from_zoom: Zoom,
-        z: Zoom,
+        refine_from_zoom: u8,
+        z: u8,
         x: u32,
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
-        let depth = self.uniform_step_grid_depth(refine_from_zoom, z);
+        let z = zoom_of(z);
+        let depth = self.step_grid_depth(threshold_of(refine_from_zoom), z);
         self.uniform_positions((z, x, y), (depth, None), generation)
     }
 
@@ -2893,7 +2927,7 @@ impl WalkBench {
             return;
         }
 
-        for level in history.iter().skip(Depth::from_zoom(z).as_usize()) {
+        for level in history.iter().skip(usize::from(z.get())) {
             for &position in level {
                 represented.insert(self.codes[position as usize].prefix(cut));
             }
@@ -2919,7 +2953,7 @@ impl WalkBench {
         } else {
             self.narrowed(cell)
         };
-        let cut = self.cut_of(z).as_usize();
+        let cut = usize::from(self.cut_of(z).get());
         let natural = if z == Zoom::MIN { 0..=cut } else { cut..=cut };
 
         ranges[natural].iter().map(ExactSizeIterator::len).sum()
@@ -2931,7 +2965,8 @@ impl WalkBench {
     ///
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn crowding(&self, z: Zoom, x: u32, y: u32) -> Crowding {
+    pub fn crowding(&self, z: u8, x: u32, y: u32) -> Crowding {
+        let z = zoom_of(z);
         let mut taken = DenseBitSet::new_empty(self.codes.len());
         let mut delivered = Vec::new();
 
@@ -2990,7 +3025,7 @@ impl WalkBench {
         } else {
             self.narrowed(cell)
         };
-        let cut = self.cut_of(z).as_usize();
+        let cut = usize::from(self.cut_of(z).get());
 
         // The root's schedule is buckets 0..=m whole. Deeper tiles schedule bucket z + m alone.
         let natural_buckets = if z == Zoom::MIN { 0..=cut } else { cut..=cut };
@@ -3161,10 +3196,10 @@ impl VisibleCellPyramid {
     /// Returns one depth's cells.
     fn level(&self, depth: Depth) -> &[u64] {
         let offset = depth
-            .as_usize()
-            .checked_sub(self.shallowest.as_usize())
+            .get()
+            .checked_sub(self.shallowest.get())
             .expect("the pyramid holds the depth");
-        &self.levels[offset]
+        &self.levels[usize::from(offset)]
     }
 }
 
@@ -3432,7 +3467,8 @@ impl VisibleCascade {
     ///
     /// This panics when the coordinate lies off the zoom's grid.
     #[must_use]
-    pub fn schedule(&self, z: Zoom, x: u32, y: u32) -> usize {
+    pub fn schedule(&self, z: u8, x: u32, y: u32) -> usize {
+        let z = zoom_of(z);
         let cut = z
             .depth(self.span)
             .expect("the cut lies within the key width");
@@ -3457,7 +3493,8 @@ impl VisibleCascade {
     ///
     /// This panics when the coordinate lies off the zoom's grid.
     #[must_use]
-    pub fn covered(&self, z: Zoom, x: u32, y: u32) -> usize {
+    pub fn covered(&self, z: u8, x: u32, y: u32) -> usize {
+        let z = zoom_of(z);
         let cut = z
             .depth(self.span)
             .expect("the cut lies within the key width");
@@ -4036,6 +4073,36 @@ fn target_of(
     }
 }
 
+/// Validates a tile zoom crossing the instrument's untyped boundary.
+///
+/// # Panics
+///
+/// This panics when the zoom lies beyond the key width.
+const fn zoom_of(z: u8) -> Zoom {
+    Zoom::new(z).expect("the zoom lies within the key width")
+}
+
+/// Validates a grid exponent crossing the instrument's untyped boundary.
+///
+/// # Panics
+///
+/// This panics when the exponent lies at or above the `u64` shift width.
+const fn log2_of(levels: u8) -> Log2 {
+    Log2::new(levels).expect("the exponent lies below the shift width")
+}
+
+/// Reads a refinement threshold crossing the instrument's untyped boundary.
+///
+/// A threshold beyond every zoom means "refine nowhere", so the conversion clamps to
+/// [`Zoom::MAX`] instead of refusing it: no served zoom reaches that grid before the terminal
+/// cut takes over.
+const fn threshold_of(zoom: u8) -> Zoom {
+    match Zoom::new(zoom) {
+        Some(zoom) => zoom,
+        None => Zoom::MAX,
+    }
+}
+
 /// Returns the cell at `(z, x, y)`.
 ///
 /// # Panics
@@ -4092,12 +4159,9 @@ mod tests {
 
     use super::{
         ChainAudit, DotBudget, FillRule, GenerationLayout, RefineOrder, Refinement,
-        ServedGeneration, VisibleRankOrder, VisibleView, WalkBench, ancestor_of, cell_of,
+        ServedGeneration, VisibleRankOrder, VisibleView, WalkBench,
     };
-    use crate::{
-        math::Log2,
-        morton::{Depth, MortonKey, Zoom},
-    };
+    use crate::morton::{Depth, MortonCell, MortonKey};
 
     /// The corpus scale the module's exhaustive checks run at.
     const POINTS: usize = 8_000;
@@ -4131,14 +4195,9 @@ mod tests {
         corpus(POINTS, SEED, clustered, visible)
     }
 
-    /// Builds a zoom level the checks know lies within the key width.
-    fn zoom(level: u8) -> Zoom {
-        Zoom::new(level).expect("the checks' zooms lie within the key width")
-    }
-
-    /// Builds a refinement span the checks know lies below the shift width.
-    fn log2(levels: u8) -> Log2 {
-        Log2::new(levels).expect("the checks' spans lie below the shift width")
+    /// Returns the cell at `(z, x, y)`, converting at the instrument's untyped boundary.
+    fn cell_of(z: u8, x: u32, y: u32) -> MortonCell {
+        super::cell_of(super::zoom_of(z), x, y)
     }
 
     /// Builds a corpus of `points` rows from `seed` and masks it with the same seed.
@@ -4258,14 +4317,19 @@ mod tests {
     ///
     /// A cut grid holds `4^m` cells, so the cut-depth floor never passes the constant budget; the
     /// scheduled budget's floor is the tile's own coverage.
-    fn bound(bench: &WalkBench, rule: FillRule, z: Zoom, x: u32, y: u32) -> usize {
+    fn bound(bench: &WalkBench, rule: FillRule, z: u8, x: u32, y: u32) -> usize {
         match rule {
             FillRule::Refined(Refinement {
                 budget: DotBudget::Scheduled,
                 ..
             }) => bench.scheduled(z, x, y).max(
                 bench
-                    .occupied_cells(z, x, y, z.depth(bench.span()).expect("a valid cut"))
+                    .occupied_cells(
+                        z,
+                        x,
+                        y,
+                        Depth::try_new(z + bench.span()).expect("a valid cut"),
+                    )
                     .len(),
             ),
             FillRule::Refined(Refinement {
@@ -4283,13 +4347,13 @@ mod tests {
     /// Returns the tiles a check sweeps.
     ///
     /// The sweep covers every extent of the shallow zooms plus the densest descent.
-    fn tiles(bench: &WalkBench) -> Vec<(Zoom, u32, u32)> {
-        let mut tiles: Vec<(Zoom, u32, u32)> = Vec::new();
-        for level in 0..=2_u8 {
-            let side = 1_u32 << level;
+    fn tiles(bench: &WalkBench) -> Vec<(u8, u32, u32)> {
+        let mut tiles: Vec<(u8, u32, u32)> = Vec::new();
+        for z in 0..=2_u8 {
+            let side = 1_u32 << z;
             for x in 0..side {
                 for y in 0..side {
-                    tiles.push((zoom(level), x, y));
+                    tiles.push((z, x, y));
                 }
             }
         }
@@ -4305,7 +4369,7 @@ mod tests {
     /// Corpus B is the masked fixture. Corpus A contains the same visible rows and nothing else,
     /// all visible. A rule reading the visible view alone delivers the same rows over both, in the
     /// same order. Anything a hidden row reaches shows up here as a disagreement.
-    fn interference(rule: FillRule, clustered: bool, visible: f64) -> Option<(Zoom, u32, u32)> {
+    fn interference(rule: FillRule, clustered: bool, visible: f64) -> Option<(u8, u32, u32)> {
         let hidden = masked(clustered, visible);
         let alone = hidden.visible_only();
 
@@ -4339,7 +4403,7 @@ mod tests {
         rule: FillRule,
         clustered: bool,
         visible: f64,
-    ) -> Option<(Zoom, u32, u32)> {
+    ) -> Option<(u8, u32, u32)> {
         let hidden = masked(clustered, visible);
         let alone = hidden.visible_only();
 
@@ -4365,10 +4429,10 @@ mod tests {
 
     /// Returns the first tile whose uniform-grid rows differ between the two corpora.
     fn uniform_interference(
-        additional_depth: Log2,
+        additional_depth: u8,
         clustered: bool,
         visible: f64,
-    ) -> Option<(Zoom, u32, u32)> {
+    ) -> Option<(u8, u32, u32)> {
         let hidden = masked(clustered, visible);
         let alone = hidden.visible_only();
         let generation = hidden.indexed_generation(GenerationLayout::Inline);
@@ -4388,10 +4452,10 @@ mod tests {
 
     /// Returns the first tile whose stepped uniform-grid rows differ between the two corpora.
     fn uniform_step_interference(
-        refine_from_zoom: Zoom,
+        refine_from_zoom: u8,
         clustered: bool,
         visible: f64,
-    ) -> Option<(Zoom, u32, u32)> {
+    ) -> Option<(u8, u32, u32)> {
         let hidden = masked(clustered, visible);
         let alone = hidden.visible_only();
         let generation = hidden.indexed_generation(GenerationLayout::Inline);
@@ -4416,7 +4480,7 @@ mod tests {
     }
 
     /// Picks one of the tiles a check sweeps.
-    fn tile(bench: &WalkBench, pick: Index) -> (Zoom, u32, u32) {
+    fn tile(bench: &WalkBench, pick: Index) -> (u8, u32, u32) {
         let tiles = tiles(bench);
         tiles[pick.index(tiles.len())]
     }
@@ -4485,8 +4549,8 @@ mod tests {
                 let (codes, _, _) = bench.columns();
 
                 for (z, x, y) in tiles(&bench) {
-                    let cut = z.depth(bench.span()).expect("a valid cut");
-                    for depth in [cut, cut.checked_add(log2(2)).expect("a valid grid")] {
+                    let cut = Depth::try_new(z + bench.span()).expect("a valid cut");
+                    for depth in [cut, Depth::try_new(cut.get() + 2).expect("a valid grid")] {
                         let served = bench.served_representatives(z, x, y, depth, &generation);
                         let cells: HashSet<u64> = served
                             .iter()
@@ -4670,7 +4734,7 @@ mod tests {
     /// selects the set the cell-order read selects, and stays within its geometric per-tile bound.
     #[test]
     fn uniform_grid_proportional_in_bucket_order() {
-        for additional_depth in [log2(0), log2(1)] {
+        for additional_depth in [0_u8, 1] {
             for clustered in [false, true] {
                 for visible in [1.0, 0.5, 0.05] {
                     let bench = masked(clustered, visible);
@@ -4734,11 +4798,8 @@ mod tests {
                             "delivery order changed the selected set at tile {z}/{x}/{y}",
                         );
 
-                        let tile_span = bench
-                            .span()
-                            .checked_add(additional_depth)
-                            .expect("the per-tile grid exponent lies below the shift width");
-                        let cells_per_tile = 1_usize << (2 * u32::from(tile_span.get()));
+                        let cells_per_tile =
+                            1_usize << (2 * u32::from(bench.span() + additional_depth));
                         assert!(
                             delivered.len() <= cells_per_tile,
                             "the public grid passed its geometric per-tile bound",
@@ -4753,7 +4814,7 @@ mod tests {
     /// plain and stepped, and the stepped prefix is the occupied-cell census.
     #[test]
     fn uniform_grid_deltas_accumulate() {
-        for additional_depth in [log2(0), log2(1)] {
+        for additional_depth in [0_u8, 1] {
             let bench = masked(false, 0.5);
             let generation = bench.indexed_generation(GenerationLayout::Inline);
             let (codes, _, _) = bench.columns();
@@ -4765,13 +4826,13 @@ mod tests {
                     .into_iter()
                     .collect();
                 let mut deltas = HashSet::new();
-                for level in Zoom::MIN..=z {
-                    let (level_x, level_y) = ancestor_of(z, level, x, y);
+                for level in 0..=z {
+                    let shift = z - level;
                     for position in bench.uniform_delivery(
                         additional_depth,
                         level,
-                        level_x,
-                        level_y,
+                        x >> shift,
+                        y >> shift,
                         &generation,
                     ) {
                         if cell.contains(MortonKey::from_bits(codes[position as usize])) {
@@ -4790,7 +4851,7 @@ mod tests {
             }
         }
 
-        for refine_from_zoom in [zoom(6), zoom(12), Zoom::MAX] {
+        for refine_from_zoom in [6_u8, 12, u8::MAX] {
             let bench = masked(false, 0.5);
             let generation = bench.indexed_generation(GenerationLayout::Inline);
             let (codes, _, _) = bench.columns();
@@ -4802,13 +4863,13 @@ mod tests {
                     .into_iter()
                     .collect();
                 let mut deltas = HashSet::new();
-                for level in Zoom::MIN..=z {
-                    let (level_x, level_y) = ancestor_of(z, level, x, y);
+                for level in 0..=z {
+                    let shift = z - level;
                     for position in bench.uniform_step_delivery(
                         refine_from_zoom,
                         level,
-                        level_x,
-                        level_y,
+                        x >> shift,
+                        y >> shift,
                         &generation,
                     ) {
                         if cell.contains(MortonKey::from_bits(codes[position as usize])) {
@@ -4849,7 +4910,7 @@ mod tests {
         let view = VisibleView::new(&pyramid, &column);
         for (z, x, y) in tiles(&full) {
             assert_eq!(
-                full.uniform_step_delivery(Zoom::MAX, z, x, y, &full_generation),
+                full.uniform_step_delivery(u8::MAX, z, x, y, &full_generation),
                 full.delivery(FillRule::Unmasked, z, x, y, view),
                 "the public cut grid moved the full delivery at tile {z}/{x}/{y}",
             );
@@ -4858,16 +4919,16 @@ mod tests {
         let bench = masked(false, 0.5);
         let generation = bench.indexed_generation(GenerationLayout::Inline);
         let buckets = buckets_by_position(&generation, bench.points());
-        let refine_from_zoom = zoom(bench.span().get());
+        let refine_from_zoom = bench.span();
         let mut split_transition = false;
         for (z, x, y) in tiles(&bench) {
-            let cut = z.depth(bench.span()).expect("a valid cut");
+            let cut = z + bench.span();
             let delivered = bench.uniform_step_delivery(refine_from_zoom, z, x, y, &generation);
             let mut natural = 0_usize;
             let mut tail = 0_usize;
             let mut in_tail = false;
             for &position in &delivered {
-                let bucket = buckets[position as usize];
+                let bucket = buckets[position as usize].get();
                 if bucket <= cut {
                     assert!(!in_tail, "a natural row followed the deeper tail");
                     natural += 1;
@@ -4877,7 +4938,7 @@ mod tests {
                 }
             }
 
-            if z == Zoom::MIN {
+            if z == 0 {
                 assert_eq!(tail, 0, "the root precedes the public refinement step");
             } else if z < refine_from_zoom {
                 assert_eq!(tail, 0, "a pre-step tile delivered a deeper bucket");
@@ -4906,7 +4967,7 @@ mod tests {
     /// scheduled budget beside them still fails.
     #[test]
     fn uniform_grid_noninterference() {
-        for additional_depth in [log2(0), log2(1)] {
+        for additional_depth in [0_u8, 1] {
             for clustered in [false, true] {
                 for visible in [0.75, 0.5, 0.05] {
                     assert_eq!(
@@ -4919,7 +4980,7 @@ mod tests {
             }
         }
 
-        for refine_from_zoom in [zoom(6), zoom(12), Zoom::MAX] {
+        for refine_from_zoom in [6_u8, 12, u8::MAX] {
             for clustered in [false, true] {
                 for visible in [0.75, 0.5, 0.05] {
                     assert_eq!(
@@ -4954,11 +5015,8 @@ mod tests {
             let view = VisibleView::new(&pyramid, &column);
             let generation = bench.indexed_generation(GenerationLayout::Inline);
 
-            for level in 0..=3_u8 {
-                let z = zoom(level);
-                let window_depth = Depth::from_zoom(z)
-                    .checked_add(log2(2))
-                    .expect("the audit windows fit the key");
+            for z in 0..=3_u8 {
+                let window_depth = Depth::try_new(z + 2).expect("the audit windows fit the key");
                 let windows = 1_usize << (2 * u32::from(window_depth.get()));
                 let counts = |positions: Vec<u32>| {
                     let mut counts = vec![0_usize; windows];
@@ -4977,7 +5035,7 @@ mod tests {
                 let occupied = |depth: Depth| {
                     let mut counts = vec![0_usize; windows];
                     let shift = 2 * u32::from(depth.get() - window_depth.get());
-                    for cell in bench.occupied_cells(Zoom::MIN, 0, 0, depth) {
+                    for cell in bench.occupied_cells(0, 0, 0, depth) {
                         let window =
                             usize::try_from(cell >> shift).expect("the audit grid fits usize");
                         *counts
@@ -4986,8 +5044,8 @@ mod tests {
                     }
                     counts
                 };
-                let world = |rule: Option<FillRule>, additional_depth: Option<Log2>| {
-                    let side = 1_u32 << level;
+                let world = |rule: Option<FillRule>, additional_depth: Option<u8>| {
+                    let side = 1_u32 << z;
                     let mut delivered = Vec::new();
                     for x in 0..side {
                         for y in 0..side {
@@ -5019,10 +5077,10 @@ mod tests {
                     })
                 };
 
-                let cut = bench.uniform_grid_depth(z, log2(0));
-                let finer = bench.uniform_grid_depth(z, log2(1));
+                let cut = bench.uniform_grid_depth(z, 0);
+                let finer = bench.uniform_grid_depth(z, 1);
                 let coarse = world(Some(FillRule::CoverageRank), None);
-                let uniform = world(None, Some(log2(1)));
+                let uniform = world(None, Some(1));
                 assert_eq!(coarse, occupied(cut));
                 assert_eq!(uniform, occupied(finer));
 
@@ -5070,11 +5128,8 @@ mod tests {
         let (z, x, y) = tile(&bench, pick);
         let audit = bench.served_audit(rule, z, x, y, &generation);
         let delivered = bench.served_cumulative_delivery(rule, z, x, y, &generation);
-        let cut = z
-            .depth(bench.span())
-            .expect("the cut lies in the key width");
-        let grid = cut
-            .checked_add(log2(audit.refined))
+        let cut = Depth::try_new(z + bench.span()).expect("the cut lies in the key width");
+        let grid = Depth::try_new(cut.get() + audit.refined)
             .expect("the delivered grid lies within the key width");
 
         for depth in [cut, grid] {
@@ -5202,9 +5257,8 @@ mod tests {
                 assert_eq!(column.len(), bench.visible_rows());
 
                 for (z, x, y) in bench.descent() {
-                    let cut = z
-                        .depth(bench.span())
-                        .expect("the cut lies in the key width");
+                    let cut =
+                        Depth::try_new(z + bench.span()).expect("the cut lies in the key width");
                     assert_eq!(
                         pyramid.count(cell_of(z, x, y), cut),
                         cascade.covered(z, x, y),
@@ -5246,8 +5300,9 @@ mod tests {
                     for (z, x, y) in bench.descent() {
                         let cell = cell_of(z, x, y);
                         let mut inherited = 0_usize;
-                        for level in Zoom::MIN..z {
-                            let (ancestor_x, ancestor_y) = ancestor_of(z, level, x, y);
+                        for level in 0..z {
+                            let shift = z - level;
+                            let (ancestor_x, ancestor_y) = (x >> shift, y >> shift);
                             let audit = bench.audit(rule, level, ancestor_x, ancestor_y, view);
                             if audit.spent {
                                 break;
@@ -5346,11 +5401,8 @@ mod tests {
         let (z, x, y) = tile(&bench, pick);
         let audit = bench.audit(rule, z, x, y, view);
         let delivered = bench.cumulative_delivery(rule, z, x, y, view);
-        let cut = z
-            .depth(bench.span())
-            .expect("the cut lies within the key width");
-        let grid = cut
-            .checked_add(log2(audit.refined))
+        let cut = Depth::try_new(z + bench.span()).expect("the cut lies within the key width");
+        let grid = Depth::try_new(cut.get() + audit.refined)
             .expect("the delivered grid lies within the key width");
 
         for depth in [cut, grid] {
@@ -5402,9 +5454,7 @@ mod tests {
         let mut overruns = 0_usize;
         for (z, x, y) in tiles(&bench) {
             let audit = bench.audit(rule, z, x, y, view);
-            let cut = z
-                .depth(bench.span())
-                .expect("the cut lies within the key width");
+            let cut = Depth::try_new(z + bench.span()).expect("the cut lies within the key width");
             let shown: HashSet<u64> = bench
                 .cumulative_delivery(rule, z, x, y, view)
                 .iter()
@@ -5482,15 +5532,10 @@ mod tests {
         let pyramid = bench.pyramid();
         let depths: Vec<Depth> = pyramid.depths().into_iter().collect();
 
+        assert_eq!(depths.first().map(|&depth| depth.get()), Some(bench.span()));
         assert_eq!(
-            depths.first().copied(),
-            Zoom::MIN.depth(bench.span()),
-            "the pyramid starts below the root cut",
-        );
-        assert_eq!(
-            depths.last().copied(),
-            bench.max_zoom().depth(bench.span()),
-            "the pyramid ends off the deepest cut",
+            depths.last().map(|&depth| depth.get()),
+            Some(bench.max_zoom() + bench.span()),
         );
         assert_eq!(
             pyramid.footprint(),
@@ -5500,7 +5545,7 @@ mod tests {
                 .sum::<usize>(),
         );
 
-        let root = cell_of(Zoom::MIN, 0, 0);
+        let root = cell_of(0, 0, 0);
         for &depth in &depths {
             assert_eq!(pyramid.count(root, depth), pyramid.occupied(depth));
         }
