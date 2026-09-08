@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented as a bounded experiment under the separately committed [live mission](../../../../MISSION.md), including Kostandin's explicitly approved [local Flue 2.0.3 context patch](flue-context-patch.md). This is **not upstream-supported functionality**. The credential/routing blockers below are historical. Real local before/after observations and an inspected audible demonstration now exist; preview and human acceptance remain gated.
+Implemented as a bounded experiment under the separately committed [live mission](../../../../MISSION.md), including Kostandin's explicitly approved [local Flue 2.0.3 context patch](flue-context-patch.md). This is **not upstream-supported functionality**. The credential/routing blockers below are historical. Real local before/after observations and an inspected audible demonstration now exist. Post-merge preview inspection is blocked by the same Voice configuration HTTP 500 on this PR and the parent preview; human acceptance remains outstanding.
 
 **Recommendation: the relay still fails for short local follow-ups; use this evidence to reconsider #9571.** The final clarification remained 151 words and required the Brunch round trip before even a non-substantive notice (7.437 seconds after completed transcription). Bounded delivery fixed automatic report reading and the observed Realtime preamble, not conversational responsiveness. This recommendation does not authorize or establish the correctness of split ownership; the long-report/tool-stall findings alone do not select it.
 
@@ -30,7 +30,9 @@ The worktree initially matched remote [704f961aea2109a2297efa877898a76bb6e29818]
 
 #9564 remained **OPEN**, with `mergedAt: null`, when checked on 2026-09-08. No preview deployment was tested. If the parent moves again, the final reviewable PR must be restacked and all affected evidence re-pinned; the old checks do not establish the new base.
 
-The latest subsequently available head was [743c3c89c1f11309f49fe97ab97f93b3437adb0e](https://github.com/hashintel/hash/commit/743c3c89c1f11309f49fe97ab97f93b3437adb0e). Its exact Git tree equals the tested pin's tree (`7faa9e5e5724f57eba3021979634e24af638d4fb`). Thus this experiment uses the latest available parent **content**, but child ancestry still needs updating after Lu's final restack. No parent/sibling or remote history was rewritten. Keep the PR draft until ancestry and merge-gated preview are resolved.
+The latest subsequently available head was [743c3c89c1f11309f49fe97ab97f93b3437adb0e](https://github.com/hashintel/hash/commit/743c3c89c1f11309f49fe97ab97f93b3437adb0e). Its exact Git tree equals the tested pin's tree (`7faa9e5e5724f57eba3021979634e24af638d4fb`), so the experiment used the latest parent content.
+
+#9564 then merged at **2026-09-08 16:29:59 UTC**, as [fb96f213188da885becd3248fdbe6e84abb65877](https://github.com/hashintel/hash/commit/fb96f213188da885becd3248fdbe6e84abb65877). GitHub retargeted #9585 to main. A normal merge of `origin/main` at [94dff8e33c](https://github.com/hashintel/hash/commit/94dff8e33c) reconciled ancestry without rewriting remote history. Every conflicted main-side file was byte-identical to the pinned foundation; the experiment's existing version was retained. The merge changed no Brunch/Voice/transport product file, patch, package resolution, or lockfile. All 258 targeted tests passed again afterward. No parent or sibling was changed.
 
 ### No supported per-turn Voice hint on canonical user deliveries
 
@@ -148,6 +150,12 @@ Results: Brunch **4 files / 33 tests**, transport **4 / 49**, website **10 / 176
 
 The root package commit hook attempted an unrelated Rust `task-dependencies` build and exhausted local disk. Only that attempt's generated `target/` was removed; the dependency patch commit excluded that hook, retaining other hooks. No full monorepo clean-build claim is made.
 
+### Preview inspection after the parent merge
+
+At approximately **16:50 UTC**, after #9564 merged and the implementation's [Vercel deployment](https://vercel.com/hashintel/petrinaut/9T17j7A6mkBPsHpGhBAEyuRUT4ZX) reported success for [07458ed944](https://github.com/hashintel/hash/commit/07458ed944), the [PR preview](https://petrinaut-git-kostandin-fe-1630-improved-voice-relay.stage.hash.ai/) returned HTTP 200 and rendered the editor/AI panel without page exceptions. Its `/api/voice/config` returned **HTTP 500, `FUNCTION_INVOCATION_FAILED`**, so no Voice controls appeared. The rendered screenshot was inspected. An earlier inspection while the build was pending was only an alias-shell check and is not counted as current implementation proof.
+
+The same request to the [#9564 preview](https://petrinaut-git-ln-fe-1580-reconcile-voice-resumable-workpiece.stage.hash.ai/api/voice/config) returned the same HTTP 500. This PR does not change that API entrypoint or its configuration handler. That comparison shows the failure also exists without this experiment; it does not establish the root cause. The available Vercel account has no Hash team access, so function logs could not be inspected. No deployment, environment, access policy, or backend was manually changed. Full preview Voice verification is blocked on diagnosing that shared failure and confirming a backend containing the local patch; local success does not establish remote patch deployment.
+
 ## Remaining gate and decision
 
-Reconsider #9571 using the failed short-follow-up experience and its current Brunch round trip; do not describe the optimized relay as adequate. Bounded delivery is independently useful, but a notice is not an answer, Voice prompting is unreliable, and long reports remain slow. This is a scoped recommendation, not architecture approval or human acceptance. Keep #9571 untouched. Final parent ancestry/restack, merge-gated preview, and owner review of the demonstration remain outstanding; the live mission is not marked accepted.
+Reconsider #9571 using the failed short-follow-up experience and its current Brunch round trip; do not describe the optimized relay as adequate. Bounded delivery is independently useful, but a notice is not an answer, Voice prompting is unreliable, and long reports remain slow. This is a scoped recommendation, not architecture approval or human acceptance. Keep #9571 untouched. Full preview verification and owner review remain outstanding; the parent merge gate is now open and ancestry reconciled. The live mission is not marked accepted.
