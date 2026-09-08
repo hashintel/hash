@@ -73,6 +73,12 @@ const paneStyle = css({
   "& .react-flow__pane": {
     cursor: `var(--pane-cursor) !important`,
   },
+  // A node outside the neighbourhood recedes from here, whole: card, label,
+  // token count and handles together, so nothing of it stays at full strength
+  // while the neighbourhood carries the colour.
+  "&[data-focus-active] .react-flow__node:not(.canvas-focus-role)": {
+    opacity: "[0.5]",
+  },
   // An arc outside the neighbourhood recedes from here, so a hover leaves
   // every arc it did not touch alone. Only the strokes fade: an arc's weight
   // is worth reading whether or not the arc carrying it is in focus.

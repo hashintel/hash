@@ -44,12 +44,6 @@ export const nodeFocusStyle = cva({
   base: {
     outline: "[4px solid transparent]",
     outlineOffset: "[3px]",
-    // Muting reaches a node from the pane, so a hover rewrites only the
-    // handful of nodes that carry a role. The wrapper marks those.
-    "[data-focus-active] .react-flow__node:not(.canvas-focus-role) &": {
-      borderColor: "neutral.s45",
-      color: "neutral.s90",
-    },
     boxShadow:
       "[var(--focus-glow, 0 0 #0000), var(--node-elevation, 0 0 #0000)]",
     /**
@@ -81,16 +75,6 @@ export const nodeFocusStyle = cva({
         outline:
           "[4px solid color-mix(in oklab, var(--colors-purple-s90), transparent 25%)]",
       },
-      /**
-       * Border and label recede, the fill and the token count do not: the rest
-       * of the net stays readable, and stays put, while a neighbourhood is
-       * highlighted. Applied from the pane to every node without a role, so
-       * muting costs no per-node work. A node's border colour is its own — a
-       * place's is its type's, set inline — so muting outranks it with
-       * `!important` rather than by stylesheet order. The label colour is
-       * inherited by a title; a subtitle already sits at this shade.
-       */
-      muted: { borderColor: "neutral.s45!", color: "neutral.s90" },
     },
   },
   defaultVariants: { focus: "none" },
@@ -109,7 +93,6 @@ export const arcHaloColor = (focus: CanvasArcFocus): string | undefined => {
       return UPSTREAM_COLOR;
     case "outgoing":
       return DOWNSTREAM_COLOR;
-    case "muted":
     case "none":
       return undefined;
   }
@@ -140,7 +123,6 @@ export const miniMapFocusColor = (
       return DOWNSTREAM_COLOR;
     case "bidirectional":
       return BIDIRECTIONAL_COLOR;
-    case "muted":
     case "none":
       return undefined;
   }
