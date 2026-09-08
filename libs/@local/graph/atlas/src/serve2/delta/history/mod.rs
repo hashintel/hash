@@ -43,23 +43,28 @@ impl History {
     /// # Panics
     ///
     /// Panics if `revision` precedes the latest recorded revision.
-    pub(super) fn push(&mut self, kind: EntryKind, revision: DeltaRevision) {
+    pub(super) fn push(&mut self, kind: EntryKind, revision: DeltaRevision) -> bool {
         let latest = self.revisions[HISTORY_SIZE - 1];
         assert!(
             revision >= latest,
             "history revisions must be nondecreasing"
         );
 
+        let prev = self.alive & 1;
         if revision > latest {
             self.revisions.shift_left([revision]);
             self.alive <<= 1;
         } else {
             self.alive &= !1;
         }
-        self.alive |= match kind {
+
+        let next = match kind {
             EntryKind::Live => 1,
             EntryKind::Withdrawn => 0,
         };
+        self.alive |= next;
+
+        next != prev
     }
 
     pub(super) const fn now(&self) -> EntryKind {

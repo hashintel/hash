@@ -8,6 +8,7 @@ use hashql_core::{
 use super::{
     DeltaRevision,
     history::{EntryKind, History, Versioned},
+    id::DeltaRowId,
 };
 use crate::{
     file::identity::{Key, Row},
@@ -161,22 +162,6 @@ where
     }
 }
 
-hashql_core::id::newtype! {
-    struct DeltaRowId<I>(u64)
-}
-
-impl<I> DeltaRowId<I> {
-    fn derive(origin: Universe<I>, index: I) -> Option<Self>
-    where
-        I: Id,
-    {
-        let index = index.as_u64();
-        let offset = origin.size();
-
-        index.checked_sub(offset as u64).map(Self::new)
-    }
-}
-
 #[derive(Debug)]
 pub(crate) struct IdentityProviderResidual<K, R, P> {
     universe: Universe<R>,
@@ -197,10 +182,44 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
     {
         Self {
             universe: base.universe(),
+
             forward: FastHashMap::default(),
             inverse: IdVec::default(),
             payload: FastHashMap::default(),
             history: FastHashMap::default(),
+        }
+    }
+
+    pub(crate) fn withdraw(
+        &mut self,
+        base: &impl VersionedIdentityProvider<K, R>,
+        revision: DeltaRevision,
+        key: K,
+    ) -> bool
+    where
+        K: Key + Hash + Eq,
+        R: Row,
+    {
+        if let Some(&row) = self.forward.get(&key) {
+            let Some(delta) = DeltaRowId::derive(base.universe(), row) else {
+                tracing::warn!("todo");
+                return false;
+            };
+
+            let inverse = &mut self.inverse[delta];
+            inverse.push(EntryKind::Withdrawn, revision);
+            true
+        } else if let Some(row) = base.row_of(key) {
+            let mut has_changed = false;
+
+            let entry = self.history.entry(row).or_insert_with(|| {
+                has_changed = true;
+                History::new(EntryKind::Withdrawn, revision)
+            });
+
+            has_changed | entry.push(EntryKind::Withdrawn, revision)
+        } else {
+            false
         }
     }
 }

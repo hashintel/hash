@@ -1,14 +1,22 @@
-mod consumer;
 mod epoch;
+mod feed;
 mod history;
+mod id;
 mod layout;
 mod overlay;
 mod placement;
+mod projector;
 mod topology;
+
+use alloc::sync::Arc;
 
 use rand::TryCryptoRng;
 
-use self::{layout::LayoutDelta, overlay::IdentityProviderResidual, topology::TopologyDelta};
+use self::{
+    feed::DeltaFeedEvent, layout::LayoutDelta, overlay::IdentityProviderResidual,
+    topology::TopologyDelta,
+};
+use super::world::World;
 use crate::{
     dataset::auxiliary::{OwnedIcon, OwnedLegend},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
@@ -19,9 +27,19 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct DeltaRevision(u64);
 
-struct DeltaProviderId(u64);
+impl DeltaRevision {
+    fn increment(&mut self) {
+        self.0 += 1;
+    }
 
-impl DeltaProviderId {
+    fn decrement(&mut self) {
+        self.0 -= 1;
+    }
+}
+
+struct DeltaId(u64);
+
+impl DeltaId {
     fn new<R>(mut rng: R) -> Result<Self, R::Error>
     where
         R: TryCryptoRng,
@@ -32,7 +50,7 @@ impl DeltaProviderId {
 }
 
 struct DeltaProvider {
-    id: DeltaProviderId,
+    id: DeltaId,
 }
 
 impl DeltaProvider {
@@ -40,7 +58,7 @@ impl DeltaProvider {
     where
         R: TryCryptoRng,
     {
-        let id = DeltaProviderId::new(rng)?;
+        let id = DeltaId::new(rng)?;
         Ok(Self { id })
     }
 }
@@ -51,19 +69,68 @@ pub(crate) struct Projected<T> {
 }
 
 pub(crate) struct Delta {
+    world: Arc<World>,
+
+    id: DeltaId,
+    revision: DeltaRevision,
+
     ontology: IdentityProviderResidual<ArchivedOntologyTypeUuid, OntologyRowId, OwnedIcon>,
 
     node: IdentityProviderResidual<ArchivedEntityUuid, NodeRowId, OwnedLegend>,
-    edge: IdentityProviderResidual<EdgeRowId, EdgeRowId, OwnedLegend>,
+    edge: IdentityProviderResidual<ArchivedEntityUuid, EdgeRowId, OwnedLegend>,
 
     topology: TopologyDelta,
     layout: LayoutDelta,
+}
+
+impl Delta {
+    pub(crate) fn new<R>(world: Arc<World>, rng: impl TryCryptoRng) -> Result<Self, R::Error>
+    where
+        R: TryCryptoRng,
+    {
+        todo!()
+    }
+
+    fn apply_event(&mut self, event: DeltaFeedEvent) -> bool {
+        match event.kind {
+            feed::DeltaEventKind::Live {
+                edition,
+                position,
+                payload,
+                endpoints: None,
+            } => todo!(),
+            feed::DeltaEventKind::Live {
+                edition,
+                position,
+                payload,
+                endpoints: Some([source, target]),
+            } => todo!(),
+            feed::DeltaEventKind::Defect => {
+                // We ignore the event, because an error occured during it.
+                return false;
+            }
+            feed::DeltaEventKind::Withdrawn => {
+                // retract from either store
+                let mut changed = false;
+                changed |= self
+                    .node
+                    .withdraw((), self.revision, event.entity.entity_uuid);
+                changed |= self
+                    .edge
+                    .withdraw((), self.revision, event.entity.entity_uuid);
+                changed
+            }
+        }
+    }
+
+    fn register_ontology(&mut self) {}
 }
 
 impl Clone for Delta {
     #[inline]
     fn clone(&self) -> Self {
         Self {
+            world: self.world.clone(),
             ontology: self.ontology.clone(),
             node: self.node.clone(),
             edge: self.edge.clone(),
@@ -75,6 +142,7 @@ impl Clone for Delta {
     #[inline]
     fn clone_from(&mut self, source: &Self) {
         let Self {
+            world,
             ontology,
             node,
             edge,
@@ -82,6 +150,7 @@ impl Clone for Delta {
             layout,
         } = self;
 
+        world.clone_from(&source.world);
         ontology.clone_from(&source.ontology);
         node.clone_from(&source.node);
         edge.clone_from(&source.edge);
