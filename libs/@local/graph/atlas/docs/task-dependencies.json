@@ -16,6 +16,7 @@
     "@rust/hashql-core"
   ],
   "tasks": {
+    "build:docker": [],
     "doc:dependency-diagram": [
       "@rust/hash-repo-chores#build"
     ],
