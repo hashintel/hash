@@ -373,6 +373,73 @@ describe("Flue materialized-history reader", () => {
     expect(retry.value.skippedDedupKeys).toHaveLength(1);
   });
 
+  test("requires both user role and user purpose rather than trusting text or display", () => {
+    const user = snapshot.messages[0]!;
+    expect(
+      projectFlueHistoryForSweep({
+        messages: [
+          { ...user, id: "true-user" },
+          { ...user, id: "assistant-quotation", role: "assistant" },
+          { ...user, id: "dispatch-copy", purpose: "dispatch" },
+          { ...user, id: "system-copy", role: "system", purpose: "dispatch" },
+        ],
+      }).map(({ id, kind }) => ({ id, kind })),
+    ).toEqual([
+      { id: "true-user", kind: "user" },
+      { id: "assistant-quotation", kind: "non-user" },
+      { id: "dispatch-copy", kind: "non-user" },
+      { id: "system-copy", kind: "non-user" },
+    ]);
+  });
+
+  test("keeps previously observed public records in the archive but peek never restores them into live history", async () => {
+    // Synthetic window change: archive contract only, NOT a runtime compaction witness.
+    const path = await storePath();
+    const store = createLocalCaptureStore(path);
+    const retainedWindow = {
+      ...snapshot,
+      offset: "opaque-after",
+      messages: snapshot.messages.slice(2),
+    };
+    let current = snapshot as typeof retainedWindow;
+    const reader = createFlueHistoryReader({
+      resolveConversationUrl: () => "http://host.test/agent/archived-session",
+      transport: (async () => Response.json(current)) as typeof fetch,
+      archive: store,
+    });
+    await reader.read("archived-session");
+    current = retainedWindow;
+    expect(await reader.read("archived-session")).toEqual(retainedWindow);
+    expect(await reader.peek("archived-session")).toEqual(retainedWindow);
+    const archived = await store.readArchivedEntries({
+      sessionId: "archived-session",
+      entryStart: 1,
+      entryEnd: 4,
+    });
+    expect(archived.map((entry) => entry.substrateEntryId)).toEqual(
+      snapshot.messages.map((message) => message.id),
+    );
+    expect(archived[1]!.versions[0]!.materialized).toEqual(
+      snapshot.messages[1],
+    );
+    // No automatic archival subscription exists: a reader started after loss cannot recover it.
+    const lateStore = createLocalCaptureStore(await storePath());
+    await createFlueHistoryReader({
+      resolveConversationUrl: () => "http://host.test/agent/archived-session",
+      transport: (async () => Response.json(retainedWindow)) as typeof fetch,
+      archive: lateStore,
+    }).read("archived-session");
+    const lateEntries = await lateStore.readArchivedEntries({
+      sessionId: "archived-session",
+      entryStart: 1,
+      entryEnd: 2,
+    });
+    expect(lateEntries.map((entry) => entry.substrateEntryId)).toEqual([
+      "reply",
+      "reply-binding",
+    ]);
+  });
+
   test("versions an evolving public message instead of duplicating its archive ordinal", async () => {
     const path = await storePath();
     const store = createLocalCaptureStore(path);
