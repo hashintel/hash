@@ -1,0 +1,28 @@
+{
+  "build-base.log.gz": {
+    "bytes": 25402,
+    "sha256": "a2603cc50a70c7070a6ee152fc6600c33c256582b33d25c738983e43f3aa0f3b",
+    "uncompressedBytes": 137827,
+    "uncompressedSha256": "3eb1361b371b081d1e80830601d7127f8eff5228a8cef4c9a4abdd8c7bcc42b5"
+  },
+  "handoff.md": {
+    "bytes": 7349,
+    "sha256": "12ccaf2c61d5c0dce5b855896e719dcdfc44120d48a8ac325212758928eef76e"
+  },
+  "identities.json": {
+    "bytes": 23228,
+    "sha256": "c58b5321eb631cc04895cb8f18e6c6901f69caa4a030fd2fc6f5be8a4373500b"
+  },
+  "install-base.log.gz": {
+    "bytes": 2294,
+    "sha256": "9d907c8e29769227e5478eb801703533c418db2ba7de57c5f5ced42fcbc9b89c",
+    "uncompressedBytes": 13105,
+    "uncompressedSha256": "dbce132db5aaf91ac1bc53e11c66ba2064c4bd9d4d117cecc1dff0b8e24c03c3"
+  },
+  "network-guard.log.gz": {
+    "bytes": 172,
+    "sha256": "819ca6758725d984050f90249079ce03fd86a318e074750051c1b3b5303307ee",
+    "uncompressedBytes": 578,
+    "uncompressedSha256": "271d807dcdbbc518e60403cea832908ec409759f9e603586673d9a3eae6ebc06"
+  }
+}

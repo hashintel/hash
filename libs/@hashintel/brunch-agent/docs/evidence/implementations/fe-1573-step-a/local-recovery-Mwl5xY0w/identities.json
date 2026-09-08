@@ -1,0 +1,472 @@
+{
+  "base": "b5f320b90c753e2b1eeded5455e0f8d02e06584b",
+  "node": "v22.21.1",
+  "scope": "Read-only provenance, not successful build or application verification",
+  "protected": {
+    ".yarn/patches/@earendil-works-pi-agent-core-npm-0.83.0-6cd8fe314f.patch": {
+      "sha256": "dedc8f8cb350f86901e59493eb143badf3eae05256db13b3aa650ea4823a71d9",
+      "matchesBase": true
+    },
+    ".yarn/patches/@earendil-works-pi-ai-npm-0.83.0-c607801251.patch": {
+      "sha256": "9f712c9ebbfddcf6da3904dce21ae81cb132dee1e0c451da95e568cd76792818",
+      "matchesBase": true
+    },
+    ".yarn/patches/@flue-runtime-npm-2.0.3-192c31f50c.patch": {
+      "sha256": "7db47cfdba3ab9c3da36f535f634b72688135923ff71ed5b04a2d5a2062a496e",
+      "matchesBase": true
+    },
+    ".yarnrc.yml": {
+      "sha256": "8a2a54a3f80a66fbdb5b5926a52f521d8e701c38b12b084263f756eb21bcb86c",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/src/agents/chat-agent/agent.ts": {
+      "sha256": "8d6bb55d9f061aa7fcb1c2d91bd32caaf18186b78f4f98bea6d3d5509ce7ec38",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/src/app.ts": {
+      "sha256": "f604727736a22c934dbebfcdeb8b9871899d0dd0974aaf73637e965e82c4bec2",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/src/provider-accounting.ts": {
+      "sha256": "8d4467bbe50793f9cc62141bc2251612b6aeefcbd9fd2f3551de4249c93ea21c",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/src/provider-accounting/request-ledger.ts": {
+      "sha256": "8350c1d2b25f086b8ff9242bb85ff081800115e81a6e2bdfb4ef6d00f491dfff",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/src/provider-admission.ts": {
+      "sha256": "9bbeff61d12ccbc881db4239b0e8c1eb8104d52168ed0c59a6412ce925f5b5d0",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/test/architecture/boundaries.integration.ts": {
+      "sha256": "bc22b04cc1b49a05f9c0cafc5f6edd05790efef0dc947e491400e9cfd067b68b",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/test/history-retention-audit.py": {
+      "sha256": "4c79671e588f019b262b463c66f3290c06d53fc37aaafce43833d7ce9943923a",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/test/history-retention-crash.integration.ts": {
+      "sha256": "e9491612797e8a3ffc969d0bfb98eeac33775e483ad9f0894cf44dc3343954cc",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/test/history-retention-diagnostics.sh": {
+      "sha256": "e0eee984a81683bdc87d9fc85154f6677249e560a78562d5255a940ed1a4c3f2",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/test/history-retention-new-records.integration.ts": {
+      "sha256": "104a837c695b3c9ee5f12769339f01abe165cd334101a981d11752406cbcf9c5",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/test/history-retention-runtime-hook.ts": {
+      "sha256": "542fae1f3c06b9e6b071a0322a39d66f6fcd7499856ad6c3132500be4ff455da",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/test/history-retention.integration.ts": {
+      "sha256": "ee1501019b423d4fdcbe861a439bb99e4265f8832d3b76576f9105faaf61f8e2",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/test/history-retention.test.ts": {
+      "sha256": "4225b22bc369905d818405e90a89194efbf63ab7677fb92b43925d0ffb9e3a68",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/test/workpiece-revisions.integration.ts": {
+      "sha256": "5c958286d5a87ef793628e419710799837c8449d726ed901df759061035bcc87",
+      "matchesBase": true
+    },
+    "apps/brunch-agent/test/workpiece-revisions.test.ts": {
+      "sha256": "8239231ff0c31b0b4a6186c14111215542fcf45146685372239341ee21c91357",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/brunch-ask-interactive-tool.test.ts": {
+      "sha256": "8e86d30c26666aa5fcaafbd92a12bb36823d5f772fcde1bbcf36f7076c9bfd67",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/brunch-ask-interactive-tool.tsx": {
+      "sha256": "7963d39eb84f6e848c5a40b64766de3811b79e5dd695f3466fb15210682af387",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/brunch-ask-mapping.ts": {
+      "sha256": "10a29602e16c5232031630bd2d605667c08bb7c76f0de5305b52883440a023ea",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/brunch-client-tools.ts": {
+      "sha256": "41068e12894cef6493be23df55d76290c461c448611d8d0682092985122e58d5",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/brunch-conversation-id.test.ts": {
+      "sha256": "e5214fc0d09b8a6b0a6da1f11dc6ff1915b92ac22f554a34f3316f589e41253e",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/brunch-conversation-id.ts": {
+      "sha256": "9344dc7f792ee73a0fa49e66632629f1dc9d2960032443e1a40ef9dc40d665a1",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/brunch-panel-transport.test.ts": {
+      "sha256": "e7e538c98f11dae9acb61d3cd31d60ef5f1b11f3ca733554a5b195f1eb05a981",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/brunch-panel-transport.ts": {
+      "sha256": "07d4ef4392168619f9554170de98943965e697dbf56d93c1dacb4b4e25aaf483",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/brunch-preview-config.test.ts": {
+      "sha256": "a8086a9ea3e2fa54959f69f44e3c2d85983a6ffa40c58bbad78d8bb95ea956e2",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/brunch-preview-config.ts": {
+      "sha256": "44847417aa2503627ef6d7d3578822165fe43944af99715ff4d1ac31e452c973",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/brunch-principal.test.ts": {
+      "sha256": "78bc35790b91c488262e0da820811d4ef452650eaa83be2b17088f77d2664460",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/brunch-principal.ts": {
+      "sha256": "54a6565f523385e48ca9a0b5f89f30655834e3f770e09ea0afb0635943701c09",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/crew-reservation-history.ts": {
+      "sha256": "d5cbb1959480037822bda4bac2aedf556d52075f425b6fcd8d7b020c1f89f6e9",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/crew-reservation-settled-manifest.test.ts": {
+      "sha256": "ff7c888dfbe88e1debd44765e7befb02babc8d2230df2580ec05192566df1974",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/crew-reservation-settled-manifest.ts": {
+      "sha256": "7b9bf6b4acd6a1be5cc3aec2700b3e0776ebaf83cf2b230d2ccae9e63d935961",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.test.tsx": {
+      "sha256": "c932c217ef86deba078cb336f22439e8087a1113b0059575ca6740ecbcdacb14",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.tsx": {
+      "sha256": "fa2fa9978aad727a878ca1a25ae4fa1ae33a032c994108576121aeced7c7fbb8",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-search.test.ts": {
+      "sha256": "ae1968ca2533341520558186f880b873bfd7f39003801dea6b009057c4e16c61",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-search.ts": {
+      "sha256": "bb3fa1120f9b431b86f98d9e349d5a5bb4f0cc06e103e774f26cf52fb2ab68c8",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/prepare-crew-reservation-conversation.test.ts": {
+      "sha256": "6d39ca24f823fa9146be6d601b7fba44d7adfddbb1c1f5a2f230df5cf65967fd",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/prepare-crew-reservation-conversation.ts": {
+      "sha256": "4230e551409cfeaa621a52efc662079dcd0e676fc1290c67b354ff3adf233d7d",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/prepared-crew-reservation-fixture.test.ts": {
+      "sha256": "13f044a695da6a719ea357eef825b77632107e9fc6332450372f981bdf12c237",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/prepared-crew-reservation-fixture.ts": {
+      "sha256": "65b6dc5e545eaa81dcfb4ffc5ca0bc27417dbd8ec3e9dfe236c7432cabebde69",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/prepared-fixture-banner.test.tsx": {
+      "sha256": "7b15d597aa936c49b8d5d27ff15e8f99f4fb429a3adc13b981a4ca36b805333f",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/prepared-fixture-banner.tsx": {
+      "sha256": "8e064cbfff62ec3b5622bf5796cd44a9a7bc184c449632ca8c4c51c16e57acae",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/resolve-crew-reservation-bundle.test.ts": {
+      "sha256": "ecb547a16cf0f41850230917b5af96f28985e8913b6f62d9a1d12a83cd401c14",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/resolve-crew-reservation-bundle.ts": {
+      "sha256": "1da84df2b768a9963bb55f97e97e902d53853ca6716daa429743a4273e769742",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/transition-record.test.ts": {
+      "sha256": "b738c54fea0b2474a9d2c4f61f669ec708d471e09459612f7b9d6d310642f006",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/transition-record.ts": {
+      "sha256": "61625f52f355c27cd281d877df753f832eb5e36c96d751e5947981b7c0dd76fb",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/use-crew-reservation-fixture-session.ts": {
+      "sha256": "de6e1207e706fc5dd8b7f66842db19cfc0238c664954b9ee5587a279e4e4563f",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/use-crew-reservation-settled-manifest.test.ts": {
+      "sha256": "136ac6aeaec14842366d7b89969a188216b80795ef28d1b2c1939912b9666ef6",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/use-crew-reservation-settled-manifest.ts": {
+      "sha256": "716eae7829770a31c8a8dd4cb48c218587d732271737c218fc97db9135db0b4f",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/use-flue-chat-history.test.ts": {
+      "sha256": "2f31659222ed0f21a2f68a4ddcf46ead9346adfbc255b4702a577e94985ddb0a",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/use-flue-chat-history.ts": {
+      "sha256": "aecd77d5eaee68b536c421d7c830d46f9a273b462835c01bd8b4c46ee23a1afd",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/use-local-storage-ai-messages.ts": {
+      "sha256": "3741bf027ab65e4bc6cdb7ed71f3acc76482b85d896321e08f178e6e81e2f2d6",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/use-local-storage-sdcpns.test.ts": {
+      "sha256": "f06fab09bf68ce596af7f351afc4412f1ef20f1e0d6dc473d3ae2471fe595184",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/use-local-storage-sdcpns.ts": {
+      "sha256": "a91ee74ee04805fc73b9d253de9e30da1b62e4aa3809b69b419e823380dd06ef",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/use-prepare-crew-reservation-conversation.test.ts": {
+      "sha256": "5b1dcd5eae4096fe35b9f6dd75acffaba6baea2f3b3ef953288041861bd596bc",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/use-prepare-crew-reservation-conversation.ts": {
+      "sha256": "ead2829b7c7168319d114b2e2e78060edb425b33a15bf15f341d70a8bb07c986",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/walkthrough/logo-mark.png": {
+      "sha256": "042e05828aca1481cf578876b1b72ed5488bf96e8664d319b2ba3fcc639a1c5e",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/walkthrough/videos/01-intro-example.mp4": {
+      "sha256": "83537a1c12af0b3f37c23e38e9231cd49494fe75371f283f9a97c227eb733d5d",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/walkthrough/videos/02-experiments-example.mp4": {
+      "sha256": "2e2869b0a3d331d1a16c4c1b7cb07149e7298388aca70d05d8b2b78e7c92866e",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/walkthrough/videos/03-ai-example.mp4": {
+      "sha256": "717d0920492c41cc01551ca8370113419fb360e146d8b4336448a8b5d135e945",
+      "matchesBase": true
+    },
+    "apps/petrinaut-website/src/main/app/local-storage-demo/walkthrough/walkthrough-steps.tsx": {
+      "sha256": "7264447781d0cd346bd7875b3f53ec979e8e7853de8985f69aff0f602ef0ce2b",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/MISSION.md": {
+      "sha256": "aabf05cc4230b673cec603b2f1a0c486e88e8dabc1aae3dbd989f633a704aa99",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/attempt-ledger.md": {
+      "sha256": "da55752de0b939ac817f7679ab1dadd9ff058fdcaa2e602063e04d188a5d0833",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/usage-ledger.json": {
+      "sha256": "d5041ddc422a1889ce013b002ce6ed0250a2992ae4ab19501188d51a9c6eedf4",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/_suspended/conversation/affordance.ts": {
+      "sha256": "248bac732b36ae37372b3095836ae222734d11412c700f1598fc7442ad05471b",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/_suspended/conversation/ask-protocol.ts": {
+      "sha256": "290a14d0d132c8a1270fb6ae5c5b8eed05933d82d5d87077cb87d0ad210e00a0",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/_suspended/conversation/ask-tool-contract.ts": {
+      "sha256": "0f83a03b363823b033526e6527a6d18a88a9e95952d21b8d99186f5e07307f38",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/_suspended/conversation/sweep-protocol.ts": {
+      "sha256": "c2203dac99f6d893724942f611c29b6729111077f9f904c5fca8092d4688bdb5",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/client-tools.ts": {
+      "sha256": "7bed156431d2429088b47b3032d73bb3c5768a0e3b73d21661b4217f60990f93",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/conversation/naming.ts": {
+      "sha256": "3d7fe8ad4d2964077820a7f9b6bc293ba8dda9b39a70ebeba4f2092f8b4d966b",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/conversation/reply-protocol.ts": {
+      "sha256": "912defd5d2a4eaa13877213226e2f1bc728886f6058a517403271e03787f7ae2",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/evidence/capture-store.ts": {
+      "sha256": "94ad9f32a790eaa8986018b0e8bb3626720533eb308a89a883b824132316b264",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/evidence/session-log.ts": {
+      "sha256": "50bbd4d0f7cce592189c5c56982b239bd9b346cb69bd1f1461639866e30f9ac3",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/flue.ts": {
+      "sha256": "cde98fa65d96bb51b1881050d65a033311001a2652dc043b5e86af1eb8ce99d8",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/index.ts": {
+      "sha256": "c3a13bcd4928a8f7b11ba83601257bb550e9b2d2f1874d009997cf292587f0b2",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/json-value.ts": {
+      "sha256": "852964ae98b7c0378aba1052d04ade55980e6e5d696507de4869452c96476fac",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/prompts/SYSTEM.md": {
+      "sha256": "3a657235227a99beee3ad570ea330c4d781fddde8590564fa23022459cac78da",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/question-marker.ts": {
+      "sha256": "c69b158ec3020c1080561071155dd5ad51d836701b632c6afac1d56daee917dd",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/raw-imports.d.ts": {
+      "sha256": "f921bd201474298ebf43978860dfe8699729ae6724fb487b25b23177d9100ea9",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/readonly-deep.ts": {
+      "sha256": "697c6fbc62c11c3940f883aa5bd3249c205a4ab5831e2aae8d244615451adce2",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/skills/elicitation/SKILL.md": {
+      "sha256": "68b7fa27c2ba8401a97272e63c17d0ad6c6fdb9b3c81d9aa02e7ec3120e0aacc",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/skills/elicitation/skill.ts": {
+      "sha256": "5ab4a1cd714b6b819e51864d48ec2fe655fc6a335a73eb51c7126ebdd9c631f2",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/skills/skill-markdown.ts": {
+      "sha256": "cf72c6c604141cac834b7bf3978a63001181b304c271ab64d363949b64cc4166",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/storage.ts": {
+      "sha256": "30bf7ddc29a871733ea8635ded1ad756b1b644b63ee982ea82181a2a3a73193f",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/update-workpiece.ts": {
+      "sha256": "68d4652d3391c09211a2ba7ce758fd46c867f5f189447a3d3055cbf35b826757",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/core/src/workpiece.ts": {
+      "sha256": "7583b887862b131a19c07c343b559dc420f18d26f88976a46f6ec92b33d85ab2",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/declared-basis.ts": {
+      "sha256": "2a15793b52759bda723fc1bbfcd4846a6b58f4599b4ddfd798c79a7caaa1d123",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/flue.ts": {
+      "sha256": "07ba220e57a73f6ecfe23e2dbaecbf40debb531ae435ff8ec50de22bda472d53",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/index.ts": {
+      "sha256": "3fd69d3f7e652562258fdbfaf17968e1741957d58d5f45d5a2055137e1d9f663",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/prompts/APPEND_SYSTEM.md": {
+      "sha256": "8826b85d32d6c24fbc8f678ec394600676ec61c4a0b83d0a9cfa16be87fc5d76",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/raw-imports.d.ts": {
+      "sha256": "8ab4c314d9824d521f5d375c71353c42011be943091e05732f9b55f305133af5",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/root-arc.ts": {
+      "sha256": "9981d05882d1e44393aaa2e0b49a34fa196837438058ff7864ee2271bf00279d",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md": {
+      "sha256": "7f007bcf57373f55b09bc6674225e77e626b1dad6a8b97dba879cad57f4a3118",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/references/checks.md": {
+      "sha256": "43dbc9adc9168ae9984321895fca441386ee3c44ab8691ba92baec0f7c43f400",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/references/pn-construction.md": {
+      "sha256": "57edbdfebd733ed6c1d5eb02f81dc13e6d5b9c7357f00018c1d0f2b1b1a3f694",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/references/profile.md": {
+      "sha256": "cf37161ee79cace2d96ee6d473e9751cab65cc050ebae79d94530a01705b2b8e",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/skill.ts": {
+      "sha256": "201fbf3cb4655f9eaee23e07dc289e58f348e967df455195fdd35d4757371b73",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md": {
+      "sha256": "a201137f8591798962c5386633273e1c579c276509fd5fbeedbf7c67b28878df",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/petrinaut-construction.ts": {
+      "sha256": "fdc6d24dc05069168d4ab3afd253601152b7e629b00264eea83a75575fefbc2a",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/read-petrinaut-doc.ts": {
+      "sha256": "9e020d8bee5e6c9902b5e5b609abc5930d3e27647d0f4d0d4679f3e31097dfbb",
+      "matchesBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/transition-record.ts": {
+      "sha256": "40a78fc75e2ec9d9429654c3f87dbbef7aee712a5e9c8d0c430600a2e510d4a7",
+      "matchesBase": true
+    },
+    "package.json": {
+      "sha256": "6432b88bdaff8adffdef31e322ac192654fbee1b686aa76d368538db4db397ad",
+      "matchesBase": true
+    },
+    "yarn.lock": {
+      "sha256": "5bfa34a1df3a75c791aa1d0408f043fad158eefdaab5b049e94c914526075ac0",
+      "matchesBase": true
+    }
+  },
+  "installed": {
+    "node_modules/@flue/runtime/package.json": {
+      "sha256": "c5e309215be49579b62219d6a28f3bcae842a535d1f5466a06c1e82d666e4ee5",
+      "bytes": 3032
+    },
+    "node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs": {
+      "sha256": "c7d1a948f15264ce1e21cf6fb8cccd2213d1a9a38624c726c1a8834086f56d59",
+      "bytes": 252126
+    },
+    "node_modules/@flue/runtime/dist/sql-agent-execution-store-RrAtlpSL.mjs": {
+      "sha256": "4cdce40d85dd9eb54c5b2963414cced3ddd1cab08489b2b34bc853dc0701c8d1",
+      "bytes": 35015
+    },
+    "node_modules/@flue/runtime/dist/use-persistent-state-DUUiJyWP.mjs": {
+      "sha256": "15b73239ac938dfb76e31577e890aae88257f8d68c6acbb22d0e3a4f3377da2a",
+      "bytes": 3947
+    },
+    "node_modules/@flue/runtime/dist/tool-DZ5dxCl_.mjs": {
+      "sha256": "92e4d89c3e37b7db9dcb37732495f7e08d3f34fca0fc01ae3adbf7041f0753ae",
+      "bytes": 10055
+    },
+    "node_modules/@flue/runtime/dist/schema-DIDpvZZa.mjs": {
+      "sha256": "dbe9e224c56c6e135c704f4b4659f642c90fa5dd471dd35cb41ac804ab948e97",
+      "bytes": 3943
+    },
+    "node_modules/@earendil-works/pi-ai/package.json": {
+      "sha256": "a3e39900a10bc5d6fd01e8de86899ac15991a849160bae1b4bd741eeaddf05d8",
+      "bytes": 2642
+    },
+    "node_modules/@earendil-works/pi-agent-core/package.json": {
+      "sha256": "33aa9a2c1435a59e3a0d62ebd29cd4f8f39c4b4dfb1dc6bce4762835950ee0c5",
+      "bytes": 1383
+    },
+    "node_modules/@earendil-works/pi-agent-core/dist/agent.js": {
+      "sha256": "02e5f6dfcea09280d7c6818fd264dc9a1219087f1d6c49115752b7086f6f2b62",
+      "bytes": 15635
+    },
+    "node_modules/@openapitools/openapi-generator-cli/package.json": {
+      "sha256": "96ea2b86a90b78fe5936fb237f8b6b463a5b8ccc7b61f2a6f1cfff9a620cbc0f",
+      "bytes": 2267
+    }
+  },
+  "partialBuildFiles": {},
+  "applicationBuildComplete": false,
+  "generatorJarPresent": false
+}
