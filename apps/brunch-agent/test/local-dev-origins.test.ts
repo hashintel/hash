@@ -81,3 +81,21 @@ test("petrinaut:dev retains the website API handlers needed by Voice", () => {
     ]),
   );
 });
+
+test("documents and forwards the deployment CORS allowlist", () => {
+  const turboConfig = JSON.parse(readAppFile("turbo.json")) as {
+    tasks: {
+      dev: {
+        passThroughEnv: string[];
+      };
+    };
+  };
+  const readme = readAppFile("README.md");
+
+  expect(turboConfig.tasks.dev.passThroughEnv).toContain(
+    "BRUNCH_CORS_ALLOWED_ORIGINS",
+  );
+  expect(readme).toContain("BRUNCH_CORS_ALLOWED_ORIGINS");
+  expect(readme).toContain("https://demo.petrinaut.org");
+  expect(readme).toContain("CORS is not authentication");
+});
