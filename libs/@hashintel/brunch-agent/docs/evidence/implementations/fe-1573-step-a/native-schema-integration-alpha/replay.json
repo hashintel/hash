@@ -1,0 +1,32 @@
+{
+  "evidenceCommit": "dd79496585b0af71b5fa1a19de931f561fb137a9",
+  "integrationCommit": "bd5ca43326",
+  "replayCwd": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-boundary",
+  "replayHead": "dd79496585b0af71b5fa1a19de931f561fb137a9",
+  "profiles": {
+    "baseline": {
+      "reproductionExit": 0,
+      "safetyGateExit": 1
+    },
+    "flue-only": {
+      "reproductionExit": 0,
+      "safetyGateExit": 1
+    },
+    "two-boundary": {
+      "reproductionExit": 0,
+      "safetyGateExit": 1
+    },
+    "candidate": {
+      "reproductionExit": 0,
+      "safetyGateExit": 0
+    }
+  },
+  "scripts": {
+    "probe.mjs": "fe2f396e5a9ceec446d4435234c13cfc17bf69f21eff898833da7971cf702add",
+    "reproduce.mjs": "5e6313d938719fcf9eb5f1c36d4f84c63b2d7c53491366a6bedaf5e3f017443b",
+    "pi-source-diff.mjs": "69143013d28151eadb2fb31b2c09cd16b83d3c9ddd1089b19986dd685f2d8438",
+    "pin-inputs.mjs": "ec1dbbe7094549aa319c15e9541098e712961620a173184b5d14b5d405cce509",
+    "safety-gate.mjs": "f301e12cb7e4b176cf3a8e483a3e5a812aba949802f45d0e7632f92390eea104",
+    "type-contract.ts": "f945b57335cc5b8dde4e89cb2cf44616cf568b6c92ea3c0bdffb57e4014ea9da"
+  }
+}
