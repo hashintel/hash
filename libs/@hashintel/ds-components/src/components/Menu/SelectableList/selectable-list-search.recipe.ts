@@ -6,23 +6,21 @@ export const searchRow = cva({
     alignItems: "center",
     gap: "1.5",
     marginTop:
-      "[calc(-1 * (var(--spacing-1) + var(--selectable-list-padding-y)))]",
+      "[calc(-1 * (var(--selectable-list-content-padding) + var(--selectable-list-padding-y)))]",
     marginInline:
-      "[calc(-1 * (var(--selectable-list-padding-x) + var(--spacing-1)))]",
+      "[calc(-1 * (var(--selectable-list-padding-x) + var(--selectable-list-content-padding)))]",
     marginBottom: "0.5",
     paddingInline: "[var(--selectable-list-padding-x)]",
     paddingTop: "1.5",
     paddingBottom: "1",
     background: "neutral.s10",
     borderBottom: "1px solid {colors.neutral.s35}",
-    // When the dropdown flips above the trigger, move the search to the
-    // bottom edge so it stays adjacent to the trigger (the list content is a
-    // flex column, so `order` relocates it without changing DOM order)
-    "[data-placement^='top'] &": {
-      order: "[1]",
+    // Inside a swap-on-flip header of an upward-opening dropdown the search
+    // lands on the bottom edge; mirror its chrome vertically
+    "[data-placement^='top'] [data-selectable-list-swap-on-flip] &": {
       marginTop: "0.5",
       marginBottom:
-        "[calc(-1 * (var(--spacing-1) + var(--selectable-list-padding-y)))]",
+        "[calc(-1 * (var(--selectable-list-content-padding) + var(--selectable-list-padding-y)))]",
       paddingTop: "1",
       paddingBottom: "1.5",
       borderBottom: "none",

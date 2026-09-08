@@ -8,10 +8,12 @@ import {
 } from "./selectable-list-search.recipe";
 
 /**
- * A search field to embed as a custom row at the top of a SelectableList
- * (`{ custom: <SelectableListSearch ... /> }`). It focuses itself when
- * mounted — pair with a lazily mounted dropdown so focus lands when it opens
- * (the double rAF lets ark move focus to the list content first).
+ * A search field for the header of a SelectableList
+ * (`header={<SelectableListSearch ... />}`) — pair with
+ * `swapHeaderFooterOnFlip` so it hugs the trigger edge when the dropdown
+ * flips to open upward. It focuses itself when mounted — pair with a lazily
+ * mounted dropdown so focus lands when it opens (the double rAF lets ark
+ * move focus to the list content first).
  */
 export const SelectableListSearch = ({
   value,

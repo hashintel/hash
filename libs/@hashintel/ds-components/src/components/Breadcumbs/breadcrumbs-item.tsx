@@ -37,9 +37,10 @@ export type BreadcrumbSubItem = {
 
 export type BreadcrumbItemProps = BreadcrumbSubItem & {
   /**
-   * Caps the crumb's width while it is visible in the trail (it does not apply
-   * inside the ellipsis menu); a longer label truncates with an ellipsis and
-   * gains a tooltip showing the full label (unless `tooltip` is already set).
+   * Caps the crumb's width — hover pill included — while it is visible in the
+   * trail (it does not apply inside the ellipsis menu); a longer label
+   * truncates with an ellipsis and gains a tooltip showing the full label
+   * (unless `tooltip` is already set).
    */
   maxWidth?: React.CSSProperties["maxWidth"];
   /**
@@ -84,13 +85,36 @@ export const collectEntries = (children: React.ReactNode): BreadcrumbEntry[] =>
 export const isCollapsible = (entry: BreadcrumbEntry): boolean =>
   entry.item !== undefined && !entry.item.noCollapse;
 
+/**
+ * Whether `children` renders as plain text and can take the truncating
+ * `label` class. Composed children like `{first} {last}` arrive as an array
+ * of strings, so arrays of text count too; nullish/boolean entries render
+ * nothing and don't disqualify. Anything containing elements renders via
+ * `custom`, untruncated.
+ */
+const isTextChildren = (children: React.ReactNode): boolean => {
+  if (Array.isArray(children)) {
+    return children.every(isTextChildren);
+  }
+  return (
+    typeof children === "string" ||
+    typeof children === "number" ||
+    children == null ||
+    typeof children === "boolean"
+  );
+};
+
 /** Converts a crumb's `subItems` (breadcrumb-shaped, possibly grouped or nested) into Menu items. */
 function toMenuSubEntries(
   entries: Array<ItemOrGroup<BreadcrumbSubItem>>,
   idPrefix: string,
 ): Array<ItemOrGroup<MenuItem>> {
   const toEntry = (subItem: BreadcrumbSubItem, id: string): MenuItem => {
-    const base = { id, text: subItem.children, icon: subItem.iconName };
+    const base = {
+      id,
+      text: subItem.children,
+      icon: subItem.iconName,
+    };
     if (subItem.subItems) {
       return { ...base, subItems: toMenuSubEntries(subItem.subItems, id) };
     }
@@ -142,25 +166,6 @@ export const chevronIcons = (
   size === "lg"
     ? { right: "chevronRight", down: "chevronDown" }
     : { right: "chevronRightHeavy", down: "chevronDownHeavy" };
-
-/**
- * Whether `children` renders as plain text and can take the truncating
- * `label` class. Composed children like `{first} {last}` arrive as an array
- * of strings, so arrays of text count too; nullish/boolean entries render
- * nothing and don't disqualify. Anything containing elements renders via
- * `custom`, untruncated.
- */
-const isTextChildren = (children: React.ReactNode): boolean => {
-  if (Array.isArray(children)) {
-    return children.every(isTextChildren);
-  }
-  return (
-    typeof children === "string" ||
-    typeof children === "number" ||
-    children == null ||
-    typeof children === "boolean"
-  );
-};
 
 export const ItemContent = ({
   item,

@@ -3,7 +3,7 @@
 import { Menu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
 import { Select } from "@ark-ui/react/select";
-import { createContext, use, useMemo } from "react";
+import { createContext, use, useEffect, useMemo, useRef } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -15,7 +15,9 @@ import {
   type CustomItem,
   type Item,
   type ItemOrGroup,
+  footerRowId,
   getItemId,
+  headerRowId,
   isCustomItem,
   isGroup,
   useCustomRowNavigation,
@@ -107,6 +109,28 @@ const NestedMenu = ({
 };
 
 /**
+ * Keydown handler for presentational rows (custom rows and the header/
+ * footer): stops keys from reaching the menu machine, which would otherwise
+ * hijack Enter, Space, Home/End and typeahead from the focused child. In a
+ * Select, arrows and Enter fall through to zag's content handler so the list
+ * highlight/selection can be driven from inside the row (zag already ignores
+ * typing from editable elements, but Space and Home/End would act on both the
+ * caret and the list, so they stay stopped along with everything else).
+ */
+const handleRowKeyDown = (as: SelectableListAs, event: React.KeyboardEvent) => {
+  const passThrough =
+    event.key === "Tab" ||
+    event.key === "Escape" ||
+    (as === "Select" &&
+      (event.key === "ArrowDown" ||
+        event.key === "ArrowUp" ||
+        event.key === "Enter"));
+  if (!passThrough) {
+    event.stopPropagation();
+  }
+};
+
+/**
  * A custom row is deliberately not selectable item so the
  * menu machine never highlights it and arrow keys skip it.
  */
@@ -118,23 +142,7 @@ const CustomRow = ({ item, ctx }: { item: CustomItem; ctx: RenderCtx }) => {
       role="presentation"
       className={classes.customItem}
       data-selectable-list-custom={getItemId(item)}
-      onKeyDown={(event) => {
-        // In a Select, arrows and Enter fall through to zag's content handler
-        // so the list highlight/selection can be driven from inside the row
-        // (zag already ignores typing from editable elements, but Space and
-        // Home/End would act on both the caret and the list, so they stay
-        // stopped along with everything else).
-        const passThrough =
-          event.key === "Tab" ||
-          event.key === "Escape" ||
-          (ctx.as === "Select" &&
-            (event.key === "ArrowDown" ||
-              event.key === "ArrowUp" ||
-              event.key === "Enter"));
-        if (!passThrough) {
-          event.stopPropagation();
-        }
-      }}
+      onKeyDown={(event) => handleRowKeyDown(ctx.as, event)}
     >
       {item.custom}
     </div>
@@ -295,6 +303,9 @@ export const SelectableList = ({
   selected,
   size = "md",
   emptyState,
+  header,
+  footer,
+  swapHeaderFooterOnFlip = false,
 }: {
   /** Which ark-ui primitive set to render inside. Defaults to Menu. */
   as?: SelectableListAs;
@@ -303,16 +314,56 @@ export const SelectableList = ({
   size?: FormInputSize;
   selected?: string[] | Set<string>;
   emptyState?: React.ReactNode;
+  /**
+   * Pinned above the items, outside the scrollable area. Undecorated —
+   * supply your own divider if needed.
+   */
+  header?: React.ReactNode;
+  /**
+   * Pinned below the items, outside the scrollable area. Undecorated —
+   * supply your own divider if needed.
+   */
+  footer?: React.ReactNode;
+  /**
+   * Swap the header and footer when the dropdown flips to open upward
+   * (placement `top*`), keeping the header on the edge nearest the trigger.
+   */
+  swapHeaderFooterOnFlip?: boolean;
 }) => {
   const selectedSet = useMemo(() => new Set(selected ?? []), [selected]);
   const normalizedItems = useItemsWithCustomIds(items);
-  const handleCustomRowKeyDown = useCustomRowNavigation(normalizedItems);
+  const hasHeader = header !== undefined && header !== null;
+  const hasFooter = footer !== undefined && footer !== null;
+  const handleCustomRowKeyDown = useCustomRowNavigation(normalizedItems, {
+    hasHeader,
+    hasFooter,
+  });
   const classes = styles({
     size,
     component: as === "Menu" ? "menu" : "select",
   });
 
   const isEmpty = normalizedItems.length === 0;
+
+  // The scroll area may not shrink below min(200px, the list's natural
+  // height) — see the recipe. CSS cannot compare a length with an intrinsic
+  // size, so measure the natural height into a variable via a sizer element.
+  const scrollSizerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sizer = scrollSizerRef.current;
+    const scrollArea = sizer?.parentElement;
+    if (!sizer || !scrollArea) {
+      return undefined;
+    }
+    const observer = new ResizeObserver(() => {
+      scrollArea.style.setProperty(
+        "--selectable-list-items-height",
+        `${sizer.offsetHeight}px`,
+      );
+    });
+    observer.observe(sizer);
+    return () => observer.disconnect();
+  }, [hasHeader, hasFooter]);
 
   const ctx: RenderCtx = {
     as,
@@ -321,11 +372,51 @@ export const SelectableList = ({
     contentClassName: classes.content,
   };
 
-  const body = isEmpty ? (
+  const listBody = isEmpty ? (
     <div className={classes.emptyContainer}>{emptyState}</div>
   ) : (
     normalizedItems.map((item) => renderEntry(item, ctx))
   );
+
+  const swapOnFlip = swapHeaderFooterOnFlip ? "" : undefined;
+
+  // With a header/footer, scrolling moves to an inner wrapper so they stay
+  // pinned while the items scroll. Both edges take part in keyboard
+  // navigation as custom rows (skipped by arrows, Tab stops when focusable).
+  const body =
+    hasHeader || hasFooter ? (
+      <>
+        {hasHeader && (
+          <div
+            role="presentation"
+            className={classes.header}
+            data-selectable-list-custom={headerRowId}
+            data-selectable-list-swap-on-flip={swapOnFlip}
+            onKeyDown={(event) => handleRowKeyDown(as, event)}
+          >
+            {header}
+          </div>
+        )}
+        <div className={classes.scrollArea} data-selectable-list-scroll="">
+          <div ref={scrollSizerRef} className={classes.scrollSizer}>
+            {listBody}
+          </div>
+        </div>
+        {hasFooter && (
+          <div
+            role="presentation"
+            className={classes.footer}
+            data-selectable-list-custom={footerRowId}
+            data-selectable-list-swap-on-flip={swapOnFlip}
+            onKeyDown={(event) => handleRowKeyDown(as, event)}
+          >
+            {footer}
+          </div>
+        )}
+      </>
+    ) : (
+      listBody
+    );
 
   if (as === "Select") {
     return (

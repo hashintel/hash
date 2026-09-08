@@ -314,7 +314,7 @@ const SearchHighlightSync = ({
   return null;
 };
 
-/** Flattens groups and drops custom rows (e.g. the search field), which must not enter the collection as selectable options */
+/** Flattens groups and drops custom rows (e.g. the empty-search note), which must not enter the collection as selectable options */
 function flattenItems(items: Array<ItemOrGroup<Item>>): Item[] {
   const flat: Item[] = [];
   for (const entry of items) {
@@ -536,33 +536,19 @@ export const Select = <TValue extends string>({
       };
       mapped.unshift(noneItem);
     }
-    if (!showSearch) {
-      return mapped;
+    if (showSearch && mapped.length === 0) {
+      return [
+        {
+          id: `${noneValue}-search-empty`,
+          custom: (
+            <span className={searchEmpty()}>
+              {searching ? "No matching options" : resolvedEmptyState}
+            </span>
+          ),
+        },
+      ];
     }
-    const rows: Array<ItemOrGroup<Item>> = [
-      {
-        id: `${noneValue}-search`,
-        custom: (
-          <SelectableListSearch
-            value={search}
-            onChange={handleSearchChange}
-            aria-label="Search options"
-          />
-        ),
-      },
-      ...mapped,
-    ];
-    if (mapped.length === 0) {
-      rows.push({
-        id: `${noneValue}-search-empty`,
-        custom: (
-          <span className={searchEmpty()}>
-            {searching ? "No matching options" : resolvedEmptyState}
-          </span>
-        ),
-      });
-    }
-    return rows;
+    return mapped;
   }, [
     visibleItems,
     isOptional,
@@ -572,8 +558,6 @@ export const Select = <TValue extends string>({
     selectableAtMaxSet,
     selectOnly,
     showSearch,
-    search,
-    handleSearchChange,
     searchTerms,
     resolvedEmptyState,
   ]);
@@ -779,6 +763,16 @@ export const Select = <TValue extends string>({
             selected={selectedValues}
             size={size}
             emptyState={resolvedEmptyState}
+            header={
+              showSearch ? (
+                <SelectableListSearch
+                  value={search}
+                  onChange={handleSearchChange}
+                  aria-label="Search options"
+                />
+              ) : undefined
+            }
+            swapHeaderFooterOnFlip
           />
         </ArkSelect.Positioner>
       </Portal>
