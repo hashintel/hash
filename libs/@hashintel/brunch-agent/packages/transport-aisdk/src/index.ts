@@ -40,6 +40,8 @@ export interface ClientToolResult {
   readonly toolName: string;
   readonly output: unknown;
   readonly source?: "voice";
+  /** Host-owned verified sidecar; canonical output remains unchanged. */
+  readonly metadata?: unknown;
 }
 
 export interface FlueChatResponseMessageEvent {
@@ -64,9 +66,12 @@ export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseM
 export interface FlueChatTransportOptions {
   readonly client: FlueClient;
   readonly clientToolNames: ReadonlySet<string>;
+  readonly validatedClientToolNames?: ReadonlySet<string>;
+  readonly clientToolResultMetadata?: (result: ClientToolResult) => unknown;
   readonly mapClientToolInput?: (input: {
     readonly input: unknown;
     readonly toolName: string;
+    readonly toolCallId: string;
   }) => unknown;
   readonly hiddenToolNames?: ReadonlySet<string>;
   readonly onAdmission?: (event: {
@@ -333,6 +338,7 @@ const streamSubmission = (
       const projector = createFlueUiStream({
         submissionId: admission.submissionId,
         clientToolNames: options.clientToolNames,
+        validatedClientToolNames: options.validatedClientToolNames,
         mapClientToolInput: options.mapClientToolInput,
         hiddenToolNames: options.hiddenToolNames,
         write,
@@ -404,13 +410,23 @@ export const createFlueChatTransport = <
             messages,
             messageId,
             options.clientToolNames,
-          ).toSorted((left, right) =>
-            left.toolCallId < right.toolCallId
-              ? -1
-              : left.toolCallId > right.toolCallId
-                ? 1
-                : 0,
-          );
+          )
+            // oxlint-disable-next-line oxc/no-map-spread -- Preserve immutable canonical results while adding the host sidecar.
+            .map((result) =>
+              options.clientToolResultMetadata === undefined
+                ? result
+                : {
+                    ...result,
+                    metadata: options.clientToolResultMetadata(result),
+                  },
+            )
+            .toSorted((left, right) =>
+              left.toolCallId < right.toolCallId
+                ? -1
+                : left.toolCallId > right.toolCallId
+                  ? 1
+                  : 0,
+            );
     const userMessage =
       messageId === undefined ? finalUserMessage(messages) : undefined;
     const message: DeliveredMessage =

@@ -26,9 +26,11 @@ export type UiHistoryMessage = Omit<
 
 export interface SnapshotToUiMessagesOptions {
   readonly clientToolNames: ReadonlySet<string>;
+  readonly validatedClientToolNames?: ReadonlySet<string>;
   readonly mapClientToolInput?: (input: {
     readonly input: unknown;
     readonly toolName: string;
+    readonly toolCallId: string;
   }) => unknown;
   readonly hiddenToolNames?: ReadonlySet<string>;
 }
@@ -48,6 +50,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 interface ClientToolResult {
   readonly output: unknown;
   readonly source?: "voice";
+  readonly metadata?: unknown;
+  readonly conflict?: true;
 }
 
 const clientToolResultsFrom = (
@@ -80,9 +84,20 @@ const clientToolResultsFrom = (
       ) {
         continue;
       }
+      const previous = resultsByCallId.get(result.toolCallId);
+      const conflict =
+        previous?.conflict === true ||
+        (previous !== undefined &&
+          (JSON.stringify(previous.output) !== JSON.stringify(result.output) ||
+            JSON.stringify(previous.metadata) !==
+              JSON.stringify(result.metadata)));
       resultsByCallId.set(result.toolCallId, {
-        output: result.output,
-        ...(result.source === "voice" ? { source: "voice" } : {}),
+        output: previous === undefined ? result.output : previous.output,
+        metadata: previous === undefined ? result.metadata : previous.metadata,
+        ...(result.source === "voice" || previous?.source === "voice"
+          ? { source: "voice" }
+          : {}),
+        ...(conflict ? { conflict: true } : {}),
       });
     }
   }
@@ -97,12 +112,26 @@ const toolPartFrom = (
   const isClientTool = options.clientToolNames.has(part.toolName);
   const hasClientOutput = clientResults.has(part.toolCallId);
   const input =
-    isClientTool && options.mapClientToolInput !== undefined
+    isClientTool &&
+    (!options.validatedClientToolNames?.has(part.toolName) ||
+      part.state === "output-available") &&
+    options.mapClientToolInput !== undefined
       ? options.mapClientToolInput({
           input: part.input,
           toolName: part.toolName,
+          toolCallId: part.toolCallId,
         })
       : part.input;
+  if (clientResults.get(part.toolCallId)?.conflict) {
+    return {
+      type: `tool-${part.toolName}`,
+      toolCallId: part.toolCallId,
+      state: "output-error",
+      input,
+      errorText:
+        "Conflicting browser result deliveries; the outcome is unknown. Do not reapply.",
+    };
+  }
   if (part.state === "output-error") {
     return {
       type: `tool-${part.toolName}`,
@@ -111,6 +140,19 @@ const toolPartFrom = (
       input,
       errorText: part.errorText,
       ...(isClientTool ? {} : { providerExecuted: true }),
+    };
+  }
+  if (
+    isClientTool &&
+    !hasClientOutput &&
+    part.state !== "output-available" &&
+    options.validatedClientToolNames?.has(part.toolName)
+  ) {
+    return {
+      type: `tool-${part.toolName}`,
+      toolCallId: part.toolCallId,
+      state: "input-streaming",
+      input,
     };
   }
   if (isClientTool && !hasClientOutput) {

@@ -8,6 +8,7 @@ export interface ClientToolHistoryCall {
 
 export interface ClientToolHistoryResult {
   readonly output: unknown;
+  readonly metadata?: unknown;
   readonly toolCallId: string;
   readonly toolName: string;
 }
@@ -86,6 +87,9 @@ const resultsFrom = (
         return [
           {
             output: result.output,
+            ...(result.metadata === undefined
+              ? {}
+              : { metadata: result.metadata }),
             toolCallId: result.toolCallId,
             toolName: result.toolName,
           },

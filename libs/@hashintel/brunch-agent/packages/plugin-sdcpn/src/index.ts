@@ -24,5 +24,13 @@ export {
   type DefinitionObservation,
 } from "./transition-record";
 
+export {
+  joinedRootArcInputSchema,
+  parseJoinedRootArcInput,
+  browserBindingSchema,
+  rootArcEnvelopeSchema,
+} from "./root-arc";
+export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";
+
 export const SDCPN_DOMAIN_TYPOLOGY = "operational processes";
 export const SDCPN_TARGET_FORMALISM = "sdcpn";

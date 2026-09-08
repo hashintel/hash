@@ -44,6 +44,29 @@ describe("Petrinaut construction tools", () => {
     ).toThrow(/Invalid type/u);
   });
 
+  test("restricts issued browser binding to the opt-in prepared mode", () => {
+    const browser = {
+      binding: {
+        conversationId: "conversation",
+        documentId: "document",
+        incarnationId: "incarnation",
+      },
+      requestedBaseHash: "a".repeat(64),
+    };
+    expect(
+      v.parse(sdcpnInitialDataSchema, {
+        mode: validatedFixtureMutationMode,
+        browser,
+      }),
+    ).toEqual({ mode: validatedFixtureMutationMode, browser });
+    expect(() =>
+      v.parse(sdcpnInitialDataSchema, {
+        mode: VALIDATED_CONSTRUCTION_MODE,
+        browser,
+      }),
+    ).toThrow(/prepared root-arc/u);
+  });
+
   test("exposes exactly the bounded canonical subset", () => {
     expect(petrinautConstructionTools.map((tool) => tool.name)).toEqual([
       ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,

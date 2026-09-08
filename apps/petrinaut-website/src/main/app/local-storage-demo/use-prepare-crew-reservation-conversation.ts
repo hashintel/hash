@@ -11,6 +11,7 @@ export type CrewReservationPreparationStatus =
 export const usePrepareCrewReservationConversation = (
   clientPromise: Promise<FlueClient> | null,
   enabled: boolean,
+  browser?: Parameters<typeof prepareCrewReservationConversation>[1],
 ): {
   readonly clientPromise: Promise<FlueClient> | null;
   readonly status: CrewReservationPreparationStatus;
@@ -18,10 +19,10 @@ export const usePrepareCrewReservationConversation = (
   const preparedClientPromise = useMemo(() => {
     if (!enabled || clientPromise === null) return clientPromise;
     return clientPromise.then(async (client) => {
-      await prepareCrewReservationConversation(client);
+      await prepareCrewReservationConversation(client, browser);
       return client;
     });
-  }, [clientPromise, enabled]);
+  }, [clientPromise, enabled, browser]);
   const [observed, setObserved] = useState<{
     readonly clientPromise: Promise<FlueClient>;
     readonly status: CrewReservationPreparationStatus;

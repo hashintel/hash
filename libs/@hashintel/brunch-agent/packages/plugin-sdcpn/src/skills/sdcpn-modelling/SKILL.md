@@ -31,7 +31,7 @@ For a new account, follow one concrete case and re-evaluate the active gap after
 
 Treat the workpiece as the recoverable account construction will consume. Update it after a useful stretch rather than waiting until the end. Preserve unrelated material unless new evidence affects it.
 
-Whenever the workpiece changes substantially, emit the full current document in a fenced block whose language tag is exactly `runbook-ir`. Emit it again before construction and before workpiece-only delivery. A delta or prose promise is not a recoverable workpiece.
+Whenever the workpiece changes substantially, settle the full current Markdown document with `update_workpiece`. Settle it before construction and before workpiece-only delivery; a delta or prose promise is not a recoverable workpiece. Wait for the returned `revisionId` and `sha256` before citing it in a separate browser construction proposal. The current settled revision, not a new fenced emission, is the model-produced workpiece authority. Label retained prepared or legacy fenced material honestly rather than treating it as a settled revision.
 
 ### Construct
 

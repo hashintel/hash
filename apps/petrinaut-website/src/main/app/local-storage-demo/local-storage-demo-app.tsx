@@ -56,7 +56,10 @@ import {
 } from "./brunch-panel-transport";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
-import { isCrewReservationFixtureSelected } from "./local-storage-demo-search";
+import {
+  isCrewReservationFixtureSelected,
+  isRootArcTracerSelected,
+} from "./local-storage-demo-search";
 import {
   crewReservationDocumentId,
   preparedCrewReservationNet,
@@ -64,8 +67,13 @@ import {
 import {
   PreparedFixtureBanner,
   PreparedFixtureSelector,
+  RootArcTracerBanner,
 } from "./prepared-fixture-banner";
 import { resolveCrewReservationBundle } from "./resolve-crew-reservation-bundle";
+import {
+  createJoinedBrowserTransitionRecorder,
+  observeBrowserDefinition,
+} from "./transition-record";
 import {
   crewReservationFixtureConfiguration,
   useCrewReservationFixtureSession,
@@ -80,6 +88,7 @@ import {
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
+import { usePrepareCrewReservationConversation } from "./use-prepare-crew-reservation-conversation";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
@@ -98,6 +107,15 @@ const preparedCrewReservationStoredSDCPN: SDCPNInLocalStorage = {
   sdcpn: preparedCrewReservationNet,
   lastUpdated: new Date(0).toISOString(),
 };
+
+const rootArcTracerDocumentId = `${crewReservationDocumentId}:root-arc`;
+const createRootArcTracerDocument = (): SDCPNInLocalStorage => ({
+  ...preparedCrewReservationStoredSDCPN,
+  id: rootArcTracerDocumentId,
+  incarnationId: crypto.randomUUID(),
+  sdcpn: structuredClone(preparedCrewReservationNet),
+  title: "Prepared root-arc mechanical tracer",
+});
 
 const DEMO_CAPABILITIES = {
   disabledExtensions: [],
@@ -224,11 +242,21 @@ type ActiveHandle = {
   fallbackNet: SDCPNInLocalStorage;
 };
 
-const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
-  handle: createHandle(net),
-  netId: net.id,
-  fallbackNet: net,
-});
+const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => {
+  const handle = createHandle(net);
+  return {
+    handle,
+    netId: net.id,
+    fallbackNet:
+      net.id === rootArcTracerDocumentId &&
+      net.rootArcRequestedBaseHash === undefined
+        ? {
+            ...net,
+            rootArcRequestedBaseHash: observeBrowserDefinition(handle).sha256,
+          }
+        : net,
+  };
+};
 
 /**
  * The demo's own palette commands, registered beside Petrinaut's: one starts
@@ -332,21 +360,31 @@ export const LocalStorageDemoApp = ({
   const crewReservationFixtureSelected =
     brunchPreviewConfig.isBrunchConfigured &&
     isCrewReservationFixtureSelected(search);
-  const crewReservationBundle = crewReservationFixtureSelected
-    ? resolveCrewReservationBundle({
-        fallbackDocument: preparedCrewReservationStoredSDCPN,
-        manifest: settledManifest,
-        storedDocument: storedSDCPNs[crewReservationDocumentId],
-      })
-    : undefined;
+  const rootArcTracerSelected =
+    crewReservationFixtureSelected && isRootArcTracerSelected(search);
+  const [initialTracerDocument] = useState(createRootArcTracerDocument);
+  const fixtureDocumentId = rootArcTracerSelected
+    ? rootArcTracerDocumentId
+    : crewReservationDocumentId;
+  const crewReservationBundle =
+    crewReservationFixtureSelected && !rootArcTracerSelected
+      ? resolveCrewReservationBundle({
+          fallbackDocument: preparedCrewReservationStoredSDCPN,
+          manifest: settledManifest,
+          storedDocument: storedSDCPNs[crewReservationDocumentId],
+        })
+      : undefined;
   const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(
     storedSDCPNs,
-    crewReservationBundle?.selectedDocument,
+    rootArcTracerSelected
+      ? (storedSDCPNs[rootArcTracerDocumentId] ?? initialTracerDocument)
+      : crewReservationBundle?.selectedDocument,
   );
 
   useEffect(() => {
     if (
       !crewReservationFixtureSelected ||
+      rootArcTracerSelected ||
       storedSDCPNs[crewReservationDocumentId] !== undefined
     ) {
       return;
@@ -355,7 +393,12 @@ export const LocalStorageDemoApp = ({
       ...previous,
       [crewReservationDocumentId]: preparedCrewReservationStoredSDCPN,
     }));
-  }, [crewReservationFixtureSelected, setStoredSDCPNs, storedSDCPNs]);
+  }, [
+    crewReservationFixtureSelected,
+    rootArcTracerSelected,
+    setStoredSDCPNs,
+    storedSDCPNs,
+  ]);
 
   const persistCrewReservationSnapshot = useCallback(
     (sha256: string, definition: SDCPN) => {
@@ -404,7 +447,7 @@ export const LocalStorageDemoApp = ({
         new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime(),
     )[0] ?? null;
   const initiallySelectedNet = crewReservationFixtureSelected
-    ? storedSDCPNsForDisplay[crewReservationDocumentId]
+    ? storedSDCPNsForDisplay[fixtureDocumentId]
     : mostRecentlyModifiedNet;
 
   // The net currently selected in the UI.
@@ -428,6 +471,16 @@ export const LocalStorageDemoApp = ({
     }
 
     const { fallbackNet, handle, netId } = activeHandle;
+    if (netId === rootArcTracerDocumentId) {
+      setStoredSDCPNs((previous) => ({
+        ...previous,
+        [netId]: {
+          ...(previous[netId] ?? fallbackNet),
+          incarnationId: fallbackNet.incarnationId,
+          rootArcRequestedBaseHash: fallbackNet.rootArcRequestedBaseHash,
+        },
+      }));
+    }
 
     return handle.subscribe((event) => {
       const lastUpdated = new Date().toISOString();
@@ -545,16 +598,18 @@ export const LocalStorageDemoApp = ({
   };
 
   const preparedFixtureIsCurrent =
-    crewReservationFixtureSelected &&
-    currentNetId === crewReservationDocumentId;
+    crewReservationFixtureSelected && currentNetId === fixtureDocumentId;
+  const tracerIsCurrent = preparedFixtureIsCurrent && rootArcTracerSelected;
   const fixtureConfiguration = preparedFixtureIsCurrent
     ? crewReservationFixtureConfiguration
     : undefined;
   const conversationId =
     currentNetId === null
       ? null
-      : (fixtureConfiguration?.conversationId ??
-        getOrCreateBrunchConversationId(currentNetId));
+      : tracerIsCurrent && activeHandle?.fallbackNet.incarnationId
+        ? `prepared-root-arc:${activeHandle.fallbackNet.incarnationId}`
+        : (fixtureConfiguration?.conversationId ??
+          getOrCreateBrunchConversationId(currentNetId));
   const flueClientPromise = useMemo(
     () =>
       brunchPreviewConfig.isBrunchConfigured && conversationId !== null
@@ -567,11 +622,47 @@ export const LocalStorageDemoApp = ({
     () => createConversationTrackerFor(conversationId),
     [conversationId],
   );
+  const rootArcBrowser = useMemo(() => {
+    const net = activeHandle?.fallbackNet;
+    if (
+      !tracerIsCurrent ||
+      !activeHandle ||
+      !conversationId ||
+      !net?.incarnationId ||
+      !net.rootArcRequestedBaseHash
+    )
+      return undefined;
+    return {
+      binding: {
+        conversationId,
+        documentId: activeHandle.netId,
+        incarnationId: net.incarnationId,
+      },
+      requestedBaseHash: net.rootArcRequestedBaseHash,
+    };
+  }, [tracerIsCurrent, activeHandle, conversationId]);
+  const transitionRecorder = useMemo(
+    () =>
+      rootArcBrowser && activeHandle
+        ? createJoinedBrowserTransitionRecorder({
+            handle: activeHandle.handle,
+            ...rootArcBrowser,
+          })
+        : undefined,
+    [rootArcBrowser, activeHandle],
+  );
+  const tracerPreparation = usePrepareCrewReservationConversation(
+    flueClientPromise,
+    rootArcBrowser !== undefined,
+    rootArcBrowser,
+  );
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
     fixtureConfiguration?.clientToolNames,
-    fixtureConfiguration?.mapClientToolInput,
+    transitionRecorder?.mapClientToolInput ??
+      fixtureConfiguration?.mapClientToolInput,
+    transitionRecorder?.validatedClientToolNames,
   );
   const brunchVoiceMode = useMemo(
     () =>
@@ -585,7 +676,7 @@ export const LocalStorageDemoApp = ({
   const crewReservationSession = useCrewReservationFixtureSession({
     clientPromise: flueClientPromise,
     definition: storedSDCPNs[crewReservationDocumentId]?.sdcpn,
-    enabled: fixtureConfiguration !== undefined,
+    enabled: fixtureConfiguration !== undefined && !tracerIsCurrent,
     history: flueHistory.snapshot,
     historyError: flueHistory.error?.message,
     persistCoherentSnapshot: persistCrewReservationSnapshot,
@@ -594,8 +685,9 @@ export const LocalStorageDemoApp = ({
     settledManifest,
     snapshotMissing: crewReservationBundle?.snapshotMissing ?? false,
   });
-  const transportClientPromise =
-    fixtureConfiguration === undefined
+  const transportClientPromise = tracerIsCurrent
+    ? tracerPreparation.clientPromise
+    : fixtureConfiguration === undefined
       ? flueClientPromise
       : crewReservationSession.transportClientPromise;
   const petrinautAiChatTransport = useMemo(() => {
@@ -608,7 +700,13 @@ export const LocalStorageDemoApp = ({
             ? {}
             : {
                 clientToolNames: fixtureConfiguration.clientToolNames,
-                mapClientToolInput: fixtureConfiguration.mapClientToolInput,
+                mapClientToolInput:
+                  transitionRecorder?.mapClientToolInput ??
+                  fixtureConfiguration.mapClientToolInput,
+                validatedClientToolNames:
+                  transitionRecorder?.validatedClientToolNames,
+                clientToolResultMetadata:
+                  transitionRecorder?.clientToolResultMetadata,
               }),
           onAdmission: flueHistory.refresh,
         },
@@ -625,6 +723,7 @@ export const LocalStorageDemoApp = ({
     fixtureConfiguration,
     flueHistory.refresh,
     transportClientPromise,
+    transitionRecorder,
   ]);
 
   const aiAssistant = useMemo(
@@ -633,6 +732,9 @@ export const LocalStorageDemoApp = ({
       canClearMessages: flueClientPromise === null,
       interactiveTools: [],
       transport: petrinautAiChatTransport,
+      ...(transitionRecorder === undefined
+        ? {}
+        : { executeMutation: transitionRecorder.executeMutation }),
       ...(flueClientPromise === null
         ? {}
         : {
@@ -681,6 +783,7 @@ export const LocalStorageDemoApp = ({
       flueClientPromise,
       flueHistory.messages,
       petrinautAiChatTransport,
+      transitionRecorder,
       setAiMessagesByNetId,
     ],
   );
@@ -701,7 +804,13 @@ export const LocalStorageDemoApp = ({
         width: "100vw",
       }}
     >
+      {tracerIsCurrent &&
+        createPortal(
+          <RootArcTracerBanner status={tracerPreparation.status} />,
+          document.body,
+        )}
       {preparedFixtureIsCurrent &&
+        !tracerIsCurrent &&
         createPortal(
           <PreparedFixtureBanner
             currentWorkpiece={crewReservationSession.currentWorkpiece}

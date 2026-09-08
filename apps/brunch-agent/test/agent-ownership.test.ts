@@ -56,6 +56,34 @@ test("the mounted agent route admits a principal and conversation that hash to t
   expect(await response.text()).toBe("admitted");
 });
 
+test("refuses a joined initial binding for another authenticated conversation", async () => {
+  const response = await app.fetch(
+    new Request(conversationUrl, {
+      method: "POST",
+      headers: {
+        ...agentOwnershipHeaders(identity),
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        initialData: {
+          mode: "validated-fixture-mutation",
+          browser: {
+            binding: {
+              conversationId: "another",
+              documentId: "document",
+              incarnationId: "incarnation",
+            },
+            requestedBaseHash: "a".repeat(64),
+          },
+        },
+        kind: "user",
+        body: "test",
+      }),
+    }),
+  );
+  expect(response.status).toBe(403);
+});
+
 test("a blank conversation header is unauthorized, not a hash mismatch", async () => {
   const response = await app.fetch(
     new Request(conversationUrl, {

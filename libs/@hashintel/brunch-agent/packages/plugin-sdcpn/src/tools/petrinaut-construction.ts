@@ -7,7 +7,40 @@ import {
   petrinautAiTools,
 } from "@hashintel/petrinaut-core/ai";
 
+import { validateDeclaredBasis } from "../declared-basis";
+import { joinedRootArcInputSchema } from "../root-arc";
 import { canonicalSchemaCarrier } from "./canonical-schema-carrier";
+
+import type { ArcMutationRequest } from "../transition-record";
+import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
+
+export { joinedRootArcInputSchema } from "../root-arc";
+
+/** The only joined mutation; inherited headless tools are not newly admitted. */
+export const createJoinedRootArcTool = (options: {
+  currentRevision: WorkpieceRevision | null;
+  retainedRevisionFor: (
+    revisionId: string,
+  ) => Promise<WorkpieceRevision | undefined>;
+  binding: ArcMutationRequest["binding"];
+  requestedBaseHash: string;
+}) =>
+  defineTool({
+    name: "addArc",
+    description: `${petrinautAiTools.addArc.description}\nRoot place arcs only. Cite a settled workpiece in brunch.basis and the issued brunch.requestedBaseHash. Numeric-string weights normalize before structural and canonical validation.`,
+    input: joinedRootArcInputSchema,
+    output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+    async run({ data }) {
+      if (data.brunch.requestedBaseHash !== options.requestedBaseHash)
+        throw new Error("The arc does not cite the issued browser base.");
+      await validateDeclaredBasis(
+        data.brunch.basis,
+        options.currentRevision,
+        options.retainedRevisionFor,
+      );
+      return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+    },
+  });
 
 export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
   "getLatestNetDefinition",

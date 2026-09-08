@@ -2,17 +2,27 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
 
-vi.mock("@hashintel/brunch-agent/flue", () => ({
+vi.mock("@hashintel/brunch-agent/flue", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@hashintel/brunch-agent/flue")>()),
   useBrunchAgent: vi.fn<typeof useBrunchAgent>(() => "core prompt"),
 }));
-vi.mock("@hashintel/brunch-agent-plugin-sdcpn/flue", () => ({
-  useSdcpnPlugin: () => undefined,
-  SDCPN_MODELLING_SKILL_NAME: "sdcpn-modelling",
-  sdcpnInitialDataSchema: undefined,
-}));
+vi.mock(
+  "@hashintel/brunch-agent-plugin-sdcpn/flue",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("@hashintel/brunch-agent-plugin-sdcpn/flue")
+    >()),
+    useSdcpnPlugin: () => undefined,
+    SDCPN_MODELLING_SKILL_NAME: "sdcpn-modelling",
+    sdcpnInitialDataSchema: undefined,
+  }),
+);
 vi.mock("@flue/runtime", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@flue/runtime")>()),
   useInstruction: () => undefined,
+  useInitialData: () => undefined,
+  useDelivery: () => ({ kind: "user", body: "test" }),
+  useAgentStart: () => undefined,
   useTool: () => undefined,
 }));
 
@@ -29,10 +39,11 @@ test("the production ChatAgent passes the local configuration to its core hook",
   vi.stubEnv("BRUNCH_TEST_KEEP_RECENT_TOKENS", "256");
   const { ChatAgent: renderChatAgent } =
     await import("../src/agents/chat-agent/agent.ts");
-  expect(renderChatAgent()).toBe("core prompt");
+  expect(renderChatAgent({ id: "test-instance" })).toBe("core prompt");
   expect(useBrunchAgent).toHaveBeenCalledExactlyOnceWith(
     "anthropic/claude-sonnet-4-6",
     { keepRecentTokens: 256 },
+    expect.any(Function),
   );
   expect(renderChatAgent.agentName).toBe("brunch-chat-agent");
 });
@@ -40,10 +51,11 @@ test("the production ChatAgent passes the local configuration to its core hook",
 test("the production ChatAgent supplies no compaction override when unset", async () => {
   const { ChatAgent: renderChatAgent } =
     await import("../src/agents/chat-agent/agent.ts");
-  renderChatAgent();
+  renderChatAgent({ id: "test-instance" });
   expect(useBrunchAgent).toHaveBeenCalledExactlyOnceWith(
     "anthropic/claude-sonnet-4-6",
     undefined,
+    expect.any(Function),
   );
 });
 

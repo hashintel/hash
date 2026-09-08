@@ -38,6 +38,7 @@ import { workpieceRevisionStateKey, type WorkpieceRevision } from "./workpiece";
 export function useBrunchAgent(
   model: string,
   compaction?: CompactionConfig,
+  consumeRevision?: (revision: WorkpieceRevision | null) => void,
 ): string {
   useModel(model, compaction === undefined ? undefined : { compaction });
   useSkill(elicitationSkill);
@@ -45,11 +46,13 @@ export function useBrunchAgent(
     schema: BrunchQuestionDataSchema,
   });
   useTool(createBrunchQuestionMarkerTool(writeQuestion));
-  const [, setRevision] = usePersistentState<WorkpieceRevision | null>(
+  const [revision, setRevision] = usePersistentState<WorkpieceRevision | null>(
     workpieceRevisionStateKey,
     null,
   );
   useTool(createUpdateWorkpieceTool(setRevision));
+  // Composition reads this render's single authority, never a second registration.
+  consumeRevision?.(revision);
   return systemPrompt.replace(/^\s+|\s+$/gu, "");
 }
 

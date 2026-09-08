@@ -10,7 +10,7 @@ Labels such as **Expert evidence**, **Working account**, **Agent inference**, **
 
 Use the cross-cutting issue ledger only when an unresolved matter affects several authoritative claims or needs a later return path. Ledger entries reference those claims; they do not summarize them again.
 
-Whenever this workpiece changes substantially, emit the full current document in a fenced block whose language tag is exactly `runbook-ir`. Emit the full latest document again before a construction handoff and before workpiece-only delivery.
+Whenever this workpiece changes substantially, settle the full current Markdown document with `update_workpiece`. Settle the full latest document before a construction handoff and before workpiece-only delivery. Use the returned settled `revisionId` and `sha256` for later citations; new fenced emission is not a second workpiece authority. Retained prepared or legacy fenced material remains explicitly labelled as such.
 
 ```markdown
 # Process-Model Workpiece

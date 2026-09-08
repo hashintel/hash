@@ -8,6 +8,7 @@ import {
 
 import type { CrewReservationSettledManifest } from "./crew-reservation-settled-manifest";
 import type { CrewReservationSettlementStatus } from "./use-crew-reservation-settled-manifest";
+import type { CrewReservationPreparationStatus } from "./use-prepare-crew-reservation-conversation";
 
 // Centred below Petrinaut's 64px top bar, clear of the side panels, so the
 // panels never sit behind the bar.
@@ -32,12 +33,46 @@ const fixtureBannerStyle = {
 
 /** The demo-mode entry point to the prepared fixture. */
 export const PreparedFixtureSelector = () => (
-  <aside aria-label="Prepared fixture selector" style={fixturePanelStyle}>
+  <aside
+    aria-label="Prepared fixture selector"
+    style={{ ...fixtureBannerStyle, maxWidth: 440 }}
+  >
     <strong>Prepared Brunch fixtures</strong>
     <div>
       <a href={`?${crewReservationFixtureQuery}=${crewReservationFixtureId}`}>
-        Open the labelled crew-reservation fixture
+        Open the labelled legacy crew-reservation fixture
       </a>
+    </div>
+    <div>
+      <a
+        href={`?${crewReservationFixtureQuery}=${crewReservationFixtureId}&brunchTracer=root-arc`}
+      >
+        Open the prepared root-arc mechanical tracer
+      </a>
+    </div>
+  </aside>
+);
+
+export const RootArcTracerBanner = ({
+  status,
+}: {
+  readonly status: CrewReservationPreparationStatus;
+}) => (
+  <aside
+    aria-label="Prepared root-arc tracer status"
+    style={{ ...fixtureBannerStyle, maxWidth: 440 }}
+  >
+    <strong>Test-authored root-arc mechanical tracer</strong>
+    <div>
+      One incarnation-bound prepared arc. Not genuine construction, provider
+      fidelity, or Step A acceptance. The legacy fixture is unchanged.
+    </div>
+    <div aria-live="polite">
+      {status.state === "failed"
+        ? status.error
+        : status.state === "ready"
+          ? "Bound conversation ready. Settle the workpiece before the arc."
+          : "Preparing the bound conversation…"}
     </div>
   </aside>
 );

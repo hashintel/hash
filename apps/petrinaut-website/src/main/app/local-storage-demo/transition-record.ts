@@ -6,6 +6,7 @@ import {
   canonicalContent,
   deriveArcEffects,
   observedArcOutcome,
+  parseJoinedRootArcInput,
   reconcileArcTransitionAttempts,
   verifyArcTransitionAttempt,
   type ArcMutationRequest,
@@ -13,6 +14,7 @@ import {
   type DefinitionObservation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 
+import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
 import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
 import type { PetrinautAiAssistant } from "@hashintel/petrinaut/ui";
 
@@ -194,5 +196,72 @@ export const createBrowserTransitionRecorder = ({
         throw new Error("Browser outcome belongs to another binding.");
       return retain(verified);
     },
+  };
+};
+
+/** Production adapter for the opt-in prepared root-arc lane; issued identities are immutable. */
+export const createJoinedBrowserTransitionRecorder = (input: {
+  handle: PetrinautDocHandle;
+  binding: ArcMutationRequest["binding"];
+  requestedBaseHash: string;
+}) => {
+  const binding = structuredClone(input.binding);
+  const requestedBaseHash = input.requestedBaseHash;
+  const issued = new Map<
+    string,
+    { request: ArcMutationRequest; envelope: unknown }
+  >();
+  const recorder = createBrowserTransitionRecorder({
+    handle: input.handle,
+    binding,
+    requestFor: (toolCallId) => {
+      const request = issued.get(toolCallId);
+      if (!request) throw new Error("Unknown issued root arc request.");
+      return structuredClone(request.request);
+    },
+  });
+  const mapClientToolInput: NonNullable<
+    FlueChatTransportOptions["mapClientToolInput"]
+  > = (call) => {
+    if (call.toolName !== "addArc") return call.input;
+    const { brunch, ...canonicalInput } = parseJoinedRootArcInput(call.input);
+    if (brunch.requestedBaseHash !== requestedBaseHash)
+      throw new Error("Root arc cites another issued base.");
+    const request: ArcMutationRequest = {
+      toolCallId: call.toolCallId,
+      toolName: "addArc",
+      input: canonicalInput,
+      binding,
+      requestedBaseHash: brunch.requestedBaseHash,
+    };
+    const previous = issued.get(call.toolCallId);
+    const issuedCall = { request, envelope: brunch };
+    if (previous && canonicalContent(previous) !== canonicalContent(issuedCall))
+      throw new Error("Conflicting issued root arc identity.");
+    issued.set(call.toolCallId, structuredClone(issuedCall));
+    // Canonical history still holds brunch; only the execution projection strips it.
+    return canonicalInput;
+  };
+  const clientToolResultMetadata: NonNullable<
+    FlueChatTransportOptions["clientToolResultMetadata"]
+  > = (result) => {
+    if (result.toolName !== "addArc") return undefined;
+    const transitionRecord = recorder
+      .records()
+      .find(
+        (record) =>
+          record.attempts[0]?.request.toolCallId === result.toolCallId,
+      );
+    if (!transitionRecord)
+      throw new Error(
+        "A root arc result requires an observed browser transition record.",
+      );
+    return { transitionRecord };
+  };
+  return {
+    ...recorder,
+    mapClientToolInput,
+    clientToolResultMetadata,
+    validatedClientToolNames: new Set(["addArc"]),
   };
 };

@@ -6,9 +6,12 @@ import type { UIMessageChunk } from "ai";
 export interface FlueUiStreamOptions {
   readonly submissionId: AgentSendResult["submissionId"];
   readonly clientToolNames: ReadonlySet<string>;
+  /** These client calls are not executable until their server tool has succeeded. */
+  readonly validatedClientToolNames?: ReadonlySet<string>;
   readonly mapClientToolInput?: (input: {
     readonly input: unknown;
     readonly toolName: string;
+    readonly toolCallId: string;
   }) => unknown;
   readonly hiddenToolNames?: ReadonlySet<string>;
   readonly write: (chunk: UIMessageChunk) => void;
@@ -35,6 +38,27 @@ export const createFlueUiStream = (
   let streamingPart: StreamingPart | undefined;
   const hiddenToolCallIds = new Set<string>();
   const pendingClientToolCallIds = new Set<string>();
+  const awaitingValidation = new Map<
+    string,
+    Extract<ConversationStreamChunk, { type: "tool-input" }>
+  >();
+  const publishClientInput = (
+    chunk: Extract<ConversationStreamChunk, { type: "tool-input" }>,
+  ) => {
+    options.write({
+      type: "tool-input-available",
+      toolCallId: chunk.toolCallId,
+      toolName: chunk.toolName,
+      input:
+        options.mapClientToolInput === undefined
+          ? chunk.input
+          : options.mapClientToolInput({
+              input: chunk.input,
+              toolName: chunk.toolName,
+              toolCallId: chunk.toolCallId,
+            }),
+    });
+  };
 
   const finishPart = (): void => {
     if (!streamingPart) return;
@@ -144,6 +168,18 @@ export const createFlueUiStream = (
           }
           const isClientTool = options.clientToolNames.has(chunk.toolName);
           if (isClientTool) pendingClientToolCallIds.add(chunk.toolCallId);
+          if (
+            isClientTool &&
+            options.validatedClientToolNames?.has(chunk.toolName)
+          ) {
+            awaitingValidation.set(chunk.toolCallId, chunk);
+            options.write({
+              type: "tool-input-start",
+              toolCallId: chunk.toolCallId,
+              toolName: chunk.toolName,
+            });
+            return;
+          }
           options.write({
             type: "tool-input-available",
             toolCallId: chunk.toolCallId,
@@ -153,6 +189,7 @@ export const createFlueUiStream = (
                 ? options.mapClientToolInput({
                     input: chunk.input,
                     toolName: chunk.toolName,
+                    toolCallId: chunk.toolCallId,
                   })
                 : chunk.input,
             ...(isClientTool ? {} : { providerExecuted: true }),
@@ -162,6 +199,12 @@ export const createFlueUiStream = (
         case "tool-output": {
           if (!accepting || messageId === undefined) return;
           if (hiddenToolCallIds.has(chunk.toolCallId)) return;
+          const validated = awaitingValidation.get(chunk.toolCallId);
+          if (validated) {
+            awaitingValidation.delete(chunk.toolCallId);
+            publishClientInput(validated);
+            return;
+          }
           if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
           options.write({
             type: "tool-output-available",
@@ -174,7 +217,9 @@ export const createFlueUiStream = (
         case "tool-output-error": {
           if (!accepting || messageId === undefined) return;
           if (hiddenToolCallIds.has(chunk.toolCallId)) return;
-          if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
+          if (awaitingValidation.delete(chunk.toolCallId)) {
+            pendingClientToolCallIds.delete(chunk.toolCallId);
+          } else if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
           options.write({
             type: "tool-output-error",
             toolCallId: chunk.toolCallId,

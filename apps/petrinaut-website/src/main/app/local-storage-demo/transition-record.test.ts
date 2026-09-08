@@ -17,6 +17,7 @@ import {
 } from "./prepared-crew-reservation-fixture";
 import {
   createBrowserTransitionRecorder,
+  createJoinedBrowserTransitionRecorder,
   observeBrowserDefinition,
 } from "./transition-record";
 
@@ -59,6 +60,54 @@ const setup = () => {
 };
 
 describe("browser transition adapter (canonical handle, not a real browser witness)", () => {
+  test("joins issued canonical arguments to record carriage and refuses replacement of the basis envelope", () => {
+    const fixture = setup();
+    const joined = createJoinedBrowserTransitionRecorder({
+      handle: fixture.handle,
+      binding: fixture.request.binding,
+      requestedBaseHash: fixture.request.requestedBaseHash,
+    });
+    const brunch = {
+      basis: { kind: "absent", reason: "Labelled mechanical fixture" },
+      requestedBaseHash: fixture.request.requestedBaseHash,
+    };
+    const call = {
+      toolName: "addArc",
+      toolCallId: fixture.request.toolCallId,
+      input: { ...fixture.request.input, weight: "1", brunch },
+    };
+    expect(joined.mapClientToolInput(call)).toEqual(fixture.request.input);
+    expect(() =>
+      joined.mapClientToolInput({
+        ...call,
+        input: {
+          ...call.input,
+          brunch: {
+            ...brunch,
+            basis: { kind: "absent", reason: "Changed basis" },
+          },
+        },
+      }),
+    ).toThrow(/conflicting/iu);
+    const output = joined.executeMutation({
+      ...fixture.request,
+      execute: fixture.execute,
+    });
+    const metadata = joined.clientToolResultMetadata({
+      toolCallId: fixture.request.toolCallId,
+      toolName: "addArc",
+      output,
+    });
+    expect(metadata).toMatchObject({
+      transitionRecord: {
+        outcome: "applied",
+        attempts: [{ request: fixture.request }],
+      },
+    });
+    joined.executeMutation({ ...fixture.request, execute: fixture.execute });
+    expect(fixture.execute).toHaveBeenCalledTimes(1);
+    fixture.instance.dispose();
+  });
   test("observes the pre-apply hash independently of the request", async () => {
     const fixture = setup();
     fixture.request.requestedBaseHash = "0".repeat(64);

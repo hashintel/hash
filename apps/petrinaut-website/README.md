@@ -32,6 +32,14 @@ cannot make a second net and Back skips the route. Empty nets earlier visits
 left behind are dropped, matching the editor's own rule when a visitor switches
 away from an untouched net.
 
+## Prepared root-arc tracer
+
+With Brunch configured, the prepared-fixture selector offers **Open the prepared root-arc mechanical tracer** at `/?brunch-fixture=crew-reservation-v1&brunchTracer=root-arc`. It opens a separate prepared document and a conversation bound to that document's persisted incarnation and original base. The **legacy crew-reservation fixture** retains its existing conversation, manifest, and fenced-workpiece reads; selecting the tracer does not migrate or overwrite that fixture.
+
+The tracer settles a full Markdown workpiece before admitting one root arc. Unknown citations refuse. Superseded citations refuse unless a retained superseded revision is explicitly intended. A changed document base refuses the mutation. Successful browser results carry independently observed before/after definitions and a correlated transition record; reopening does not resubmit a completed mutation. A conflicting result displays an unknown outcome rather than a successful change. This is a prepared mechanical demonstration, not genuine process construction or proof of provider-schema fidelity.
+
+The ordinary configured host still uses its configured model. For unpaid verification, first build Brunch with `yarn exec turbo run build --filter=@apps/brunch-agent`, build the website with `VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat yarn workspace @apps/petrinaut-website build`, and run `yarn workspace @apps/brunch-agent test:browser-tracer`; that explicit local-browser test uses a synthetic provider, isolated storage, and an ephemeral loopback-only listener. It makes no external model request. `M7_CHROME_PATH` selects an installed Chrome executable, and `M7_BROWSER_OUTPUT` selects a fresh evidence directory.
+
 ## Example embeds and oEmbed
 
 Canonical example pages live below `/examples`. The JSON oEmbed endpoint at

@@ -22,6 +22,67 @@ const project = (
   return written;
 };
 
+test("withholds opted-in browser input until server validation succeeds and surfaces its rejection", () => {
+  const written: UIMessageChunk[] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(["addArc"]),
+    validatedClientToolNames: new Set(["addArc"]),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  const call = {
+    type: "tool-input" as const,
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "arc-1",
+    toolName: "addArc",
+    input: { weight: 1 },
+    position: position(1),
+  };
+  projector.accept(call);
+  expect(written.some((chunk) => chunk.type === "tool-input-available")).toBe(
+    false,
+  );
+  projector.accept({
+    type: "tool-output-error",
+    conversationId: "conversation-1",
+    toolCallId: "arc-1",
+    errorText: "Unknown settled revision",
+    position: position(2),
+  });
+  expect(written.some((chunk) => chunk.type === "tool-input-available")).toBe(
+    false,
+  );
+  expect(written).toContainEqual({
+    type: "tool-output-error",
+    toolCallId: "arc-1",
+    errorText: "Unknown settled revision",
+    providerExecuted: true,
+  });
+  projector.accept({ ...call, toolCallId: "arc-2", position: position(3) });
+  projector.accept({
+    type: "tool-output",
+    conversationId: "conversation-1",
+    toolCallId: "arc-2",
+    output: { awaiting: "client" },
+    position: position(4),
+  });
+  expect(written).toContainEqual({
+    type: "tool-input-available",
+    toolCallId: "arc-2",
+    toolName: "addArc",
+    input: { weight: 1 },
+  });
+});
+
 test("projects data and metadata onto the AI SDK stream", () => {
   const written = project([
     {

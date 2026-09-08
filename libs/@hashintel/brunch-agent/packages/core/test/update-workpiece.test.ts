@@ -133,6 +133,19 @@ test("captures the persistent-state setter at render and writes from run", async
   expect(prompt).not.toContain("# Captured setter");
 });
 
+test("exposes the one render's settled revision without registering another state authority", async () => {
+  await run("# Settled", "settled");
+  vi.mocked(usePersistentState).mockReturnValue([
+    current,
+    setRevision as StateSetter<unknown>,
+  ]);
+  const consume = vi.fn<NonNullable<Parameters<typeof useBrunchAgent>[2]>>();
+  const prompt = useBrunchAgent("anthropic/faux", undefined, consume);
+  expect(consume).toHaveBeenCalledExactlyOnceWith(current);
+  expect(usePersistentState).toHaveBeenCalledTimes(1);
+  expect(prompt).not.toContain("# Settled");
+});
+
 test("carries evidence without blessing support and rejects non-JSON values", () => {
   expect(() => run("# Current", "bad-evidence", { value: Infinity })).toThrow(
     "JSON-compatible",

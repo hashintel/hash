@@ -451,6 +451,7 @@ __metadata:
     "@hashintel/petrinaut-core": "workspace:*"
     "@local/hash-backend-utils": "workspace:*"
     "@opentelemetry/api": "npm:1.9.1"
+    "@playwright/test": "npm:1.58.2"
     "@types/node": "npm:22.18.13"
     "@types/pg": "npm:8.23.1"
     "@types/react": "npm:19.2.14"
