@@ -69,7 +69,14 @@ export {
   type NetManagement,
 } from "./net-management-context";
 export { PetrinautOptimizationContext } from "./optimization-context";
-export type { PetrinautOptimization } from "./optimization-context";
+export type {
+  PetrinautConnectedOptimization,
+  PetrinautConnectedOptimizationCapability,
+  PetrinautConnectedRunOptions,
+  PetrinautOptimization,
+  PetrinautOptimizationChannel,
+  PetrinautOptimizationSource,
+} from "./optimization-context";
 export {
   isOptimizationActive,
   OptimizationsContext,

@@ -17,7 +17,7 @@ import { useEffect, useRef } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useElementSize } from "../../../../../../../../react/hooks/use-element-size";
-import { formatNumber } from "../../shared/format-number";
+import { formatFixed } from "../../../shared/format-value";
 import {
   columnDensity,
   formatAxisTick,
@@ -193,9 +193,9 @@ export const BinHistogramCanvas = ({ bins }: { bins: DistributionBins }) => {
         aria-label={
           bins.length === 0
             ? "No samples in this frame"
-            : `Histogram of ${bins.length} bins from ${formatNumber(
+            : `Histogram of ${bins.length} bins from ${formatFixed(
                 Math.min(...values),
-              )} to ${formatNumber(Math.max(...values))}, peak count ${peak}`
+              )} to ${formatFixed(Math.max(...values))}, peak count ${peak}`
         }
       />
     </div>
