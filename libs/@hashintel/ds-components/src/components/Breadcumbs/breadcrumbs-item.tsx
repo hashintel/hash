@@ -6,7 +6,6 @@ import { useIsomorphicLayoutEffect } from "../../util/use-isomorphic-layout-effe
 import { Icon, type IconName } from "../Icon/icon";
 import { Menu, type MenuItem } from "../Menu/menu";
 import { Tooltip } from "../Tooltip/tooltip";
-import { menuCustomContent } from "./breadcrumbs.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
 import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
@@ -105,14 +104,6 @@ const isTextChildren = (children: React.ReactNode): boolean => {
   );
 };
 
-/** A crumb's content as menu-item text: custom (non-text) content gets a flex wrapper. */
-const toMenuText = (children: React.ReactNode): React.ReactNode =>
-  isTextChildren(children) ? (
-    children
-  ) : (
-    <span className={menuCustomContent}>{children}</span>
-  );
-
 /** Converts a crumb's `subItems` (breadcrumb-shaped, possibly grouped or nested) into Menu items. */
 function toMenuSubEntries(
   entries: Array<ItemOrGroup<BreadcrumbSubItem>>,
@@ -121,7 +112,7 @@ function toMenuSubEntries(
   const toEntry = (subItem: BreadcrumbSubItem, id: string): MenuItem => {
     const base = {
       id,
-      text: toMenuText(subItem.children),
+      text: subItem.children,
       icon: subItem.iconName,
     };
     if (subItem.subItems) {
@@ -151,7 +142,7 @@ export const toMenuItem = (
 ): MenuItem => {
   const base = {
     id: `breadcrumb-${originalIndex}`,
-    text: toMenuText(item.collapsedChildren ?? item.children),
+    text: item.collapsedChildren ?? item.children,
     icon: item.iconName,
   };
   if (item.subItems) {

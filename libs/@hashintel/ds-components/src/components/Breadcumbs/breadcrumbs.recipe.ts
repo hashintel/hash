@@ -1,9 +1,4 @@
-import { css, sva } from "@hashintel/ds-helpers/css";
-
-export const menuCustomContent = css({
-  display: "flex",
-  minWidth: "0",
-});
+import { sva } from "@hashintel/ds-helpers/css";
 
 export const styles = sva({
   slots: [

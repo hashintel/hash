@@ -53,6 +53,9 @@ function withSelection(
       ),
     };
   }
+  if ("custom" in entry) {
+    return entry as MenuItem;
+  }
   const nested = (entry as { subItems?: Array<ItemOrGroup<Item>> }).subItems;
   if (nested) {
     return {

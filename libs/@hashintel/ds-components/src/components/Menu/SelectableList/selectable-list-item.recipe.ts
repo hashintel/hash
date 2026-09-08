@@ -6,6 +6,7 @@ export const styles = sva({
   slots: [
     "item",
     "textColumn",
+    "customText",
     "description",
     "indicator",
     "tick",
@@ -41,6 +42,12 @@ export const styles = sva({
       minWidth: "0",
       overflow: "hidden",
       textOverflow: "ellipsis",
+    },
+    // Non-string item text gets this flex wrapper so inline-block content
+    // doesn't pick up line-box leading (plain strings keep the ellipsis).
+    customText: {
+      display: "flex",
+      minWidth: "0",
     },
     description: {
       display: "block",

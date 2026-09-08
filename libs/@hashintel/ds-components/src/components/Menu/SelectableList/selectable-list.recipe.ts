@@ -74,6 +74,11 @@ export const styles = sva({
       padding: "1",
     },
     customItem: {
+      // Flex, so inline-block children (e.g. a Button) don't pick up line-box
+      // leading from the row's line-height. Centered rather than stretched to
+      // leave the children's heights alone.
+      display: "flex",
+      alignItems: "center",
       width: "full",
       paddingX: "[var(--selectable-list-padding-x)]",
       paddingY: "[var(--selectable-list-padding-y)]",

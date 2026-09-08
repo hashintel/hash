@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 
+import { Button } from "../../Button/button";
 import { type Item, type ItemOrGroup } from "./selectable-list";
 
 const tones = ["neutral", "brand", "error"] as const;
@@ -142,6 +143,18 @@ const itemWithCustomText: Item = {
     </span>
   ),
   onClick: noop,
+};
+
+// A custom row hosting a real button: not highlightable by the menu, but
+// clickable and reachable with Tab. autoFocus="never" stops ark's open-focus
+// from landing on it as a popover menu's first tabbable.
+const customItemButton: Item = {
+  id: "custom-button-row",
+  custom: (
+    <Button variant="subtle" size="xs" autoFocus="never" onClick={noop}>
+      Custom row: a Button
+    </Button>
+  ),
 };
 
 const kitchenSinkItem: Item = {
@@ -292,7 +305,7 @@ export const groupedItems: ItemOrGroup<Item>[] = [
         ✦ Custom group label ✦
       </span>
     ),
-    items: [itemWithCustomText],
+    items: [itemWithCustomText, customItemButton],
   },
   {
     id: "group-kitchen-sink",
@@ -306,6 +319,7 @@ export const itemsWithSubActions: ItemOrGroup<Item>[] = [
   itemWithGroupedSubActions,
   itemWithNestedSubActions,
   itemWithoutSubActions,
+  customItemButton,
 ];
 
 const customButtonStyle = css({
