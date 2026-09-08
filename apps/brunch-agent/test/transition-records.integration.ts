@@ -40,25 +40,58 @@ import {
 import { latestRunbookIrBlock } from "@hashintel/brunch-agent/workpiece";
 
 import {
-  crewReservationFixtureId,
-  crewReservationFixtureQuery,
-  dispatchCrewPlaceId,
-  startFinalInspectionTransitionId,
-  preparedCrewReservationWorkpiece,
-} from "../../petrinaut-website/src/main/app/local-storage-demo/prepared-crew-reservation-fixture.ts";
-import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 
-import type { SDCPNInLocalStorage } from "../../petrinaut-website/src/main/app/local-storage-demo/use-local-storage-sdcpns.ts";
+// Keep these in lockstep with apps/petrinaut-website prepared-crew-reservation-fixture.
+// Brunch-agent lint cannot typecheck a relative import into that app.
+const crewReservationFixtureId = "crew-reservation-v1";
+const crewReservationFixtureQuery = "brunch-fixture";
+const dispatchCrewPlaceId = "dispatch-crew-available";
+const startFinalInspectionTransitionId = "start-final-inspection";
+const preparedCrewReservationWorkpiece = [
+  "Fixture authorship: test-authored preparation for Mission 6.",
+  "Non-claims: not a Mission 4 candidate, not model-produced evidence, not capture-backed provenance, and not proof of automatic full-net projection.",
+  "",
+  "```runbook-ir",
+  "# Final inspection and dispatch workpiece",
+  "",
+  "## Purpose and posture",
+  "Maintain the narrow batch path from final inspection to dispatch readiness and test one evidence-backed decision against the live Petrinaut document.",
+  "",
+  "## Operational account",
+  "- A batch that is ready enters final inspection.",
+  "- The prepared topology returns the sole dispatch crew at sign-off.",
+  "- Whether final inspection reserves that crew is an unconfirmed hypothesis; changing the workpiece or net requires explicit true-user confirmation.",
+  "",
+  "## Quantity and resource policy",
+  "Exactly one dispatch crew is available in this fixture. Revision zero does not establish whether starting final inspection consumes it; the prepared topology currently returns it at sign-off.",
+  "",
+  "## Current Petrinaut correspondence",
+  "The prepared non-empty net contains the batch path and the crew return from sign-off. The standard weight-1 input arc from `Dispatch crew available` to `Start final inspection` is absent while the reservation policy remains unconfirmed.",
+  "",
+  "## Explicit unknowns",
+  "Crew reservation awaits true-user confirmation. Inspection and sign-off timing, failure modes, and recovery behavior remain unresolved.",
+  "",
+  "## Claim boundary",
+  "This prepared revision is test-authored diagnostic material. It is not model-produced evidence and does not establish capture provenance, behavioral execution, or broad projection quality.",
+  "```",
+].join("\n");
+
+type BrowserStoredDocument = {
+  id: string;
+  incarnationId?: string;
+  rootArcRequestedBaseHash?: string;
+  sdcpn?: unknown;
+};
 
 const readBrowserDocument = (id: string) => {
   const store = JSON.parse(
     localStorage.getItem("petrinaut-sdcpn") ?? "{}",
-  ) as Record<string, SDCPNInLocalStorage>;
+  ) as Record<string, BrowserStoredDocument>;
   return store[id]?.sdcpn;
 };
 
@@ -240,7 +273,7 @@ try {
   save("initial-storage.json", storage);
   const documents = JSON.parse(storage["petrinaut-sdcpn"] ?? "{}") as Record<
     string,
-    SDCPNInLocalStorage
+    BrowserStoredDocument
   >;
   const document = Object.values(documents).find((entry) =>
     entry.id.endsWith(":root-arc"),
