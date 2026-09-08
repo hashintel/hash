@@ -1,9 +1,6 @@
 use core::{borrow::Borrow, hash::Hash};
 
-use hashql_core::{
-    collections::FastHashMap,
-    id::{Id, IdVec},
-};
+use hashql_core::{collections::FastHashMap, id::IdVec};
 
 use super::{
     DeltaRevision,
@@ -175,7 +172,7 @@ pub(crate) struct IdentityProviderResidual<K, R, P> {
 
 impl<K, R, P> IdentityProviderResidual<K, R, P> {
     #[inline]
-    fn new(base: &(impl VersionedIdentityProvider<K, R> + ?Sized)) -> Self
+    pub(crate) fn new(base: &(impl VersionedIdentityProvider<K, R> + ?Sized)) -> Self
     where
         K: Key<Payload: ToOwned<Owned = P>>,
         R: Row,

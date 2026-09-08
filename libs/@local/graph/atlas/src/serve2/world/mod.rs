@@ -43,7 +43,7 @@ pub(crate) struct World {
     pub topology: Topology,
     cache: Cache,
 
-    ontology: Ontology,
+    pub ontology: Ontology,
 }
 
 impl World {

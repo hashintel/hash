@@ -286,6 +286,7 @@ where
     }
 }
 
+/// Replaces `frame` with projected coordinates, including any non-finite output.
 pub(crate) fn forward_unchecked_in<N, B: Backend<FloatElem = f32>>(
     model: &Projector<B>,
     columns: NodeColumns<'_, N>,
@@ -296,6 +297,7 @@ pub(crate) fn forward_unchecked_in<N, B: Backend<FloatElem = f32>>(
 ) where
     N: Id,
 {
+    frame.clear();
     let rows = columns.representations.len();
     let mut start = 0;
 

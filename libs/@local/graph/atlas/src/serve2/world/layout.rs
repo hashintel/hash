@@ -113,7 +113,7 @@ impl Error for LayoutRoundtripError {}
 /// Fitted coordinates and importance ranks joined through the base-position permutation.
 #[derive(Debug)]
 pub(crate) struct Layout {
-    index: NodeIndex,
+    pub index: NodeIndex,
     importance: NodeImportance,
 
     geometry: Geometry,

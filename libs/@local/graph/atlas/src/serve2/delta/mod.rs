@@ -10,31 +10,23 @@ pub(crate) mod topology;
 
 use alloc::sync::Arc;
 
+use hashql_core::id::Id as _;
 use rand::TryCryptoRng;
 
 use self::{
-    feed::DeltaFeedEvent, layout::LayoutDelta, overlay::IdentityProviderResidual,
+    layout::LayoutDelta,
+    overlay::{IdentityProviderResidual, NaiveIdentityProvider},
     topology::TopologyDelta,
 };
 use super::world::World;
 use crate::{
     dataset::auxiliary::{OwnedIcon, OwnedLegend},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::Vec2,
-    postgres::id::{ArchivedEntityUuid, ArchivedOntologyTypeUuid},
+    postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedOntologyTypeUuid},
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct DeltaRevision(u64);
-
-impl DeltaRevision {
-    fn increment(&mut self) {
-        self.0 += 1;
-    }
-
-    fn decrement(&mut self) {
-        self.0 -= 1;
-    }
+hashql_core::id::newtype! {
+    pub(crate) struct DeltaRevision(u64)
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -50,25 +42,6 @@ impl DeltaId {
     }
 }
 
-struct DeltaProvider {
-    id: DeltaId,
-}
-
-impl DeltaProvider {
-    fn new<R>(rng: R) -> Result<Self, R::Error>
-    where
-        R: TryCryptoRng,
-    {
-        let id = DeltaId::new(rng)?;
-        Ok(Self { id })
-    }
-}
-
-pub(crate) struct Projected<T> {
-    value: T,
-    position: Vec2,
-}
-
 pub(crate) struct Delta {
     world: Arc<World>,
 
@@ -77,46 +50,67 @@ pub(crate) struct Delta {
 
     ontology: IdentityProviderResidual<ArchivedOntologyTypeUuid, OntologyRowId, OwnedIcon>,
 
-    node: IdentityProviderResidual<ArchivedEntityUuid, NodeRowId, OwnedLegend>,
-    edge: IdentityProviderResidual<ArchivedEntityUuid, EdgeRowId, OwnedLegend>,
+    node: IdentityProviderResidual<ArchivedEntityId, NodeRowId, OwnedLegend>,
+    edge: IdentityProviderResidual<ArchivedEntityId, EdgeRowId, OwnedLegend>,
 
     topology: TopologyDelta,
     layout: LayoutDelta,
 }
 
 impl Delta {
-    pub(crate) fn new<R>(world: Arc<World>, rng: impl TryCryptoRng) -> Result<Self, R::Error>
+    pub(crate) fn new<R>(world: Arc<World>, rng: R) -> Result<Self, R::Error>
     where
         R: TryCryptoRng,
     {
-        todo!()
+        let id = DeltaId::new(rng)?;
+        let revision = DeltaRevision::MIN;
+
+        Ok(Self {
+            id,
+            revision,
+            ontology: IdentityProviderResidual::new(NaiveIdentityProvider::from_ref(
+                &world.ontology.identity,
+            )),
+            node: IdentityProviderResidual::new(NaiveIdentityProvider::from_ref(
+                &world.layout.index.identity,
+            )),
+            edge: IdentityProviderResidual::new(NaiveIdentityProvider::from_ref(
+                &world.topology.identity,
+            )),
+            topology: TopologyDelta::default(),
+            layout: LayoutDelta::default(),
+            world,
+        })
     }
 
-    fn apply_event(&mut self, event: DeltaFeedEvent) -> bool {
-        match event.kind {
-            feed::DeltaEventKind::Live {
-                edition,
-                position,
-                payload,
-                endpoints: None,
-            } => todo!(),
-            feed::DeltaEventKind::Live {
-                edition,
-                position,
-                payload,
-                endpoints: Some([source, target]),
-            } => todo!(),
-            feed::DeltaEventKind::Defect => {
-                return false;
-            }
-            feed::DeltaEventKind::Withdrawn => {
-                // let mut changed = false;
-                // changed |= self.node.withdraw((), self.revision, event.entity.entity_uuid);
-                // changed |= self.edge.withdraw((), self.revision, event.entity.entity_uuid);
-                // changed
-                todo!("connect the identity providers before applying withdrawals")
-            }
-        }
+    fn withdraw(&mut self, entity: ArchivedEntityUuid) -> bool {
+        let Self {
+            world,
+            id,
+            revision,
+            ontology,
+            node,
+            edge,
+            topology,
+            layout,
+        } = self;
+
+        let mut changed = false;
+
+        // changed |= self
+        //     .node
+        //     .withdraw(&self.world.layout.index.identity, self.revision, entity);
+        // changed |= self
+        //     .edge
+        //     .withdraw(&self.world.topology.identity, self.revision, entity);
+
+        // changed |= topology.withdraw(&self.world.topology, entity, self.revision);
+        // changed |= layout.withdraw(&self.world.layout, entity, self.revision);
+        changed
+    }
+
+    fn update(&mut self, entity: ArchivedEntityUuid) -> bool {
+        todo!()
     }
 
     fn register_ontology(&mut self) {}

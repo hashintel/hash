@@ -57,7 +57,7 @@ impl<T: TopologyProvider + ?Sized> TopologyProvider for &T {
 /// The fitted endpoint bindings and adjacency lists of one generation.
 #[derive(Debug)]
 pub(crate) struct Topology {
-    identity: IdentityTableArchive<ArchivedEntityId, EdgeRowId>,
+    pub identity: IdentityTableArchive<ArchivedEntityId, EdgeRowId>,
 
     adjacency: AdjacencyArchive,
     endpoints: Column<EdgeRowId, [NodeRowId; 2]>,

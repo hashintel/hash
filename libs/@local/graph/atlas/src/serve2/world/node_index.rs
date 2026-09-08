@@ -17,7 +17,7 @@ use crate::{
 /// Node identities and the inverse mappings between row and base-position order.
 #[derive(Debug)]
 pub struct NodeIndex {
-    identity: IdentityTableArchive<ArchivedEntityId, NodeRowId>,
+    pub identity: IdentityTableArchive<ArchivedEntityId, NodeRowId>,
     encoding: Encoding<NodeRowId>,
 
     lookup: Column<BasePosition, NodeRowId>,

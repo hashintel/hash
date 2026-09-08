@@ -12,7 +12,7 @@ use crate::{
 
 #[derive(Debug)]
 pub(crate) struct Ontology {
-    identity: IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId>,
+    pub identity: IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId>,
 
     postings: PostingsArchive,
     closure: ClosureMap,
