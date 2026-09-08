@@ -1,0 +1,962 @@
+• turbo 2.10.12
+
+   • Packages in scope: @apps/brunch-agent, @hashintel/brunch-agent-plugin-sdcpn
+   • Running build, lint:tsc, lint:eslint, test:unit in 2 packages
+   • Remote caching disabled, using shared worktree cache
+
+@hashintel/petrinaut-core:build: cache bypass, force executing c950d3ff30965e29
+@local/advanced-types:build: cache hit, replaying logs 771afa5d7f763cf4
+@local/status:build: cache hit, replaying logs 9540cd777ca03a27
+@local/hash-isomorphic-utils:codegen: cache hit, replaying logs 573963f615d9c4a4
+@local/eslint:build: cache hit, replaying logs abf06d7df99eb760
+@local/hash-isomorphic-utils:codegen: ❯ Parse Configuration
+@local/hash-isomorphic-utils:codegen: ✔ Parse Configuration
+@local/hash-isomorphic-utils:codegen: ❯ Generate outputs
+@local/hash-isomorphic-utils:codegen: ❯ Generate to ./src/graphql/fragment-types.gen.json
+@local/hash-isomorphic-utils:codegen: ❯ Generate to ./src/graphql/api-types.gen.ts
+@local/hash-isomorphic-utils:codegen: ❯ Load GraphQL schemas
+@local/hash-isomorphic-utils:codegen: ❯ Load GraphQL schemas
+@local/hash-isomorphic-utils:codegen: ✔ Load GraphQL schemas
+@local/hash-isomorphic-utils:codegen: ✔ Load GraphQL schemas
+@local/hash-isomorphic-utils:codegen: ❯ Load GraphQL documents
+@local/hash-isomorphic-utils:codegen: ❯ Load GraphQL documents
+@local/hash-isomorphic-utils:codegen: ✔ Load GraphQL documents
+@local/hash-isomorphic-utils:codegen: ❯ Generate
+@hashintel/brunch-agent-transport-aisdk:build: cache hit, replaying logs 75ce107459296704
+@hashintel/brunch-agent:build: cache hit, replaying logs 057c83646aa992ff
+@local/hash-isomorphic-utils:codegen: ✔ Generate
+@local/hash-isomorphic-utils:codegen: ✔ Generate to ./src/graphql/fragment-types.gen.json
+@local/internal-api-client:build: cache hit, replaying logs d38f5b82972ba669
+@local/hash-isomorphic-utils:codegen: ✔ Load GraphQL documents
+@local/hash-isomorphic-utils:codegen: ❯ Generate
+@local/hash-isomorphic-utils:codegen: ✔ Generate
+@local/hash-isomorphic-utils:codegen: ✔ Generate to ./src/graphql/api-types.gen.ts
+@hashintel/brunch-agent-transport-aisdk:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent:build: transforming...
+@hashintel/brunch-agent:build: ✓ 19 modules transformed.
+@hashintel/brunch-agent:build: rendering chunks...
+@hashintel/brunch-agent-transport-aisdk:build: transforming...
+@hashintel/brunch-agent-transport-aisdk:build: ✓ 9 modules transformed.
+@hashintel/brunch-agent-transport-aisdk:build: rendering chunks...
+@hashintel/brunch-agent-transport-aisdk:build: computing gzip size...
+@hashintel/brunch-agent:build: computing gzip size...
+@local/hash-isomorphic-utils:codegen: ✔ Generate outputs
+@rust/hash-codec:build:types: cache hit, replaying logs d8dbac163dc104b2
+@hashintel/brunch-agent-transport-aisdk:build: dist/headers.js   0.20 kB │ gzip: 0.17 kB │ map:  0.35 kB
+@hashintel/brunch-agent-transport-aisdk:build: dist/index.js    16.17 kB │ gzip: 5.09 kB │ map: 52.92 kB
+@hashintel/brunch-agent-transport-aisdk:build: 
+@hashintel/brunch-agent-transport-aisdk:build: ✓ built in 11ms
+@hashintel/brunch-agent:build: dist/storage.js                0.20 kB │ gzip: 0.15 kB
+@hashintel/brunch-agent:build: dist/client-tools.js           0.45 kB │ gzip: 0.30 kB │ map:  1.22 kB
+@hashintel/brunch-agent:build: dist/question-marker.js        0.59 kB │ gzip: 0.37 kB │ map:  1.27 kB
+@hashintel/brunch-agent:build: dist/naming-B-X_Ur_R.js        0.80 kB │ gzip: 0.49 kB │ map:  4.33 kB
+@hashintel/brunch-agent:build: dist/workpiece.js              2.90 kB │ gzip: 1.14 kB │ map:  9.46 kB
+@hashintel/brunch-agent:build: dist/session-log-CfNSNnUn.js   6.30 kB │ gzip: 2.24 kB │ map: 20.06 kB
+@hashintel/brunch-agent:build: dist/flue.js                  20.23 kB │ gzip: 7.71 kB │ map:  5.00 kB
+@hashintel/brunch-agent:build: dist/index.js                 24.84 kB │ gzip: 7.61 kB │ map: 76.56 kB
+@hashintel/brunch-agent:build: 
+@hashintel/brunch-agent:build: ✓ built in 17ms
+@rust/hash-codec:build:types:    Compiling unicode-segmentation v1.13.3
+@rust/hash-codec:build:types:    Compiling siphasher v1.0.3
+@rust/hash-codec:build:types:    Compiling serde_core v1.0.228
+@rust/hash-codec:build:types:    Compiling owo-colors v4.3.0
+@rust/hash-codec:build:types:    Compiling allocator-api2 v0.2.21
+@rust/hash-codec:build:types:    Compiling unicode-linebreak v0.1.5
+@rust/hash-codec:build:types:    Compiling unicode-width v0.2.2
+@rust/hash-codec:build:types:    Compiling smawk v0.3.3
+@rust/hash-codec:build:types:    Compiling fastrand v2.4.1
+@rust/hash-codec:build:types:    Compiling serde v1.0.228
+@rust/hash-codec:build:types:    Compiling oxc_data_structures v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling cow-utils v0.1.3
+@rust/hash-codec:build:types:    Compiling syn v2.0.118
+@rust/hash-codec:build:types:    Compiling castaway v0.2.4
+@rust/hash-codec:build:types:    Compiling oxc_estree v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling unicode-id-start v1.4.0
+@rust/hash-codec:build:types:    Compiling nonmax v0.5.5
+@rust/hash-codec:build:types:    Compiling compact_str v0.9.1
+@rust/hash-codec:build:types:    Compiling dragonbox_ecma v0.0.5
+@rust/hash-codec:build:types:    Compiling num-integer v0.1.46
+@rust/hash-codec:build:types:    Compiling phf_shared v0.13.1
+@rust/hash-codec:build:types:    Compiling libc v0.2.186
+@rust/hash-codec:build:types:    Compiling serde_json v1.0.150
+@rust/hash-codec:build:types:    Compiling oxc_sourcemap v6.1.1
+@rust/hash-codec:build:types:    Compiling self_cell v1.2.2
+@rust/hash-codec:build:types:    Compiling ctor-proc-macro v0.0.6
+@rust/hash-codec:build:types:    Compiling textwrap v0.16.2
+@blockprotocol/type-system-rs:build:wasm: cache hit, replaying logs 71255e2fe653a7bf
+@rust/hash-codec:build:types:    Compiling phf v0.13.1
+@rust/hash-codec:build:types:    Compiling phf_generator v0.13.1
+@rust/hash-codec:build:types:    Compiling num-bigint v0.4.6
+@rust/hash-codec:build:types:    Compiling hashbrown v0.15.5
+@rust/hash-codec:build:types:    Compiling bumpalo v3.19.0
+@rust/hash-codec:build:types:    Compiling getrandom v0.3.4
+@rust/hash-codec:build:types:    Compiling dashu-int v0.4.3
+@rust/hash-codec:build:types:    Compiling json-escape-simd v3.0.2
+@rust/hash-codec:build:types:    Compiling rustix v1.1.4
+@rust/hash-codec:build:types:    Compiling Inflector v0.11.4
+@blockprotocol/type-system-rs:build:wasm: [INFO]: 🎯  Checking for the Wasm target...
+@blockprotocol/type-system-rs:build:wasm: [INFO]: 🌀  Compiling to Wasm...
+@blockprotocol/type-system-rs:build:wasm:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:wasm:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:wasm:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:wasm:     Blocking waiting for file lock on package cache
+@rust/hash-codec:build:types:    Compiling ctor v0.4.3
+@rust/hash-graph-authorization:build:types: cache hit, replaying logs c5f2cf7a00a6a433
+@hashintel/brunch-agent-plugin-gherkin:build: cache hit, replaying logs 9c85678d74d6866a
+@blockprotocol/type-system-rs:build:types: cache hit, replaying logs e88e5b117e84995b
+@rust/hash-codec:build:types:    Compiling convert_case v0.10.0
+@rust/hash-codec:build:types:    Compiling dashu-base v0.4.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling unicode-ident v1.0.24
+@blockprotocol/type-system-rs:build:wasm:    Compiling proc-macro2 v1.0.106
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on build directory
+@rust/hash-graph-authorization:build:types:    Compiling memchr v2.8.2
+@rust/hash-graph-authorization:build:types:    Compiling phf_macros v0.13.1
+@rust/hash-graph-authorization:build:types:    Compiling getrandom v0.4.3
+@rust/hash-graph-authorization:build:types:    Compiling parking_lot_core v0.9.12
+@rust/hash-graph-authorization:build:types:    Compiling scopeguard v1.2.0
+@rust/hash-graph-authorization:build:types:    Compiling regex-syntax v0.8.11
+@rust/hash-graph-authorization:build:types:    Compiling regex-automata v0.4.14
+@rust/hash-graph-authorization:build:types:    Compiling error-stack v0.8.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/error-stack)
+@rust/hash-graph-authorization:build:types:    Compiling log v0.4.33
+@rust/hash-graph-authorization:build:types:    Compiling smallvec v1.15.2
+@hashintel/brunch-agent-plugin-dafny:build: cache hit, replaying logs ad6714a0e2646a64
+@blockprotocol/type-system-rs:build:wasm:    Compiling quote v1.0.46
+@blockprotocol/type-system-rs:build:wasm:    Compiling serde_core v1.0.228
+@blockprotocol/type-system-rs:build:wasm:    Compiling memchr v2.8.2
+@blockprotocol/type-system-rs:build:wasm:    Compiling rustversion v1.0.22
+@blockprotocol/type-system-rs:build:wasm:    Compiling wasm-bindgen-shared v0.2.108
+@blockprotocol/type-system-rs:build:wasm:    Compiling stable_deref_trait v1.2.1
+@rust/hash-graph-authorization:build:types:    Compiling derive_more-impl v2.1.1
+@rust/hash-graph-authorization:build:types:    Compiling tokio v1.52.3
+@hashintel/brunch-agent-plugin-dafny:build: vite v8.2.2 building client environment for production...
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on package cache
+@hashintel/brunch-agent-binding-flue:build: cache hit, replaying logs 4c33f169a0dac127
+@local/harpc-client:build: cache hit, replaying logs 73864d13c6889729
+@rust/hash-codec:build:types:    Compiling oxc_allocator v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling seq-macro v0.3.6
+@rust/hash-codec:build:types:    Compiling num-modular v0.6.4
+@rust/hash-codec:build:types:    Compiling similar v2.7.0
+@hashintel/brunch-agent-plugin-dafny:build: transforming...
+@hashintel/brunch-agent-plugin-dafny:build: ✓ 6 modules transformed.
+@hashintel/brunch-agent-plugin-dafny:build: rendering chunks...
+@hashintel/brunch-agent-plugin-dafny:build: computing gzip size...
+@hashintel/brunch-agent-plugin-dafny:build: dist/index.js  0.19 kB │ gzip: 0.18 kB │ map: 0.83 kB
+@hashintel/brunch-agent-plugin-dafny:build: dist/flue.js   2.24 kB │ gzip: 1.10 kB │ map: 1.22 kB
+@hashintel/brunch-agent-plugin-dafny:build: 
+@hashintel/brunch-agent-plugin-dafny:build: ✓ built in 12ms
+@blockprotocol/type-system-rs:build:wasm:    Compiling serde v1.0.228
+@blockprotocol/type-system-rs:build:wasm:    Compiling cfg-if v1.0.4
+@blockprotocol/type-system-rs:build:wasm:    Compiling zmij v1.0.21
+@blockprotocol/type-system-rs:build:wasm:    Compiling bumpalo v3.19.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling serde_json v1.0.150
+@blockprotocol/type-system-rs:build:wasm:    Compiling writeable v0.6.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling litemap v0.8.2
+@blockprotocol/type-system-rs:build:wasm:    Compiling itoa v1.0.18
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_normalizer_data v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling utf8_iter v1.0.4
+@blockprotocol/type-system-rs:build:wasm:    Compiling once_cell v1.21.4
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_properties_data v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling unicode-segmentation v1.13.3
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on build directory
+@rust/hash-graph-store:build:types: cache hit, replaying logs 638aaa593e296209
+@rust/hash-codec:build:types:    Compiling harpc-types v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/harpc/types)
+@hashintel/brunch-agent-plugin-gherkin:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent-plugin-gherkin:build: transforming...
+@hashintel/brunch-agent-plugin-gherkin:build: ✓ 9 modules transformed.
+@hashintel/brunch-agent-plugin-gherkin:build: rendering chunks...
+@blockprotocol/type-system-rs:build:types:    Compiling serde_core v1.0.228
+@blockprotocol/type-system-rs:build:types:    Compiling serde v1.0.228
+@blockprotocol/type-system-rs:build:types:    Compiling regex-syntax v0.8.11
+@blockprotocol/type-system-rs:build:types:    Compiling indexmap v2.14.0
+@rust/hash-graph-authorization:build:types:    Compiling itertools v0.14.0
+@rust/hash-graph-authorization:build:types:    Compiling lock_api v0.4.14
+@rust/hash-graph-authorization:build:types:    Compiling form_urlencoded v1.2.2
+@rust/hash-graph-authorization:build:types:    Compiling tracing-core v0.1.36
+@rust/hash-graph-authorization:build:types:    Compiling indoc v2.0.7
+@rust/hash-graph-authorization:build:types:    Compiling ena v0.14.4
+@rust/hash-graph-authorization:build:types:    Compiling icu_normalizer v2.2.0
+@hashintel/brunch-agent-binding-flue:build: vite v8.2.2 building client environment for production...
+@blockprotocol/type-system-rs:build:wasm:    Compiling dashu-int v0.4.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling num-conv v0.2.2
+@blockprotocol/type-system-rs:build:types:    Compiling aho-corasick v1.1.4
+@blockprotocol/type-system-rs:build:types:    Compiling either v1.16.0
+@blockprotocol/type-system-rs:build:types:    Compiling anyhow v1.0.102
+@rust/hash-graph-authorization:build:types:    Compiling parking_lot v0.12.5
+@rust/hash-graph-authorization:build:types:    Compiling aho-corasick v1.1.4
+@rust/hash-graph-authorization:build:types:    Compiling object v0.37.3
+@rust/hash-graph-authorization:build:types:    Compiling tracing v0.1.44
+@rust/hash-graph-authorization:build:types:    Compiling string_cache v0.8.9
+@rust/hash-graph-authorization:build:types:    Compiling idna_adapter v1.2.2
+@rust/hash-graph-authorization:build:types:    Compiling phf v0.13.1
+@rust/hash-graph-authorization:build:types:    Compiling idna v1.1.0
+@rust/hash-graph-authorization:build:types:    Compiling url v2.5.8
+@rust/hash-graph-authorization:build:types:    Compiling uuid v1.23.3
+@hashintel/brunch-agent-plugin-gherkin:build: computing gzip size...
+@hashintel/brunch-agent-plugin-gherkin:build: dist/index.js   0.18 kB │ gzip:  0.17 kB │ map: 0.77 kB
+@hashintel/brunch-agent-plugin-gherkin:build: dist/flue.js   31.54 kB │ gzip: 10.81 kB │ map: 1.94 kB
+@hashintel/brunch-agent-plugin-gherkin:build: 
+@hashintel/brunch-agent-plugin-gherkin:build: ✓ built in 11ms
+@rust/hash-graph-authorization:build:types:    Compiling specta v2.0.0-rc.22 (https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245)
+@rust/hash-graph-authorization:build:types:    Compiling tokio-util v0.7.18
+@rust/hash-graph-authorization:build:types:    Compiling derive_more v2.1.1
+@blockprotocol/type-system-rs:build:types:    Compiling cc v1.2.65
+@blockprotocol/type-system-rs:build:types:    Compiling fixedbitset v0.5.7
+@blockprotocol/type-system-rs:build:types:    Compiling serde_json v1.0.150
+@blockprotocol/type-system-rs:build:types:    Compiling tokio v1.52.3
+@blockprotocol/type-system-rs:build:types:    Compiling libm v0.2.16
+@blockprotocol/type-system-rs:build:types:    Compiling num-traits v0.2.19
+@blockprotocol/type-system-rs:build:types:    Compiling prettyplease v0.2.37
+@hashintel/brunch-agent-binding-flue:build: transforming...
+@hashintel/brunch-agent-binding-flue:build: ✓ 7 modules transformed.
+@hashintel/brunch-agent-binding-flue:build: rendering chunks...
+@rust/hash-graph-authorization:build:types:    Compiling regex v1.12.4
+@rust/hash-graph-authorization:build:types:    Compiling lalrpop-util v0.22.2
+@blockprotocol/type-system-rs:build:types:    Compiling errno v0.3.14
+@blockprotocol/type-system-rs:build:wasm:    Compiling semver v1.0.28
+@blockprotocol/type-system-rs:build:wasm:    Compiling regex-syntax v0.8.11
+@blockprotocol/type-system-rs:build:wasm:    Compiling smallvec v1.15.2
+@blockprotocol/type-system-rs:build:wasm:    Compiling convert_case v0.10.0
+@rust/hash-codec:build:types:    Compiling thiserror-impl v2.0.18
+@rust/hash-codec:build:types:    Compiling oxc-miette-derive v2.7.1
+@local/hash-graph-client:codegen: cache hit, replaying logs 87f9f1ecb47dedc7
+@rust/hash-graph-store:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-store:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-store:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-store:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-store:build:types:     Blocking waiting for file lock on build directory
+@rust/hash-codec:build:types:    Compiling serde_derive v1.0.228
+@rust/hash-codec:build:types:    Compiling oxc_ast_macros v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@hashintel/brunch-agent-binding-flue:build: computing gzip size...
+@hashintel/brunch-agent-binding-flue:build: dist/index.js  10.81 kB │ gzip: 3.85 kB │ map: 30.78 kB
+@hashintel/brunch-agent-binding-flue:build: 
+@hashintel/brunch-agent-binding-flue:build: ✓ built in 19ms
+@blockprotocol/type-system-rs:build:types:    Compiling bytes v1.12.0
+@blockprotocol/type-system-rs:build:types:    Compiling itertools v0.14.0
+@rust/hash-codec:build:types:    Compiling phf_macros v0.13.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling aho-corasick v1.1.4
+@blockprotocol/type-system-rs:build:wasm:    Compiling unicode-xid v0.2.6
+@rust/hash-graph-store:build:types:    Compiling uuid v1.23.3
+@rust/hash-graph-store:build:types:    Compiling chrono v0.4.45
+@blockprotocol/type-system-rs:build:types:    Compiling rustix v1.1.4
+@blockprotocol/type-system-rs:build:types:    Compiling getrandom v0.3.4
+@rust/hash-graph-authorization:build:types:    Compiling oxc_syntax v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@local/hash-graph-client:codegen: bundling ../../api/openapi/openapi.json...
+@local/hash-graph-client:codegen: 📦 Created a bundle for ../../api/openapi/openapi.json at openapi.bundle.json 56ms.
+@local/hash-graph-client:codegen: Download 6.6.0 ...
+@rust/hash-codec:build:types:    Compiling specta-macros v2.0.0-rc.18 (https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245)
+@rust/hash-codec:build:types:    Compiling derive_more-impl v2.1.1
+@rust/hash-codec:build:types:    Compiling errno v0.3.14
+@rust/hash-codec:build:types:    Compiling thiserror v2.0.18
+@rust/hash-graph-store:build:types:    Compiling oxc_ecmascript v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-graph-store:build:types:    Compiling specta v2.0.0-rc.22 (https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245)
+@rust/hash-graph-store:build:types:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/codec/rust)
+@rust/hash-graph-authorization:build:types:    Compiling oxc_regular_expression v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-graph-authorization:build:types:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/codec/rust)
+@rust/hash-graph-authorization:build:types:    Compiling oxc_ast v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-graph-authorization:build:types:    Compiling ar_archive_writer v0.5.2
+@blockprotocol/type-system-rs:build:wasm:    Compiling static_assertions v1.1.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling dashu-base v0.4.3
+@rust/hash-graph-store:build:types:    Compiling oxc_semantic v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-graph-store:build:types:    Compiling oxc_parser v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-graph-store:build:types:    Compiling prost-wkt v0.7.1
+@rust/hash-graph-store:build:types:    Compiling prost-wkt-types v0.7.1
+@rust/hash-graph-store:build:types:    Compiling hash-graph-temporal-versioning v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/graph/temporal-versioning)
+@rust/hash-graph-store:build:types:    Compiling oxc_codegen v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling specta v2.0.0-rc.22 (https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245)
+@rust/hash-codec:build:types:    Compiling derive_more v2.1.1
+@rust/hash-codec:build:types:    Compiling dashu-float v0.4.5
+@rust/hash-graph-authorization:build:types:    Compiling lalrpop v0.22.2
+@rust/hash-graph-authorization:build:types:    Compiling hash-graph-temporal-versioning v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/graph/temporal-versioning)
+@rust/hash-graph-authorization:build:types:    Compiling psm v0.1.31
+@rust/hash-graph-authorization:build:types:    Compiling type-system v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@blockprotocol/type-system/rust)
+@rust/hash-graph-authorization:build:types:    Compiling stacker v0.1.24
+@rust/hash-graph-authorization:build:types:    Compiling oxc_ecmascript v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-graph-authorization:build:types:    Compiling oxc_ast_visit v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-graph-authorization:build:types:    Compiling oxc_semantic v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-graph-authorization:build:types:    Compiling oxc_parser v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-graph-authorization:build:types:    Compiling oxc_codegen v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-graph-authorization:build:types:    Compiling cedar-policy-core v4.5.1
+@rust/hash-graph-authorization:build:types:    Compiling oxc v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-graph-store:build:types:    Compiling temporalio-protos v0.5.0
+@rust/hash-graph-store:build:types:    Compiling type-system v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@blockprotocol/type-system/rust)
+@rust/hash-graph-store:build:types:    Compiling oxc v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling tempfile v3.27.0
+@rust/hash-codec:build:types:    Compiling oxc-miette v2.7.1
+@rust/hash-graph-authorization:build:types:    Compiling hash-codegen v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/codegen)
+@local/hash-graph-client:codegen: Downloaded 6.6.0
+@blockprotocol/type-system-rs:build:types:    Compiling parking_lot_core v0.9.12
+@blockprotocol/type-system-rs:build:types:    Compiling unicode-xid v0.2.6
+@blockprotocol/type-system-rs:build:types:    Compiling pulldown-cmark v0.13.4
+@blockprotocol/type-system-rs:build:types:    Compiling ident_case v1.0.1
+@rust/hash-graph-authorization:build:types:    Compiling hash-graph-authorization v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/graph/authorization/rust)
+@rust/hash-graph-authorization:build:types:     Finished `test` profile [unoptimized + debuginfo] target(s) in 45.22s
+@rust/hash-graph-authorization:build:types:      Running tests/codegen.rs (/Users/lunelson/.herdr/worktrees/hash/alpha/target/debug/build/hash-graph-authorization/16c7ff128fd8ff0f/out/codegen-16c7ff128fd8ff0f)
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-codec:build:types:    Compiling insta v1.48.0
+@blockprotocol/type-system-rs:build:types:    Compiling foldhash v0.1.5
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+@blockprotocol/type-system-rs:build:wasm:    Compiling time-core v0.1.9
+@blockprotocol/type-system-rs:build:wasm:    Compiling num-modular v0.6.4
+@blockprotocol/type-system-rs:build:wasm:    Compiling time-macros v0.2.30
+@blockprotocol/type-system-rs:build:wasm:    Compiling regex-automata v0.4.14
+@blockprotocol/type-system-rs:build:types:    Compiling unicase v2.9.0
+@blockprotocol/type-system-rs:build:types:    Compiling strsim v0.11.1
+@blockprotocol/type-system-rs:build:types:    Compiling hashbrown v0.15.5
+@rust/hash-graph-authorization:build:types: running 1 test
+@rust/hash-graph-authorization:build:types: test index ... ok
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.github.benmanes.caffeine.cache.UnsafeAccess (file:/Users/lunelson/.herdr/worktrees/hash/alpha/node_modules/@openapitools/openapi-generator-cli/versions/6.6.0.jar)
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] WARNING: Please consider reporting this to the maintainers of class com.github.benmanes.caffeine.cache.UnsafeAccess
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+@blockprotocol/type-system-rs:build:wasm:    Compiling rustc_version v0.4.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling sha1_smol v1.0.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling powerfmt v0.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling getrandom v0.2.17
+@blockprotocol/type-system-rs:build:types:    Compiling rand_core v0.10.1
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] [main] WARN  o.o.codegen.DefaultCodegen - PathExpression_path_inner (oneOf schema) already has `string` defined and therefore it's skipped.
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] ################################################################################
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: done: no snapshots to review
+@rust/hash-codec:build:types:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/codec/rust)
+@rust/hash-codec:build:types:    Compiling oxc_index v4.1.0
+@rust/hash-graph-store:build:types:    Compiling hash-codegen v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/codegen)
+@blockprotocol/type-system-rs:build:wasm:    Compiling error-stack v0.8.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/error-stack)
+@blockprotocol/type-system-rs:build:wasm:    Compiling percent-encoding v2.3.2
+@blockprotocol/type-system-rs:build:types:    Compiling scopeguard v1.2.0
+@rust/hash-codec:build:types:    Compiling oxc_span v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_diagnostics v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_syntax v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_regular_expression v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_ast v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_ecmascript v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-graph-store:build:types:    Compiling hash-graph-types v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/graph/types)
+@rust/hash-graph-store:build:types:    Compiling hash-graph-authorization v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/graph/authorization/rust)
+@blockprotocol/type-system-rs:build:types:    Compiling once_cell v1.21.4
+@blockprotocol/type-system-rs:build:types:    Compiling getrandom v0.4.3
+@blockprotocol/type-system-rs:build:types:    Compiling futures-util v0.3.32
+@blockprotocol/type-system-rs:build:wasm:    Compiling thiserror v2.0.18
+@rust/hash-graph-store:build:types:    Compiling temporalio-common-wasm v0.5.0
+@rust/hash-graph-store:build:types:    Compiling temporalio-common v0.5.0
+@rust/hash-graph-store:build:types:    Compiling temporalio-client v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling tempfile v3.27.0
+@blockprotocol/type-system-rs:build:types:    Compiling petgraph v0.8.3
+@blockprotocol/type-system-rs:build:types:    Compiling prost-derive v0.14.4
+@rust/hash-codec:build:types:    Compiling oxc_ast_visit v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_parser v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc_semantic v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] # Thanks for using OpenAPI Generator.                                          #
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] # Please consider donation to help us maintain this project 🙏                 #
+@rust/hash-graph-store:build:types:    Compiling hash-temporal-client v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/temporal-client)
+@rust/hash-graph-store:build:types:    Compiling hash-graph-store v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/graph/store/rust)
+@rust/hash-codec:build:types:    Compiling oxc_codegen v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling oxc v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@rust/hash-codec:build:types:    Compiling hash-codegen v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/codegen)
+@blockprotocol/type-system-rs:build:wasm:    Compiling minimal-lexical v0.2.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling simple-mermaid v0.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling regex-automata v0.4.14
+@blockprotocol/type-system-rs:build:types:    Compiling lock_api v0.4.14
+@blockprotocol/type-system-rs:build:types:    Compiling multimap v0.10.1
+@rust/hash-graph-store:build:types:     Finished `test` profile [unoptimized + debuginfo] target(s) in 55.66s
+@rust/hash-graph-store:build:types:      Running tests/codegen.rs (/Users/lunelson/.herdr/worktrees/hash/alpha/target/debug/build/hash-graph-store/17dfb30a5790cc47/out/codegen-17dfb30a5790cc47)
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] # https://opencollective.com/openapi_generator/donate                          #
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] ################################################################################
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] java -Dlog.level=warn -jar "/Users/lunelson/.herdr/worktrees/hash/alpha/node_modules/@openapitools/openapi-generator-cli/versions/6.6.0.jar" generate --input-spec="openapi.bundle.json" --generate-alias-as-model --generator-name="typescript-axios" --output="/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/graph/client/typescript" --additional-properties="npmName=@local/hash-graph-client,npmVersion=0.0.0-private,supportsES6=true,withInterfaces=true,disallowAdditionalPropertiesIfNotPresent=true,withNodeImports=true,sortModelPropertiesByRequiredFlag=false" exited with code 0
+@local/hash-graph-client:codegen: [ts] openapi.bundle.json
+@local/hash-graph-client:codegen: done.
+@blockprotocol/type-system-rs:build:wasm:    Compiling nom v7.1.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling form_urlencoded v1.2.2
+@blockprotocol/type-system-rs:build:wasm:    Compiling either v1.16.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling regex v1.12.4
+@rust/hash-codec:build:types:     Finished `test` profile [unoptimized + debuginfo] target(s) in 11.75s
+@rust/hash-codec:build:types:      Running tests/codegen.rs (/Users/lunelson/.herdr/worktrees/hash/alpha/target/debug/build/hash-codec/ac4a733b509c7198/out/codegen-ac4a733b509c7198)
+@rust/hash-graph-store:build:types: 
+@rust/hash-graph-store:build:types: running 1 test
+@rust/hash-graph-store:build:types: test index ... ok
+@rust/hash-graph-store:build:types: 
+@rust/hash-graph-store:build:types: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+@rust/hash-graph-store:build:types: 
+@rust/hash-graph-store:build:types: done: no snapshots to review
+@blockprotocol/type-system-rs:build:wasm:    Compiling itertools v0.14.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling wasm-bindgen v0.2.108
+@blockprotocol/type-system-rs:build:wasm:    Compiling iso8601-duration v0.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling bytes v1.12.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling email_address v0.2.9
+@blockprotocol/type-system-rs:build:wasm:    Compiling syn v2.0.118
+@rust/hash-codec:build:types: 
+@rust/hash-codec:build:types: running 1 test
+@rust/hash-codec:build:types: test index ... ok
+@rust/hash-codec:build:types: 
+@blockprotocol/type-system-rs:build:wasm:    Compiling deranged v0.5.8
+@blockprotocol/type-system-rs:build:wasm:    Compiling uuid v1.23.3
+@rust/hash-codec:build:types: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+@rust/hash-codec:build:types: 
+@rust/hash-codec:build:types: done: no snapshots to review
+@blockprotocol/type-system-rs:build:wasm:    Compiling time v0.3.51
+@blockprotocol/type-system-rs:build:wasm:    Compiling synstructure v0.13.2
+@blockprotocol/type-system-rs:build:wasm:    Compiling wasm-bindgen-macro-support v0.2.108
+@blockprotocol/type-system-rs:build:wasm:    Compiling serde_derive_internals v0.29.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling zerofrom-derive v0.1.7
+@blockprotocol/type-system-rs:build:wasm:    Compiling yoke-derive v0.8.2
+@blockprotocol/type-system-rs:build:types:    Compiling ring v0.17.14
+@blockprotocol/type-system-rs:build:types:    Compiling derive_more-impl v2.1.1
+@blockprotocol/type-system-rs:build:types:    Compiling oxc-miette-derive v2.7.1
+@blockprotocol/type-system-rs:build:types:    Compiling sha1_smol v1.0.1
+@blockprotocol/type-system-rs:build:types:    Compiling typeid v1.0.3
+@blockprotocol/type-system-rs:build:types:    Compiling prost v0.14.4
+@blockprotocol/type-system-rs:build:types:    Compiling generic-array v0.14.7
+@blockprotocol/type-system-rs:build:types:    Compiling phf_generator v0.13.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling zerovec-derive v0.11.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling displaydoc v0.2.6
+@blockprotocol/type-system-rs:build:wasm:    Compiling serde_derive v1.0.228
+@blockprotocol/type-system-rs:build:wasm:    Compiling derive_more-impl v2.1.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling thiserror-impl v2.0.18
+@blockprotocol/type-system-rs:build:wasm:    Compiling derive-where v1.6.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling tsify-macros v0.5.6
+@blockprotocol/type-system-rs:build:wasm:    Compiling zerofrom v0.1.8
+@blockprotocol/type-system-rs:build:wasm:    Compiling wasm-bindgen-macro v0.2.108
+@blockprotocol/type-system-rs:build:wasm:    Compiling derive_more v2.1.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling yoke v0.8.3
+@blockprotocol/type-system-rs:build:types:    Compiling regex v1.12.4
+@blockprotocol/type-system-rs:build:types:    Compiling tokio-util v0.7.18
+@blockprotocol/type-system-rs:build:types:    Compiling oxc-miette v2.7.1
+@blockprotocol/type-system-rs:build:types:    Compiling rustls v0.23.41
+@blockprotocol/type-system-rs:build:types:    Compiling typenum v1.20.1
+@blockprotocol/type-system-rs:build:types:    Compiling erased-serde v0.4.10
+@blockprotocol/type-system-rs:build:types:    Compiling tonic-build v0.14.6
+@blockprotocol/type-system-rs:build:types:    Compiling h2 v0.4.18
+@blockprotocol/type-system-rs:build:types:    Compiling phf_macros v0.13.1
+@blockprotocol/type-system-rs:build:types:    Compiling uuid v1.23.3
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_ast_macros v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling pulldown-cmark-to-cmark v22.0.0
+@blockprotocol/type-system-rs:build:types:    Compiling security-framework-sys v2.17.0
+@blockprotocol/type-system-rs:build:types:    Compiling simd-adler32 v0.3.9
+@blockprotocol/type-system-rs:build:types:    Compiling typetag v0.2.22
+@blockprotocol/type-system-rs:build:types:    Compiling object v0.37.3
+@blockprotocol/type-system-rs:build:types:    Compiling security-framework v3.7.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling dashu-float v0.4.5
+@blockprotocol/type-system-rs:build:types:    Compiling specta-macros v2.0.0-rc.18 (https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245)
+@blockprotocol/type-system-rs:build:types:    Compiling phf v0.13.1
+@local/hash-graph-authorization:codegen: cache hit, replaying logs 543b80a72619ec11
+@blockprotocol/type-system-rs:build:types:    Compiling miniz_oxide v0.8.9
+@blockprotocol/type-system-rs:build:types:    Compiling error-stack v0.8.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/error-stack)
+@blockprotocol/type-system-rs:build:types:    Compiling darling_core v0.21.3
+@blockprotocol/type-system-rs:build:types:    Compiling derive_more v2.1.1
+@blockprotocol/type-system-rs:build:types:    Compiling prost-types v0.14.4
+@local/hash-graph-client:build: cache hit, replaying logs 5d3e9407e7c9aad6
+@blockprotocol/type-system-rs:build:types:    Compiling typetag-impl v0.2.22
+@blockprotocol/type-system-rs:build:types:    Compiling form_urlencoded v1.2.2
+@blockprotocol/type-system-rs:build:types:    Compiling zerocopy v0.8.55
+@blockprotocol/type-system-rs:build:types:    Compiling inventory v0.3.24
+@blockprotocol/type-system-rs:build:wasm:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/codec/rust)
+@blockprotocol/type-system-rs:build:wasm:    Compiling hash-graph-temporal-versioning v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/graph/temporal-versioning)
+@blockprotocol/type-system-rs:build:wasm:    Compiling zerovec v0.11.6
+@blockprotocol/type-system-rs:build:wasm:    Compiling zerotrie v0.2.4
+@blockprotocol/type-system-rs:build:wasm:    Compiling js-sys v0.3.85
+@blockprotocol/type-system-rs:build:wasm:    Compiling console_error_panic_hook v0.1.7
+@blockprotocol/type-system-rs:build:wasm:    Compiling tinystr v0.8.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling potential_utf v0.1.5
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_collections v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_locale_core v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_provider v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_properties v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling icu_normalizer v2.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling idna_adapter v1.2.2
+@blockprotocol/type-system-rs:build:types:    Compiling smallvec v1.15.2
+@blockprotocol/type-system-rs:build:types:    Compiling sync_wrapper v1.0.2
+@blockprotocol/type-system-rs:build:types:    Compiling time-macros v0.2.30
+@blockprotocol/type-system-rs:build:types:    Compiling tower v0.5.3
+@blockprotocol/type-system-rs:build:types:    Compiling hyper v1.10.1
+@blockprotocol/type-system-rs:build:wasm:    Compiling idna v1.1.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling url v2.5.8
+@blockprotocol/type-system-rs:build:types:    Compiling prost-build v0.14.4
+@blockprotocol/type-system-rs:build:wasm:    Compiling web-sys v0.3.85
+@blockprotocol/type-system-rs:build:wasm:    Compiling gloo-utils v0.2.0
+@blockprotocol/type-system-rs:build:wasm:    Compiling tsify v0.5.6
+@blockprotocol/type-system-rs:build:wasm:    Compiling type-system v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@blockprotocol/type-system/rust)
+@blockprotocol/type-system-rs:build:wasm:     Finished `release` profile [optimized] target(s) in 20.59s
+@blockprotocol/type-system-rs:build:types:    Compiling pbjson-build v0.9.0
+@blockprotocol/type-system-rs:build:types:    Compiling rustls-native-certs v0.8.4
+@blockprotocol/type-system-rs:build:wasm: [INFO]: ⬇️  Installing wasm-bindgen...
+@blockprotocol/type-system-rs:build:wasm: [INFO]: found wasm-opt at "/Users/lunelson/.local/share/mise/installs/github-web-assembly-binaryen/version_131/bin/wasm-opt"
+@blockprotocol/type-system-rs:build:wasm: [INFO]: Optimizing wasm binaries with `wasm-opt`...
+@blockprotocol/type-system-rs:build:wasm: [INFO]: ✨   Done in 20.81s
+@blockprotocol/type-system-rs:build:types:    Compiling url v2.5.8
+@blockprotocol/type-system-rs:build:types:    Compiling prost-wkt-build v0.7.1
+@blockprotocol/type-system-rs:build:wasm: [INFO]: 📦   Your wasm pkg is ready to publish at pkg.
+@blockprotocol/type-system-rs:build:types:    Compiling tonic-prost-build v0.14.6
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_span v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling hyper-util v0.1.20
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_diagnostics v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling darling_macro v0.21.3
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_index v4.1.0
+@blockprotocol/type-system-rs:build:types:    Compiling specta v2.0.0-rc.22 (https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245)
+@blockprotocol/type-system-rs:build:types:    Compiling flate2 v1.1.9
+@blockprotocol/type-system-rs:build:types:    Compiling prost-wkt-types v0.7.1
+@blockprotocol/type-system-rs:build:types:    Compiling temporalio-protos v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling block-buffer v0.10.4
+@blockprotocol/type-system-rs:build:types:    Compiling crypto-common v0.1.7
+@blockprotocol/type-system-rs:build:types:    Compiling chrono v0.4.45
+@local/hash-graph-store:codegen: cache hit, replaying logs 9446cbb9870c7d1f
+@blockprotocol/type-system-rs:build:types:    Compiling futures-executor v0.3.32
+@blockprotocol/type-system-rs:build:types:    Compiling tokio-stream v0.1.18
+@blockprotocol/type-system-rs:build:types:    Compiling deranged v0.5.8
+@blockprotocol/type-system-rs:build:types:    Compiling cpufeatures v0.2.17
+@blockprotocol/type-system-rs:build:types:    Compiling keccak v0.1.6
+@blockprotocol/type-system-rs:build:types:    Compiling hyper-timeout v0.5.2
+@blockprotocol/type-system-rs:build:types:    Compiling parking_lot v0.12.5
+@blockprotocol/type-system-rs:build:types:    Compiling futures v0.3.32
+@blockprotocol/type-system-rs:build:types:    Compiling digest v0.10.7
+@blockprotocol/type-system-rs:build:types:    Compiling darling v0.21.3
+@blockprotocol/type-system-rs:build:types:    Compiling matchers v0.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling darling_core v0.23.0
+@blockprotocol/type-system-rs:build:types:    Compiling rustls-webpki v0.103.13
+@blockprotocol/type-system-rs:build:types:    Compiling time v0.3.51
+@blockprotocol/type-system-rs:build:types:    Compiling derive-where v1.6.1
+@blockprotocol/type-system-rs:build:types:    Compiling phf_shared v0.11.3
+@blockprotocol/type-system-rs:build:types:    Compiling minimal-lexical v0.2.1
+@blockprotocol/type-system-rs:build:types:    Compiling same-file v1.0.6
+@blockprotocol/type-system-rs:build:types:    Compiling precomputed-hash v0.1.1
+@blockprotocol/type-system-rs:build:types:    Compiling new_debug_unreachable v1.0.6
+@blockprotocol/type-system-rs:build:types:    Compiling bit-vec v0.8.0
+@blockprotocol/type-system-rs:build:types:    Compiling term v1.2.1
+@blockprotocol/type-system-rs:build:types:    Compiling tracing-subscriber v0.3.23
+@blockprotocol/type-system-rs:build:types:    Compiling bit-set v0.8.0
+@blockprotocol/type-system-rs:build:types:    Compiling string_cache v0.8.9
+@blockprotocol/type-system-rs:build:types:    Compiling ascii-canvas v4.0.0
+@blockprotocol/type-system-rs:build:types:    Compiling walkdir v2.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling nom v7.1.3
+@blockprotocol/type-system-rs:build:types:    Compiling sha3 v0.10.9
+@blockprotocol/type-system-rs:build:types:    Compiling pbjson v0.9.0
+@blockprotocol/type-system-rs:build:types:    Compiling num-integer v0.1.46
+@blockprotocol/type-system-rs:build:types:    Compiling lalrpop-util v0.22.2
+@blockprotocol/type-system-rs:build:types:    Compiling rand_core v0.6.4
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_syntax v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_regular_expression v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling petgraph v0.7.1
+@blockprotocol/type-system-rs:build:types:    Compiling darling_macro v0.23.0
+@blockprotocol/type-system-rs:build:types:    Compiling ar_archive_writer v0.5.2
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_ast v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling ena v0.14.4
+@blockprotocol/type-system-rs:build:types:    Compiling tinyvec_macros v0.1.1
+@blockprotocol/type-system-rs:build:types:    Compiling pico-args v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling tinyvec v1.11.0
+@blockprotocol/type-system-rs:build:types:    Compiling iso8601-duration v0.2.0
+@blockprotocol/type-system-rs:build:types:    Compiling darling v0.23.0
+@blockprotocol/type-system-rs:build:types:    Compiling lalrpop v0.22.2
+@blockprotocol/type-system-rs:build:types:    Compiling num-bigint v0.4.6
+@blockprotocol/type-system-rs:build:types:    Compiling temporalio-common v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling semver v1.0.28
+@blockprotocol/type-system-rs:build:types:    Compiling psm v0.1.31
+@blockprotocol/type-system-rs:build:types:    Compiling stacker v0.1.24
+@blockprotocol/type-system-rs:build:types:    Compiling chacha20 v0.10.0
+@blockprotocol/type-system-rs:build:types:    Compiling ppv-lite86 v0.2.21
+@blockprotocol/type-system-rs:build:types:    Compiling enum-ordinalize-derive v4.3.2
+@blockprotocol/type-system-rs:build:types:    Compiling ref-cast v1.0.25
+@blockprotocol/type-system-rs:build:types:    Compiling rand_chacha v0.3.1
+@blockprotocol/type-system-rs:build:types:    Compiling email_address v0.2.9
+@blockprotocol/type-system-rs:build:types:    Compiling enum-ordinalize v4.3.2
+@blockprotocol/type-system-rs:build:types:    Compiling rand v0.8.6
+@blockprotocol/type-system-rs:build:types:    Compiling rand v0.10.1
+@blockprotocol/type-system-rs:build:types:    Compiling unicode-normalization v0.1.25
+@blockprotocol/type-system-rs:build:types:    Compiling prost-wkt v0.7.1
+@blockprotocol/type-system-rs:build:types:    Compiling ref-cast-impl v1.0.25
+@blockprotocol/type-system-rs:build:types:    Compiling miette-derive v7.6.0
+@blockprotocol/type-system-rs:build:types:    Compiling instant v0.1.13
+@blockprotocol/type-system-rs:build:types:    Compiling unicode-width v0.1.14
+@blockprotocol/type-system-rs:build:types:    Compiling unicode-script v0.5.8
+@blockprotocol/type-system-rs:build:types:    Compiling backoff v0.4.0
+@blockprotocol/type-system-rs:build:types:    Compiling futures-retry v0.6.0
+@blockprotocol/type-system-rs:build:types:    Compiling unicode-security v0.1.2
+@blockprotocol/type-system-rs:build:types:    Compiling nonempty v0.10.0
+@blockprotocol/type-system-rs:build:types:    Compiling smol_str v0.3.6
+@blockprotocol/type-system-rs:build:types:    Compiling rustc_lexer v0.1.0
+@local/hash-codec:codegen: cache hit, replaying logs 7d79b975c7187360
+@blockprotocol/type-system-rs:build:types:    Compiling opentelemetry v0.32.0
+@blockprotocol/type-system-rs:build:types:    Compiling trait-variant v0.1.2
+@blockprotocol/type-system-rs:build:types:    Compiling enum-iterator-derive v1.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling miette v7.6.0
+@blockprotocol/type-system-rs:build:types:    Compiling dyn-clone v1.0.20
+@blockprotocol/type-system-rs:build:types:    Compiling tokio-rustls v0.26.4
+@blockprotocol/type-system-rs:build:types:    Compiling bon-macros v3.9.3
+@blockprotocol/type-system-rs:build:types:    Compiling tonic v0.14.6
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_ecmascript v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_ast_visit v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_sourcemap v6.1.1
+@blockprotocol/type-system-rs:build:types:    Compiling serde_with_macros v3.21.0
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_semantic v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling enum-iterator v2.3.0
+@blockprotocol/type-system-rs:build:types:    Compiling tonic-prost v0.14.6
+@blockprotocol/type-system-rs:build:types:    Compiling serde_with v3.21.0
+@blockprotocol/type-system-rs:build:types:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/codec/rust)
+@blockprotocol/type-system-rs:build:types:    Compiling tracing-opentelemetry v0.33.0
+@blockprotocol/type-system-rs:build:types:    Compiling educe v0.6.0
+@blockprotocol/type-system-rs:build:types:    Compiling serde_plain v1.0.2
+@blockprotocol/type-system-rs:build:types:    Compiling hostname v0.4.2
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_parser v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling oxc_codegen v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling rand_distr v0.6.0
+@blockprotocol/type-system-rs:build:types:    Compiling yansi v1.0.1
+@blockprotocol/type-system-rs:build:types:    Compiling diff v0.1.13
+@blockprotocol/type-system-rs:build:types:    Compiling xxhash-rust v0.8.15
+@blockprotocol/type-system-rs:build:types:    Compiling insta v1.48.0
+@blockprotocol/type-system-rs:build:types:    Compiling bon v3.9.3
+@blockprotocol/type-system-rs:build:types:    Compiling pretty_assertions v1.4.1
+@blockprotocol/type-system-rs:build:types:    Compiling oxc v0.95.0 (https://github.com/hashdeps/oxc?rev=73c781b#73c781b5)
+@blockprotocol/type-system-rs:build:types:    Compiling hash-codegen v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/codegen)
+@blockprotocol/type-system-rs:build:types:    Compiling cedar-policy-core v4.5.1
+@blockprotocol/type-system-rs:build:types:    Compiling hash-graph-temporal-versioning v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/graph/temporal-versioning)
+@blockprotocol/type-system-rs:build:types:    Compiling type-system v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@blockprotocol/type-system/rust)
+@blockprotocol/type-system-rs:build:types:    Compiling hash-graph-types v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/graph/types)
+@blockprotocol/type-system-rs:build:types:    Compiling temporalio-common-wasm v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling temporalio-client v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling hash-temporal-client v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/temporal-client)
+@blockprotocol/type-system-rs:build:types:    Compiling hash-graph-authorization v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/graph/authorization/rust)
+@blockprotocol/type-system-rs:build:types:    Compiling hash-graph-store v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/libs/@local/graph/store/rust)
+@blockprotocol/type-system-rs:build:types:    Compiling hash-graph-test-data v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/alpha/tests/graph/test-data/rust)
+@blockprotocol/type-system-rs:build:types:     Finished `test` profile [unoptimized + debuginfo] target(s) in 32.10s
+@blockprotocol/type-system-rs:build:types:      Running tests/codegen.rs (/Users/lunelson/.herdr/worktrees/hash/alpha/target/debug/build/type-system/e8f578c7eb92fdef/out/codegen-e8f578c7eb92fdef)
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: running 1 test
+@blockprotocol/type-system-rs:build:types: test index ... ok
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: done: no snapshots to review
+@local/hash-codec:build: cache hit, replaying logs 6617cea020d10429
+@blockprotocol/type-system:codegen: cache hit, replaying logs 7e21eb26c5e200a3
+@blockprotocol/type-system:codegen: ../rust/pkg/type-system.d.ts -> src/generated/type-system.d.ts
+@blockprotocol/type-system:codegen: ../rust/types/index.snap.d.ts -> src/generated/types.d.ts
+@blockprotocol/type-system:build: cache hit, replaying logs c823cc32b13c36bf
+@blockprotocol/type-system:build: [36m
+@blockprotocol/type-system:build: [1msrc/main.ts[22m → [1mdist/es[22m...[39m
+@blockprotocol/type-system:build: [1m[33m(!) Circular dependency[39m[22m
+@blockprotocol/type-system:build: ../../../../node_modules/semver/classes/comparator.js -> ../../../../node_modules/semver/classes/range.js -> ../../../../node_modules/semver/classes/comparator.js
+@blockprotocol/type-system:build: [32mcreated [1mdist/es[22m in [1m1s[22m[39m
+@blockprotocol/type-system:build: [36m
+@blockprotocol/type-system:build: [1msrc/main-slim.ts[22m → [1mdist/es-slim[22m...[39m
+@blockprotocol/type-system:build: [1m[33m(!) Circular dependency[39m[22m
+@blockprotocol/type-system:build: ../../../../node_modules/semver/classes/comparator.js -> ../../../../node_modules/semver/classes/range.js -> ../../../../node_modules/semver/classes/comparator.js
+@blockprotocol/type-system:build: [32mcreated [1mdist/es-slim[22m in [1m685ms[22m[39m
+@local/hash-graph-authorization:build: cache hit, replaying logs d8cc3a79a0c4e3e9
+@local/hash-graph-store:build: cache hit, replaying logs fdf07aaf5c8203b6
+@blockprotocol/graph:build: cache hit, replaying logs 51c7de052305cf9e
+@local/hash-graph-sdk:build: cache hit, replaying logs 3d722162fcfa28fc
+@local/hash-isomorphic-utils:build: cache hit, replaying logs e1a27028298d91f2
+@local/hash-backend-utils:build: cache hit, replaying logs fcd3bd37b7dbb563
+@hashintel/petrinaut-core:build: TypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.
+@hashintel/petrinaut-core:build: Emit types with @typescript/native-preview@7.0.0-dev.20260511.1
+@hashintel/petrinaut-core:build: vite v8.2.2 building client environment for production...
+@hashintel/petrinaut-core:build: transforming...
+@hashintel/petrinaut-core:build: ✓ 385 modules transformed.
+@hashintel/petrinaut-core:build: rendering chunks...
+@hashintel/petrinaut-core:build: computing gzip size...
+@hashintel/petrinaut-core:build: dist/selection.js                            0.11 kB │ gzip:     0.11 kB
+@hashintel/petrinaut-core:build: dist/support-QFmoRTi4.js                     0.17 kB │ gzip:     0.16 kB │ map:   1.19 kB
+@hashintel/petrinaut-core:build: dist/workers/lsp.js                          0.25 kB │ gzip:     0.19 kB │ map:   0.76 kB
+@hashintel/petrinaut-core:build: dist/workers/simulation.js                   0.25 kB │ gzip:     0.19 kB │ map:   0.60 kB
+@hashintel/petrinaut-core:build: dist/hir-runtime.js                          0.29 kB │ gzip:     0.18 kB
+@hashintel/petrinaut-core:build: dist/selection.d.ts                          0.31 kB │ gzip:     0.16 kB
+@hashintel/petrinaut-core:build: dist/examples/index.js                       0.31 kB │ gzip:     0.22 kB
+@hashintel/petrinaut-core:build: dist/time-DeDKdkwN.js                        0.31 kB │ gzip:     0.23 kB │ map:   1.26 kB
+@hashintel/petrinaut-core:build: dist/compute-next-frame-C-jZtFBX.d.ts        0.57 kB │ gzip:     0.32 kB │ map:   9.03 kB
+@hashintel/petrinaut-core:build: dist/workers/lsp.d.ts                        0.72 kB │ gzip:     0.36 kB │ map:   0.54 kB
+@hashintel/petrinaut-core:build: dist/selection-RzC-zvk4.js                   0.79 kB │ gzip:     0.50 kB │ map:   4.68 kB
+@hashintel/petrinaut-core:build: dist/experiment-stores-DVh6E0s0.js           0.87 kB │ gzip:     0.46 kB │ map:   3.89 kB
+@hashintel/petrinaut-core:build: dist/hir-runtime.d.ts                        1.06 kB │ gzip:     0.34 kB
+@hashintel/petrinaut-core:build: dist/ai.js                                   1.07 kB │ gzip:     0.49 kB
+@hashintel/petrinaut-core:build: dist/capacity-Dj6JeNjt.js                    1.23 kB │ gzip:     0.65 kB │ map:   7.08 kB
+@hashintel/petrinaut-core:build: dist/hir.js                                  1.29 kB │ gzip:     0.59 kB
+@hashintel/petrinaut-core:build: dist/parameter-values-eu_sZKJb.js            1.32 kB │ gzip:     0.63 kB │ map:   5.68 kB
+@hashintel/petrinaut-core:build: dist/optimization.js                         1.54 kB │ gzip:     0.51 kB
+@hashintel/petrinaut-core:build: dist/instantiate-Cxld0cne.js                 1.64 kB │ gzip:     0.79 kB │ map:  12.54 kB
+@hashintel/petrinaut-core:build: dist/record-keys-1sJBaBt0.js                 1.73 kB │ gzip:     0.79 kB │ map:   7.26 kB
+@hashintel/petrinaut-core:build: dist/workers/monte-carlo.d.ts                1.78 kB │ gzip:     0.60 kB │ map:   1.38 kB
+@hashintel/petrinaut-core:build: dist/ai.d.ts                                 2.10 kB │ gzip:     0.58 kB
+@hashintel/petrinaut-core:build: dist/selection-D9ffUDiZ.d.ts                 2.37 kB │ gzip:     1.08 kB │ map:   2.99 kB
+@hashintel/petrinaut-core:build: dist/compiled-model.d.ts                     3.44 kB │ gzip:     1.23 kB │ map:   4.55 kB
+@hashintel/petrinaut-core:build: dist/type-policies-Bh5NEOvT.js               3.63 kB │ gzip:     1.31 kB │ map:  17.78 kB
+@hashintel/petrinaut-core:build: dist/optimization.d.ts                       3.67 kB │ gzip:     0.66 kB
+@hashintel/petrinaut-core:build: dist/surface-context-BCMn0Ywq.js             3.68 kB │ gzip:     1.32 kB │ map:  19.40 kB
+@hashintel/petrinaut-core:build: dist/extensions-C8I_9D-1.d.ts                4.00 kB │ gzip:     1.26 kB │ map:   5.83 kB
+@hashintel/petrinaut-core:build: dist/token-layout-BvitVYQC.js                4.07 kB │ gzip:     1.55 kB │ map:  21.47 kB
+@hashintel/petrinaut-core:build: dist/hir.d.ts                                4.44 kB │ gzip:     1.23 kB
+@hashintel/petrinaut-core:build: dist/experiments.d.ts                        4.47 kB │ gzip:     1.68 kB │ map:   6.93 kB
+@hashintel/petrinaut-core:build: dist/experiment-CN3O8DTt.d.ts                4.99 kB │ gzip:     1.85 kB │ map:   7.55 kB
+@hashintel/petrinaut-core:build: dist/workers/monte-carlo.js                  5.12 kB │ gzip:     1.90 kB │ map:  17.85 kB
+@hashintel/petrinaut-core:build: dist/workers/simulation.d.ts                 5.44 kB │ gzip:     1.99 kB │ map:  10.28 kB
+@hashintel/petrinaut-core:build: dist/webgpu.d.ts                             5.88 kB │ gzip:     2.39 kB │ map:  15.69 kB
+@hashintel/petrinaut-core:build: dist/experiments.js                          6.53 kB │ gzip:     2.38 kB │ map:  26.87 kB
+@hashintel/petrinaut-core:build: dist/examples/index.d.ts                     9.33 kB │ gzip:     3.77 kB │ map:  10.45 kB
+@hashintel/petrinaut-core:build: dist/api-L5t-x6dS.d.ts                       9.55 kB │ gzip:     3.54 kB │ map:  12.41 kB
+@hashintel/petrinaut-core:build: dist/experiment-backend--dHxenV2.d.ts       10.28 kB │ gzip:     3.95 kB │ map:  14.03 kB
+@hashintel/petrinaut-core:build: dist/sdcpn-CmLg1nPY.d.ts                    11.80 kB │ gzip:     4.00 kB │ map:  15.64 kB
+@hashintel/petrinaut-core:build: dist/experiment-Cw9P3MTS.js                 13.42 kB │ gzip:     4.35 kB │ map:  54.26 kB
+@hashintel/petrinaut-core:build: dist/compiled-model.js                      15.93 kB │ gzip:     5.15 kB │ map:  66.55 kB
+@hashintel/petrinaut-core:build: dist/optimization-DK5oBwQm.js               17.12 kB │ gzip:     4.86 kB │ map:  54.19 kB
+@hashintel/petrinaut-core:build: dist/hir-runtime-CaVQSVhv.d.ts              19.08 kB │ gzip:     6.46 kB │ map:  27.06 kB
+@hashintel/petrinaut-core:build: dist/messages-ChKNREKi.d.ts                 20.41 kB │ gzip:     5.56 kB │ map:  26.95 kB
+@hashintel/petrinaut-core:build: dist/user-defined-lYOWZg_0.js               22.75 kB │ gzip:     6.87 kB │ map:  84.32 kB
+@hashintel/petrinaut-core:build: dist/scenario-schema-CkXxxKxa.js            27.15 kB │ gzip:     8.34 kB │ map:  49.57 kB
+@hashintel/petrinaut-core:build: dist/typecheck-DJ4DWDrQ.js                  27.52 kB │ gzip:     6.80 kB │ map:  89.76 kB
+@hashintel/petrinaut-core:build: dist/index.d.ts                             27.54 kB │ gzip:     6.53 kB
+@hashintel/petrinaut-core:build: dist/hir-metric-D4uEpZOA.js                 29.72 kB │ gzip:     8.56 kB │ map: 106.23 kB
+@hashintel/petrinaut-core:build: dist/ai-CmUEIcuN.js                         31.97 kB │ gzip:    10.47 kB │ map:  60.41 kB
+@hashintel/petrinaut-core:build: dist/extensions-BznQh6CW.js                 50.95 kB │ gzip:    13.39 kB │ map: 177.21 kB
+@hashintel/petrinaut-core:build: dist/instance-dQJMEYM8.d.ts                 67.03 kB │ gzip:     6.48 kB │ map: 164.88 kB
+@hashintel/petrinaut-core:build: dist/webgpu.js                              78.09 kB │ gzip:    23.80 kB │ map: 323.21 kB
+@hashintel/petrinaut-core:build: dist/hir-DCpzVv-F.js                        84.05 kB │ gzip:    20.34 kB │ map: 259.97 kB
+@hashintel/petrinaut-core:build: dist/index.js                               88.73 kB │ gzip:    24.16 kB │ map: 311.35 kB
+@hashintel/petrinaut-core:build: dist/simulation.worker-C2Mxugw1.js         118.52 kB │ gzip:    33.64 kB │ map:   0.09 kB
+@hashintel/petrinaut-core:build: dist/ai-jgIk4czs.d.ts                      128.59 kB │ gzip:     8.50 kB │ map: 284.62 kB
+@hashintel/petrinaut-core:build: dist/monte-carlo.worker-WQ0YZbjg.js        131.60 kB │ gzip:    37.58 kB │ map:   0.09 kB
+@hashintel/petrinaut-core:build: dist/examples-ubXygPF4.js                  155.60 kB │ gzip:    32.28 kB │ map: 229.24 kB
+@hashintel/petrinaut-core:build: dist/hir-CWid-6fO.d.ts                     211.09 kB │ gzip:    45.69 kB │ map: 355.96 kB
+@hashintel/petrinaut-core:build: dist/language-server.worker-Diq9yLSu.js  3,960.93 kB │ gzip: 1,059.96 kB │ map:   0.09 kB
+@hashintel/petrinaut-core:build: 
+@hashintel/petrinaut-core:build: ✓ built in 1.62s
+@hashintel/petrinaut-core:build:   ok   index.js (external: zod, uuid, immer, elkjs, vscode-languageserver-types, js-yaml)
+@hashintel/petrinaut-core:build:   ok   webgpu.js (external: zod)
+@hashintel/petrinaut-core:build:   ok   hir-runtime.js (no external imports)
+@hashintel/petrinaut-core:build: 
+@hashintel/petrinaut-core:build: All browser-facing entries are free of Node-only imports.
+@hashintel/brunch-agent-plugin-sdcpn:test:unit: cache miss, executing a9be0afd6b55590d
+@hashintel/brunch-agent-plugin-sdcpn:build: cache miss, executing fa49ed28bc2655d7
+@hashintel/brunch-agent-plugin-sdcpn:lint:eslint: cache miss, executing ab80aba6706bf885
+@hashintel/brunch-agent-plugin-sdcpn:lint:tsc: cache miss, executing c0e40a213f1c6235
+@hashintel/brunch-agent-plugin-sdcpn:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent-plugin-sdcpn:build: transforming...
+@hashintel/brunch-agent-plugin-sdcpn:build: ✓ 13 modules transformed.
+@hashintel/brunch-agent-plugin-sdcpn:build: rendering chunks...
+@hashintel/brunch-agent-plugin-sdcpn:build: computing gzip size...
+@hashintel/brunch-agent-plugin-sdcpn:build: dist/index.js   0.18 kB │ gzip:  0.17 kB │ map:  0.84 kB
+@hashintel/brunch-agent-plugin-sdcpn:build: dist/flue.js   53.70 kB │ gzip: 17.92 kB │ map: 17.32 kB
+@hashintel/brunch-agent-plugin-sdcpn:build: 
+@hashintel/brunch-agent-plugin-sdcpn:build: ✓ built in 12ms
+@apps/brunch-agent:build: cache miss, executing 3baec2c1612ac018
+@apps/brunch-agent:lint:tsc: cache miss, executing aafa9cc807243b9d
+@apps/brunch-agent:lint:eslint: cache miss, executing d118bc908624b192
+@hashintel/brunch-agent-plugin-sdcpn:lint:eslint: Found 0 warnings and 0 errors.
+@hashintel/brunch-agent-plugin-sdcpn:lint:eslint: Finished in 439ms on 11 files with 179 rules using 16 threads.
+@hashintel/brunch-agent-plugin-sdcpn:test:unit: 
+@hashintel/brunch-agent-plugin-sdcpn:test:unit:  RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/alpha/libs/@hashintel/brunch-agent/packages/plugin-sdcpn
+@hashintel/brunch-agent-plugin-sdcpn:test:unit: 
+@apps/brunch-agent:build: vite v8.2.2 building ssr environment for production...
+@apps/brunch-agent:build: transforming...
+@hashintel/brunch-agent-plugin-sdcpn:test:unit: 
+@hashintel/brunch-agent-plugin-sdcpn:test:unit:  Test Files  3 passed (3)
+@hashintel/brunch-agent-plugin-sdcpn:test:unit:       Tests  15 passed (15)
+@hashintel/brunch-agent-plugin-sdcpn:test:unit:    Start at  10:43:27
+@hashintel/brunch-agent-plugin-sdcpn:test:unit:    Duration  703ms (transform 241ms, setup 0ms, import 864ms, tests 13ms, environment 0ms)
+@hashintel/brunch-agent-plugin-sdcpn:test:unit: 
+@apps/brunch-agent:build: ✓ 556 modules transformed.
+@apps/brunch-agent:build: rendering chunks...
+@apps/brunch-agent:build: computing gzip size...
+@apps/brunch-agent:build: dist/app.mjs                                    0.15 kB │ gzip:   0.12 kB
+@apps/brunch-agent:build: dist/execAsync-D25bwo5l.mjs                     0.58 kB │ gzip:   0.37 kB │ map:     0.76 kB
+@apps/brunch-agent:build: dist/getMachineId-unsupported-QqRDr4II.mjs      0.72 kB │ gzip:   0.41 kB │ map:     0.90 kB
+@apps/brunch-agent:build: dist/getMachineId-linux-B5Iy_Sy7.mjs            0.89 kB │ gzip:   0.52 kB │ map:     1.36 kB
+@apps/brunch-agent:build: dist/server.mjs                                 0.90 kB │ gzip:   0.54 kB │ map:     1.45 kB
+@apps/brunch-agent:build: dist/getMachineId-bsd-ThF6nEVL.mjs              1.10 kB │ gzip:   0.57 kB │ map:     1.62 kB
+@apps/brunch-agent:build: dist/getMachineId-darwin-C6rMMlat.mjs           1.11 kB │ gzip:   0.62 kB │ map:     1.68 kB
+@apps/brunch-agent:build: dist/getMachineId-win-FwyaH7b-.mjs              1.27 kB │ gzip:   0.74 kB │ map:     1.83 kB
+@apps/brunch-agent:build: dist/rolldown-runtime-BMI-E3GI.mjs              1.92 kB │ gzip:   0.87 kB
+@apps/brunch-agent:build: dist/node-server-JHw3gbXL.mjs               2,720.24 kB │ gzip: 520.38 kB │ map: 4,820.63 kB
+@apps/brunch-agent:build: 
+@apps/brunch-agent:build: ✓ built in 191ms
+@apps/brunch-agent:build: vite v8.2.2 building client environment for production...
+@apps/brunch-agent:build: transforming...
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:     ,-[test/petrinaut-chat.integration.ts:71:20]
+@apps/brunch-agent:lint:eslint:  70 |   for (;;) {
+@apps/brunch-agent:lint:eslint:  71 |     const result = await reader.read();
+@apps/brunch-agent:lint:eslint:     :                    ^^^^^
+@apps/brunch-agent:lint:eslint:  72 |     if (result.done) return chunks;
+@apps/brunch-agent:lint:eslint:     `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[src/evaluations/persona/brunch-turn.ts:297:11]
+@apps/brunch-agent:lint:eslint:  296 |           submissionIds.push(currentAdmission.submissionId);
+@apps/brunch-agent:lint:eslint:  297 |           await onUpdate?.({
+@apps/brunch-agent:lint:eslint:      :           ^^^^^
+@apps/brunch-agent:lint:eslint:  298 |             content: [
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[src/evaluations/persona/brunch-turn.ts:311:25]
+@apps/brunch-agent:lint:eslint:  310 | 
+@apps/brunch-agent:lint:eslint:  311 |           const reply = await client.read(currentAdmission, { signal });
+@apps/brunch-agent:lint:eslint:      :                         ^^^^^
+@apps/brunch-agent:lint:eslint:  312 |           const snapshot = await client.history({ signal });
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[src/evaluations/persona/brunch-turn.ts:312:28]
+@apps/brunch-agent:lint:eslint:  311 |           const reply = await client.read(currentAdmission, { signal });
+@apps/brunch-agent:lint:eslint:  312 |           const snapshot = await client.history({ signal });
+@apps/brunch-agent:lint:eslint:      :                            ^^^^^
+@apps/brunch-agent:lint:eslint:  313 |           // Snapshot retention must finish before this canonical submission is advanced or returned.
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[src/evaluations/persona/brunch-turn.ts:400:30]
+@apps/brunch-agent:lint:eslint:  399 |               // Tool calls within one suspension are serviced in canonical order.
+@apps/brunch-agent:lint:eslint:  400 |               const output = await host.execute(call);
+@apps/brunch-agent:lint:eslint:      :                              ^^^^^
+@apps/brunch-agent:lint:eslint:  401 |               completedClientCallIds.add(call.toolCallId);
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[src/evaluations/persona/brunch-turn.ts:436:30]
+@apps/brunch-agent:lint:eslint:  435 | 
+@apps/brunch-agent:lint:eslint:  436 |           currentAdmission = await client.send({
+@apps/brunch-agent:lint:eslint:      :                              ^^^^^
+@apps/brunch-agent:lint:eslint:  437 |             message: {
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:     ,-[test/assets.test.ts:78:24]
+@apps/brunch-agent:lint:eslint:  77 |     ] as const) {
+@apps/brunch-agent:lint:eslint:  78 |       const response = await app.request(`/assets/${file}`);
+@apps/brunch-agent:lint:eslint:     :                        ^^^^^
+@apps/brunch-agent:lint:eslint:  79 |       expect({
+@apps/brunch-agent:lint:eslint:     `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/assets.test.ts:129:24]
+@apps/brunch-agent:lint:eslint:  128 |     for (const name of PRODUCER_PUNCTUATION) {
+@apps/brunch-agent:lint:eslint:  129 |       const response = await app.request(`/assets/${encodeURIComponent(name)}`);
+@apps/brunch-agent:lint:eslint:      :                        ^^^^^
+@apps/brunch-agent:lint:eslint:  130 |       expect({
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/assets.test.ts:133:15]
+@apps/brunch-agent:lint:eslint:  132 |         status: response.status,
+@apps/brunch-agent:lint:eslint:  133 |         body: await response.text(),
+@apps/brunch-agent:lint:eslint:      :               ^^^^^
+@apps/brunch-agent:lint:eslint:  134 |       }).toEqual({
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/assets.test.ts:159:24]
+@apps/brunch-agent:lint:eslint:  158 |     ]) {
+@apps/brunch-agent:lint:eslint:  159 |       const response = await app.request(path);
+@apps/brunch-agent:lint:eslint:      :                        ^^^^^
+@apps/brunch-agent:lint:eslint:  160 |       expect({
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/assets.test.ts:163:18]
+@apps/brunch-agent:lint:eslint:  162 |         status: response.status,
+@apps/brunch-agent:lint:eslint:  163 |         leaked: (await response.text()).includes("SECRET"),
+@apps/brunch-agent:lint:eslint:      :                  ^^^^^
+@apps/brunch-agent:lint:eslint:  164 |       }).toEqual({ path, status: 404, leaked: false });
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/assets.test.ts:178:24]
+@apps/brunch-agent:lint:eslint:  177 |     ] as const) {
+@apps/brunch-agent:lint:eslint:  178 |       const response = await app.request(path);
+@apps/brunch-agent:lint:eslint:      :                        ^^^^^
+@apps/brunch-agent:lint:eslint:  179 |       expect({ reason, status: response.status }).toEqual({
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! react-perf(jsx-no-new-function-as-prop): JSX attribute values should not contain functions created in the same scope.
+@apps/brunch-agent:lint:eslint:      ,-[src/ui/chat.tsx:108:12]
+@apps/brunch-agent:lint:eslint:  107 | 
+@apps/brunch-agent:lint:eslint:  108 |   function submit(event: FormEvent<HTMLFormElement>): void {
+@apps/brunch-agent:lint:eslint:      :            ^^^|^^
+@apps/brunch-agent:lint:eslint:      :               `-- The prop was declared here
+@apps/brunch-agent:lint:eslint:  109 |     event.preventDefault();
+@apps/brunch-agent:lint:eslint:  110 |     const reply = input.trim();
+@apps/brunch-agent:lint:eslint:  111 |     if (!reply || busy) return;
+@apps/brunch-agent:lint:eslint:  112 |     setInput("");
+@apps/brunch-agent:lint:eslint:  113 |     void agent.sendMessage(reply);
+@apps/brunch-agent:lint:eslint:  114 |   }
+@apps/brunch-agent:lint:eslint:  115 | 
+@apps/brunch-agent:lint:eslint:  116 |   return (
+@apps/brunch-agent:lint:eslint:  117 |     <main className="shell">
+@apps/brunch-agent:lint:eslint:  118 |       <header className="masthead">
+@apps/brunch-agent:lint:eslint:  119 |         <div>
+@apps/brunch-agent:lint:eslint:  120 |           <p className="eyebrow">
+@apps/brunch-agent:lint:eslint:  121 |             {readOnly ? "Brunch / Flue observer" : "Brunch / Flue chat"}
+@apps/brunch-agent:lint:eslint:  122 |           </p>
+@apps/brunch-agent:lint:eslint:  123 |           <h1>
+@apps/brunch-agent:lint:eslint:  124 |             {readOnly ? "Canonical conversation" : "Plain Flue conversation"}
+@apps/brunch-agent:lint:eslint:  125 |           </h1>
+@apps/brunch-agent:lint:eslint:  126 |         </div>
+@apps/brunch-agent:lint:eslint:  127 |         <span className={`status status--${agent.status}`}>
+@apps/brunch-agent:lint:eslint:  128 |           {readOnly ? `read-only · ${agent.status}` : agent.status}
+@apps/brunch-agent:lint:eslint:  129 |         </span>
+@apps/brunch-agent:lint:eslint:  130 |       </header>
+@apps/brunch-agent:lint:eslint:  131 | 
+@apps/brunch-agent:lint:eslint:  132 |       <section className="transcript" aria-live="polite" aria-busy={busy}>
+@apps/brunch-agent:lint:eslint:  133 |         {agent.messages.map((message) => (
+@apps/brunch-agent:lint:eslint:  134 |           <VisibleMessage key={message.id} message={message} />
+@apps/brunch-agent:lint:eslint:  135 |         ))}
+@apps/brunch-agent:lint:eslint:  136 |         {agent.error ? <p className="error">{agent.error.message}</p> : null}
+@apps/brunch-agent:lint:eslint:  137 |       </section>
+@apps/brunch-agent:lint:eslint:  138 | 
+@apps/brunch-agent:lint:eslint:  139 |       {readOnly ? null : (
+@apps/brunch-agent:lint:eslint:  140 |         <form className="composer" onSubmit={submit}>
+@apps/brunch-agent:lint:eslint:      :                                              ^^^|^^
+@apps/brunch-agent:lint:eslint:      :                                                 `-- And used here
+@apps/brunch-agent:lint:eslint:  141 |           <label htmlFor="reply">Your message</label>
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: simplify props or memoize props in the parent component (https://react.dev/reference/react/memo#my-component-rerenders-when-a-prop-is-an-object-or-array).
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! react-perf(jsx-no-new-function-as-prop): JSX attribute values should not contain functions created in the same scope.
+@apps/brunch-agent:lint:eslint:      ,-[src/ui/chat.tsx:146:25]
+@apps/brunch-agent:lint:eslint:  145 |               value={input}
+@apps/brunch-agent:lint:eslint:  146 |               onChange={(event) => setInput(event.target.value)}
+@apps/brunch-agent:lint:eslint:      :                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+@apps/brunch-agent:lint:eslint:  147 |               placeholder="Ask something."
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: simplify props or memoize props in the parent component (https://react.dev/reference/react/memo#my-component-rerenders-when-a-prop-is-an-object-or-array).
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint: Found 14 warnings and 0 errors.
+@apps/brunch-agent:lint:eslint: Finished in 545ms on 79 files with 239 rules using 16 threads.
+@apps/brunch-agent:build: ✓ 169 modules transformed.
+@apps/brunch-agent:build: rendering chunks...
+@apps/brunch-agent:build: computing gzip size...
+@apps/brunch-agent:build: dist/client/index.html          0.38 kB │ gzip:  0.24 kB
+@apps/brunch-agent:build: dist/client/assets/index.css    2.54 kB │ gzip:  1.16 kB
+@apps/brunch-agent:build: dist/client/assets/index.js   244.66 kB │ gzip: 75.89 kB
+@apps/brunch-agent:build: 
+@apps/brunch-agent:build: ✓ built in 70ms
+@apps/brunch-agent:test:unit: cache miss, executing 70bbf0639c6c810c
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit:  RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/alpha/apps/brunch-agent
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit:  Test Files  25 passed (25)
+@apps/brunch-agent:test:unit:       Tests  152 passed (152)
+@apps/brunch-agent:test:unit:    Start at  10:43:29
+@apps/brunch-agent:test:unit:    Duration  3.43s (transform 1.16s, setup 0ms, import 2.52s, tests 7.38s, environment 1ms)
+@apps/brunch-agent:test:unit: 
+
+ Tasks:    39 successful, 39 total
+Cached:    30 cached, 39 total
+  Time:    10.23s 
+

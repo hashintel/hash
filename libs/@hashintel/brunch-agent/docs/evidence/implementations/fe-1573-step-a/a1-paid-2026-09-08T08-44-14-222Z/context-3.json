@@ -1,0 +1,441 @@
+{
+  "systemPrompt": "# Universal Elicitation\n\nYou are the Brunch elicitation assistant. Help a person make what they know about a plan or system explicit enough to create, analyze, or revise a useful model for the purpose and target they select.\n\n## Purpose-relative attention\n\nEstablish what the result must help the person decide, answer, compare, explain, or change. Spend questions on distinctions that could affect that purpose. Depth is purpose-relative, not an obligation to fill every available category.\n\n## Interaction\n\nUse the person's vocabulary and follow concrete cases rather than traversing a schema, template, or target representation. Do not open with a battery of independent questions; deepen one answerable thread at a time and group questions only when they share one frame.\n\nBefore asking the person a direct question, call `brunch_mark_question` with the exact question text. Then include the exact same question text in ordinary assistant prose. The marker only makes that text available for accessible replay; it does not wait for or accept the answer, so continue the same response normally after calling it. Do not mark headings, rhetorical questions, or prose that you will not present verbatim.\n\n## Authorship and uncertainty\n\nKeep what the person said distinct from your normalization, inference, assumption, proposal, transformation, or default. Do not invent content, silently increase precision, or treat assent to wording you supplied as independent evidence. When accounts differ, establish whether the relationship is correction, conflict, or contextual coexistence before reconciling them.\n\n## Target transformation and evidence\n\nKeep source intent and evidence, the recoverable account, target-formalism transformation, evidence from checks, and claims about the surrounding system distinct. A parser, validator, simulator, verifier, compiler, or execution result establishes only the named property of the exact artifact under stated assumptions. It does not establish that the transformation captures the person's intent or that unexamined integrations are correct.\n\n## Workpiece, stopping, and delivery\n\nMaintain the supplied recoverable workpiece as understanding develops. Do not treat fluency, document fullness, your own confidence, user fatigue, or elapsed time as evidence of completion. An explicit stop ends questioning. Return the best useful result with consequential gaps, assumptions, conflicts, omissions, and unsupported claims visible.\n\n## Extension contract\n\nTarget-specific guidance may add Directives, Recognition, Operations, Coverage, and Verification or narrow their applicability. It does not silently weaken these universal invariants.\n\n# Operational Process Modelling for SDCPN\n\nSpecialize the universal elicitation role to operational processes represented as stochastic dynamic coloured Petri nets (SDCPNs) in Petrinaut. Help a person develop or revise an evidence-faithful process-model workpiece and, when the available evidence and tools support it, construct and check a net from that workpiece.\n\nActivate the `sdcpn-modelling` skill before substantive interviewing, workpiece revision, or construction.\n\nDuring interactive elicitation, speak about the operation in the person's vocabulary rather than places, transitions, arcs, colours, tokens, firing rules, or workpiece headings. The workpiece is the recoverable source for construction; do not use target structure to supply operational facts the person did not establish.\n\nUse mounted Petrinaut construction tools for net changes when they are available. Do not claim to have produced a constructed, loadable, valid, or simulatable net without corresponding tool evidence. When evidence or capabilities are insufficient, deliver the best honest workpiece or construction-gap report instead.\n\nWhen the person asks how Petrinaut's interface works, use the mounted Petrinaut documentation capability rather than guessing.\n\nThis is a construct-only headless conversation. Use only the supplied runbook IR as modelling input, do not interview, and build the net through the mounted Petrinaut tools instead of emitting net JSON.\n\nCall ping when you need to confirm the server tool path.\nA client-tool-result signal is JSON [{ toolCallId, toolName, output }]. Treat output as the browser's result for that call and continue helping the user.\n\n## Available Skills\n\nThe following skills provide specialized instructions for specific tasks. When a task matches a skill description, call the `activate_skill` tool with that skill name before proceeding so its full instructions are loaded. Skill instructions and supporting resources stay lazy until activation or explicit file reads.\n\n- **elicitation** — Acquire and improve an epistemically responsible account of what a person knows through adaptive conversation. Use before substantive interviewing, when an existing account must be corrected or extended with human knowledge, or when accounts conflict.\n- **sdcpn-modelling** — Elicit or revise an operational process model, maintain its recoverable workpiece, and construct a checked SDCPN when Petrinaut capabilities are available. Use for a process-modelling interview, Petri net, or analysis or revision of either artifact.\n\n## Available Agents\n\nNone. No subagents are currently declared, so the `task` tool has no valid `agent` value — do not call it unless an agent is introduced later in the conversation.\n\nDate: Tue, Sep 8, 2026",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "This is an isolated, test-authored schema-carrier check, not an operational interview or a claim about a real plant. The entire synthetic workpiece is: production eligibility tokens carry a product family label and a line qualification flag. Create exactly one coloured-token type named ProductionEligibility with two attributes: product_family (string) and line_qualified (boolean). Use stable identifiers of your choice and ordinary display settings. Read the empty document first; add only this type, no places, transitions, parameters or arcs. Stop after the client confirms the mutation, and state the check's limited scope. This tests nested typed attributes needed for eligibility modelling; no concrete family, line, restriction or operational quantity is supplied or to be invented."
+        }
+      ],
+      "timestamp": 1788857054348
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "The user wants me to:\n1. Read the current (empty) net definition\n2. Add exactly one coloured-token type named \"ProductionEligibility\" with two attributes: product_family (string) and line_qualified (boolean)\n3. Stop after confirmation\n4. State the check's limited scope\n\nLet me first activate the skill and get the current net definition.",
+          "thinkingSignature": "EskECpIBCBEYAipAQJcbyZJ+D0Xu867x6yHKm4REkwRHXeyacli/v/9JKJhM0Ix2EXqneHPO2PsROSAFVQAWewzfBZc4XrJp0Qz8rjIRY2xhdWRlLXNvbm5ldC00LTY4AEIIdGhpbmtpbmdaJDFjYjg0ZmM0LTQ3YWEtNGUxZi1hNjY1LTk0MGFiOWY4MWY4OKgB4ZX/1AYSDOQOwME1UYDCqibF+hoMiaswf4DSJTgcshlzIjA+sJsvqHOaiCzMUd7PYuNg9bZdXNc4HYDPxTikRmk4NXzlIc1wEiOcZ8HHBAdZhXgq4wI6pdsltKJyuAirFTLngzmVUpi6jWBEh/hf2fjVCFa8FJ7HOOzSM6JDSi9yaCYmXJbC0SHklEoCLqIwmU8CeeL1zpWGx+eVJvhzYRLo9z/gNPGtW/mDyFG0FKkSR7pJVR5jUEk1MSSl5VLPjIvVSG4BDBQWSCFTtI8uqDISiCU/JHU5vjcXBjb58D07pXZGngEnTsC5tWKJAjQymjBCZdIrc3R/wxwanWpads0vc31uFrfPzBLZhi0YE0EcYI0GLOcsnSnTUcz5AG2qg8jPI/oYecMkYifsknGBBIqPeIgj/X6Y1r1iXeXtrPfgE3n4S1rczD3DQayxKN9lc74vJ+glmbHwTSu/Yd6+aCxENyag5FGDXk8gYlM6tihc6Yuzo3BxKMQk0jeAf5MCXg9g341Hu5SsffTsY5hMegPgmNttv+NLQyYlXU9Q1okQUJDBbzaHVyYlhuspPdQdml2fCjw6RFk4GAE="
+        },
+        {
+          "type": "toolCall",
+          "id": "toolu_018YLU45ajpyuxkD1XmckJq8",
+          "name": "activate_skill",
+          "arguments": {
+            "name": "sdcpn-modelling"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "toolu_01ESjLAmxCrCsgjgA67zYvxD",
+          "name": "getLatestNetDefinition",
+          "arguments": {}
+        }
+      ],
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "usage": {
+        "input": 3,
+        "output": 178,
+        "cacheRead": 0,
+        "cacheWrite": 9459,
+        "totalTokens": 9640,
+        "cost": {
+          "input": 0.000009,
+          "output": 0.00267,
+          "cacheRead": 0,
+          "cacheWrite": 0.03547125,
+          "total": 0.038150250000000004
+        },
+        "cacheWrite1h": 0,
+        "reasoning": 94
+      },
+      "stopReason": "toolUse",
+      "timestamp": 1788857054384,
+      "responseId": "msg_011CeqgFjoFELctCQ663iQsc",
+      "rawStopReason": "tool_use"
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "toolu_018YLU45ajpyuxkD1XmckJq8",
+      "toolName": "activate_skill",
+      "content": [
+        {
+          "type": "text",
+          "text": "Run the skill named \"sdcpn-modelling\".\n\n<skill_instructions>\n# Capability-aware lifecycle\n\nUse one conceptual lifecycle: orient, elicit or revise, maintain the workpiece, construct when supported, check, and deliver. The current conversation may expose only one branch of that lifecycle. Do not claim that an unavailable transition occurred.\n\n## Select the runtime branch\n\n### Interactive elicitation or revision\n\nInterview in the person's operational vocabulary. Activate the `elicitation` skill and read `references/profile.md` before substantive questions or revision. Read `templates/workpiece.md` when creating or materially revising the shared workpiece. Construct only when the mounted capabilities actually permit construction in this conversation.\n\n### Construct-only execution\n\nUse the supplied workpiece as the complete modelling input. Do not interview. Read `references/pn-construction.md` and `references/checks.md`, then use the mounted construction tools. If a consequential workpiece gap prevents faithful construction, report the gap and the smallest question a later interactive elicitation must answer; do not ask it or invent an answer in this conversation.\n\n## Procedure\n\n### Orient\n\nEstablish enough purpose and context to select one focused next action: the intended question or decision, audience, boundary, horizon, accuracy need, and available time. Orientation need not settle every concern before elicitation begins.\n\n### Elicit or revise\n\nFor a new account, follow one concrete case and re-evaluate the active gap after each useful answer. For an existing account, first locate the disputed or changed material and its consequence for the objective. Use the `elicitation` skill's universal guidance and `references/profile.md` for detailed operations and coverage; do not turn their register order into question order.\n\n### Maintain the workpiece\n\nTreat the workpiece as the recoverable account construction will consume. Update it after a useful stretch rather than waiting until the end. Preserve unrelated material unless new evidence affects it.\n\nWhenever the workpiece changes substantially, emit the full current document in a fenced block whose language tag is exactly `runbook-ir`. Emit it again before construction and before workpiece-only delivery. A delta or prose promise is not a recoverable workpiece.\n\n### Construct\n\nConstruct only from the current workpiece. Read `references/pn-construction.md` and `references/checks.md` before beginning. Use mounted Petrinaut tools for every net change and inspect the resulting definition rather than emitting free-form net JSON. If the required tools are absent, limit the result to the workpiece and construction-ready notes.\n\nConstruction may infer a representation from recorded operational meaning; it may not invent operational facts. Record construction inferences, approximations, defaults, and target losses in the workpiece.\n\n### Check and deliver\n\nApply `references/checks.md` whenever construction is prepared or attempted. Deliver the current workpiece in every branch. Deliver a net only when the mounted tool path has produced and checked one. State what the result can support, what remains open, what was assumed or simplified, and what the target or current tools could not represent.\n\nAn explicit stop opens no new topic. In an interactive conversation, emit the best current workpiece and any already-checked net with limitations visible. In construct-only execution, report a blocking gap rather than opening an interview.\n\n## Resource discipline\n\nRead resources directly from this skill's advertised resource list, using the exact `/.flue/packaged-skills/...` path shown in the activation briefing; the relative name is a label only. Do not treat Markdown links as includes, follow references recursively, or read construction material merely to frame ordinary interview questions.\n</skill_instructions>\n\nSupporting skill resources are available but are not loaded into context unless needed:\n<skill_resources>\n- references/checks.md → read_skill_resource /.flue/packaged-skills/skill%3Asdcpn-modelling%3A99a447ec4bcbf6c0/references/checks.md\n- references/pn-construction.md → read_skill_resource /.flue/packaged-skills/skill%3Asdcpn-modelling%3A99a447ec4bcbf6c0/references/pn-construction.md\n- references/profile.md → read_skill_resource /.flue/packaged-skills/skill%3Asdcpn-modelling%3A99a447ec4bcbf6c0/references/profile.md\n- templates/workpiece.md → read_skill_resource /.flue/packaged-skills/skill%3Asdcpn-modelling%3A99a447ec4bcbf6c0/templates/workpiece.md\n</skill_resources>"
+        }
+      ],
+      "details": {
+        "skill": "sdcpn-modelling"
+      },
+      "isError": false,
+      "timestamp": 1788857058234
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "toolu_01ESjLAmxCrCsgjgA67zYvxD",
+      "toolName": "getLatestNetDefinition",
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"awaiting\":\"client\"}"
+        }
+      ],
+      "details": {
+        "customTool": "getLatestNetDefinition",
+        "output": {
+          "awaiting": "client"
+        }
+      },
+      "isError": false,
+      "timestamp": 1788857058234
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "toolCall",
+          "id": "toolu_01AFNKniMZo6KvdS9VJWP2SY",
+          "name": "read_skill_resource",
+          "arguments": {
+            "path": "/.flue/packaged-skills/skill%3Asdcpn-modelling%3A99a447ec4bcbf6c0/references/pn-construction.md"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "toolu_01WVYLQGN2TAA8W2JdGRxVK8",
+          "name": "read_skill_resource",
+          "arguments": {
+            "path": "/.flue/packaged-skills/skill%3Asdcpn-modelling%3A99a447ec4bcbf6c0/references/checks.md"
+          }
+        }
+      ],
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "usage": {
+        "input": 1,
+        "output": 176,
+        "cacheRead": 9459,
+        "cacheWrite": 1316,
+        "totalTokens": 10952,
+        "cost": {
+          "input": 0.000003,
+          "output": 0.00264,
+          "cacheRead": 0.0028377,
+          "cacheWrite": 0.004935,
+          "total": 0.0104157
+        },
+        "cacheWrite1h": 0,
+        "reasoning": 0
+      },
+      "stopReason": "toolUse",
+      "timestamp": 1788857058239,
+      "responseId": "msg_011CeqgG1q9PDJGcipcW482u",
+      "rawStopReason": "tool_use"
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "toolu_01AFNKniMZo6KvdS9VJWP2SY",
+      "toolName": "read_skill_resource",
+      "content": [
+        {
+          "type": "text",
+          "text": "# SDCPN Construction\n\nRead this only when constructing, revising, or checking a net. Consume the current process-model workpiece; do not reread the transcript as the primary model.\n\nConstruction translates recorded operational meaning into SDCPN structure. It may choose a representation, introduce a visibly named approximation, or report a loss. It may not invent operational facts to make the net complete.\n\n## Construction boundary\n\nBefore constructing, confirm that the workpiece states what the model must support and contains a usable process spine: what flows, what admits it, what happens and in what order, what changes the path, what resources are occupied, and what outcome ends or hands off the case.\n\nIf materially different nets remain possible because one operational distinction is missing, formulate the smallest resolving question. Ask it only when interactive elicitation is available; in construct-only execution, report it as the required re-entry and stop the unsupported path.\n\nWhen Petrinaut construction tools are mounted, their accepted schemas and the inspected resulting definition are the authority for payload fields and net state. Use the tools for every net change; do not emit free-form net JSON. When tools are absent, leave construction-ready notes and do not claim a loadable net.\n\n## Mapping principles\n\n| Recorded operational meaning | Possible SDCPN interpretation |\n| --- | --- |\n| Things that flow, are acted on, or do work | Typed tokens and colour elements when distinctions change behavior |\n| Initial populations, arrivals, departures, calendars, and external inputs | Initial marking, parameters, boundary conditions, or source and sink transitions where representable |\n| Logical activities | Transitions, factored into start, in-progress state, and completion only when timing or resource semantics require it |\n| Waiting, availability, and occupied state | Places derived from the activities and conditions on either side, not independently elicited queue nodes |\n| Ordering, branching, joining, triggers, and practiced decision rules | Arcs, guards, priorities, and explicit enabling state |\n| Resource consumption, reservation, release, and read-only use | Consumed tokens, held and returned resource tokens, or read behavior |\n| Continuous change | Dynamics on real-valued colour elements when a rate, threshold, or objective makes it consequential |\n| Metrics and objectives | Simulation metrics where representable; qualitative goals and unsupported weights remain in the workpiece |\n| Data bindings and validation criteria | Workpiece obligations until a separate integration represents them |\n\nA physical location becomes target structure only through its recorded operational effect; it is not automatically a Petri-net place. A simulation scenario is assembled from initial state, boundary conditions, parameters, and candidate policies rather than represented as one process node.\n\n## Petrinaut tool sequence\n\nWhen the corresponding tools are mounted:\n\n1. Call `getLatestNetDefinition` before changing the net.\n2. Add only workpiece-supported token types and tunable parameters with `addType` and `addParameter`.\n3. Add places and transitions with `addPlace` and `addTransition`; establish stable identifiers before connecting them.\n4. Add connections with `addArc`. Arc weights are positive token multiplicities, not switches for mutually exclusive modes.\n5. Re-inspect with `getLatestNetDefinition` after each dependent stage and at the end.\n6. Correct rejected calls in the same conversation or state why construction remains partial.\n\nThe mounted schemas, not this prose, govern exact payload fields.\n\n## Construction patterns\n\nPatterns are candidate transformations whose premises must already be present in the workpiece. They do not supply missing facts.\n\n### Timed work\n\nWhen a logical activity occupies consequential time, represent start, in-progress state, and completion separately. Preserve what remains occupied while work runs. Use a constant or named parameter when only a typical duration is supported; do not invent a distribution family or tail.\n\n### Conditional or probabilistic outcome\n\nRepresent mutually exclusive outcomes with distinct enabled paths. Use a recorded rule, condition, parameter, or probability. If no probability is supported, do not manufacture an even split; preserve a symbolic parameter, use a non-probabilistic condition when available, or report the gap.\n\n### Contended resource\n\nHold available instances in shared resource state. A work-start transition acquires the required tokens; competing work cannot use them while held; success, failure, cancellation, or recovery returns them when the workpiece says they become available. Preserve changed wear, qualification, location, or other consequential state on return.\n\nCompile practiced contention rules into guards or priorities only when their selecting conditions are recorded.\n\n### Consumed, reserved, and read inputs\n\n- **Consumed or transformed:** remove the input from its source state and produce only the outputs the workpiece records.\n- **Reserved:** remove or lock availability at start, carry the association through work, and return the input at release.\n- **Read:** allow the activity to depend on the input without making it unavailable to other work.\n\nConfirm that the target's actual arc semantics implement the intended use; syntactic convenience does not override operational meaning.\n\n### Gate, release, trigger, or prerequisite\n\nRepresent the observable enabling condition and the event or actor that changes it. Use a guard, state place, external source, or timed event appropriate to the workpiece. Preserve overrides rather than silently weakening the gate.\n\n### Batch, lot, load, or grouped movement\n\nRepresent formation by the recorded count, clock, or combined release rule. Preserve whether the group stays together and any split, merge, setup, or capacity cost. Do not infer a preferred batch size from a maximum.\n\n### Mode change\n\nRepresent source and destination availability states with directional transitions when setup, changeover, restart, handover, or reconfiguration changes behavior. Attach time, material, scrap, or capacity loss to the direction where it occurs.\n\n### Event, failure, retry, and recovery\n\nRepresent disruptions separately from normal progress when they befall the process rather than advance it. Place the return path at the recorded retry scope: failed activity, repeated subsequence, whole-case restart, diversion, or scrap. Preserve the work, state, and occupied resources that survive or reset.\n\n### Continuous quantity and threshold\n\nCarry a changing quantity in state with the supported evolution law. Fire consequential behavior at the recorded threshold and add a reset only when one is supported. Omit a floating continuous variable that affects no objective or process behavior.\n\n### Spatial transfer\n\nRepresent transfer as an activity when location change consumes time or resources. Reserve transport capacity when contended and preserve origin-to-destination dependence when supported.\n\n### Hidden waiting\n\nDerive waiting from unavailable resources, unmet prerequisites, calendar state, batching, transport, policy, or disruption. An intermediate place may be required, but its meaning comes from those surrounding conditions rather than an elicited queue object.\n\n## Inference, approximation, and target loss\n\nName every representational choice not directly supported by the operational account. Preserve its reason, consequence, and route to checking in the workpiece.\n\nPotentially acceptable when purpose-relative and visible:\n\n- collapsing several named micro-steps when no objective depends on their internal order;\n- representing an unknown rate as a parameter rather than a value;\n- using a constant for variation judged immaterial to the stated purpose;\n- choosing one of several behaviorally equivalent net factorizations; and\n- supplying layout positions that carry no operational meaning.\n\nNot acceptable:\n\n- filling an empty workpiece concern from generic operations knowledge;\n- averaging conflicting or context-dependent values;\n- interpreting “unknown” as a conventional distribution;\n- treating a posted rule as practiced behavior;\n- inventing release, recovery, retry, or branch semantics; or\n- claiming a net is loadable, valid, or simulated without corresponding tool evidence.\n\nRecord workpiece material the target or current tools cannot faithfully carry, including qualitative objectives without usable metrics, policy whose deciding condition remains tacit, live data bindings not connected by the current path, validation judgments outside net semantics, and contextual distinctions collapsed by an accepted simplification.\n\n## Existing-net analysis and bounded change\n\nStart from the changed or disputed workpiece material and inspect the current net before mutation. Identify the elements whose meaning depends on that material and the desired delta.\n\nDo not claim general net revision unless mounted capabilities can update or remove existing structure. With an add-and-inspect subset, apply only genuinely additive changes that preserve the intended existing structure; otherwise stop after analysis and describe the unsupported update or removal. Never simulate replacement by adding competing elements beside obsolete ones.\n\nAfter a supported change, report what was added, what was only inspected, which objective consequences changed, and which assumptions or losses opened or closed.\n"
+        }
+      ],
+      "details": {
+        "path": "/.flue/packaged-skills/skill%3Asdcpn-modelling%3A99a447ec4bcbf6c0/references/pn-construction.md",
+        "lines": 128
+      },
+      "isError": false,
+      "timestamp": 1788857061607
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "toolu_01WVYLQGN2TAA8W2JdGRxVK8",
+      "toolName": "read_skill_resource",
+      "content": [
+        {
+          "type": "text",
+          "text": "# Workpiece, Construction, and Delivery Checks\n\nRead this when preparing to construct, after construction changes, and before delivering a net. For workpiece-only delivery, apply the universal and plugin Verification registers without loading this construction resource.\n\nA failed check triggers the smallest relevant repair available in the current runtime branch: amend the workpiece, ask during interactive elicitation, revise construction, or report a visible limitation and re-entry question for a later conversation.\n\n## Evidence levels\n\nReport the highest level actually reached. Passing one level does not imply the next.\n\n### 1. Tool-schema acceptance\n\nThe mounted construction tools accepted the submitted payloads, and the latest inspected definition contains the accepted changes. This establishes conformance to those tool input schemas and the shape returned by inspection. It does not establish correspondence with the workpiece, reachability, resource conservation, exclusivity over executions, loadability in another consumer, or simulated behavior.\n\n### 2. Agent-reviewed structural correspondence\n\nThe agent compared the inspected definition with the workpiece and found visible structures corresponding to the recorded process. This can establish that named elements, connections, candidate paths, guards, resource-return structures, and parameters are present and apparently aligned. It remains a review judgment over static structure, not behavioral proof.\n\n### 3. Behavioral execution or stronger analysis\n\nAn actual simulation, state-space exploration, invariant check, or other named analysis exercised the constructed definition. State exactly which method, scenario, initial state, parameters, paths, and observations were covered. A simulation run establishes only the behavior observed in that run; a universal claim such as “resources cannot leak” requires an analysis whose scope genuinely covers every relevant execution.\n\nIf no behavioral execution or stronger analysis occurred, say so. Do not convert tool acceptance or visual inspection into behavioral validation.\n\n## Before construction\n\n- The intended question, comparison, or decision is stated in the person's terms.\n- The boundary and a meaningful concrete case are cold-readable from the workpiece.\n- The process spine says what flows, what admits it, what happens and in what order, what changes the path, where waiting comes from, and what outcome or handoff ends it.\n- Inputs that matter are distinguished as consumed, reserved/released, or read.\n- Required resource availability and release are recorded or visibly unknown.\n- Consequential quantities retain their context and supported precision.\n- Practiced and prescribed rules, corrections, conflicts, and contextual variants are not silently collapsed.\n- Construction can proceed without recovering a load-bearing fact from transcript memory.\n- Assumptions, unresolved matters, omissions, and anticipated losses are visible.\n\nIf the missing material admits materially different process structures, formulate the smallest resolving question before constructing. Ask it only during interactive elicitation; in construct-only execution, return it as a blocking re-entry question. If the person has stopped, deliver the partial workpiece instead of opening a new topic.\n\n## Tool-schema acceptance checks\n\n- Every intended construction call was accepted or its rejection remains explicitly unresolved.\n- The latest inspected definition contains each accepted place, transition, type, parameter, and connection under the identifier returned or supplied.\n- Every referenced endpoint exists in the inspected definition.\n- Arc weights or multiplicities are positive and conform to the mounted schema.\n- No later step depends on a rejected or absent change.\n\nRe-inspect after dependent stages and once at the end. Record rejected calls and repairs. Describe this result as **tool-schema accepted**, not valid, runnable, or simulated.\n\n## Agent-reviewed structural correspondence\n\nCompare the latest inspected definition with the authoritative workpiece claims.\n\n- The definition contains at least one meaningful place and transition corresponding to the process account.\n- It contains a candidate structural path from a represented initial or admitted condition toward an outcome. This does not establish that the path can fire.\n- Visible branches, joins, loops, and recovery structures correspond to the workpiece's stated ordering and conditions.\n- For each enumerated resource-holding path, the intended acquisition and return structures are present. This does not establish conservation over every execution.\n- Consumed inputs lack an unintended return structure; reserved inputs have an intended return structure; read-only information remains visibly available by the chosen representation.\n- Mutually exclusive outcomes or modes have apparently exclusive guards or structure. This does not establish that they can never overlap at runtime.\n- Direction-dependent mode changes retain distinct structural losses where the workpiece requires them.\n- Continuous dynamics have a recorded quantity, consequential threshold or effect, and workpiece support.\n- Required parameters and initial populations are represented or explicitly named as external inputs.\n- Waiting is explained by recorded surrounding conditions rather than an unsupported queue object.\n\nRecord discrepancies and the agent judgment used to resolve or preserve them. Describe a passing result as **structurally reviewed against the workpiece**.\n\n## Behavioral evidence\n\nOnly report observations produced by an actual execution or named stronger analysis.\n\n- Record the exact definition revision, scenario, initial state, parameters, duration or stopping condition, and analysis method.\n- State which process path or property was exercised.\n- For a simulation, report only observed progress, resource balances, mode states, outputs, and failures from the runs performed.\n- For state-space or invariant analysis, report the explored scope, assumptions, and any unexamined behaviors.\n- Relate each observation back to the workpiece objective it bears on.\n- Preserve failures and counterexamples; do not summarize them as a pass because another run succeeded.\n\nNo behavioral tool or result means no behavioral claim.\n\n## Fidelity and uncertainty\n\n- Every load-bearing net choice traces to an authoritative workpiece claim or a named construction inference, approximation, or default.\n- No hedge has been hardened solely to satisfy a schema.\n- No conflict has been averaged and no contextual value has been made universal without an accepted simplification.\n- Assumptions state why they were introduced, what they affect, and how they could be checked.\n- Material retained only in the workpiece is named as a target or tooling loss rather than omitted silently.\n- The delivery distinguishes accepted structure, agent review, observed behavior, and universal guarantees.\n\n## Revision checks\n\nWhen revising an existing workpiece or analyzing a requested net change:\n\n- the changed or disputed workpiece material is explicit;\n- the prior and current account are distinguishable as correction, conflict, or contextual coexistence;\n- the desired net delta follows from changed workpiece meaning;\n- unsupported update or removal operations are reported rather than imitated with competing additive structure;\n- any applied additive net changes preserve the intended existing structure at the level actually inspected;\n- assumptions and losses displaced or introduced by the revision are reported;\n- the delivery distinguishes what changed from what was only inspected and says what the model can now support that it could not support before, or vice versa.\n\n## Delivery\n\nAlways deliver the current recoverable workpiece. Deliver a net only if construction occurred through available tools and the resulting definition was inspected.\n\nState plainly:\n\n- what question or decision the result is intended to support;\n- whether the workpiece is sufficient for that purpose or partial with named gaps;\n- whether construction was not attempted, blocked, partial, or tool-schema accepted;\n- whether an agent-reviewed structural comparison occurred and what discrepancies remain;\n- whether behavior was untested, observed in named simulations, or established to the stated scope by stronger analysis;\n- what the agent inferred, approximated, defaulted, simplified, or omitted;\n- what remains unknown, unasked, declined, deferred, conflicting, or unsupported;\n- what the target formalism or current tooling could not represent;\n- what smallest next evidence would change the result.\n\nDo not collapse these levels into “validated,” “correct,” “runnable,” or “simulatable” without naming the evidence that supports that exact claim. Do not convert the delivery descriptions into a closed completion algebra.\n"
+        }
+      ],
+      "details": {
+        "path": "/.flue/packaged-skills/skill%3Asdcpn-modelling%3A99a447ec4bcbf6c0/references/checks.md",
+        "lines": 117
+      },
+      "isError": false,
+      "timestamp": 1788857061607
+    }
+  ],
+  "tools": [
+    {
+      "name": "task",
+      "label": "Run Task",
+      "description": "Delegate a focused task to a detached child agent with its own context. Use this for independent research, file exploration, or parallel work. Pass attachment IDs shown in the conversation to include those images. The task returns only its final answer to this conversation. Agents available for delegation are listed under \"Available Agents\" in the system prompt.",
+      "parameters": {
+        "type": "object",
+        "required": ["prompt", "agent"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Short human-readable label for the delegated work"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "Focused instructions for the child agent"
+          },
+          "agent": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Subagent to run the task with, from the list of currently available agents. Agents that have been removed from the list are no longer usable (until re-introduced, if ever)."
+          },
+          "cwd": {
+            "type": "string",
+            "description": "Working directory for the child agent. AGENTS.md and skills are discovered from here."
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Attachment ID shown in the current conversation"
+                }
+              }
+            },
+            "description": "Images from this conversation to include in the child agent prompt"
+          }
+        }
+      }
+    },
+    {
+      "name": "activate_skill",
+      "label": "Activate Skill",
+      "description": "Load the full instructions for one available skill before performing work that matches its description. Supporting resources remain lazy until explicitly read.",
+      "parameters": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the skill to activate"
+          }
+        }
+      }
+    },
+    {
+      "name": "read_skill_resource",
+      "label": "Read Skill Resource",
+      "description": "Read a packaged skill supporting file by its advertised path.",
+      "parameters": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Path to the file to read"
+          },
+          "offset": {
+            "type": "number",
+            "description": "Line number to start from (1-indexed)"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of lines to read"
+          }
+        }
+      }
+    },
+    {
+      "name": "brunch_mark_question",
+      "label": "brunch_mark_question",
+      "description": "Mark the exact text of a direct question for accessible replay. Call this immediately before including that exact question in ordinary assistant prose. This marker does not ask or answer the question itself.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          }
+        },
+        "required": ["question"]
+      }
+    },
+    {
+      "name": "readPetrinautDoc",
+      "label": "readPetrinautDoc",
+      "description": "Read one page of the Petrinaut user guide. The browser executes this tool. After you call it, wait for a client-tool-result signal carrying the page text, then continue from that text.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "doc": {
+            "enum": [
+              "drawing-a-net",
+              "petri-net-extensions",
+              "useful-patterns",
+              "simulation",
+              "scenarios",
+              "ad-hoc-scenarios",
+              "experiments",
+              "optimization",
+              "actual-mode",
+              "preview",
+              "ai-assistant",
+              "visual-settings",
+              "compilation-output",
+              "examples"
+            ],
+            "type": "string"
+          }
+        },
+        "required": ["doc"]
+      }
+    },
+    {
+      "name": "getLatestNetDefinition",
+      "label": "getLatestNetDefinition",
+      "description": "Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.\nCanonical Petrinaut input JSON Schema:\n{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{},\"additionalProperties\":false,\"description\":\"Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.\"}",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "addType",
+      "label": "addType",
+      "description": "Add a coloured-token type.\nCanonical Petrinaut input JSON Schema:\n{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for an SDCPN entity. Use unique IDs within the net.\"},\"name\":{\"type\":\"string\",\"description\":\"Human-readable colour/type name.\"},\"description\":{\"description\":\"Optional human-readable summary shown to users.\",\"type\":\"string\"},\"iconSlug\":{\"type\":\"string\",\"minLength\":1,\"description\":\"Short icon identifier used by the UI for this colour/type. Typical values are `\\\"circle\\\"` or `\\\"square\\\"`; the UI defaults to `\\\"circle\\\"`.\"},\"displayColor\":{\"type\":\"string\",\"minLength\":1,\"description\":\"CSS colour string for the UI badge, e.g. `\\\"#1E90FF\\\"` or `\\\"rgb(30,144,255)\\\"`.\"},\"elements\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"elementId\":{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for this colour element.\"},\"name\":{\"type\":\"string\",\"description\":\"Token attribute identifier used DIRECTLY in code. Lambdas, kernels, dynamics, visualizers, and metrics destructure tokens as `{ <name> }`, so this must be a valid JavaScript identifier (e.g. `machine_damage_ratio`, `x`, `velocity`). Spaces, hyphens, and leading digits will break user code that references the attribute; prefer lower_snake_case for consistency with parameter naming.\"},\"type\":{\"type\":\"string\",\"enum\":[\"real\",\"integer\",\"boolean\",\"uuid\",\"string\"],\"description\":\"`real` is continuous and may be updated by dynamics. `integer`, `boolean`, `uuid`, and `string` are discrete token attributes updated by transition kernels. `integer` values are stored as Float64 and rounded on read/write: they are exact only within ±2^53 (±9,007,199,254,740,992); values beyond that lose precision silently. `uuid` is a 128-bit RFC 4122 identifier: runtime code sees it as a `bigint`, frame buffers store it as two little-endian 64-bit lanes, and at-rest data (documents, scenarios) uses canonical lowercase strings. `uuid` fields are OPTIONAL in kernel outputs — omitted values are auto-generated deterministically from the seeded simulation RNG — and non-UUID inputs are converted deterministically via UUIDv5. `string` is variable-length text, compared by value: runtime code sees plain JS strings, and each distinct value is stored once per run via interning — frame buffers hold 64-bit pool references. Kernels and markings write `string` values (missing values become the empty string); dynamics can read but never update them.\"}},\"required\":[\"elementId\",\"name\",\"type\"],\"additionalProperties\":false,\"description\":\"One typed attribute on a coloured token.\"},\"description\":\"Typed token attributes available on tokens of this colour/type. Element order matters: coloured initial state in scenario per_place mode supplies rows in this order.\"},\"targetSubnetId\":{\"description\":\"Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.\",\"anyOf\":[{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for an SDCPN entity. Use unique IDs within the net.\"},{\"type\":\"null\"}]}},\"required\":[\"id\",\"name\",\"iconSlug\",\"displayColor\",\"elements\"],\"additionalProperties\":false,\"description\":\"Add a coloured-token type.\"}",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable colour/type name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional human-readable summary shown to users."
+          },
+          "iconSlug": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Short icon identifier used by the UI for this colour/type. Typical values are `\"circle\"` or `\"square\"`; the UI defaults to `\"circle\"`."
+          },
+          "displayColor": {
+            "type": "string",
+            "minLength": 1,
+            "description": "CSS colour string for the UI badge, e.g. `\"#1E90FF\"` or `\"rgb(30,144,255)\"`."
+          },
+          "elements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "elementId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Stable identifier for this colour element."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Token attribute identifier used DIRECTLY in code. Lambdas, kernels, dynamics, visualizers, and metrics destructure tokens as `{ <name> }`, so this must be a valid JavaScript identifier (e.g. `machine_damage_ratio`, `x`, `velocity`). Spaces, hyphens, and leading digits will break user code that references the attribute; prefer lower_snake_case for consistency with parameter naming."
+                },
+                "type": {
+                  "enum": ["real", "integer", "boolean", "uuid", "string"],
+                  "type": "string",
+                  "description": "`real` is continuous and may be updated by dynamics. `integer`, `boolean`, `uuid`, and `string` are discrete token attributes updated by transition kernels. `integer` values are stored as Float64 and rounded on read/write: they are exact only within ±2^53 (±9,007,199,254,740,992); values beyond that lose precision silently. `uuid` is a 128-bit RFC 4122 identifier: runtime code sees it as a `bigint`, frame buffers store it as two little-endian 64-bit lanes, and at-rest data (documents, scenarios) uses canonical lowercase strings. `uuid` fields are OPTIONAL in kernel outputs — omitted values are auto-generated deterministically from the seeded simulation RNG — and non-UUID inputs are converted deterministically via UUIDv5. `string` is variable-length text, compared by value: runtime code sees plain JS strings, and each distinct value is stored once per run via interning — frame buffers hold 64-bit pool references. Kernels and markings write `string` values (missing values become the empty string); dynamics can read but never update them."
+                }
+              },
+              "required": ["elementId", "name", "type"],
+              "additionalProperties": false,
+              "description": "One typed attribute on a coloured token."
+            },
+            "description": "Typed token attributes available on tokens of this colour/type. Element order matters: coloured initial state in scenario per_place mode supplies rows in this order."
+          },
+          "targetSubnetId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net."
+          }
+        },
+        "required": ["id", "name", "iconSlug", "displayColor", "elements"],
+        "additionalProperties": false,
+        "description": "Add a coloured-token type."
+      }
+    },
+    {
+      "name": "addParameter",
+      "label": "addParameter",
+      "description": "Add a net-level parameter available to SDCPN code.\nCanonical Petrinaut input JSON Schema:\n{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for an SDCPN entity. Use unique IDs within the net.\"},\"name\":{\"type\":\"string\",\"description\":\"Human-readable parameter name.\"},\"variableName\":{\"type\":\"string\",\"description\":\"lower_snake_case identifier used DIRECTLY in user code as `parameters.<value>` (e.g. `parameters.crash_threshold`, NOT `parameters.crashThreshold`). Must start with a lowercase letter; only `[a-z0-9_]` allowed.\"},\"type\":{\"type\":\"string\",\"enum\":[\"real\",\"integer\",\"boolean\"],\"description\":\"Primitive parameter type. Real and integer values use numeric strings; boolean values use the literal strings `\\\"true\\\"` and `\\\"false\\\"`.\"},\"defaultValue\":{\"type\":\"string\",\"description\":\"Default parameter value as a plain string: numeric for real/integer parameters (e.g. `\\\"3\\\"`, `\\\"0.05\\\"`) and `\\\"true\\\"` or `\\\"false\\\"` for booleans. Expressions are NOT supported here — use scenario `parameterOverrides` for expressions.\"},\"targetSubnetId\":{\"description\":\"Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.\",\"anyOf\":[{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for an SDCPN entity. Use unique IDs within the net.\"},{\"type\":\"null\"}]}},\"required\":[\"id\",\"name\",\"variableName\",\"type\",\"defaultValue\"],\"additionalProperties\":false,\"description\":\"Add a net-level parameter available to SDCPN code.\"}",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "addPlace",
+      "label": "addPlace",
+      "description": "Add a place that stores tokens in the SDCPN.\nCanonical Petrinaut input JSON Schema:\n{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for an SDCPN entity. Use unique IDs within the net.\"},\"name\":{\"type\":\"string\",\"description\":\"PascalCase identifier used DIRECTLY in user code: lambdas and kernels reference input/output places as `input.PlaceName` and `{ PlaceName: [...] }`, metrics access them as `state.places.PlaceName.count`, scenario code-mode initial state keys are place names, and visualizer scope is implicitly per-place. Renaming a place breaks every code reference, so rename only when you also update dependent lambda/kernel/dynamics/metric/visualizer/scenario code in the same batch.\"},\"description\":{\"description\":\"Optional human-readable summary shown to users.\",\"type\":\"string\"},\"colorId\":{\"anyOf\":[{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for an SDCPN entity. Use unique IDs within the net.\"},{\"type\":\"null\"}],\"description\":\"ID of the token colour/type accepted by this place, or null for uncoloured token counts. Uncoloured places have no token attributes and do not appear in lambda/kernel `input` objects.\"},\"dynamicsEnabled\":{\"type\":\"boolean\",\"description\":\"Whether tokens in this place are updated by a differential equation during simulation. Dynamics only run when this is true AND `differentialEquationId` is set AND `colorId` is set.\"},\"differentialEquationId\":{\"anyOf\":[{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for an SDCPN entity. Use unique IDs within the net.\"},{\"type\":\"null\"}],\"description\":\"ID of the differential equation used for continuous dynamics, or null when dynamics are disabled. The referenced equation's `colorId` MUST match this place's `colorId`.\"},\"capacity\":{\"description\":\"Optional maximum number of tokens this place will hold. A transition whose firing would take this place past its capacity is NOT enabled, exactly like a transition without enough input tokens — so a full place blocks the transitions that feed it and the limit is never exceeded. The check uses the net change per firing, so a transition that both consumes from and produces into this place is not blocked by its own output. A capacity of 0 means the place can never receive tokens. Omit or set null for unbounded. The initial marking must not exceed it.\",\"anyOf\":[{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},{\"type\":\"null\"}]},\"isPort\":{\"description\":\"When true, this place is exposed as a component port on instances of the subnet that contains it.\",\"type\":\"boolean\"},\"visualizerCode\":{\"description\":\"Optional module: `export default Visualization(({ tokens, parameters }) => <JSX/>)`. JSX is compiled with React's CLASSIC runtime — do NOT `import React`, do NOT use `<>…</>` fragments (use `<g>` or explicit elements), and do NOT use hooks; treat it as a pure render. `tokens` is this place's current tokens (only meaningful for coloured places; empty for uncoloured). `parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.crash_threshold`). Convention is to return a sized `<svg viewBox=\\\"0 0 800 600\\\">…</svg>`.\",\"type\":\"string\"},\"showAsInitialState\":{\"description\":\"Optional UI hint to show this place in the initial-state view.\",\"type\":\"boolean\"},\"x\":{\"type\":\"number\",\"description\":\"Horizontal canvas position.\"},\"y\":{\"type\":\"number\",\"description\":\"Vertical canvas position.\"},\"targetSubnetId\":{\"description\":\"Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.\",\"anyOf\":[{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for an SDCPN entity. Use unique IDs within the net.\"},{\"type\":\"null\"}]}},\"required\":[\"id\",\"name\",\"colorId\",\"dynamicsEnabled\",\"differentialEquationId\",\"x\",\"y\"],\"additionalProperties\":false,\"description\":\"Add a place that stores tokens in the SDCPN.\"}",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "addTransition",
+      "label": "addTransition",
+      "description": "Add a transition with firing logic and arcs.\nCanonical Petrinaut input JSON Schema:\n{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for an SDCPN entity. Use unique IDs within the net.\"},\"name\":{\"type\":\"string\",\"description\":\"Human-readable transition name.\"},\"description\":{\"description\":\"Optional human-readable summary shown to users.\",\"type\":\"string\"},\"metadata\":{\"description\":\"Optional host-defined data. Petrinaut treats it as opaque and never renders it.\",\"type\":\"object\",\"propertyNames\":{\"type\":\"string\"},\"additionalProperties\":{\"$ref\":\"#/$defs/__schema0\"}},\"inputArcs\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"placeId\":{\"description\":\"Legacy shorthand for a normal input place endpoint. Prefer `endpoint` for new data.\",\"type\":\"string\",\"minLength\":1},\"endpoint\":{\"description\":\"Input endpoint. Use `kind: \\\"componentPort\\\"` to consume/read/inhibit tokens from a component instance port.\",\"oneOf\":[{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"place\"},\"placeId\":{\"type\":\"string\",\"minLength\":1,\"description\":\"ID of a place in the same net as the transition.\"}},\"required\":[\"kind\",\"placeId\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"componentPort\"},\"componentInstanceId\":{\"type\":\"string\",\"minLength\":1,\"description\":\"ID of a component instance in the same net as the transition.\"},\"portPlaceId\":{\"type\":\"string\",\"minLength\":1,\"description\":\"ID of a place marked `isPort: true` in the component instance's referenced subnet.\"}},\"required\":[\"kind\",\"componentInstanceId\",\"portPlaceId\"],\"additionalProperties\":false}]},\"weight\":{\"type\":\"number\",\"exclusiveMinimum\":0,\"description\":\"Token multiplicity for this input arc. Standard arcs consume this many tokens; read arcs require and expose this many tokens without consuming them; inhibitor arcs require the source place to have fewer than this many tokens. For coloured standard/read input places this also determines the tuple length the transition's lambda and kernel see at `input.PlaceName` (weight 2 means a 2-token array).\"},\"type\":{\"type\":\"string\",\"enum\":[\"standard\",\"inhibitor\",\"read\"],\"description\":\"Standard arcs consume tokens from the input place; read arcs require and expose tokens to the lambda/kernel but do NOT consume them; inhibitor arcs prevent firing when the source place has at least the weight indicated and are NOT present in the lambda or kernel `input`.\"}},\"required\":[\"weight\",\"type\"],\"additionalProperties\":false,\"description\":\"Input arc from a place or component port into a transition.\"},\"description\":\"Input arcs that gate transition firing. Standard arcs consume tokens, read arcs observe tokens without consuming them, and inhibitor arcs block firing based on token counts.\"},\"outputArcs\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"placeId\":{\"description\":\"Legacy shorthand for a normal output place endpoint. Prefer `endpoint` for new data.\",\"type\":\"string\",\"minLength\":1},\"endpoint\":{\"description\":\"Output endpoint. Use `kind: \\\"componentPort\\\"` to produce tokens into a component instance port.\",\"oneOf\":[{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"place\"},\"placeId\":{\"type\":\"string\",\"minLength\":1,\"description\":\"ID of a place in the same net as the transition.\"}},\"required\":[\"kind\",\"placeId\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"componentPort\"},\"componentInstanceId\":{\"type\":\"string\",\"minLength\":1,\"description\":\"ID of a component instance in the same net as the transition.\"},\"portPlaceId\":{\"type\":\"string\",\"minLength\":1,\"description\":\"ID of a place marked `isPort: true` in the component instance's referenced subnet.\"}},\"required\":[\"kind\",\"componentInstanceId\",\"portPlaceId\"],\"additionalProperties\":false}]},\"weight\":{\"type\":\"number\",\"exclusiveMinimum\":0,\"description\":\"Number of tokens produced into the output place.\"}},\"required\":[\"weight\"],\"additionalProperties\":false,\"description\":\"Output arc from a transition into a place or component port.\"},\"description\":\"Output arcs that receive tokens after this transition fires.\"},\"lambdaType\":{\"type\":\"string\",\"enum\":[\"predicate\",\"stochastic\"],\"description\":\"Use predicate for boolean enabling logic when transition lambda authoring is available; use stochastic for rate-based firing when stochasticity is available.\"},\"lambdaCode\":{\"type\":\"string\",\"description\":\"Optional function body ending in `return`, with `input` and `parameters` ambient (the legacy `export default Lambda((input, parameters) => …)` module form is also accepted). Lambda code is meaningful only when stochasticity is enabled OR when colours are enabled and the transition has at least one standard or read input arc from a coloured place. `input` is keyed by INPUT PLACE NAME (PascalCase) for coloured standard and read arcs, and the value is a tuple sized to that arc's weight (weight 2 means a 2-token array). Read arc tokens are present in `input` but are not consumed when the transition fires. Inhibitor arcs and uncoloured input places are NOT present in `input`. Each token is an object keyed by the colour type's element names (e.g. `{ x, y, velocity }`). `parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.infection_rate`). Predicate lambdas MUST return a boolean (true = enabled given these tokens, false = disabled). Stochastic lambdas MUST return a non-negative number = expected firings per simulation second (0 disables, Infinity always fires). Lambda is called per token combination satisfying arc weights, so it MUST be deterministic — put randomness in the transition kernel, not here. Leave empty when lambda authoring is unavailable; the runtime supplies the always-enabled default.\"},\"transitionKernelCode\":{\"type\":\"string\",\"description\":\"Optional function body ending in `return`, with `input` and `parameters` ambient (the legacy `export default TransitionKernel((input, parameters) => …)` module form is also accepted). Transition kernel code is meaningful only when colours are enabled and the transition has at least one coloured output place. `input` and `parameters` have the same shape as the transition's lambda. MUST return an object keyed by OUTPUT PLACE NAME with a tuple sized to that arc's weight. Coloured output places MUST be present; uncoloured output places MUST be omitted (they are auto-populated with empty tokens). Token attribute values must match the output type: real/integer use numbers, boolean uses booleans. When stochasticity is enabled, `real` attributes may also use `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)` (discrete attributes always take plain values); each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample. Leave empty when no coloured outputs exist.\"},\"x\":{\"type\":\"number\",\"description\":\"Horizontal canvas position.\"},\"y\":{\"type\":\"number\",\"description\":\"Vertical canvas position.\"},\"targetSubnetId\":{\"description\":\"Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.\",\"anyOf\":[{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for an SDCPN entity. Use unique IDs within the net.\"},{\"type\":\"null\"}]}},\"required\":[\"id\",\"name\",\"inputArcs\",\"outputArcs\",\"lambdaType\",\"lambdaCode\",\"transitionKernelCode\",\"x\",\"y\"],\"additionalProperties\":false,\"description\":\"Add a transition with firing logic and arcs.\",\"$defs\":{\"__schema0\":{\"anyOf\":[{\"type\":\"string\"},{\"type\":\"number\"},{\"type\":\"boolean\"},{\"type\":\"null\"},{\"type\":\"array\",\"items\":{\"$ref\":\"#/$defs/__schema0\"}},{\"type\":\"object\",\"propertyNames\":{\"type\":\"string\"},\"additionalProperties\":{\"$ref\":\"#/$defs/__schema0\"}}]}}}",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "addArc",
+      "label": "addArc",
+      "description": "Add an input or output arc to a transition.\nA finite numeric-string weight is normalized to a number before canonical validation.\nCanonical Petrinaut input JSON Schema:\n{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"transitionId\":{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for an SDCPN entity. Use unique IDs within the net.\"},\"arcDirection\":{\"type\":\"string\",\"enum\":[\"input\",\"output\"],\"description\":\"Whether the arc connects a place into a transition or a transition out to a place.\"},\"placeId\":{\"description\":\"Legacy shorthand for a normal place endpoint in the same net as the transition.\",\"type\":\"string\",\"minLength\":1},\"endpoint\":{\"description\":\"Arc endpoint. Use `kind: \\\"componentPort\\\"` to connect the transition to a port on a subnet instance.\",\"oneOf\":[{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"place\"},\"placeId\":{\"type\":\"string\",\"minLength\":1,\"description\":\"ID of a place in the same net as the transition.\"}},\"required\":[\"kind\",\"placeId\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"componentPort\"},\"componentInstanceId\":{\"type\":\"string\",\"minLength\":1,\"description\":\"ID of a component instance in the same net as the transition.\"},\"portPlaceId\":{\"type\":\"string\",\"minLength\":1,\"description\":\"ID of a place marked `isPort: true` in the component instance's referenced subnet.\"}},\"required\":[\"kind\",\"componentInstanceId\",\"portPlaceId\"],\"additionalProperties\":false}]},\"weight\":{\"type\":\"number\",\"exclusiveMinimum\":0,\"description\":\"Token multiplicity for the arc.\"},\"type\":{\"description\":\"Input arc type, only valid when arcDirection is input. Standard arcs consume tokens; read arcs inspect tokens without consuming them; inhibitor arcs block firing when enough tokens are present. Omit this for output arcs.\",\"type\":\"string\",\"enum\":[\"standard\",\"inhibitor\",\"read\"]},\"targetSubnetId\":{\"description\":\"Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.\",\"anyOf\":[{\"type\":\"string\",\"minLength\":1,\"description\":\"Stable identifier for an SDCPN entity. Use unique IDs within the net.\"},{\"type\":\"null\"}]}},\"required\":[\"transitionId\",\"arcDirection\",\"weight\"],\"additionalProperties\":false,\"description\":\"Add an input or output arc to a transition.\"}",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "ping",
+      "label": "ping",
+      "description": "Return a short server-side acknowledgement. Call this when you need to confirm the server is in the loop.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": []
+      }
+    }
+  ]
+}

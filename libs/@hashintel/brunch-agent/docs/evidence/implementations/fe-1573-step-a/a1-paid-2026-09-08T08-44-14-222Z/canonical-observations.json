@@ -1,0 +1,215 @@
+[
+  {
+    "call": {
+      "submissionId": "sub_01M2030X3RJ58FYNM80RXKD94G",
+      "toolCallId": "toolu_01ESjLAmxCrCsgjgA67zYvxD",
+      "toolName": "getLatestNetDefinition",
+      "input": {}
+    },
+    "before": {
+      "places": [],
+      "transitions": [],
+      "types": [],
+      "differentialEquations": [],
+      "parameters": []
+    },
+    "result": {
+      "toolCallId": "toolu_01ESjLAmxCrCsgjgA67zYvxD",
+      "toolName": "getLatestNetDefinition",
+      "output": {
+        "title": "Isolated A1 synthetic carrier check",
+        "definition": {
+          "places": [],
+          "transitions": [],
+          "types": [],
+          "differentialEquations": [],
+          "parameters": []
+        },
+        "extensions": {
+          "colors": true,
+          "stochasticity": true,
+          "dynamics": true,
+          "parameters": true,
+          "subnets": true
+        }
+      }
+    },
+    "after": {
+      "places": [],
+      "transitions": [],
+      "types": [],
+      "differentialEquations": [],
+      "parameters": []
+    }
+  },
+  {
+    "call": {
+      "submissionId": "sub_01M2030X3RJ58FYNM80RXKD94G",
+      "toolCallId": "toolu_01UxCaZSXf8DnT2YTW71aoUP",
+      "toolName": "addType",
+      "input": {
+        "id": "type_production_eligibility",
+        "name": "ProductionEligibility",
+        "description": "Schema-carrier check type. Carries a product family label and a line qualification flag. No operational content is supplied or inferred.",
+        "iconSlug": "circle",
+        "displayColor": "#4A90D9",
+        "elements": [
+          {
+            "elementId": "elem_product_family",
+            "name": "product_family",
+            "type": "string"
+          },
+          {
+            "elementId": "elem_line_qualified",
+            "name": "line_qualified",
+            "type": "boolean"
+          }
+        ]
+      }
+    },
+    "before": {
+      "places": [],
+      "transitions": [],
+      "types": [],
+      "differentialEquations": [],
+      "parameters": []
+    },
+    "result": {
+      "toolCallId": "toolu_01UxCaZSXf8DnT2YTW71aoUP",
+      "toolName": "addType",
+      "output": {
+        "applied": true
+      }
+    },
+    "after": {
+      "places": [],
+      "transitions": [],
+      "types": [
+        {
+          "id": "type_production_eligibility",
+          "name": "ProductionEligibility",
+          "description": "Schema-carrier check type. Carries a product family label and a line qualification flag. No operational content is supplied or inferred.",
+          "iconSlug": "circle",
+          "displayColor": "#4A90D9",
+          "elements": [
+            {
+              "elementId": "elem_product_family",
+              "name": "product_family",
+              "type": "string"
+            },
+            {
+              "elementId": "elem_line_qualified",
+              "name": "line_qualified",
+              "type": "boolean"
+            }
+          ]
+        }
+      ],
+      "differentialEquations": [],
+      "parameters": []
+    }
+  },
+  {
+    "call": {
+      "submissionId": "sub_01M2031D4ZPHAACEDS1C4Y2FCD",
+      "toolCallId": "toolu_01WXUUuzQ8cJ3XrCziTGkXNQ",
+      "toolName": "getLatestNetDefinition",
+      "input": {}
+    },
+    "before": {
+      "places": [],
+      "transitions": [],
+      "types": [
+        {
+          "id": "type_production_eligibility",
+          "name": "ProductionEligibility",
+          "description": "Schema-carrier check type. Carries a product family label and a line qualification flag. No operational content is supplied or inferred.",
+          "iconSlug": "circle",
+          "displayColor": "#4A90D9",
+          "elements": [
+            {
+              "elementId": "elem_product_family",
+              "name": "product_family",
+              "type": "string"
+            },
+            {
+              "elementId": "elem_line_qualified",
+              "name": "line_qualified",
+              "type": "boolean"
+            }
+          ]
+        }
+      ],
+      "differentialEquations": [],
+      "parameters": []
+    },
+    "result": {
+      "toolCallId": "toolu_01WXUUuzQ8cJ3XrCziTGkXNQ",
+      "toolName": "getLatestNetDefinition",
+      "output": {
+        "title": "Isolated A1 synthetic carrier check",
+        "definition": {
+          "places": [],
+          "transitions": [],
+          "types": [
+            {
+              "id": "type_production_eligibility",
+              "name": "ProductionEligibility",
+              "description": "Schema-carrier check type. Carries a product family label and a line qualification flag. No operational content is supplied or inferred.",
+              "iconSlug": "circle",
+              "displayColor": "#4A90D9",
+              "elements": [
+                {
+                  "elementId": "elem_product_family",
+                  "name": "product_family",
+                  "type": "string"
+                },
+                {
+                  "elementId": "elem_line_qualified",
+                  "name": "line_qualified",
+                  "type": "boolean"
+                }
+              ]
+            }
+          ],
+          "differentialEquations": [],
+          "parameters": []
+        },
+        "extensions": {
+          "colors": true,
+          "stochasticity": true,
+          "dynamics": true,
+          "parameters": true,
+          "subnets": true
+        }
+      }
+    },
+    "after": {
+      "places": [],
+      "transitions": [],
+      "types": [
+        {
+          "id": "type_production_eligibility",
+          "name": "ProductionEligibility",
+          "description": "Schema-carrier check type. Carries a product family label and a line qualification flag. No operational content is supplied or inferred.",
+          "iconSlug": "circle",
+          "displayColor": "#4A90D9",
+          "elements": [
+            {
+              "elementId": "elem_product_family",
+              "name": "product_family",
+              "type": "string"
+            },
+            {
+              "elementId": "elem_line_qualified",
+              "name": "line_qualified",
+              "type": "boolean"
+            }
+          ]
+        }
+      ],
+      "differentialEquations": [],
+      "parameters": []
+    }
+  }
+]

@@ -1,0 +1,37 @@
+{
+  "role": "assistant",
+  "content": [
+    {
+      "type": "thinking",
+      "thinking": "The type has been confirmed in the inspected definition. I can now report the result with the limited scope stated.",
+      "thinkingSignature": "EuoCCpIBCBEYAipAJkyt/HTU3kWng92WUhqO0aeNwynJbX5eW2Mxv07oEj3qccM9paDiE+PBZ2jcmI6XnTCF2M/7JIiYvpiRWyMVLzIRY2xhdWRlLXNvbm5ldC00LTY4AEIIdGhpbmtpbmdaJDFjYjg0ZmM0LTQ3YWEtNGUxZi1hNjY1LTk0MGFiOWY4MWY4OKgB9ZX/1AYSDLTEVN0McpEy89AP6xoMGWsK5g2tzcKpipZYIjCZbkpQjlQSf0TKx0P3Q6CAByR5Y9LsBa7SlMhdx8xrnSpln7mn8IEc67Fpk7DcIOQqhAH+mVyI1oM/OCGY8FOnJFfl/s4y1rF77SIvofcXjMkmn6VNW/ELJmxOiiJDDav/LTqg5147Q+zXJYPcJiugVBzP//C38yVmm6dQBUKlq9+QH9Pr6bOsaklpezeG+dKe+61g+8A08ljFSEYEM6vCLT4/MQ68oeHSKXKgLxlboAZOLDmD5wAYAQ=="
+    },
+    {
+      "type": "text",
+      "text": "The mutation is confirmed. The inspected definition now contains exactly one type and nothing else:\n\n| Field | Value |\n|---|---|\n| **Type ID** | `type_production_eligibility` |\n| **Name** | `ProductionEligibility` |\n| **Icon / colour** | circle / `#4A90D9` |\n| **Attribute 1** | `product_family` — `string` (`elem_product_family`) |\n| **Attribute 2** | `line_qualified` — `boolean` (`elem_line_qualified`) |\n\nPlaces, transitions, parameters, differential equations, and arcs: **none present** — exactly as required.\n\n---\n\n**Evidence level reached:** tool-schema accepted and post-mutation definition inspected. The inspected definition matches the specified schema. No structural correspondence review, no simulation, and no behavioral claim applies, because no process structure exists.\n\n**Scope of this check:** this is an isolated, test-authored schema-carrier check confined to verifying that Petrinaut accepts a coloured-token type bearing one `string` attribute and one `boolean` attribute under stable identifiers. No product family, production line, eligibility rule, operational quantity, or plant context is represented, implied, or invented. The result is not a process model and supports no operational decision."
+    }
+  ],
+  "api": "anthropic-messages",
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-6",
+  "usage": {
+    "input": 3,
+    "output": 333,
+    "cacheRead": 15340,
+    "cacheWrite": 371,
+    "totalTokens": 16047,
+    "cost": {
+      "input": 0.000009,
+      "output": 0.004995,
+      "cacheRead": 0.004602,
+      "cacheWrite": 0.00139125,
+      "total": 0.01099725
+    },
+    "cacheWrite1h": 0,
+    "reasoning": 35
+  },
+  "stopReason": "stop",
+  "timestamp": 1788857073585,
+  "responseId": "msg_011CeqgH9V3wE3kGZgn4bmJY",
+  "rawStopReason": "end_turn"
+}

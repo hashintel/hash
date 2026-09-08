@@ -1,0 +1,70 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable colour/type name."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional human-readable summary shown to users."
+    },
+    "iconSlug": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short icon identifier used by the UI for this colour/type. Typical values are `\"circle\"` or `\"square\"`; the UI defaults to `\"circle\"`."
+    },
+    "displayColor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "CSS colour string for the UI badge, e.g. `\"#1E90FF\"` or `\"rgb(30,144,255)\"`."
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "elementId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable identifier for this colour element."
+          },
+          "name": {
+            "type": "string",
+            "description": "Token attribute identifier used DIRECTLY in code. Lambdas, kernels, dynamics, visualizers, and metrics destructure tokens as `{ <name> }`, so this must be a valid JavaScript identifier (e.g. `machine_damage_ratio`, `x`, `velocity`). Spaces, hyphens, and leading digits will break user code that references the attribute; prefer lower_snake_case for consistency with parameter naming."
+          },
+          "type": {
+            "enum": ["real", "integer", "boolean", "uuid", "string"],
+            "type": "string",
+            "description": "`real` is continuous and may be updated by dynamics. `integer`, `boolean`, `uuid`, and `string` are discrete token attributes updated by transition kernels. `integer` values are stored as Float64 and rounded on read/write: they are exact only within ±2^53 (±9,007,199,254,740,992); values beyond that lose precision silently. `uuid` is a 128-bit RFC 4122 identifier: runtime code sees it as a `bigint`, frame buffers store it as two little-endian 64-bit lanes, and at-rest data (documents, scenarios) uses canonical lowercase strings. `uuid` fields are OPTIONAL in kernel outputs — omitted values are auto-generated deterministically from the seeded simulation RNG — and non-UUID inputs are converted deterministically via UUIDv5. `string` is variable-length text, compared by value: runtime code sees plain JS strings, and each distinct value is stored once per run via interning — frame buffers hold 64-bit pool references. Kernels and markings write `string` values (missing values become the empty string); dynamics can read but never update them."
+          }
+        },
+        "required": ["elementId", "name", "type"],
+        "additionalProperties": false,
+        "description": "One typed attribute on a coloured token."
+      },
+      "description": "Typed token attributes available on tokens of this colour/type. Element order matters: coloured initial state in scenario per_place mode supplies rows in this order."
+    },
+    "targetSubnetId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net."
+    }
+  },
+  "required": ["id", "name", "iconSlug", "displayColor", "elements"],
+  "additionalProperties": false,
+  "description": "Add a coloured-token type."
+}

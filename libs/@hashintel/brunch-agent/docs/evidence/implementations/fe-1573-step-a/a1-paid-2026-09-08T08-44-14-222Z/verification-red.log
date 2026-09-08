@@ -1,0 +1,119 @@
+
+ RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/alpha/libs/@hashintel/brunch-agent/packages/plugin-sdcpn
+
+ ❯ test/schema-carrier.test.ts (3 tests | 1 failed) 7ms
+     × derives a Valibot schema structurally equal to the canonical JSON Schema for each admitted class 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/schema-carrier.test.ts > canonical schema carrier > derives a Valibot schema structurally equal to the canonical JSON Schema for each admitted class
+AssertionError: expected { Object (type, properties, ...) } to deeply equal { type: 'object', …(4) }
+
+- Expected
++ Received
+
+  {
+-   "additionalProperties": false,
+-   "description": "Add a coloured-token type.",
+-   "properties": {
+-     "description": {
+-       "description": "Optional human-readable summary shown to users.",
+-       "type": "string",
+-     },
+-     "displayColor": {
+-       "description": "CSS colour string for the UI badge, e.g. `\"#1E90FF\"` or `\"rgb(30,144,255)\"`.",
+-       "minLength": 1,
+-       "type": "string",
+-     },
+-     "elements": {
+-       "description": "Typed token attributes available on tokens of this colour/type. Element order matters: coloured initial state in scenario per_place mode supplies rows in this order.",
+-       "items": {
+-         "additionalProperties": false,
+-         "description": "One typed attribute on a coloured token.",
+-         "properties": {
+-           "elementId": {
+-             "description": "Stable identifier for this colour element.",
+-             "minLength": 1,
+-             "type": "string",
+-           },
+-           "name": {
+-             "description": "Token attribute identifier used DIRECTLY in code. Lambdas, kernels, dynamics, visualizers, and metrics destructure tokens as `{ <name> }`, so this must be a valid JavaScript identifier (e.g. `machine_damage_ratio`, `x`, `velocity`). Spaces, hyphens, and leading digits will break user code that references the attribute; prefer lower_snake_case for consistency with parameter naming.",
+-             "type": "string",
+-           },
+-           "type": {
+-             "description": "`real` is continuous and may be updated by dynamics. `integer`, `boolean`, `uuid`, and `string` are discrete token attributes updated by transition kernels. `integer` values are stored as Float64 and rounded on read/write: they are exact only within ±2^53 (±9,007,199,254,740,992); values beyond that lose precision silently. `uuid` is a 128-bit RFC 4122 identifier: runtime code sees it as a `bigint`, frame buffers store it as two little-endian 64-bit lanes, and at-rest data (documents, scenarios) uses canonical lowercase strings. `uuid` fields are OPTIONAL in kernel outputs — omitted values are auto-generated deterministically from the seeded simulation RNG — and non-UUID inputs are converted deterministically via UUIDv5. `string` is variable-length text, compared by value: runtime code sees plain JS strings, and each distinct value is stored once per run via interning — frame buffers hold 64-bit pool references. Kernels and markings write `string` values (missing values become the empty string); dynamics can read but never update them.",
+-             "enum": [
+-               "real",
+-               "integer",
+-               "boolean",
+-               "uuid",
+-               "string",
+-             ],
+-             "type": "string",
+-           },
+-         },
+-         "required": [
+-           "elementId",
+-           "name",
+-           "type",
+-         ],
+-         "type": "object",
+-       },
+-       "type": "array",
+-     },
+-     "iconSlug": {
+-       "description": "Short icon identifier used by the UI for this colour/type. Typical values are `\"circle\"` or `\"square\"`; the UI defaults to `\"circle\"`.",
+-       "minLength": 1,
+-       "type": "string",
+-     },
+-     "id": {
+-       "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net.",
+-       "minLength": 1,
+-       "type": "string",
+-     },
+-     "name": {
+-       "description": "Human-readable colour/type name.",
+-       "type": "string",
+-     },
+-     "targetSubnetId": {
+-       "anyOf": [
+-         {
+-           "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net.",
+-           "minLength": 1,
+-           "type": "string",
+-         },
+-         {
+-           "type": "null",
+-         },
+-       ],
+-       "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+-     },
+-   },
+-   "required": [
+-     "id",
+-     "name",
+-     "iconSlug",
+-     "displayColor",
+-     "elements",
+-   ],
++   "properties": {},
++   "required": [],
+    "type": "object",
+  }
+
+ ❯ test/schema-carrier.test.ts:29:44
+     27|   test("derives a Valibot schema structurally equal to the canonical J…
+     28|     const { $schema: _dialect, ...canonical } = petrinautAiTools.addTy…
+     29|     expect(providerSchema(addType.input!)).toEqual(canonical);
+       |                                            ^
+     30|   });
+     31|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  10:30:49
+   Duration  515ms (transform 61ms, setup 0ms, import 307ms, tests 7ms, environment 0ms)
+
