@@ -9,12 +9,20 @@ import { Hono } from "hono";
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
 import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
+import { createAgentCors, parseCorsAllowedOrigins } from "./http/cors.ts";
 import { agentOwnershipGuard } from "./http/ownership.ts";
 import { CHAT_AGENT_ROUTE, HEALTH_ROUTE } from "./http/routes.ts";
 
 const app = new Hono();
 
-const chatAgentMount = `/agents/${CHAT_AGENT_ROUTE}`;
+const agentMount = "/agents";
+const chatAgentMount = `${agentMount}/${CHAT_AGENT_ROUTE}`;
+app.use(
+  `${agentMount}/*`,
+  createAgentCors(
+    parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS),
+  ),
+);
 app.use(`${chatAgentMount}/*`, agentOwnershipGuard(`${chatAgentMount}/`));
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
 
