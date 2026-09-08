@@ -74,7 +74,13 @@ type WorkerSession = {
   readonly markReady: () => void;
 };
 
-const cancelledEvent: OptimizationRunLogEvent = {
+/** The events that end a segment: what `finish` appends, with `resumable`. */
+type TerminalRunLogEvent = Extract<
+  OptimizationRunLogEvent,
+  { type: "complete" | "error" }
+>;
+
+const cancelledEvent: TerminalRunLogEvent = {
   type: "error",
   code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   message: "optimization cancelled",
@@ -91,7 +97,7 @@ const workerLoadError = (event: OptimizerWorkerErrorEvent): Error =>
       : event.message,
   );
 
-const unavailableEvent = (error: unknown): OptimizationRunLogEvent => ({
+const unavailableEvent = (error: unknown): TerminalRunLogEvent => ({
   type: "error",
   code: "optimizer_unavailable",
   message: `The in-browser optimizer could not start: ${errorMessage(error)}`,
@@ -194,7 +200,7 @@ const connectBrowserOptimization = (options: {
   /** Ends the run's segment with `event` and lets the queue move on. */
   const finish = (
     run: RunRecord,
-    event: OptimizationRunLogEvent,
+    event: TerminalRunLogEvent,
     status: "finished-resumable" | "finished",
   ): void => {
     if (isSettled(run)) {
@@ -202,7 +208,9 @@ const connectBrowserOptimization = (options: {
     }
     // eslint-disable-next-line no-param-reassign -- the record's status is the session state this helper advances
     run.status = status;
-    run.log.append(event);
+    // The host learns from the event whether Continue has a study to return
+    // to: a first segment stopped before it reached the worker has none.
+    run.log.append({ ...event, resumable: status === "finished-resumable" });
     // A failure can leave the host evaluating trials whose outcomes no one
     // will read; a completed or stopped segment has nothing left in flight.
     run.controller.abort();
@@ -515,7 +523,7 @@ const connectBrowserOptimization = (options: {
       for (const run of runs.values()) {
         if (!isSettled(run)) {
           run.controller.abort();
-          run.log.append(cancelledEvent);
+          run.log.append({ ...cancelledEvent, resumable: false });
         }
         run.status = "finished";
       }

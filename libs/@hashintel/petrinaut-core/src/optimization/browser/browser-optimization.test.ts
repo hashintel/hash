@@ -266,6 +266,7 @@ describe("createBrowserOptimization", () => {
         prunedTrials: 0,
         failedTrials: 0,
         best: summary.best,
+        resumable: true,
         seq: 3,
       },
     ]);
@@ -362,6 +363,7 @@ describe("createBrowserOptimization", () => {
       code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
       message: "optimization cancelled",
       retryable: false,
+      resumable: true,
       seq: 2,
     });
   });
@@ -439,8 +441,10 @@ describe("createBrowserOptimization", () => {
       context.capability.attachOptimizationRun(runId),
     );
     expect(events.map((event) => event.type)).toEqual(["started", "error"]);
+    // No study was ever created for it, so the host offers no continuation.
     expect(events[1]).toMatchObject({
       code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
+      resumable: false,
     });
   });
 
@@ -488,6 +492,7 @@ describe("createBrowserOptimization", () => {
       code: "trial_evaluation_failed",
       message: "backend unavailable",
       retryable: false,
+      resumable: false,
       seq: 2,
     });
 
@@ -565,6 +570,7 @@ describe("createBrowserOptimization", () => {
       code: "study_failed",
       message: "ValueError: nope",
       retryable: false,
+      resumable: false,
       seq: 2,
     });
   });
@@ -645,6 +651,7 @@ describe("createBrowserOptimization", () => {
         code: "optimizer_unavailable",
         message,
         retryable: true,
+        resumable: false,
         seq: 2,
       });
       for (const worker of failedWorkers) {
@@ -681,6 +688,7 @@ describe("createBrowserOptimization", () => {
       message:
         "The in-browser optimizer could not start: RangeError: out of memory",
       retryable: true,
+      resumable: false,
       seq: 2,
     });
     await expect(
@@ -837,6 +845,7 @@ describe("createBrowserOptimization", () => {
       expect(events.at(-1)).toMatchObject({
         type: "error",
         code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
+        resumable: false,
       });
     }
     await expect(
@@ -924,6 +933,7 @@ describe("createBrowserOptimization", () => {
         prunedTrials: 0,
         failedTrials: 0,
         best: secondTrial.best,
+        resumable: true,
         seq: 6,
       },
     ]);
@@ -1053,6 +1063,7 @@ describe("createBrowserOptimization", () => {
     expect(events.at(-1)).toMatchObject({
       type: "error",
       code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
+      resumable: false,
       seq: 2,
     });
   });

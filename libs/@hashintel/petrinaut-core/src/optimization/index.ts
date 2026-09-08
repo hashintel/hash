@@ -615,6 +615,14 @@ export const petrinautOptimizationTrialEventSchema = z
   })
   .meta({ description: "One completed Optuna trial and the running best." });
 
+/**
+ * Whether the study behind the run stays available to `extendOptimizationRun`
+ * after this terminal event. A connected capability sets it on every terminal
+ * event: `false` for a segment that never reached the worker or a run that
+ * failed. A remote service keeps no study and omits it.
+ */
+const optimizationResumableSchema = z.boolean().optional();
+
 export const petrinautOptimizationCompleteEventSchema = z
   .strictObject({
     type: z.literal("complete"),
@@ -623,6 +631,7 @@ export const petrinautOptimizationCompleteEventSchema = z
     prunedTrials: z.number().int().nonnegative(),
     failedTrials: z.number().int().nonnegative(),
     best: optimizationBestSchema.nullable(),
+    resumable: optimizationResumableSchema,
     seq: optimizationEventSeqSchema,
   })
   .meta({ description: "The final optimization summary." });
@@ -657,6 +666,7 @@ export const petrinautOptimizationErrorEventSchema = z
     code: z.string(),
     message: z.string(),
     retryable: z.boolean(),
+    resumable: optimizationResumableSchema,
     seq: optimizationEventSeqSchema,
   })
   .meta({ description: "A terminal optimizer error." });
