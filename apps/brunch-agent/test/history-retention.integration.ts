@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 import {
   fauxAssistantMessage,
@@ -80,11 +81,208 @@ globalThis.fetch = () => {
 
 const save = async (name: string, value: unknown) =>
   writeFile(join(directory, name), `${JSON.stringify(value, null, 2)}\n`);
+const completedText = "A4 filler acknowledged.";
+type CompletionPin = {
+  event: Extract<FlueObservation, { type: "turn" }>;
+  records: Record<string, unknown>[];
+  priorErrorRecords: Record<string, unknown>[];
+  message: FlueConversationSnapshot["messages"][number];
+};
+let completionPin: CompletionPin | undefined =
+  phase === "reopen"
+    ? (JSON.parse(
+        await readFile(join(directory, "completed-response.json"), "utf8"),
+      ) as CompletionPin)
+    : undefined;
+// Independent of client.history(): read the real committed source, never insert or import it.
+const canonicalRecords = () => {
+  const database = new DatabaseSync(dbPath, { readOnly: true });
+  try {
+    return database
+      .prepare("SELECT data FROM flue_conversation_stream_batches ORDER BY seq")
+      .all()
+      .flatMap(
+        (row) => JSON.parse(String(row.data)) as Record<string, unknown>[],
+      );
+  } finally {
+    database.close();
+  }
+};
+const captureCompletion = (
+  event: Extract<FlueObservation, { type: "turn" }>,
+) => {
+  assert.equal(
+    completionPin,
+    undefined,
+    "The intended successful response must complete exactly once",
+  );
+  assert.equal(event.response.finishReason, "stop");
+  assert.equal(event.isError, false);
+  const source = canonicalRecords();
+  const records = source.filter((record) => record.turnId === event.turnId);
+  const starts = records.filter(
+    (record) => record.type === "assistant_message_started",
+  );
+  const ends = records.filter(
+    (record) => record.type === "assistant_message_completed",
+  );
+  assert.equal(starts.length, 1);
+  assert.equal(ends.length, 1);
+  const start = starts[0];
+  const end = ends[0];
+  assert(
+    start &&
+      end &&
+      typeof start.messageId === "string" &&
+      typeof start.submissionId === "string",
+  );
+  assert.equal(end.messageId, start.messageId);
+  assert.equal(end.stopReason, "stop");
+  assert.equal(start.submissionId, event.submissionId);
+  assert.equal(start.conversationId, event.conversationId);
+  const textStarts = records.filter(
+    (record) => record.type === "assistant_text_started",
+  );
+  const textEnds = records.filter(
+    (record) => record.type === "assistant_text_completed",
+  );
+  assert.equal(textStarts.length, 1);
+  assert.equal(textEnds.length, 1);
+  const textStart = textStarts[0];
+  const textEnd = textEnds[0];
+  assert(textStart && textEnd);
+  const deltas = records.filter(
+    (record) => record.type === "assistant_text_delta",
+  );
+  assert.equal(textEnd.deltaCount, deltas.length);
+  for (const [index, delta] of deltas.entries()) {
+    assert.equal(delta.sequence, index);
+    assert.equal(delta.messageId, start.messageId);
+    assert.equal(delta.blockId, textStart.blockId);
+  }
+  assert.equal(deltas.map((record) => record.delta).join(""), completedText);
+  const priorErrorRecords = source.filter(
+    (record) =>
+      record.submissionId === event.submissionId &&
+      record.turnId !== event.turnId &&
+      String(record.type).startsWith("assistant_"),
+  );
+  let publicStart = start;
+  if (explicitOverflow) {
+    const errorStarts = priorErrorRecords.filter(
+      (record) => record.type === "assistant_message_started",
+    );
+    const errorEnds = priorErrorRecords.filter(
+      (record) => record.type === "assistant_message_completed",
+    );
+    assert.equal(errorStarts.length, 1);
+    assert.equal(errorEnds.length, 1);
+    const errorStart = errorStarts[0];
+    const errorEnd = errorEnds[0];
+    assert(errorStart && errorEnd);
+    assert.equal(errorEnd.messageId, errorStart.messageId);
+    assert.equal(errorEnd.stopReason, "error");
+    assert.equal(
+      errorEnd.error,
+      "Synthetic explicit overflow (request_too_large)",
+    );
+    assert.equal(
+      priorErrorRecords
+        .filter((record) => record.type === "assistant_text_delta")
+        .map((record) => record.delta)
+        .join(""),
+      "",
+    );
+    // Flue folds same-submission assistant steps into the FIRST step's public
+    // id/turnId, appending parts. The failed first step is not a successful stop.
+    publicStart = errorStart;
+  } else assert.deepEqual(priorErrorRecords, []);
+  assert(
+    typeof publicStart.messageId === "string" &&
+      typeof publicStart.turnId === "string",
+  );
+  completionPin = {
+    event,
+    records,
+    priorErrorRecords,
+    message: {
+      id: publicStart.messageId,
+      role: "assistant",
+      purpose: "assistant",
+      display: "visible",
+      submissionId: start.submissionId,
+      turnId: publicStart.turnId,
+      parts: [
+        ...(explicitOverflow
+          ? [{ type: "text" as const, text: "", state: "done" as const }]
+          : []),
+        { type: "text", text: completedText, state: "done" },
+      ],
+    },
+  };
+  const path = join(directory, "completed-response.json");
+  assert(!existsSync(path));
+  // turn is emitted after the awaited assistant_message_completed append, before compaction.
+  writeFileSync(path, `${JSON.stringify(completionPin, null, 2)}\n`);
+};
+const assertCompletedResponse = (snapshot: FlueConversationSnapshot) => {
+  const pin = completionPin;
+  assert(pin, "Independent canonical completion pin required");
+  assert.equal(snapshot.conversationId, pin.event.conversationId);
+  assert.deepEqual(
+    snapshot.messages.filter((message) => message.id === pin.message.id),
+    [pin.message],
+    "The pinned completed response must survive exactly once, with exact identity/content",
+  );
+  assert.equal(
+    snapshot.messages.filter((message) =>
+      message.parts.some(
+        (part) => part.type === "text" && part.text === completedText,
+      ),
+    ).length,
+    1,
+    "The successful response must not be replaced by another identity or duplicated",
+  );
+  const submissionId = pin.message.submissionId;
+  assert.deepEqual(
+    snapshot.settlements.filter((item) => item.submissionId === submissionId),
+    [
+      {
+        submissionId,
+        outcome: "completed",
+        answeredBySubmissionId: submissionId,
+      },
+    ],
+    "The response's own completed settlement must remain exact",
+  );
+};
+const pinSettlement = async (receipt: AgentSendResult) => {
+  assert(completionPin);
+  assert.equal(receipt.submissionId, completionPin.message.submissionId);
+  const records = canonicalRecords().filter(
+    (record) =>
+      record.type === "submission_settled" &&
+      record.submissionId === receipt.submissionId,
+  );
+  assert.equal(records.length, 1);
+  assert.equal(records[0]?.outcome, "completed");
+  assert.equal(records[0].conversationId, completionPin.event.conversationId);
+  await save("completed-response-settlement.json", { receipt, records });
+};
 const events: FlueObservation[] = [];
 let purpose: Extract<FlueObservation, { type: "turn_request" }>["purpose"] =
   "agent";
 const unsubscribe = observe((event) => {
   if (event.type === "turn_request") purpose = event.purpose;
+  if (
+    event.type === "turn" &&
+    event.purpose === "agent" &&
+    event.response.output?.content.some(
+      (part) => part.type === "text" && part.text === completedText,
+    )
+  ) {
+    captureCompletion(event);
+  }
   if (["compaction_start", "compaction", "turn", "log"].includes(event.type))
     events.push(event);
 });
@@ -104,7 +302,7 @@ const nextResponse: FauxResponseStep = async (context, options) => {
     context: JSON.parse(JSON.stringify(context)) as unknown,
   });
   if (purpose === "compaction" || purpose === "compaction_prefix") {
-    if (cancelOverflow) {
+    if (phase === "create" && cancelOverflow && !compactionAborted) {
       const signal = options?.signal;
       assert(signal, "The real summarizer must receive active cancellation");
       compactionEntered();
@@ -353,7 +551,7 @@ try {
         }),
       );
     responses.push(
-      fauxAssistantMessage("A4 filler acknowledged."),
+      fauxAssistantMessage(completedText),
       fauxAssistantMessage(
         "A4 after-fold continuation; no historical quotation claim.",
       ),
@@ -396,7 +594,9 @@ try {
         contexts.filter((entry) => entry.purpose === "agent").length,
         agentCallsBeforeFiller + 1,
       );
+      await pinSettlement(receipt);
       const stopped = await client.history();
+      assertCompletedResponse(stopped);
       // This Stop interrupts post-response compaction: the successful assistant
       // stop already exists. Preserve that completed settlement, not an invented
       // rollback; active unfinished-response cancellation has separate oracles.
@@ -426,11 +626,47 @@ try {
         compactionAborted,
         retainedSuccessfulStop: true,
         completedToolReissues: 0,
+        eventsAtStop: structuredClone(events),
       });
       await save("cancelled-history.json", stopped);
+      // Consume the previously withheld response only for this next actual user input.
+      await send(
+        {
+          kind: "user",
+          body: "A4 final short turn: finish the retention probe without tools.",
+        },
+        admission.uid,
+      );
+      const after = await client.history();
+      await save("after.json", after);
+      assertCompletedResponse(after);
+      assert.deepEqual(
+        after.messages
+          .flatMap((message) => message.parts)
+          .filter((part) => part.type === "dynamic-tool"),
+        publicTools,
+      );
+      assert.equal(
+        after.messages.filter(
+          (message) => message.role === "user" && message.purpose === "user",
+        ).length,
+        5,
+      );
+      await save("identity.json", {
+        identity,
+        instanceId,
+        dbPath,
+        pid: process.pid,
+        admission,
+        conversationId: after.conversationId,
+        incarnation: after.incarnation,
+      });
     } else {
-      await send(filler, admission.uid);
-      await save("after-threshold.json", await client.history());
+      const fillerReceipt = await send(filler, admission.uid);
+      await pinSettlement(fillerReceipt);
+      const afterThreshold = await client.history();
+      await save("after-threshold.json", afterThreshold);
+      assertCompletedResponse(afterThreshold);
       assert.equal(
         contexts.filter((entry) => entry.purpose === "agent").length,
         agentCallsBeforeFiller + (explicitOverflow ? 2 : 1),
@@ -493,6 +729,7 @@ try {
           JSON.stringify(afterById.get(message.id)) !== JSON.stringify(message),
       );
       await save("after.json", after);
+      assertCompletedResponse(after);
       await save("after-ui.json", project(after));
       await save("comparison.json", {
         beforeIds: before.messages.map((message) => message.id),
@@ -581,6 +818,7 @@ try {
       await readFile(join(directory, "after.json"), "utf8"),
     ) as FlueConversationSnapshot;
     const reopened = await client.history();
+    assertCompletedResponse(reopened);
     assert.notEqual(
       process.pid,
       original.pid,
@@ -619,6 +857,7 @@ try {
     );
     assert.equal(continuation.uid, original.admission.uid);
     const continued = await client.history();
+    assertCompletedResponse(continued);
     assert.equal(continued.conversationId, reopened.conversationId);
     assert.equal(continued.incarnation, reopened.incarnation);
     await save("reopened.json", reopened);
@@ -641,8 +880,8 @@ try {
   }
   assert.equal(
     responses.length,
-    cancelOverflow ? 1 : 0,
-    "Only active cancellation may withhold the intended follow-up response",
+    0,
+    "Every intended response must execute, including after the next actual input following Stop",
   );
   process.stdout.write(`A4_${phase.toUpperCase()}_PASS\n`);
 } finally {

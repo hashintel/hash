@@ -68,6 +68,66 @@ def crash(kind):
     return {"case": kind, "verdict": "Pass", "pointer": pointer, "nextOrdinal": 2, "atomicBatchSequence": outcomes[0]["seq"], "faults": faults, "recoveryInstrumentation": False}
 
 
+def completed_response(directory, snapshots, before_compaction=True):
+    pin = load(directory / "completed-response.json")
+    event = pin["event"]
+    assert event["type"] == "turn" and event["purpose"] == "agent"
+    assert event["response"]["finishReason"] == "stop" and event["isError"] is False
+    assert event["response"]["output"]["content"] == [{"type": "text", "text": "A4 filler acknowledged."}]
+    records = pin["records"]
+    starts = [record for record in records if record["type"] == "assistant_message_started"]
+    ends = [record for record in records if record["type"] == "assistant_message_completed"]
+    assert len(starts) == len(ends) == 1
+    start, end = starts[0], ends[0]
+    assert end["stopReason"] == "stop" and end["messageId"] == start["messageId"]
+    assert start["turnId"] == end["turnId"] == event["turnId"]
+    assert start["submissionId"] == end["submissionId"] == event["submissionId"]
+    assert start["conversationId"] == event["conversationId"]
+    text_starts = [record for record in records if record["type"] == "assistant_text_started"]
+    text_ends = [record for record in records if record["type"] == "assistant_text_completed"]
+    deltas = [record for record in records if record["type"] == "assistant_text_delta"]
+    assert len(text_starts) == len(text_ends) == 1
+    assert text_ends[0]["deltaCount"] == len(deltas)
+    assert all(record["messageId"] == start["messageId"] and record["blockId"] == text_starts[0]["blockId"] and record["sequence"] == index for index, record in enumerate(deltas))
+    text = "".join(record["delta"] for record in deltas)
+    assert text == "A4 filler acknowledged."
+    # Derive from the independently captured canonical completion, NOT any post-loss history.
+    public_start = start
+    parts = []
+    errors = pin["priorErrorRecords"]
+    if before_compaction:
+        assert errors == []
+    else:
+        error_starts = [record for record in errors if record["type"] == "assistant_message_started"]
+        error_ends = [record for record in errors if record["type"] == "assistant_message_completed"]
+        assert len(error_starts) == len(error_ends) == 1
+        public_start = error_starts[0]
+        assert public_start["submissionId"] == start["submissionId"]
+        assert error_ends[0]["messageId"] == public_start["messageId"] and error_ends[0]["stopReason"] == "error"
+        assert error_ends[0]["error"] == "Synthetic explicit overflow (request_too_large)"
+        assert "".join(record["delta"] for record in errors if record["type"] == "assistant_text_delta") == ""
+        parts.append({"type": "text", "text": "", "state": "done"})
+    parts.append({"type": "text", "text": text, "state": "done"})
+    message = {"id": public_start["messageId"], "role": "assistant", "purpose": "assistant", "display": "visible", "submissionId": start["submissionId"], "turnId": public_start["turnId"], "parts": parts}
+    assert pin["message"] == message
+    settlement_pin = load(directory / "completed-response-settlement.json")
+    assert settlement_pin["receipt"]["submissionId"] == start["submissionId"]
+    settlements = settlement_pin["records"]
+    assert len(settlements) == 1 and settlements[0]["type"] == "submission_settled"
+    assert settlements[0]["submissionId"] == start["submissionId"] and settlements[0]["conversationId"] == start["conversationId"] and settlements[0]["outcome"] == "completed"
+    expected_settlement = {"submissionId": start["submissionId"], "outcome": "completed", "answeredBySubmissionId": start["submissionId"]}
+    for name in snapshots:
+        snapshot = load(directory / name)
+        assert snapshot["conversationId"] == start["conversationId"]
+        assert [item for item in snapshot["messages"] if item["id"] == message["id"]] == [message], f"{name}: pinned completed response missing, duplicated, replaced or changed"
+        assert sum(any(part.get("type") == "text" and part.get("text") == text for part in item["parts"]) for item in snapshot["messages"]) == 1, f"{name}: response identity replaced or duplicated"
+        assert [item for item in snapshot["settlements"] if item["submissionId"] == start["submissionId"]] == [expected_settlement], f"{name}: completed settlement missing or changed"
+    if before_compaction:
+        first_fold = next(item for item in load(directory / "create-events.json") if item["type"] == "compaction_start")
+        assert event["eventIndex"] < first_fold["eventIndex"], "Pin must precede compaction, not rebaseline its output"
+    return {"canonicalSuccessfulMessageId": start["messageId"], "canonicalSuccessfulTurnId": event["turnId"], "message": message, "settlement": expected_settlement, "checkedSnapshots": snapshots, "source": "Canonical completion records read at the real post-append turn event"}
+
+
 def overflow(kind):
     directory = one(f"overflow-{kind}-*")
     before = load(directory / "before.json")
@@ -89,7 +149,8 @@ def overflow(kind):
         assert len(continuations) == 1 and continuations[0]["messages"][-1]["role"] in ("user", "toolResult"), "Explicit error must retry from a valid retained canonical tail"
     assert "Cannot continue from message role: assistant" not in (directory / "create.log").read_text()
     assert load(directory / "reopen-result.json")["historyEqual"] is True
-    return {"verdict": "Pass", "scope": f"{kind} overflow; not universal provider-error recovery.", "continuations": continuations, "compactions": folds, "publicRecordsPreserved": len(before["messages"]), "inventedUserMessages": 0, "completedToolReissues": 0}
+    completion = completed_response(directory, ["after-threshold.json", "after.json", "reopened.json", "continued.json"], before_compaction=kind == "silent")
+    return {"verdict": "Pass", "completedResponse": completion, "scope": f"{kind} overflow; not universal provider-error recovery.", "continuations": continuations, "compactions": folds, "publicRecordsPreserved": len(before["messages"]), "inventedUserMessages": 0, "completedToolReissues": 0}
 
 
 def cancelled_overflow():
@@ -97,9 +158,12 @@ def cancelled_overflow():
     result = load(directory / "cancellation.json")
     assert result["verdict"] == "Pass" and result["compactionAborted"]
     preserved(load(directory / "before.json"), load(directory / "cancelled-history.json"))
-    events = load(directory / "create-events.json")
+    events = result["eventsAtStop"]
     assert any(event["type"] == "compaction_start" and event["reason"] == "overflow" for event in events)
     assert not any(event["type"] == "compaction" and not event["isError"] for event in events)
+    result["completedResponse"] = completed_response(directory, ["cancelled-history.json", "after.json", "reopened.json", "continued.json"])
+    assert load(directory / "reopened.json") == load(directory / "after.json")
+    preserved(load(directory / "before.json"), load(directory / "continued.json"))
     return result
 
 

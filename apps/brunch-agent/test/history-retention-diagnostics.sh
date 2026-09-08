@@ -69,9 +69,7 @@ for kind in silent explicit cancelled; do
   if [[ "$kind" == explicit ]]; then extra=(A4_OVERFLOW_ERROR=1); fi
   if [[ "$kind" == cancelled ]]; then extra=(A4_OVERFLOW_CANCEL=1); fi
   run 0 "$directory/create.log" env A4_DIAGNOSTIC_DIRECTORY="$directory" A4_OUTPUT_DIRECTORY="$directory" A4_OVERFLOW_PROBE=1 "${extra[@]}" node --experimental-strip-types --import ./test/history-retention-runtime-hook.ts test/history-retention.integration.ts
-  if [[ "$kind" != cancelled ]]; then
-    run 0 "$directory/reopen.log" env A4_OUTPUT_DIRECTORY="$directory" A4_PHASE=reopen node --experimental-strip-types test/history-retention.integration.ts
-  fi
+  run 0 "$directory/reopen.log" env A4_OUTPUT_DIRECTORY="$directory" A4_PHASE=reopen node --experimental-strip-types test/history-retention.integration.ts
 done
 run 0 "$OUT/audit.log" python3 test/history-retention-audit.py "$OUT" "$MODE"
 printf 'Safety replay exit=%s; all failures retained in %s\n' "$failed" "$OUT"
