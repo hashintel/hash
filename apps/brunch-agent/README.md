@@ -69,7 +69,7 @@ BRUNCH_CORS_ALLOWED_ORIGINS=https://app.example.com,https://preview.example.com
 
 Prefer stable preview hostnames and list an exact preview origin only when that deployment needs
 Brunch access. Each ephemeral preview origin must be listed explicitly. The variable does not
-accept wildcards, paths, queries, fragments, credentials, or non-HTTP(S) schemes. Missing or blank
+accept wildcards, non-root paths, queries, fragments, credentials, or non-HTTP(S) schemes. Missing or blank
 configuration grants no cross-origin browser access while preserving same-origin requests. CORS
 controls browser JavaScript access; it is not a server-side access gate and does not restrict
 non-browser callers. The deployment still requires its separate identity, authorization, ingress,
