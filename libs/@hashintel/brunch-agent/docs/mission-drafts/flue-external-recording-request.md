@@ -2,13 +2,13 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
-Prepared under Kostandin Angjellari's 2026-09-07 approval to pursue the bounded upstream prerequisite. This is the maintainer-facing request, not an accepted API or a private implementation. [Conversion and product stages](voice-runtime-ownership-conversion.md) remain separate. Posting this request requires explicit external-write approval.
+Prepared under Kostandin Angjellari's 2026-09-07 approval to pursue the bounded upstream prerequisite. With subsequent explicit posting approval, the public body below was posted as [Flue Discussion #653](https://github.com/withastro/flue/discussions/653). This remains a maintainer-facing request, not an accepted API or a private implementation. [Conversion and product stages](voice-runtime-ownership-conversion.md) remain separate.
 
 **Destination:** `withastro/flue` Discussions, category **Feature Request**, following its [contribution policy](https://github.com/withastro/flue/blob/832ad2eeaf5e4b07d39749fc669e7ad556238313/CONTRIBUTING.md) and `.github/DISCUSSION_TEMPLATE/feature-request.yml`. Upstream does not accept unsolicited PRs. Do not open an upstream implementation PR as a substitute.
 
 **Related request:** [discussion #605](https://github.com/withastro/flue/discussions/605) asks for one-time bootstrap/import and deletion. It had no comments when inspected. This request concerns ongoing appends to an existing, active conversation, not import, replacement, or deletion. Link the related request rather than claim this capability is already planned or supported. Maintainers may choose to combine them.
 
-The proposed public body follows. API naming and implementation remain maintainer decisions.
+The posted public body follows. API naming and implementation remain maintainer decisions.
 
 ---
 

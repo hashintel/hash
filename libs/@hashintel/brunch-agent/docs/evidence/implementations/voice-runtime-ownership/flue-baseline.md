@@ -1,6 +1,6 @@
 # Flue external-recording prerequisite — baseline evidence
 
-2026-09-07. **Blocked on a supported recorder, not a passing recorder test.** This report records existing public behavior and an upstream contribution constraint. It does not convert the HASH mission or approve product implementation. The [request draft](../../../mission-drafts/flue-external-recording-request.md) is the next external decision surface.
+2026-09-07. **Blocked on a supported recorder, not a passing recorder test.** This report records existing public behavior and an upstream contribution constraint. It does not convert the HASH mission or approve product implementation. The [request](../../../mission-drafts/flue-external-recording-request.md) was subsequently published with explicit owner approval as [Flue Discussion #653](https://github.com/withastro/flue/discussions/653); maintainer support remains unresolved.
 
 ## Exact boundary
 
@@ -50,7 +50,7 @@ The upstream package scripts name Vitest but this checkout contains reusable con
 
 ## Consequences and remaining gates
 
-1. Flue's [CONTRIBUTING.md](https://github.com/withastro/flue/blob/832ad2eeaf5e4b07d39749fc669e7ad556238313/CONTRIBUTING.md) sends feature requests to Discussions and says unsolicited PRs are closed/converted. The approval to pursue upstream work is not maintainer acceptance. Prepare/post the feature request only with the required external-write approval; no unsupported implementation is installed meanwhile.
+1. Flue's [CONTRIBUTING.md](https://github.com/withastro/flue/blob/832ad2eeaf5e4b07d39749fc669e7ad556238313/CONTRIBUTING.md) sends feature requests to Discussions and says unsolicited PRs are closed/converted. The owner-authorized request is now [published](https://github.com/withastro/flue/discussions/653), but publication is not maintainer acceptance; no unsupported implementation is installed meanwhile.
 2. Related [discussion #605](https://github.com/withastro/flue/discussions/605) concerns bootstrap/import and deletion. Its no-model import goals overlap, but continuous append to an existing conversation is a different consumer contract. It had no comments when inspected; no support decision is inferred.
 3. No-wake writes, external actor trust, original raw/normalized text attribution, duplicate/conflicting external identities, stale incarnation and cross-conversation rejection, concurrent ordering, and append acknowledgement loss remain **untested and unimplemented**. Clean settled-history reopen is not crash/reconnect proof for a recorder.
 4. Before a HASH cut, require maintainer-supported public semantics, an inspectable/distributable pin, and real no-wake/reconstruction evidence with a live execution observer. The later HASH integration must use its existing built-app harness and ownership boundary, not this small upstream baseline as a substitute.
