@@ -1,5 +1,6 @@
-/** Bounded revision crash diagnostic through the built mount. Use --import ./test/history-retention-runtime-hook.ts for an explicit fault. */
+/** Revision recovery safety through the built mount and original local store. Fault injection is process-local only. */
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -116,6 +117,44 @@ const tools = (snapshot: FlueConversationSnapshot) =>
   snapshot.messages
     .flatMap((message) => message.parts)
     .filter((part) => part.type === "dynamic-tool");
+const assertRevision = (
+  snapshot: FlueConversationSnapshot,
+  revisionId: string,
+  content: string,
+  ordinal: number,
+) => {
+  const pointer = {
+    revisionId,
+    sha256: createHash("sha256").update(content).digest("hex"),
+    ordinal,
+  };
+  const tool = tools(snapshot).find((part) => part.toolCallId === revisionId);
+  assert(tool?.state === "output-available");
+  assert.deepEqual(
+    tool.input,
+    { markdown: content },
+    "Raw call input survives",
+  );
+  assert.deepEqual(
+    tool.output,
+    pointer,
+    "Stable call/result identity and ordinal",
+  );
+  const signal = snapshot.messages.findLast(
+    (message) => message.signal?.tagName === "brunch.construction-context",
+  );
+  assert(signal);
+  const context = JSON.parse(
+    signal.parts
+      .flatMap((part) => (part.type === "text" ? [part.text] : []))
+      .join(""),
+  ) as { currentWorkpiece: unknown };
+  assert.deepEqual(
+    context.currentWorkpiece,
+    { ...pointer, markdown: content },
+    "A successful result must retain its exact current state, not only historical JSON",
+  );
+};
 try {
   if (phase === "create") {
     const receipt = await client.send({
@@ -141,7 +180,8 @@ try {
       `${JSON.stringify({ receipt, pid: process.pid, identity, markdown }, null, 2)}\n`,
     );
     await client.read(receipt, { signal: AbortSignal.timeout(60000) });
-    save("history", await client.history());
+    const history = await client.history();
+    save("history", history);
     save("result", {
       outcome: "normal-control",
       pid: process.pid,
@@ -153,9 +193,28 @@ try {
     ) as { receipt: AgentSendResult; pid: number };
     assert.notEqual(process.pid, original.pid);
     await client.read(original.receipt, { signal: AbortSignal.timeout(60000) });
-    const recovered = await client.history();
-    save("history", recovered);
+    save("history-before-state-render", await client.history());
     save("store-after-recovery", inspect());
+    // Construction context is render-captured at submission entry, not a live state getter.
+    // A new real, prose-only submission observes the current state without writing it.
+    const renderCurrentState = async () => {
+      faux.setResponses([
+        fauxAssistantMessage("Read-only state observation acknowledged."),
+      ]);
+      await client.read(
+        await client.send({
+          uid: original.receipt.uid,
+          message: {
+            kind: "user",
+            body: "Observe the current synthetic revision without changing it or calling tools.",
+          },
+        }),
+        { signal: AbortSignal.timeout(30000) },
+      );
+      return client.history();
+    };
+    const recovered = await renderCurrentState();
+    save("history", recovered);
     faux.setResponses([
       response("a4-next-revision", "# Next synthetic diagnostic revision"),
       fauxAssistantMessage("Next revision acknowledged."),
@@ -170,16 +229,31 @@ try {
       }),
       { signal: AbortSignal.timeout(30000) },
     );
-    const next = await client.history();
+    save("next-history-before-state-render", await client.history());
+    const next = await renderCurrentState();
     save("next-history", next);
     save("result", {
-      outcome: "diagnostic-observation-not-safety-verdict",
+      outcome: "observations-before-safety-assertions",
       pid: process.pid,
       originalPid: original.pid,
       recoveredTools: tools(recovered),
       nextTools: tools(next),
       providerCalls: faux.state.callCount,
     });
+    // Persist both observations before asserting, so failures retain the next ordinal too.
+    assertRevision(recovered, "a4-crash-revision", markdown, 1);
+    assertRevision(
+      next,
+      "a4-next-revision",
+      "# Next synthetic diagnostic revision",
+      2,
+    );
+    assert.deepEqual(
+      tools(next).map((part) => part.toolCallId),
+      ["a4-crash-revision", "a4-next-revision"],
+      "Recovery must not reissue the completed call or reuse a revision ID",
+    );
+    save("safety", { verdict: "Pass", exactState: true, nextOrdinal: 2 });
   }
 } finally {
   await application.stop();

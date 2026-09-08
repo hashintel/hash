@@ -57,6 +57,7 @@ const modelId = "a4-faux-only";
 const contextWindow = 16000;
 const maxTokens = 1024;
 const keepRecentTokens = 256;
+const overflowProbe = process.env.A4_OVERFLOW_PROBE === "1";
 process.env.BRUNCH_CHAT_MODEL = modelId;
 process.env.BRUNCH_DEV_DB_PATH = dbPath;
 process.env.BRUNCH_TEST_KEEP_RECENT_TOKENS = String(keepRecentTokens);
@@ -327,14 +328,22 @@ try {
         "A4 after-fold continuation; no historical quotation claim.",
       ),
     );
+    const agentCallsBeforeFiller = contexts.filter(
+      (entry) => entry.purpose === "agent",
+    ).length;
     await send(
       {
         kind: "user",
-        body: `A4 transparent threshold filler, not domain evidence. ${"synthetic-padding ".repeat(process.env.A4_OVERFLOW_PROBE === "1" ? 4000 : 1350)}`,
+        body: `A4 transparent threshold filler, not domain evidence. ${"synthetic-padding ".repeat(overflowProbe ? 4000 : 1350)}`,
       },
       admission.uid,
     );
     await save("after-threshold.json", await client.history());
+    assert.equal(
+      contexts.filter((entry) => entry.purpose === "agent").length,
+      agentCallsBeforeFiller + 1,
+      "A retained successful stop must settle after folding, not restart a completed response",
+    );
     await send(
       {
         kind: "user",
@@ -353,9 +362,10 @@ try {
     assert(
       events.some(
         (event) =>
-          event.type === "compaction_start" && event.reason === "threshold",
+          event.type === "compaction_start" &&
+          event.reason === (overflowProbe ? "overflow" : "threshold"),
       ),
-      "Normal pin must exercise threshold compaction, not overflow recovery",
+      "The selected threshold/overflow boundary must actually be reached",
     );
     assert(
       contexts.some((context) => context.purpose === "compaction"),
@@ -445,6 +455,20 @@ try {
     assert.deepEqual(
       clientToolHistoryFrom(after.messages).results,
       clientResults,
+    );
+    assert.equal(
+      after.messages.filter(
+        (message) => message.role === "user" && message.purpose === "user",
+      ).length,
+      5,
+      "Only the five actually submitted user messages may exist; recovery must not invent one",
+    );
+    assert.deepEqual(
+      after.messages
+        .flatMap((message) => message.parts)
+        .filter((part) => part.type === "dynamic-tool"),
+      publicTools,
+      "Completed calls/results must remain unchanged without reissue",
     );
     assert.deepEqual(
       project(after).slice(0, project(before).length),
