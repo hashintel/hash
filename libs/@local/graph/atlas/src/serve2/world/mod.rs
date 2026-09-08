@@ -98,7 +98,7 @@ impl World {
     }
 
     /// Returns the coordinate bounds before wire-frame normalization.
-    pub(crate) fn fitted_bounds(&self) -> Bounds2 {
+    pub(crate) const fn bounds(&self) -> Bounds2 {
         self.generation.repository().metadata.evidence.lod.world
     }
 

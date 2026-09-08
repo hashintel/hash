@@ -446,10 +446,7 @@ fn normalize_fitted_frame() {
         .lod
         .world;
     let positions = [bounds.min(), bounds.centre(), bounds.max()];
-    let normalized = delta
-        .world
-        .fitted_bounds()
-        .normalize_into(WIRE_FRAME, &positions);
+    let normalized = delta.world.bounds().normalize_into(WIRE_FRAME, &positions);
     assert_eq!(
         normalized,
         [Vec2::splat(-1.0), Vec2::ZERO, Vec2::splat(1.0)]

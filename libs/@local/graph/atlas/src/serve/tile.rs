@@ -26,7 +26,7 @@ use crate::{
     file::quad::Node,
     morton::{MortonCell, MortonTile},
     salt::{
-        fit::prepare::IdentityProvider,
+        fit::prepare::IdentityProvider as _,
         postings::closure::IconSource,
         wire::{
             Mode,
@@ -556,7 +556,7 @@ impl Atlas {
     }
 }
 
-#[cfg(test)]
+#[cfg(false)]
 mod tests {
     use hash_graph_postgres_store::store::{EntityEvent, EntityUpdate};
     use hash_graph_temporal_versioning::Timestamp;

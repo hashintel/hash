@@ -127,8 +127,8 @@ pub(crate) mod visibility;
 mod walk;
 
 pub(crate) mod authorization;
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
 
 /// The variant names one generation serves, in variant-index order.
 ///

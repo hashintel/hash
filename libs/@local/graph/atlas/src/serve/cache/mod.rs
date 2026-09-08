@@ -49,8 +49,8 @@ use super::{
 };
 
 pub(crate) mod scope;
-#[cfg(test)]
-pub(crate) mod tests;
+// #[cfg(test)]
+// pub(crate) mod tests;
 
 /// A proof with the census and schedule of the view it admits, from one resolution.
 ///

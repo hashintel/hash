@@ -475,7 +475,7 @@ fn receive_wire_coordinates() {
     let expected = fixture
         .delta
         .world
-        .fitted_bounds()
+        .bounds()
         .normalize_into(WIRE_FRAME, &[position.get()])[0];
     assert_ne!(
         expected,
@@ -489,7 +489,7 @@ fn receive_wire_coordinates() {
         phase: Completed(Ok(position)),
     });
     let mut scratch = Vec::new();
-    pending.normalize(fixture.delta.world.fitted_bounds(), &mut scratch);
+    pending.normalize(fixture.delta.world.bounds(), &mut scratch);
     assert!(scratch.is_empty());
 
     let entity = ArchivedEntityId::from(request.entity);

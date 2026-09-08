@@ -167,7 +167,7 @@ impl DeltaFeedTask {
                     self.pending.receive(result);
                 }
 
-                self.pending.normalize(self.delta.world.fitted_bounds(), &mut self.scratch.positions);
+                self.pending.normalize(self.delta.world.bounds(), &mut self.scratch.positions);
                 self.pending.apply(&mut self.delta)
             },
             request = self.update.recv() => {

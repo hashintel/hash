@@ -64,6 +64,11 @@ impl Log2 {
 
 impl fmt::Display for Log2 {
     /// Formats as a power of two, e.g. `2⁶`.
+    #[expect(
+        clippy::non_ascii_literal,
+        clippy::integer_division_remainder_used,
+        clippy::integer_division
+    )]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         const SUPERSCRIPTS: [char; 10] = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
 

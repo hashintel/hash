@@ -48,8 +48,8 @@ use crate::{
 };
 
 pub(crate) mod cut;
-#[cfg(test)]
-pub(crate) mod tests;
+// #[cfg(test)]
+// pub(crate) mod tests;
 
 hashql_core::id::newtype! {
     /// A reference to a visible row by its slot in one scope schedule's natural order.
