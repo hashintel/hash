@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/h-echo/apps/brunch-agent
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  11:57:41
+   Duration  1.20s (transform 10ms, setup 0ms, import 14ms, tests 1.01s, environment 0ms)
+

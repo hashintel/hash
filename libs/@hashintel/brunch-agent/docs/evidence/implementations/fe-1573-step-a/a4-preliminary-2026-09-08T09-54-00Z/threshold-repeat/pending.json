@@ -1,0 +1,86 @@
+{
+  "v": 1,
+  "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+  "offset": "0000000000000000_0000000000000020",
+  "messages": [
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzk1VFBBTktWNk0yNVJHOTU5WTc4",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_01M20795TPANKV6M25RG959Y78",
+      "parts": [
+        {
+          "type": "text",
+          "text": "A4 test-authored early source: violet gear. Not operational testimony.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20795VPA5T8B1DT85TNVX2C",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_01M20795TPANKV6M25RG959Y78",
+      "turnId": "turn_01M20795VMBSBJ51RBE337NT1A",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "ping",
+          "toolCallId": "a4-ping-early",
+          "state": "output-available",
+          "input": {
+            "note": "a4-early-ping"
+          },
+          "output": {
+            "ok": true,
+            "note": "a4-early-ping"
+          },
+          "durationMs": 2
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_mark_question",
+          "toolCallId": "a4-question",
+          "state": "output-available",
+          "input": {
+            "question": "Which synthetic record follows?"
+          },
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "data-brunch-question",
+          "data": {
+            "question": "Which synthetic record follows?",
+            "toolCallId": "a4-question"
+          }
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "readPetrinautDoc",
+          "toolCallId": "a4-doc-early",
+          "state": "output-available",
+          "input": {
+            "doc": "ai-assistant"
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1
+        }
+      ]
+    }
+  ],
+  "settlements": [
+    {
+      "submissionId": "sub_01M20795TPANKV6M25RG959Y78",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_01M20795TPANKV6M25RG959Y78"
+    }
+  ],
+  "incarnation": "inc_01M20795TQ4QB0HQTDZTZC7C9K"
+}

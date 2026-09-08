@@ -1,0 +1,119 @@
+[
+  {
+    "id": "entry_direct_c3ViXzAxTTIwNzEzNUhFNzJOWVFRUkFNN1hUUTdC",
+    "role": "user",
+    "parts": [
+      {
+        "type": "text",
+        "text": "A4 test-authored early source: violet gear. Not operational testimony.",
+        "state": "done"
+      }
+    ]
+  },
+  {
+    "id": "entry_01M207136FGJN1P0T6F7KE9WJA",
+    "role": "assistant",
+    "parts": [
+      {
+        "type": "tool-ping",
+        "toolCallId": "a4-ping-early",
+        "state": "output-available",
+        "input": {
+          "note": "a4-early-ping"
+        },
+        "output": {
+          "ok": true,
+          "note": "a4-early-ping"
+        },
+        "providerExecuted": true
+      },
+      {
+        "type": "data-brunch-question",
+        "data": {
+          "question": "Which synthetic record follows?",
+          "toolCallId": "a4-question"
+        }
+      },
+      {
+        "type": "tool-readPetrinautDoc",
+        "toolCallId": "a4-doc-early",
+        "state": "output-available",
+        "input": {
+          "doc": "ai-assistant"
+        },
+        "output": "A4 test executor's first synthetic documentation result."
+      },
+      {
+        "type": "text",
+        "text": "Which synthetic record follows? A4 first controlled continuation.",
+        "state": "done"
+      }
+    ]
+  },
+  {
+    "id": "entry_direct_c3ViXzAxTTIwNzEzN0YyOFBORjFKM0NHRzRONTcx",
+    "role": "user",
+    "parts": [
+      {
+        "type": "text",
+        "text": "A4 unrelated middle source: silver latch. Not support for violet gear.",
+        "state": "done"
+      }
+    ]
+  },
+  {
+    "id": "entry_01M207137KDF3DFG85VZQ9GJDS",
+    "role": "assistant",
+    "parts": [
+      {
+        "type": "tool-ping",
+        "toolCallId": "a4-ping-middle",
+        "state": "output-available",
+        "input": {
+          "note": "a4-middle-ping"
+        },
+        "output": {
+          "ok": true,
+          "note": "a4-middle-ping"
+        },
+        "providerExecuted": true
+      },
+      {
+        "type": "text",
+        "text": "A4 middle acknowledged.",
+        "state": "done"
+      }
+    ]
+  },
+  {
+    "id": "entry_direct_c3ViXzAxTTIwNzEzN1k5U1hQS0o0RFZCRDI3UlY1",
+    "role": "user",
+    "parts": [
+      {
+        "type": "text",
+        "text": "A4 test-authored late source: amber wheel. Distinct from the early source.",
+        "state": "done"
+      }
+    ]
+  },
+  {
+    "id": "entry_01M2071382CWCJ909GMENG6PVQ",
+    "role": "assistant",
+    "parts": [
+      {
+        "type": "tool-readPetrinautDoc",
+        "toolCallId": "a4-doc-late",
+        "state": "output-available",
+        "input": {
+          "doc": "ai-assistant"
+        },
+        "output": "A4 test executor's second synthetic documentation result."
+      },
+      {
+        "type": "text",
+        "text": "A4 second controlled continuation.",
+        "state": "done"
+      }
+    ]
+  }
+]

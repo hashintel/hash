@@ -1,0 +1,84 @@
+[
+  {
+    "type": "turn",
+    "turnId": "turn_01M2079732A0ZGA176JE64HZM7",
+    "purpose": "agent",
+    "durationMs": 5,
+    "request": {
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "requestedModel": "a4-faux-only",
+      "api": "faux:1788861520849:mrcgusjtqp9",
+      "serverAddress": "localhost",
+      "serverPort": 0,
+      "reasoningLevel": "medium"
+    },
+    "response": {
+      "output": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "A4 reopened continuation acknowledged; this is not a product why operation."
+          }
+        ]
+      },
+      "usage": {
+        "input": 8328,
+        "output": 19,
+        "cacheRead": 0,
+        "cacheWrite": 8328,
+        "totalTokens": 16675,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "finishReason": "stop"
+    },
+    "isError": false,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M207972RYXG0GJNSK6H3AD7W",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M2079722A600VABXRCZFGGKP",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 11,
+    "timestamp": "2026-09-08T09:58:40.999Z"
+  },
+  {
+    "type": "log",
+    "level": "info",
+    "message": "[flue:compaction] Threshold reached — 16675 tokens used, window 16000, reserve 1024, triggering compaction",
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M207972RYXG0GJNSK6H3AD7W",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M2079722A600VABXRCZFGGKP",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 15,
+    "timestamp": "2026-09-08T09:58:41.001Z"
+  },
+  {
+    "type": "log",
+    "level": "info",
+    "message": "[flue:compaction] Nothing to compact (no valid cut point found)",
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M207972RYXG0GJNSK6H3AD7W",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M2079722A600VABXRCZFGGKP",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 16,
+    "timestamp": "2026-09-08T09:58:41.001Z"
+  }
+]

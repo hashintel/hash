@@ -1,0 +1,715 @@
+[
+  {
+    "type": "turn",
+    "turnId": "turn_01M20795VMBSBJ51RBE337NT1A",
+    "purpose": "agent",
+    "durationMs": 4,
+    "request": {
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "requestedModel": "a4-faux-only",
+      "api": "faux:1788861519593:2zq2j0bnkjj",
+      "serverAddress": "localhost",
+      "serverPort": 0,
+      "reasoningLevel": "medium"
+    },
+    "response": {
+      "output": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "toolCall",
+            "id": "a4-ping-early",
+            "name": "ping",
+            "arguments": {
+              "note": "a4-early-ping"
+            }
+          }
+        ]
+      },
+      "usage": {
+        "input": 2154,
+        "output": 8,
+        "cacheRead": 0,
+        "cacheWrite": 2154,
+        "totalTokens": 4316,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "finishReason": "toolUse"
+    },
+    "isError": false,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795VFKJ37Y100YF93ZRTW",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795TPANKV6M25RG959Y78",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 8,
+    "timestamp": "2026-09-08T09:58:39.737Z"
+  },
+  {
+    "type": "turn",
+    "turnId": "turn_01M20795W16V879BRHVPJ8WAN3",
+    "purpose": "agent",
+    "durationMs": 3,
+    "request": {
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "requestedModel": "a4-faux-only",
+      "api": "faux:1788861519593:2zq2j0bnkjj",
+      "serverAddress": "localhost",
+      "serverPort": 0,
+      "reasoningLevel": "medium"
+    },
+    "response": {
+      "output": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "toolCall",
+            "id": "a4-question",
+            "name": "brunch_mark_question",
+            "arguments": {
+              "question": "Which synthetic record follows?"
+            }
+          }
+        ]
+      },
+      "usage": {
+        "input": 848,
+        "output": 17,
+        "cacheRead": 1330,
+        "cacheWrite": 848,
+        "totalTokens": 3043,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "finishReason": "toolUse"
+    },
+    "isError": false,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795VFKJ37Y100YF93ZRTW",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795TPANKV6M25RG959Y78",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 21,
+    "timestamp": "2026-09-08T09:58:39.748Z"
+  },
+  {
+    "type": "turn",
+    "turnId": "turn_01M20795W6W21FWT29XN2GN6V9",
+    "purpose": "agent",
+    "durationMs": 2,
+    "request": {
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "requestedModel": "a4-faux-only",
+      "api": "faux:1788861519593:2zq2j0bnkjj",
+      "serverAddress": "localhost",
+      "serverPort": 0,
+      "reasoningLevel": "medium"
+    },
+    "response": {
+      "output": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "toolCall",
+            "id": "a4-doc-early",
+            "name": "readPetrinautDoc",
+            "arguments": {
+              "doc": "ai-assistant"
+            }
+          }
+        ]
+      },
+      "usage": {
+        "input": 857,
+        "output": 10,
+        "cacheRead": 1353,
+        "cacheWrite": 857,
+        "totalTokens": 3077,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "finishReason": "toolUse"
+    },
+    "isError": false,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795VFKJ37Y100YF93ZRTW",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795TPANKV6M25RG959Y78",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 33,
+    "timestamp": "2026-09-08T09:58:39.752Z"
+  },
+  {
+    "type": "turn",
+    "turnId": "turn_01M20795WJ8YZHVSZH869B7Y3E",
+    "purpose": "agent",
+    "durationMs": 3,
+    "request": {
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "requestedModel": "a4-faux-only",
+      "api": "faux:1788861519593:2zq2j0bnkjj",
+      "serverAddress": "localhost",
+      "serverPort": 0,
+      "reasoningLevel": "medium"
+    },
+    "response": {
+      "output": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "Which synthetic record follows? A4 first controlled continuation."
+          }
+        ]
+      },
+      "usage": {
+        "input": 908,
+        "output": 17,
+        "cacheRead": 1385,
+        "cacheWrite": 909,
+        "totalTokens": 3219,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "finishReason": "stop"
+    },
+    "isError": false,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795WG5ECTDNX550E7RJB9",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795WESSA61TF7RQM34J8A",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 10,
+    "timestamp": "2026-09-08T09:58:39.765Z"
+  },
+  {
+    "type": "turn",
+    "turnId": "turn_01M20795WVA0X6H2ZQMB5RSGG0",
+    "purpose": "agent",
+    "durationMs": 3,
+    "request": {
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "requestedModel": "a4-faux-only",
+      "api": "faux:1788861519593:2zq2j0bnkjj",
+      "serverAddress": "localhost",
+      "serverPort": 0,
+      "reasoningLevel": "medium"
+    },
+    "response": {
+      "output": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "toolCall",
+            "id": "a4-ping-middle",
+            "name": "ping",
+            "arguments": {
+              "note": "a4-middle-ping"
+            }
+          }
+        ]
+      },
+      "usage": {
+        "input": 864,
+        "output": 8,
+        "cacheRead": 1468,
+        "cacheWrite": 864,
+        "totalTokens": 3204,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "finishReason": "toolUse"
+    },
+    "isError": false,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795WSMF7Q4Q1B6CNKJQBQ",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795WR27NP4JWFH24TTXHB",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 8,
+    "timestamp": "2026-09-08T09:58:39.774Z"
+  },
+  {
+    "type": "turn",
+    "turnId": "turn_01M20795X0Z6E1KMDWJA5C8MTZ",
+    "purpose": "agent",
+    "durationMs": 5,
+    "request": {
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "requestedModel": "a4-faux-only",
+      "api": "faux:1788861519593:2zq2j0bnkjj",
+      "serverAddress": "localhost",
+      "serverPort": 0,
+      "reasoningLevel": "medium"
+    },
+    "response": {
+      "output": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "A4 middle acknowledged."
+          }
+        ]
+      },
+      "usage": {
+        "input": 848,
+        "output": 6,
+        "cacheRead": 1507,
+        "cacheWrite": 849,
+        "totalTokens": 3210,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "finishReason": "stop"
+    },
+    "isError": false,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795WSMF7Q4Q1B6CNKJQBQ",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795WR27NP4JWFH24TTXHB",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 20,
+    "timestamp": "2026-09-08T09:58:39.781Z"
+  },
+  {
+    "type": "turn",
+    "turnId": "turn_01M20795XBC7FZ57P3GXC4KV2V",
+    "purpose": "agent",
+    "durationMs": 3,
+    "request": {
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "requestedModel": "a4-faux-only",
+      "api": "faux:1788861519593:2zq2j0bnkjj",
+      "serverAddress": "localhost",
+      "serverPort": 0,
+      "reasoningLevel": "medium"
+    },
+    "response": {
+      "output": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "toolCall",
+            "id": "a4-doc-late",
+            "name": "readPetrinautDoc",
+            "arguments": {
+              "doc": "ai-assistant"
+            }
+          }
+        ]
+      },
+      "usage": {
+        "input": 853,
+        "output": 10,
+        "cacheRead": 1531,
+        "cacheWrite": 854,
+        "totalTokens": 3248,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "finishReason": "toolUse"
+    },
+    "isError": false,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795X982GQP0YM0J9564WZ",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795X8XY6Y0VB99E63G7HR",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 8,
+    "timestamp": "2026-09-08T09:58:39.790Z"
+  },
+  {
+    "type": "turn",
+    "turnId": "turn_01M20795XP0QFFRJDBEYJBCAQ9",
+    "purpose": "agent",
+    "durationMs": 4,
+    "request": {
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "requestedModel": "a4-faux-only",
+      "api": "faux:1788861519593:2zq2j0bnkjj",
+      "serverAddress": "localhost",
+      "serverPort": 0,
+      "reasoningLevel": "medium"
+    },
+    "response": {
+      "output": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "A4 second controlled continuation."
+          }
+        ]
+      },
+      "usage": {
+        "input": 908,
+        "output": 9,
+        "cacheRead": 1560,
+        "cacheWrite": 908,
+        "totalTokens": 3385,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "finishReason": "stop"
+    },
+    "isError": false,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795XNJVJAQFW57CHEMDHN",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795XMGC5SYAS4X7KA1PGA",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 8,
+    "timestamp": "2026-09-08T09:58:39.802Z"
+  },
+  {
+    "type": "turn",
+    "turnId": "turn_01M20795Y2B70PRDXSSK3Z7HH1",
+    "purpose": "agent",
+    "durationMs": 6,
+    "request": {
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "requestedModel": "a4-faux-only",
+      "api": "faux:1788861519593:2zq2j0bnkjj",
+      "serverAddress": "localhost",
+      "serverPort": 0,
+      "reasoningLevel": "medium"
+    },
+    "response": {
+      "output": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "A4 filler acknowledged."
+          }
+        ]
+      },
+      "usage": {
+        "input": 6926,
+        "output": 6,
+        "cacheRead": 1643,
+        "cacheWrite": 6927,
+        "totalTokens": 15502,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "finishReason": "stop"
+    },
+    "isError": false,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795Y09QAPAQBF7N4MBSQF",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795XY5S2KDBDWAGWNAHT9",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 8,
+    "timestamp": "2026-09-08T09:58:39.817Z"
+  },
+  {
+    "type": "log",
+    "level": "info",
+    "message": "[flue:compaction] Threshold reached — 15502 tokens used, window 16000, reserve 1024, triggering compaction",
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795Y09QAPAQBF7N4MBSQF",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795XY5S2KDBDWAGWNAHT9",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 12,
+    "timestamp": "2026-09-08T09:58:39.818Z"
+  },
+  {
+    "type": "log",
+    "level": "info",
+    "message": "[flue:compaction] Summarizing 18 messages, keeping messages from index 18",
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795Y09QAPAQBF7N4MBSQF",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795XY5S2KDBDWAGWNAHT9",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 13,
+    "timestamp": "2026-09-08T09:58:39.819Z"
+  },
+  {
+    "type": "compaction_start",
+    "reason": "threshold",
+    "estimatedTokens": 15502,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795Y09QAPAQBF7N4MBSQF",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795XY5S2KDBDWAGWNAHT9",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 14,
+    "timestamp": "2026-09-08T09:58:39.819Z"
+  },
+  {
+    "type": "turn",
+    "turnId": "turn_01M20795YBGS4J1HY1NB4ZSBF0",
+    "purpose": "compaction",
+    "durationMs": 0,
+    "request": {
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "requestedModel": "a4-faux-only",
+      "api": "faux:1788861519593:2zq2j0bnkjj",
+      "serverAddress": "localhost",
+      "serverPort": 0,
+      "maxTokens": 819
+    },
+    "response": {
+      "output": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "A4 controlled summary: earlier synthetic test activity occurred; exact quotations and tool payloads are intentionally omitted."
+          }
+        ]
+      },
+      "usage": {
+        "input": 663,
+        "output": 32,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 695,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "finishReason": "stop"
+    },
+    "isError": false,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795Y09QAPAQBF7N4MBSQF",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795XY5S2KDBDWAGWNAHT9",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 16,
+    "timestamp": "2026-09-08T09:58:39.819Z"
+  },
+  {
+    "type": "log",
+    "level": "info",
+    "message": "[flue:compaction] Complete — messages: 20 → 3, tokens before: 15502",
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795Y09QAPAQBF7N4MBSQF",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795XY5S2KDBDWAGWNAHT9",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 17,
+    "timestamp": "2026-09-08T09:58:39.820Z"
+  },
+  {
+    "type": "compaction",
+    "messagesBefore": 20,
+    "messagesAfter": 3,
+    "durationMs": 2,
+    "isError": false,
+    "usage": {
+      "input": 663,
+      "output": 32,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 695,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      }
+    },
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795Y09QAPAQBF7N4MBSQF",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795XY5S2KDBDWAGWNAHT9",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 18,
+    "timestamp": "2026-09-08T09:58:39.820Z"
+  },
+  {
+    "type": "turn",
+    "turnId": "turn_01M20795YHMERKNWY7H3NR6JRB",
+    "purpose": "agent",
+    "durationMs": 2,
+    "request": {
+      "providerId": "anthropic",
+      "providerName": "anthropic",
+      "requestedModel": "a4-faux-only",
+      "api": "faux:1788861519593:2zq2j0bnkjj",
+      "serverAddress": "localhost",
+      "serverPort": 0,
+      "reasoningLevel": "medium"
+    },
+    "response": {
+      "output": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "A4 after-fold continuation; no historical quotation claim."
+          }
+        ]
+      },
+      "usage": {
+        "input": 6985,
+        "output": 15,
+        "cacheRead": 1312,
+        "cacheWrite": 6986,
+        "totalTokens": 15298,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "finishReason": "stop"
+    },
+    "isError": false,
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795YGAFE4RC8CEXDT8WD2",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795YEZQ48X6JQS1XDCKC0",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 10,
+    "timestamp": "2026-09-08T09:58:39.827Z"
+  },
+  {
+    "type": "log",
+    "level": "info",
+    "message": "[flue:compaction] Threshold reached — 15298 tokens used, window 16000, reserve 1024, triggering compaction",
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795YGAFE4RC8CEXDT8WD2",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795YEZQ48X6JQS1XDCKC0",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 14,
+    "timestamp": "2026-09-08T09:58:39.828Z"
+  },
+  {
+    "type": "log",
+    "level": "info",
+    "message": "[flue:compaction] Nothing to compact (no valid cut point found)",
+    "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+    "session": "default",
+    "operationId": "op_01M20795YGAFE4RC8CEXDT8WD2",
+    "harness": "default",
+    "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "submissionId": "sub_01M20795YEZQ48X6JQS1XDCKC0",
+    "agentName": "brunch-chat-agent",
+    "v": 3,
+    "eventIndex": 15,
+    "timestamp": "2026-09-08T09:58:39.828Z"
+  }
+]

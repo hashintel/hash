@@ -1,0 +1,256 @@
+{
+  "v": 1,
+  "conversationId": "conv_01M207135KVPG743KNPBHXG99Y",
+  "offset": "0000000000000000_0000000000000057",
+  "messages": [
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEzNUhFNzJOWVFRUkFNN1hUUTdC",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_01M207135HE72NYQQRAM7XTQ7B",
+      "parts": [
+        {
+          "type": "text",
+          "text": "A4 test-authored early source: violet gear. Not operational testimony.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M207136FGJN1P0T6F7KE9WJA",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_01M207135HE72NYQQRAM7XTQ7B",
+      "turnId": "turn_01M207136DZ7SQVR1H22HTDH38",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "ping",
+          "toolCallId": "a4-ping-early",
+          "state": "output-available",
+          "input": {
+            "note": "a4-early-ping"
+          },
+          "output": {
+            "ok": true,
+            "note": "a4-early-ping"
+          },
+          "durationMs": 2
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_mark_question",
+          "toolCallId": "a4-question",
+          "state": "output-available",
+          "input": {
+            "question": "Which synthetic record follows?"
+          },
+          "output": {
+            "marked": true
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "data-brunch-question",
+          "data": {
+            "question": "Which synthetic record follows?",
+            "toolCallId": "a4-question"
+          }
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "readPetrinautDoc",
+          "toolCallId": "a4-doc-early",
+          "state": "output-available",
+          "input": {
+            "doc": "ai-assistant"
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEzNzdZN1EySzVSNkRZOFdFWjBa",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_01M2071377Y7Q2K5R6DY8WEZ0Z",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "a4-doc-early"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"a4-doc-early\",\"toolName\":\"readPetrinautDoc\",\"output\":\"A4 test executor's first synthetic documentation result.\"}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M207137AWK9KTRP10675A69F",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_01M2071377Y7Q2K5R6DY8WEZ0Z",
+      "turnId": "turn_01M207137AJRRKW2KNPNGA3VHT",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Which synthetic record follows? A4 first controlled continuation.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEzN0YyOFBORjFKM0NHRzRONTcx",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_01M207137F28PNF1J3CGG4N571",
+      "parts": [
+        {
+          "type": "text",
+          "text": "A4 unrelated middle source: silver latch. Not support for violet gear.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M207137KDF3DFG85VZQ9GJDS",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_01M207137F28PNF1J3CGG4N571",
+      "turnId": "turn_01M207137J5NVBHM88QR6M8DJ7",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "ping",
+          "toolCallId": "a4-ping-middle",
+          "state": "output-available",
+          "input": {
+            "note": "a4-middle-ping"
+          },
+          "output": {
+            "ok": true,
+            "note": "a4-middle-ping"
+          },
+          "durationMs": 0
+        },
+        {
+          "type": "text",
+          "text": "A4 middle acknowledged.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEzN1k5U1hQS0o0RFZCRDI3UlY1",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_01M207137Y9SXPKJ4DVBD27RV5",
+      "parts": [
+        {
+          "type": "text",
+          "text": "A4 test-authored late source: amber wheel. Distinct from the early source.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M2071382CWCJ909GMENG6PVQ",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_01M207137Y9SXPKJ4DVBD27RV5",
+      "turnId": "turn_01M207138141PSEMNBSQH5RC97",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "readPetrinautDoc",
+          "toolCallId": "a4-doc-late",
+          "state": "output-available",
+          "input": {
+            "doc": "ai-assistant"
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 0
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEzODk1VEY2TjBFQTVGWVFFVFJI",
+      "role": "system",
+      "purpose": "dispatch",
+      "display": "diagnostic",
+      "submissionId": "sub_01M20713895TF6N0EA5FYQETRH",
+      "signal": {
+        "tagName": "client-tool-result",
+        "attributes": {
+          "toolCallIds": "a4-doc-late"
+        }
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "[{\"toolCallId\":\"a4-doc-late\",\"toolName\":\"readPetrinautDoc\",\"output\":\"A4 test executor's second synthetic documentation result.\"}]",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M207138D3FXT9T038PN1MFSB",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_01M20713895TF6N0EA5FYQETRH",
+      "turnId": "turn_01M207138CS3V2PA3FQ44HQ4DK",
+      "parts": [
+        {
+          "type": "text",
+          "text": "A4 second controlled continuation.",
+          "state": "done"
+        }
+      ]
+    }
+  ],
+  "settlements": [
+    {
+      "submissionId": "sub_01M207135HE72NYQQRAM7XTQ7B",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_01M207135HE72NYQQRAM7XTQ7B"
+    },
+    {
+      "submissionId": "sub_01M2071377Y7Q2K5R6DY8WEZ0Z",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_01M2071377Y7Q2K5R6DY8WEZ0Z"
+    },
+    {
+      "submissionId": "sub_01M207137F28PNF1J3CGG4N571",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_01M207137F28PNF1J3CGG4N571"
+    },
+    {
+      "submissionId": "sub_01M207137Y9SXPKJ4DVBD27RV5",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_01M207137Y9SXPKJ4DVBD27RV5"
+    },
+    {
+      "submissionId": "sub_01M20713895TF6N0EA5FYQETRH",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_01M20713895TF6N0EA5FYQETRH"
+    }
+  ],
+  "incarnation": "inc_01M207135JG83JVST4G0GY09XB"
+}

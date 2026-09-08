@@ -1,0 +1,180 @@
+{
+  "beforeIds": [
+    "entry_direct_c3ViXzAxTTIwNzEwUkZCN0RWTkJUWVREWUU4NEpL",
+    "entry_01M20710SD2TWD7AV0WM9X1T47",
+    "entry_direct_c3ViXzAxTTIwNzEwVDROUUdHS1ZFNVlRWUVHR0NH",
+    "entry_01M20710T8YRT6GR7NXV7T02E8",
+    "entry_direct_c3ViXzAxTTIwNzEwVEMzNlo1MjIyOENETUU2MUtQ",
+    "entry_01M20710TGN4CA3FEGA3PZEWYJ",
+    "entry_direct_c3ViXzAxTTIwNzEwVFZUNzFYMUtaWTNaNEM1UVdS",
+    "entry_01M20710TZ8PZVW2FCKH2DVCYF",
+    "entry_direct_c3ViXzAxTTIwNzEwVjZCTjFFN1NINDlDME1TUlZT",
+    "entry_01M20710VAFM79GGKDMZPYFKXD"
+  ],
+  "afterIds": [
+    "entry_direct_c3ViXzAxTTIwNzEwUkZCN0RWTkJUWVREWUU4NEpL",
+    "entry_01M20710SD2TWD7AV0WM9X1T47",
+    "entry_direct_c3ViXzAxTTIwNzEwVDROUUdHS1ZFNVlRWUVHR0NH",
+    "entry_01M20710T8YRT6GR7NXV7T02E8",
+    "entry_direct_c3ViXzAxTTIwNzEwVEMzNlo1MjIyOENETUU2MUtQ",
+    "entry_01M20710TGN4CA3FEGA3PZEWYJ",
+    "entry_direct_c3ViXzAxTTIwNzEwVFZUNzFYMUtaWTNaNEM1UVdS",
+    "entry_01M20710TZ8PZVW2FCKH2DVCYF",
+    "entry_direct_c3ViXzAxTTIwNzEwVjZCTjFFN1NINDlDME1TUlZT",
+    "entry_01M20710VAFM79GGKDMZPYFKXD",
+    "entry_direct_c3ViXzAxTTIwNzEwVkhKQkZLUUg0REo0TjJCR0Ew",
+    "entry_01M20710VQYE96DS06CXG38MT4",
+    "entry_direct_c3ViXzAxTTIwNzEwVzAxOEZaRThUMzJFVk1FWEY2",
+    "entry_01M20710W3MQBRHWSY0R2AB6DB"
+  ],
+  "lost": [],
+  "changed": [],
+  "beforeKinds": [
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEwUkZCN0RWTkJUWVREWUU4NEpL",
+      "kind": "user",
+      "text": "A4 test-authored early source: violet gear. Not operational testimony."
+    },
+    {
+      "id": "entry_01M20710SD2TWD7AV0WM9X1T47",
+      "kind": "assistant",
+      "text": ""
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEwVDROUUdHS1ZFNVlRWUVHR0NH",
+      "kind": "non-user",
+      "text": "[{\"toolCallId\":\"a4-doc-early\",\"toolName\":\"readPetrinautDoc\",\"output\":\"A4 test executor's first synthetic documentation result.\"}]"
+    },
+    {
+      "id": "entry_01M20710T8YRT6GR7NXV7T02E8",
+      "kind": "assistant",
+      "text": "Which synthetic record follows? A4 first controlled continuation."
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEwVEMzNlo1MjIyOENETUU2MUtQ",
+      "kind": "user",
+      "text": "A4 unrelated middle source: silver latch. Not support for violet gear."
+    },
+    {
+      "id": "entry_01M20710TGN4CA3FEGA3PZEWYJ",
+      "kind": "assistant",
+      "text": "A4 middle acknowledged."
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEwVFZUNzFYMUtaWTNaNEM1UVdS",
+      "kind": "user",
+      "text": "A4 test-authored late source: amber wheel. Distinct from the early source."
+    },
+    {
+      "id": "entry_01M20710TZ8PZVW2FCKH2DVCYF",
+      "kind": "assistant",
+      "text": ""
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEwVjZCTjFFN1NINDlDME1TUlZT",
+      "kind": "non-user",
+      "text": "[{\"toolCallId\":\"a4-doc-late\",\"toolName\":\"readPetrinautDoc\",\"output\":\"A4 test executor's second synthetic documentation result.\"}]"
+    },
+    {
+      "id": "entry_01M20710VAFM79GGKDMZPYFKXD",
+      "kind": "assistant",
+      "text": "A4 second controlled continuation."
+    }
+  ],
+  "afterKinds": [
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEwUkZCN0RWTkJUWVREWUU4NEpL",
+      "kind": "user",
+      "text": "A4 test-authored early source: violet gear. Not operational testimony."
+    },
+    {
+      "id": "entry_01M20710SD2TWD7AV0WM9X1T47",
+      "kind": "assistant",
+      "text": ""
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEwVDROUUdHS1ZFNVlRWUVHR0NH",
+      "kind": "non-user",
+      "text": "[{\"toolCallId\":\"a4-doc-early\",\"toolName\":\"readPetrinautDoc\",\"output\":\"A4 test executor's first synthetic documentation result.\"}]"
+    },
+    {
+      "id": "entry_01M20710T8YRT6GR7NXV7T02E8",
+      "kind": "assistant",
+      "text": "Which synthetic record follows? A4 first controlled continuation."
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEwVEMzNlo1MjIyOENETUU2MUtQ",
+      "kind": "user",
+      "text": "A4 unrelated middle source: silver latch. Not support for violet gear."
+    },
+    {
+      "id": "entry_01M20710TGN4CA3FEGA3PZEWYJ",
+      "kind": "assistant",
+      "text": "A4 middle acknowledged."
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEwVFZUNzFYMUtaWTNaNEM1UVdS",
+      "kind": "user",
+      "text": "A4 test-authored late source: amber wheel. Distinct from the early source."
+    },
+    {
+      "id": "entry_01M20710TZ8PZVW2FCKH2DVCYF",
+      "kind": "assistant",
+      "text": ""
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEwVjZCTjFFN1NINDlDME1TUlZT",
+      "kind": "non-user",
+      "text": "[{\"toolCallId\":\"a4-doc-late\",\"toolName\":\"readPetrinautDoc\",\"output\":\"A4 test executor's second synthetic documentation result.\"}]"
+    },
+    {
+      "id": "entry_01M20710VAFM79GGKDMZPYFKXD",
+      "kind": "assistant",
+      "text": "A4 second controlled continuation."
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEwVkhKQkZLUUg0REo0TjJCR0Ew",
+      "kind": "user",
+      "text": "A4 transparent threshold filler, not domain evidence. synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding synthetic-padding "
+    },
+    {
+      "id": "entry_01M20710VQYE96DS06CXG38MT4",
+      "kind": "assistant",
+      "text": "A4 filler acknowledged."
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNzEwVzAxOEZaRThUMzJFVk1FWEY2",
+      "kind": "user",
+      "text": "A4 final short turn: finish the retention probe without tools."
+    },
+    {
+      "id": "entry_01M20710W3MQBRHWSY0R2AB6DB",
+      "kind": "assistant",
+      "text": "A4 after-fold continuation; no historical quotation claim."
+    }
+  ],
+  "clientResultsBefore": [
+    {
+      "output": "A4 test executor's first synthetic documentation result.",
+      "toolCallId": "a4-doc-early",
+      "toolName": "readPetrinautDoc"
+    },
+    {
+      "output": "A4 test executor's second synthetic documentation result.",
+      "toolCallId": "a4-doc-late",
+      "toolName": "readPetrinautDoc"
+    }
+  ],
+  "clientResultsAfter": [
+    {
+      "output": "A4 test executor's first synthetic documentation result.",
+      "toolCallId": "a4-doc-early",
+      "toolName": "readPetrinautDoc"
+    },
+    {
+      "output": "A4 test executor's second synthetic documentation result.",
+      "toolCallId": "a4-doc-late",
+      "toolName": "readPetrinautDoc"
+    }
+  ]
+}

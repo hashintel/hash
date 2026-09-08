@@ -1,0 +1,27 @@
+{
+  "identity": {
+    "principalKey": "a4-principal-threshold-repeat",
+    "conversationId": "a4-history-threshold-repeat"
+  },
+  "instanceId": "37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+  "dbPath": "/Users/lunelson/.herdr/worktrees/hash/h-echo/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a4-preliminary-2026-09-08T09-54-00Z/threshold-repeat/conversation.db",
+  "pid": 13169,
+  "originalPid": 12870,
+  "conversationId": "conv_01M20795TR2J7N7SW20WZGVZ4Q",
+  "incarnation": "inc_01M20795TQ4QB0HQTDZTZC7C9K",
+  "authorization": {
+    "missing": 401,
+    "foreignPrincipal": 403,
+    "foreignConversation": 403,
+    "correctlyBoundMissingConversation": 404
+  },
+  "wrongUidStatus": 404,
+  "continuation": {
+    "streamUrl": "http://a4.in-process/agents/chat/37af753c164f3092164f068119fecefe44899842c37281da7bdcd2433acce7b5",
+    "offset": "0000000000000000_0000000000000074",
+    "submissionId": "sub_01M2079722A600VABXRCZFGGKP",
+    "uid": "inst_01M20795TSKB14QCXG9D09YAXG"
+  },
+  "historyEqual": true,
+  "historyProviderCalls": 0
+}

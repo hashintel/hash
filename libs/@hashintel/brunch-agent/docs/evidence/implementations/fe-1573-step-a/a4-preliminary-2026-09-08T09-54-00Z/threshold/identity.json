@@ -1,0 +1,39 @@
+{
+  "identity": {
+    "principalKey": "a4-principal-threshold",
+    "conversationId": "a4-history-threshold"
+  },
+  "instanceId": "c26371b4e0e6bf1b30a36d83b4aac3775193e9468d14cac8bd5678e6bf420840",
+  "dbPath": "/Users/lunelson/.herdr/worktrees/hash/h-echo/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a4-preliminary-2026-09-08T09-54-00Z/threshold/conversation.db",
+  "pid": 63196,
+  "admission": {
+    "streamUrl": "http://a4.in-process/agents/chat/c26371b4e0e6bf1b30a36d83b4aac3775193e9468d14cac8bd5678e6bf420840",
+    "offset": "0000000000000000_0000000000000000",
+    "submissionId": "sub_01M20710RFB7DVNBTYTDYE84JK",
+    "uid": "inst_01M20710RHAERR3T0T4NGV2YEQ"
+  },
+  "conversationId": "conv_01M20710RHGX61AFQ5A17P1YQW",
+  "incarnation": "inc_01M20710RFBCAFRDT0TCD4YQE9",
+  "authorization": {
+    "missing": 401,
+    "foreignPrincipal": 403,
+    "foreignConversation": 403,
+    "correctlyBoundMissingConversation": 404
+  },
+  "modelId": "a4-faux-only",
+  "contextWindow": 16000,
+  "maxTokens": 1024,
+  "keepRecentTokens": 256,
+  "buildHashes": {
+    "app.mjs": "a7e4c4cf661f89c5cb00d39c7c54a34d96ae1b5c210c6b1a46fff90d6cee059e",
+    "execAsync-D25bwo5l.mjs": "2aa3218ffa6e86ced8194f6f089522154c7ee24eb9aa2e839b1ce04cc2286965",
+    "getMachineId-bsd-ThF6nEVL.mjs": "1f347955329d7a66f491559c8d11e0a722c20bf01bcc578a7fcbd0fc09210268",
+    "getMachineId-darwin-C6rMMlat.mjs": "35ea46fdbfb21cbbfdd7609a6305a067f1ecc8af7d307c515de940ddd5e14183",
+    "getMachineId-linux-B5Iy_Sy7.mjs": "2b320cd8b585786fe74d9bc0950666896d481620b50712947d4fd914ca4f1cff",
+    "getMachineId-unsupported-QqRDr4II.mjs": "e31d1f882207eaaf5c81cbc80cec1fe13a4bc3a3706050519c68515954249d5d",
+    "getMachineId-win-FwyaH7b-.mjs": "fa859f727a5adeece86355bcf5b5cb5cf83b286f3662dd98e4d7869e511fbceb",
+    "node-server-_uC97QG8.mjs": "b103f3f8837c17f72d0ca3a5184e563370c34bfa189ececc01b9910870a7f577",
+    "rolldown-runtime-BMI-E3GI.mjs": "efc57dcff870d1e3f2f361b3ba80eb84330c649bef8f1529736019ea7e961346",
+    "server.mjs": "e27c7dd55410f2abea7d22162170a56069076c01450878bb75554bb80abd6dd4"
+  }
+}
