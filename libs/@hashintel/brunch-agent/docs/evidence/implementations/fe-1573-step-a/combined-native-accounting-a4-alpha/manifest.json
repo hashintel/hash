@@ -1,0 +1,1147 @@
+{
+  "testedHead": "5686b0224c7b43cf22ad8fd1f5b1b48ce4e6eff8",
+  "scope": "Combined native/accounting/A4 integration; synthetic model/SDK and real local browser, not paid or owner acceptance.",
+  "files": [
+    {
+      "path": "a4-replay-sC4YecLN/audit.json.gz",
+      "bytes": 6450,
+      "sha256": "2ee3e344034efa5afb3b880e56ac7691167f2b1f05f12e3aa7804aaf70e58d5d",
+      "uncompressedBytes": 96204,
+      "uncompressedSha256": "a74c7653b3cfda3ecd19058359f5553163fecc9e5ee70f233f709c31b4da7628"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/audit.log.gz",
+      "bytes": 141,
+      "sha256": "fc70b21174e1efe0983b2fce301553b42c7ab3d2323b53e2d753be01b431b08a",
+      "uncompressedBytes": 140,
+      "uncompressedSha256": "945ca2d87f010e89444723dd0c05001541c745fdce6a96851134e39a61003892"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/boolean-refusal-history.json.gz",
+      "bytes": 3110,
+      "sha256": "2b14149e88e07530f51a0a401ede4da81bcb80139ef161f4a536e35457a2cd4a",
+      "uncompressedBytes": 14079,
+      "uncompressedSha256": "14e62e0c32a6c81ac10b44e23fa69baf930ef53b4bc06fad87db5ba41a6c4d7d"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/boolean-refusal.png",
+      "bytes": 160528,
+      "sha256": "ee330985fdc683be22434caa7c2c0c432b7be382cc5f0f730fc157150f7b476d"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/browser.png",
+      "bytes": 188691,
+      "sha256": "7a37cacbf4e5b8506c2529b141abb8c5feadc256e7f99f54c0c250040f3bdc37"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/canonical-post.browser.json.gz",
+      "bytes": 438,
+      "sha256": "7ae2db1fe3084fea218e3e4ee92bb7a6f5fff322b570375194ef0092f2b716b6",
+      "uncompressedBytes": 2074,
+      "uncompressedSha256": "c17ae80cc22939f0af6c2675f6bcc20b025b17a5b7bfb9e8029813bcef9ad736"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/canonical-pre.browser.json.gz",
+      "bytes": 420,
+      "sha256": "ef301215e4185503c3491ef5b42f5f6a38a2ed2ea7a34f49261cd18b92d408e0",
+      "uncompressedBytes": 1953,
+      "uncompressedSha256": "0ec2b0c9bb82787602c359b41e6c1663001f8e42425ad2ab7f84ac019944766b"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/conflicting-history.json.gz",
+      "bytes": 5160,
+      "sha256": "888d09fb8bf5a22fa62d831cd19b15ad5aa552b731f1d969a2f5a636a433550f",
+      "uncompressedBytes": 45548,
+      "uncompressedSha256": "79c95009db42448f0f6b6f6797bc414fb3940718f2d2622e37fc94e284ddc463"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/dom-before-chat.json.gz",
+      "bytes": 455,
+      "sha256": "f439318d0068b10fff26b2e040f7fa2676f7fa6570d38bcb998ea3c148cc8444",
+      "uncompressedBytes": 3071,
+      "uncompressedSha256": "eae19c8c04611446b9fdd9bfbd929ad6e5d45b843b75d1b625a02f515d262c53"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/history.json.gz",
+      "bytes": 4752,
+      "sha256": "40e222f8574c8cf8d619b9632519d8c5a27d6358b25ae80c9d816713104049c9",
+      "uncompressedBytes": 36239,
+      "uncompressedSha256": "708bd11e56711f6c9780ec7eab72a888058a3c9feda3143469ce0c9b4b34c7f6"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/http-deliveries.json.gz",
+      "bytes": 2621,
+      "sha256": "2c7d84d6ff499e2e55228b685bc3fe6522b67c6922efe82bbbc30c193f3aae0a",
+      "uncompressedBytes": 28869,
+      "uncompressedSha256": "53ad0cc6beb92bac69f5513d5260c1f19690623f5447880026912da3fd362042"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/initial-storage.json.gz",
+      "bytes": 1139,
+      "sha256": "2b7733ff1be2c4f3cde07947dc06f46d86b57c5fdfcf7a07c7980e8d28b9a461",
+      "uncompressedBytes": 3146,
+      "uncompressedSha256": "d783a76015fe605708de0f635e70c4ece8845d863847b360d8d3de224fe0b220"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/native-sdk-requests.json.gz",
+      "bytes": 91265,
+      "sha256": "cdc7f8d0f0f0a38fe7b4e50e1913c3abfc64adb0daaaa288f0dd8e8917aa9d2c",
+      "uncompressedBytes": 701139,
+      "uncompressedSha256": "00fd7e8549f4d545818d31a84579eb4f567aaf505eb21923a0e9bbee54b0fa70"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/observations.json.gz",
+      "bytes": 309,
+      "sha256": "3708c357877beaffa6f2335835fea22d007dfd610e598cc6e1e2fe15c9fa5f4a",
+      "uncompressedBytes": 557,
+      "uncompressedSha256": "ff7516c247a0f303103d8b9885dbf81a5270eb83550c9c24ea278b6c7cdfb17f"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/preparation-request.json.gz",
+      "bytes": 1196,
+      "sha256": "401f4daa2994e6f121d403f22b265711f882f6324d69c408c74bd1408a7c1f24",
+      "uncompressedBytes": 2731,
+      "uncompressedSha256": "940c55598c13b28d2b9917de078befc501513fe5f20d9ae97a046bcdb2332e39"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/refused-history.json.gz",
+      "bytes": 3360,
+      "sha256": "f8edd4a3d4353d35239f59ed711751c3c16f7c76bb97f2a52b568afd4d3d49d9",
+      "uncompressedBytes": 18620,
+      "uncompressedSha256": "550f793fa7e44409f0693637ac2c3685f5e61220292a7ce44ef5e93cc13189d8"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/requests.json.gz",
+      "bytes": 47165,
+      "sha256": "c4b6532d74e535e5982a8aca0f4c62bc072737533ae88331bb732b20b932ea7a",
+      "uncompressedBytes": 363816,
+      "uncompressedSha256": "bdce8e9e771b18646c706d5d1541c724e471bbceaa9121c952ca7acd2851b20e"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-after.json.gz",
+      "bytes": 8091,
+      "sha256": "4cf8e8daa78c9614cd1f062e6414ca4b5c224270631e4fb01515a38ffea79904",
+      "uncompressedBytes": 173324,
+      "uncompressedSha256": "7f3e1623a304394d7a085525baf77e3ad2738094242833e74179079de5da0b88"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-fold-before.json.gz",
+      "bytes": 5160,
+      "sha256": "888d09fb8bf5a22fa62d831cd19b15ad5aa552b731f1d969a2f5a636a433550f",
+      "uncompressedBytes": 45548,
+      "uncompressedSha256": "79c95009db42448f0f6b6f6797bc414fb3940718f2d2622e37fc94e284ddc463"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-fold-comparison.json.gz",
+      "bytes": 4311,
+      "sha256": "5e7f8a25c29c3a6d00ac2426249c04d45ffb2431867cab4b1197e8d8cdf66f26",
+      "uncompressedBytes": 76545,
+      "uncompressedSha256": "530b02a5ea4fe0879e18a4484210ccfe9d4c8ddeaa2226dba6c0bf4785c2c3c1"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-fold-contexts.json.gz",
+      "bytes": 60584,
+      "sha256": "626bcdbd371c2838cd17651767351ea1c801be69b27234d8547517a5a0ab3ee8",
+      "uncompressedBytes": 936263,
+      "uncompressedSha256": "891584e6114b3a4d01b73b3be813c5c669b66ad6bb046e00be3115b76f56c689"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-fold-events.json.gz",
+      "bytes": 62029,
+      "sha256": "dfebab64919a4e9e66760a32e4a7e3c494a56ea81ab9dea32539cff12e88fe83",
+      "uncompressedBytes": 921010,
+      "uncompressedSha256": "34dd79c4eb098525858c8814d0d5ca8aff9626157a74b9fec6bad7c3a7ba6d7f"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-fold-final-history.json.gz",
+      "bytes": 8091,
+      "sha256": "4cf8e8daa78c9614cd1f062e6414ca4b5c224270631e4fb01515a38ffea79904",
+      "uncompressedBytes": 173324,
+      "uncompressedSha256": "7f3e1623a304394d7a085525baf77e3ad2738094242833e74179079de5da0b88"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-fold-result.json.gz",
+      "bytes": 1440,
+      "sha256": "ed84ec2937ed97f4ef3ef12fb0939baca5615292ed8290781b7180cac641cff6",
+      "uncompressedBytes": 2822,
+      "uncompressedSha256": "d4b2b724bba82fbea57adb1fdae6956d77e37f870e118a663e31f320d4d6ae27"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-fold-ui.json.gz",
+      "bytes": 3542,
+      "sha256": "5cbb03e08021deeb0e6fb2f444502b99bd3cf2cb4e94762b50ee9ba93d49b8a0",
+      "uncompressedBytes": 122040,
+      "uncompressedSha256": "4e77768f43df0ecdba354944797a5ca5bfcbf0bf3d07573485e19709c0ea342b"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-reopen-before.json.gz",
+      "bytes": 8091,
+      "sha256": "4cf8e8daa78c9614cd1f062e6414ca4b5c224270631e4fb01515a38ffea79904",
+      "uncompressedBytes": 173324,
+      "uncompressedSha256": "7f3e1623a304394d7a085525baf77e3ad2738094242833e74179079de5da0b88"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-reopen-comparison.json.gz",
+      "bytes": 4374,
+      "sha256": "77bed858d1664baedfb253dfe4b4f4e20561da0ea1ea62c8f6ea77b634d72861",
+      "uncompressedBytes": 77532,
+      "uncompressedSha256": "beea2245acde3f5d11b8d4ad7ca9294494968854c80ad5fe093ce68bfaff6c90"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-reopen-contexts.json.gz",
+      "bytes": 6836,
+      "sha256": "73d49e9eafdc4b2e27098a5b322a34d5e91983f7caaf28c772e3fb7128bae830",
+      "uncompressedBytes": 31106,
+      "uncompressedSha256": "e7ebe3a7d1dbe27d10e7595e7a2f4d2ad002ed89a2793577004a5f33df79e276"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-reopen-events.json.gz",
+      "bytes": 7183,
+      "sha256": "b5facf35ba0b5ea2396b63fc4fb71c5ec52bd50f3891c945f367a148ace45464",
+      "uncompressedBytes": 33249,
+      "uncompressedSha256": "9d3e0fa33224f0e214043e02e287a96b04f948e628fb4b8b0359c9a9c6bdee20"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-reopen-final-history.json.gz",
+      "bytes": 8237,
+      "sha256": "b595a0af91c45d5ce196201cc1cd026becb9e95ddedfb218bb2dbebaa334f4bc",
+      "uncompressedBytes": 176650,
+      "uncompressedSha256": "0022eb93f0e60a92a1db669c1eb9196ccada92cbe67896ad4169414e7d7e7790"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-reopen-result.json.gz",
+      "bytes": 1438,
+      "sha256": "29a8e7823618dbd42d0b89cc75c545dc5ddcbb02556812beda76ac63ec108299",
+      "uncompressedBytes": 2822,
+      "uncompressedSha256": "e491407f65f4a40560494dba9592d3c4ff1f408a7245647f8c7c2f95e0ca3824"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-reopen-ui.json.gz",
+      "bytes": 3589,
+      "sha256": "8b6279aa8ecdf898b1991eab8c55cee8039363943d22e40ce645d47fb8cc3f0f",
+      "uncompressedBytes": 122581,
+      "uncompressedSha256": "5e2db08b6c1521252c63b0226a2df690f46a59b257e5591c5d8716d0a687560c"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/retention-reopened-after.json.gz",
+      "bytes": 8237,
+      "sha256": "b595a0af91c45d5ce196201cc1cd026becb9e95ddedfb218bb2dbebaa334f4bc",
+      "uncompressedBytes": 176650,
+      "uncompressedSha256": "0022eb93f0e60a92a1db669c1eb9196ccada92cbe67896ad4169414e7d7e7790"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/selector.png",
+      "bytes": 79169,
+      "sha256": "310966f2888b4d9dae01865da926134501ce6d65d901e15f34b925ff9f6b5573"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser/transition-records.json.gz",
+      "bytes": 934,
+      "sha256": "7991a0897c7cb74b42c091bedeadac7f7cbc69771aae9b49df0986cd7276443f",
+      "uncompressedBytes": 7192,
+      "uncompressedSha256": "e560b5e15ea0133ea9141a83ef884ab9e6cf9f1b8bc88cf29e963f9ebe78027a"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/browser.log.gz",
+      "bytes": 761,
+      "sha256": "a1c336e875ffe1908be10f26f78f770c1035a2d5fc81e91562dc5259f115ed0f",
+      "uncompressedBytes": 2518,
+      "uncompressedSha256": "eb9ca0fd584fc75a614afdbb219dbff0f9f145bd8af17943b99c79b929b0dc0c"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/commands.log.gz",
+      "bytes": 534,
+      "sha256": "a349c66036c4e1918fe964e03d066e86305e2be1c350b6503fe0284456e1f880",
+      "uncompressedBytes": 4610,
+      "uncompressedSha256": "81e95f0f7bad9c813fdb44790d8cecd5e7a8bec0a94fbeeae1a016ae31e844bb"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/create-after-outcome-contexts.json.gz",
+      "bytes": 4342,
+      "sha256": "a1a7b5a1e209d1c9f06ad1ad44f06aed5ff4ddc4070795b2281428b1f8497369",
+      "uncompressedBytes": 13087,
+      "uncompressedSha256": "620ffa0b2ffed5952fc4f053bdb6a7088f91ae877192a0e14a03a4b84feca1a3"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/create-after-outcome-instrumentation.json.gz",
+      "bytes": 376,
+      "sha256": "bf539c22c45a6cb48fc2b1b5d7ada66df90095ce8feb257fc8ef58d9dcba4aba",
+      "uncompressedBytes": 509,
+      "uncompressedSha256": "f860be61e54fbbf9c3f06b34f652826826df4e5a0733724784af82fe950a7e88"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/create-after-outcome-instrumented-runtime.mjs.gz",
+      "bytes": 65572,
+      "sha256": "24e63f54e5f3e0ad4f8968b2bf82c41796bde4fb478a428eb9ad63388f80120d",
+      "uncompressedBytes": 252283,
+      "uncompressedSha256": "4fab0f2caca5989eec0b993f9303b3dfb8466c3a0d3c421bebbdd20429390402"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/create-after-outcome-runtime-trace.jsonl.gz",
+      "bytes": 2451,
+      "sha256": "b3e6592f71cd90e6aa6b29088809128a696b4f5c04e1a2674e6a55589431d69a",
+      "uncompressedBytes": 16143,
+      "uncompressedSha256": "220b262deaef31e38baf570c53b494acae2cf0241d0f1fb991fff4f0462e9ed9"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/create.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "uncompressedBytes": 0,
+      "uncompressedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/receipt.json.gz",
+      "bytes": 376,
+      "sha256": "76198c7cbd1b993c3b531fef8baba296f7cc36e7f27056f5461d4c9b57235f62",
+      "uncompressedBytes": 571,
+      "uncompressedSha256": "15c10d3581aa98fde7d557e9919dbee5c61e5df34f563ff1c66efb2d016b60f8"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/recover-observe-contexts.json.gz",
+      "bytes": 6821,
+      "sha256": "54dd25a88b0a81b9e75f4c86899a9518f2da64f161330e4e41d7662afcb80b79",
+      "uncompressedBytes": 58140,
+      "uncompressedSha256": "3ac06c549ad2065c66f4fa9336d80449524aa7adadc31d958d3d545b7ddd1f20"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/recover-observe-history.json.gz",
+      "bytes": 892,
+      "sha256": "34def86ae0cc23b9d1703b73872e2b099c9dbb623c37b51aa86e3658e40bae18",
+      "uncompressedBytes": 2447,
+      "uncompressedSha256": "76b4a2a291a1699041e204845d689a23937efd96e5601c764fd0bc0a1b28d8f4"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/recover-observe-instrumentation.json.gz",
+      "bytes": 371,
+      "sha256": "9afb526f93ad7ea9d2ef783d420ecec4ee1190104fb6688d9e0997d70e4c03bb",
+      "uncompressedBytes": 503,
+      "uncompressedSha256": "0234b2bea1a5814dc00dd2690250a605237d294892f253964bbe5cf6e0f7c718"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/recover-observe-instrumented-runtime.mjs.gz",
+      "bytes": 65572,
+      "sha256": "24e63f54e5f3e0ad4f8968b2bf82c41796bde4fb478a428eb9ad63388f80120d",
+      "uncompressedBytes": 252283,
+      "uncompressedSha256": "4fab0f2caca5989eec0b993f9303b3dfb8466c3a0d3c421bebbdd20429390402"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/recover-observe-next-history.json.gz",
+      "bytes": 1669,
+      "sha256": "6e82d2b3344d57daa2570aa2601615014c7d74e4c014cabdd6757488930042f0",
+      "uncompressedBytes": 6185,
+      "uncompressedSha256": "f6cf3a63dc7d50eb369d28639e41b3e5e110dd7e5e69ded47f294ae6749819e1"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/recover-observe-result.json.gz",
+      "bytes": 482,
+      "sha256": "48ba1bf6d17e027a3414d4196496c9c2e4278ba18c8e17f32e432703bb782f84",
+      "uncompressedBytes": 1623,
+      "uncompressedSha256": "87d12a8b452b186553afa7ef478d81af567172e54614029851abae355e5d2223"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/recover-observe-runtime-trace.jsonl.gz",
+      "bytes": 4676,
+      "sha256": "56cf70e9bea145fe1e117e3009d1c999e0e74c40837191adb7add42f1a6650a1",
+      "uncompressedBytes": 41979,
+      "uncompressedSha256": "48ff5c44651bf1e6f8b0449b325700ec6be858212f2f2883c7c4ded9c2d72bb6"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/recover-observe-store-after-recovery.json.gz",
+      "bytes": 3322,
+      "sha256": "729eca5e129a4770a3f2b06e333266f98337cdf85b47ce2f7f423043b04cd778",
+      "uncompressedBytes": 18857,
+      "uncompressedSha256": "e12263bae9d46cd6ab911f41177f9862e4432375f30963eccca66d8e49170065"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/recover-observe-store-after-stop.json.gz",
+      "bytes": 5812,
+      "sha256": "6c38890087f65d78c41012e369511e61207c0e688575171a1f1c0774e1770f68",
+      "uncompressedBytes": 43778,
+      "uncompressedSha256": "19b7cdff6aad6c06559f750de8198e34e3a76e0cb8640fb15cee6a3c6722fb43"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/recover-observe-store-before-boot.json.gz",
+      "bytes": 2716,
+      "sha256": "f4c21d79829360aa3a1546d37d68c7eddfcd7daff09abd6d7f074492bd66a39e",
+      "uncompressedBytes": 11377,
+      "uncompressedSha256": "61bbadd421b1f721baf15049129f6c357ce222ef771e769b5ac813a29cf2572c"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-after-outcome-GK6rZEuO/recover.log.gz",
+      "bytes": 150,
+      "sha256": "31733425952cb023d012ba6deaf1c933e984a33a3a7bb2b7a7336a22c6590c04",
+      "uncompressedBytes": 169,
+      "uncompressedSha256": "93252aa3a0132042534cd81dddb340ca9d9ae40d4c75c7c955226555853f7e21"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/create-before-outcome-contexts.json.gz",
+      "bytes": 4343,
+      "sha256": "30118a4b50b11aca031232218a373dadb03ddc694e5da820855f1fb87fd0915f",
+      "uncompressedBytes": 13089,
+      "uncompressedSha256": "ce728a3d054774d13cd742cf2193ad747e5f80bbd7ceeed12c33649a6c8a5adf"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/create-before-outcome-instrumentation.json.gz",
+      "bytes": 376,
+      "sha256": "893213592c67ed91a44039ecc61e2c941f6e69c437b2d4768fdd95b990658932",
+      "uncompressedBytes": 510,
+      "uncompressedSha256": "072aaa45a205b117e31db9afec986bc388cd34bb8ff9d5280dc3841d0f1eaf3f"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/create-before-outcome-instrumented-runtime.mjs.gz",
+      "bytes": 65572,
+      "sha256": "24e63f54e5f3e0ad4f8968b2bf82c41796bde4fb478a428eb9ad63388f80120d",
+      "uncompressedBytes": 252283,
+      "uncompressedSha256": "4fab0f2caca5989eec0b993f9303b3dfb8466c3a0d3c421bebbdd20429390402"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/create-before-outcome-runtime-trace.jsonl.gz",
+      "bytes": 2444,
+      "sha256": "fafe5b6e16a316b6cece909e7bb3df880a1145eff3d29ff87439880250f5cc9e",
+      "uncompressedBytes": 15206,
+      "uncompressedSha256": "28c8815aec7691d72e63dd17bf2492feeb170195318f24cb161eb1d26f31d291"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/create.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "uncompressedBytes": 0,
+      "uncompressedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/receipt.json.gz",
+      "bytes": 379,
+      "sha256": "59af35a792386b188fa94e8cabf7b3e7974c260faf37dbd88437a1d03c29004f",
+      "uncompressedBytes": 573,
+      "uncompressedSha256": "9487f8ce34abb4abaed24a6e3df7961074990a11e6a6ff3fce8ec834cdc2ce77"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/recover-observe-contexts.json.gz",
+      "bytes": 7398,
+      "sha256": "195c22720e438c6c679f38eb37ffecaa742a20bb69faa854b2e96655242a47fa",
+      "uncompressedBytes": 95485,
+      "uncompressedSha256": "368f881603cf69dc3a50b412c34784c33a16443c8d92182cf5a668141c61b333"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/recover-observe-history.json.gz",
+      "bytes": 1414,
+      "sha256": "7a3bed81ec590dc118488ce896cefc36c871dbed09ea714276499f596a0bc5b2",
+      "uncompressedBytes": 4156,
+      "uncompressedSha256": "722288074bd5e6fbe709ef2a9651b9beae34e80a803eb0fdbb6de7cd873c5da8"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/recover-observe-instrumentation.json.gz",
+      "bytes": 371,
+      "sha256": "9afb526f93ad7ea9d2ef783d420ecec4ee1190104fb6688d9e0997d70e4c03bb",
+      "uncompressedBytes": 503,
+      "uncompressedSha256": "0234b2bea1a5814dc00dd2690250a605237d294892f253964bbe5cf6e0f7c718"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/recover-observe-instrumented-runtime.mjs.gz",
+      "bytes": 65572,
+      "sha256": "24e63f54e5f3e0ad4f8968b2bf82c41796bde4fb478a428eb9ad63388f80120d",
+      "uncompressedBytes": 252283,
+      "uncompressedSha256": "4fab0f2caca5989eec0b993f9303b3dfb8466c3a0d3c421bebbdd20429390402"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/recover-observe-next-history.json.gz",
+      "bytes": 1726,
+      "sha256": "d1120be831a1a1be619cf7ce463f2d184e06fd4cb65e7e8bd6b5961a18d82235",
+      "uncompressedBytes": 6574,
+      "uncompressedSha256": "1a205965f45b879b86dcdf5871e129ad2c9341a8e4f5264efc1568e0a2f62bc4"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/recover-observe-result.json.gz",
+      "bytes": 484,
+      "sha256": "b1782892b45c9537235d6db26b27e6d4510ebec40a00429d7c17b0c57a67606b",
+      "uncompressedBytes": 1623,
+      "uncompressedSha256": "274bb83693ad3fb8cc08fed2c681cedc97c3a65246e0c78f016fb3e05b288b1c"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/recover-observe-runtime-trace.jsonl.gz",
+      "bytes": 5168,
+      "sha256": "d43e48c489461bdeaf2dcf8a7369ca6989972dc37c3f73250c06789c443c1dd3",
+      "uncompressedBytes": 50317,
+      "uncompressedSha256": "f4f7e5150635aeb5b9252d3d73e8c8178c66bd2cb50d403ae96eecb86a06d530"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/recover-observe-store-after-recovery.json.gz",
+      "bytes": 5128,
+      "sha256": "19477b211813aa1a32d69bc3f72367b6526730dd243bd77f57e076270e196e43",
+      "uncompressedBytes": 34901,
+      "uncompressedSha256": "574061dca0b7957d04357b08c959c1e597d7c215abd618c4bbd765d1226a9f6f"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/recover-observe-store-after-stop.json.gz",
+      "bytes": 6139,
+      "sha256": "fe5d6757657d9fdcc23e78a9c20f8a2bc50ec9ee8c67f11265197eb4439bcf5b",
+      "uncompressedBytes": 49625,
+      "uncompressedSha256": "6be6bb054b5e6b359300f3f3270ce3262017e66dcfb12a1401d73e59ed5177db"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/recover-observe-store-before-boot.json.gz",
+      "bytes": 2481,
+      "sha256": "091c1ec64a5ddfa57fe1b1151ebcada889c10fb6c171a21c56e80af94465da1c",
+      "uncompressedBytes": 10081,
+      "uncompressedSha256": "ba023e4538a06456f9ec103cacd3747224f6f9f9f6bf8ed15ea5e848d8074866"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-before-outcome-kaoMj5NJ/recover.log.gz",
+      "bytes": 149,
+      "sha256": "ef604562a68e3ab27cb9ae3beb139d91be9956ecc4f2351848ecdc04af086651",
+      "uncompressedBytes": 169,
+      "uncompressedSha256": "95104eea9c5ed688c366373cc35bc946c1412bae1ab15b82397f978a7a5ce240"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/create-observe-contexts.json.gz",
+      "bytes": 6345,
+      "sha256": "02661768b1dd3540b15c71a01070ba3a49ab971f999401206250c36b61f6de4f",
+      "uncompressedBytes": 38042,
+      "uncompressedSha256": "2fd43bc2b91582c00ac6d43d223197325b2cdccb2fe4e2385d46622b1d542dc3"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/create-observe-history.json.gz",
+      "bytes": 1397,
+      "sha256": "3388fe4875f0dd2125b4f1faa7122b50e2835573b85e325b999e293099d26bf1",
+      "uncompressedBytes": 4001,
+      "uncompressedSha256": "abd0423ad8eb87223a017a291ff6ac529105fcda36868d4875b40296e7e61b36"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/create-observe-instrumentation.json.gz",
+      "bytes": 371,
+      "sha256": "9afb526f93ad7ea9d2ef783d420ecec4ee1190104fb6688d9e0997d70e4c03bb",
+      "uncompressedBytes": 503,
+      "uncompressedSha256": "0234b2bea1a5814dc00dd2690250a605237d294892f253964bbe5cf6e0f7c718"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/create-observe-instrumented-runtime.mjs.gz",
+      "bytes": 65572,
+      "sha256": "24e63f54e5f3e0ad4f8968b2bf82c41796bde4fb478a428eb9ad63388f80120d",
+      "uncompressedBytes": 252283,
+      "uncompressedSha256": "4fab0f2caca5989eec0b993f9303b3dfb8466c3a0d3c421bebbdd20429390402"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/create-observe-result.json.gz",
+      "bytes": 83,
+      "sha256": "50c382a098a7b9e8992e0bf2a77dd83b69783b86118431ac9ad4a1e953b89f70",
+      "uncompressedBytes": 72,
+      "uncompressedSha256": "568e3d761e797fe5e3a0c8284b3d9e49d3fe62f23e0768092cd41cd70ab27c45"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/create-observe-runtime-trace.jsonl.gz",
+      "bytes": 4376,
+      "sha256": "806a1954e9adf29ce0cfe9570ef49fc40249f8bf53617d6ae996bd8af9528323",
+      "uncompressedBytes": 41325,
+      "uncompressedSha256": "4fbb649378fce1580ae28549b7cb74cc321de4e1b133e5356a95c988e47e82a1"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/create-observe-store-after-stop.json.gz",
+      "bytes": 4773,
+      "sha256": "72c11823280728ef3d31035cbe6b651c4615732ad1b5614e201b3780d3b8e665",
+      "uncompressedBytes": 30250,
+      "uncompressedSha256": "f3cc1cd40b345e8ee8145642814124a2bcf6e802932c36b3abb58277d7aaf8de"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/create.log.gz",
+      "bytes": 150,
+      "sha256": "f3fc6d6dfa429fa65977e820a505da9bb092c35e1cd1e37ac9b136faa8c2b9cf",
+      "uncompressedBytes": 169,
+      "uncompressedSha256": "9f108221dc3d06668c8f2c5893c76de3d685afbcc058b27b6b16f0e4206638d0"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/receipt.json.gz",
+      "bytes": 374,
+      "sha256": "8efd4356317edfc239dba1e6489e1bb287cfbb236c9035915334c4832446e4a7",
+      "uncompressedBytes": 559,
+      "uncompressedSha256": "a37ce0da739182ef574433b6c3cb9a7134af8bcda54c47717b82aca6ede7461c"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/recover-observe-contexts.json.gz",
+      "bytes": 6872,
+      "sha256": "713e3e23755a2220fe2fd66d055b1ff4cdbc4a81e32564343d09a625bba4f71d",
+      "uncompressedBytes": 54471,
+      "uncompressedSha256": "28d7dd3b22e5989921c745326cf209dd7ee6f868364941e2707b9541d94e4575"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/recover-observe-history.json.gz",
+      "bytes": 1397,
+      "sha256": "3388fe4875f0dd2125b4f1faa7122b50e2835573b85e325b999e293099d26bf1",
+      "uncompressedBytes": 4001,
+      "uncompressedSha256": "abd0423ad8eb87223a017a291ff6ac529105fcda36868d4875b40296e7e61b36"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/recover-observe-instrumentation.json.gz",
+      "bytes": 371,
+      "sha256": "9afb526f93ad7ea9d2ef783d420ecec4ee1190104fb6688d9e0997d70e4c03bb",
+      "uncompressedBytes": 503,
+      "uncompressedSha256": "0234b2bea1a5814dc00dd2690250a605237d294892f253964bbe5cf6e0f7c718"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/recover-observe-instrumented-runtime.mjs.gz",
+      "bytes": 65572,
+      "sha256": "24e63f54e5f3e0ad4f8968b2bf82c41796bde4fb478a428eb9ad63388f80120d",
+      "uncompressedBytes": 252283,
+      "uncompressedSha256": "4fab0f2caca5989eec0b993f9303b3dfb8466c3a0d3c421bebbdd20429390402"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/recover-observe-next-history.json.gz",
+      "bytes": 1702,
+      "sha256": "9fe0ffe7605e1897ab19b3f3627f58c2604c2e7e45c5416c00decb36ec6d4fa5",
+      "uncompressedBytes": 6405,
+      "uncompressedSha256": "0bc846256a8aa81fa3e6d06f7435fcc0dc14f13080b2d93b4ec9cfe651df7fdd"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/recover-observe-result.json.gz",
+      "bytes": 484,
+      "sha256": "a1090464db1b0fd7faacfa26623fb969c151a5e88df5aac66a8e7a916803bc1e",
+      "uncompressedBytes": 1623,
+      "uncompressedSha256": "ac947d1a901ebb40e70f0bba16c17d0e798dec16a67e92d25a0ef342a08157f6"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/recover-observe-runtime-trace.jsonl.gz",
+      "bytes": 1837,
+      "sha256": "b123a848eefdb5cf8bf4cc8eccb0c6c7a33c8bedbf809cb2588f82e6a1d324cf",
+      "uncompressedBytes": 17717,
+      "uncompressedSha256": "f90ba3e1bb35b61e049e4bdeb0e3105fe09e0bb54d454d70cab50cb8fde241fd"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/recover-observe-store-after-recovery.json.gz",
+      "bytes": 4773,
+      "sha256": "72c11823280728ef3d31035cbe6b651c4615732ad1b5614e201b3780d3b8e665",
+      "uncompressedBytes": 30250,
+      "uncompressedSha256": "f3cc1cd40b345e8ee8145642814124a2bcf6e802932c36b3abb58277d7aaf8de"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/recover-observe-store-after-stop.json.gz",
+      "bytes": 5825,
+      "sha256": "c77725b6339ac492a78684a1df4b363f30bbf855192d80f5ac64ec0f27b82d66",
+      "uncompressedBytes": 44957,
+      "uncompressedSha256": "b1b5b3fc4c0cb3c84f04a65beee78b8bedbed81b9487c9abdbc1a989840588ec"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/recover-observe-store-before-boot.json.gz",
+      "bytes": 4773,
+      "sha256": "72c11823280728ef3d31035cbe6b651c4615732ad1b5614e201b3780d3b8e665",
+      "uncompressedBytes": 30250,
+      "uncompressedSha256": "f3cc1cd40b345e8ee8145642814124a2bcf6e802932c36b3abb58277d7aaf8de"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-observe-1GU01YcO/recover.log.gz",
+      "bytes": 150,
+      "sha256": "1cf335e5e3424398f791ed78485ba9a8251ad6a49aeeb0f537971372aed48bda",
+      "uncompressedBytes": 169,
+      "uncompressedSha256": "0923f38160242f4dbc08002c87612f60902882ee14f468a10943b8b816e1189c"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/create-before-outcome-contexts.json.gz",
+      "bytes": 4337,
+      "sha256": "8a51e87d57c0f606a8ce5d8e8942918ee83a17920e50d542c463449ae5d20336",
+      "uncompressedBytes": 13073,
+      "uncompressedSha256": "19427c8258e6a8c16140a23227bf6921259bb6d7ab600347050a70c0b94e5999"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/create-before-outcome-instrumentation.json.gz",
+      "bytes": 376,
+      "sha256": "893213592c67ed91a44039ecc61e2c941f6e69c437b2d4768fdd95b990658932",
+      "uncompressedBytes": 510,
+      "uncompressedSha256": "072aaa45a205b117e31db9afec986bc388cd34bb8ff9d5280dc3841d0f1eaf3f"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/create-before-outcome-instrumented-runtime.mjs.gz",
+      "bytes": 65572,
+      "sha256": "24e63f54e5f3e0ad4f8968b2bf82c41796bde4fb478a428eb9ad63388f80120d",
+      "uncompressedBytes": 252283,
+      "uncompressedSha256": "4fab0f2caca5989eec0b993f9303b3dfb8466c3a0d3c421bebbdd20429390402"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/create-before-outcome-runtime-trace.jsonl.gz",
+      "bytes": 2438,
+      "sha256": "cc54251783f0b9a423aaf06800b7b6b6206ffa0837173d5f90dd4d4f39e7e7cf",
+      "uncompressedBytes": 15172,
+      "uncompressedSha256": "31d7f2d5b063f0958c27681e4bdd45b1b6a56a77762909036f84ae9e25bd08f1"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/create.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "uncompressedBytes": 0,
+      "uncompressedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/interrupted-recovery.log.gz",
+      "bytes": 150,
+      "sha256": "86dc6d90b510338f7d719a757cb180cf30ba6d6217039e4be3f1a4ca2e6dacbf",
+      "uncompressedBytes": 169,
+      "uncompressedSha256": "ba7fcc8870885d20320a30fe69c73cd1c5e11271fd84439ff6d3bcbd0cde2870"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/receipt.json.gz",
+      "bytes": 374,
+      "sha256": "5b9b8f0399b5398bdb9c5d9a004aafb260863cd5a0d810d71ef9b9c3c20ce2bc",
+      "uncompressedBytes": 557,
+      "uncompressedSha256": "7b7fce777688a1377438ccde38d95b55481b08cd35b2a4ccf61471ada3960217"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/recover-after-repair-instrumentation.json.gz",
+      "bytes": 374,
+      "sha256": "8f2bcac82c31202f92c1eb60b56fcb709203e1141ee11597c987c029adf153a2",
+      "uncompressedBytes": 508,
+      "uncompressedSha256": "38b385552547454c5147843f6a41d1ae9dc2ecf843f6ec0f1f531bcb56b672d2"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/recover-after-repair-instrumented-runtime.mjs.gz",
+      "bytes": 65572,
+      "sha256": "24e63f54e5f3e0ad4f8968b2bf82c41796bde4fb478a428eb9ad63388f80120d",
+      "uncompressedBytes": 252283,
+      "uncompressedSha256": "4fab0f2caca5989eec0b993f9303b3dfb8466c3a0d3c421bebbdd20429390402"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/recover-after-repair-runtime-trace.jsonl.gz",
+      "bytes": 661,
+      "sha256": "d962452fd4d3bfaedf70ef8206b133d6882e7a79bdd9245e766808d5a1b8494c",
+      "uncompressedBytes": 3776,
+      "uncompressedSha256": "ebf6c8fab99e44b9444e062da88ad6e9614d7702ecfce1421c8ba5edcea08cf4"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/recover-after-repair-store-before-boot.json.gz",
+      "bytes": 2477,
+      "sha256": "9e607026e5de61a4cb00d30d9281135a6df98320d030a1d9d97343c6256b8db2",
+      "uncompressedBytes": 10048,
+      "uncompressedSha256": "2c4f461a74cd21e37ed683548c159f1a056c3f96cbcca2b6243cab77ca0408b7"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/recover-plain-contexts.json.gz",
+      "bytes": 6817,
+      "sha256": "f9336b3c644cf835e5edf30d17875deded8d2950451e8d15d03d4373bbfd6898",
+      "uncompressedBytes": 58070,
+      "uncompressedSha256": "4b343724c7e2f8f53d74d493ea1bf7f246f09af9ac357e85b2c211a7743df9c9"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/recover-plain-history.json.gz",
+      "bytes": 889,
+      "sha256": "25018d7476b3c033b9aca73613a554c805d8b365c47ddcdc39e9059f05914ebe",
+      "uncompressedBytes": 2433,
+      "uncompressedSha256": "0146a9bdd897f689ea5019fca21a7e1cb7d78f0d4799b98c7421386de146e28f"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/recover-plain-next-history.json.gz",
+      "bytes": 1663,
+      "sha256": "a61e92ff8678dba87d51cadfbfda2686161e814f5649b1ee6661a60b7ee290d6",
+      "uncompressedBytes": 6157,
+      "uncompressedSha256": "ff33ef411819bd966f561af1efa5582afed5ffd414c30e94d0dd07b78a396f56"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/recover-plain-result.json.gz",
+      "bytes": 481,
+      "sha256": "ae4cb53e96efdb781f8b12caae40bce7c78fdb1556688b42f9921cfd4c9579b7",
+      "uncompressedBytes": 1623,
+      "uncompressedSha256": "9f682052264a085c7ce52983c274995cfd4ce10da12139c763a6a14f656f5020"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/recover-plain-store-after-recovery.json.gz",
+      "bytes": 3329,
+      "sha256": "b78837a333b79ee09c22d32db372030b0432861cc0675e8f43305e98272ee332",
+      "uncompressedBytes": 18065,
+      "uncompressedSha256": "64ef585b475f327ec88446353d28e1a2c58401df3e366e7f9ad265350d9ce4be"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/recover-plain-store-after-stop.json.gz",
+      "bytes": 5815,
+      "sha256": "34e6c4308c7234a42592a4f930a9ee5be7303d6d031ea80e12094e925d521a38",
+      "uncompressedBytes": 42972,
+      "uncompressedSha256": "69835a8042131db93e32f01dc48463253dc3d6c183e8c2fd6225ddafb3a04de1"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/recover-plain-store-before-boot.json.gz",
+      "bytes": 2810,
+      "sha256": "092b79aaf9185472e96105545bd817984e7883b37351cfc6d6b3cf2c1c925c0a",
+      "uncompressedBytes": 12141,
+      "uncompressedSha256": "af44a1ac6774c80120cfe3249b39772819e875eedaed2a330ff18249eb428551"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/crash-repair-LoAfobEq/recover.log.gz",
+      "bytes": 149,
+      "sha256": "9803841c1078828fab421d38208b91902d5fba3e671069392da5a61ec88bc9bd",
+      "uncompressedBytes": 169,
+      "uncompressedSha256": "c4b661c13425e3913172c3e3c70fa9fd3d00d5d5e735bcbf7e8bbabeb916780e"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/fold.log.gz",
+      "bytes": 174,
+      "sha256": "0c312417ee0c68b57960d62963e8c79e28722dedc71f89240806f2ae4938a04e",
+      "uncompressedBytes": 194,
+      "uncompressedSha256": "5ed3805f9d4e4c069b93175098f52787c79454640aa2695275d3f7f94a737540"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/overflow-E199VM9m/before-ui.json.gz",
+      "bytes": 723,
+      "sha256": "c6e5c34e0d534a177a7acacddc44aeb51409118af8144feb87c6550514c0af59",
+      "uncompressedBytes": 2928,
+      "uncompressedSha256": "e076d4709fbb5375e48bee3b6e02a9eed75d5f6bf833b63c089d2d03bacf585b"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/overflow-E199VM9m/before.json.gz",
+      "bytes": 1393,
+      "sha256": "a9a64e4cd26ea2bacf17267e97cf9717b316577aaa95fec9d3311e9965cb559a",
+      "uncompressedBytes": 7223,
+      "uncompressedSha256": "45531066e85dcf618b9e4551450d2cbdeeb0c2bdda5a181813dfd176e6a42ee7"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/overflow-E199VM9m/create-contexts.json.gz",
+      "bytes": 9490,
+      "sha256": "a8ab92e15181f0949ebc1b3fe21f5fc33b7daa265a2087b41e137d75f5deefe8",
+      "uncompressedBytes": 230928,
+      "uncompressedSha256": "3e7014f1f313f2d7de51a28e1b7342071fe66cf7f29cd3a8fadb3c51c7f5eeed"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/overflow-E199VM9m/create-events.json.gz",
+      "bytes": 1921,
+      "sha256": "51f934459eb516f49a6ec87fc14551d0fff67dbc96f0cc318f7e551f829d9e36",
+      "uncompressedBytes": 17961,
+      "uncompressedSha256": "02022dcbabfe77e331568b16c45ecbf5710a201a582158a79af29c3898476e1b"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/overflow-E199VM9m/create-final-history.json.gz",
+      "bytes": 2242,
+      "sha256": "e4d824363eb58834ad09f99a247e1bc76c5f3b8bcc8a952f1fe6a4d47f4cfcd1",
+      "uncompressedBytes": 80536,
+      "uncompressedSha256": "cb114860aa6c97a1263391659cbb16607da2bccf07a2026a2836cf989ef04dc1"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/overflow-E199VM9m/create-observe-instrumentation.json.gz",
+      "bytes": 371,
+      "sha256": "9afb526f93ad7ea9d2ef783d420ecec4ee1190104fb6688d9e0997d70e4c03bb",
+      "uncompressedBytes": 503,
+      "uncompressedSha256": "0234b2bea1a5814dc00dd2690250a605237d294892f253964bbe5cf6e0f7c718"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/overflow-E199VM9m/create-observe-instrumented-runtime.mjs.gz",
+      "bytes": 65572,
+      "sha256": "24e63f54e5f3e0ad4f8968b2bf82c41796bde4fb478a428eb9ad63388f80120d",
+      "uncompressedBytes": 252283,
+      "uncompressedSha256": "4fab0f2caca5989eec0b993f9303b3dfb8466c3a0d3c421bebbdd20429390402"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/overflow-E199VM9m/create-observe-runtime-trace.jsonl.gz",
+      "bytes": 8938,
+      "sha256": "f1ca7faac9817470e424144107dc16d3d637d95faff0e0d81242be27253da55f",
+      "uncompressedBytes": 297856,
+      "uncompressedSha256": "acd017f35a8d3ebb6a4fe5b124797e995f41cf2f93b6fd8270b8813815c6a561"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/overflow-E199VM9m/create-shutdown.json.gz",
+      "bytes": 71,
+      "sha256": "e47c1f81ac6d2ecc11fd440737fffbb68eda63af9018b23a9d4959e0592ebcdd",
+      "uncompressedBytes": 61,
+      "uncompressedSha256": "30b63908ee36598c9e4054f08776e6e8f55c818e4422e49ca1feeafcb923b630"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/overflow-E199VM9m/create.log.gz",
+      "bytes": 901,
+      "sha256": "34891ea67401cd9c8422cde91ef47d339dbf8bb01b07b1fc92d9cb74f2248559",
+      "uncompressedBytes": 2885,
+      "uncompressedSha256": "a3aae540e2b19d519056646ea1c6c29e3794b3ee362c30669a45bb47696f8dfc"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/overflow-E199VM9m/pending.json.gz",
+      "bytes": 701,
+      "sha256": "e840d68c47e831858e0b718edd22b81fcb8c79201b0b10da8de614fd93b969b1",
+      "uncompressedBytes": 2301,
+      "uncompressedSha256": "9872c41982c0bc36446396ede4496c02d7449cb397803f8357dfb51fd9a0f833"
+    },
+    {
+      "path": "a4-replay-sC4YecLN/reopen.log.gz",
+      "bytes": 174,
+      "sha256": "47b530b6649583ec545d228557d4c511ec29c6c4bae067cb4b51a281991d9617",
+      "uncompressedBytes": 196,
+      "uncompressedSha256": "c53b75670f10b408344c2573142e54254bf52423f5ba28a31f1c397babd9dc6f"
+    },
+    {
+      "path": "a4-replay.log.gz",
+      "bytes": 249,
+      "sha256": "5d88a4c2749d354eb0c454cb652358244b8b5313634c0a282725ef42602fbb6f",
+      "uncompressedBytes": 626,
+      "uncompressedSha256": "d9cff64eef25875e1ef8c6a77851985fa09ce43e167a1c3298ac924f06217332"
+    },
+    {
+      "path": "accounting-fixture-results.json.gz",
+      "bytes": 2696,
+      "sha256": "db6672cce72a27ad936eefc72b17cd1801d01a2ee2ef7dcec21f1915e81d509c",
+      "uncompressedBytes": 31798,
+      "uncompressedSha256": "2a52502fbaa8db98e107de4d6a8dc0422c102c739f0699b3daf0e0b4121c6eb2"
+    },
+    {
+      "path": "accounting.log.gz",
+      "bytes": 1185,
+      "sha256": "4588c74949a17ea21490eace14809b7723b3d18dc3a88fa9940683f8f54b0106",
+      "uncompressedBytes": 16979,
+      "uncompressedSha256": "a9df521d0ce044da3e92a9bc54479697512b225c8cd5556c7812805a7d619962"
+    },
+    {
+      "path": "architecture.log.gz",
+      "bytes": 79,
+      "sha256": "7dd263fbfc1c8025a994141659e898579eed7a1473a39c408bafe516d9bec22b",
+      "uncompressedBytes": 79,
+      "uncompressedSha256": "eadacc41e36699be006a7c283e8ca0e5b552a14a6c3622d39a2594196c4694d5"
+    },
+    {
+      "path": "format.log.gz",
+      "bytes": 413,
+      "sha256": "ef61cbccad737a679d41e55553c700979eff7419efb801e49532a534d2754acd",
+      "uncompressedBytes": 599,
+      "uncompressedSha256": "103b5f3581e01f90691aeee68a3a3edac692cb5ccad6d5d2564a35f1990071dc"
+    },
+    {
+      "path": "install.log.gz",
+      "bytes": 2011,
+      "sha256": "88c9aa3e230d7ca7776c1892861bfb7f61886b2dab774f65d9a4051973a68dc9",
+      "uncompressedBytes": 10938,
+      "uncompressedSha256": "a66853d746ea839e59dc7703b2bed1d69fbe26326a6078be4e9fd43e9df81862"
+    },
+    {
+      "path": "integration.md",
+      "bytes": 9319,
+      "sha256": "a083811495b06dc180ce7f7f1754a8954cc80cbc9550f9550d61406e1855f185"
+    },
+    {
+      "path": "native-mounted/histories.json.gz",
+      "bytes": 4455,
+      "sha256": "302d88c30c157242ea210b316a1f36ece351d4433e43c84ce8182c304be14b2a",
+      "uncompressedBytes": 95666,
+      "uncompressedSha256": "5b67da1e89a1c36aaf7d4c63f40790c60b9f910139e79ca5366a7e32fa754a76"
+    },
+    {
+      "path": "native-mounted/native-sdk-requests.json.gz",
+      "bytes": 84929,
+      "sha256": "b9ad8e275b09aa131bc82e7296fe215fe1ec4df54247c95a0a7bfcf0a947f937",
+      "uncompressedBytes": 1178318,
+      "uncompressedSha256": "e08f60b09731a6fd4f3838f824247f8c67f2b4c38e9db94ca481b9ed64534b03"
+    },
+    {
+      "path": "native-mounted.log.gz",
+      "bytes": 264,
+      "sha256": "d65aa54029a0006ed184f2be313645f48384c4c4ccf5f7e4d0ea72f6852de2e4",
+      "uncompressedBytes": 316,
+      "uncompressedSha256": "35fa6a438e44de306195632cdff8e7a627051013e7b87a10f6a343b5992cb75c"
+    },
+    {
+      "path": "native-runtime/candidate.json.gz",
+      "bytes": 9135,
+      "sha256": "71c74e932a2f4be89b350c78d17d971d9228c952c3c5a4420db0e3836a33e404",
+      "uncompressedBytes": 122099,
+      "uncompressedSha256": "659574dfaadceeb2087aba5be302c8f481719100761d2e23826297c8da41926d"
+    },
+    {
+      "path": "native-runtime/native-input-schemas.json.gz",
+      "bytes": 7551,
+      "sha256": "32f2fa1de38b140cadd615d039bd2cf1b3405feffc1f684e680ed6659f0d5a0f",
+      "uncompressedBytes": 72401,
+      "uncompressedSha256": "c036d1d2a11bfffeeea817db90674a833a68e70e11b1fd55ff5feb61e6a2151a"
+    },
+    {
+      "path": "native-runtime.log.gz",
+      "bytes": 921,
+      "sha256": "deb090ed25ead04ac178d56e94312065118dc749407569e7087fd6f6978830c2",
+      "uncompressedBytes": 2832,
+      "uncompressedSha256": "a42eaab95ab827cfe1f3a3b80bad1f26d1ce45e6d2a60e68c75b3db1c59fca0f"
+    },
+    {
+      "path": "network-guard.log.gz",
+      "bytes": 172,
+      "sha256": "819ca6758725d984050f90249079ce03fd86a318e074750051c1b3b5303307ee",
+      "uncompressedBytes": 578,
+      "uncompressedSha256": "271d807dcdbbc518e60403cea832908ec409759f9e603586673d9a3eae6ebc06"
+    },
+    {
+      "path": "portfolio.exit.gz",
+      "bytes": 22,
+      "sha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae",
+      "uncompressedBytes": 2,
+      "uncompressedSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "portfolio.log.gz",
+      "bytes": 22838,
+      "sha256": "e06e91c32db32be1797ff9be4a21fd535442f903bb14a1d202818a2dc69de736",
+      "uncompressedBytes": 159320,
+      "uncompressedSha256": "2365d8cdf11a4ccd6199737c6982422e75c078b8dd10e483cb83ccabdb5dafb6"
+    },
+    {
+      "path": "public-types.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "uncompressedBytes": 0,
+      "uncompressedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "standard-resolution.log.gz",
+      "bytes": 315,
+      "sha256": "7232fc1b651f7d897cc818070404e9fa9e80a94936da17e1b48c01780379867c",
+      "uncompressedBytes": 1198,
+      "uncompressedSha256": "09232161932bd1ee637d4157c0d7a08d7e317c58c37d8b7c2fbddea7a99817da"
+    },
+    {
+      "path": "website-build.log.gz",
+      "bytes": 2672,
+      "sha256": "097b6532a02007fec9c8b9765e26e6b3fd3ba845081b494c7ea9ad9b6555e437",
+      "uncompressedBytes": 7854,
+      "uncompressedSha256": "7da01a545609b7967cd2406d4a0008b9a1480219c99fb350119701389beaf4f9"
+    }
+  ],
+  "sources": {
+    ".yarn/patches/@earendil-works-pi-agent-core-npm-0.83.0-6cd8fe314f.patch": "dedc8f8cb350f86901e59493eb143badf3eae05256db13b3aa650ea4823a71d9",
+    ".yarn/patches/@earendil-works-pi-ai-npm-0.83.0-c607801251.patch": "9f712c9ebbfddcf6da3904dce21ae81cb132dee1e0c451da95e568cd76792818",
+    ".yarn/patches/@flue-runtime-npm-2.0.3-192c31f50c.patch": "7db47cfdba3ab9c3da36f535f634b72688135923ff71ed5b04a2d5a2062a496e",
+    ".yarnrc.yml": "8a2a54a3f80a66fbdb5b5926a52f521d8e701c38b12b084263f756eb21bcb86c",
+    "apps/brunch-agent/package.json": "6c6231da636d25287b16fee9e8aad86fa849c60aea4968ebd44bf986a6e7716f",
+    "apps/brunch-agent/src/app.ts": "f604727736a22c934dbebfcdeb8b9871899d0dd0974aaf73637e965e82c4bec2",
+    "apps/brunch-agent/src/conversation/root-arc.ts": "f4fc6b7e90fb0c1b7989aeecdc55aa7ae63ec8e20bbac875fc9cc220c8385443",
+    "apps/brunch-agent/src/evaluations/runbook/schema-carrier-probe.ts": "9b637bc5fbff7ab23186469a45f9f723a717884f6cbd74ba92d53125010ea490",
+    "apps/brunch-agent/src/provider-accounting.ts": "8d4467bbe50793f9cc62141bc2251612b6aeefcbd9fd2f3551de4249c93ea21c",
+    "apps/brunch-agent/src/provider-accounting/request-ledger.ts": "8350c1d2b25f086b8ff9242bb85ff081800115e81a6e2bdfb4ef6d00f491dfff",
+    "apps/brunch-agent/test/architecture/boundaries.integration.ts": "bc22b04cc1b49a05f9c0cafc5f6edd05790efef0dc947e491400e9cfd067b68b",
+    "apps/brunch-agent/test/history-retention-audit.py": "4c79671e588f019b262b463c66f3290c06d53fc37aaafce43833d7ce9943923a",
+    "apps/brunch-agent/test/history-retention-crash.integration.ts": "e9491612797e8a3ffc969d0bfb98eeac33775e483ad9f0894cf44dc3343954cc",
+    "apps/brunch-agent/test/history-retention-diagnostics.sh": "e0eee984a81683bdc87d9fc85154f6677249e560a78562d5255a940ed1a4c3f2",
+    "apps/brunch-agent/test/history-retention-new-records.integration.ts": "104a837c695b3c9ee5f12769339f01abe165cd334101a981d11752406cbcf9c5",
+    "apps/brunch-agent/test/history-retention-runtime-hook.ts": "542fae1f3c06b9e6b071a0322a39d66f6fcd7499856ad6c3132500be4ff455da",
+    "apps/brunch-agent/test/native-schema-carriage.integration.ts": "1246fba2364ce427f9bfe3d59cf0b0a2a4a05436f0eb6f9970e362ec02ec8508",
+    "apps/brunch-agent/test/native-schema-carriage.test.ts": "217ec9da64e2c21f8a66dc542fb8624dc1ff4f5c524a22367b2521f0f1349240",
+    "apps/brunch-agent/test/native-schema-provider.ts": "46cf400447bfb1ad7077a93310f138ecce1e6dda45dc458d2491aa9b55d81b71",
+    "apps/brunch-agent/test/transition-records.integration.ts": "ed88309104f32a921dd383a438a464bab74b41dfd464e0f4d9e8700a59452dae",
+    "apps/brunch-agent/vitest.config.ts": "7792c8c31bfc12adc584bde94a9b1325367d4a4b3a68908a908f2dbb676fcd53",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/package.json": "fc8dcd4df73ff267c278ea8d2e927a116c2b45debd31d82ad064c8bd723294c6",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/declared-basis.ts": "2a15793b52759bda723fc1bbfcd4846a6b58f4599b4ddfd798c79a7caaa1d123",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/flue.ts": "07ba220e57a73f6ecfe23e2dbaecbf40debb531ae435ff8ec50de22bda472d53",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/root-arc.ts": "9981d05882d1e44393aaa2e0b49a34fa196837438058ff7864ee2271bf00279d",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/petrinaut-construction.ts": "fdc6d24dc05069168d4ab3afd253601152b7e629b00264eea83a75575fefbc2a",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/test/carrier-feasibility.test.ts": "56b7768e992197bf74c9f081691efebc45a916a1956605cc3ba521670fb07a8a",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/test/construction-tools.test.ts": "07869bbd91a85348e212b25c44b1175de7b608209cc1854f7d2135f8d4380bb4",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/test/declared-basis.test.ts": "27a86ab861452e129faa2c97e49ccac710b84319dc7e72b63ce9c00cf072ed4c",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/test/native-input.test.ts": "4b5748cb917e076ecfa1303d0244a8d617a0eb4b7d87504690d5cb5bffecbb5a",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/test/schema-carrier.test.ts": "686ba27de48a1bf987edbf3acb06cb2c716cb3835d2662529422d95d067426d0",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/test/schema-carrier.ts": "cab940f7145343e30bdf5cd107583c7f1afe1c761112da79021cacbc6fc20805",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/vite.config.ts": "bf6ca07d4086860a0210de5e27ab0d08d30f64888f497bf80f41019cb6cde63b",
+    "package.json": "6432b88bdaff8adffdef31e322ac192654fbee1b686aa76d368538db4db397ad",
+    "yarn.lock": "5bfa34a1df3a75c791aa1d0408f043fad158eefdaab5b049e94c914526075ac0"
+  },
+  "builds": {
+    "apps/brunch-agent/dist/app.mjs": "d3d9e4643292e7327992521713b8454d09f4d9a9fc9d90e9242dc36949a0d7f1",
+    "apps/brunch-agent/dist/execAsync-D25bwo5l.mjs": "2aa3218ffa6e86ced8194f6f089522154c7ee24eb9aa2e839b1ce04cc2286965",
+    "apps/brunch-agent/dist/getMachineId-bsd-ThF6nEVL.mjs": "1f347955329d7a66f491559c8d11e0a722c20bf01bcc578a7fcbd0fc09210268",
+    "apps/brunch-agent/dist/getMachineId-darwin-C6rMMlat.mjs": "35ea46fdbfb21cbbfdd7609a6305a067f1ecc8af7d307c515de940ddd5e14183",
+    "apps/brunch-agent/dist/getMachineId-linux-B5Iy_Sy7.mjs": "2b320cd8b585786fe74d9bc0950666896d481620b50712947d4fd914ca4f1cff",
+    "apps/brunch-agent/dist/getMachineId-unsupported-QqRDr4II.mjs": "e31d1f882207eaaf5c81cbc80cec1fe13a4bc3a3706050519c68515954249d5d",
+    "apps/brunch-agent/dist/getMachineId-win-FwyaH7b-.mjs": "fa859f727a5adeece86355bcf5b5cb5cf83b286f3662dd98e4d7869e511fbceb",
+    "apps/brunch-agent/dist/node-server-DYWO1yq3.mjs": "0533abf156147e2503e6951a5be184d29d66baa364b4c5ba03fea9db7fc7e524",
+    "apps/brunch-agent/dist/rolldown-runtime-BMI-E3GI.mjs": "efc57dcff870d1e3f2f361b3ba80eb84330c649bef8f1529736019ea7e961346",
+    "apps/brunch-agent/dist/server.mjs": "5b66c2f350635852197286a2f3732009951ccee578a95be2483458f0baf18790",
+    "apps/petrinaut-website/dist/index.html": "54586e5260c75e638adf9aa8b29c23aa841e7f76a9911d9db78434b9ab7d1163",
+    "apps/petrinaut-website/dist/assets/-embed-status-panel-DdI0-Cs2.js": "d9efed88b0ff18f2e54508feb18cd072c6e571529a717d555ff3c2be942539dd",
+    "apps/petrinaut-website/dist/assets/brunch-BrPDXoV-.js": "c4766dac619197e974036ed03910587e7429d572292b28483a18ecfeb73b763c",
+    "apps/petrinaut-website/dist/assets/chunk-IXD63N2S-nh18_6OQ.js": "be88aa38d72de2a5f1e610719877d3e9a544f287c59cb077c7c30a109fdda75a",
+    "apps/petrinaut-website/dist/assets/code-editor-DLjJW5IM-BeylP--0.js": "1b13c27b0add89b85592fee768be24478c06c9920b41394208c0086aa28b3040",
+    "apps/petrinaut-website/dist/assets/code-field-nUSo9YgC-D-N_80nf.js": "c128bbfff0dac88cbd69bfa659978acf8ec21844dbca7780a31f763458bc7ecd",
+    "apps/petrinaut-website/dist/assets/countBadge-B-pYtnum-DCxkYUmA.js": "0a4f5d1d5625109abb68e200287620f514a75ea3691ca1566e3a9cc76e1876ad",
+    "apps/petrinaut-website/dist/assets/css-BTQ2OjM1.js": "5df0f1b5f69f6af28931f09190fdd23e09873c3025cbe5676680a31aee8db040",
+    "apps/petrinaut-website/dist/assets/deployment-pipeline-Dac5kVTW.js": "67bac157b0e310f9d8d47f17940ca3d3f6e23ab4110dd7a9ec4d95c168993bcd",
+    "apps/petrinaut-website/dist/assets/dist-CJz1qC8o-qWH2nz1X.js": "eea58107d00d8b1d0c894e068b558580c621b051e2f6d44430d8412e25962dcb",
+    "apps/petrinaut-website/dist/assets/editor.api-D1IQKXkC-CC_LoLvu.js": "7bc940bb25c0686b8462617cac9f437678ba817c12b166e51d0357666896bf02",
+    "apps/petrinaut-website/dist/assets/editor.api2-hKQh9we6-CDCMs7Sd.js": "637a701ef9ab3fc72d3c4e3808538d8c74dc2267faddbcf44c6e61a914f14fab",
+    "apps/petrinaut-website/dist/assets/embed.examples._slug-BBrlJGNP.js": "062881c63135b6e76b0e83e83b739b654e54bb326bac81320eed451b79f08522",
+    "apps/petrinaut-website/dist/assets/embed.examples._slug-BzFr9tgw.js": "512e8d7776249aa7e69355c9411680dbc8a6152e66a725885a657892d865a35d",
+    "apps/petrinaut-website/dist/assets/embed.examples._slug-hs5HjrHo.js": "4e5ee53d773c7d6b85602ee3b4f330344ec1b15cac7e1af3122f43da826a3c03",
+    "apps/petrinaut-website/dist/assets/embeddedCodeEditorWidget-BTb8ukYq-0GbuyN-J.js": "4faf7839629308bdec1c6593a3bd7194021db9b0244110c2985d7c9724773389",
+    "apps/petrinaut-website/dist/assets/environment-BS97pmcA-BcWVwYPd.js": "02cfa4fd1026ea7b57403eab9564e47f1e57d4c5b1657d9316f9bbd8edfa2c40",
+    "apps/petrinaut-website/dist/assets/example-search-BmK7BcMG.js": "dae8baf6ca95394db1aab60f7f6f0b1ac1130c30c87938977848e198421fc82a",
+    "apps/petrinaut-website/dist/assets/examples-DGDLQ1tV.js": "c845aa379d543556a50c23fe23a38c2c8a73753f2b5f56409e443d32c2381f34",
+    "apps/petrinaut-website/dist/assets/examples-ubXygPF4-De2TPTQ3.js": "095a39a256e39c1ff51e8a653ee78f9c4318af29c438a00cb9d2e5a030688702",
+    "apps/petrinaut-website/dist/assets/examples._slug-bnQCbGsy.js": "9b54e46a01fbae189fddda6578e4ad3e7560e6fd2ea8860add11be2287e86e1b",
+    "apps/petrinaut-website/dist/assets/folding-BwMsTjEI-CHl9hS_e.js": "6247c494236cb63ad7f9b4f524cd66c6f499f6c8c1b5899bed0e0197e48de125",
+    "apps/petrinaut-website/dist/assets/gases-1-pn-Bjno91vq.js": "b6e9d73193805d5de744d2bc5bb0180b6887e4b781d22a0841f6d2c2bfa02e6e",
+    "apps/petrinaut-website/dist/assets/gases-1-pn-BlqHDm2P.js": "7b329006f78d5a03067ba3cec5e611d3de2b389c8b1892d6ce2661d03b0abc67",
+    "apps/petrinaut-website/dist/assets/gases-1-pn-consumption-trigger-BXUmCY1F.js": "6a3090e37a5945a9c989eb7665a99c85a70f7d2ec9f56ccf4e3f8fb8d5402c71",
+    "apps/petrinaut-website/dist/assets/gases-1-pn-consumption-trigger-DKUpnlg6.js": "65f7fa5efd7cd93e58a998b3ec18ebe459a9930c66c2dcbc3fc99b7db884ffec",
+    "apps/petrinaut-website/dist/assets/gases-2-spn-B1zmmkCg.js": "0622162e09433707f05b0ec684ca1a5e0ed4df5d9faf5579e60197ddce05c0d3",
+    "apps/petrinaut-website/dist/assets/gases-2-spn-BRaSGEYh.js": "b75249a569596a14974f57398937b82bca7a4ae5b8ad14e44f5f0cb24edfe34e",
+    "apps/petrinaut-website/dist/assets/gases-3-cpn-CSTwn4Yf.js": "0e42e1c938fff33899045d31ad2f326cf941a7f1288a0396c1d23e5e0d602be7",
+    "apps/petrinaut-website/dist/assets/gases-3-cpn-CYtxG_FX.js": "fabdbdb6747919610144ed96ed58420cff2f8a639021af4d98fb873bd4784080",
+    "apps/petrinaut-website/dist/assets/gases-4-dcpn-CA1GnJkG.js": "d993009afd56f59f3ba9721045c85d792e1868980f539d25e4e0fefcea36e488",
+    "apps/petrinaut-website/dist/assets/gases-4-dcpn-Zdmx2TlZ.js": "8d36469c8f60681fcf703fa5675b7d71c60ee79f2fc302478eded6dd5b688e2c",
+    "apps/petrinaut-website/dist/assets/hoverContribution-Eb3pI57s-BXiIUVAK.js": "68c5e3d37031b8c6c7ca4caa5ffc68ae275d25782b37047092757e09d451481b",
+    "apps/petrinaut-website/dist/assets/iconRegistry-CwmEmEbe-1aW3AHNZ.js": "3bddf8898cc508bae7b9652d1f825b88910ca6409ab1eb3605926e8908877749",
+    "apps/petrinaut-website/dist/assets/index-CCNXJ8LP.js": "215e8249fb9e87071152ad2f1730f7132f34582d7bf4bfcdf2c6030cdcc8edbc",
+    "apps/petrinaut-website/dist/assets/label-Cduwf5xB-Cyu6DHZV.js": "11fd0da40e2e6906a1923fa178f2593e82840de98ac61c0e64558f9bfe695fe9",
+    "apps/petrinaut-website/dist/assets/language-server.worker-Diq9yLSu-DE23iacg.js": "34f2678bfc3a5be16f5ac0f211b3e8bc8bb2ecc4074fbdd36c5aca1aab506393",
+    "apps/petrinaut-website/dist/assets/languageFeatureDebounce-BQBNL_sV-BJ-cZJh0.js": "590271e09ae9447a1577ad677e89af85faca80f3036caf134bdb28a34feb73c9",
+    "apps/petrinaut-website/dist/assets/local-storage-demo-app-PI7wWMj1.js": "800700ccb4ee19ea79cf1f0097d932f634636110b973ea53768396ceb21c4bbb",
+    "apps/petrinaut-website/dist/assets/markdownRenderer-B52Lb47K-Bs8IaznG.js": "a2180585b17bbd77656f1a3d59bc57ed8aed15d6aca803a0fd5d459c725bae00",
+    "apps/petrinaut-website/dist/assets/monte-carlo.worker-WQ0YZbjg-QypGOLDr.js": "03aff1a1be78df89d282365b59eaf06c566a79084767c23251e0f2a3c15e95d7",
+    "apps/petrinaut-website/dist/assets/navigation-search-DPjoYYV8.js": "beb0f987d4bb2a6e92b143534a59ff69f0d35181a2579622bbb620ad042ceb26",
+    "apps/petrinaut-website/dist/assets/optimization-Csq8Fwho.js": "bef7c4758093257d79e2d85c5cc959f5f1cfaaf80100062ac40fdaa3111e5b81",
+    "apps/petrinaut-website/dist/assets/parameterHints-P7yO80cY-C2L7VXUV.js": "9e20a13333bb8874bd46d12c22575db6cbbc4590ad6feaaaac935db7c90be1cf",
+    "apps/petrinaut-website/dist/assets/petrinaut-CZpaovD7-BrG3tELm.js": "2fc7efe13af7299235ef70934cf6630a2ebb45602b9daa67c32f5ab7fbef81a0",
+    "apps/petrinaut-website/dist/assets/place-state-visualization-WTmgQfki-BAalbwPc.js": "a29d6c7aa790093ef95038f29af9561d8e89f06ed064bac450873d4fb6d78415",
+    "apps/petrinaut-website/dist/assets/preview-D8NQodWL.js": "1945b89b8ac2046f252339e909997eb0fd39aa30a9619d74e6d894dee63cd427",
+    "apps/petrinaut-website/dist/assets/probabilistic-satellite-launcher-DfadoGKp.js": "c80bb3cef634e8e07fb283888905c9315411eb33639b8c7a69f978fc617d56dd",
+    "apps/petrinaut-website/dist/assets/production-with-machine-failure-CFdeKj8V.js": "60b993d1b96282f1e0647c6ae0527844fb78287d192e6551dd020d0eb13cd792",
+    "apps/petrinaut-website/dist/assets/react-C4rju6ZK-CZ4_OwmG.js": "11dc92ef482adc85d16ca5b234352c2c1d5d83ff5a89c22a1a200447ccfeec41",
+    "apps/petrinaut-website/dist/assets/react-CxeQWaMg.js": "9611a5059a5d98425c7e75979ab2ccd5d8dfcc70732aba9982b248125d26555e",
+    "apps/petrinaut-website/dist/assets/routes-vurUefmo.js": "ed400b54eb490443b78adf4b3e767cea7aeab122d8817bdc5106eed517dcdb19",
+    "apps/petrinaut-website/dist/assets/selected-item-properties-Bo7Klph9-dvZBu6Kr.js": "1cba96badad185df640e9f59eabf73c4346e75ca02f6879076dfef07a68552e0",
+    "apps/petrinaut-website/dist/assets/semiconductor-fab-drift-BdAM2Y4l.js": "ac325b4bc86e932d3973df2187b2049b5cee7675d17ad619395154e9413d3dfb",
+    "apps/petrinaut-website/dist/assets/semiconductor-fab-drift-CvBycVD_.js": "6b8b4a3827bbe3177954b01230cd4aa1da73b65764c80ab980d423d758697e5f",
+    "apps/petrinaut-website/dist/assets/sentry-feedback-button-D-DBGB5o.js": "bc0a7f046f95f09e1f02a1271e05294bbcf1516d44c71c8bd2d6c8acc2a9c37a",
+    "apps/petrinaut-website/dist/assets/simulation.worker-C2Mxugw1-hyRN_4F3.js": "4e93e5ce6f1dec968f668a1373bd2c9ea33c8f49b4da66b0c7e75acd488863f9",
+    "apps/petrinaut-website/dist/assets/sir-epidemic-model-DaMFzdUw.js": "5b46fcbd5922fdeb3f042479418f9865b673886f568fd308efcdd4f032a024b5",
+    "apps/petrinaut-website/dist/assets/subview-CsdpicIc-Dkxvrmvt.js": "576767ae4f4e638a90deed2d8180b892d0a23a3e980d3eef0c59f764771acc94",
+    "apps/petrinaut-website/dist/assets/subview-D7jObsuO-DmUnZOoL.js": "3849c7fccd5e034e105451cda8c32686098a804644a24fda2e2620f3fc3d3924",
+    "apps/petrinaut-website/dist/assets/subview-DvfuqL4I-BzhwghlU.js": "37b8345674e17b68aab7c77ddb3a02215321958493a3d551d8126b217571c61c",
+    "apps/petrinaut-website/dist/assets/suggestController--O1C76IE-Br7YxsEd.js": "ac759b89abf6d509c7fc8ca204d8f001cf8ce4c16a2d5cbc9dbeb8bc9d4bcd25",
+    "apps/petrinaut-website/dist/assets/supply-chain-profit-model-CLQtD07j.js": "f8cac8728e4112f0827399782a985d5833b2b8a45c1ac55f81ee506de1ce3d99",
+    "apps/petrinaut-website/dist/assets/supply-chain-with-disruption-CypyWLVA.js": "4e1d718d8a3effc428b674dac6d471b78509b60e8bb41e8985d6a5b92ea19eee",
+    "apps/petrinaut-website/dist/assets/support-QFmoRTi4-BOzIlFV0.js": "c4eeec5421f896c65ac9aa287e36c57de6a85459e07531d490ef69ea8b741710",
+    "apps/petrinaut-website/dist/assets/surface-context-BCMn0Ywq-DrQxqlbm.js": "d2fcbc902da5c6041c85883941dc3d1621ad2473c0561eb2a4e0568cdb4284be",
+    "apps/petrinaut-website/dist/assets/truck-fleet-predictive-maintenance-BveJ7Rj3.js": "1c78caab8607f8e72307cfd8f6dbbe2c53a6542f7db3c3e7065488f9a9bc563b",
+    "apps/petrinaut-website/dist/assets/truck-fleet-predictive-maintenance-zJ0XAy8Z.js": "72db69cb85c71f1056d68e4debf33e057f4f65424a86c17688921cd44361ed73",
+    "apps/petrinaut-website/dist/assets/typescript-BdruoySL-BTuD6vB-.js": "9aa84fddc741bf439a85fd25f62fd8e13839da9f2f979107248793e311d6a864",
+    "apps/petrinaut-website/dist/assets/typescript.contribution-C2HJ0DFD-DM8xwk-Z.js": "b3c743d00a7bd1983b2aac7350f1339484a02b7d79b70dc373f53522c5c23373",
+    "apps/petrinaut-website/dist/assets/webgpu-XQRnL8EN.js": "da8b32bb49493c453ca37a69736b6df52e901c561718598a34cef0d0f9afa504",
+    "apps/petrinaut-website/dist/assets/with-selector-BzJ7J7_l.js": "874d652b6a8b1bf6881125e19edc16ae5fa526f4982b047bf21e9f16c19da011",
+    "apps/petrinaut-website/dist/assets/workspace-BY1e83aM-Dg_uHlIS.js": "f9602327f0a8df86c486770f70249174735d1f50b22ad5a1c133923ffe496506",
+    "apps/petrinaut-website/dist/assets/index-BR5hRG0R.css": "8c806308c3456d8d231e08c4716ddbf01390b0869b5ebee33f50d67f6e1dcdd3"
+  },
+  "installed": {
+    "node_modules/@flue/runtime/dist/schema-DIDpvZZa.mjs": "dbe9e224c56c6e135c704f4b4659f642c90fa5dd471dd35cb41ac804ab948e97",
+    "node_modules/@flue/runtime/dist/tool-DZ5dxCl_.mjs": "92e4d89c3e37b7db9dcb37732495f7e08d3f34fca0fc01ae3adbf7041f0753ae",
+    "node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs": "c7d1a948f15264ce1e21cf6fb8cccd2213d1a9a38624c726c1a8834086f56d59",
+    "node_modules/@flue/runtime/dist/types-CVx9SjIx.d.mts": "e78403242f1205b1b3016581926d03bdfe6a246383a59e997d25214c7ac6f36a",
+    "node_modules/@earendil-works/pi-ai/dist/api/anthropic-messages.js": "7ca9f5414e8a1a6c358f59592513b16d905b9be27142a1bc16817cf75d8ec817",
+    "node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js": "e5bb9245b3d539713a2011d0929bf0f93b6443b28919c52692864f63b458d6e9",
+    "node_modules/@earendil-works/pi-agent-core/dist/types.d.ts": "5f38535490f83d5297e5e009a0955433318c4ed9cb1adb35c672ce01119bbee1",
+    "node_modules/@flue/runtime/dist/tool-NmMNtPCM.d.mts": "67b44644a734c99afb02ac31be2fa2595aaadfad25479ee45c0b9844c88d1138",
+    "node_modules/@flue/runtime/dist/index.d.mts": "5bd62938d779921d38a8d16c13b83faaade4e410a73a6930d55b4f35707e3ccd",
+    "node_modules/@flue/runtime/package.json": "c5e309215be49579b62219d6a28f3bcae842a535d1f5466a06c1e82d666e4ee5",
+    "node_modules/@flue/runtime/docs/guide/tools.md": "4c0930a78f8f46697fc856e09d14f4899b12076060086fc692d8135237b41144",
+    "node_modules/@flue/runtime/docs/reference/agent-api.md": "4ed2968ef45ed7cce5fbcf8329fa8962c053fc35bf49a6001ed278ac4af6e741",
+    "node_modules/@earendil-works/pi-agent-core/README.md": "da61d16db59ba3a43d4130db720860d3e9ba6f62d5d4cc33e103c1ff046c080f",
+    "node_modules/@earendil-works/pi-ai/README.md": "97f942b4986e21fa2c981298b712e6911d97e37968541a99eb720f4573b89307",
+    "node_modules/@earendil-works/pi-ai/package.json": "a3e39900a10bc5d6fd01e8de86899ac15991a849160bae1b4bd741eeaddf05d8",
+    "node_modules/@earendil-works/pi-agent-core/package.json": "33aa9a2c1435a59e3a0d62ebd29cd4f8f39c4b4dfb1dc6bce4762835950ee0c5",
+    "node_modules/@standard-schema/spec/package.json": "58e5bd75ddd0684c88b07cd799585cc72a37fd6efb8ab0c936d49e230d5164fb",
+    "node_modules/@hashintel/petrinaut-core/package.json": "4d6a8ea0ec6f85bc399cc4cb2e592a6342d612c4fcf2d39d3a7cb055ca3c84b2",
+    "node_modules/@hashintel/brunch-agent/package.json": "a11de5d87e10e1512317dac7ba69a64114cd09bf7533140e285afdb791f4b617",
+    "node_modules/zod/package.json": "c630bd10b52dcf71c112a2bf78dbf2734b9db58d62de663b8d86c2ec2c8cda2e",
+    "node_modules/valibot/package.json": "f8c0413b3a5b951c5e3522e0ec0a3b1c4bce6d4d98d87b02bbaff05a2cb4abcb",
+    "node_modules/@valibot/to-json-schema/package.json": "5487440309ff6296d0d9359eb6b2712b26d68bb562d60ad5ac314a3fb1bcc1a2",
+    "node_modules/@earendil-works/pi-ai/node_modules/@anthropic-ai/sdk/package.json": "28aaef57dd52864476e417dac7b0b389ca65b9e4f3ee42631e450a9c1a654f82",
+    "node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js.map": "618ff2aa1b8f95e1dd4ea921ba9a8445027772e2561c8812e988c115ca79f613",
+    "node_modules/@earendil-works/pi-agent-core/dist/types.js.map": "9a052dbc3e3a16ff638a3d1ef158b136db4603851dfac745e11077f842390bb9",
+    "node_modules/@earendil-works/pi-ai/dist/utils/validation.js": "d158ffdc3ab5512c345cb3f1522afb6b2db6f0d1e55acbb6da871e7552c18040",
+    "node_modules/@earendil-works/pi-ai/dist/api/anthropic-messages.js.map": "0dd4ce2bbdc4b35b71728726169061647da8a2b3a89e68a661becaa90b3a6d46",
+    "node_modules/@flue/runtime/dist/node/index.mjs": "abe2ea328b4347a5df340a0555f9efe57d8761ef0cded71039133421b709f1d2",
+    "node_modules/zod/v4/core/to-json-schema.js": "fb3c9ab59947582f7671a53c8e20a3ced5eaa92d1c220ce8b27717a59033ad0d",
+    "node_modules/@standard-schema/spec/dist/index.d.ts": "bdd14f07b4eca0b4b5203b85b8dbc4d084c749fa590bee5ea613e1641dcd3b29"
+  }
+}
