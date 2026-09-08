@@ -17,6 +17,7 @@ pub(crate) use self::{
         EdgeLinkColumns, EdgeSlot, LocateLinkColumns, LocateNodeColumns, NodeRequestColumns,
         NodeSlot, NodeTrailerColumns, TypeSlot,
     },
+    edges::OntologyResolver,
     locate::{LocateRequest, LocateResolver, LocateResponse},
     type_urls::{CachedTypeUrlResolver, TypeUrlResolver},
 };

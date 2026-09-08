@@ -27,13 +27,11 @@ use super::{
 };
 use crate::{
     dataset::auxiliary::{Label, Legend},
+    morton::MortonTile,
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     salt::{
-        fit::prepare::IdentityProvider,
-        wire::{
-            edges::{EdgesResponse, EdgesTrailer},
-            tile::TileCoordinate,
-        },
+        fit::prepare::IdentityProvider as _,
+        wire::edges::{EdgesResponse, EdgesTrailer},
     },
 };
 
@@ -121,7 +119,7 @@ pub(crate) enum EdgesDetail {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct EdgesRequest {
     /// The tiles whose delivered rows bound the edge set.
-    pub tiles: Vec<TileCoordinate>,
+    pub tiles: Vec<MortonTile>,
     /// Whether the response carries the detail trailer.
     #[serde(default)]
     pub detail: EdgesDetail,
@@ -399,27 +397,27 @@ impl Atlas {
         &self,
         walk: &Walk<'_>,
         view: &View<'_>,
-        tiles: &[TileCoordinate],
+        tiles: &[MortonTile],
     ) -> Result<DeliveredBounds, EdgesError> {
         let mut rows = DenseBitSet::new_empty(self.rows.len());
         let mut arrivals = DenseBitSet::new_empty(view.arrivals().len());
         let maximum = self.grid.max_tile_depth();
         for &coordinate in tiles {
-            if coordinate.z > maximum {
+            if coordinate.z.get() > maximum {
                 return Err(EdgesError::Depth {
-                    z: coordinate.z,
+                    z: coordinate.z.get(),
                     maximum,
                 });
             }
             let cell = grid::cell_of(coordinate).ok_or(EdgesError::Grid {
-                z: coordinate.z,
+                z: coordinate.z.get(),
                 x: coordinate.x,
                 y: coordinate.y,
             })?;
 
             if let Some(cut) = view.cut() {
                 let row_ids = self.rows.view();
-                for row in cut.total(coordinate.z, cell).rows {
+                for row in cut.total(coordinate.z.get(), cell).rows {
                     match row {
                         ViewRow::Base(position) => {
                             rows.insert(row_ids[position]);
@@ -430,9 +428,9 @@ impl Atlas {
                     }
                 }
             } else {
-                walk.delivered_rows_into(coordinate.z, cell, &mut rows);
+                walk.delivered_rows_into(coordinate.z.get(), cell, &mut rows);
                 let deepest = self.grid.deepest();
-                for bucket in self.grid.cut_buckets(coordinate.z) {
+                for bucket in self.grid.cut_buckets(coordinate.z.get()) {
                     for (_, index) in view.overlay().run(bucket, cell, deepest) {
                         arrivals.insert(index);
                     }

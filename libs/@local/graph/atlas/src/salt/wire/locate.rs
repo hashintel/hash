@@ -157,10 +157,10 @@ impl LocateResponse<'_> {
         cbor.uint(2);
         cbor.uint(self.delivered.len() as u64);
         cbor.uint(3);
-        cbor.uint(u64::from(self.cell.z));
+        cbor.uint(u64::from(self.cell.z.get()));
         cbor.uint(4);
         cbor.array(3);
-        cbor.uint(u64::from(self.cell.z));
+        cbor.uint(u64::from(self.cell.z.get()));
         cbor.uint(u64::from(self.cell.x));
         cbor.uint(u64::from(self.cell.y));
         cbor.uint(5);

@@ -36,7 +36,7 @@ use crate::{
     dataset::auxiliary::{Icon, Label, OwnedIcon, OwnedLabel, OwnedLegend},
     identity::{BasePosition, EdgeRowId, NodeRowId, OntologyRowId},
     math::Vec2,
-    morton::{Depth, MortonKey},
+    morton::{Depth, MortonKey, MortonTile},
     postgres::{
         Classification,
         id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedOntologyTypeUuid},
@@ -46,7 +46,7 @@ use crate::{
         wire::{
             Mode,
             locate::{LocateResponse, LocateTrailer, PropertyMap},
-            tile::{DeliveredSet, TileCoordinate, TileHead, TileResponse, TileTrailer},
+            tile::{DeliveredSet, TileHead, TileResponse, TileTrailer},
         },
     },
     serve::{
@@ -202,7 +202,7 @@ fn widened(atlas: &Atlas, hidden: &[u32], slots: &[NodeRowId]) -> VisibilityProo
 ///
 /// The candidates sweep distinct quadrants of the wire square, so one of them lands apart from
 /// the fixture's handful of points and the tile witnesses the arrival alone.
-pub(super) fn vacant_cell(atlas: &Atlas) -> (Vec2, TileCoordinate) {
+pub(super) fn vacant_cell(atlas: &Atlas) -> (Vec2, MortonTile) {
     let depth =
         Depth::try_new(FIXTURE_LOD.max_tile_depth.get()).expect("the fixture depth is a depth");
 
@@ -271,7 +271,7 @@ async fn scoped_tile_serves_placed_arrival_with_captured_display() {
     let cohort = PlacementCohort::of(Some(&snapshot));
     let proof = widened(&atlas, &[0], &[slot]);
 
-    let mut request = request(coordinate.z, coordinate.x, coordinate.y, Mode::Total);
+    let mut request = request(coordinate.z.get(), coordinate.x, coordinate.y, Mode::Total);
     request.query.detail = TileDetail::Auxiliary;
 
     let assemble = || {
@@ -333,7 +333,7 @@ async fn ingress_withdrawal_subtracts_retained_arrival_from_tiles() {
     let slot = NodeRowId::from_usize(atlas.node_universe().size());
     let cohort = PlacementCohort::of(Some(&snapshot));
     let proof = widened(&atlas, &[0], &[slot]);
-    let request = request(coordinate.z, coordinate.x, coordinate.y, Mode::Total);
+    let request = request(coordinate.z.get(), coordinate.x, coordinate.y, Mode::Total);
 
     let assemble = |delta: Option<&DeltaSnapshot>| {
         let mut bound = Bound::resolved(&atlas, &proof, cohort, CutOffset::ZERO);
@@ -558,7 +558,7 @@ async fn corpus_tile_serves_placed_arrival_with_captured_display() {
     let slot = NodeRowId::from_usize(atlas.node_universe().size());
     let cohort = PlacementCohort::of(Some(&snapshot));
 
-    let mut request = request(coordinate.z, coordinate.x, coordinate.y, Mode::Total);
+    let mut request = request(coordinate.z.get(), coordinate.x, coordinate.y, Mode::Total);
     request.query.detail = TileDetail::Auxiliary;
 
     let assemble = || {
@@ -768,7 +768,7 @@ async fn ingress_withdrawal_subtracts_spliced_arrival_from_corpus_tiles() {
         &[(ARRIVAL_SEED, vacant), (ARRIVAL_SEED + 1, co_located)],
     );
     let cohort = PlacementCohort::of(Some(&snapshot));
-    let tile = request(coordinate.z, coordinate.x, coordinate.y, Mode::Total);
+    let tile = request(coordinate.z.get(), coordinate.x, coordinate.y, Mode::Total);
 
     let corpus = |cohort: PlacementCohort<'_>,
                   delta: Option<&DeltaSnapshot>,
@@ -808,7 +808,12 @@ async fn ingress_withdrawal_subtracts_spliced_arrival_from_corpus_tiles() {
     let depth =
         Depth::try_new(FIXTURE_LOD.max_tile_depth.get()).expect("the fixture depth is a depth");
     let shared_cell = coordinate_of(atlas.morton.code(BasePosition::MIN).cell(depth));
-    let shared_tile = request(shared_cell.z, shared_cell.x, shared_cell.y, Mode::Total);
+    let shared_tile = request(
+        shared_cell.z.get(),
+        shared_cell.x,
+        shared_cell.y,
+        Mode::Total,
+    );
 
     let base = atlas.node_universe().size();
     let saturated = widened(&atlas, &[], &[base, base + 1].map(NodeRowId::from_usize));
@@ -861,11 +866,7 @@ fn locate_by_row(wire: crate::serve::WireRow<NodeRowId>) -> LocateRequest {
 /// The scope folds its arrivals into its own cascade, so the bucket is the separation law over
 /// the visible fitted keys, clamped into the catch-all, the zoom inverts it, and the fly-to
 /// cell is the projected coordinate's tile at that zoom.
-fn arrival_zoom_and_cell(
-    atlas: &Atlas,
-    proof: &VisibilityProof,
-    wire: Vec2,
-) -> (u8, TileCoordinate) {
+fn arrival_zoom_and_cell(atlas: &Atlas, proof: &VisibilityProof, wire: Vec2) -> (u8, MortonTile) {
     let deepest = FIXTURE_LOD.max_tile_depth.get() + FIXTURE_LOD.span.get();
     let bucket = expected_bucket(atlas, proof, wire, deepest);
     let zoom = bucket.saturating_sub(FIXTURE_LOD.span.get());

@@ -20,7 +20,7 @@ use std::collections::{HashMap, HashSet};
 use hashql_core::id::Id as _;
 
 use super::{
-    Bound, CutOffset, EdgesLimits, FIXTURE_LOD, FULL, HEAD, ROW_IDS, TileCoordinate, TileLimits,
+    Bound, CutOffset, EdgesLimits, FIXTURE_LOD, FULL, HEAD, MortonTile, ROW_IDS, TileLimits,
     UntouchedStore, View, children_of, codec, decode_rows, edges_request, entity_string_of,
     expected_edges_bytes, head_counts, head_global, mask_hiding, mask_hiding_rows,
     open_edge_artifacts, publish, qualifying_columns, request, section, test_codec, wire_columns,
@@ -540,11 +540,21 @@ async fn operator_proof_refuses_a_nonzero_offset() {
 /// The deepest zoom's cut is the catch-all under both laws, so a full-grid request delivers the
 /// whole visible set either way and witnesses nothing. These lists stop short of it, where a row
 /// the corpus cascade buried behind a hidden neighbour is a row the scope cascade lifts.
-fn discriminating_tile_lists() -> Vec<Vec<TileCoordinate>> {
+fn discriminating_tile_lists() -> Vec<Vec<MortonTile>> {
     vec![
-        vec![TileCoordinate { z: 0, x: 0, y: 0 }],
+        vec![MortonTile {
+            z: Depth::MIN,
+            x: 0,
+            y: 0,
+        }],
         (0..2_u32)
-            .flat_map(|x| (0..2_u32).map(move |y| TileCoordinate { z: 1, x, y }))
+            .flat_map(|x| {
+                (0..2_u32).map(move |y| MortonTile {
+                    z: Depth::new(1),
+                    x,
+                    y,
+                })
+            })
             .collect(),
     ]
 }
@@ -590,10 +600,9 @@ async fn scoped_edges_bound_the_view_cascade_delivery() {
                 let cells: Vec<(u8, MortonCell)> = tiles
                     .iter()
                     .map(|&coordinate| {
-                        let depth = Depth::try_new(coordinate.z).expect("zooms are depths");
                         (
-                            coordinate.z,
-                            MortonCell::new(depth, coordinate.x, coordinate.y)
+                            coordinate.z.get(),
+                            MortonCell::new(coordinate.z, coordinate.x, coordinate.y)
                                 .expect("the lists stay on each zoom's grid"),
                         )
                     })
@@ -692,13 +701,13 @@ async fn scoped_locate_flies_to_the_view_cut_zoom() {
 
                 // The fly-to tile is that zoom's cell holding the source, checked by containment
                 // rather than by replaying the addressing the implementation used.
-                assert_eq!(source.cell.z, source.zoom, "{at} flies to its own zoom");
-                let cell = MortonCell::new(
-                    Depth::try_new(source.cell.z).expect("zooms are depths"),
-                    source.cell.x,
-                    source.cell.y,
-                )
-                .expect("the fly-to target is on its zoom's grid");
+                assert_eq!(
+                    source.cell.z.get(),
+                    source.zoom,
+                    "{at} flies to its own zoom"
+                );
+                let cell = MortonCell::new(source.cell.z, source.cell.x, source.cell.y)
+                    .expect("the fly-to target is on its zoom's grid");
                 assert!(
                     cell.contains(row.key),
                     "{at} flies to a tile holding the source"

@@ -176,9 +176,10 @@ const impl Default for ServeLimits {
 ///
 /// use crate::{
 ///     integrity::SecretHexBytes,
+///     morton::{Depth, MortonTile},
 ///     serve::{
-///         CutOffset, GenerationRoot, OpenOptions, TileCoordinate, TileLimits, TileQuery,
-///         TileRequest, VisibilityProof, WireSecret,
+///         CutOffset, GenerationRoot, OpenOptions, TileLimits, TileQuery, TileRequest,
+///         VisibilityProof, WireSecret,
 ///     },
 /// };
 ///
@@ -200,7 +201,7 @@ const impl Default for ServeLimits {
 /// let proof = VisibilityProof::full_visibility();
 /// let bytes = atlas.tile(
 ///     &TileRequest {
-///         coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
+///         coordinate: MortonTile { z: Depth::MIN, x: 0, y: 0 },
 ///         query: TileQuery::default(),
 ///     },
 ///     TileLimits::default(),

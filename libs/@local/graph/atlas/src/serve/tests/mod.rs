@@ -58,7 +58,7 @@ use crate::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         landmark::select::SelectionOptions,
         policy::classifier,
-        wire::{Mode, tile::TileCoordinate},
+        wire::Mode,
     },
 };
 
@@ -97,7 +97,7 @@ use crate::{
     },
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, Bounds2, BoxedVecN, Log2, Vec2, VecN, positive},
-    morton::{Depth, MortonCell, MortonKey, Zoom},
+    morton::{Depth, MortonCell, MortonKey, MortonTile, Zoom},
     progress::NoProgress,
     salt::{
         fit::{ClassifierInput, FitConfig, PlacementOptions, Supplies, fit},
@@ -710,7 +710,11 @@ pub(crate) fn viewing<T>(
 
 pub(crate) fn request(z: u8, x: u32, y: u32, mode: Mode) -> TileRequest {
     TileRequest {
-        coordinate: TileCoordinate { z, x, y },
+        coordinate: MortonTile {
+            z: Depth::new(z),
+            x,
+            y,
+        },
         query: TileQuery {
             mode,
             ..TileQuery::default()
@@ -718,18 +722,18 @@ pub(crate) fn request(z: u8, x: u32, y: u32, mode: Mode) -> TileRequest {
     }
 }
 
-/// Returns the tile coordinate addressing a Morton cell.
-fn coordinate_of(cell: MortonCell) -> TileCoordinate {
-    let z = cell.depth().get();
-    if z == 0 {
-        return TileCoordinate { z, x: 0, y: 0 };
+/// Returns the tile address naming a Morton cell.
+fn coordinate_of(cell: MortonCell) -> MortonTile {
+    let z = cell.depth();
+    if z == Depth::MIN {
+        return MortonTile { z, x: 0, y: 0 };
     }
 
     let [x, y] = cell.min_key().coordinates();
-    TileCoordinate {
+    MortonTile {
         z,
-        x: x >> (32 - z),
-        y: y >> (32 - z),
+        x: x >> (32 - z.get()),
+        y: y >> (32 - z.get()),
     }
 }
 
@@ -961,10 +965,10 @@ async fn operator_head_accounting() {
 
     for mode in [Mode::Delta, Mode::Total] {
         for &(_node, cell) in &nodes {
-            let TileCoordinate { z, x, y } = coordinate_of(cell);
+            let MortonTile { z, x, y } = coordinate_of(cell);
             let bytes = atlas
                 .tile(
-                    &request(z, x, y, mode),
+                    &request(z.get(), x, y, mode),
                     TileLimits::default(),
                     Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
                 )
@@ -1315,20 +1319,15 @@ fn open_edge_artifacts(generation: &Generation) -> EdgeArtifacts {
 /// Every tile coordinate of the deepest zoom.
 ///
 /// The cut reaches the catch-all bucket. The grid therefore delivers the whole corpus.
-fn full_grid() -> Vec<TileCoordinate> {
+fn full_grid() -> Vec<MortonTile> {
+    let z = Depth::new(FIXTURE_LOD.max_tile_depth.get());
     let cells = 1_u32 << FIXTURE_LOD.max_tile_depth.get();
     (0..cells)
-        .flat_map(|x| {
-            (0..cells).map(move |y| TileCoordinate {
-                z: FIXTURE_LOD.max_tile_depth.get(),
-                x,
-                y,
-            })
-        })
+        .flat_map(move |x| (0..cells).map(move |y| MortonTile { z, x, y }))
         .collect()
 }
 
-fn edges_request(tiles: Vec<TileCoordinate>) -> EdgesRequest {
+fn edges_request(tiles: Vec<MortonTile>) -> EdgesRequest {
     EdgesRequest {
         tiles,
         detail: EdgesDetail::Minimal,
@@ -1533,7 +1532,11 @@ async fn edges_root_visible_subgraph() {
 
     let (sources, targets, edge_rows) = qualifying_columns(endpoints, &delivered);
     let columns = wire_columns(&atlas, &sources, &targets, &edge_rows);
-    let root = TileCoordinate { z: 0, x: 0, y: 0 };
+    let root = MortonTile {
+        z: Depth::MIN,
+        x: 0,
+        y: 0,
+    };
     let bytes = atlas
         .edges(
             &edges_request(vec![root]),
@@ -1721,7 +1724,11 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
 #[tokio::test]
 async fn edges_contract_rejections() {
     let (generation, atlas) = publish("edges-rejects").await;
-    let root = TileCoordinate { z: 0, x: 0, y: 0 };
+    let root = MortonTile {
+        z: Depth::MIN,
+        x: 0,
+        y: 0,
+    };
 
     assert_matches!(
         atlas.edges(
@@ -1740,7 +1747,11 @@ async fn edges_contract_rejections() {
     );
     assert_matches!(
         atlas.edges(
-            &edges_request(vec![TileCoordinate { z: 4, x: 0, y: 0 }]),
+            &edges_request(vec![MortonTile {
+                z: Depth::new(4),
+                x: 0,
+                y: 0,
+            }]),
             EdgesLimits::default(),
             Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
@@ -1749,7 +1760,11 @@ async fn edges_contract_rejections() {
     );
     assert_matches!(
         atlas.edges(
-            &edges_request(vec![TileCoordinate { z: 2, x: 4, y: 0 }]),
+            &edges_request(vec![MortonTile {
+                z: Depth::new(2),
+                x: 4,
+                y: 0,
+            }]),
             EdgesLimits::default(),
             Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
@@ -1802,7 +1817,11 @@ async fn detailed_edges_trailer() {
         .collect();
     let endpoints = endpoints.as_slice();
 
-    let root = TileCoordinate { z: 0, x: 0, y: 0 };
+    let root = MortonTile {
+        z: Depth::MIN,
+        x: 0,
+        y: 0,
+    };
     let mut request = edges_request(vec![root]);
     request.detail = EdgesDetail::Auxiliary;
 
@@ -1965,7 +1984,11 @@ async fn detailed_edges_types() {
 
     let (urls, expected_urls, expected_asked) = type_expectations(&generation, &internal_edges);
 
-    let root = TileCoordinate { z: 0, x: 0, y: 0 };
+    let root = MortonTile {
+        z: Depth::MIN,
+        x: 0,
+        y: 0,
+    };
     let mut request = edges_request(vec![root]);
     request.detail = EdgesDetail::Auxiliary;
 
@@ -2075,8 +2098,8 @@ async fn locate_first_visible_tile() {
         // The parent's cumulative schedule does not: zoom is first.
         if source.zoom > 0 {
             let parent = TileRequest {
-                coordinate: TileCoordinate {
-                    z: source.zoom - 1,
+                coordinate: MortonTile {
+                    z: Depth::new(source.zoom - 1),
                     // The parent tile halves each grid index: one
                     // right-shift, the quadtree's own arithmetic.
                     x: source.cell.x >> 1_u32,
@@ -2374,7 +2397,14 @@ fn edges_body_contract() {
     let request: EdgesRequest =
         serde_json::from_str(r#"{ "tiles": [{ "z": 1, "x": 0, "y": 1 }] }"#)
             .expect("the minimal body parses");
-    assert_eq!(request.tiles, vec![TileCoordinate { z: 1, x: 0, y: 1 }]);
+    assert_eq!(
+        request.tiles,
+        vec![MortonTile {
+            z: Depth::new(1),
+            x: 0,
+            y: 1,
+        }]
+    );
     assert_eq!(request.detail, EdgesDetail::Minimal);
 
     let request: EdgesRequest = serde_json::from_str(

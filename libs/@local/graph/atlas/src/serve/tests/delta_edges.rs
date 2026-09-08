@@ -311,7 +311,7 @@ fn edges_with(
     proof: &VisibilityProof,
     cohort: PlacementCohort<'_>,
     ingress: Option<&DeltaSnapshot>,
-    tiles: Vec<crate::salt::wire::tile::TileCoordinate>,
+    tiles: Vec<crate::morton::MortonTile>,
     limits: EdgesLimits,
 ) -> Vec<u8> {
     let mut bound = Bound::resolved(atlas, proof, cohort, CutOffset::ZERO);

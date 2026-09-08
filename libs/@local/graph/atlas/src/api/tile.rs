@@ -13,7 +13,7 @@ use super::{
     visibility::{Visibility, view_problem},
 };
 use crate::{
-    salt::wire::tile::TileCoordinate,
+    morton::{Depth, MortonTile},
     serve::{TileError, TileQuery, TileRequest},
 };
 
@@ -48,7 +48,7 @@ Filtering binds at the manifest. This body has no `filter` field, and an unknown
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
 pub(super) struct CellPath {
     /// The zoom, a subdivision depth where `0` addresses the root.
-    z: u8,
+    z: Depth,
     /// The cell's `x` index on the `2^z` grid.
     x: u32,
     /// The cell's `y` index on the `2^z` grid.
@@ -72,7 +72,7 @@ pub(super) async fn handler<R>(
     reject_variant(&variant)?;
 
     let request = TileRequest {
-        coordinate: TileCoordinate { z, x, y },
+        coordinate: MortonTile { z, x, y },
         query: query.map_or_else(TileQuery::default, |Body(query)| query),
     };
 

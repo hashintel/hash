@@ -1,28 +1,10 @@
-//! The store boundary.
-//!
-//! Live detail reads over the serving store pool.
-//!
-//! Each hydration resolves its identities through the store's own query compiler, so a
-//! statement reads under the live temporal axes and the draft exclusion and masks properties
-//! per actor, by construction. A property value leaves the store
-//! masked for the requesting actor under exactly the conditions the graph's entity reads mask
-//! it - the deployment configures protection and the actor is not an instance admin - and
-//! [`MaskingActor`] carries that actor from the scope's policy resolution into every order.
-//! Label attribution reads the store's per-edition cache and no property value, so it stands
-//! outside the masking, as labels do on the graph's own read path: see the trailer contract
-//! in [the module above](super).
-//!
-//! Each hydration borrows one connection for its own duration and returns it, and statements
-//! sharing the connection pipeline, so a request's hydration waits on one round trip of the
-//! store's own work.
-
 use alloc::sync::Arc;
 use core::pin::pin;
 
 use error_stack::{Report, ResultExt as _};
-use futures::{StreamExt as _, TryStreamExt as _};
+use futures::TryStreamExt as _;
 use hash_graph_postgres_store::store::{
-    AsClient, PostgresStorePool, error::StoreError, postgres::query::SelectCompiler,
+    AsClient, PostgresStorePool, postgres::query::SelectCompiler,
 };
 use hash_graph_store::{
     filter::{
@@ -48,13 +30,19 @@ use type_system::{
 };
 
 use super::{
-    columns::{EdgeSlot, NodeSlot},
-    locate::{LocateLinkResponse, LocateNodeResponse},
+    columns::{EdgeSlot, NodeSlot, TypeSlot},
+    edges::OntologyResolver,
+    locate::{
+        LocateLinkResponse, LocateNodeResponse, LocateRequest, LocateResolver, LocateResponse,
+    },
     scalar::ScalarProperties,
     statements::{DetailColumns, TypeColumns, TypeUrlColumns, identity_filter},
     type_urls::TypeUrlResolver,
 };
-use crate::{bitset::DenseBitSlice, postgres::id::ArchivedEntityId};
+use crate::{
+    bitset::DenseBitSlice,
+    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+};
 
 /// The resolved actor one hydration masks properties for.
 ///
@@ -364,6 +352,54 @@ impl GraphDatabaseClient {
             properties: properties_columns,
             properties_complete,
         })
+    }
+}
+
+impl LocateResolver for GraphDatabaseClient {
+    /// Answers both halves of one locate request over one borrowed connection each.
+    async fn resolve(
+        &self,
+        request: LocateRequest<'_>,
+    ) -> Result<LocateResponse, Report<HydrateError>> {
+        let nodes: Vec<ArchivedEntityId> = request.nodes.iter().collect();
+
+        let (nodes, links) = try_join!(
+            self.resolve_locate_node_request(
+                IdSlice::from_raw(&nodes),
+                request.properties,
+                request.actor,
+            ),
+            self.resolve_locate_link_request(
+                request.links,
+                request.link_type_ids,
+                request.link_properties,
+                request.actor,
+            ),
+        )?;
+
+        Ok(LocateResponse { nodes, links })
+    }
+}
+
+impl OntologyResolver for GraphDatabaseClient {
+    /// Answers each required type uuid's versioned URL through the type-URL read.
+    ///
+    /// A uuid the store no longer serves reads [`None`] at its slot.
+    async fn resolve(
+        &self,
+        types: &IdSlice<TypeSlot, ArchivedOntologyTypeUuid>,
+    ) -> Result<IdVec<TypeSlot, Option<VersionedUrl>>, Report<HydrateError>> {
+        let uuids = ArchivedOntologyTypeUuid::into_slice(types.as_raw());
+
+        let resolved: FastHashMap<_, _> = TypeUrlResolver::resolve(self, uuids.iter().copied())
+            .await?
+            .into_iter()
+            .collect();
+
+        Ok(uuids
+            .iter()
+            .map(|uuid| resolved.get(uuid).cloned())
+            .collect())
     }
 }
 

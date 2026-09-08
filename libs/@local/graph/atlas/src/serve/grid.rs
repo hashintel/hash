@@ -11,10 +11,12 @@
 //! Addressing lives beside the schedule: [`cell_of`] maps a request's tile coordinate onto the
 //! Morton grid, and [`tile_of`] inverts a point's key back to the tile owning it at a zoom.
 
+use hashql_core::id::Id as _;
+
 use super::error::OpenAtlasError;
 use crate::{
-    morton::{Depth, MortonCell, MortonKey},
-    salt::{lod::stage::LodConfig, wire::tile::TileCoordinate},
+    morton::{Depth, MortonCell, MortonKey, MortonTile},
+    salt::lod::stage::LodConfig,
 };
 
 /// The Morton key's coordinate width: each axis index carries 32 subdivision bits.
@@ -105,15 +107,11 @@ impl Grid {
     }
 }
 
-/// Returns the Morton cell a tile coordinate addresses.
+/// Returns the Morton cell a tile address names.
 ///
-/// [`None`] outside the zoom's `2^z` grid or beyond the key width.
-pub(super) const fn cell_of(coordinate: TileCoordinate) -> Option<MortonCell> {
-    let Some(depth) = Depth::try_new(coordinate.z) else {
-        return None;
-    };
-
-    MortonCell::new(depth, coordinate.x, coordinate.y)
+/// [`None`] outside the zoom's `2^z` grid; the key width holds by the address's typed zoom.
+pub(super) const fn cell_of(coordinate: MortonTile) -> Option<MortonCell> {
+    MortonCell::new(coordinate.z, coordinate.x, coordinate.y)
 }
 
 /// Returns the tile owning a Morton key at zoom `zoom`.
@@ -123,15 +121,19 @@ pub(super) const fn cell_of(coordinate: TileCoordinate) -> Option<MortonCell> {
 /// # Panics
 ///
 /// This panics beyond the key width, which the schedule's zooms rule out.
-pub(super) const fn tile_of(key: MortonKey, zoom: u8) -> TileCoordinate {
+pub(super) const fn tile_of(key: MortonKey, zoom: u8) -> MortonTile {
     assert!(zoom <= AXIS_BITS, "zooms lie within the key width");
     if zoom == 0 {
-        return TileCoordinate { z: 0, x: 0, y: 0 };
+        return MortonTile {
+            z: Depth::MIN,
+            x: 0,
+            y: 0,
+        };
     }
 
     let [x, y] = key.coordinates();
-    TileCoordinate {
-        z: zoom,
+    MortonTile {
+        z: Depth::new(zoom),
         x: x >> (AXIS_BITS - zoom),
         y: y >> (AXIS_BITS - zoom),
     }

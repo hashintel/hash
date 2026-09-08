@@ -31,11 +31,12 @@ use crate::{
     },
     identity::{BasePosition, NodeRowId, OntologyRowId},
     math::{Bounds2, Vec2},
+    morton::{Depth, MortonTile},
     salt::wire::{
         Mode,
         cbor::CborWriter,
         tests::section,
-        tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
+        tile::{DeliveredSet, GlobalHead, TileHead, TileResponse, TileTrailer},
     },
     serve::{CutOffset, TileLimits, TileQuery, TileRequest, tile::TileDetail},
 };
@@ -237,7 +238,11 @@ async fn detailed_tiles_hydrate_labels_and_icons_from_the_generation() {
     // The arm under test: assembly, in-process payload resolution, and encoding through
     // `Atlas::tile` itself in one call.
     let detailed = TileRequest {
-        coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
+        coordinate: MortonTile {
+            z: Depth::MIN,
+            x: 0,
+            y: 0,
+        },
         query: TileQuery {
             mode: Mode::Delta,
             detail: TileDetail::Auxiliary,
@@ -274,7 +279,11 @@ async fn detailed_tiles_hydrate_labels_and_icons_from_the_generation() {
         head: TileHead {
             generation: atlas.generation().digest(),
             variant: 0,
-            coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
+            coordinate: MortonTile {
+                z: Depth::MIN,
+                x: 0,
+                y: 0,
+            },
             mode: Mode::Delta,
             first_bucket: 0,
             runs: &morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]

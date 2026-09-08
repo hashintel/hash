@@ -24,13 +24,13 @@ use super::{
 use crate::{
     dataset::auxiliary::{Icon, Label, Legend},
     file::quad::Node,
-    morton::MortonCell,
+    morton::{MortonCell, MortonTile},
     salt::{
         fit::prepare::IdentityProvider,
         postings::closure::IconSource,
         wire::{
             Mode,
-            tile::{GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
+            tile::{GlobalHead, TileHead, TileResponse, TileTrailer},
         },
     },
 };
@@ -155,7 +155,7 @@ pub(crate) struct TileQuery {
 #[derive(Debug, Clone)]
 pub(crate) struct TileRequest {
     /// The tile address from the route.
-    pub coordinate: TileCoordinate,
+    pub coordinate: MortonTile,
     /// The query context from the request body.
     pub query: TileQuery,
 }
@@ -169,7 +169,7 @@ pub(crate) struct TileRequest {
 /// encoding are CPU-bound, hydration awaits the store between them.
 #[derive(Debug)]
 struct TileDocument {
-    coordinate: TileCoordinate,
+    coordinate: MortonTile,
     mode: Mode,
     first_bucket: u8,
     runs: Vec<u32>,
@@ -366,15 +366,15 @@ impl Atlas {
 
         let coordinate = request.coordinate;
         let maximum = self.grid.max_tile_depth();
-        if coordinate.z > maximum {
+        if coordinate.z.get() > maximum {
             return Err(TileError::Depth {
-                z: coordinate.z,
+                z: coordinate.z.get(),
                 maximum,
             });
         }
 
         let cell = grid::cell_of(coordinate).ok_or(TileError::Grid {
-            z: coordinate.z,
+            z: coordinate.z.get(),
             x: coordinate.x,
             y: coordinate.y,
         })?;
@@ -400,10 +400,10 @@ impl Atlas {
         )]
         let (mut delivered, first_bucket, mut runs, children) = if let Some(cut) = scope_cut {
             let delivery = match request.query.mode {
-                Mode::Delta => cut.delta(coordinate.z, cell),
-                Mode::Total => cut.total(coordinate.z, cell),
+                Mode::Delta => cut.delta(coordinate.z.get(), cell),
+                Mode::Total => cut.total(coordinate.z.get(), cell),
             };
-            let children = cut.children(coordinate.z, cell);
+            let children = cut.children(coordinate.z.get(), cell);
 
             (
                 DeliveredPoints::Positions(delivery.rows),
@@ -412,7 +412,14 @@ impl Atlas {
                 children,
             )
         } else {
-            self.corpus_delivery(&walk, view, request.query.mode, coordinate.z, cell, node)
+            self.corpus_delivery(
+                &walk,
+                view,
+                request.query.mode,
+                coordinate.z.get(),
+                cell,
+                node,
+            )
         };
 
         // Admission subtraction: the ingress snapshot's withdrawn rows leave the document here,
@@ -432,7 +439,7 @@ impl Atlas {
             });
         }
 
-        let global = (coordinate.z == 0).then(|| view.root_head());
+        let global = (coordinate.z.get() == 0).then(|| view.root_head());
 
         let palette = Palette::of(&request.query.colored_type_ids);
         let mask_set = (!palette.is_empty()).then(|| self.resolve_masks(&palette));
@@ -563,7 +570,7 @@ mod tests {
     };
     use uuid::Uuid;
 
-    use super::{Mode, TileCoordinate, TileDetail, TileLimits};
+    use super::{Mode, TileDetail, TileLimits};
     use crate::{
         dataset::auxiliary::{Icon, Label, OwnedLabel},
         identity::{BasePosition, NodeRowId},
@@ -634,7 +641,11 @@ mod tests {
             head: TileHead {
                 generation: atlas.generation().digest(),
                 variant: 0,
-                coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
+                coordinate: crate::morton::MortonTile {
+                    z: crate::morton::Depth::MIN,
+                    x: 0,
+                    y: 0,
+                },
                 mode: Mode::Delta,
                 first_bucket: 0,
                 runs: &morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]

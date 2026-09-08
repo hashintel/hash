@@ -1,12 +1,12 @@
 use error_stack::Report;
 use hashql_core::id::IdVec;
+use ratatui::widgets::TitlePosition;
 use type_system::ontology::VersionedUrl;
 
 use crate::{
     dataset::auxiliary::Label,
     identity::NodeRowId,
     postgres::id::ArchivedEntityId,
-    salt::wire::tile::TileCoordinate,
     serve2::{
         codec::EncodedRowId,
         intern::{InternTable, TableIndex},
@@ -54,7 +54,7 @@ pub(crate) struct EdgesDocument<'details> {
 
 impl<'details> EdgesDocument<'details> {
     pub(crate) fn new(
-        tiles: &[TileCoordinate],
+        tiles: &[TitlePosition],
         options: &EdgesDocumentOptions,
     ) -> Result<Self, Report<EdgesDocumentError>> {
         // TODO: first we need: the view, and the store, and the limits

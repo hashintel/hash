@@ -15,6 +15,18 @@ pub(crate) trait TypeUrlResolver {
     ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>>;
 }
 
+impl<T> TypeUrlResolver for &T
+where
+    T: TypeUrlResolver,
+{
+    async fn resolve(
+        &self,
+        types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator> + Send,
+    ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>> {
+        T::resolve(self, types).await
+    }
+}
+
 impl<T> TypeUrlResolver for Arc<T>
 where
     T: TypeUrlResolver,

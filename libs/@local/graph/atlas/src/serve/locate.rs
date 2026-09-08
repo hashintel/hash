@@ -29,15 +29,12 @@ use crate::{
     dataset::auxiliary::{Label, Legend},
     identity::{BasePosition, NodeRowId},
     math::Vec2,
-    morton::MortonKey,
+    morton::{MortonKey, MortonTile},
     postgres::id::ArchivedEntityId,
     salt::{
         fit::prepare::IdentityProvider as _,
         lod::stage::WIRE_FRAME,
-        wire::{
-            locate::{LocateResponse, LocateTrailer, PropertyMap, PropertyValue},
-            tile::TileCoordinate,
-        },
+        wire::locate::{LocateResponse, LocateTrailer, PropertyMap, PropertyValue},
     },
 };
 
@@ -81,7 +78,7 @@ pub(crate) struct SourcePoint {
     /// The first zoom whose cumulative schedule delivers the point.
     pub zoom: u8,
     /// The point's tile at that zoom: the client's fly-to target.
-    pub cell: TileCoordinate,
+    pub cell: MortonTile,
 }
 
 /// A locate subject in the domain that publishes it.

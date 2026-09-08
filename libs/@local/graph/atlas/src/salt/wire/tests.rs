@@ -30,7 +30,7 @@ use crate::{
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
-    morton::MortonTile,
+    morton::{Depth, MortonTile},
     postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
     salt::postings::artifact::Membership,
     serve::WireRow,
@@ -355,8 +355,8 @@ mod tile {
 
     use super::{
         ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId, BasePosition, Bounds2, DeliveredSet,
-        GlobalHead, Icon, Label, Membership, Mode, MortonTile, NodeRowId, Sha256Digest, TileHead,
-        TileResponse, TileTrailer, Vec2, WireRow, dense_set, section,
+        Depth, GlobalHead, Icon, Label, Membership, Mode, MortonTile, NodeRowId, Sha256Digest,
+        TileHead, TileResponse, TileTrailer, Vec2, WireRow, dense_set, section,
     };
     use crate::{
         dataset::auxiliary::OwnedLegend,
@@ -374,7 +374,11 @@ mod tile {
             head: TileHead {
                 generation: Sha256Digest::from_bytes_unchecked([0xAB; 32]),
                 variant: 0,
-                coordinate: MortonTile { z: 3, x: 2, y: 5 },
+                coordinate: MortonTile {
+                    z: Depth::new(3),
+                    x: 2,
+                    y: 5,
+                },
                 mode: Mode::Delta,
                 first_bucket: 9,
                 runs: &[2],
@@ -972,8 +976,9 @@ mod locate {
     use type_system::ontology::id::VersionedUrl;
 
     use super::{
-        BasePosition, DenseBitSlice, Label, LocateResponse, LocateTrailer, Membership, MortonTile,
-        PropertyMap, PropertyValue, Sha256Digest, Vec2, WireRow, dense_set, identity_of, section,
+        BasePosition, DenseBitSlice, Depth, Label, LocateResponse, LocateTrailer, Membership,
+        MortonTile, PropertyMap, PropertyValue, Sha256Digest, Vec2, WireRow, dense_set,
+        identity_of, section,
     };
     use crate::serve::{
         TableIndex, hydrate::EdgeSlot, neighbourhood::EdgeColumns, schedule::ViewRow,
@@ -1009,7 +1014,11 @@ mod locate {
         LocateResponse {
             generation: Sha256Digest::from_bytes_unchecked([0xAB; 32]),
             variant: 0,
-            cell: MortonTile { z: 2, x: 1, y: 3 },
+            cell: MortonTile {
+                z: Depth::new(2),
+                x: 1,
+                y: 3,
+            },
             complete: true,
             entity_id: identity_of(0xEE),
             type_ids_complete: false,

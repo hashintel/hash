@@ -400,7 +400,7 @@ impl TileHead<'_> {
         cbor.uint(self.variant);
         cbor.uint(2);
         cbor.array(3);
-        cbor.uint(u64::from(self.coordinate.z));
+        cbor.uint(u64::from(self.coordinate.z.get()));
         cbor.uint(u64::from(self.coordinate.x));
         cbor.uint(u64::from(self.coordinate.y));
         cbor.uint(3);

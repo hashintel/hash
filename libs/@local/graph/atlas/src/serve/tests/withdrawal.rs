@@ -28,8 +28,8 @@ use crate::{
     bitset::CompressedBitSet,
     identity::{BasePosition, EdgeRowId, NodeRowId},
     math::{Bounds2, Vec2},
-    morton::{Depth, MortonCell},
-    salt::wire::tile::{DeliveredSet, GlobalHead, TileCoordinate},
+    morton::{Depth, MortonCell, MortonTile},
+    salt::wire::tile::{DeliveredSet, GlobalHead},
     serve::{
         VisibilityProof,
         delta::{DeltaSnapshot, PlacementCohort},
@@ -113,7 +113,11 @@ async fn corpus_subtract_splits_range() {
         head: TileHead {
             generation: atlas.generation().digest(),
             variant: 0,
-            coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
+            coordinate: MortonTile {
+                z: Depth::MIN,
+                x: 0,
+                y: 0,
+            },
             mode: Mode::Delta,
             first_bucket: 0,
             runs: &runs,
@@ -271,7 +275,7 @@ async fn all_withdrawn_empty_shape() {
         .collect();
     let snapshot = withdrawing(&atlas, &seeds);
 
-    let tile = request(coordinate.z, coordinate.x, coordinate.y, Mode::Delta);
+    let tile = request(coordinate.z.get(), coordinate.x, coordinate.y, Mode::Delta);
     let bytes = tile_with(&atlas, &FULL, Some(&snapshot), &tile);
 
     let expected = TileResponse {
@@ -327,7 +331,11 @@ async fn edges_subtract_withdrawn_endpoints_and_links() {
     let head = usize::try_from(head).expect("fixture counts fit usize");
     let delivered: HashSet<u32> = row_ids[..head].iter().copied().collect();
 
-    let root = TileCoordinate { z: 0, x: 0, y: 0 };
+    let root = MortonTile {
+        z: Depth::MIN,
+        x: 0,
+        y: 0,
+    };
     let serve = |delta: Option<&DeltaSnapshot>| -> Vec<u8> {
         let mut bound = Bound::of(&atlas, &FULL);
         if let Some(delta) = delta {

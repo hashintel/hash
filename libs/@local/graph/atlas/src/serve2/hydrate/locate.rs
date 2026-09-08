@@ -8,16 +8,20 @@
 //! either resolved in process, so an answer carries at most the resolution flags a label lookup
 //! keys on rather than the labels themselves.
 //!
-//! [`LocateStore`] and [`EdgesStore`] are the capability shapes. A single call consumes each
-//! shape, so a response hydrates at most once, and a rejection that never reaches hydration drops
-//! it unused.
+//! [`LocateResolver`] and [`OntologyResolver`](super::edges::OntologyResolver) are the
+//! capability shapes. [`GraphDatabaseClient`](super::GraphDatabaseClient) implements each one
+//! directly, and delegating implementations over `&T` and `Arc<T>` let a caller hand out the
+//! shared client wherever a resolver is due.
+
+use alloc::sync::Arc;
 
 use error_stack::Report;
 use hashql_core::id::{IdSlice, IdVec, bit_vec::DenseBitSet};
 use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
 use super::{
-    EdgeSlot, NodeRequestColumns, NodeSlot, TypeSlot, client::HydrateError,
+    EdgeSlot, NodeRequestColumns, NodeSlot, TypeSlot,
+    client::{HydrateError, VisibilityActor},
     scalar::ScalarProperties,
 };
 use crate::{
@@ -37,6 +41,8 @@ pub(crate) struct LocateRequest<'doc> {
     pub link_type_ids: u32,
     /// Most properties each link's map delivers.
     pub link_properties: u32,
+    /// The resolved actor the store masks properties for.
+    pub actor: VisibilityActor,
 }
 
 /// The store's answer to one [`LocateOrder`], every column in delivered order.
@@ -111,6 +117,34 @@ impl LocateLinkResponse {
     }
 }
 
+/// The capability to answer one locate request with every store-derived column.
 pub(crate) trait LocateResolver {
-    fn resolve(self, request: LocateRequest<'_>) -> Result<LocateResponse, Report<HydrateError>>;
+    async fn resolve(
+        &self,
+        request: LocateRequest<'_>,
+    ) -> Result<LocateResponse, Report<HydrateError>>;
+}
+
+impl<T> LocateResolver for &T
+where
+    T: LocateResolver,
+{
+    async fn resolve(
+        &self,
+        request: LocateRequest<'_>,
+    ) -> Result<LocateResponse, Report<HydrateError>> {
+        T::resolve(self, request).await
+    }
+}
+
+impl<T> LocateResolver for Arc<T>
+where
+    T: LocateResolver,
+{
+    async fn resolve(
+        &self,
+        request: LocateRequest<'_>,
+    ) -> Result<LocateResponse, Report<HydrateError>> {
+        T::resolve(self, request).await
+    }
 }
