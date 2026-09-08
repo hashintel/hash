@@ -90,7 +90,11 @@ def audit(data):
             require(request["purpose"] == "agent", "actual query request context")
             serialized = json.dumps(request["context"]["messages"])
             require("A5 controlled lossy summary" in serialized, "real folded summary consumed")
-            require(source_text not in serialized, "original source and previous answer absent from query context")
+            require(source_text not in serialized, "original true-user source entry absent from query context")
+            require(not any(message.get("role") == "toolResult" and message.get("toolName") in ["brunch_workpiece", "brunch_why"] for message in request["context"]["messages"]), "prior workpiece/why results absent from query context")
+            require(not any(call_id in serialized for call_id in query["priorQueryIds"]), "prior query IDs absent even with redacted source text")
+            # Authoritative current revision remains injected by the product, including
+            # passage and evidence pointers. This is not source-entry or answer retention.
     starts = [event for event in data["fold-events"] if event["type"] == "compaction_start"]
     compactions = [event for event in data["fold-events"] if event["type"] == "compaction"]
     require(len(starts) >= 2 and all(event["reason"] == "threshold" for event in starts), "real threshold compaction, never overflow substitute")
@@ -126,7 +130,8 @@ def falsify(original):
         ("completion-duplicate", "independently pinned completed response"),
         ("settlement-omission", "independently pinned completed settlement"),
         ("same-pid", "distinct actual process"), ("false-live", "restart is as-of"),
-        ("source-still-in-context", "original source and previous answer absent"),
+        ("source-still-in-context", "original true-user source entry absent"),
+        ("redacted-answer-still-in-context", "prior workpiece/why results absent"),
     ]:
         data = copy.deepcopy(original)
         source_id = data["seed"]["sourceId"]
@@ -154,6 +159,13 @@ def falsify(original):
         if mode == "source-still-in-context":
             index = data["reopen-after-compaction"]["beforeRequestContextIndex"]
             data["reopen-contexts"][index]["context"]["messages"].append(dict(role="user", content=text(next(message for message in original["create-history"]["messages"] if message["id"] == source_id))))
+        if mode == "redacted-answer-still-in-context":
+            index = data["reopen-after-compaction"]["beforeRequestContextIndex"]
+            answer = copy.deepcopy(data["reopen-after-compaction"]["why"])
+            for passage in answer["governing"]["passages"]:
+                for relation in passage["relations"]:
+                    relation["sources"] = []
+            data["reopen-contexts"][index]["context"]["messages"].append(dict(role="toolResult", toolName="brunch_why", toolCallId="retention-live-why", content=[dict(type="text", text=json.dumps(answer))]))
         try:
             audit(data)
         except AssertionError as error:

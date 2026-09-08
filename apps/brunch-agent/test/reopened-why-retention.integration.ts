@@ -417,6 +417,13 @@ try {
       return receipt;
     };
     const query = async (label: string, folded: boolean) => {
+      const priorQueryIds = tools(await client.history())
+        .filter(
+          (part) =>
+            part.toolName === "brunch_workpiece" ||
+            part.toolName === "brunch_why",
+        )
+        .map((part) => part.toolCallId);
       const beforeContext = contexts.length;
       const readId = `${label}-workpiece`;
       const whyId = `${label}-why`;
@@ -539,6 +546,22 @@ try {
           "Original true-user entry must leave model context before the history-backed query",
         );
         assert(
+          !priorQueryIds.some((id) => serialized.includes(id)),
+          "Prior workpiece/why query IDs must leave model context, even if their source text was redacted",
+        );
+        assert(
+          !request.context.messages.some(
+            (message) =>
+              message.role === "toolResult" &&
+              (message.toolName === "brunch_workpiece" ||
+                message.toolName === "brunch_why"),
+          ),
+          "No prior workpiece/why tool result may substitute for authorized history",
+        );
+        // The product intentionally still injects its ONE authoritative current revision,
+        // including passage/evidence pointers. That state is not a retained source entry
+        // or a cached governing explanation; do not filter it to manufacture emptiness.
+        assert(
           !request.context.messages.some(
             (message) =>
               message.role === "assistant" &&
@@ -561,7 +584,9 @@ try {
         oldObservationWhy: old,
         refusedObservationWhy: refused,
         beforeRequestContextIndex: beforeContext,
+        priorQueryIds,
         sourceWindowLimited: folded,
+        currentRevisionRemainsInContext: true,
       });
       return history;
     };
