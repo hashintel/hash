@@ -58,6 +58,22 @@ Production database configuration uses dedicated fields:
 | `BRUNCH_POSTGRES_PASSWORD`    | Password only | Runtime-injected database password; rejected in IAM mode                                                |
 | `HASH_OTLP_ENDPOINT`          | Always        | HASH OTLP/gRPC collector endpoint                                                                       |
 | `OTEL_SERVICE_NAME`           | Optional      | OTel service name; defaults to `Brunch Agent`                                                           |
+| `BRUNCH_CORS_ALLOWED_ORIGINS` | Optional      | Exact-origin browser JavaScript allowlist for `/agents/*`; missing or blank grants no CORS access       |
+
+`BRUNCH_CORS_ALLOWED_ORIGINS` is a comma-separated list of exact origins whose browser JavaScript
+may read cross-origin responses from `/agents/*`. For example:
+
+```sh
+BRUNCH_CORS_ALLOWED_ORIGINS=https://app.example.com,https://preview.example.com
+```
+
+Prefer stable preview hostnames and list an exact preview origin only when that deployment needs
+Brunch access. Each ephemeral preview origin must be listed explicitly. The variable does not
+accept wildcards, non-root paths, queries, fragments, credentials, or non-HTTP(S) schemes. Missing or blank
+configuration grants no cross-origin browser access while preserving same-origin requests. CORS
+controls browser JavaScript access; it is not a server-side access gate and does not restrict
+non-browser callers. The deployment still requires its separate identity, authorization, ingress,
+and rate-limit gates.
 
 `DATABASE_URL`, `BRUNCH_DEV_DB_PATH`, and `BRUNCH_CHAT_DB_PATH` are rejected in production.
 TLS verification is always enabled, and connection acquisition fails after 10 seconds rather than
@@ -76,28 +92,17 @@ rather than a message. On SIGTERM Flue drains active work for up to 30 seconds, 
 Postgres runner, whose close hook shuts the OpenTelemetry providers down; a 60-second outer timer
 force-exits. Give the ECS task a stop timeout above 60 seconds.
 
-Only `/api/chat` should be reachable by the restricted diagnostic caller. The load balancer or
-access boundary must not expose `/`, `/assets/*`, or `/agents/chat/:id`; caller-supplied principals,
-CORS, and conversation hashes are not authentication. Desired count remains one until
-same-conversation ownership across replicas is separately proven.
+Brunch does not mount the retired `/api/chat` path; requests to it return 404.
+`/agents/chat/:instanceId` is the sole product route required by Petrinaut. Releasing that route to
+production browser ingress requires separate authentication, authorization, ingress, and
+rate/spend gates. Do not expose `/`, `/assets/*`, or other unrelated routes through browser
+ingress. CORS, caller-supplied principals, and conversation hashes are not authentication. Desired
+count remains one until same-conversation ownership across replicas is separately proven.
 
 The deployed chat path stores Flue conversations, submissions, compaction records, attachments,
 claims, leases, and settlement state in Postgres. The separate Brunch capture store is not used by
 that path and remains local-development machinery; enabling capture in a deployment requires a new
 durability decision.
-
-For a restricted remote turn, provide `BRUNCH_SMOKE_BASE_URL`,
-`BRUNCH_SMOKE_PRINCIPAL`, and a stable `BRUNCH_SMOKE_CONVERSATION_ID`;
-`BRUNCH_SMOKE_PROMPT` and `BRUNCH_SMOKE_REQUEST_ID` are optional overrides. The
-turn must stream assistant text and finish within two minutes. Reuse the
-conversation ID for the post-replacement history check and set
-`BRUNCH_SMOKE_EXPECTED_TEXT` to text persisted by the turn; history mode fails
-unless that text is present.
-
-```sh
-yarn workspace @apps/brunch-agent smoke:deployment
-BRUNCH_SMOKE_MODE=history yarn workspace @apps/brunch-agent smoke:deployment
-```
 
 ## Panel and Voice conversation route
 
