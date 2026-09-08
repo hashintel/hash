@@ -127,7 +127,7 @@ jobs:
               push:       ["ecr", "ghcr"],
               dockerfile: "apps/brunch-agent/docker/Dockerfile",
               context:    ".",
-              ecs:        []
+              ecs: [{ service: "brunch-agent", cluster: "h-stage-euc1-brunch", service_name: "h-stage-euc1-brunch-agent" }]
             },
             {
               package:    "@apps/hash-ai-worker-ts",
