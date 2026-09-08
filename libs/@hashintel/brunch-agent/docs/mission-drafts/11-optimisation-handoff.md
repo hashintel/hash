@@ -109,7 +109,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 
 - Existing Petrinaut serialization, scenario, optimization, and UI contracts are terrain to inspect with Chris and Yannis. Their tests establish only what the current product can represent or execute; they do not establish acceptance, package shape, or experiment credibility.
 - Accepted Missions 7, 9, and 10 artifacts must provide the exact conversation, bounded workpiece revisions, captures, derivations, mutation trace, revised region, revision disposition, and deployed witness from which Mission 11 broadens. Their eventual archive/evidence paths replace these draft joins.
-- The pinned Mission 8 handoff proves a local application artifact only. Remote infrastructure, replacement, real provider/collector behavior, rollback, and acceptance remain open.
+- The [Mission 8 consumed deployment contract](../../MISSION.next.md#mission-8-consumed-deployment-contract) proves a published ECS-startable application artifact only. Remote infrastructure, replacement, real provider/collector behavior, rollback, and acceptance remain open.
 - **ORACLE GAP — consumer contract:** record Chris and Yannis' acceptance of all six decisions and one concrete fixture before this draft is cut.
 - **ORACLE GAP — selected complete model:** the consumer question must expose what completeness and credibility mean for this SDCPN; name the exact human or executable oracle only after that question exists.
 - **ORACLE GAP — outer handoff:** the accepted contract must name the witnessed action and observation that distinguish “can begin the experiment” from receipt of an unusable artifact.
@@ -125,7 +125,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 - Selected upstream source: the genuine conversation, settled workpiece revisions, and adjudication accepted by Mission 7; Mission 4 itself closed without a full-run candidate and the Mission 6 prepared fixture is not promoted.
 - Missions 7, 9, and 10: accepted conversation, settled revisions, declared basis, transition records, identity epochs, repeat and change behaviour, revision and patch-locality evidence, and the witnessed real path Mission 11 must broaden.
 - Early consumer discovery: the non-binding record of one candidate question, minimum semantics, execution boundary, outputs, and credibility checks gathered before Mission 9's region selection.
-- Mission 8 actual contract: locally verified application artifact plus still-open infrastructure handoff; no remote deployment is assumed.
+- Mission 8 actual contract: published ECS-startable application artifact plus still-open SRE-1013 / remote-proof handoff; no remote deployment is assumed.
 - Chris/Yannis: written acceptance of the six consumer decisions and one fixture.
 - Petrinaut: current serialization, scenario, optimization, and host capabilities are inspected as existing terrain and used only where the consumer contract accepts them.
 

@@ -238,7 +238,7 @@ Authoritative observed details for the historical stop remain at `157730cc5a214d
 
 The 2026-09-07 GHCR addendum treated #9487 as queued. All three application PRs have now merged, FE-1569/FE-1625/SRE-1012 are Done, and SRE-1013 is the live infra closer. Empty ECS, no RDS/IAM/collector/ingress/owner, and no remote proof matrix remain exactly as the consumed contract above. Pulling the image locally does not discharge FE-1423 or make Drafts 9–11 a remotely deployed host.
 
-**First remaining join — product door versus SRE-1013 ingress.** Tim is provisioning against the #9487 README: allow `/api/chat` and `/health`, deny `/`, `/assets/*`, and `/agents/chat/:id`. That rule is already false on this Mission 7 branch and will be false on `main` the moment Mission 5/6/7 land. The London demo (17 September) uses the Petrinaut panel, which talks to `/agents/chat/:instanceId`. If the ECS/ALB target is cut to `/api/chat` only, the restricted smoke on today's `main` image will pass and the product loop will not. Coordinate the allow-list with Tim before the `ecs` target lands: restricted product traffic is the mounted Flue route; `/health` stays process-local / load-balancer-private; `/` and `/assets/*` stay denied; caller UUID, CORS, and conversation hashes remain identification, not authentication. Retarget `apps/brunch-agent/src/deployment-smoke.ts` in the same successor; it still posts to `/api/chat`.
+**First remaining join — product door versus SRE-1013 ingress.** Tim is provisioning against the #9487 README: allow `/api/chat` and `/health`, deny `/`, `/assets/*`, and `/agents/chat/:id`. That rule is already false on this Mission 7 branch and will be false on `main` the moment Mission 5/6/7 land. The London demo (17 September) uses the Petrinaut panel, which talks to `/agents/chat/:instanceId`. If the ECS/ALB target is cut to `/api/chat` only, the restricted smoke on today's `main` image will pass and the product loop will not. Lu posted the door correction to Tim on Slack on 2026-09-08: do not lock ingress to `/api/chat`; allow Brunch `/agents/*` so the current `/agents/chat/:instanceId` mount and the accepted later `/agents/process-sdcpn/:id` name both fit; keep `/health` private; treat `/api/brunch/:id` as the Petrinaut-website path, not a Brunch-container path; do not rename in SRE-1013. Waiting on Tim's acknowledgement and the `ecs` target. Retarget `apps/brunch-agent/src/deployment-smoke.ts` in the same successor; it still posts to `/api/chat`. The [accepted naming target](#product-and-host-boundary) remains implementation-pending and is not current ingress.
 
 Compose parity still has strain: a published image exists, HASH already pulls sibling services from `ghcr.io/hashintel/hash/{graph,api,frontend,…}`, Tim invited `compose.yml`, and #9487 rebuilt the image with Postgres/OTel. That strain earns an **optional local-infra convenience**, not a live-mission task and not a new Mission 8 draft.
 
@@ -258,11 +258,41 @@ If a later owner adds Compose, keep it profile-gated, one replica, health-checke
 
 | # | Owner | Action | Why now |
 | --- | --- | --- | --- |
-| 1 | Lu → Tim | Re-express SRE-1013 ingress: product door is `/agents/chat/:instanceId`; `/health` private; `/api/chat` is the current `main` diagnostic only | Tim is provisioning against the stale allow-list; the 17 September demo uses the panel |
+| 1 | Lu → Tim | Slack note sent 2026-09-08: allow Brunch `/agents/*`, keep `/health` private, do not lock `/api/chat` or rename in SRE-1013 | Waiting on Tim's acknowledgement; current mount is `/agents/chat/:instanceId`, accepted later names are `/agents/process-sdcpn/:id` and website `/api/brunch/:id` |
 | 2 | Lu (tracker write, approval-gated) | Refresh the FE-1569 Done body so it no longer claims “in progress / absent from catalog”; comment the door change on SRE-1013 | Tracker currently contradicts the three merged PRs |
 | 3 | Tim | Finish SRE-1013: ECS/RDS/IAM/secret/collector/ingress/`ecs` target, stop timeout > 60s | Actual closer; application artifact is ready |
-| 4 | Mission 8 successor, own issue/branch/PR | Retarget smoke and README; run the remote proof matrix on one digest; owner-accept | Publication is not that proof |
+| 4 | Mission 8 successor, own issue/branch/PR | See [successor cut when ready](#mission-8-successor-cut-when-ready) | Publication is not that proof |
 | 5 | Later, not blocking restricted smoke | Compose profile, SRE-1032 `test:docker` in CI, explicit store selector instead of `NODE_ENV`, lean OTel package | Named #9573 follow-ups |
+
+### Mission 8 successor cut when ready
+
+Do not create a Mission 8 draft. Convert this consumed contract into a new root `MISSION.md` on its own issue, branch, and PR. Do not implement from live Mission 7. Re-read this subsection, the [landed application contract](#mission-8-consumed-deployment-contract), the [product and host boundary](#product-and-host-boundary) naming target, and `apps/brunch-agent/README.md` before cutting.
+
+**Visible product advance.** A restricted HASH-hosted Brunch singleton accepts one authorized streamed turn through the product door, survives in-place and cross-host replacement, and shows content-free telemetry. Demo: open the Petrinaut panel against the restricted host, complete one turn, restart the task, reopen the same conversation. Previously impossible: only a local image and a written handoff existed.
+
+**Cut when.** Tim has acknowledged the `/agents/*` ingress note and SRE-1013 has recorded ECS cluster/service/task, RDS/IAM or documented password fallback, Anthropic secret, collector, restricted hostname, stream-safe idle timeout, stop timeout above 60 seconds, and a `deploy.yml` `ecs` target. The smoke retarget may be prepared on the successor branch before those resources exist; the remote proof matrix may not.
+
+**This cut owns.** Re-express restricted ingress on the current mount `/agents/chat/:instanceId` (allow `/agents/*`; `/health` private; `/` and `/assets/*` denied). Retarget `apps/brunch-agent/src/deployment-smoke.ts` and the README smoke instructions off `/api/chat`. Run the remote proof matrix on one immutable digest: two-connection IAM probe or documented password fallback, streamed Anthropic/tool turn on the product door, in-place restart, cross-host replacement, client abort, bounded provider/database failure, content/secret inspection, graceful replacement, rollback, remote telemetry. Record owner acceptance. Keep one replica, stop-before-start.
+
+**This cut does not own** unless separately authorized into live authority: the `process-sdcpn` / `/api/brunch/:id` rename; public FE-1423 identity, rate/spend, retention, backup-restore, or multi-replica work; Compose; SRE-1032 `test:docker` in CI; replacing `NODE_ENV` store selection; extracting a lean OTel package.
+
+**Oracles.** `probe:rds-iam` from the task role; `smoke:deployment` then `BRUNCH_SMOKE_MODE=history` against the restricted host after retarget; hosted collector inspection with no prompt/tool/credential content; replacement and rollback witnesses; `owner-gate.md` naming the deployment/acceptance owner. An HTTP 200 or a pulled image is not acceptance.
+
+**Fog at cut.** Whether Tim provisioned `/agents/*` or only `/agents/chat`. Whether the London demo needs the Petrinaut website on the same restricted host or only the Brunch service. Whether naming adoption is a same-cut amendment or a later mission. Whether IAM or password fallback is the observed path.
+
+**Proposed tracker writes (not executed here).** Linear writes still need a named approval. When applying them, fetch the raw body first and keep the FE-1569 originating Slack request.
+
+FE-1569 visible summary replacement for the stale “in progress / absent from catalog” present tense:
+
+```text
+The application artifact is on main: non-root image, cheap /health, ECR and GHCR publication (#9495), fail-closed Flue Postgres and content-free OTel (#9487), and an ECS-startable image with the RDS CA and shared telemetry (#9573). SRE-1012 created the ECR repository. This issue is Done for that application work. Brunch is not deployed: the catalog ecs list is still empty, and SRE-1013 owns ECS, RDS, secrets, collector, restricted ingress, and the remote proof. Current product door is /agents/chat/:instanceId; accepted later names are /agents/process-sdcpn/:id on Brunch and /api/brunch/:id on the Petrinaut website.
+```
+
+SRE-1013 comment to add after Tim's acknowledgement, not instead of his infra work:
+
+```text
+Application side is ready. Please allow /agents/* on the Brunch service (current mount /agents/chat/:instanceId; accepted later /agents/process-sdcpn/:id), keep /health as a private ALB/task probe, and do not lock ingress to /api/chat or rename in this ticket. /api/brunch/:id is a Petrinaut-website path. Stop timeout must be above 60 seconds.
+```
 
 ## Parallel and asynchronous proof tracks
 
@@ -291,7 +321,7 @@ Detailed mission-specific boundaries, tracer floors, readiness ratchets, risks, 
 - [Draft Mission 10 — bounded reviewer revision](docs/mission-drafts/10-bounded-reviewer-revision.md)
 - [Draft Mission 11 — optimisation handoff](docs/mission-drafts/11-optimisation-handoff.md)
 
-Do not create Mission 4 or Mission 8 drafts. Mission 5 on FE-1574 was Mission 6's transport prerequisite; Mission 6's closed record is [archived](docs/mission-archive/6-resumable-workpiece-petrinaut.md), and Mission 7 is now live. Mission 11 stays deliberately shallow until Chris and Yannis accept input artifacts, one optimisation question, scenario/parameter representation, execution boundary, expected result, and minimum credibility checks.
+Do not create Mission 4 or Mission 8 drafts. Convert Mission 8 from the [successor cut](#mission-8-successor-cut-when-ready) when Tim's SRE-1013 resources exist. Mission 5 on FE-1574 was Mission 6's transport prerequisite; Mission 6's closed record is [archived](docs/mission-archive/6-resumable-workpiece-petrinaut.md), and Mission 7 is now live. Mission 11 stays deliberately shallow until Chris and Yannis accept input artifacts, one optimisation question, scenario/parameter representation, execution boundary, expected result, and minimum credibility checks.
 
 ## Unallocated backlog
 

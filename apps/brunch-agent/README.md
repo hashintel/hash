@@ -95,16 +95,36 @@ Postgres runner, whose close hook shuts the OpenTelemetry providers down; a 60-s
 force-exits. Give the ECS task a stop timeout above 60 seconds.
 
 Brunch does not mount the retired `/api/chat` path; requests to it return 404.
-`/agents/chat/:instanceId` is the sole product route required by Petrinaut. Releasing that route to
-production browser ingress requires separate authentication, authorization, ingress, and
-rate/spend gates. Do not expose `/`, `/assets/*`, or other unrelated routes through browser
-ingress. CORS, caller-supplied principals, and conversation hashes are not authentication. Desired
-count remains one until same-conversation ownership across replicas is separately proven.
+`/agents/chat/:instanceId` is the product door required by Petrinaut. Restricted product traffic
+is that Flue mount: allow `/agents/*` on the Brunch service so the current `chat` name and the
+accepted later `/agents/process-sdcpn/:id` name both fit. Keep `GET /health` as a process-local /
+load-balancer-private probe, not a public hostname path. Deny `/` and `/assets/*`. Stock
+Petrinaut `/api/chat` stays on the website; the accepted later website path is `/api/brunch/:id`.
+Releasing `/agents/*` to production browser ingress requires separate authentication,
+authorization, ingress, and rate/spend gates. CORS, caller-supplied principals, and conversation
+hashes are not authentication. Desired count remains one until same-conversation ownership
+across replicas is separately proven.
 
 The deployed chat path stores Flue conversations, submissions, compaction records, attachments,
 claims, leases, and settlement state in Postgres. The separate Brunch capture store is not used by
 that path and remains local-development machinery; enabling capture in a deployment requires a new
 durability decision.
+
+For a restricted remote turn, provide `BRUNCH_SMOKE_BASE_URL`,
+`BRUNCH_SMOKE_PRINCIPAL`, and a stable `BRUNCH_SMOKE_CONVERSATION_ID`;
+`BRUNCH_SMOKE_PROMPT` and `BRUNCH_SMOKE_REQUEST_ID` are optional overrides. The
+turn must stream assistant text and finish within two minutes. Reuse the
+conversation ID for the post-replacement history check and set
+`BRUNCH_SMOKE_EXPECTED_TEXT` to text persisted by the turn; history mode fails
+unless that text is present.
+
+```sh
+yarn workspace @apps/brunch-agent smoke:deployment
+BRUNCH_SMOKE_MODE=history yarn workspace @apps/brunch-agent smoke:deployment
+```
+
+`smoke:deployment` still posts to `/api/chat`. That matches today's `main` image and will fail
+against this branch's image until a Mission 8 successor retargets it to `/agents/chat/:instanceId`.
 
 ## Panel and Voice conversation route
 

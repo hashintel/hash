@@ -2,6 +2,12 @@
 
 Date: 2026-09-01
 
+> Historical application-to-infrastructure stop. Current contract after #9495/#9487/#9573,
+> SRE-1012, in-progress SRE-1013, and the 2026-09-08 door note lives in
+> [`MISSION.next.md`](../../../MISSION.next.md#mission-8-consumed-deployment-contract).
+> This file is not a claim that Brunch is deployed and is not the current ingress rule.
+> Its `/api/chat` restricted-route line is superseded.
+
 This report records the application-owned deployment work and local proof. It
 does **not** claim that Brunch is deployed. The repository fixes CI publication
 to `eu-central-1`, ECR account `469596578827`, and ECS deployment account
