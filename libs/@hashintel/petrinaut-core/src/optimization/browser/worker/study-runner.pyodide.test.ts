@@ -293,11 +293,11 @@ describe("createOptimizerStudyRunner", () => {
 
       expect(run.trialNumbers).toHaveLength(5);
       expect(run.trials).toHaveLength(4);
-      // The trial in flight at the stop is told as failed so Optuna keeps no
-      // running trial behind; the count carries into the resumed summary.
+      // The trial in flight at the stop is told failed and marked unreported,
+      // so Optuna keeps no running trial behind and the counters skip it.
       expect(stopped).toMatchObject({
         completedTrials: 4,
-        failedTrials: 1,
+        failedTrials: 0,
         cancelled: true,
       });
 
@@ -314,7 +314,7 @@ describe("createOptimizerStudyRunner", () => {
         requestedTrials: 6,
         completedTrials: 6,
         prunedTrials: 0,
-        failedTrials: 1,
+        failedTrials: 0,
         best: resumed.trials.at(-1)?.best,
       });
     },

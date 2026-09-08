@@ -122,7 +122,7 @@ const creationAbortedError = (): Error => {
 const notResumableError = (run: RunRecord): Error =>
   new Error(
     run.status === "finished"
-      ? `Optimization run "${run.runId}" has no study to extend: it was released or failed`
+      ? `Optimization run "${run.runId}" has no study to extend: it was released or failed, or its optimizer worker was lost`
       : `Optimization run "${run.runId}" is still running`,
   );
 
@@ -203,6 +203,9 @@ const connectBrowserOptimization = (options: {
     // eslint-disable-next-line no-param-reassign -- the record's status is the session state this helper advances
     run.status = status;
     run.log.append(event);
+    // A failure can leave the host evaluating trials whose outcomes no one
+    // will read; a completed or stopped segment has nothing left in flight.
+    run.controller.abort();
     const queuedAt = queue.indexOf(run);
     if (queuedAt !== -1) {
       queue.splice(queuedAt, 1);
@@ -216,7 +219,8 @@ const connectBrowserOptimization = (options: {
 
   /**
    * Drops a worker that failed to load or crashed. The run on it, if any,
-   * fails as retryable, and the queue moves on to a fresh worker.
+   * fails as retryable, the studies it kept for finished runs are gone with
+   * it, and the queue moves on to a fresh worker.
    */
   const failSession = (stale: WorkerSession, error: unknown): void => {
     if (session !== stale) {
@@ -224,6 +228,11 @@ const connectBrowserOptimization = (options: {
     }
     session = null;
     stale.worker.terminate();
+    for (const run of runs.values()) {
+      if (run.status === "finished-resumable") {
+        run.status = "finished";
+      }
+    }
     if (active) {
       finish(active, unavailableEvent(error), "finished");
     }

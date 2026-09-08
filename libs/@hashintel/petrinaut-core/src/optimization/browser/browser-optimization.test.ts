@@ -696,6 +696,90 @@ describe("createBrowserOptimization", () => {
     ).toEqual([queued]);
   });
 
+  it("a worker crash marks the studies it kept as gone, so a continuation is refused", async () => {
+    const context = setUp();
+    const completed = await startRun(context);
+    context.worker.emit({
+      type: "trial",
+      runId: completed,
+      event: completedTrial,
+    });
+    context.worker.emit({ type: "complete", runId: completed, summary });
+    await flush();
+    const { runId: running } = await context.capability.createOptimizationRun(
+      createOptimizationManifestInput(),
+    );
+    await flush();
+    expect(
+      context.worker.sentOfType("start").map(({ runId }) => runId),
+    ).toEqual([completed, running]);
+
+    context.worker.emit({ type: "error", runId: running, message: "crashed" });
+    context.worker.emitError({ message: "RangeError: out of memory" });
+    await flush();
+
+    await expect(
+      context.capability.extendOptimizationRun(completed, 1),
+    ).rejects.toThrow("optimizer worker was lost");
+    expect(context.workers).toHaveLength(1);
+    const events = await collectEvents(
+      context.capability.attachOptimizationRun(completed),
+    );
+    expect(events.map((event) => event.type)).toEqual([
+      "started",
+      "trial",
+      "complete",
+    ]);
+  });
+
+  it("a worker crash aborts the trial evaluation in flight", async () => {
+    const context = setUp({ evaluateTrial: () => new Promise(() => {}) });
+    const runId = await startRun(context);
+    context.worker.emit({
+      type: "evaluate",
+      runId,
+      requestId: 1,
+      trial: 0,
+      suggestedValues: { rate: 0.5, count: 6, enabled: true },
+    });
+    await flush();
+    const request = context.evaluateTrial.mock
+      .calls[0]?.[0] as PetrinautOptimizationTrialRequest;
+    expect(request.signal.aborted).toBe(false);
+
+    context.worker.emitError({ message: "RangeError: out of memory" });
+    await flush();
+
+    expect(request.signal.aborted).toBe(true);
+  });
+
+  it("a study error aborts the trial evaluation in flight", async () => {
+    const context = setUp({ evaluateTrial: () => new Promise(() => {}) });
+    const runId = await startRun(context);
+    context.worker.emit({
+      type: "evaluate",
+      runId,
+      requestId: 1,
+      trial: 0,
+      suggestedValues: { rate: 0.5, count: 6, enabled: true },
+    });
+    await flush();
+    const request = context.evaluateTrial.mock
+      .calls[0]?.[0] as PetrinautOptimizationTrialRequest;
+
+    context.worker.emit({ type: "error", runId, message: "ValueError: nope" });
+    await flush();
+
+    expect(request.signal.aborted).toBe(true);
+    const events = await collectEvents(
+      context.capability.attachOptimizationRun(runId),
+    );
+    expect(events.at(-1)).toMatchObject({
+      type: "error",
+      code: "study_failed",
+    });
+  });
+
   it("replays past a cursor and aborts a tailing attachment", async () => {
     const context = setUp();
     const runId = await startRun(context);
