@@ -1,0 +1,1305 @@
+{
+  "addArc": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "transitionId": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+      },
+      "arcDirection": {
+        "type": "string",
+        "enum": ["input", "output"],
+        "description": "Whether the arc connects a place into a transition or a transition out to a place."
+      },
+      "placeId": {
+        "description": "Legacy shorthand for a normal place endpoint in the same net as the transition.",
+        "type": "string",
+        "minLength": 1
+      },
+      "endpoint": {
+        "description": "Arc endpoint. Use `kind: \"componentPort\"` to connect the transition to a port on a subnet instance.",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "place"
+              },
+              "placeId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "ID of a place in the same net as the transition."
+              }
+            },
+            "required": ["kind", "placeId"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "componentPort"
+              },
+              "componentInstanceId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "ID of a component instance in the same net as the transition."
+              },
+              "portPlaceId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+              }
+            },
+            "required": ["kind", "componentInstanceId", "portPlaceId"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "weight": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "description": "Token multiplicity for the arc."
+      },
+      "type": {
+        "description": "Input arc type, only valid when arcDirection is input. Standard arcs consume tokens; read arcs inspect tokens without consuming them; inhibitor arcs block firing when enough tokens are present. Omit this for output arcs.",
+        "type": "string",
+        "enum": ["standard", "inhibitor", "read"]
+      },
+      "targetSubnetId": {
+        "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": ["transitionId", "arcDirection", "weight"],
+    "additionalProperties": false,
+    "description": "Add an input or output arc to a transition."
+  },
+  "addScenario": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+      },
+      "name": {
+        "type": "string",
+        "description": "Human-readable scenario name."
+      },
+      "description": {
+        "description": "Optional scenario summary shown to users.",
+        "type": "string"
+      },
+      "scenarioParameters": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["real", "integer", "boolean", "ratio"],
+              "description": "Primitive type for a user-tunable scenario variable. Use ratio for 0-1 proportions, integer for counts, real for rates or other continuous values, and boolean for switches."
+            },
+            "identifier": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[a-z][a-z0-9_]*$",
+              "description": "Scenario-scoped identifier for a user-tunable variable. Reference it as scenario.identifier in parameterOverrides and initialState expressions. Must be snake_case."
+            },
+            "default": {
+              "type": "number",
+              "description": "Default numeric value for this scenario parameter, shown to the user before they adjust the scenario."
+            }
+          },
+          "required": ["type", "identifier", "default"],
+          "additionalProperties": false,
+          "description": "A user-tunable variable scoped to one scenario. Prefer scenario parameters for key assumptions the user may want to modify between simulation runs, such as population size, initial infected ratio, intervention strength, or stress-test severity."
+        },
+        "description": "User-tunable parameters available only within this scenario. Add scenario parameters for important scenario variables so users can adjust them without editing net-level parameters or code. Reference them as scenario.identifier in parameterOverrides and initialState expressions."
+      },
+      "parameterOverrides": {
+        "default": {},
+        "description": "Map from existing net-level parameter ID to a concrete value or expression for this scenario. Keys MUST be parameter IDs from the current net. Values may be numeric literals such as `\"1.5\"` or expressions using `scenario` and `parameters`, e.g. `\"scenario.transmission_multiplier * 0.4\"`. Inside an override expression, `parameters` resolves to net-level DEFAULTS (not other override results) — overrides cannot reference each other. Omit this field entirely, or use `{}`, when the scenario does not override any net-level parameters. Do NOT emit `\"\"` as a value (it is a no-op at runtime but adds noise).",
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "initialState": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "per_place"
+              },
+              "content": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                "description": "Map keyed by place ID (NOT place name). For uncoloured places, the value is a string expression with `parameters` and `scenario` in scope (e.g. `\"scenario.population * (1 - scenario.infected_ratio)\"`). The result is `Math.round`ed and clamped to >= 0 (token counts are always non-negative integers). For coloured places, the value is a row array where each inner array supplies element values in the SAME ORDER as the colour type's `elements`. Extra columns throw at compile time; missing columns default to the element type's zero value. String values are literal for `string` elements; for `uuid` elements they parse/coerce to UUIDs. `parameters` in expressions is keyed by each parameter's `variableName` value (lower_snake_case)."
+              }
+            },
+            "required": ["type", "content"],
+            "additionalProperties": false,
+            "description": "Initial state specified place-by-place. Use this for most scenarios. The content keys MUST be existing place IDs."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "code"
+              },
+              "content": {
+                "type": "string",
+                "description": "Function body (NOT a module — no `export default`, no wrapper) with `parameters` and `scenario` in scope. MUST `return` an object keyed by PLACE NAME (NOT place ID — note the asymmetry with per_place mode, which uses place IDs). Per-place values: a number for uncoloured places (rounded and clamped to >= 0); `Array<{ [elementName]: number | boolean }>` for coloured places. Unknown place names in the returned object are silently dropped — typos produce an empty initial state with no error, so verify names exactly match."
+              }
+            },
+            "required": ["type", "content"],
+            "additionalProperties": false,
+            "description": "Initial state specified by code. Use only when per_place expressions cannot express the setup (e.g. constructing many coloured tokens from a scenario parameter)."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "adhoc"
+              },
+              "content": {
+                "type": "object",
+                "properties": {
+                  "variables": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "expression": {
+                          "type": "string"
+                        },
+                        "optimize": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "string"
+                                },
+                                "max": {
+                                  "type": "string"
+                                },
+                                "scale": {
+                                  "type": "string",
+                                  "enum": ["linear", "log"]
+                                },
+                                "step": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["min", "max", "scale"],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "retainedOptimize": {
+                          "type": "object",
+                          "properties": {
+                            "min": {
+                              "type": "string"
+                            },
+                            "max": {
+                              "type": "string"
+                            },
+                            "scale": {
+                              "type": "string",
+                              "enum": ["linear", "log"]
+                            },
+                            "step": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["min", "max", "scale"],
+                          "additionalProperties": false
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": ["real", "integer", "boolean"]
+                        },
+                        "exposed": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["expression", "optimize", "name", "type"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "netParameters": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "expression": {
+                          "type": "string"
+                        },
+                        "optimize": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "string"
+                                },
+                                "max": {
+                                  "type": "string"
+                                },
+                                "scale": {
+                                  "type": "string",
+                                  "enum": ["linear", "log"]
+                                },
+                                "step": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["min", "max", "scale"],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "retainedOptimize": {
+                          "type": "object",
+                          "properties": {
+                            "min": {
+                              "type": "string"
+                            },
+                            "max": {
+                              "type": "string"
+                            },
+                            "scale": {
+                              "type": "string",
+                              "enum": ["linear", "log"]
+                            },
+                            "step": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["min", "max", "scale"],
+                          "additionalProperties": false
+                        },
+                        "parameterId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["expression", "optimize", "parameterId"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "places": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "coloured"
+                            },
+                            "variables": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "expression": {
+                                    "type": "string"
+                                  },
+                                  "optimize": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "min": {
+                                            "type": "string"
+                                          },
+                                          "max": {
+                                            "type": "string"
+                                          },
+                                          "scale": {
+                                            "type": "string",
+                                            "enum": ["linear", "log"]
+                                          },
+                                          "step": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": ["min", "max", "scale"],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "retainedOptimize": {
+                                    "type": "object",
+                                    "properties": {
+                                      "min": {
+                                        "type": "string"
+                                      },
+                                      "max": {
+                                        "type": "string"
+                                      },
+                                      "scale": {
+                                        "type": "string",
+                                        "enum": ["linear", "log"]
+                                      },
+                                      "step": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["min", "max", "scale"],
+                                    "additionalProperties": false
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["real", "integer", "boolean"]
+                                  },
+                                  "exposed": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "expression",
+                                  "optimize",
+                                  "name",
+                                  "type"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "rows": {
+                              "type": "array",
+                              "items": {
+                                "oneOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "const": "fixed"
+                                      },
+                                      "cells": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "expression": {
+                                              "type": "string"
+                                            },
+                                            "optimize": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "min": {
+                                                      "type": "string"
+                                                    },
+                                                    "max": {
+                                                      "type": "string"
+                                                    },
+                                                    "scale": {
+                                                      "type": "string",
+                                                      "enum": ["linear", "log"]
+                                                    },
+                                                    "step": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "min",
+                                                    "max",
+                                                    "scale"
+                                                  ],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
+                                            },
+                                            "retainedOptimize": {
+                                              "type": "object",
+                                              "properties": {
+                                                "min": {
+                                                  "type": "string"
+                                                },
+                                                "max": {
+                                                  "type": "string"
+                                                },
+                                                "scale": {
+                                                  "type": "string",
+                                                  "enum": ["linear", "log"]
+                                                },
+                                                "step": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "min",
+                                                "max",
+                                                "scale"
+                                              ],
+                                              "additionalProperties": false
+                                            }
+                                          },
+                                          "required": [
+                                            "expression",
+                                            "optimize"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      },
+                                      "retainedCount": {
+                                        "type": "object",
+                                        "properties": {
+                                          "expression": {
+                                            "type": "string"
+                                          },
+                                          "optimize": {
+                                            "anyOf": [
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "min": {
+                                                    "type": "string"
+                                                  },
+                                                  "max": {
+                                                    "type": "string"
+                                                  },
+                                                  "scale": {
+                                                    "type": "string",
+                                                    "enum": ["linear", "log"]
+                                                  },
+                                                  "step": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "required": [
+                                                  "min",
+                                                  "max",
+                                                  "scale"
+                                                ],
+                                                "additionalProperties": false
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          "retainedOptimize": {
+                                            "type": "object",
+                                            "properties": {
+                                              "min": {
+                                                "type": "string"
+                                              },
+                                              "max": {
+                                                "type": "string"
+                                              },
+                                              "scale": {
+                                                "type": "string",
+                                                "enum": ["linear", "log"]
+                                              },
+                                              "step": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": ["min", "max", "scale"],
+                                            "additionalProperties": false
+                                          }
+                                        },
+                                        "required": ["expression", "optimize"],
+                                        "additionalProperties": false
+                                      }
+                                    },
+                                    "required": ["kind", "cells"],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "const": "template"
+                                      },
+                                      "count": {
+                                        "type": "object",
+                                        "properties": {
+                                          "expression": {
+                                            "type": "string"
+                                          },
+                                          "optimize": {
+                                            "anyOf": [
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "min": {
+                                                    "type": "string"
+                                                  },
+                                                  "max": {
+                                                    "type": "string"
+                                                  },
+                                                  "scale": {
+                                                    "type": "string",
+                                                    "enum": ["linear", "log"]
+                                                  },
+                                                  "step": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "required": [
+                                                  "min",
+                                                  "max",
+                                                  "scale"
+                                                ],
+                                                "additionalProperties": false
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          "retainedOptimize": {
+                                            "type": "object",
+                                            "properties": {
+                                              "min": {
+                                                "type": "string"
+                                              },
+                                              "max": {
+                                                "type": "string"
+                                              },
+                                              "scale": {
+                                                "type": "string",
+                                                "enum": ["linear", "log"]
+                                              },
+                                              "step": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": ["min", "max", "scale"],
+                                            "additionalProperties": false
+                                          }
+                                        },
+                                        "required": ["expression", "optimize"],
+                                        "additionalProperties": false
+                                      },
+                                      "cells": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "expression": {
+                                              "type": "string"
+                                            },
+                                            "optimize": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "min": {
+                                                      "type": "string"
+                                                    },
+                                                    "max": {
+                                                      "type": "string"
+                                                    },
+                                                    "scale": {
+                                                      "type": "string",
+                                                      "enum": ["linear", "log"]
+                                                    },
+                                                    "step": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "min",
+                                                    "max",
+                                                    "scale"
+                                                  ],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
+                                            },
+                                            "retainedOptimize": {
+                                              "type": "object",
+                                              "properties": {
+                                                "min": {
+                                                  "type": "string"
+                                                },
+                                                "max": {
+                                                  "type": "string"
+                                                },
+                                                "scale": {
+                                                  "type": "string",
+                                                  "enum": ["linear", "log"]
+                                                },
+                                                "step": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "min",
+                                                "max",
+                                                "scale"
+                                              ],
+                                              "additionalProperties": false
+                                            }
+                                          },
+                                          "required": [
+                                            "expression",
+                                            "optimize"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      }
+                                    },
+                                    "required": ["kind", "count", "cells"],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              }
+                            },
+                            "sharedColumns": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "expression": {
+                                    "type": "string"
+                                  },
+                                  "optimize": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "min": {
+                                            "type": "string"
+                                          },
+                                          "max": {
+                                            "type": "string"
+                                          },
+                                          "scale": {
+                                            "type": "string",
+                                            "enum": ["linear", "log"]
+                                          },
+                                          "step": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": ["min", "max", "scale"],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "retainedOptimize": {
+                                    "type": "object",
+                                    "properties": {
+                                      "min": {
+                                        "type": "string"
+                                      },
+                                      "max": {
+                                        "type": "string"
+                                      },
+                                      "scale": {
+                                        "type": "string",
+                                        "enum": ["linear", "log"]
+                                      },
+                                      "step": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["min", "max", "scale"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": ["expression", "optimize"],
+                                "additionalProperties": false
+                              }
+                            },
+                            "retainedSharedColumns": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "expression": {
+                                    "type": "string"
+                                  },
+                                  "optimize": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "min": {
+                                            "type": "string"
+                                          },
+                                          "max": {
+                                            "type": "string"
+                                          },
+                                          "scale": {
+                                            "type": "string",
+                                            "enum": ["linear", "log"]
+                                          },
+                                          "step": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": ["min", "max", "scale"],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "retainedOptimize": {
+                                    "type": "object",
+                                    "properties": {
+                                      "min": {
+                                        "type": "string"
+                                      },
+                                      "max": {
+                                        "type": "string"
+                                      },
+                                      "scale": {
+                                        "type": "string",
+                                        "enum": ["linear", "log"]
+                                      },
+                                      "step": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["min", "max", "scale"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": ["expression", "optimize"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "variables",
+                            "rows",
+                            "sharedColumns"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "uncoloured"
+                            },
+                            "count": {
+                              "type": "object",
+                              "properties": {
+                                "expression": {
+                                  "type": "string"
+                                },
+                                "optimize": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "min": {
+                                          "type": "string"
+                                        },
+                                        "max": {
+                                          "type": "string"
+                                        },
+                                        "scale": {
+                                          "type": "string",
+                                          "enum": ["linear", "log"]
+                                        },
+                                        "step": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": ["min", "max", "scale"],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "retainedOptimize": {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "string"
+                                    },
+                                    "max": {
+                                      "type": "string"
+                                    },
+                                    "scale": {
+                                      "type": "string",
+                                      "enum": ["linear", "log"]
+                                    },
+                                    "step": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": ["min", "max", "scale"],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": ["expression", "optimize"],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": ["kind", "count"],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": ["variables", "netParameters", "places"],
+                "additionalProperties": false,
+                "description": "An ad-hoc scenario definition as the in-app form edits it: every value is an expression, Variables exist at the top level (exposed ones become scenario parameters) and per coloured place, rows are fixed or dynamic, and columns may share one value. Authored by the form — prefer per_place or code when creating scenarios programmatically."
+              }
+            },
+            "required": ["type", "content"],
+            "additionalProperties": false,
+            "description": "Initial state authored with the in-app ad-hoc form. The scenario's scenarioParameters (from exposed Variables) and parameterOverrides are derived from this state on save; compilation synthesizes it to code. Do not author this variant programmatically — prefer per_place or code."
+          }
+        ],
+        "description": "Initial token state for a scenario. Prefer type \"per_place\" (content keyed by place ID); use type \"code\" (content keyed by place NAME) only for advanced custom setup. Type \"adhoc\" is authored by the in-app form."
+      }
+    },
+    "required": ["id", "name", "scenarioParameters", "initialState"],
+    "additionalProperties": false,
+    "description": "Add a simulation scenario. Include `scenarioParameters` for key user-tunable assumptions (reference them in expressions as `scenario.<identifier>`). `parameterOverrides` keys MUST be existing net-level parameter IDs; omit the field entirely when nothing is overridden. `initialState.content` keys are place IDs when `type` is `per_place`, but place NAMES when `type` is `code` (note the asymmetry). Never author `initialState.type` `adhoc` — that variant belongs to the in-app form; use `per_place` or `code`."
+  },
+  "addTransition": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+      },
+      "name": {
+        "type": "string",
+        "description": "Human-readable transition name."
+      },
+      "description": {
+        "description": "Optional human-readable summary shown to users.",
+        "type": "string"
+      },
+      "metadata": {
+        "description": "Optional host-defined data. Petrinaut treats it as opaque and never renders it.",
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "inputArcs": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "placeId": {
+              "description": "Legacy shorthand for a normal input place endpoint. Prefer `endpoint` for new data.",
+              "type": "string",
+              "minLength": 1
+            },
+            "endpoint": {
+              "description": "Input endpoint. Use `kind: \"componentPort\"` to consume/read/inhibit tokens from a component instance port.",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "place"
+                    },
+                    "placeId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "ID of a place in the same net as the transition."
+                    }
+                  },
+                  "required": ["kind", "placeId"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "componentPort"
+                    },
+                    "componentInstanceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "ID of a component instance in the same net as the transition."
+                    },
+                    "portPlaceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                    }
+                  },
+                  "required": ["kind", "componentInstanceId", "portPlaceId"],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "weight": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Token multiplicity for this input arc. Standard arcs consume this many tokens; read arcs require and expose this many tokens without consuming them; inhibitor arcs require the source place to have fewer than this many tokens. For coloured standard/read input places this also determines the tuple length the transition's lambda and kernel see at `input.PlaceName` (weight 2 means a 2-token array)."
+            },
+            "type": {
+              "type": "string",
+              "enum": ["standard", "inhibitor", "read"],
+              "description": "Standard arcs consume tokens from the input place; read arcs require and expose tokens to the lambda/kernel but do NOT consume them; inhibitor arcs prevent firing when the source place has at least the weight indicated and are NOT present in the lambda or kernel `input`."
+            }
+          },
+          "required": ["weight", "type"],
+          "additionalProperties": false,
+          "description": "Input arc from a place or component port into a transition."
+        },
+        "description": "Input arcs that gate transition firing. Standard arcs consume tokens, read arcs observe tokens without consuming them, and inhibitor arcs block firing based on token counts."
+      },
+      "outputArcs": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "placeId": {
+              "description": "Legacy shorthand for a normal output place endpoint. Prefer `endpoint` for new data.",
+              "type": "string",
+              "minLength": 1
+            },
+            "endpoint": {
+              "description": "Output endpoint. Use `kind: \"componentPort\"` to produce tokens into a component instance port.",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "place"
+                    },
+                    "placeId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "ID of a place in the same net as the transition."
+                    }
+                  },
+                  "required": ["kind", "placeId"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "componentPort"
+                    },
+                    "componentInstanceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "ID of a component instance in the same net as the transition."
+                    },
+                    "portPlaceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                    }
+                  },
+                  "required": ["kind", "componentInstanceId", "portPlaceId"],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "weight": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Number of tokens produced into the output place."
+            }
+          },
+          "required": ["weight"],
+          "additionalProperties": false,
+          "description": "Output arc from a transition into a place or component port."
+        },
+        "description": "Output arcs that receive tokens after this transition fires."
+      },
+      "lambdaType": {
+        "type": "string",
+        "enum": ["predicate", "stochastic"],
+        "description": "Use predicate for boolean enabling logic when transition lambda authoring is available; use stochastic for rate-based firing when stochasticity is available."
+      },
+      "lambdaCode": {
+        "type": "string",
+        "description": "Optional function body ending in `return`, with `input` and `parameters` ambient (the legacy `export default Lambda((input, parameters) => …)` module form is also accepted). Lambda code is meaningful only when stochasticity is enabled OR when colours are enabled and the transition has at least one standard or read input arc from a coloured place. `input` is keyed by INPUT PLACE NAME (PascalCase) for coloured standard and read arcs, and the value is a tuple sized to that arc's weight (weight 2 means a 2-token array). Read arc tokens are present in `input` but are not consumed when the transition fires. Inhibitor arcs and uncoloured input places are NOT present in `input`. Each token is an object keyed by the colour type's element names (e.g. `{ x, y, velocity }`). `parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.infection_rate`). Predicate lambdas MUST return a boolean (true = enabled given these tokens, false = disabled). Stochastic lambdas MUST return a non-negative number = expected firings per simulation second (0 disables, Infinity always fires). Lambda is called per token combination satisfying arc weights, so it MUST be deterministic — put randomness in the transition kernel, not here. Leave empty when lambda authoring is unavailable; the runtime supplies the always-enabled default."
+      },
+      "transitionKernelCode": {
+        "type": "string",
+        "description": "Optional function body ending in `return`, with `input` and `parameters` ambient (the legacy `export default TransitionKernel((input, parameters) => …)` module form is also accepted). Transition kernel code is meaningful only when colours are enabled and the transition has at least one coloured output place. `input` and `parameters` have the same shape as the transition's lambda. MUST return an object keyed by OUTPUT PLACE NAME with a tuple sized to that arc's weight. Coloured output places MUST be present; uncoloured output places MUST be omitted (they are auto-populated with empty tokens). Token attribute values must match the output type: real/integer use numbers, boolean uses booleans. When stochasticity is enabled, `real` attributes may also use `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)` (discrete attributes always take plain values); each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample. Leave empty when no coloured outputs exist."
+      },
+      "x": {
+        "type": "number",
+        "description": "Horizontal canvas position."
+      },
+      "y": {
+        "type": "number",
+        "description": "Vertical canvas position."
+      },
+      "targetSubnetId": {
+        "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "inputArcs",
+      "outputArcs",
+      "lambdaType",
+      "lambdaCode",
+      "transitionKernelCode",
+      "x",
+      "y"
+    ],
+    "additionalProperties": false,
+    "description": "Add a transition with firing logic and arcs.",
+    "$defs": {
+      "__schema0": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema0"
+            }
+          },
+          {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/__schema0"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "updateTransition": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "transitionId": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+      },
+      "update": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Human-readable transition name."
+          },
+          "description": {
+            "description": "Optional human-readable summary shown to users.",
+            "type": "string"
+          },
+          "metadata": {
+            "description": "Optional host-defined data. Petrinaut treats it as opaque and never renders it.",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/__schema0"
+            }
+          },
+          "lambdaType": {
+            "type": "string",
+            "enum": ["predicate", "stochastic"],
+            "description": "Use predicate for boolean enabling logic when transition lambda authoring is available; use stochastic for rate-based firing when stochasticity is available."
+          },
+          "lambdaCode": {
+            "type": "string",
+            "description": "Optional function body ending in `return`, with `input` and `parameters` ambient (the legacy `export default Lambda((input, parameters) => …)` module form is also accepted). Lambda code is meaningful only when stochasticity is enabled OR when colours are enabled and the transition has at least one standard or read input arc from a coloured place. `input` is keyed by INPUT PLACE NAME (PascalCase) for coloured standard and read arcs, and the value is a tuple sized to that arc's weight (weight 2 means a 2-token array). Read arc tokens are present in `input` but are not consumed when the transition fires. Inhibitor arcs and uncoloured input places are NOT present in `input`. Each token is an object keyed by the colour type's element names (e.g. `{ x, y, velocity }`). `parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.infection_rate`). Predicate lambdas MUST return a boolean (true = enabled given these tokens, false = disabled). Stochastic lambdas MUST return a non-negative number = expected firings per simulation second (0 disables, Infinity always fires). Lambda is called per token combination satisfying arc weights, so it MUST be deterministic — put randomness in the transition kernel, not here. Leave empty when lambda authoring is unavailable; the runtime supplies the always-enabled default."
+          },
+          "transitionKernelCode": {
+            "type": "string",
+            "description": "Optional function body ending in `return`, with `input` and `parameters` ambient (the legacy `export default TransitionKernel((input, parameters) => …)` module form is also accepted). Transition kernel code is meaningful only when colours are enabled and the transition has at least one coloured output place. `input` and `parameters` have the same shape as the transition's lambda. MUST return an object keyed by OUTPUT PLACE NAME with a tuple sized to that arc's weight. Coloured output places MUST be present; uncoloured output places MUST be omitted (they are auto-populated with empty tokens). Token attribute values must match the output type: real/integer use numbers, boolean uses booleans. When stochasticity is enabled, `real` attributes may also use `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)` (discrete attributes always take plain values); each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample. Leave empty when no coloured outputs exist."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Fields to assign to an existing transition. Omitted fields are left unchanged."
+      },
+      "targetSubnetId": {
+        "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": ["transitionId", "update"],
+    "additionalProperties": false,
+    "description": "Update a transition's properties, arcs, or executable code.",
+    "$defs": {
+      "__schema0": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema0"
+            }
+          },
+          {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/__schema0"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "getLatestNetDefinition": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false,
+    "description": "Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities."
+  }
+}

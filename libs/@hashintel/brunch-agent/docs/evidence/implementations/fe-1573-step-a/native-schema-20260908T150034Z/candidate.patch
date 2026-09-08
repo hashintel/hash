@@ -1,0 +1,214 @@
+--- a/@flue/runtime/dist/schema-DIDpvZZa.mjs
++++ b/@flue/runtime/dist/schema-DIDpvZZa.mjs
+@@ -63 +63,27 @@
+-export { valibotToJsonSchema as i, isValibotSchema as n, parseValibot as r, isTopLevelObjectSchema as t };
++// Native custom-tool inputs use Standard Schema and Standard JSON Schema together.
++function isNativeToolInput(schema) {
++	const standard = schema?.["~standard"];
++	return standard?.version === 1 && typeof standard.vendor === "string" && typeof standard.validate === "function" && typeof standard.jsonSchema?.input === "function";
++}
++function toolInputToJsonSchema(schema) {
++	if (isValibotSchema(schema)) return valibotToJsonSchema(schema);
++	if (!isNativeToolInput(schema)) throw new TypeError("[flue] Expected a Valibot or native Standard Schema with input JSON Schema.");
++	const cached = jsonSchemas.get(schema);
++	if (cached) return cached;
++	const exported = schema["~standard"].jsonSchema.input({ target: "draft-2020-12" });
++	if (!exported || typeof exported !== "object" || Array.isArray(exported) || exported.type !== "object") throw new TypeError("[flue] Native tool input must export a top-level object schema.");
++	const frozen = deepFreeze(structuredClone(exported));
++	jsonSchemas.set(schema, frozen);
++	return frozen;
++}
++async function parseToolInputSchema(schema, value) {
++	if (isValibotSchema(schema)) return parseValibot(schema, value);
++	if (!isNativeToolInput(schema)) throw new TypeError("[flue] Expected a native Standard Schema with input JSON Schema.");
++	const parsed = await schema["~standard"].validate(value);
++	if (!parsed.issues) return { success: true, output: parsed.value };
++	return { success: false, issues: parsed.issues.map((issue) => {
++		const path = issue.path?.map((segment) => typeof segment === "object" && segment !== null ? segment.key : segment);
++		return path?.length ? { message: issue.message, path } : { message: issue.message };
++	}) };
++}
++export { valibotToJsonSchema as i, isValibotSchema as n, parseValibot as r, isTopLevelObjectSchema as t, isNativeToolInput, toolInputToJsonSchema, parseToolInputSchema };
+--- a/@flue/runtime/dist/tool-DZ5dxCl_.mjs
++++ b/@flue/runtime/dist/tool-DZ5dxCl_.mjs
+@@ -2 +2 @@
+-import { n as isValibotSchema, r as parseValibot, t as isTopLevelObjectSchema } from "./schema-DIDpvZZa.mjs";
++import { n as isValibotSchema, r as parseValibot, t as isTopLevelObjectSchema, isNativeToolInput, toolInputToJsonSchema, parseToolInputSchema } from "./schema-DIDpvZZa.mjs";
+@@ -44,0 +45 @@
++		prepareArguments: options.prepareArguments,
+@@ -54,0 +56 @@
++	"prepareArguments",
+@@ -67,2 +69,6 @@
+-		if (!isValibotSchema(tool.input)) throw new Error(`[flue] ${label} input must be a Valibot schema.`);
+-		if (!isTopLevelObjectSchema(tool.input)) throw new Error(`[flue] ${label} input must be a top-level object schema.`);
++		if (isValibotSchema(tool.input)) {
++			if (!isTopLevelObjectSchema(tool.input)) throw new Error(`[flue] ${label} input must be a top-level object schema.`);
++		} else {
++			if (!isNativeToolInput(tool.input)) throw new Error(`[flue] ${label} input must be a Valibot or native Standard Schema with input JSON Schema.`);
++			toolInputToJsonSchema(tool.input);
++		}
+@@ -69,0 +76 @@
++	if (tool.prepareArguments !== void 0 && typeof tool.prepareArguments !== "function") throw new Error(`[flue] ${label} prepareArguments must be a function.`);
+@@ -75,2 +82,2 @@
+-function parseToolInput(tool, data, signal, facilities) {
+-	const base = {
++function toolContextBase(tool, signal, facilities) {
++	return {
+@@ -82,0 +90,3 @@
++}
++async function parseToolInput(tool, data, signal, facilities) {
++	const base = toolContextBase(tool, signal, facilities);
+@@ -87 +97 @@
+-	const parsed = parseValibot(tool.input, data === void 0 ? {} : data);
++	const parsed = await parseToolInputSchema(tool.input, data === void 0 ? {} : data);
+@@ -206 +216 @@
+-export { parseToolInput as a, defineTool as i, claimStepName as n, resolveToolRun as o, cloneStepValue as r, assertToolDefinition as t };
++export { toolContextBase, parseToolInput as a, defineTool as i, claimStepName as n, resolveToolRun as o, cloneStepValue as r, assertToolDefinition as t };
+--- a/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs
++++ b/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs
+@@ -6,2 +6,2 @@
+-import { i as valibotToJsonSchema } from "./schema-DIDpvZZa.mjs";
+-import { a as parseToolInput, n as claimStepName, o as resolveToolRun, r as cloneStepValue, t as assertToolDefinition } from "./tool-DZ5dxCl_.mjs";
++import { toolInputToJsonSchema, isNativeToolInput, n as isValibotSchema } from "./schema-DIDpvZZa.mjs";
++import { toolContextBase, a as parseToolInput, n as claimStepName, o as resolveToolRun, r as cloneStepValue, t as assertToolDefinition } from "./tool-DZ5dxCl_.mjs";
+@@ -544 +544 @@
+-		...tool.input ? { schema: JSON.stringify(valibotToJsonSchema(tool.input)) } : {}
++		...tool.input ? { schema: JSON.stringify(toolInputToJsonSchema(tool.input)) } : {}
+@@ -2654 +2654,2 @@
+-			const parsed = parseToolInput(toolDef, params, signal, {
++			const preparedParams = toolDef.prepareArguments ? toolDef.prepareArguments(structuredClone(params)) : params;
++			const parsed = await abandonToolOnAbort(() => parseToolInput(toolDef, preparedParams, signal, {
+@@ -2659 +2660,2 @@
+-			});
++			}), signal);
++			if (signal.aborted) throw abortErrorFor(signal);
+@@ -3164 +3166 @@
+-					prepared = prepare(toolCallId, params, signal);
++					prepared = await abandonToolOnAbort(() => prepare(toolCallId, params, signal), signal);
+@@ -3321,0 +3324 @@
++			const nativeInput = !preparedToolAdapter && !isValibotSchema(toolDef.input) && isNativeToolInput(toolDef.input);
+@@ -3322,0 +3326,4 @@
++				...(nativeInput ? { validateArguments: async (args, { toolCallId, signal }) => {
++					const parsed = await abandonToolOnAbort(() => parseToolInput(toolDef, args, signal, { toolCallId }), signal);
++					return parsed.data;
++				} } : {}),
+@@ -3324,0 +3332 @@
++				...(toolDef.prepareArguments ? { prepareArguments: (args) => toolDef.prepareArguments(structuredClone(args)) } : {}),
+@@ -3326 +3334 @@
+-				parameters: preparedToolAdapter?.parameters ?? (toolDef.input ? valibotToJsonSchema(toolDef.input) : {
++				parameters: preparedToolAdapter?.parameters ?? (toolDef.input ? toolInputToJsonSchema(toolDef.input) : {
+@@ -3335 +3343 @@
+-			return this.wrapModelTool(tool, "custom", (toolCallId, params, signal) => {
++			return this.wrapModelTool(tool, "custom", async (toolCallId, params, signal) => {
+@@ -3348,5 +3356,3 @@
+-				const parsed = parseToolInput(toolDef, params, signal, {
+-					log: toolLogger,
+-					toolCallId,
+-					...toolDef.durable ? { step: this.createToolStep(toolDef.name, toolCallId, toolLogger) } : {}
+-				});
++				const facilities = { log: toolLogger, toolCallId, ...toolDef.durable ? { step: this.createToolStep(toolDef.name, toolCallId, toolLogger) } : {} };
++				// Native args were parsed once by validateArguments, before beforeToolCall.
++				const parsed = nativeInput ? { data: params, context: { ...toolContextBase(toolDef, signal, facilities), data: params } } : await parseToolInput(toolDef, params, signal, facilities);
+--- a/@flue/runtime/dist/types-CVx9SjIx.d.mts
++++ b/@flue/runtime/dist/types-CVx9SjIx.d.mts
+@@ -2,0 +3 @@
++import type { StandardSchemaV1, StandardJSONSchemaV1 } from "@standard-schema/spec";
+@@ -79 +80 @@
+-type ToolInputSchema = v.GenericSchema<Record<string, unknown>, unknown>;
++type ToolInputSchema = v.GenericSchema<Record<string, unknown>, unknown> | (StandardSchemaV1 & StandardJSONSchemaV1);
+@@ -129 +130 @@
+-  readonly data: v.InferOutput<S>;
++  readonly data: StandardSchemaV1.InferOutput<S>;
+@@ -155,0 +157,2 @@
++  /** Explicit compatibility normalization before validation; never inferred from JSON Schema. */
++  readonly prepareArguments?: (args: unknown) => unknown;
+@@ -176 +179 @@
+-type ToolInput<TTool extends ToolDefinition> = TTool extends ToolDefinition<infer TInput, any, any> ? TInput extends ToolInputSchema ? v.InferInput<TInput> : never : never;
++type ToolInput<TTool extends ToolDefinition> = TTool extends ToolDefinition<infer TInput, any, any> ? TInput extends ToolInputSchema ? StandardSchemaV1.InferInput<TInput> : never : never;
+--- a/@earendil-works/pi-ai/dist/api/anthropic-messages.js
++++ b/@earendil-works/pi-ai/dist/api/anthropic-messages.js
+@@ -1000,12 +1000,2 @@
+-        const schema = tool.parameters;
+-        const legacyInputSchema = {
+-            type: "object",
+-            properties: schema.properties ?? {},
+-            required: schema.required ?? [],
+-        };
+-        const inputSchema = strict === true
+-            ? {
+-                ...tool.parameters,
+-                ...legacyInputSchema,
+-            }
+-            : legacyInputSchema;
++        // Schema carriage is independent of constrained generation policy.
++        const inputSchema = tool.parameters;
+--- a/@earendil-works/pi-agent-core/dist/agent-loop.js
++++ b/@earendil-works/pi-agent-core/dist/agent-loop.js
+@@ -403,2 +403,5 @@
+-        const preparedToolCall = prepareToolCallArguments(tool, toolCall);
+-        const validatedArgs = validateToolArguments(tool, preparedToolCall);
++        const preparedToolCall = prepareToolCallArguments(tool, tool.validateArguments ? { ...toolCall, arguments: structuredClone(toolCall.arguments) } : toolCall);
++        const validatedArgs = tool.validateArguments
++            ? await tool.validateArguments(structuredClone(preparedToolCall.arguments), { toolCallId: toolCall.id, signal })
++            : validateToolArguments(tool, preparedToolCall);
++        if (signal?.aborted) return { kind: "immediate", result: createErrorToolResult("Operation aborted"), isError: true };
+--- a/@earendil-works/pi-agent-core/dist/types.d.ts
++++ b/@earendil-works/pi-agent-core/dist/types.d.ts
+@@ -75 +75 @@
+-    /** Validated tool arguments for the target tool schema. */
++    /** Parsed arguments from the tool's authoritative validator (custom validateArguments or generic schema validation). */
+@@ -86 +86 @@
+-    /** Validated tool arguments for the target tool schema. */
++    /** Parsed arguments from the tool's authoritative validator (custom validateArguments or generic schema validation). */
+@@ -333 +333 @@
+-export interface AgentTool<TParameters extends TSchema = TSchema, TDetails = any> extends Tool<TParameters> {
++export interface AgentTool<TParameters extends TSchema = TSchema, TDetails = any, TArguments = Static<TParameters>> extends Tool<TParameters> {
+@@ -340,0 +341,5 @@
++    /** Authoritative per-tool validation. Replaces generic JSON Schema validation/coercion.
++     * Receives a clone of prepared raw input; returns parsed data for beforeToolCall
++     * and execute, or throws. Implementations must honor the supplied abort signal.
++     * The provider JSON Schema remains the representable input projection. */
++    validateArguments?: (args: unknown, context: { toolCallId: string; signal?: AbortSignal }) => TArguments | Promise<TArguments>;
+@@ -342 +347 @@
+-    execute: (toolCallId: string, params: Static<TParameters>, signal?: AbortSignal, onUpdate?: AgentToolUpdateCallback<TDetails>) => Promise<AgentToolResult<TDetails>>;
++    execute: (toolCallId: string, params: TArguments, signal?: AbortSignal, onUpdate?: AgentToolUpdateCallback<TDetails>) => Promise<AgentToolResult<TDetails>>;
+--- a/@flue/runtime/dist/tool-NmMNtPCM.d.mts
++++ b/@flue/runtime/dist/tool-NmMNtPCM.d.mts
+@@ -6,0 +7 @@
++  prepareArguments?: (args: unknown) => unknown;
+--- a/@flue/runtime/dist/index.d.mts
++++ b/@flue/runtime/dist/index.d.mts
+@@ -892,0 +893 @@
++  prepareArguments?: (args: unknown) => unknown;
+--- a/@flue/runtime/package.json
++++ b/@flue/runtime/package.json
+@@ -80,0 +81 @@
++    "@standard-schema/spec": "1.1.0",
+--- a/@flue/runtime/docs/guide/tools.md
++++ b/@flue/runtime/docs/guide/tools.md
+@@ -53 +53 @@
+-**Input.** The `input` schema is a [Valibot](https://valibot.dev) schema and must be a top-level object schema. Model-supplied arguments are parsed by it before `run` executes, and `run` receives the parsed value as `data`, fully typed. When validation fails, `run` is never called — the failure goes back to the model as a tool error so it can correct its arguments and retry.
++**Input.** `input` accepts the existing top-level Valibot object schemas or a native schema implementing both Standard Schema V1 and Standard JSON Schema V1. A native schema must export an object input via `~standard.jsonSchema.input({ target: 'draft-2020-12' })`; export failures refuse the definition. Flue carries that native input schema unchanged and uses its `~standard.validate` method as the authoritative parser before Pi's `beforeToolCall` hook and tool execution, without prior generic JSON-Schema coercion. `run.data` is the inferred parsed output, including native defaults/transforms, not the unparsed input type. Validation failure becomes a matching-call tool error and never calls `run`. Async native validation is supported and abandoned on cancellation. Valibot conversion/validation and output/result schemas retain their existing behavior.
+@@ -54,0 +55,2 @@
++An optional synchronous `prepareArguments(args)` compatibility normalizer runs before validation. It does not change the model-facing input schema or confer validity; the native validator still checks the normalized input. Use only an explicitly chosen normalization policy, never derive coercions from JSON Schema. Durable re-execution uses the same normalizer and validator on the retained raw arguments. Native schemas may contain executable refinements not expressible in JSON Schema; carriage does not claim those refinements were exported.
++
+--- a/@flue/runtime/docs/reference/agent-api.md
++++ b/@flue/runtime/docs/reference/agent-api.md
+@@ -491 +491,2 @@
+-  input?: ToolInputSchema;   // Valibot schema; top-level object
++  input?: ToolInputSchema;   // Valibot object or native Standard Schema + Standard JSON Schema input
++  prepareArguments?: (args: unknown) => unknown; // explicit synchronous compatibility normalization
+@@ -502 +503,2 @@
+-- `input` — a Valibot schema for the call's arguments. Must be a top-level object schema (the model sends a JSON object); anything else throws. When present, the parsed output arrives as `context.data`, typed by inference. When absent, the tool receives no `data` property and callers' arguments are ignored.
++- `input` — a Valibot object schema or native Standard Schema V1 plus Standard JSON Schema V1. The native input exporter must produce an object schema for draft 2020-12. Native arguments reach its validator without prior generic schema coercion; parsed output reaches `beforeToolCall` and `context.data` once, typed by native output inference. Export/validation errors fail closed. When absent, the tool receives no `data` property and callers' arguments are ignored.
++- `prepareArguments` — optional synchronous compatibility normalization before validation; retained raw history and model-facing input JSON Schema are unchanged. Applied in both live execution and durable re-execution.
+--- a/@earendil-works/pi-agent-core/README.md
++++ b/@earendil-works/pi-agent-core/README.md
+@@ -397,0 +398,2 @@
++
++A tool may supply `validateArguments(args, { toolCallId, signal })` as its authoritative validator. This replaces generic JSON Schema validation/coercion for that tool only. It receives cloned input after an optional `prepareArguments` normalizer and returns parsed data (or throws/rejects). The original tool call/history is not rewritten. `beforeToolCall`, `afterToolCall` and `execute` receive that parsed data; a validation failure or cancellation prevents execution. Validators must honor the abort signal. Tools without this callback retain the existing generic validation path. The third `AgentTool` type parameter describes parsed arguments when they differ from the parameter schema's static input type. The JSON Schema in `parameters` remains the provider-facing input projection; it need not represent executable refinements or normalized output defaults.
+--- a/@earendil-works/pi-ai/README.md
++++ b/@earendil-works/pi-ai/README.md
+@@ -481,0 +482,2 @@
++
++Anthropic tool preparation preserves the supplied parameter schema independently of constrained sampling, including root descriptions, additional-properties constraints, definitions and references. The adapter does not rewrite missing `required` lists or remove the declared dialect. This is schema carriage, not a promise that the remote provider accepts every JSON Schema keyword or that arbitrary runtime refinements can be exported.

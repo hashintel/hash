@@ -1,0 +1,3928 @@
+{
+  "mode": "two-boundary",
+  "applied": [
+    {
+      "path": "@flue/runtime/dist/schema-DIDpvZZa.mjs",
+      "sha256": "dbe9e224c56c6e135c704f4b4659f642c90fa5dd471dd35cb41ac804ab948e97"
+    },
+    {
+      "path": "@flue/runtime/dist/tool-DZ5dxCl_.mjs",
+      "sha256": "a26188b56aba181235747bedbe2b93d06bb5c723869f05bd2bd345dfb37469bd"
+    },
+    {
+      "path": "@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs",
+      "sha256": "2273c79027f21b3d0dbc91905283b73aeb481352a16369f46bf2b0e1feae73fe"
+    },
+    {
+      "path": "@flue/runtime/dist/types-CVx9SjIx.d.mts",
+      "sha256": "9b822f1be45931814c220201beff8194c30292382d214b6f804591224556d09e"
+    },
+    {
+      "path": "@earendil-works/pi-ai/dist/api/anthropic-messages.js",
+      "sha256": "7ca9f5414e8a1a6c358f59592513b16d905b9be27142a1bc16817cf75d8ec817"
+    },
+    {
+      "path": "@flue/runtime/package.json",
+      "sha256": "c5e309215be49579b62219d6a28f3bcae842a535d1f5466a06c1e82d666e4ee5"
+    },
+    {
+      "path": "@earendil-works/pi-ai/README.md",
+      "sha256": "97f942b4986e21fa2c981298b712e6911d97e37968541a99eb720f4573b89307"
+    }
+  ],
+  "model": {
+    "id": "claude-sonnet-4-6",
+    "name": "Claude Sonnet 4.6",
+    "api": "anthropic-messages",
+    "provider": "anthropic",
+    "baseUrl": "https://api.anthropic.com",
+    "reasoning": true,
+    "input": ["text", "image"],
+    "cost": {
+      "input": 3,
+      "output": 15,
+      "cacheRead": 0.3,
+      "cacheWrite": 3.75
+    },
+    "contextWindow": 1000000,
+    "maxTokens": 128000,
+    "thinkingLevelMap": {
+      "max": "max"
+    },
+    "compat": {
+      "forceAdaptiveThinking": true,
+      "supportsStrictTools": true
+    }
+  },
+  "networkAttempts": 0,
+  "syntheticFetchCalls": 24,
+  "declaration": {
+    "accepted": true
+  },
+  "nativeLimitControls": [
+    {
+      "name": "non-object",
+      "error": "[flue] Native tool input must export a top-level object schema."
+    },
+    {
+      "name": "unrepresentable-date",
+      "error": "Date cannot be represented in JSON Schema"
+    },
+    {
+      "name": "validator-without-export",
+      "error": "[flue] defineTool() input must be a Valibot or native Standard Schema with input JSON Schema."
+    }
+  ],
+  "projections": {
+    "addArc": {
+      "input": {
+        "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679",
+        "rootKeys": [
+          "$schema",
+          "type",
+          "properties",
+          "required",
+          "additionalProperties",
+          "description"
+        ],
+        "required": ["transitionId", "arcDirection", "weight"],
+        "additionalProperties": false,
+        "description": "Add an input or output arc to a transition.",
+        "definitions": [],
+        "references": [],
+        "dangling": []
+      },
+      "output": {
+        "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679",
+        "rootKeys": [
+          "$schema",
+          "type",
+          "properties",
+          "required",
+          "additionalProperties",
+          "description"
+        ],
+        "required": ["transitionId", "arcDirection", "weight"],
+        "additionalProperties": false,
+        "description": "Add an input or output arc to a transition.",
+        "definitions": [],
+        "references": [],
+        "dangling": []
+      }
+    },
+    "addScenario": {
+      "input": {
+        "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c",
+        "rootKeys": [
+          "$schema",
+          "type",
+          "properties",
+          "required",
+          "additionalProperties",
+          "description"
+        ],
+        "required": ["id", "name", "scenarioParameters", "initialState"],
+        "additionalProperties": false,
+        "description": "Add a simulation scenario. Include `scenarioParameters` for key user-tunable assumptions (reference them in expressions as `scenario.<identifier>`). `parameterOverrides` keys MUST be existing net-level parameter IDs; omit the field entirely when nothing is overridden. `initialState.content` keys are place IDs when `type` is `per_place`, but place NAMES when `type` is `code` (note the asymmetry). Never author `initialState.type` `adhoc` — that variant belongs to the in-app form; use `per_place` or `code`.",
+        "definitions": [],
+        "references": [],
+        "dangling": []
+      },
+      "output": {
+        "sha256": "6fa9a2c29b08bcf818a12da298d7d56cceefde8278ca8044c2abe9cc46dd9797",
+        "rootKeys": [
+          "$schema",
+          "type",
+          "properties",
+          "required",
+          "additionalProperties",
+          "description"
+        ],
+        "required": [
+          "id",
+          "name",
+          "scenarioParameters",
+          "parameterOverrides",
+          "initialState"
+        ],
+        "additionalProperties": false,
+        "description": "Add a simulation scenario. Include `scenarioParameters` for key user-tunable assumptions (reference them in expressions as `scenario.<identifier>`). `parameterOverrides` keys MUST be existing net-level parameter IDs; omit the field entirely when nothing is overridden. `initialState.content` keys are place IDs when `type` is `per_place`, but place NAMES when `type` is `code` (note the asymmetry). Never author `initialState.type` `adhoc` — that variant belongs to the in-app form; use `per_place` or `code`.",
+        "definitions": [],
+        "references": [],
+        "dangling": []
+      }
+    },
+    "addTransition": {
+      "input": {
+        "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd",
+        "rootKeys": [
+          "$schema",
+          "type",
+          "properties",
+          "required",
+          "additionalProperties",
+          "description",
+          "$defs"
+        ],
+        "required": [
+          "id",
+          "name",
+          "inputArcs",
+          "outputArcs",
+          "lambdaType",
+          "lambdaCode",
+          "transitionKernelCode",
+          "x",
+          "y"
+        ],
+        "additionalProperties": false,
+        "description": "Add a transition with firing logic and arcs.",
+        "definitions": ["__schema0"],
+        "references": [
+          "#/$defs/__schema0",
+          "#/$defs/__schema0",
+          "#/$defs/__schema0"
+        ],
+        "dangling": []
+      },
+      "output": {
+        "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd",
+        "rootKeys": [
+          "$schema",
+          "type",
+          "properties",
+          "required",
+          "additionalProperties",
+          "description",
+          "$defs"
+        ],
+        "required": [
+          "id",
+          "name",
+          "inputArcs",
+          "outputArcs",
+          "lambdaType",
+          "lambdaCode",
+          "transitionKernelCode",
+          "x",
+          "y"
+        ],
+        "additionalProperties": false,
+        "description": "Add a transition with firing logic and arcs.",
+        "definitions": ["__schema0"],
+        "references": [
+          "#/$defs/__schema0",
+          "#/$defs/__schema0",
+          "#/$defs/__schema0"
+        ],
+        "dangling": []
+      }
+    },
+    "updateTransition": {
+      "input": {
+        "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a",
+        "rootKeys": [
+          "$schema",
+          "type",
+          "properties",
+          "required",
+          "additionalProperties",
+          "description",
+          "$defs"
+        ],
+        "required": ["transitionId", "update"],
+        "additionalProperties": false,
+        "description": "Update a transition's properties, arcs, or executable code.",
+        "definitions": ["__schema0"],
+        "references": [
+          "#/$defs/__schema0",
+          "#/$defs/__schema0",
+          "#/$defs/__schema0"
+        ],
+        "dangling": []
+      },
+      "output": {
+        "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a",
+        "rootKeys": [
+          "$schema",
+          "type",
+          "properties",
+          "required",
+          "additionalProperties",
+          "description",
+          "$defs"
+        ],
+        "required": ["transitionId", "update"],
+        "additionalProperties": false,
+        "description": "Update a transition's properties, arcs, or executable code.",
+        "definitions": ["__schema0"],
+        "references": [
+          "#/$defs/__schema0",
+          "#/$defs/__schema0",
+          "#/$defs/__schema0"
+        ],
+        "dangling": []
+      }
+    },
+    "getLatestNetDefinition": {
+      "input": {
+        "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522",
+        "rootKeys": [
+          "$schema",
+          "type",
+          "properties",
+          "additionalProperties",
+          "description"
+        ],
+        "additionalProperties": false,
+        "description": "Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.",
+        "definitions": [],
+        "references": [],
+        "dangling": []
+      },
+      "output": {
+        "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522",
+        "rootKeys": [
+          "$schema",
+          "type",
+          "properties",
+          "additionalProperties",
+          "description"
+        ],
+        "additionalProperties": false,
+        "description": "Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.",
+        "definitions": [],
+        "references": [],
+        "dangling": []
+      }
+    }
+  },
+  "payloads": [
+    {
+      "method": "stream",
+      "constrainedSampling": "omitted",
+      "deltas": [
+        {
+          "name": "addArc",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "addScenario",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "addTransition",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "updateTransition",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        }
+      ],
+      "tools": [
+        {
+          "name": "addArc",
+          "schema": {
+            "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description"
+            ],
+            "required": ["transitionId", "arcDirection", "weight"],
+            "additionalProperties": false,
+            "description": "Add an input or output arc to a transition.",
+            "definitions": [],
+            "references": [],
+            "dangling": []
+          }
+        },
+        {
+          "name": "addScenario",
+          "schema": {
+            "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description"
+            ],
+            "required": ["id", "name", "scenarioParameters", "initialState"],
+            "additionalProperties": false,
+            "description": "Add a simulation scenario. Include `scenarioParameters` for key user-tunable assumptions (reference them in expressions as `scenario.<identifier>`). `parameterOverrides` keys MUST be existing net-level parameter IDs; omit the field entirely when nothing is overridden. `initialState.content` keys are place IDs when `type` is `per_place`, but place NAMES when `type` is `code` (note the asymmetry). Never author `initialState.type` `adhoc` — that variant belongs to the in-app form; use `per_place` or `code`.",
+            "definitions": [],
+            "references": [],
+            "dangling": []
+          }
+        },
+        {
+          "name": "addTransition",
+          "schema": {
+            "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description",
+              "$defs"
+            ],
+            "required": [
+              "id",
+              "name",
+              "inputArcs",
+              "outputArcs",
+              "lambdaType",
+              "lambdaCode",
+              "transitionKernelCode",
+              "x",
+              "y"
+            ],
+            "additionalProperties": false,
+            "description": "Add a transition with firing logic and arcs.",
+            "definitions": ["__schema0"],
+            "references": [
+              "#/$defs/__schema0",
+              "#/$defs/__schema0",
+              "#/$defs/__schema0"
+            ],
+            "dangling": []
+          }
+        },
+        {
+          "name": "updateTransition",
+          "schema": {
+            "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description",
+              "$defs"
+            ],
+            "required": ["transitionId", "update"],
+            "additionalProperties": false,
+            "description": "Update a transition's properties, arcs, or executable code.",
+            "definitions": ["__schema0"],
+            "references": [
+              "#/$defs/__schema0",
+              "#/$defs/__schema0",
+              "#/$defs/__schema0"
+            ],
+            "dangling": []
+          }
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "schema": {
+            "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "additionalProperties",
+              "description"
+            ],
+            "additionalProperties": false,
+            "description": "Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.",
+            "definitions": [],
+            "references": [],
+            "dangling": []
+          }
+        }
+      ]
+    },
+    {
+      "method": "stream",
+      "constrainedSampling": false,
+      "deltas": [
+        {
+          "name": "addArc",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "addScenario",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "addTransition",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "updateTransition",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        }
+      ],
+      "tools": [
+        {
+          "name": "addArc",
+          "schema": {
+            "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description"
+            ],
+            "required": ["transitionId", "arcDirection", "weight"],
+            "additionalProperties": false,
+            "description": "Add an input or output arc to a transition.",
+            "definitions": [],
+            "references": [],
+            "dangling": []
+          }
+        },
+        {
+          "name": "addScenario",
+          "schema": {
+            "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description"
+            ],
+            "required": ["id", "name", "scenarioParameters", "initialState"],
+            "additionalProperties": false,
+            "description": "Add a simulation scenario. Include `scenarioParameters` for key user-tunable assumptions (reference them in expressions as `scenario.<identifier>`). `parameterOverrides` keys MUST be existing net-level parameter IDs; omit the field entirely when nothing is overridden. `initialState.content` keys are place IDs when `type` is `per_place`, but place NAMES when `type` is `code` (note the asymmetry). Never author `initialState.type` `adhoc` — that variant belongs to the in-app form; use `per_place` or `code`.",
+            "definitions": [],
+            "references": [],
+            "dangling": []
+          }
+        },
+        {
+          "name": "addTransition",
+          "schema": {
+            "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description",
+              "$defs"
+            ],
+            "required": [
+              "id",
+              "name",
+              "inputArcs",
+              "outputArcs",
+              "lambdaType",
+              "lambdaCode",
+              "transitionKernelCode",
+              "x",
+              "y"
+            ],
+            "additionalProperties": false,
+            "description": "Add a transition with firing logic and arcs.",
+            "definitions": ["__schema0"],
+            "references": [
+              "#/$defs/__schema0",
+              "#/$defs/__schema0",
+              "#/$defs/__schema0"
+            ],
+            "dangling": []
+          }
+        },
+        {
+          "name": "updateTransition",
+          "schema": {
+            "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description",
+              "$defs"
+            ],
+            "required": ["transitionId", "update"],
+            "additionalProperties": false,
+            "description": "Update a transition's properties, arcs, or executable code.",
+            "definitions": ["__schema0"],
+            "references": [
+              "#/$defs/__schema0",
+              "#/$defs/__schema0",
+              "#/$defs/__schema0"
+            ],
+            "dangling": []
+          }
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "schema": {
+            "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "additionalProperties",
+              "description"
+            ],
+            "additionalProperties": false,
+            "description": "Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.",
+            "definitions": [],
+            "references": [],
+            "dangling": []
+          }
+        }
+      ]
+    },
+    {
+      "method": "streamSimple",
+      "constrainedSampling": "omitted",
+      "deltas": [
+        {
+          "name": "addArc",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "addScenario",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "addTransition",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "updateTransition",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        }
+      ],
+      "tools": [
+        {
+          "name": "addArc",
+          "schema": {
+            "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description"
+            ],
+            "required": ["transitionId", "arcDirection", "weight"],
+            "additionalProperties": false,
+            "description": "Add an input or output arc to a transition.",
+            "definitions": [],
+            "references": [],
+            "dangling": []
+          }
+        },
+        {
+          "name": "addScenario",
+          "schema": {
+            "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description"
+            ],
+            "required": ["id", "name", "scenarioParameters", "initialState"],
+            "additionalProperties": false,
+            "description": "Add a simulation scenario. Include `scenarioParameters` for key user-tunable assumptions (reference them in expressions as `scenario.<identifier>`). `parameterOverrides` keys MUST be existing net-level parameter IDs; omit the field entirely when nothing is overridden. `initialState.content` keys are place IDs when `type` is `per_place`, but place NAMES when `type` is `code` (note the asymmetry). Never author `initialState.type` `adhoc` — that variant belongs to the in-app form; use `per_place` or `code`.",
+            "definitions": [],
+            "references": [],
+            "dangling": []
+          }
+        },
+        {
+          "name": "addTransition",
+          "schema": {
+            "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description",
+              "$defs"
+            ],
+            "required": [
+              "id",
+              "name",
+              "inputArcs",
+              "outputArcs",
+              "lambdaType",
+              "lambdaCode",
+              "transitionKernelCode",
+              "x",
+              "y"
+            ],
+            "additionalProperties": false,
+            "description": "Add a transition with firing logic and arcs.",
+            "definitions": ["__schema0"],
+            "references": [
+              "#/$defs/__schema0",
+              "#/$defs/__schema0",
+              "#/$defs/__schema0"
+            ],
+            "dangling": []
+          }
+        },
+        {
+          "name": "updateTransition",
+          "schema": {
+            "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description",
+              "$defs"
+            ],
+            "required": ["transitionId", "update"],
+            "additionalProperties": false,
+            "description": "Update a transition's properties, arcs, or executable code.",
+            "definitions": ["__schema0"],
+            "references": [
+              "#/$defs/__schema0",
+              "#/$defs/__schema0",
+              "#/$defs/__schema0"
+            ],
+            "dangling": []
+          }
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "schema": {
+            "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "additionalProperties",
+              "description"
+            ],
+            "additionalProperties": false,
+            "description": "Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.",
+            "definitions": [],
+            "references": [],
+            "dangling": []
+          }
+        }
+      ]
+    },
+    {
+      "method": "streamSimple",
+      "constrainedSampling": false,
+      "deltas": [
+        {
+          "name": "addArc",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "addScenario",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "addTransition",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "updateTransition",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "equal": true,
+          "omittedRootKeys": [],
+          "dangling": [],
+          "introducedEmptyRequired": false
+        }
+      ],
+      "tools": [
+        {
+          "name": "addArc",
+          "schema": {
+            "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description"
+            ],
+            "required": ["transitionId", "arcDirection", "weight"],
+            "additionalProperties": false,
+            "description": "Add an input or output arc to a transition.",
+            "definitions": [],
+            "references": [],
+            "dangling": []
+          }
+        },
+        {
+          "name": "addScenario",
+          "schema": {
+            "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description"
+            ],
+            "required": ["id", "name", "scenarioParameters", "initialState"],
+            "additionalProperties": false,
+            "description": "Add a simulation scenario. Include `scenarioParameters` for key user-tunable assumptions (reference them in expressions as `scenario.<identifier>`). `parameterOverrides` keys MUST be existing net-level parameter IDs; omit the field entirely when nothing is overridden. `initialState.content` keys are place IDs when `type` is `per_place`, but place NAMES when `type` is `code` (note the asymmetry). Never author `initialState.type` `adhoc` — that variant belongs to the in-app form; use `per_place` or `code`.",
+            "definitions": [],
+            "references": [],
+            "dangling": []
+          }
+        },
+        {
+          "name": "addTransition",
+          "schema": {
+            "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description",
+              "$defs"
+            ],
+            "required": [
+              "id",
+              "name",
+              "inputArcs",
+              "outputArcs",
+              "lambdaType",
+              "lambdaCode",
+              "transitionKernelCode",
+              "x",
+              "y"
+            ],
+            "additionalProperties": false,
+            "description": "Add a transition with firing logic and arcs.",
+            "definitions": ["__schema0"],
+            "references": [
+              "#/$defs/__schema0",
+              "#/$defs/__schema0",
+              "#/$defs/__schema0"
+            ],
+            "dangling": []
+          }
+        },
+        {
+          "name": "updateTransition",
+          "schema": {
+            "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "required",
+              "additionalProperties",
+              "description",
+              "$defs"
+            ],
+            "required": ["transitionId", "update"],
+            "additionalProperties": false,
+            "description": "Update a transition's properties, arcs, or executable code.",
+            "definitions": ["__schema0"],
+            "references": [
+              "#/$defs/__schema0",
+              "#/$defs/__schema0",
+              "#/$defs/__schema0"
+            ],
+            "dangling": []
+          }
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "schema": {
+            "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522",
+            "rootKeys": [
+              "$schema",
+              "type",
+              "properties",
+              "additionalProperties",
+              "description"
+            ],
+            "additionalProperties": false,
+            "description": "Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities.",
+            "definitions": [],
+            "references": [],
+            "dangling": []
+          }
+        }
+      ]
+    }
+  ],
+  "runtimeCases": [
+    {
+      "name": "valid-arc",
+      "rawInput": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F2Y7RTEEBX8PP2HZQJA",
+          "submissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ"
+        }
+      },
+      "requestCount": 1,
+      "executions": [
+        {
+          "name": "addArc",
+          "data": {
+            "transitionId": "transition",
+            "arcDirection": "input",
+            "placeId": "place",
+            "weight": 2
+          },
+          "toolCallId": "call_valid-arc"
+        }
+      ],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F2YEHKHGYSSXR6TSFV8",
+        "offset": "0000000000000000_0000000000000009",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGMlcwQ1hSSkNUUE04U01BOFdR",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F3MNWTY7GN71A1G01MN",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ",
+            "turnId": "turn_01M20W3F3GYMXF3C0QKHKYMY2T",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addArc",
+                "toolCallId": "call_valid-arc",
+                "state": "output-available",
+                "input": {
+                  "transitionId": "transition",
+                  "arcDirection": "input",
+                  "placeId": "place",
+                  "weight": 2
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 3
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ"
+          }
+        ],
+        "incarnation": "inc_01M20W3F2XCQY740MT4PY80X8E"
+      }
+    },
+    {
+      "name": "client-result-continuation",
+      "executions": [],
+      "requestCount": 1,
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F2YEHKHGYSSXR6TSFV8",
+        "offset": "0000000000000000_0000000000000014",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGMlcwQ1hSSkNUUE04U01BOFdR",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F3MNWTY7GN71A1G01MN",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ",
+            "turnId": "turn_01M20W3F3GYMXF3C0QKHKYMY2T",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addArc",
+                "toolCallId": "call_valid-arc",
+                "state": "output-available",
+                "input": {
+                  "transitionId": "transition",
+                  "arcDirection": "input",
+                  "placeId": "place",
+                  "weight": 2
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 3
+              }
+            ]
+          },
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGM1hINktBTVlXTVNNWVEzRDZG",
+            "role": "system",
+            "purpose": "dispatch",
+            "display": "diagnostic",
+            "submissionId": "sub_01M20W3F3XH6KAMYWMSMYQ3D6F",
+            "parts": [
+              {
+                "type": "text",
+                "text": "[{\"toolCallId\":\"call_valid-arc\",\"toolName\":\"addArc\",\"output\":{\"applied\":true}}]",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F426APAM1616KBEK8VD",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F3XH6KAMYWMSMYQ3D6F",
+            "turnId": "turn_01M20W3F416NYZFXJEB5H5HVRV",
+            "parts": []
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ"
+          },
+          {
+            "submissionId": "sub_01M20W3F3XH6KAMYWMSMYQ3D6F",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F3XH6KAMYWMSMYQ3D6F"
+          }
+        ],
+        "incarnation": "inc_01M20W3F2XCQY740MT4PY80X8E"
+      }
+    },
+    {
+      "name": "two-endpoints",
+      "rawInput": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2,
+        "endpoint": {
+          "kind": "place",
+          "placeId": "place"
+        }
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F44Q9EZGM04FNNYGHWV",
+          "submissionId": "sub_01M20W3F44VGB49XDFRQNYTKNX"
+        }
+      },
+      "requestCount": 2,
+      "executions": [],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F44GHYP5QQXES3RBZ2E",
+        "offset": "0000000000000000_0000000000000011",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNDRWR0I0OVhERlJRTllUS05Y",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F44VGB49XDFRQNYTKNX",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F4AY4HVZ0TGAS6SG9Y8",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F44VGB49XDFRQNYTKNX",
+            "turnId": "turn_01M20W3F48HHDNKAPJDJ07BPW8",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addArc",
+                "toolCallId": "call_two-endpoints",
+                "state": "output-error",
+                "input": {
+                  "transitionId": "transition",
+                  "arcDirection": "input",
+                  "placeId": "place",
+                  "weight": 2,
+                  "endpoint": {
+                    "kind": "place",
+                    "placeId": "place"
+                  }
+                },
+                "errorText": "Arguments for tool \"addArc\" do not match the required schema: Provide exactly one of `placeId` or `endpoint`. (at endpoint). Call the tool again with corrected arguments.",
+                "durationMs": 1
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F44VGB49XDFRQNYTKNX",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F44VGB49XDFRQNYTKNX"
+          }
+        ],
+        "incarnation": "inc_01M20W3F44ZBKD9HQ02XN6S8ZC"
+      }
+    },
+    {
+      "name": "output-type",
+      "rawInput": {
+        "transitionId": "transition",
+        "arcDirection": "output",
+        "placeId": "place",
+        "weight": 2,
+        "type": "read"
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F4EJRH4ZFVMZS38CPDX",
+          "submissionId": "sub_01M20W3F4ETXK0KX7CG7GQA944"
+        }
+      },
+      "requestCount": 2,
+      "executions": [],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F4E6Y51WTM6JQEN9A4S",
+        "offset": "0000000000000000_0000000000000011",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNEVUWEswS1g3Q0c3R1FBOTQ0",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F4ETXK0KX7CG7GQA944",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F4KP4TH4DXGAQ84QXAD",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F4ETXK0KX7CG7GQA944",
+            "turnId": "turn_01M20W3F4JA9365Y2ZE9PM20E7",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addArc",
+                "toolCallId": "call_output-type",
+                "state": "output-error",
+                "input": {
+                  "transitionId": "transition",
+                  "arcDirection": "output",
+                  "placeId": "place",
+                  "weight": 2,
+                  "type": "read"
+                },
+                "errorText": "Arguments for tool \"addArc\" do not match the required schema: Output arcs do not have an input arc type. Omit `type` when `arcDirection` is \"output\". (at type). Call the tool again with corrected arguments.",
+                "durationMs": 0
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F4ETXK0KX7CG7GQA944",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F4ETXK0KX7CG7GQA944"
+          }
+        ],
+        "incarnation": "inc_01M20W3F4ERRCR8W9N2M3M333X"
+      }
+    },
+    {
+      "name": "boolean-weight",
+      "rawInput": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": true
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F4QM9P7WC70AAY378B2",
+          "submissionId": "sub_01M20W3F4Q93R5P9NF2D96D7R9"
+        }
+      },
+      "requestCount": 1,
+      "executions": [
+        {
+          "name": "addArc",
+          "data": {
+            "transitionId": "transition",
+            "arcDirection": "input",
+            "placeId": "place",
+            "weight": 1
+          },
+          "toolCallId": "call_boolean-weight"
+        }
+      ],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F4Q51JEZ7CZPCPN7A5N",
+        "offset": "0000000000000000_0000000000000009",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNFE5M1I1UDlORjJEOTZEN1I5",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F4Q93R5P9NF2D96D7R9",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F4VB6AMSZV7Y95V7T9X",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F4Q93R5P9NF2D96D7R9",
+            "turnId": "turn_01M20W3F4TTWFY6Q8C0HV1RT91",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addArc",
+                "toolCallId": "call_boolean-weight",
+                "state": "output-available",
+                "input": {
+                  "transitionId": "transition",
+                  "arcDirection": "input",
+                  "placeId": "place",
+                  "weight": true
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 0
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F4Q93R5P9NF2D96D7R9",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F4Q93R5P9NF2D96D7R9"
+          }
+        ],
+        "incarnation": "inc_01M20W3F4QWJ96NZJ1Q8WTPJEE"
+      }
+    },
+    {
+      "name": "scenario-default",
+      "rawInput": {
+        "id": "scenario",
+        "name": "Scenario",
+        "scenarioParameters": [],
+        "initialState": {
+          "type": "per_place",
+          "content": {
+            "place": "1"
+          }
+        }
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F4XB259KY62QXRVH85G",
+          "submissionId": "sub_01M20W3F4XMES0XNAZTV0ZWKS4"
+        }
+      },
+      "requestCount": 1,
+      "executions": [
+        {
+          "name": "addScenario",
+          "data": {
+            "id": "scenario",
+            "name": "Scenario",
+            "scenarioParameters": [],
+            "parameterOverrides": {},
+            "initialState": {
+              "type": "per_place",
+              "content": {
+                "place": "1"
+              }
+            }
+          },
+          "toolCallId": "call_scenario-default"
+        }
+      ],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F4XWSWZTJ2AT0AD638H",
+        "offset": "0000000000000000_0000000000000009",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNFhNRVMwWE5BWlRWMFpXS1M0",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F4XMES0XNAZTV0ZWKS4",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F513ATH7VZZF63FAXH7",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F4XMES0XNAZTV0ZWKS4",
+            "turnId": "turn_01M20W3F50AP0TAYBFZ0KT1YGW",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addScenario",
+                "toolCallId": "call_scenario-default",
+                "state": "output-available",
+                "input": {
+                  "id": "scenario",
+                  "name": "Scenario",
+                  "scenarioParameters": [],
+                  "initialState": {
+                    "type": "per_place",
+                    "content": {
+                      "place": "1"
+                    }
+                  }
+                },
+                "output": {
+                  "observed": {
+                    "id": "scenario",
+                    "name": "Scenario",
+                    "scenarioParameters": [],
+                    "parameterOverrides": {},
+                    "initialState": {
+                      "type": "per_place",
+                      "content": {
+                        "place": "1"
+                      }
+                    }
+                  },
+                  "toolCallId": "call_scenario-default"
+                },
+                "durationMs": 3
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F4XMES0XNAZTV0ZWKS4",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F4XMES0XNAZTV0ZWKS4"
+          }
+        ],
+        "incarnation": "inc_01M20W3F4XCY9Q3GTPHE8T8TPY"
+      }
+    },
+    {
+      "name": "empty-required",
+      "rawInput": {},
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F56ZTSRG63XRBCJZP2R",
+          "submissionId": "sub_01M20W3F559XBDMDQ2DYZSMX3J"
+        }
+      },
+      "requestCount": 1,
+      "executions": [
+        {
+          "name": "getLatestNetDefinition",
+          "data": {},
+          "toolCallId": "call_empty-required"
+        }
+      ],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F562BX38CTZZKPJ0EDC",
+        "offset": "0000000000000000_0000000000000009",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNTU5WEJETURRMkRZWlNNWDNK",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F559XBDMDQ2DYZSMX3J",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F5A3W92PPTZXN4QJ7VQ",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F559XBDMDQ2DYZSMX3J",
+            "turnId": "turn_01M20W3F59Z4JNF0EFJKFVPW1R",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "getLatestNetDefinition",
+                "toolCallId": "call_empty-required",
+                "state": "output-available",
+                "input": {},
+                "output": {
+                  "observed": {},
+                  "toolCallId": "call_empty-required"
+                },
+                "durationMs": 0
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F559XBDMDQ2DYZSMX3J",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F559XBDMDQ2DYZSMX3J"
+          }
+        ],
+        "incarnation": "inc_01M20W3F55WZAFFCMY6WHC34WP"
+      }
+    },
+    {
+      "name": "recursive-native",
+      "rawInput": {
+        "transitionId": "t",
+        "update": {
+          "metadata": {
+            "nested": [
+              true,
+              null,
+              {
+                "number": 2
+              }
+            ]
+          }
+        }
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F5CF1AY3RC5AMTMF991",
+          "submissionId": "sub_01M20W3F5C3PZZX4J9V65G7DVV"
+        }
+      },
+      "requestCount": 1,
+      "executions": [
+        {
+          "name": "updateTransition",
+          "data": {
+            "transitionId": "t",
+            "update": {
+              "metadata": {
+                "nested": [
+                  true,
+                  null,
+                  {
+                    "number": 2
+                  }
+                ]
+              }
+            }
+          },
+          "toolCallId": "call_recursive-native"
+        }
+      ],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F5C6WZEAGS26X9QY9N1",
+        "offset": "0000000000000000_0000000000000009",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNUMzUFpaWDRKOVY2NUc3RFZW",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F5C3PZZX4J9V65G7DVV",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F5G4W0EKK0PKPBGDB1N",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F5C3PZZX4J9V65G7DVV",
+            "turnId": "turn_01M20W3F5FAMT6TM02FG3BJ6AW",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "updateTransition",
+                "toolCallId": "call_recursive-native",
+                "state": "output-available",
+                "input": {
+                  "transitionId": "t",
+                  "update": {
+                    "metadata": {
+                      "nested": [
+                        true,
+                        null,
+                        {
+                          "number": 2
+                        }
+                      ]
+                    }
+                  }
+                },
+                "output": {
+                  "observed": {
+                    "transitionId": "t",
+                    "update": {
+                      "metadata": {
+                        "nested": [
+                          true,
+                          null,
+                          {
+                            "number": 2
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "toolCallId": "call_recursive-native"
+                },
+                "durationMs": 1
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F5C3PZZX4J9V65G7DVV",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F5C3PZZX4J9V65G7DVV"
+          }
+        ],
+        "incarnation": "inc_01M20W3F5CBKKPCR5CTF6NA7ST"
+      }
+    },
+    {
+      "name": "valibot-default-transform",
+      "rawInput": {
+        "label": "  kept  "
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F5KRVACJTM6Z7GZ8EZR",
+          "submissionId": "sub_01M20W3F5KPQWB0HR4X0C81GBE"
+        }
+      },
+      "requestCount": 1,
+      "executions": [
+        {
+          "name": "legacyControl",
+          "data": {
+            "label": "kept",
+            "count": 3
+          },
+          "toolCallId": "call_valibot-default-transform"
+        }
+      ],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F5K9NRY0TYXHXAGDBCW",
+        "offset": "0000000000000000_0000000000000009",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNUtQUVdCMEhSNFgwQzgxR0JF",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F5KPQWB0HR4X0C81GBE",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F5QGSX8YE8CTZA93QE9",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F5KPQWB0HR4X0C81GBE",
+            "turnId": "turn_01M20W3F5PYMWWDSRC3TYN3A3G",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "legacyControl",
+                "toolCallId": "call_valibot-default-transform",
+                "state": "output-available",
+                "input": {
+                  "label": "  kept  "
+                },
+                "output": {
+                  "label": "kept",
+                  "count": 3
+                },
+                "durationMs": 0
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F5KPQWB0HR4X0C81GBE",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F5KPQWB0HR4X0C81GBE"
+          }
+        ],
+        "incarnation": "inc_01M20W3F5K3YPMGT727WNVWDZJ"
+      }
+    },
+    {
+      "name": "valibot-generic-control",
+      "rawInput": {
+        "label": "kept",
+        "count": true
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F5TA8MZ23GRZVR1GVBR",
+          "submissionId": "sub_01M20W3F5T41JBQ206A0ZWJ67Q"
+        }
+      },
+      "requestCount": 1,
+      "executions": [
+        {
+          "name": "legacyControl",
+          "data": {
+            "label": "kept",
+            "count": 1
+          },
+          "toolCallId": "call_valibot-generic-control"
+        }
+      ],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F5TAND8M6XDRP49KAS4",
+        "offset": "0000000000000000_0000000000000009",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNVQ0MUpCUTIwNkEwWldKNjdR",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F5T41JBQ206A0ZWJ67Q",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F5XQ3N67MJR7P01942R",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F5T41JBQ206A0ZWJ67Q",
+            "turnId": "turn_01M20W3F5XFP2P4230X5BVEY17",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "legacyControl",
+                "toolCallId": "call_valibot-generic-control",
+                "state": "output-available",
+                "input": {
+                  "label": "kept",
+                  "count": true
+                },
+                "output": {
+                  "label": "kept",
+                  "count": 1
+                },
+                "durationMs": 0
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F5T41JBQ206A0ZWJ67Q",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F5T41JBQ206A0ZWJ67Q"
+          }
+        ],
+        "incarnation": "inc_01M20W3F5T4ZYAR9NBHY8VEM57"
+      }
+    },
+    {
+      "name": "explicit-normalization",
+      "rawInput": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": "2"
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F60FWHTNZD3KRV0K0DT",
+          "submissionId": "sub_01M20W3F5Z7PB2MH0PYVVQ67V5"
+        }
+      },
+      "requestCount": 1,
+      "executions": [
+        {
+          "name": "addArc",
+          "data": {
+            "transitionId": "transition",
+            "arcDirection": "input",
+            "placeId": "place",
+            "weight": 2
+          },
+          "toolCallId": "call_explicit-normalization"
+        }
+      ],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F5Z3ZP4B8B3KKHNC9TD",
+        "offset": "0000000000000000_0000000000000009",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNVo3UEIyTUgwUFlWVlE2N1Y1",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F5Z7PB2MH0PYVVQ67V5",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F63WZKGS4GPGBWZGPER",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F5Z7PB2MH0PYVVQ67V5",
+            "turnId": "turn_01M20W3F62BD228FYSPHS3A5VY",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addArc",
+                "toolCallId": "call_explicit-normalization",
+                "state": "output-available",
+                "input": {
+                  "transitionId": "transition",
+                  "arcDirection": "input",
+                  "placeId": "place",
+                  "weight": "2"
+                },
+                "output": {
+                  "awaiting": "client"
+                },
+                "durationMs": 0
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F5Z7PB2MH0PYVVQ67V5",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F5Z7PB2MH0PYVVQ67V5"
+          }
+        ],
+        "incarnation": "inc_01M20W3F5ZCSV38DW6KZSBGJKC"
+      }
+    },
+    {
+      "name": "transformed-output",
+      "rawInput": {
+        "value": "abc"
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F65GX52WR36QB46P32B",
+          "submissionId": "sub_01M20W3F65NJ3MKJTXWQ6VB0EX"
+        }
+      },
+      "requestCount": 1,
+      "executions": [
+        {
+          "name": "transformedControl",
+          "data": {
+            "length": 3
+          },
+          "toolCallId": "call_transformed-output"
+        }
+      ],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F65V5T779DAX3H1EA5T",
+        "offset": "0000000000000000_0000000000000009",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNjVOSjNNS0pUWFdRNlZCMEVY",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F65NJ3MKJTXWQ6VB0EX",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F6993VXSQ3C9ZVFZRPD",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F65NJ3MKJTXWQ6VB0EX",
+            "turnId": "turn_01M20W3F686Q2FHTZVS7E72WKG",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "transformedControl",
+                "toolCallId": "call_transformed-output",
+                "state": "output-available",
+                "input": {
+                  "value": "abc"
+                },
+                "output": {
+                  "length": 3
+                },
+                "durationMs": 1
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F65NJ3MKJTXWQ6VB0EX",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F65NJ3MKJTXWQ6VB0EX"
+          }
+        ],
+        "incarnation": "inc_01M20W3F65HZD2TS5QP1W5JF8T"
+      }
+    },
+    {
+      "name": "async-valid",
+      "rawInput": {
+        "value": "ok"
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F6BJE9DP9FN123BE8S3",
+          "submissionId": "sub_01M20W3F6BM6S84JWQVKH0NXFP"
+        }
+      },
+      "requestCount": 1,
+      "executions": [
+        {
+          "name": "asyncControl",
+          "data": {
+            "value": "ok"
+          },
+          "toolCallId": "call_async-valid"
+        }
+      ],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F6BESBBRBB76ESGNHRV",
+        "offset": "0000000000000000_0000000000000009",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNkJNNlM4NEpXUVZLSDBOWEZQ",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F6BM6S84JWQVKH0NXFP",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F6ENE0797KJBZH3CVE0",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F6BM6S84JWQVKH0NXFP",
+            "turnId": "turn_01M20W3F6D8D0WJD5039HVGPBD",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "asyncControl",
+                "toolCallId": "call_async-valid",
+                "state": "output-available",
+                "input": {
+                  "value": "ok"
+                },
+                "output": {
+                  "value": "ok"
+                },
+                "durationMs": 0
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F6BM6S84JWQVKH0NXFP",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F6BM6S84JWQVKH0NXFP"
+          }
+        ],
+        "incarnation": "inc_01M20W3F6BPGVW9BV3J14PB087"
+      }
+    },
+    {
+      "name": "async-invalid",
+      "rawInput": {
+        "value": "no"
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F6G8B6AHWCTNY3WCSFW",
+          "submissionId": "sub_01M20W3F6G6H43HVZ2PSAPSZCR"
+        }
+      },
+      "requestCount": 2,
+      "executions": [],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F6GZ4Y1K54YZ0JQJ0H8",
+        "offset": "0000000000000000_0000000000000011",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNkc2SDQzSFZaMlBTQVBTWkNS",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F6G6H43HVZ2PSAPSZCR",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F6M3E37FSGNDE9XQHVK",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F6G6H43HVZ2PSAPSZCR",
+            "turnId": "turn_01M20W3F6K2J46ZVAS6E2DZP38",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "asyncControl",
+                "toolCallId": "call_async-invalid",
+                "state": "output-error",
+                "input": {
+                  "value": "no"
+                },
+                "errorText": "Arguments for tool \"asyncControl\" do not match the required schema: Expected ok (at value). Call the tool again with corrected arguments.",
+                "durationMs": 1
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F6G6H43HVZ2PSAPSZCR",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F6G6H43HVZ2PSAPSZCR"
+          }
+        ],
+        "incarnation": "inc_01M20W3F6GXABEVAJPEV03CJMJ"
+      }
+    },
+    {
+      "name": "before-block",
+      "rawInput": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      },
+      "outcome": {
+        "success": true,
+        "reply": {
+          "text": "",
+          "data": {},
+          "uid": "inst_01M20W3F6QZDNAKVM9TMAA2GK5",
+          "submissionId": "sub_01M20W3F6QEVK0JQ6YS47HZWPV"
+        }
+      },
+      "requestCount": 2,
+      "executions": [],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F6Q5PTJGFN6KD60JM83",
+        "offset": "0000000000000000_0000000000000011",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNlFFVkswSlE2WVM0N0haV1BW",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F6QEVK0JQ6YS47HZWPV",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F6V6W60VKMFNGKZHX7N",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F6QEVK0JQ6YS47HZWPV",
+            "turnId": "turn_01M20W3F6T6WA8D1Q9161P1JS7",
+            "parts": [
+              {
+                "type": "dynamic-tool",
+                "toolName": "addArc",
+                "toolCallId": "call_before-block",
+                "state": "output-error",
+                "input": {
+                  "transitionId": "transition",
+                  "arcDirection": "input",
+                  "placeId": "place",
+                  "weight": 2
+                },
+                "errorText": "Synthetic beforeToolCall block",
+                "durationMs": 0
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F6QEVK0JQ6YS47HZWPV",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20W3F6QEVK0JQ6YS47HZWPV"
+          }
+        ],
+        "incarnation": "inc_01M20W3F6QA0AZXTP20C90GYWG"
+      }
+    },
+    {
+      "name": "mixed-rejection",
+      "executions": [],
+      "history": {
+        "v": 1,
+        "conversationId": "conv_01M20W3F6YDCSTAT4647P70MP5",
+        "offset": "0000000000000000_0000000000000006",
+        "messages": [
+          {
+            "id": "entry_dispatch_c3ViXzAxTTIwVzNGNllXRzNITUs1MjBOVEpaOU5K",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F6YWG3HMK520NTJZ9NJ",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Mixed diagnostic",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20W3F72ZP9ZFM9YBDW4S1BF",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20W3F6YWG3HMK520NTJZ9NJ",
+            "turnId": "turn_01M20W3F7182HN7W24W6AF7M62",
+            "parts": []
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20W3F6YWG3HMK520NTJZ9NJ",
+            "outcome": "failed",
+            "error": {
+              "name": "FlueError",
+              "message": "dispatch(sub_01M20W3F6YWG3HMK520NTJZ9NJ) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+              "type": "operation_failed",
+              "details": "",
+              "meta": {
+                "operation": "dispatch(sub_01M20W3F6YWG3HMK520NTJZ9NJ)",
+                "reason": "Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work."
+              }
+            },
+            "answeredBySubmissionId": "sub_01M20W3F6YWG3HMK520NTJZ9NJ"
+          }
+        ],
+        "incarnation": "inc_01M20W3F6YQA96JSFY3AHTAY55"
+      }
+    }
+  ],
+  "executions": [
+    {
+      "name": "addArc",
+      "data": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      },
+      "toolCallId": "call_valid-arc"
+    },
+    {
+      "name": "addArc",
+      "data": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1
+      },
+      "toolCallId": "call_boolean-weight"
+    },
+    {
+      "name": "addScenario",
+      "data": {
+        "id": "scenario",
+        "name": "Scenario",
+        "scenarioParameters": [],
+        "parameterOverrides": {},
+        "initialState": {
+          "type": "per_place",
+          "content": {
+            "place": "1"
+          }
+        }
+      },
+      "toolCallId": "call_scenario-default"
+    },
+    {
+      "name": "getLatestNetDefinition",
+      "data": {},
+      "toolCallId": "call_empty-required"
+    },
+    {
+      "name": "updateTransition",
+      "data": {
+        "transitionId": "t",
+        "update": {
+          "metadata": {
+            "nested": [
+              true,
+              null,
+              {
+                "number": 2
+              }
+            ]
+          }
+        }
+      },
+      "toolCallId": "call_recursive-native"
+    },
+    {
+      "name": "legacyControl",
+      "data": {
+        "label": "kept",
+        "count": 3
+      },
+      "toolCallId": "call_valibot-default-transform"
+    },
+    {
+      "name": "legacyControl",
+      "data": {
+        "label": "kept",
+        "count": 1
+      },
+      "toolCallId": "call_valibot-generic-control"
+    },
+    {
+      "name": "addArc",
+      "data": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      },
+      "toolCallId": "call_explicit-normalization"
+    },
+    {
+      "name": "transformedControl",
+      "data": {
+        "length": 3
+      },
+      "toolCallId": "call_transformed-output"
+    },
+    {
+      "name": "asyncControl",
+      "data": {
+        "value": "ok"
+      },
+      "toolCallId": "call_async-valid"
+    }
+  ],
+  "beforeObservations": [
+    {
+      "id": "call_valid-arc",
+      "raw": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      },
+      "parsed": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      }
+    },
+    {
+      "id": "call_two-endpoints",
+      "raw": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2,
+        "endpoint": {
+          "kind": "place",
+          "placeId": "place"
+        }
+      },
+      "parsed": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2,
+        "endpoint": {
+          "kind": "place",
+          "placeId": "place"
+        }
+      }
+    },
+    {
+      "id": "call_output-type",
+      "raw": {
+        "transitionId": "transition",
+        "arcDirection": "output",
+        "placeId": "place",
+        "weight": 2,
+        "type": "read"
+      },
+      "parsed": {
+        "transitionId": "transition",
+        "arcDirection": "output",
+        "placeId": "place",
+        "weight": 2,
+        "type": "read"
+      }
+    },
+    {
+      "id": "call_boolean-weight",
+      "raw": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": true
+      },
+      "parsed": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1
+      }
+    },
+    {
+      "id": "call_scenario-default",
+      "raw": {
+        "id": "scenario",
+        "name": "Scenario",
+        "scenarioParameters": [],
+        "initialState": {
+          "type": "per_place",
+          "content": {
+            "place": "1"
+          }
+        }
+      },
+      "parsed": {
+        "id": "scenario",
+        "name": "Scenario",
+        "scenarioParameters": [],
+        "initialState": {
+          "type": "per_place",
+          "content": {
+            "place": "1"
+          }
+        }
+      }
+    },
+    {
+      "id": "call_empty-required",
+      "raw": {},
+      "parsed": {}
+    },
+    {
+      "id": "call_recursive-native",
+      "raw": {
+        "transitionId": "t",
+        "update": {
+          "metadata": {
+            "nested": [
+              true,
+              null,
+              {
+                "number": 2
+              }
+            ]
+          }
+        }
+      },
+      "parsed": {
+        "transitionId": "t",
+        "update": {
+          "metadata": {
+            "nested": [
+              true,
+              null,
+              {
+                "number": 2
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "call_valibot-default-transform",
+      "raw": {
+        "label": "  kept  "
+      },
+      "parsed": {
+        "label": "  kept  "
+      }
+    },
+    {
+      "id": "call_valibot-generic-control",
+      "raw": {
+        "label": "kept",
+        "count": true
+      },
+      "parsed": {
+        "label": "kept",
+        "count": 1
+      }
+    },
+    {
+      "id": "call_explicit-normalization",
+      "raw": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": "2"
+      },
+      "parsed": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      }
+    },
+    {
+      "id": "call_transformed-output",
+      "raw": {
+        "value": "abc"
+      },
+      "parsed": {
+        "value": "abc"
+      }
+    },
+    {
+      "id": "call_async-valid",
+      "raw": {
+        "value": "ok"
+      },
+      "parsed": {
+        "value": "ok"
+      }
+    },
+    {
+      "id": "call_async-invalid",
+      "raw": {
+        "value": "no"
+      },
+      "parsed": {
+        "value": "no"
+      }
+    },
+    {
+      "id": "call_before-block",
+      "raw": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      },
+      "parsed": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      }
+    }
+  ],
+  "afterObservations": [
+    {
+      "id": "call_valid-arc",
+      "parsed": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      }
+    },
+    {
+      "id": "call_two-endpoints",
+      "parsed": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2,
+        "endpoint": {
+          "kind": "place",
+          "placeId": "place"
+        }
+      }
+    },
+    {
+      "id": "call_output-type",
+      "parsed": {
+        "transitionId": "transition",
+        "arcDirection": "output",
+        "placeId": "place",
+        "weight": 2,
+        "type": "read"
+      }
+    },
+    {
+      "id": "call_boolean-weight",
+      "parsed": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1
+      }
+    },
+    {
+      "id": "call_scenario-default",
+      "parsed": {
+        "id": "scenario",
+        "name": "Scenario",
+        "scenarioParameters": [],
+        "initialState": {
+          "type": "per_place",
+          "content": {
+            "place": "1"
+          }
+        }
+      }
+    },
+    {
+      "id": "call_empty-required",
+      "parsed": {}
+    },
+    {
+      "id": "call_recursive-native",
+      "parsed": {
+        "transitionId": "t",
+        "update": {
+          "metadata": {
+            "nested": [
+              true,
+              null,
+              {
+                "number": 2
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "call_valibot-default-transform",
+      "parsed": {
+        "label": "  kept  "
+      }
+    },
+    {
+      "id": "call_valibot-generic-control",
+      "parsed": {
+        "label": "kept",
+        "count": 1
+      }
+    },
+    {
+      "id": "call_explicit-normalization",
+      "parsed": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      }
+    },
+    {
+      "id": "call_transformed-output",
+      "parsed": {
+        "value": "abc"
+      }
+    },
+    {
+      "id": "call_async-valid",
+      "parsed": {
+        "value": "ok"
+      }
+    },
+    {
+      "id": "call_async-invalid",
+      "parsed": {
+        "value": "no"
+      }
+    }
+  ],
+  "interceptedTools": [
+    {
+      "toolName": "addArc",
+      "toolCallId": "call_valid-arc"
+    },
+    {
+      "toolName": "addArc",
+      "toolCallId": "call_boolean-weight"
+    },
+    {
+      "toolName": "addScenario",
+      "toolCallId": "call_scenario-default"
+    },
+    {
+      "toolName": "getLatestNetDefinition",
+      "toolCallId": "call_empty-required"
+    },
+    {
+      "toolName": "updateTransition",
+      "toolCallId": "call_recursive-native"
+    },
+    {
+      "toolName": "legacyControl",
+      "toolCallId": "call_valibot-default-transform"
+    },
+    {
+      "toolName": "legacyControl",
+      "toolCallId": "call_valibot-generic-control"
+    },
+    {
+      "toolName": "addArc",
+      "toolCallId": "call_explicit-normalization"
+    },
+    {
+      "toolName": "transformedControl",
+      "toolCallId": "call_transformed-output"
+    },
+    {
+      "toolName": "asyncControl",
+      "toolCallId": "call_async-valid"
+    }
+  ],
+  "transformParses": 1,
+  "requests": [
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": true
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    },
+    {
+      "schemas": [
+        {
+          "name": "task",
+          "sha256": "2252a3bebdd2415add6da99e5d3e2b10755bba4698b4d8c2bc2297b83d4ec240"
+        },
+        {
+          "name": "addArc",
+          "sha256": "4e567c8f18afaed6b8568215ca4e42431df3a0c53f0f4c473eb9f228a4a6f679"
+        },
+        {
+          "name": "addScenario",
+          "sha256": "cb87044fbc800e779f9ecfaab16f57775cd61b42a316ae15b8fe4fcf57b2866c"
+        },
+        {
+          "name": "addTransition",
+          "sha256": "c4185b9894f55f601826837db54d8e0cf27de0719adb80100fa8f3726e385bcd"
+        },
+        {
+          "name": "updateTransition",
+          "sha256": "3ac06ae8c90b86ad129846a89871e0b230ae496ede533ce4939865ca1ba3265a"
+        },
+        {
+          "name": "getLatestNetDefinition",
+          "sha256": "8341762d3ddc3ee760ebf89d8c68ea6a72b263d8d2d0dfbb42116d3584d6f522"
+        },
+        {
+          "name": "legacyControl",
+          "sha256": "c85c25cc8c132e70e2338ee3276557efd2ed5cb85976c8112135722b7710e27a"
+        },
+        {
+          "name": "transformedControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        },
+        {
+          "name": "asyncControl",
+          "sha256": "50eb7b6f8f62ad5dd7fa7904c86da5043e69708b67afce66e0457361a1793a92"
+        }
+      ],
+      "clientResultCarried": false
+    }
+  ],
+  "events": [
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "addArc",
+      "toolCallId": "call_valid-arc",
+      "submissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ"
+    },
+    {
+      "type": "tool",
+      "toolName": "addArc",
+      "toolCallId": "call_valid-arc",
+      "isError": false,
+      "submissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F2W0CXRJCTPM8SMA8WQ"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F3XH6KAMYWMSMYQ3D6F"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F3XH6KAMYWMSMYQ3D6F"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F44VGB49XDFRQNYTKNX"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "addArc",
+      "toolCallId": "call_two-endpoints",
+      "submissionId": "sub_01M20W3F44VGB49XDFRQNYTKNX"
+    },
+    {
+      "type": "tool",
+      "toolName": "addArc",
+      "toolCallId": "call_two-endpoints",
+      "isError": true,
+      "error": "Arguments for tool \"addArc\" do not match the required schema: Provide exactly one of `placeId` or `endpoint`. (at endpoint). Call the tool again with corrected arguments.",
+      "submissionId": "sub_01M20W3F44VGB49XDFRQNYTKNX"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F44VGB49XDFRQNYTKNX"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F44VGB49XDFRQNYTKNX"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F4ETXK0KX7CG7GQA944"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "addArc",
+      "toolCallId": "call_output-type",
+      "submissionId": "sub_01M20W3F4ETXK0KX7CG7GQA944"
+    },
+    {
+      "type": "tool",
+      "toolName": "addArc",
+      "toolCallId": "call_output-type",
+      "isError": true,
+      "error": "Arguments for tool \"addArc\" do not match the required schema: Output arcs do not have an input arc type. Omit `type` when `arcDirection` is \"output\". (at type). Call the tool again with corrected arguments.",
+      "submissionId": "sub_01M20W3F4ETXK0KX7CG7GQA944"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F4ETXK0KX7CG7GQA944"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F4ETXK0KX7CG7GQA944"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F4Q93R5P9NF2D96D7R9"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "addArc",
+      "toolCallId": "call_boolean-weight",
+      "submissionId": "sub_01M20W3F4Q93R5P9NF2D96D7R9"
+    },
+    {
+      "type": "tool",
+      "toolName": "addArc",
+      "toolCallId": "call_boolean-weight",
+      "isError": false,
+      "submissionId": "sub_01M20W3F4Q93R5P9NF2D96D7R9"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F4Q93R5P9NF2D96D7R9"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F4XMES0XNAZTV0ZWKS4"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "addScenario",
+      "toolCallId": "call_scenario-default",
+      "submissionId": "sub_01M20W3F4XMES0XNAZTV0ZWKS4"
+    },
+    {
+      "type": "tool",
+      "toolName": "addScenario",
+      "toolCallId": "call_scenario-default",
+      "isError": false,
+      "submissionId": "sub_01M20W3F4XMES0XNAZTV0ZWKS4"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F4XMES0XNAZTV0ZWKS4"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F559XBDMDQ2DYZSMX3J"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "getLatestNetDefinition",
+      "toolCallId": "call_empty-required",
+      "submissionId": "sub_01M20W3F559XBDMDQ2DYZSMX3J"
+    },
+    {
+      "type": "tool",
+      "toolName": "getLatestNetDefinition",
+      "toolCallId": "call_empty-required",
+      "isError": false,
+      "submissionId": "sub_01M20W3F559XBDMDQ2DYZSMX3J"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F559XBDMDQ2DYZSMX3J"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F5C3PZZX4J9V65G7DVV"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "updateTransition",
+      "toolCallId": "call_recursive-native",
+      "submissionId": "sub_01M20W3F5C3PZZX4J9V65G7DVV"
+    },
+    {
+      "type": "tool",
+      "toolName": "updateTransition",
+      "toolCallId": "call_recursive-native",
+      "isError": false,
+      "submissionId": "sub_01M20W3F5C3PZZX4J9V65G7DVV"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F5C3PZZX4J9V65G7DVV"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F5KPQWB0HR4X0C81GBE"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "legacyControl",
+      "toolCallId": "call_valibot-default-transform",
+      "submissionId": "sub_01M20W3F5KPQWB0HR4X0C81GBE"
+    },
+    {
+      "type": "tool",
+      "toolName": "legacyControl",
+      "toolCallId": "call_valibot-default-transform",
+      "isError": false,
+      "submissionId": "sub_01M20W3F5KPQWB0HR4X0C81GBE"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F5KPQWB0HR4X0C81GBE"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F5T41JBQ206A0ZWJ67Q"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "legacyControl",
+      "toolCallId": "call_valibot-generic-control",
+      "submissionId": "sub_01M20W3F5T41JBQ206A0ZWJ67Q"
+    },
+    {
+      "type": "tool",
+      "toolName": "legacyControl",
+      "toolCallId": "call_valibot-generic-control",
+      "isError": false,
+      "submissionId": "sub_01M20W3F5T41JBQ206A0ZWJ67Q"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F5T41JBQ206A0ZWJ67Q"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F5Z7PB2MH0PYVVQ67V5"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "addArc",
+      "toolCallId": "call_explicit-normalization",
+      "submissionId": "sub_01M20W3F5Z7PB2MH0PYVVQ67V5"
+    },
+    {
+      "type": "tool",
+      "toolName": "addArc",
+      "toolCallId": "call_explicit-normalization",
+      "isError": false,
+      "submissionId": "sub_01M20W3F5Z7PB2MH0PYVVQ67V5"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F5Z7PB2MH0PYVVQ67V5"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F65NJ3MKJTXWQ6VB0EX"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "transformedControl",
+      "toolCallId": "call_transformed-output",
+      "submissionId": "sub_01M20W3F65NJ3MKJTXWQ6VB0EX"
+    },
+    {
+      "type": "tool",
+      "toolName": "transformedControl",
+      "toolCallId": "call_transformed-output",
+      "isError": false,
+      "submissionId": "sub_01M20W3F65NJ3MKJTXWQ6VB0EX"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F65NJ3MKJTXWQ6VB0EX"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F6BM6S84JWQVKH0NXFP"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "asyncControl",
+      "toolCallId": "call_async-valid",
+      "submissionId": "sub_01M20W3F6BM6S84JWQVKH0NXFP"
+    },
+    {
+      "type": "tool",
+      "toolName": "asyncControl",
+      "toolCallId": "call_async-valid",
+      "isError": false,
+      "submissionId": "sub_01M20W3F6BM6S84JWQVKH0NXFP"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F6BM6S84JWQVKH0NXFP"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F6G6H43HVZ2PSAPSZCR"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "asyncControl",
+      "toolCallId": "call_async-invalid",
+      "submissionId": "sub_01M20W3F6G6H43HVZ2PSAPSZCR"
+    },
+    {
+      "type": "tool",
+      "toolName": "asyncControl",
+      "toolCallId": "call_async-invalid",
+      "isError": true,
+      "error": "Arguments for tool \"asyncControl\" do not match the required schema: Expected ok (at value). Call the tool again with corrected arguments.",
+      "submissionId": "sub_01M20W3F6G6H43HVZ2PSAPSZCR"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F6G6H43HVZ2PSAPSZCR"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F6G6H43HVZ2PSAPSZCR"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F6QEVK0JQ6YS47HZWPV"
+    },
+    {
+      "type": "tool_start",
+      "toolName": "addArc",
+      "toolCallId": "call_before-block",
+      "submissionId": "sub_01M20W3F6QEVK0JQ6YS47HZWPV"
+    },
+    {
+      "type": "tool",
+      "toolName": "addArc",
+      "toolCallId": "call_before-block",
+      "isError": true,
+      "submissionId": "sub_01M20W3F6QEVK0JQ6YS47HZWPV"
+    },
+    {
+      "type": "turn",
+      "isError": false,
+      "submissionId": "sub_01M20W3F6QEVK0JQ6YS47HZWPV"
+    },
+    {
+      "type": "submission_settled",
+      "outcome": "completed",
+      "submissionId": "sub_01M20W3F6QEVK0JQ6YS47HZWPV"
+    },
+    {
+      "type": "turn",
+      "isError": true,
+      "submissionId": "sub_01M20W3F6YWG3HMK520NTJZ9NJ"
+    },
+    {
+      "type": "submission_settled",
+      "error": "dispatch(sub_01M20W3F6YWG3HMK520NTJZ9NJ) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "outcome": "failed",
+      "submissionId": "sub_01M20W3F6YWG3HMK520NTJZ9NJ"
+    }
+  ]
+}
