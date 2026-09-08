@@ -1,0 +1,5 @@
+(version 1)
+(allow default)
+(deny network*)
+; Permit only tsx filesystem IPC; no IP connection or listener is allowed.
+(allow network* (regex "^(/private)?/(tmp|var/folders/[^/]+/[^/]+/T)/tsx-[0-9]+/[0-9]+[.]pipe$"))

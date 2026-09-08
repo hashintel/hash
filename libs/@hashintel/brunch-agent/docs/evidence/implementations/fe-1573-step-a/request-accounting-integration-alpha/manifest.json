@@ -1,0 +1,93 @@
+{
+  "integrationHead": "e060478e77",
+  "additionalTestedChange": "two reviewed accounting entries in the hermetic substrate inventory",
+  "files": [
+    {
+      "path": "alpha-build.log.gz",
+      "bytes": 445,
+      "sha256": "5dffff32d9f3864575309d87a16b356d9cfb7a1c1517e8726fa224118a0ecc9e",
+      "uncompressedBytes": 1091,
+      "uncompressedSha256": "5e3ce71c7a885a92e156def3b10e70ccbdf303c54da87279e4008f2f33be338f"
+    },
+    {
+      "path": "alpha-built-oracle.log.gz",
+      "bytes": 1183,
+      "sha256": "3ce44464a22ab88eb3e9c6505ed61dfd2905f79933cb7415ca8caf3604295725",
+      "uncompressedBytes": 16978,
+      "uncompressedSha256": "32825b23735c7b297ff8fc1096ccb59ad8bbefba2a483c3f404f4dc0d126aa6f"
+    },
+    {
+      "path": "alpha-complete-build.log.gz",
+      "bytes": 523,
+      "sha256": "ba720c3003a97de9571a2c0e7f6aff3e54ff7a95d7daef78978063f0ae4c81be",
+      "uncompressedBytes": 1433,
+      "uncompressedSha256": "18c9b67992f81b55092d6fcb5d4581de4f290149ce654c2424aea6d99c4467fb"
+    },
+    {
+      "path": "alpha-lint.log.gz",
+      "bytes": 1956,
+      "sha256": "77c37cbb0b711e4e098f1b28ea96b6f747c1b5df33d4942b372635c00f79a9dc",
+      "uncompressedBytes": 8021,
+      "uncompressedSha256": "c8efa802dcb2504e6b87ca3a0af026444a6f3c1a0c70d72fe944bc7974a177bf"
+    },
+    {
+      "path": "alpha-tests-complete-build.log.gz",
+      "bytes": 307,
+      "sha256": "d82c8bc1bdcdcf24c64af815cae2a36f640003c1fef75abe5c706aba01b4c062",
+      "uncompressedBytes": 420,
+      "uncompressedSha256": "6c59e79daaa121c294596ee1f9e5bd3a29a77655db5ca62226499423bc82f6f5"
+    },
+    {
+      "path": "alpha-tests.log.gz",
+      "bytes": 1039,
+      "sha256": "1b0fd16a59ffc3503e62715ccfab6e698142e231ecd146e7382fee8abbc1cea6",
+      "uncompressedBytes": 2809,
+      "uncompressedSha256": "e246c7c2ca66a1174a7b5e6e82e3a7f291ee0b560e798e2fb30c27a844772c3c"
+    },
+    {
+      "path": "alpha-types.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "uncompressedBytes": 0,
+      "uncompressedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "built.log.gz",
+      "bytes": 1186,
+      "sha256": "c78ffb7e723a62b386823fbae4a9261fa60d3d771f40f4d672726422f171fd15",
+      "uncompressedBytes": 17507,
+      "uncompressedSha256": "787a1a67f5530cf7071d9d9d86e0a01b28bbea4750814d144931e792782b0164"
+    },
+    {
+      "path": "deny-network.sb",
+      "bytes": 217,
+      "sha256": "30023197e6a75d166e74e767e3335c1aae21fb021436f224ed32e28fd57272dc"
+    },
+    {
+      "path": "fixture-results.json.gz",
+      "bytes": 2695,
+      "sha256": "aa4b057be8a9f849b7d1a58661f63ebe8a3f4fe01d3833024b337bfb75cf1316",
+      "uncompressedBytes": 31798,
+      "uncompressedSha256": "9dedbb44c3a85b14e3c9bf0be72a672ec41941b3cc6d4b53c0a4dbf31fc80ef7"
+    },
+    {
+      "path": "focused.log.gz",
+      "bytes": 210,
+      "sha256": "2de00e64cc6647457c8ecb8ed21c80f3c5fd9fa69983c3a49275bf7717fe322e",
+      "uncompressedBytes": 256,
+      "uncompressedSha256": "d395f4fb5014738df6a67ab11ed30fae109fbdf4fb75c8743b4b365bcc7a23e3"
+    },
+    {
+      "path": "integration.log.gz",
+      "bytes": 489,
+      "sha256": "ff692a63cc7902b8cec7fad65ec140875ec4578d752f6813a45681b298677be0",
+      "uncompressedBytes": 1483,
+      "uncompressedSha256": "885047e207639078cd222e7f68bd07e1a6006dd9987ef1f2dedd59c3f0db8cbd"
+    },
+    {
+      "path": "integration.md",
+      "bytes": 5444,
+      "sha256": "71e0ff7b0b7caaef9b293f93be7dbebba78bf381775b59f74e1e323e942d78dd"
+    }
+  ]
+}
