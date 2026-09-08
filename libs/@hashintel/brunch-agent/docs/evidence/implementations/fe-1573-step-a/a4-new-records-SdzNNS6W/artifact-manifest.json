@@ -1290,8 +1290,8 @@
     },
     {
       "path": "commands.md",
-      "bytes": 6142,
-      "sha256": "b431f3b089b03eebc76426a07cb2d7a3a299f6074024a619b5d506d102bde810"
+      "bytes": 9001,
+      "sha256": "32a9e2245f0acc08777309a24a7dac435dd8c69f6d711fcba5b667a593ca9f17"
     },
     {
       "path": "compaction-result.md",
@@ -1884,8 +1884,8 @@
     },
     {
       "path": "handoff.md",
-      "bytes": 10979,
-      "sha256": "4e862b6a96ed5c10e3b6c1ff2cca5d191b9edb2fdebff5e42028841a4e5303d1"
+      "bytes": 13782,
+      "sha256": "a9e35c476aa4165d62e319cd5638882f025ef868f2861c9d6baa4c9939eccaa2"
     },
     {
       "path": "install.log.gz",

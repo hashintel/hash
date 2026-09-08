@@ -1,6 +1,6 @@
 # Commands and retained attempts
 
-Working directory for Yarn commands: repository root `/Users/lunelson/.herdr/worktrees/hash/m7-record-retention`. `E` below was this packet's absolute path. The final replay's `a4-replay-TZu8fGk9/commands.log` is the authoritative exact expanded command/exit list; it runs Node from `apps/brunch-agent`. Logs/sources ending in `.gz` are losslessly compressed after execution. No environment dump was taken.
+Working directory for Yarn commands: repository root `/Users/lunelson/.herdr/worktrees/hash/m7-record-retention`. `E` below was this packet's absolute path. The final replay's `a4-replay-TZu8fGk9/commands.log` is the authoritative exact expanded command/exit list; it runs Node from `apps/brunch-agent`. Logs/sources ending in `.gz` are losslessly compressed after execution. No environment dump was taken. **Post-review qualification:** this is a record of the original commands, not proof of network isolation. Package-manager offline environment flags do not deny network access by the process tree; the acquisition event below invalidates the original campaign-wide no-external-request claim. No command was rerun for this correction.
 
 ```sh
 E="$PWD/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a4-new-records-SdzNNS6W"
@@ -9,7 +9,28 @@ YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 CARGO_NET_OFFLINE=true yarn exec
 YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat yarn workspace @apps/petrinaut-website build
 ```
 
-All exit 0, retained in `install.log`, `build.log`, `website-build.log`. The same configured website command ran again after the forced portfolio as `final-website-build.log`, exit 0. Build logs and final byte manifest are not interchangeable: the latter pins **only** the final proving artifacts. Offline install made no tracked package-manager change.
+All exit 0, retained in `install.log`, `build.log`, `website-build.log`. The same configured website command ran again after the forced portfolio as `final-website-build.log`, exit 0. Build logs and final byte manifest are not interchangeable: the latter pins **only** the final proving artifacts. Installation with offline environment flags made no tracked package-manager change; that fact does not establish campaign-wide absence of network acquisition.
+
+## Post-review disclosure: transitive dependency-tool acquisition
+
+The original forced serial portfolio command was:
+
+```sh
+YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 CARGO_NET_OFFLINE=true yarn exec turbo run build test:unit lint:tsc lint:eslint --filter=@hashintel/brunch-agent --filter=@hashintel/brunch-agent-plugin-sdcpn --filter=@hashintel/brunch-agent-binding-flue --filter=@hashintel/brunch-agent-transport-aisdk --filter=@apps/brunch-agent --filter=@apps/petrinaut-website --filter=@hashintel/petrinaut --continue=always --force --concurrency=1
+```
+
+Despite those flags, `verification.log.gz` decompressed lines 1974–1975 record:
+
+```text
+@local/hash-graph-client:codegen: Download 6.6.0 ...
+@local/hash-graph-client:codegen: Downloaded 6.6.0
+```
+
+The transitive `@local/hash-graph-client:codegen` task acquired OpenAPI Generator **6.6.0** through its Java generator toolchain. Line 1977 subsequently names `node_modules/@openapitools/openapi-generator-cli/versions/6.6.0.jar` in a Java warning. Known: task, requested version, download completion reported by the tool and local JAR path. Not captured: actual remote URL/host, protocol, redirects/proxy route, response/status, transferred bytes or process-tree network traffic. Do not infer those transport details from the local file URL or retrospectively call this an offline cache hit. The original log and its compressed/decompressed manifest hashes are preserved unchanged.
+
+This dependency-tool event is distinct from zero real application/provider calls and zero provider spend in the synthetic-provider probes. Runtime fetch rejection and browser-origin filtering are scoped application-level controls; their observations are not proof of process-tree egress denial. No zero-external-request claim is made for the whole campaign. The parent's later deny-network retained-store replay belongs in its separate integration report, not this original packet.
+
+For future reproduction, **verify process-tree network denial before running commands**, including child dependency tools. Builds and non-browser probes can deny all network; the browser needs an explicitly scoped loopback allowance for the owned listener/Chrome traffic, with other network denied. Offline package-manager flags and the commands below do not supply this enforcement. Stop if it is not verified; this correction authorizes no further external access, build or portfolio rerun.
 
 ## Pre-final browser/threshold instrument development
 
