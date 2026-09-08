@@ -20,6 +20,7 @@ import { assetHandler } from "./http/assets.ts";
 import { createAgentCors, parseCorsAllowedOrigins } from "./http/cors.ts";
 import { agentOwnershipGuard } from "./http/ownership.ts";
 import { CHAT_AGENT_ROUTE, HEALTH_ROUTE } from "./http/routes.ts";
+import { createStepARequestAccounting } from "./provider-accounting.ts";
 import { withBufferedToolAdmission } from "./provider-admission.ts";
 
 // Scope follows the runtime's submission execution, not the HTTP request that
@@ -40,9 +41,24 @@ instrument({
   },
   dispose() {},
 });
+const accounting = createStepARequestAccounting(
+  process.env.BRUNCH_STEP_A_ACCOUNTING,
+);
+if (accounting) {
+  instrument({
+    key: Symbol.for("brunch.step-a-request-accounting"),
+    observe() {},
+    interceptor: accounting.interceptor,
+    dispose() {},
+  });
+}
+const nativeProvider = anthropicProvider();
 setProvider(
   withBufferedToolAdmission(
-    anthropicProvider(),
+    accounting?.wrap(
+      nativeProvider,
+      () => admissionScope.getStore() === true,
+    ) ?? nativeProvider,
     () => admissionScope.getStore() === true,
     new Set([
       ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
