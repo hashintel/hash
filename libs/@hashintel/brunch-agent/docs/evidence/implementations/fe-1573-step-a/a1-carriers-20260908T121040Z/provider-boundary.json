@@ -1,0 +1,719 @@
+{
+  "paid": false,
+  "mounted": false,
+  "fetchCalls": 0,
+  "arcArguments": {
+    "transitionId": "transition",
+    "arcDirection": "input",
+    "placeId": "place",
+    "weight": "1"
+  },
+  "arcParsed": {
+    "success": true,
+    "output": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1
+    }
+  },
+  "tools": [
+    {
+      "name": "addArc",
+      "description": "Synthetic unmounted adapter probe",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "transitionId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+          },
+          "arcDirection": {
+            "enum": ["input", "output"],
+            "type": "string",
+            "description": "Whether the arc connects a place into a transition or a transition out to a place."
+          },
+          "placeId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Legacy shorthand for a normal place endpoint in the same net as the transition."
+          },
+          "endpoint": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "place"
+                  },
+                  "placeId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "ID of a place in the same net as the transition."
+                  }
+                },
+                "required": ["kind", "placeId"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "componentPort"
+                  },
+                  "componentInstanceId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "ID of a component instance in the same net as the transition."
+                  },
+                  "portPlaceId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                  }
+                },
+                "required": ["kind", "componentInstanceId", "portPlaceId"],
+                "additionalProperties": false
+              }
+            ],
+            "description": "Arc endpoint. Use `kind: \"componentPort\"` to connect the transition to a port on a subnet instance."
+          },
+          "weight": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Token multiplicity for the arc."
+          },
+          "type": {
+            "enum": ["standard", "inhibitor", "read"],
+            "type": "string",
+            "description": "Input arc type, only valid when arcDirection is input. Standard arcs consume tokens; read arcs inspect tokens without consuming them; inhibitor arcs block firing when enough tokens are present. Omit this for output arcs."
+          },
+          "targetSubnetId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net."
+          }
+        },
+        "required": ["transitionId", "arcDirection", "weight"],
+        "additionalProperties": false,
+        "description": "Add an input or output arc to a transition."
+      }
+    },
+    {
+      "name": "addPlace",
+      "description": "Synthetic unmounted adapter probe",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+          },
+          "name": {
+            "type": "string",
+            "description": "PascalCase identifier used DIRECTLY in user code: lambdas and kernels reference input/output places as `input.PlaceName` and `{ PlaceName: [...] }`, metrics access them as `state.places.PlaceName.count`, scenario code-mode initial state keys are place names, and visualizer scope is implicitly per-place. Renaming a place breaks every code reference, so rename only when you also update dependent lambda/kernel/dynamics/metric/visualizer/scenario code in the same batch."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional human-readable summary shown to users."
+          },
+          "colorId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ID of the token colour/type accepted by this place, or null for uncoloured token counts. Uncoloured places have no token attributes and do not appear in lambda/kernel `input` objects."
+          },
+          "dynamicsEnabled": {
+            "type": "boolean",
+            "description": "Whether tokens in this place are updated by a differential equation during simulation. Dynamics only run when this is true AND `differentialEquationId` is set AND `colorId` is set."
+          },
+          "differentialEquationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ID of the differential equation used for continuous dynamics, or null when dynamics are disabled. The referenced equation's `colorId` MUST match this place's `colorId`."
+          },
+          "capacity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional maximum number of tokens this place will hold. A transition whose firing would take this place past its capacity is NOT enabled, exactly like a transition without enough input tokens — so a full place blocks the transitions that feed it and the limit is never exceeded. The check uses the net change per firing, so a transition that both consumes from and produces into this place is not blocked by its own output. A capacity of 0 means the place can never receive tokens. Omit or set null for unbounded. The initial marking must not exceed it."
+          },
+          "isPort": {
+            "type": "boolean",
+            "description": "When true, this place is exposed as a component port on instances of the subnet that contains it."
+          },
+          "visualizerCode": {
+            "type": "string",
+            "description": "Optional module: `export default Visualization(({ tokens, parameters }) => <JSX/>)`. JSX is compiled with React's CLASSIC runtime — do NOT `import React`, do NOT use `<>…</>` fragments (use `<g>` or explicit elements), and do NOT use hooks; treat it as a pure render. `tokens` is this place's current tokens (only meaningful for coloured places; empty for uncoloured). `parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.crash_threshold`). Convention is to return a sized `<svg viewBox=\"0 0 800 600\">…</svg>`."
+          },
+          "showAsInitialState": {
+            "type": "boolean",
+            "description": "Optional UI hint to show this place in the initial-state view."
+          },
+          "x": {
+            "type": "number",
+            "description": "Horizontal canvas position."
+          },
+          "y": {
+            "type": "number",
+            "description": "Vertical canvas position."
+          },
+          "targetSubnetId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "colorId",
+          "dynamicsEnabled",
+          "differentialEquationId",
+          "x",
+          "y"
+        ],
+        "additionalProperties": false,
+        "description": "Add a place that stores tokens in the SDCPN."
+      }
+    },
+    {
+      "name": "addType",
+      "description": "Synthetic unmounted adapter probe",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable colour/type name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional human-readable summary shown to users."
+          },
+          "iconSlug": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Short icon identifier used by the UI for this colour/type. Typical values are `\"circle\"` or `\"square\"`; the UI defaults to `\"circle\"`."
+          },
+          "displayColor": {
+            "type": "string",
+            "minLength": 1,
+            "description": "CSS colour string for the UI badge, e.g. `\"#1E90FF\"` or `\"rgb(30,144,255)\"`."
+          },
+          "elements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "elementId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Stable identifier for this colour element."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Token attribute identifier used DIRECTLY in code. Lambdas, kernels, dynamics, visualizers, and metrics destructure tokens as `{ <name> }`, so this must be a valid JavaScript identifier (e.g. `machine_damage_ratio`, `x`, `velocity`). Spaces, hyphens, and leading digits will break user code that references the attribute; prefer lower_snake_case for consistency with parameter naming."
+                },
+                "type": {
+                  "enum": ["real", "integer", "boolean", "uuid", "string"],
+                  "type": "string",
+                  "description": "`real` is continuous and may be updated by dynamics. `integer`, `boolean`, `uuid`, and `string` are discrete token attributes updated by transition kernels. `integer` values are stored as Float64 and rounded on read/write: they are exact only within ±2^53 (±9,007,199,254,740,992); values beyond that lose precision silently. `uuid` is a 128-bit RFC 4122 identifier: runtime code sees it as a `bigint`, frame buffers store it as two little-endian 64-bit lanes, and at-rest data (documents, scenarios) uses canonical lowercase strings. `uuid` fields are OPTIONAL in kernel outputs — omitted values are auto-generated deterministically from the seeded simulation RNG — and non-UUID inputs are converted deterministically via UUIDv5. `string` is variable-length text, compared by value: runtime code sees plain JS strings, and each distinct value is stored once per run via interning — frame buffers hold 64-bit pool references. Kernels and markings write `string` values (missing values become the empty string); dynamics can read but never update them."
+                }
+              },
+              "required": ["elementId", "name", "type"],
+              "additionalProperties": false,
+              "description": "One typed attribute on a coloured token."
+            },
+            "description": "Typed token attributes available on tokens of this colour/type. Element order matters: coloured initial state in scenario per_place mode supplies rows in this order."
+          },
+          "targetSubnetId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net."
+          }
+        },
+        "required": ["id", "name", "iconSlug", "displayColor", "elements"],
+        "additionalProperties": false,
+        "description": "Add a coloured-token type."
+      }
+    },
+    {
+      "name": "getLatestNetDefinition",
+      "description": "Synthetic unmounted adapter probe",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false,
+        "description": "Get the current Petrinaut net state. Returns `{ title, definition, extensions }` where `title` is the user-visible net title, `definition` is the complete SDCPN net definition, and `extensions` lists the currently enabled Petrinaut extension capabilities."
+      }
+    },
+    {
+      "name": "recursiveDiagnostic",
+      "description": "Synthetic native lazy reproducer, not an admitted tool",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/0"
+            }
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "$defs": {
+          "0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/0"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "payload": {
+    "model": "claude-sonnet-4-6",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Synthetic schema export only; do not execute.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      }
+    ],
+    "max_tokens": 1,
+    "stream": true,
+    "tools": [
+      {
+        "name": "addArc",
+        "description": "Synthetic unmounted adapter probe",
+        "eager_input_streaming": true,
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "transitionId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+            },
+            "arcDirection": {
+              "enum": ["input", "output"],
+              "type": "string",
+              "description": "Whether the arc connects a place into a transition or a transition out to a place."
+            },
+            "placeId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Legacy shorthand for a normal place endpoint in the same net as the transition."
+            },
+            "endpoint": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "place"
+                    },
+                    "placeId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "ID of a place in the same net as the transition."
+                    }
+                  },
+                  "required": ["kind", "placeId"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "componentPort"
+                    },
+                    "componentInstanceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "ID of a component instance in the same net as the transition."
+                    },
+                    "portPlaceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "ID of a place marked `isPort: true` in the component instance's referenced subnet."
+                    }
+                  },
+                  "required": ["kind", "componentInstanceId", "portPlaceId"],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "Arc endpoint. Use `kind: \"componentPort\"` to connect the transition to a port on a subnet instance."
+            },
+            "weight": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Token multiplicity for the arc."
+            },
+            "type": {
+              "enum": ["standard", "inhibitor", "read"],
+              "type": "string",
+              "description": "Input arc type, only valid when arcDirection is input. Standard arcs consume tokens; read arcs inspect tokens without consuming them; inhibitor arcs block firing when enough tokens are present. Omit this for output arcs."
+            },
+            "targetSubnetId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net."
+            }
+          },
+          "required": ["transitionId", "arcDirection", "weight"]
+        }
+      },
+      {
+        "name": "addPlace",
+        "description": "Synthetic unmounted adapter probe",
+        "eager_input_streaming": true,
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+            },
+            "name": {
+              "type": "string",
+              "description": "PascalCase identifier used DIRECTLY in user code: lambdas and kernels reference input/output places as `input.PlaceName` and `{ PlaceName: [...] }`, metrics access them as `state.places.PlaceName.count`, scenario code-mode initial state keys are place names, and visualizer scope is implicitly per-place. Renaming a place breaks every code reference, so rename only when you also update dependent lambda/kernel/dynamics/metric/visualizer/scenario code in the same batch."
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional human-readable summary shown to users."
+            },
+            "colorId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ID of the token colour/type accepted by this place, or null for uncoloured token counts. Uncoloured places have no token attributes and do not appear in lambda/kernel `input` objects."
+            },
+            "dynamicsEnabled": {
+              "type": "boolean",
+              "description": "Whether tokens in this place are updated by a differential equation during simulation. Dynamics only run when this is true AND `differentialEquationId` is set AND `colorId` is set."
+            },
+            "differentialEquationId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ID of the differential equation used for continuous dynamics, or null when dynamics are disabled. The referenced equation's `colorId` MUST match this place's `colorId`."
+            },
+            "capacity": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional maximum number of tokens this place will hold. A transition whose firing would take this place past its capacity is NOT enabled, exactly like a transition without enough input tokens — so a full place blocks the transitions that feed it and the limit is never exceeded. The check uses the net change per firing, so a transition that both consumes from and produces into this place is not blocked by its own output. A capacity of 0 means the place can never receive tokens. Omit or set null for unbounded. The initial marking must not exceed it."
+            },
+            "isPort": {
+              "type": "boolean",
+              "description": "When true, this place is exposed as a component port on instances of the subnet that contains it."
+            },
+            "visualizerCode": {
+              "type": "string",
+              "description": "Optional module: `export default Visualization(({ tokens, parameters }) => <JSX/>)`. JSX is compiled with React's CLASSIC runtime — do NOT `import React`, do NOT use `<>…</>` fragments (use `<g>` or explicit elements), and do NOT use hooks; treat it as a pure render. `tokens` is this place's current tokens (only meaningful for coloured places; empty for uncoloured). `parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.crash_threshold`). Convention is to return a sized `<svg viewBox=\"0 0 800 600\">…</svg>`."
+            },
+            "showAsInitialState": {
+              "type": "boolean",
+              "description": "Optional UI hint to show this place in the initial-state view."
+            },
+            "x": {
+              "type": "number",
+              "description": "Horizontal canvas position."
+            },
+            "y": {
+              "type": "number",
+              "description": "Vertical canvas position."
+            },
+            "targetSubnetId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net."
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "colorId",
+            "dynamicsEnabled",
+            "differentialEquationId",
+            "x",
+            "y"
+          ]
+        }
+      },
+      {
+        "name": "addType",
+        "description": "Synthetic unmounted adapter probe",
+        "eager_input_streaming": true,
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+            },
+            "name": {
+              "type": "string",
+              "description": "Human-readable colour/type name."
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional human-readable summary shown to users."
+            },
+            "iconSlug": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Short icon identifier used by the UI for this colour/type. Typical values are `\"circle\"` or `\"square\"`; the UI defaults to `\"circle\"`."
+            },
+            "displayColor": {
+              "type": "string",
+              "minLength": 1,
+              "description": "CSS colour string for the UI badge, e.g. `\"#1E90FF\"` or `\"rgb(30,144,255)\"`."
+            },
+            "elements": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "elementId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Stable identifier for this colour element."
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Token attribute identifier used DIRECTLY in code. Lambdas, kernels, dynamics, visualizers, and metrics destructure tokens as `{ <name> }`, so this must be a valid JavaScript identifier (e.g. `machine_damage_ratio`, `x`, `velocity`). Spaces, hyphens, and leading digits will break user code that references the attribute; prefer lower_snake_case for consistency with parameter naming."
+                  },
+                  "type": {
+                    "enum": ["real", "integer", "boolean", "uuid", "string"],
+                    "type": "string",
+                    "description": "`real` is continuous and may be updated by dynamics. `integer`, `boolean`, `uuid`, and `string` are discrete token attributes updated by transition kernels. `integer` values are stored as Float64 and rounded on read/write: they are exact only within ±2^53 (±9,007,199,254,740,992); values beyond that lose precision silently. `uuid` is a 128-bit RFC 4122 identifier: runtime code sees it as a `bigint`, frame buffers store it as two little-endian 64-bit lanes, and at-rest data (documents, scenarios) uses canonical lowercase strings. `uuid` fields are OPTIONAL in kernel outputs — omitted values are auto-generated deterministically from the seeded simulation RNG — and non-UUID inputs are converted deterministically via UUIDv5. `string` is variable-length text, compared by value: runtime code sees plain JS strings, and each distinct value is stored once per run via interning — frame buffers hold 64-bit pool references. Kernels and markings write `string` values (missing values become the empty string); dynamics can read but never update them."
+                  }
+                },
+                "required": ["elementId", "name", "type"],
+                "additionalProperties": false,
+                "description": "One typed attribute on a coloured token."
+              },
+              "description": "Typed token attributes available on tokens of this colour/type. Element order matters: coloured initial state in scenario per_place mode supplies rows in this order."
+            },
+            "targetSubnetId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Stable identifier for an SDCPN entity. Use unique IDs within the net."
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net."
+            }
+          },
+          "required": ["id", "name", "iconSlug", "displayColor", "elements"]
+        }
+      },
+      {
+        "name": "getLatestNetDefinition",
+        "description": "Synthetic unmounted adapter probe",
+        "eager_input_streaming": true,
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "recursiveDiagnostic",
+        "description": "Synthetic native lazy reproducer, not an admitted tool",
+        "eager_input_streaming": true,
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "metadata": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/0"
+              }
+            }
+          },
+          "required": []
+        },
+        "cache_control": {
+          "type": "ephemeral"
+        }
+      }
+    ],
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "response": {
+    "role": "assistant",
+    "content": [],
+    "api": "anthropic-messages",
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-6",
+    "usage": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 0,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      }
+    },
+    "stopReason": "error",
+    "timestamp": 1788871205341,
+    "errorMessage": "A1 deliberate stop before HTTP"
+  },
+  "priorPaidRootStrictness": {
+    "flue": false,
+    "requestKeywordPresent": false
+  },
+  "scope": "Installed Anthropic adapter payload only; deliberately aborted before HTTP. Not provider acceptance or a built candidate mount."
+}

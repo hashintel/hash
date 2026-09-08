@@ -1,0 +1,110 @@
+[
+  {
+    "call": {
+      "submissionId": "sub_01M20G7RBQK6C4RTW6FYSTHE5Y",
+      "toolCallId": "read-before",
+      "toolName": "getLatestNetDefinition",
+      "input": {}
+    },
+    "before": {
+      "places": [],
+      "transitions": [],
+      "types": [],
+      "differentialEquations": [],
+      "parameters": []
+    },
+    "result": {
+      "toolCallId": "read-before",
+      "toolName": "getLatestNetDefinition",
+      "output": {
+        "title": "Isolated A1 synthetic carrier check",
+        "definition": {
+          "places": [],
+          "transitions": [],
+          "types": [],
+          "differentialEquations": [],
+          "parameters": []
+        },
+        "extensions": {
+          "colors": true,
+          "stochasticity": true,
+          "dynamics": true,
+          "parameters": true,
+          "subnets": true
+        }
+      }
+    },
+    "after": {
+      "places": [],
+      "transitions": [],
+      "types": [],
+      "differentialEquations": [],
+      "parameters": []
+    }
+  },
+  {
+    "call": {
+      "submissionId": "sub_01M20G7RD3S5E8DSGYPKSGNHQG",
+      "toolCallId": "nested-type",
+      "toolName": "addType",
+      "input": {
+        "id": "production_eligibility",
+        "name": "ProductionEligibility",
+        "iconSlug": "circle",
+        "displayColor": "#808080",
+        "elements": [
+          {
+            "elementId": "product_family",
+            "name": "product_family",
+            "type": "string"
+          },
+          {
+            "elementId": "line_qualified",
+            "name": "line_qualified",
+            "type": "boolean"
+          }
+        ]
+      }
+    },
+    "before": {
+      "places": [],
+      "transitions": [],
+      "types": [],
+      "differentialEquations": [],
+      "parameters": []
+    },
+    "result": {
+      "toolCallId": "nested-type",
+      "toolName": "addType",
+      "output": {
+        "applied": true
+      }
+    },
+    "after": {
+      "places": [],
+      "transitions": [],
+      "types": [
+        {
+          "id": "production_eligibility",
+          "name": "ProductionEligibility",
+          "iconSlug": "circle",
+          "displayColor": "#808080",
+          "elements": [
+            {
+              "elementId": "product_family",
+              "name": "product_family",
+              "type": "string"
+            },
+            {
+              "elementId": "line_qualified",
+              "name": "line_qualified",
+              "type": "boolean"
+            }
+          ]
+        }
+      ],
+      "differentialEquations": [],
+      "parameters": []
+    }
+  }
+]

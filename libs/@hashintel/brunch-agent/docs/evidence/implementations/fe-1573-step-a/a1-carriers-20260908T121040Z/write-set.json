@@ -1,0 +1,43 @@
+{
+  "versionedPaths": {
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/canonical-schema-carrier.ts": "Locally proved mechanical vocabulary; no mounting changes",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/test/schema-carrier.test.ts": "Root-first discriminators and fail-closed regressions",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/test/carrier-feasibility.test.ts": "Full mission envelope survey, canonical normalization, limits and A3 compatibility",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/app-tests.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/brunch-agent-lint.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/brunch-agent-types.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/build-direct.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/build-final.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/built-faux-canonical-observations.json": "Raw synthetic rebuilt production-route regression artifact; no provider call",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/built-faux-contexts.json": "Raw synthetic rebuilt production-route regression artifact; no provider call",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/built-faux-history.json": "Raw synthetic rebuilt production-route regression artifact; no provider call",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/built-faux-result.json": "Raw synthetic rebuilt production-route regression artifact; no provider call",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/built-faux-turn-result.json": "Raw synthetic rebuilt production-route regression artifact; no provider call",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/built-faux.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/canonical-fixtures.json": "Generated schema, fixture, payload or identity evidence",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/capture-identities.mjs": "Executable unpaid reproducer or identity-capture command",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/format-check.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/format-write.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/handoff.md": "Per-operation verdict, comparison policy, exact boundaries, verification and owner handoff",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/identity-manifest.json": "Generated schema, fixture, payload or identity evidence",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/m7-carriers-build-initial.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/m7-carriers-install.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/paid-guard.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/plugin-sdcpn-lint.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/plugin-sdcpn-types.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/plugin-tests-final.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/plugin-tests.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/provider-boundary.json": "Generated schema, fixture, payload or identity evidence",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/provider-boundary.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/provider-boundary.mjs": "Executable unpaid reproducer or identity-capture command",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/remaining-scalars-red.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/root-arc-red.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/schema-survey.json": "Generated schema, fixture, payload or identity evidence",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/verification.log": "Raw verification or failed-attempt output; preserved rather than reformatted",
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a1-carriers-20260908T121040Z/write-set.json": "Exact intentional versioned write inventory"
+  },
+  "unversionedRequestedWrite": {
+    ".env.local": "Copied from main worktree, mode 0600, ignored; no content/hash retained"
+  },
+  "generatedArtifacts": "Ignored dependency installation and build outputs in this checkout only; not source changes"
+}

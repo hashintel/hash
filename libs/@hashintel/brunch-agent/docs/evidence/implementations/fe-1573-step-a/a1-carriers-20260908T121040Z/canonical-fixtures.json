@@ -1,0 +1,6734 @@
+[
+  {
+    "name": "addArc",
+    "label": "minimal valid input",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1,
+        "type": "standard"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1,
+        "type": "standard"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "strict root rejects extra field",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard",
+      "invented": true
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard",
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "missing transitionId",
+    "input": {
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard"
+    },
+    "normalized": {
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["transitionId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"transitionId\" but received undefined",
+          "path": ["transitionId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "missing arcDirection",
+    "input": {
+      "transitionId": "transition",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_value",
+          "values": ["input", "output"],
+          "path": ["arcDirection"],
+          "message": "Invalid option: expected one of \"input\"|\"output\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"arcDirection\" but received undefined",
+          "path": ["arcDirection"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "missing weight",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "type": "standard"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "number",
+          "code": "invalid_type",
+          "path": ["weight"],
+          "message": "Invalid input: expected number, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"weight\" but received undefined",
+          "path": ["weight"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removeArc",
+    "label": "minimal valid input",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place"
+      }
+    }
+  },
+  {
+    "name": "removeArc",
+    "label": "strict root rejects extra field",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "invented": true
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removeArc",
+    "label": "missing transitionId",
+    "input": {
+      "arcDirection": "input",
+      "placeId": "place"
+    },
+    "normalized": {
+      "arcDirection": "input",
+      "placeId": "place"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["transitionId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"transitionId\" but received undefined",
+          "path": ["transitionId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removeArc",
+    "label": "missing arcDirection",
+    "input": {
+      "transitionId": "transition",
+      "placeId": "place"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "placeId": "place"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_value",
+          "values": ["input", "output"],
+          "path": ["arcDirection"],
+          "message": "Invalid option: expected one of \"input\"|\"output\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"arcDirection\" but received undefined",
+          "path": ["arcDirection"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateArcWeight",
+    "label": "minimal valid input",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 2
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 2
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 2
+      }
+    }
+  },
+  {
+    "name": "updateArcWeight",
+    "label": "strict root rejects extra field",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 2,
+      "invented": true
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 2,
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateArcWeight",
+    "label": "missing transitionId",
+    "input": {
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 2
+    },
+    "normalized": {
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 2
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["transitionId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"transitionId\" but received undefined",
+          "path": ["transitionId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateArcWeight",
+    "label": "missing arcDirection",
+    "input": {
+      "transitionId": "transition",
+      "placeId": "place",
+      "weight": 2
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "placeId": "place",
+      "weight": 2
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_value",
+          "values": ["input", "output"],
+          "path": ["arcDirection"],
+          "message": "Invalid option: expected one of \"input\"|\"output\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"arcDirection\" but received undefined",
+          "path": ["arcDirection"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateArcWeight",
+    "label": "missing weight",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "number",
+          "code": "invalid_type",
+          "path": ["weight"],
+          "message": "Invalid input: expected number, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"weight\" but received undefined",
+          "path": ["weight"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateArcType",
+    "label": "minimal valid input",
+    "input": {
+      "transitionId": "transition",
+      "placeId": "place",
+      "type": "read"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "placeId": "place",
+      "type": "read"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "placeId": "place",
+        "type": "read"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "placeId": "place",
+        "type": "read"
+      }
+    }
+  },
+  {
+    "name": "updateArcType",
+    "label": "strict root rejects extra field",
+    "input": {
+      "transitionId": "transition",
+      "placeId": "place",
+      "type": "read",
+      "invented": true
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "placeId": "place",
+      "type": "read",
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateArcType",
+    "label": "missing transitionId",
+    "input": {
+      "placeId": "place",
+      "type": "read"
+    },
+    "normalized": {
+      "placeId": "place",
+      "type": "read"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["transitionId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"transitionId\" but received undefined",
+          "path": ["transitionId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateArcType",
+    "label": "missing type",
+    "input": {
+      "transitionId": "transition",
+      "placeId": "place"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "placeId": "place"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_value",
+          "values": ["standard", "inhibitor", "read"],
+          "path": ["type"],
+          "message": "Invalid option: expected one of \"standard\"|\"inhibitor\"|\"read\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"type\" but received undefined",
+          "path": ["type"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateArcPlace",
+    "label": "minimal valid input",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "oldPlaceId": "place",
+      "newPlaceId": "replacement"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "oldPlaceId": "place",
+      "newPlaceId": "replacement"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "oldPlaceId": "place",
+        "newPlaceId": "replacement"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "oldPlaceId": "place",
+        "newPlaceId": "replacement"
+      }
+    }
+  },
+  {
+    "name": "updateArcPlace",
+    "label": "strict root rejects extra field",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "oldPlaceId": "place",
+      "newPlaceId": "replacement",
+      "invented": true
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "oldPlaceId": "place",
+      "newPlaceId": "replacement",
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateArcPlace",
+    "label": "missing transitionId",
+    "input": {
+      "arcDirection": "input",
+      "oldPlaceId": "place",
+      "newPlaceId": "replacement"
+    },
+    "normalized": {
+      "arcDirection": "input",
+      "oldPlaceId": "place",
+      "newPlaceId": "replacement"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["transitionId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"transitionId\" but received undefined",
+          "path": ["transitionId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateArcPlace",
+    "label": "missing arcDirection",
+    "input": {
+      "transitionId": "transition",
+      "oldPlaceId": "place",
+      "newPlaceId": "replacement"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "oldPlaceId": "place",
+      "newPlaceId": "replacement"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_value",
+          "values": ["input", "output"],
+          "path": ["arcDirection"],
+          "message": "Invalid option: expected one of \"input\"|\"output\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"arcDirection\" but received undefined",
+          "path": ["arcDirection"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addPlace",
+    "label": "minimal valid input",
+    "input": {
+      "id": "place",
+      "name": "Place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "place",
+      "name": "Place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "place",
+        "name": "Place",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 0,
+        "y": 0
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "place",
+        "name": "Place",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 0,
+        "y": 0
+      }
+    }
+  },
+  {
+    "name": "addPlace",
+    "label": "strict root rejects extra field",
+    "input": {
+      "id": "place",
+      "name": "Place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0,
+      "invented": true
+    },
+    "normalized": {
+      "id": "place",
+      "name": "Place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0,
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addPlace",
+    "label": "missing id",
+    "input": {
+      "name": "Place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "name": "Place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["id"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"id\" but received undefined",
+          "path": ["id"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addPlace",
+    "label": "missing name",
+    "input": {
+      "id": "place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["name"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"name\" but received undefined",
+          "path": ["name"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addPlace",
+    "label": "missing colorId",
+    "input": {
+      "id": "place",
+      "name": "Place",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "place",
+      "name": "Place",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["colorId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"colorId\" but received undefined",
+          "path": ["colorId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addPlace",
+    "label": "missing dynamicsEnabled",
+    "input": {
+      "id": "place",
+      "name": "Place",
+      "colorId": null,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "place",
+      "name": "Place",
+      "colorId": null,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "boolean",
+          "code": "invalid_type",
+          "path": ["dynamicsEnabled"],
+          "message": "Invalid input: expected boolean, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"dynamicsEnabled\" but received undefined",
+          "path": ["dynamicsEnabled"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addPlace",
+    "label": "missing differentialEquationId",
+    "input": {
+      "id": "place",
+      "name": "Place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "place",
+      "name": "Place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["differentialEquationId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"differentialEquationId\" but received undefined",
+          "path": ["differentialEquationId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addPlace",
+    "label": "missing x",
+    "input": {
+      "id": "place",
+      "name": "Place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "y": 0
+    },
+    "normalized": {
+      "id": "place",
+      "name": "Place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "number",
+          "code": "invalid_type",
+          "path": ["x"],
+          "message": "Invalid input: expected number, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"x\" but received undefined",
+          "path": ["x"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addPlace",
+    "label": "missing y",
+    "input": {
+      "id": "place",
+      "name": "Place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0
+    },
+    "normalized": {
+      "id": "place",
+      "name": "Place",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "number",
+          "code": "invalid_type",
+          "path": ["y"],
+          "message": "Invalid input: expected number, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"y\" but received undefined",
+          "path": ["y"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updatePlace",
+    "label": "minimal valid input",
+    "input": {
+      "placeId": "place",
+      "update": {}
+    },
+    "normalized": {
+      "placeId": "place",
+      "update": {}
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "placeId": "place",
+        "update": {}
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "placeId": "place",
+        "update": {}
+      }
+    }
+  },
+  {
+    "name": "updatePlace",
+    "label": "strict root rejects extra field",
+    "input": {
+      "placeId": "place",
+      "update": {},
+      "invented": true
+    },
+    "normalized": {
+      "placeId": "place",
+      "update": {},
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updatePlace",
+    "label": "missing placeId",
+    "input": {
+      "update": {}
+    },
+    "normalized": {
+      "update": {}
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["placeId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"placeId\" but received undefined",
+          "path": ["placeId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updatePlace",
+    "label": "missing update",
+    "input": {
+      "placeId": "place"
+    },
+    "normalized": {
+      "placeId": "place"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "object",
+          "code": "invalid_type",
+          "path": ["update"],
+          "message": "Invalid input: expected object, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"update\" but received undefined",
+          "path": ["update"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removePlace",
+    "label": "minimal valid input",
+    "input": {
+      "placeId": "place"
+    },
+    "normalized": {
+      "placeId": "place"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "placeId": "place"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "placeId": "place"
+      }
+    }
+  },
+  {
+    "name": "removePlace",
+    "label": "strict root rejects extra field",
+    "input": {
+      "placeId": "place",
+      "invented": true
+    },
+    "normalized": {
+      "placeId": "place",
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removePlace",
+    "label": "missing placeId",
+    "input": {},
+    "normalized": {},
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["placeId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"placeId\" but received undefined",
+          "path": ["placeId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "minimal valid input",
+    "input": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "transition",
+        "name": "Transition",
+        "inputArcs": [],
+        "outputArcs": [],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "",
+        "x": 0,
+        "y": 0
+      }
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "strict root rejects extra field",
+    "input": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0,
+      "invented": true
+    },
+    "normalized": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0,
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "missing id",
+    "input": {
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["id"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "missing name",
+    "input": {
+      "id": "transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["name"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "missing inputArcs",
+    "input": {
+      "id": "transition",
+      "name": "Transition",
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "transition",
+      "name": "Transition",
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "array",
+          "code": "invalid_type",
+          "path": ["inputArcs"],
+          "message": "Invalid input: expected array, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "missing outputArcs",
+    "input": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "array",
+          "code": "invalid_type",
+          "path": ["outputArcs"],
+          "message": "Invalid input: expected array, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "missing lambdaType",
+    "input": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_value",
+          "values": ["predicate", "stochastic"],
+          "path": ["lambdaType"],
+          "message": "Invalid option: expected one of \"predicate\"|\"stochastic\""
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "missing lambdaCode",
+    "input": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["lambdaCode"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "missing transitionKernelCode",
+    "input": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["transitionKernelCode"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "missing x",
+    "input": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "y": 0
+    },
+    "normalized": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "number",
+          "code": "invalid_type",
+          "path": ["x"],
+          "message": "Invalid input: expected number, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "missing y",
+    "input": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0
+    },
+    "normalized": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "number",
+          "code": "invalid_type",
+          "path": ["y"],
+          "message": "Invalid input: expected number, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "updateTransition",
+    "label": "minimal valid input",
+    "input": {
+      "transitionId": "transition",
+      "update": {}
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "update": {}
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "update": {}
+      }
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "updateTransition",
+    "label": "strict root rejects extra field",
+    "input": {
+      "transitionId": "transition",
+      "update": {},
+      "invented": true
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "update": {},
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "updateTransition",
+    "label": "missing transitionId",
+    "input": {
+      "update": {}
+    },
+    "normalized": {
+      "update": {}
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["transitionId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "updateTransition",
+    "label": "missing update",
+    "input": {
+      "transitionId": "transition"
+    },
+    "normalized": {
+      "transitionId": "transition"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "object",
+          "code": "invalid_type",
+          "path": ["update"],
+          "message": "Invalid input: expected object, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "removeTransition",
+    "label": "minimal valid input",
+    "input": {
+      "transitionId": "transition"
+    },
+    "normalized": {
+      "transitionId": "transition"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition"
+      }
+    }
+  },
+  {
+    "name": "removeTransition",
+    "label": "strict root rejects extra field",
+    "input": {
+      "transitionId": "transition",
+      "invented": true
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removeTransition",
+    "label": "missing transitionId",
+    "input": {},
+    "normalized": {},
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["transitionId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"transitionId\" but received undefined",
+          "path": ["transitionId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addType",
+    "label": "minimal valid input",
+    "input": {
+      "id": "type",
+      "name": "Type",
+      "iconSlug": "circle",
+      "displayColor": "#808080",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ]
+    },
+    "normalized": {
+      "id": "type",
+      "name": "Type",
+      "iconSlug": "circle",
+      "displayColor": "#808080",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ]
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "type",
+        "name": "Type",
+        "iconSlug": "circle",
+        "displayColor": "#808080",
+        "elements": [
+          {
+            "elementId": "attribute",
+            "name": "attribute",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "type",
+        "name": "Type",
+        "iconSlug": "circle",
+        "displayColor": "#808080",
+        "elements": [
+          {
+            "elementId": "attribute",
+            "name": "attribute",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addType",
+    "label": "strict root rejects extra field",
+    "input": {
+      "id": "type",
+      "name": "Type",
+      "iconSlug": "circle",
+      "displayColor": "#808080",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ],
+      "invented": true
+    },
+    "normalized": {
+      "id": "type",
+      "name": "Type",
+      "iconSlug": "circle",
+      "displayColor": "#808080",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ],
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addType",
+    "label": "missing id",
+    "input": {
+      "name": "Type",
+      "iconSlug": "circle",
+      "displayColor": "#808080",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ]
+    },
+    "normalized": {
+      "name": "Type",
+      "iconSlug": "circle",
+      "displayColor": "#808080",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ]
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["id"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"id\" but received undefined",
+          "path": ["id"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addType",
+    "label": "missing name",
+    "input": {
+      "id": "type",
+      "iconSlug": "circle",
+      "displayColor": "#808080",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ]
+    },
+    "normalized": {
+      "id": "type",
+      "iconSlug": "circle",
+      "displayColor": "#808080",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ]
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["name"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"name\" but received undefined",
+          "path": ["name"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addType",
+    "label": "missing iconSlug",
+    "input": {
+      "id": "type",
+      "name": "Type",
+      "displayColor": "#808080",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ]
+    },
+    "normalized": {
+      "id": "type",
+      "name": "Type",
+      "displayColor": "#808080",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ]
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["iconSlug"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"iconSlug\" but received undefined",
+          "path": ["iconSlug"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addType",
+    "label": "missing displayColor",
+    "input": {
+      "id": "type",
+      "name": "Type",
+      "iconSlug": "circle",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ]
+    },
+    "normalized": {
+      "id": "type",
+      "name": "Type",
+      "iconSlug": "circle",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ]
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["displayColor"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"displayColor\" but received undefined",
+          "path": ["displayColor"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addType",
+    "label": "missing elements",
+    "input": {
+      "id": "type",
+      "name": "Type",
+      "iconSlug": "circle",
+      "displayColor": "#808080"
+    },
+    "normalized": {
+      "id": "type",
+      "name": "Type",
+      "iconSlug": "circle",
+      "displayColor": "#808080"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "array",
+          "code": "invalid_type",
+          "path": ["elements"],
+          "message": "Invalid input: expected array, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"elements\" but received undefined",
+          "path": ["elements"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateType",
+    "label": "minimal valid input",
+    "input": {
+      "typeId": "type",
+      "update": {}
+    },
+    "normalized": {
+      "typeId": "type",
+      "update": {}
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "typeId": "type",
+        "update": {}
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "typeId": "type",
+        "update": {}
+      }
+    }
+  },
+  {
+    "name": "updateType",
+    "label": "strict root rejects extra field",
+    "input": {
+      "typeId": "type",
+      "update": {},
+      "invented": true
+    },
+    "normalized": {
+      "typeId": "type",
+      "update": {},
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateType",
+    "label": "missing typeId",
+    "input": {
+      "update": {}
+    },
+    "normalized": {
+      "update": {}
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["typeId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"typeId\" but received undefined",
+          "path": ["typeId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateType",
+    "label": "missing update",
+    "input": {
+      "typeId": "type"
+    },
+    "normalized": {
+      "typeId": "type"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "object",
+          "code": "invalid_type",
+          "path": ["update"],
+          "message": "Invalid input: expected object, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"update\" but received undefined",
+          "path": ["update"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removeType",
+    "label": "minimal valid input",
+    "input": {
+      "typeId": "type"
+    },
+    "normalized": {
+      "typeId": "type"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "typeId": "type"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "typeId": "type"
+      }
+    }
+  },
+  {
+    "name": "removeType",
+    "label": "strict root rejects extra field",
+    "input": {
+      "typeId": "type",
+      "invented": true
+    },
+    "normalized": {
+      "typeId": "type",
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removeType",
+    "label": "missing typeId",
+    "input": {},
+    "normalized": {},
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["typeId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"typeId\" but received undefined",
+          "path": ["typeId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addTypeElement",
+    "label": "minimal valid input",
+    "input": {
+      "typeId": "type",
+      "element": {
+        "elementId": "attribute",
+        "name": "attribute",
+        "type": "string"
+      }
+    },
+    "normalized": {
+      "typeId": "type",
+      "element": {
+        "elementId": "attribute",
+        "name": "attribute",
+        "type": "string"
+      }
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "typeId": "type",
+        "element": {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "typeId": "type",
+        "element": {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "addTypeElement",
+    "label": "strict root rejects extra field",
+    "input": {
+      "typeId": "type",
+      "element": {
+        "elementId": "attribute",
+        "name": "attribute",
+        "type": "string"
+      },
+      "invented": true
+    },
+    "normalized": {
+      "typeId": "type",
+      "element": {
+        "elementId": "attribute",
+        "name": "attribute",
+        "type": "string"
+      },
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addTypeElement",
+    "label": "missing typeId",
+    "input": {
+      "element": {
+        "elementId": "attribute",
+        "name": "attribute",
+        "type": "string"
+      }
+    },
+    "normalized": {
+      "element": {
+        "elementId": "attribute",
+        "name": "attribute",
+        "type": "string"
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["typeId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"typeId\" but received undefined",
+          "path": ["typeId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addTypeElement",
+    "label": "missing element",
+    "input": {
+      "typeId": "type"
+    },
+    "normalized": {
+      "typeId": "type"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "object",
+          "code": "invalid_type",
+          "path": ["element"],
+          "message": "Invalid input: expected object, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"element\" but received undefined",
+          "path": ["element"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateTypeElement",
+    "label": "minimal valid input",
+    "input": {
+      "typeId": "type",
+      "elementId": "attribute",
+      "update": {}
+    },
+    "normalized": {
+      "typeId": "type",
+      "elementId": "attribute",
+      "update": {}
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "typeId": "type",
+        "elementId": "attribute",
+        "update": {}
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "typeId": "type",
+        "elementId": "attribute",
+        "update": {}
+      }
+    }
+  },
+  {
+    "name": "updateTypeElement",
+    "label": "strict root rejects extra field",
+    "input": {
+      "typeId": "type",
+      "elementId": "attribute",
+      "update": {},
+      "invented": true
+    },
+    "normalized": {
+      "typeId": "type",
+      "elementId": "attribute",
+      "update": {},
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateTypeElement",
+    "label": "missing typeId",
+    "input": {
+      "elementId": "attribute",
+      "update": {}
+    },
+    "normalized": {
+      "elementId": "attribute",
+      "update": {}
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["typeId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"typeId\" but received undefined",
+          "path": ["typeId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateTypeElement",
+    "label": "missing elementId",
+    "input": {
+      "typeId": "type",
+      "update": {}
+    },
+    "normalized": {
+      "typeId": "type",
+      "update": {}
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["elementId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"elementId\" but received undefined",
+          "path": ["elementId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateTypeElement",
+    "label": "missing update",
+    "input": {
+      "typeId": "type",
+      "elementId": "attribute"
+    },
+    "normalized": {
+      "typeId": "type",
+      "elementId": "attribute"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "object",
+          "code": "invalid_type",
+          "path": ["update"],
+          "message": "Invalid input: expected object, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"update\" but received undefined",
+          "path": ["update"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removeTypeElement",
+    "label": "minimal valid input",
+    "input": {
+      "typeId": "type",
+      "elementId": "attribute"
+    },
+    "normalized": {
+      "typeId": "type",
+      "elementId": "attribute"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "typeId": "type",
+        "elementId": "attribute"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "typeId": "type",
+        "elementId": "attribute"
+      }
+    }
+  },
+  {
+    "name": "removeTypeElement",
+    "label": "strict root rejects extra field",
+    "input": {
+      "typeId": "type",
+      "elementId": "attribute",
+      "invented": true
+    },
+    "normalized": {
+      "typeId": "type",
+      "elementId": "attribute",
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removeTypeElement",
+    "label": "missing typeId",
+    "input": {
+      "elementId": "attribute"
+    },
+    "normalized": {
+      "elementId": "attribute"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["typeId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"typeId\" but received undefined",
+          "path": ["typeId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removeTypeElement",
+    "label": "missing elementId",
+    "input": {
+      "typeId": "type"
+    },
+    "normalized": {
+      "typeId": "type"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["elementId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"elementId\" but received undefined",
+          "path": ["elementId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addScenario",
+    "label": "minimal valid input",
+    "input": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      }
+    },
+    "normalized": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      }
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "scenario",
+        "name": "Scenario",
+        "scenarioParameters": [],
+        "parameterOverrides": {},
+        "initialState": {
+          "type": "per_place",
+          "content": {
+            "place": "1"
+          }
+        }
+      }
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addScenario",
+    "label": "strict root rejects extra field",
+    "input": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      },
+      "invented": true
+    },
+    "normalized": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      },
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addScenario",
+    "label": "missing id",
+    "input": {
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      }
+    },
+    "normalized": {
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["id"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addScenario",
+    "label": "missing name",
+    "input": {
+      "id": "scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      }
+    },
+    "normalized": {
+      "id": "scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["name"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addScenario",
+    "label": "missing scenarioParameters",
+    "input": {
+      "id": "scenario",
+      "name": "Scenario",
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      }
+    },
+    "normalized": {
+      "id": "scenario",
+      "name": "Scenario",
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "array",
+          "code": "invalid_type",
+          "path": ["scenarioParameters"],
+          "message": "Invalid input: expected array, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addScenario",
+    "label": "missing initialState",
+    "input": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": []
+    },
+    "normalized": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": []
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_type",
+          "expected": "object",
+          "path": ["initialState"],
+          "message": "Invalid input: expected object, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "updateScenario",
+    "label": "minimal valid input",
+    "input": {
+      "scenarioId": "scenario",
+      "update": {}
+    },
+    "normalized": {
+      "scenarioId": "scenario",
+      "update": {}
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "scenarioId": "scenario",
+        "update": {
+          "parameterOverrides": {}
+        }
+      }
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "updateScenario",
+    "label": "strict root rejects extra field",
+    "input": {
+      "scenarioId": "scenario",
+      "update": {},
+      "invented": true
+    },
+    "normalized": {
+      "scenarioId": "scenario",
+      "update": {},
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "updateScenario",
+    "label": "missing scenarioId",
+    "input": {
+      "update": {}
+    },
+    "normalized": {
+      "update": {}
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["scenarioId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "updateScenario",
+    "label": "missing update",
+    "input": {
+      "scenarioId": "scenario"
+    },
+    "normalized": {
+      "scenarioId": "scenario"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "object",
+          "code": "invalid_type",
+          "path": ["update"],
+          "message": "Invalid input: expected object, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "removeScenario",
+    "label": "minimal valid input",
+    "input": {
+      "scenarioId": "scenario"
+    },
+    "normalized": {
+      "scenarioId": "scenario"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "scenarioId": "scenario"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "scenarioId": "scenario"
+      }
+    }
+  },
+  {
+    "name": "removeScenario",
+    "label": "strict root rejects extra field",
+    "input": {
+      "scenarioId": "scenario",
+      "invented": true
+    },
+    "normalized": {
+      "scenarioId": "scenario",
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removeScenario",
+    "label": "missing scenarioId",
+    "input": {},
+    "normalized": {},
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["scenarioId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"scenarioId\" but received undefined",
+          "path": ["scenarioId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "minimal valid input",
+    "input": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "integer",
+      "defaultValue": "1"
+    },
+    "normalized": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "integer",
+      "defaultValue": "1"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": "parameter",
+        "type": "integer",
+        "defaultValue": "1"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": "parameter",
+        "type": "integer",
+        "defaultValue": "1"
+      }
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "strict root rejects extra field",
+    "input": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "integer",
+      "defaultValue": "1",
+      "invented": true
+    },
+    "normalized": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "integer",
+      "defaultValue": "1",
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "missing id",
+    "input": {
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "integer",
+      "defaultValue": "1"
+    },
+    "normalized": {
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "integer",
+      "defaultValue": "1"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["id"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"id\" but received undefined",
+          "path": ["id"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "missing name",
+    "input": {
+      "id": "parameter",
+      "variableName": "parameter",
+      "type": "integer",
+      "defaultValue": "1"
+    },
+    "normalized": {
+      "id": "parameter",
+      "variableName": "parameter",
+      "type": "integer",
+      "defaultValue": "1"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["name"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"name\" but received undefined",
+          "path": ["name"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "missing variableName",
+    "input": {
+      "id": "parameter",
+      "name": "Parameter",
+      "type": "integer",
+      "defaultValue": "1"
+    },
+    "normalized": {
+      "id": "parameter",
+      "name": "Parameter",
+      "type": "integer",
+      "defaultValue": "1"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["variableName"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"variableName\" but received undefined",
+          "path": ["variableName"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "missing type",
+    "input": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "defaultValue": "1"
+    },
+    "normalized": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "defaultValue": "1"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_value",
+          "values": ["real", "integer", "boolean"],
+          "path": ["type"],
+          "message": "Invalid option: expected one of \"real\"|\"integer\"|\"boolean\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"type\" but received undefined",
+          "path": ["type"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "missing defaultValue",
+    "input": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "integer"
+    },
+    "normalized": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "integer"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["defaultValue"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"defaultValue\" but received undefined",
+          "path": ["defaultValue"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateParameter",
+    "label": "minimal valid input",
+    "input": {
+      "parameterId": "parameter",
+      "update": {}
+    },
+    "normalized": {
+      "parameterId": "parameter",
+      "update": {}
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "parameterId": "parameter",
+        "update": {}
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "parameterId": "parameter",
+        "update": {}
+      }
+    }
+  },
+  {
+    "name": "updateParameter",
+    "label": "strict root rejects extra field",
+    "input": {
+      "parameterId": "parameter",
+      "update": {},
+      "invented": true
+    },
+    "normalized": {
+      "parameterId": "parameter",
+      "update": {},
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateParameter",
+    "label": "missing parameterId",
+    "input": {
+      "update": {}
+    },
+    "normalized": {
+      "update": {}
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["parameterId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"parameterId\" but received undefined",
+          "path": ["parameterId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateParameter",
+    "label": "missing update",
+    "input": {
+      "parameterId": "parameter"
+    },
+    "normalized": {
+      "parameterId": "parameter"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "object",
+          "code": "invalid_type",
+          "path": ["update"],
+          "message": "Invalid input: expected object, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"update\" but received undefined",
+          "path": ["update"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removeParameter",
+    "label": "minimal valid input",
+    "input": {
+      "parameterId": "parameter"
+    },
+    "normalized": {
+      "parameterId": "parameter"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "parameterId": "parameter"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "parameterId": "parameter"
+      }
+    }
+  },
+  {
+    "name": "removeParameter",
+    "label": "strict root rejects extra field",
+    "input": {
+      "parameterId": "parameter",
+      "invented": true
+    },
+    "normalized": {
+      "parameterId": "parameter",
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "removeParameter",
+    "label": "missing parameterId",
+    "input": {},
+    "normalized": {},
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["parameterId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"parameterId\" but received undefined",
+          "path": ["parameterId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "getLatestNetDefinition",
+    "label": "minimal valid input",
+    "input": {},
+    "normalized": {},
+    "canonical": {
+      "success": true,
+      "output": {}
+    },
+    "carrier": {
+      "success": true,
+      "output": {}
+    }
+  },
+  {
+    "name": "getLatestNetDefinition",
+    "label": "strict root rejects extra field",
+    "input": {
+      "invented": true
+    },
+    "normalized": {
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "getNetCompilationErrors",
+    "label": "minimal valid input",
+    "input": {},
+    "normalized": {},
+    "canonical": {
+      "success": true,
+      "output": {}
+    },
+    "carrier": {
+      "success": true,
+      "output": {}
+    }
+  },
+  {
+    "name": "getNetCompilationErrors",
+    "label": "strict root rejects extra field",
+    "input": {
+      "invented": true
+    },
+    "normalized": {
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "applyAutoLayout",
+    "label": "minimal valid input",
+    "input": {
+      "askUserFirst": true
+    },
+    "normalized": {
+      "askUserFirst": true
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "askUserFirst": true
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "askUserFirst": true
+      }
+    }
+  },
+  {
+    "name": "applyAutoLayout",
+    "label": "strict root rejects extra field",
+    "input": {
+      "askUserFirst": true,
+      "invented": true
+    },
+    "normalized": {
+      "askUserFirst": true,
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "applyAutoLayout",
+    "label": "missing askUserFirst",
+    "input": {},
+    "normalized": {},
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "boolean",
+          "code": "invalid_type",
+          "path": ["askUserFirst"],
+          "message": "Invalid input: expected boolean, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"askUserFirst\" but received undefined",
+          "path": ["askUserFirst"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "setNetTitle",
+    "label": "minimal valid input",
+    "input": {
+      "title": "Synthetic test"
+    },
+    "normalized": {
+      "title": "Synthetic test"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "title": "Synthetic test"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "title": "Synthetic test"
+      }
+    }
+  },
+  {
+    "name": "setNetTitle",
+    "label": "strict root rejects extra field",
+    "input": {
+      "title": "Synthetic test",
+      "invented": true
+    },
+    "normalized": {
+      "title": "Synthetic test",
+      "invented": true
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["invented"],
+          "path": [],
+          "message": "Unrecognized key: \"invented\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"invented\"",
+          "path": ["invented"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "setNetTitle",
+    "label": "missing title",
+    "input": {},
+    "normalized": {},
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["title"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"title\" but received undefined",
+          "path": ["title"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "valid endpoint alternative (component ports are not admitted)",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": "place",
+        "placeId": "place"
+      }
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": "place",
+        "placeId": "place"
+      }
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "endpoint": {
+          "kind": "place",
+          "placeId": "place"
+        },
+        "weight": 1,
+        "type": "standard"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "endpoint": {
+          "kind": "place",
+          "placeId": "place"
+        },
+        "weight": 1,
+        "type": "standard"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "valid endpoint alternative (component ports are not admitted)",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": "componentPort",
+        "componentInstanceId": "component",
+        "portPlaceId": "port"
+      }
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": "componentPort",
+        "componentInstanceId": "component",
+        "portPlaceId": "port"
+      }
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "endpoint": {
+          "kind": "componentPort",
+          "componentInstanceId": "component",
+          "portPlaceId": "port"
+        },
+        "weight": 1,
+        "type": "standard"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "endpoint": {
+          "kind": "componentPort",
+          "componentInstanceId": "component",
+          "portPlaceId": "port"
+        },
+        "weight": 1,
+        "type": "standard"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "invalid endpoint",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": 1,
+        "placeId": "place"
+      }
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": 1,
+        "placeId": "place"
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_union",
+          "errors": [],
+          "note": "No matching discriminator",
+          "discriminator": "kind",
+          "options": ["place", "componentPort"],
+          "path": ["endpoint", "kind"],
+          "message": "Invalid discriminator value. Expected 'place' | 'componentPort'"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid type: Expected string but received 1",
+          "path": ["endpoint", "kind"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "invalid endpoint",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": true,
+        "placeId": "place"
+      }
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": true,
+        "placeId": "place"
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_union",
+          "errors": [],
+          "note": "No matching discriminator",
+          "discriminator": "kind",
+          "options": ["place", "componentPort"],
+          "path": ["endpoint", "kind"],
+          "message": "Invalid discriminator value. Expected 'place' | 'componentPort'"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid type: Expected string but received true",
+          "path": ["endpoint", "kind"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "invalid endpoint",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": "place"
+      }
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": "place"
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["endpoint", "placeId"],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"placeId\" but received undefined",
+          "path": ["endpoint", "placeId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "invalid endpoint",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": "componentPort",
+        "placeId": "place"
+      }
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": "componentPort",
+        "placeId": "place"
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["endpoint", "componentInstanceId"],
+          "message": "Invalid input: expected string, received undefined"
+        },
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": ["endpoint", "portPlaceId"],
+          "message": "Invalid input: expected string, received undefined"
+        },
+        {
+          "code": "unrecognized_keys",
+          "keys": ["placeId"],
+          "path": ["endpoint"],
+          "message": "Unrecognized key: \"placeId\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected \"componentInstanceId\" but received undefined",
+          "path": ["endpoint", "componentInstanceId"]
+        },
+        {
+          "message": "Invalid key: Expected \"portPlaceId\" but received undefined",
+          "path": ["endpoint", "portPlaceId"]
+        },
+        {
+          "message": "Invalid key: Expected never but received \"placeId\"",
+          "path": ["endpoint", "placeId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "invalid endpoint",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": "place",
+        "placeId": "place",
+        "portPlaceId": "port"
+      }
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": "place",
+        "placeId": "place",
+        "portPlaceId": "port"
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "unrecognized_keys",
+          "keys": ["portPlaceId"],
+          "path": ["endpoint"],
+          "message": "Unrecognized key: \"portPlaceId\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid key: Expected never but received \"portPlaceId\"",
+          "path": ["endpoint", "portPlaceId"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "canonical-only endpoint/direction refinement",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "weight": 1,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "custom",
+          "path": ["endpoint"],
+          "message": "Provide exactly one of `placeId` or `endpoint`."
+        }
+      ]
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "weight": 1,
+        "type": "standard"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "canonical-only endpoint/direction refinement",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": "place",
+        "placeId": "place"
+      }
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard",
+      "endpoint": {
+        "kind": "place",
+        "placeId": "place"
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "custom",
+          "path": ["endpoint"],
+          "message": "Provide exactly one of `placeId` or `endpoint`."
+        }
+      ]
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "endpoint": {
+          "kind": "place",
+          "placeId": "place"
+        },
+        "weight": 1,
+        "type": "standard"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "canonical-only endpoint/direction refinement",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "output",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "output",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "custom",
+          "path": ["type"],
+          "message": "Output arcs do not have an input arc type. Omit `type` when `arcDirection` is \"output\"."
+        }
+      ]
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "output",
+        "placeId": "place",
+        "weight": 1,
+        "type": "standard"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "valid output arc",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "output",
+      "placeId": "place",
+      "weight": 1
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "output",
+      "placeId": "place",
+      "weight": 1
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "output",
+        "placeId": "place",
+        "weight": 1
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "output",
+        "placeId": "place",
+        "weight": 1
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "valid input arc type",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1,
+        "type": "standard"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1,
+        "type": "standard"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "valid input arc type",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "read"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "read"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1,
+        "type": "read"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1,
+        "type": "read"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "valid input arc type",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "inhibitor"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "inhibitor"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1,
+        "type": "inhibitor"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1,
+        "type": "inhibitor"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "numeric string",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "1",
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1,
+        "type": "standard"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1,
+        "type": "standard"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "numeric string",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": " 1.5 ",
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 1.5,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1.5,
+        "type": "standard"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 1.5,
+        "type": "standard"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "numeric string",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "1e2",
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 100,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 100,
+        "type": "standard"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 100,
+        "type": "standard"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "numeric string",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "0x10",
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 16,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 16,
+        "type": "standard"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "transitionId": "transition",
+        "arcDirection": "input",
+        "placeId": "place",
+        "weight": 16,
+        "type": "standard"
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "numeric string",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "0",
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 0,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "origin": "number",
+          "code": "too_small",
+          "minimum": 0,
+          "inclusive": false,
+          "path": ["weight"],
+          "message": "Too small: expected number to be >0"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid value: Expected >0 but received 0",
+          "path": ["weight"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "numeric string",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "",
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 0,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "origin": "number",
+          "code": "too_small",
+          "minimum": 0,
+          "inclusive": false,
+          "path": ["weight"],
+          "message": "Too small: expected number to be >0"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid value: Expected >0 but received 0",
+          "path": ["weight"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "numeric string",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": " ",
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": 0,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "origin": "number",
+          "code": "too_small",
+          "minimum": 0,
+          "inclusive": false,
+          "path": ["weight"],
+          "message": "Too small: expected number to be >0"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid value: Expected >0 but received 0",
+          "path": ["weight"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "numeric string",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "-1",
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": -1,
+      "type": "standard"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "origin": "number",
+          "code": "too_small",
+          "minimum": 0,
+          "inclusive": false,
+          "path": ["weight"],
+          "message": "Too small: expected number to be >0"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid value: Expected >0 but received -1",
+          "path": ["weight"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "numeric string",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "Infinity",
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "Infinity",
+      "type": "standard"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "number",
+          "code": "invalid_type",
+          "path": ["weight"],
+          "message": "Invalid input: expected number, received string"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid type: Expected number but received \"Infinity\"",
+          "path": ["weight"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "numeric string",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "NaN",
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "NaN",
+      "type": "standard"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "number",
+          "code": "invalid_type",
+          "path": ["weight"],
+          "message": "Invalid input: expected number, received string"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid type: Expected number but received \"NaN\"",
+          "path": ["weight"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "numeric string",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "1x",
+      "type": "standard"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "1x",
+      "type": "standard"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "number",
+          "code": "invalid_type",
+          "path": ["weight"],
+          "message": "Invalid input: expected number, received string"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid type: Expected number but received \"1x\"",
+          "path": ["weight"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "updateArcWeight",
+    "label": "numeric string not normalized",
+    "input": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "2"
+    },
+    "normalized": {
+      "transitionId": "transition",
+      "arcDirection": "input",
+      "placeId": "place",
+      "weight": "2"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "number",
+          "code": "invalid_type",
+          "path": ["weight"],
+          "message": "Invalid input: expected number, received string"
+        }
+      ]
+    },
+    "carrier": {
+      "success": false,
+      "issues": [
+        {
+          "message": "Invalid type: Expected number but received \"2\"",
+          "path": ["weight"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "synthetic canonical handle and A3 compatibility, NOT browser",
+    "attempt": {
+      "request": {
+        "toolCallId": "a1-synthetic-input-standard",
+        "toolName": "addArc",
+        "input": {
+          "transitionId": "transition",
+          "arcDirection": "input",
+          "placeId": "place",
+          "weight": 1,
+          "type": "standard"
+        },
+        "binding": {
+          "conversationId": "a1-synthetic",
+          "documentId": "a1-synthetic",
+          "incarnationId": "a1-synthetic"
+        },
+        "requestedBaseHash": "83a2734847bd903d1a3096042bad63d9ef0da3562c133995ba803b2eea0b8dea"
+      },
+      "binding": {
+        "conversationId": "a1-synthetic",
+        "documentId": "a1-synthetic",
+        "incarnationId": "a1-synthetic"
+      },
+      "pre": {
+        "definition": {
+          "places": [
+            {
+              "id": "place",
+              "name": "Place",
+              "colorId": null,
+              "dynamicsEnabled": false,
+              "differentialEquationId": null,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "transitions": [
+            {
+              "id": "transition",
+              "name": "Transition",
+              "inputArcs": [],
+              "outputArcs": [],
+              "lambdaType": "predicate",
+              "lambdaCode": "",
+              "transitionKernelCode": "",
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "types": [],
+          "parameters": [],
+          "differentialEquations": []
+        },
+        "sha256": "83a2734847bd903d1a3096042bad63d9ef0da3562c133995ba803b2eea0b8dea"
+      },
+      "post": {
+        "definition": {
+          "places": [
+            {
+              "id": "place",
+              "name": "Place",
+              "colorId": null,
+              "dynamicsEnabled": false,
+              "differentialEquationId": null,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "transitions": [
+            {
+              "id": "transition",
+              "name": "Transition",
+              "inputArcs": [
+                {
+                  "type": "standard",
+                  "placeId": "place",
+                  "weight": 1
+                }
+              ],
+              "outputArcs": [],
+              "lambdaType": "predicate",
+              "lambdaCode": "",
+              "transitionKernelCode": "",
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "types": [],
+          "differentialEquations": [],
+          "parameters": []
+        },
+        "sha256": "56c76c93c224e7059557fe3359d904f0632fbffa8b771beb21d3e75aed5e1dd2"
+      },
+      "outcome": "applied",
+      "effects": {
+        "created": [
+          {
+            "path": "/transitions/0/inputArcs/0",
+            "kind": "created",
+            "after": {
+              "type": "standard",
+              "placeId": "place",
+              "weight": 1
+            }
+          }
+        ],
+        "updated": [],
+        "deleted": [],
+        "derived": []
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "synthetic canonical handle and A3 compatibility, NOT browser",
+    "attempt": {
+      "request": {
+        "toolCallId": "a1-synthetic-input-read",
+        "toolName": "addArc",
+        "input": {
+          "transitionId": "transition",
+          "arcDirection": "input",
+          "placeId": "place",
+          "weight": 1,
+          "type": "read"
+        },
+        "binding": {
+          "conversationId": "a1-synthetic",
+          "documentId": "a1-synthetic",
+          "incarnationId": "a1-synthetic"
+        },
+        "requestedBaseHash": "83a2734847bd903d1a3096042bad63d9ef0da3562c133995ba803b2eea0b8dea"
+      },
+      "binding": {
+        "conversationId": "a1-synthetic",
+        "documentId": "a1-synthetic",
+        "incarnationId": "a1-synthetic"
+      },
+      "pre": {
+        "definition": {
+          "places": [
+            {
+              "id": "place",
+              "name": "Place",
+              "colorId": null,
+              "dynamicsEnabled": false,
+              "differentialEquationId": null,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "transitions": [
+            {
+              "id": "transition",
+              "name": "Transition",
+              "inputArcs": [],
+              "outputArcs": [],
+              "lambdaType": "predicate",
+              "lambdaCode": "",
+              "transitionKernelCode": "",
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "types": [],
+          "parameters": [],
+          "differentialEquations": []
+        },
+        "sha256": "83a2734847bd903d1a3096042bad63d9ef0da3562c133995ba803b2eea0b8dea"
+      },
+      "post": {
+        "definition": {
+          "places": [
+            {
+              "id": "place",
+              "name": "Place",
+              "colorId": null,
+              "dynamicsEnabled": false,
+              "differentialEquationId": null,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "transitions": [
+            {
+              "id": "transition",
+              "name": "Transition",
+              "inputArcs": [
+                {
+                  "type": "read",
+                  "placeId": "place",
+                  "weight": 1
+                }
+              ],
+              "outputArcs": [],
+              "lambdaType": "predicate",
+              "lambdaCode": "",
+              "transitionKernelCode": "",
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "types": [],
+          "differentialEquations": [],
+          "parameters": []
+        },
+        "sha256": "2c682220fb87430f559ad6409b9a96363c54bd85bb24a4c6bd7f3a8eb556d03e"
+      },
+      "outcome": "applied",
+      "effects": {
+        "created": [
+          {
+            "path": "/transitions/0/inputArcs/0",
+            "kind": "created",
+            "after": {
+              "type": "read",
+              "placeId": "place",
+              "weight": 1
+            }
+          }
+        ],
+        "updated": [],
+        "deleted": [],
+        "derived": []
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "synthetic canonical handle and A3 compatibility, NOT browser",
+    "attempt": {
+      "request": {
+        "toolCallId": "a1-synthetic-input-inhibitor",
+        "toolName": "addArc",
+        "input": {
+          "transitionId": "transition",
+          "arcDirection": "input",
+          "placeId": "place",
+          "weight": 1,
+          "type": "inhibitor"
+        },
+        "binding": {
+          "conversationId": "a1-synthetic",
+          "documentId": "a1-synthetic",
+          "incarnationId": "a1-synthetic"
+        },
+        "requestedBaseHash": "83a2734847bd903d1a3096042bad63d9ef0da3562c133995ba803b2eea0b8dea"
+      },
+      "binding": {
+        "conversationId": "a1-synthetic",
+        "documentId": "a1-synthetic",
+        "incarnationId": "a1-synthetic"
+      },
+      "pre": {
+        "definition": {
+          "places": [
+            {
+              "id": "place",
+              "name": "Place",
+              "colorId": null,
+              "dynamicsEnabled": false,
+              "differentialEquationId": null,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "transitions": [
+            {
+              "id": "transition",
+              "name": "Transition",
+              "inputArcs": [],
+              "outputArcs": [],
+              "lambdaType": "predicate",
+              "lambdaCode": "",
+              "transitionKernelCode": "",
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "types": [],
+          "parameters": [],
+          "differentialEquations": []
+        },
+        "sha256": "83a2734847bd903d1a3096042bad63d9ef0da3562c133995ba803b2eea0b8dea"
+      },
+      "post": {
+        "definition": {
+          "places": [
+            {
+              "id": "place",
+              "name": "Place",
+              "colorId": null,
+              "dynamicsEnabled": false,
+              "differentialEquationId": null,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "transitions": [
+            {
+              "id": "transition",
+              "name": "Transition",
+              "inputArcs": [
+                {
+                  "type": "inhibitor",
+                  "placeId": "place",
+                  "weight": 1
+                }
+              ],
+              "outputArcs": [],
+              "lambdaType": "predicate",
+              "lambdaCode": "",
+              "transitionKernelCode": "",
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "types": [],
+          "differentialEquations": [],
+          "parameters": []
+        },
+        "sha256": "17b79fcea2a4ff87c4fd1f3c93857c63fcbd4f29d2418a0ae9a78a1ae1894d36"
+      },
+      "outcome": "applied",
+      "effects": {
+        "created": [
+          {
+            "path": "/transitions/0/inputArcs/0",
+            "kind": "created",
+            "after": {
+              "type": "inhibitor",
+              "placeId": "place",
+              "weight": 1
+            }
+          }
+        ],
+        "updated": [],
+        "deleted": [],
+        "derived": []
+      }
+    }
+  },
+  {
+    "name": "addArc",
+    "label": "synthetic canonical handle and A3 compatibility, NOT browser",
+    "attempt": {
+      "request": {
+        "toolCallId": "a1-synthetic-output-output",
+        "toolName": "addArc",
+        "input": {
+          "transitionId": "transition",
+          "arcDirection": "output",
+          "placeId": "place",
+          "weight": 1,
+          "targetSubnetId": null
+        },
+        "binding": {
+          "conversationId": "a1-synthetic",
+          "documentId": "a1-synthetic",
+          "incarnationId": "a1-synthetic"
+        },
+        "requestedBaseHash": "83a2734847bd903d1a3096042bad63d9ef0da3562c133995ba803b2eea0b8dea"
+      },
+      "binding": {
+        "conversationId": "a1-synthetic",
+        "documentId": "a1-synthetic",
+        "incarnationId": "a1-synthetic"
+      },
+      "pre": {
+        "definition": {
+          "places": [
+            {
+              "id": "place",
+              "name": "Place",
+              "colorId": null,
+              "dynamicsEnabled": false,
+              "differentialEquationId": null,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "transitions": [
+            {
+              "id": "transition",
+              "name": "Transition",
+              "inputArcs": [],
+              "outputArcs": [],
+              "lambdaType": "predicate",
+              "lambdaCode": "",
+              "transitionKernelCode": "",
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "types": [],
+          "parameters": [],
+          "differentialEquations": []
+        },
+        "sha256": "83a2734847bd903d1a3096042bad63d9ef0da3562c133995ba803b2eea0b8dea"
+      },
+      "post": {
+        "definition": {
+          "places": [
+            {
+              "id": "place",
+              "name": "Place",
+              "colorId": null,
+              "dynamicsEnabled": false,
+              "differentialEquationId": null,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "transitions": [
+            {
+              "id": "transition",
+              "name": "Transition",
+              "inputArcs": [],
+              "outputArcs": [
+                {
+                  "placeId": "place",
+                  "weight": 1
+                }
+              ],
+              "lambdaType": "predicate",
+              "lambdaCode": "",
+              "transitionKernelCode": "",
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "types": [],
+          "differentialEquations": [],
+          "parameters": []
+        },
+        "sha256": "ced42dca1969a3e03f907398b0f24d2ce91092dc457cfd7cce514e3e74520989"
+      },
+      "outcome": "applied",
+      "effects": {
+        "created": [
+          {
+            "path": "/transitions/0/outputArcs/0",
+            "kind": "created",
+            "after": {
+              "placeId": "place",
+              "weight": 1
+            }
+          }
+        ],
+        "updated": [],
+        "deleted": [],
+        "derived": []
+      }
+    }
+  },
+  {
+    "name": "addPlace",
+    "label": "canonical-only refinement",
+    "input": {
+      "id": "place",
+      "name": "not a PascalCase name",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "place",
+      "name": "not a PascalCase name",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "custom",
+          "path": ["name"],
+          "message": "Name must be in PascalCase (e.g., MyPlaceName or Place2). Any numbers must appear at the end."
+        }
+      ]
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "place",
+        "name": "not a PascalCase name",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 0,
+        "y": 0
+      }
+    }
+  },
+  {
+    "name": "addTypeElement",
+    "label": "canonical-only refinement",
+    "input": {
+      "typeId": "type",
+      "element": {
+        "elementId": "attribute",
+        "name": "constructor",
+        "type": "string"
+      }
+    },
+    "normalized": {
+      "typeId": "type",
+      "element": {
+        "elementId": "attribute",
+        "name": "constructor",
+        "type": "string"
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "custom",
+          "path": ["element", "name"],
+          "message": "Element name must not be a reserved JavaScript property name (e.g., `constructor`, `toString`, `__proto__`)."
+        }
+      ]
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "typeId": "type",
+        "element": {
+          "elementId": "attribute",
+          "name": "constructor",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "canonical-only refinement",
+    "input": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "integer",
+      "defaultValue": "1.5"
+    },
+    "normalized": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "integer",
+      "defaultValue": "1.5"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "custom",
+          "path": ["defaultValue"],
+          "message": "Default value must be an integer"
+        }
+      ]
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": "parameter",
+        "type": "integer",
+        "defaultValue": "1.5"
+      }
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "canonical-only refinement",
+    "input": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "NotSnakeCase",
+      "type": "integer",
+      "defaultValue": "1"
+    },
+    "normalized": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "NotSnakeCase",
+      "type": "integer",
+      "defaultValue": "1"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "custom",
+          "path": ["variableName"],
+          "message": "Variable name must be in lower_snake_case (e.g., crash_threshold or dt). Only lowercase letters, digits, and single underscores are allowed."
+        }
+      ]
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": "NotSnakeCase",
+        "type": "integer",
+        "defaultValue": "1"
+      }
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "canonical-only refinement",
+    "input": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "boolean",
+      "defaultValue": "1"
+    },
+    "normalized": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "boolean",
+      "defaultValue": "1"
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "custom",
+          "path": ["defaultValue"],
+          "message": "Default value must be \"true\" or \"false\""
+        }
+      ]
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": "parameter",
+        "type": "boolean",
+        "defaultValue": "1"
+      }
+    }
+  },
+  {
+    "name": "addPlace",
+    "label": "canonical trim not expressed by JSON Schema",
+    "input": {
+      "id": "place",
+      "name": " Place ",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "normalized": {
+      "id": "place",
+      "name": " Place ",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 0,
+      "y": 0
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "place",
+        "name": "Place",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 0,
+        "y": 0
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "place",
+        "name": " Place ",
+        "colorId": null,
+        "dynamicsEnabled": false,
+        "differentialEquationId": null,
+        "x": 0,
+        "y": 0
+      }
+    }
+  },
+  {
+    "name": "addType",
+    "label": "canonical trim not expressed by JSON Schema",
+    "input": {
+      "id": "type",
+      "name": " Type ",
+      "iconSlug": "circle",
+      "displayColor": "#808080",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ]
+    },
+    "normalized": {
+      "id": "type",
+      "name": " Type ",
+      "iconSlug": "circle",
+      "displayColor": "#808080",
+      "elements": [
+        {
+          "elementId": "attribute",
+          "name": "attribute",
+          "type": "string"
+        }
+      ]
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "type",
+        "name": "Type",
+        "iconSlug": "circle",
+        "displayColor": "#808080",
+        "elements": [
+          {
+            "elementId": "attribute",
+            "name": "attribute",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "type",
+        "name": " Type ",
+        "iconSlug": "circle",
+        "displayColor": "#808080",
+        "elements": [
+          {
+            "elementId": "attribute",
+            "name": "attribute",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "canonical trim not expressed by JSON Schema",
+    "input": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": " parameter ",
+      "type": "integer",
+      "defaultValue": "1"
+    },
+    "normalized": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": " parameter ",
+      "type": "integer",
+      "defaultValue": "1"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": "parameter",
+        "type": "integer",
+        "defaultValue": "1"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": " parameter ",
+        "type": "integer",
+        "defaultValue": "1"
+      }
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "valid typed string default",
+    "input": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "real",
+      "defaultValue": "1.5"
+    },
+    "normalized": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "real",
+      "defaultValue": "1.5"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": "parameter",
+        "type": "real",
+        "defaultValue": "1.5"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": "parameter",
+        "type": "real",
+        "defaultValue": "1.5"
+      }
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "valid typed string default",
+    "input": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "integer",
+      "defaultValue": "2"
+    },
+    "normalized": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "integer",
+      "defaultValue": "2"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": "parameter",
+        "type": "integer",
+        "defaultValue": "2"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": "parameter",
+        "type": "integer",
+        "defaultValue": "2"
+      }
+    }
+  },
+  {
+    "name": "addParameter",
+    "label": "valid typed string default",
+    "input": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "boolean",
+      "defaultValue": "false"
+    },
+    "normalized": {
+      "id": "parameter",
+      "name": "Parameter",
+      "variableName": "parameter",
+      "type": "boolean",
+      "defaultValue": "false"
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": "parameter",
+        "type": "boolean",
+        "defaultValue": "false"
+      }
+    },
+    "carrier": {
+      "success": true,
+      "output": {
+        "id": "parameter",
+        "name": "Parameter",
+        "variableName": "parameter",
+        "type": "boolean",
+        "defaultValue": "false"
+      }
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "recursive metadata",
+    "input": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0,
+      "metadata": {
+        "nested": [
+          null,
+          true,
+          1,
+          "text",
+          {
+            "deep": {
+              "deeper": [false]
+            }
+          }
+        ]
+      }
+    },
+    "normalized": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0,
+      "metadata": {
+        "nested": [
+          null,
+          true,
+          1,
+          "text",
+          {
+            "deep": {
+              "deeper": [false]
+            }
+          }
+        ]
+      }
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "transition",
+        "name": "Transition",
+        "metadata": {
+          "nested": [
+            null,
+            true,
+            1,
+            "text",
+            {
+              "deep": {
+                "deeper": [false]
+              }
+            }
+          ]
+        },
+        "inputArcs": [],
+        "outputArcs": [],
+        "lambdaType": "predicate",
+        "lambdaCode": "",
+        "transitionKernelCode": "",
+        "x": 0,
+        "y": 0
+      }
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "recursive metadata",
+    "input": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0,
+      "metadata": {
+        "nested": {
+          "bad": {
+            "$nonJson": "undefined"
+          }
+        }
+      }
+    },
+    "normalized": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0,
+      "metadata": {
+        "nested": {
+          "bad": {
+            "$nonJson": "undefined"
+          }
+        }
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_union",
+          "errors": [
+            [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected string, received object"
+              }
+            ],
+            [
+              {
+                "expected": "number",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected number, received object"
+              }
+            ],
+            [
+              {
+                "expected": "boolean",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected boolean, received object"
+              }
+            ],
+            [
+              {
+                "expected": "null",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected null, received object"
+              }
+            ],
+            [
+              {
+                "expected": "array",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected array, received object"
+              }
+            ],
+            [
+              {
+                "code": "invalid_union",
+                "errors": [
+                  [
+                    {
+                      "expected": "string",
+                      "code": "invalid_type",
+                      "path": [],
+                      "message": "Invalid input: expected string, received undefined"
+                    }
+                  ],
+                  [
+                    {
+                      "expected": "number",
+                      "code": "invalid_type",
+                      "path": [],
+                      "message": "Invalid input: expected number, received undefined"
+                    }
+                  ],
+                  [
+                    {
+                      "expected": "boolean",
+                      "code": "invalid_type",
+                      "path": [],
+                      "message": "Invalid input: expected boolean, received undefined"
+                    }
+                  ],
+                  [
+                    {
+                      "expected": "null",
+                      "code": "invalid_type",
+                      "path": [],
+                      "message": "Invalid input: expected null, received undefined"
+                    }
+                  ],
+                  [
+                    {
+                      "expected": "array",
+                      "code": "invalid_type",
+                      "path": [],
+                      "message": "Invalid input: expected array, received undefined"
+                    }
+                  ],
+                  [
+                    {
+                      "expected": "record",
+                      "code": "invalid_type",
+                      "path": [],
+                      "message": "Invalid input: expected record, received undefined"
+                    }
+                  ]
+                ],
+                "path": ["bad"],
+                "message": "Invalid input"
+              }
+            ]
+          ],
+          "path": ["metadata", "nested"],
+          "message": "Invalid input"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addTransition",
+    "label": "recursive metadata",
+    "input": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0,
+      "metadata": {
+        "nested": {
+          "bad": {
+            "$nonJson": "Infinity"
+          }
+        }
+      }
+    },
+    "normalized": {
+      "id": "transition",
+      "name": "Transition",
+      "inputArcs": [],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 0,
+      "y": 0,
+      "metadata": {
+        "nested": {
+          "bad": {
+            "$nonJson": "Infinity"
+          }
+        }
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_union",
+          "errors": [
+            [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected string, received object"
+              }
+            ],
+            [
+              {
+                "expected": "number",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected number, received object"
+              }
+            ],
+            [
+              {
+                "expected": "boolean",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected boolean, received object"
+              }
+            ],
+            [
+              {
+                "expected": "null",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected null, received object"
+              }
+            ],
+            [
+              {
+                "expected": "array",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected array, received object"
+              }
+            ],
+            [
+              {
+                "code": "invalid_union",
+                "errors": [
+                  [
+                    {
+                      "expected": "string",
+                      "code": "invalid_type",
+                      "path": [],
+                      "message": "Invalid input: expected string, received number"
+                    }
+                  ],
+                  [
+                    {
+                      "expected": "number",
+                      "code": "invalid_type",
+                      "received": "Infinity",
+                      "path": [],
+                      "message": "Invalid input: expected number, received number"
+                    }
+                  ],
+                  [
+                    {
+                      "expected": "boolean",
+                      "code": "invalid_type",
+                      "path": [],
+                      "message": "Invalid input: expected boolean, received number"
+                    }
+                  ],
+                  [
+                    {
+                      "expected": "null",
+                      "code": "invalid_type",
+                      "path": [],
+                      "message": "Invalid input: expected null, received number"
+                    }
+                  ],
+                  [
+                    {
+                      "expected": "array",
+                      "code": "invalid_type",
+                      "path": [],
+                      "message": "Invalid input: expected array, received number"
+                    }
+                  ],
+                  [
+                    {
+                      "expected": "record",
+                      "code": "invalid_type",
+                      "path": [],
+                      "message": "Invalid input: expected record, received number"
+                    }
+                  ]
+                ],
+                "path": ["bad"],
+                "message": "Invalid input"
+              }
+            ]
+          ],
+          "path": ["metadata", "nested"],
+          "message": "Invalid input"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "updateScenario",
+    "label": "empty update supplies canonical default",
+    "input": {
+      "scenarioId": "scenario",
+      "update": {}
+    },
+    "normalized": {
+      "scenarioId": "scenario",
+      "update": {}
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "scenarioId": "scenario",
+        "update": {
+          "parameterOverrides": {}
+        }
+      }
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addScenario",
+    "label": "initial state alternative",
+    "input": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": [[1, true, "family"]]
+        }
+      }
+    },
+    "normalized": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": [[1, true, "family"]]
+        }
+      }
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "scenario",
+        "name": "Scenario",
+        "scenarioParameters": [],
+        "parameterOverrides": {},
+        "initialState": {
+          "type": "per_place",
+          "content": {
+            "place": [[1, true, "family"]]
+          }
+        }
+      }
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addScenario",
+    "label": "initial state alternative",
+    "input": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "code",
+        "content": "return { Place: 1 };"
+      }
+    },
+    "normalized": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "code",
+        "content": "return { Place: 1 };"
+      }
+    },
+    "canonical": {
+      "success": true,
+      "output": {
+        "id": "scenario",
+        "name": "Scenario",
+        "scenarioParameters": [],
+        "parameterOverrides": {},
+        "initialState": {
+          "type": "code",
+          "content": "return { Place: 1 };"
+        }
+      }
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addScenario",
+    "label": "invalid scenario",
+    "input": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": 1
+        }
+      }
+    },
+    "normalized": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": 1
+        }
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "invalid_union",
+          "errors": [
+            [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected string, received number"
+              }
+            ],
+            [
+              {
+                "expected": "array",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected array, received number"
+              }
+            ]
+          ],
+          "path": ["initialState", "content", "place"],
+          "message": "Invalid input"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addScenario",
+    "label": "invalid scenario",
+    "input": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      },
+      "parameterOverrides": null
+    },
+    "normalized": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      },
+      "parameterOverrides": null
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "expected": "record",
+          "code": "invalid_type",
+          "path": ["parameterOverrides"],
+          "message": "Invalid input: expected record, received null"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addScenario",
+    "label": "invalid scenario",
+    "input": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "bad-name",
+          "default": 1
+        }
+      ],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      }
+    },
+    "normalized": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "bad-name",
+          "default": 1
+        }
+      ],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "origin": "string",
+          "code": "invalid_format",
+          "format": "regex",
+          "pattern": "/^[a-z][a-z0-9_]*$/",
+          "path": ["scenarioParameters", 0, "identifier"],
+          "message": "Identifier must be snake_case"
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  },
+  {
+    "name": "addScenario",
+    "label": "duplicate parameter refinement",
+    "input": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "same",
+          "default": 1
+        },
+        {
+          "type": "real",
+          "identifier": "same",
+          "default": 1
+        }
+      ],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      }
+    },
+    "normalized": {
+      "id": "scenario",
+      "name": "Scenario",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "same",
+          "default": 1
+        },
+        {
+          "type": "real",
+          "identifier": "same",
+          "default": 1
+        }
+      ],
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place": "1"
+        }
+      }
+    },
+    "canonical": {
+      "success": false,
+      "issues": [
+        {
+          "code": "custom",
+          "path": ["scenarioParameters", 1, "identifier"],
+          "message": "Duplicate identifier \"same\""
+        }
+      ]
+    },
+    "carrier": {
+      "unsupported": true
+    }
+  }
+]
