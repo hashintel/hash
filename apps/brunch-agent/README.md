@@ -46,30 +46,32 @@ liveness only; it does not query Postgres or Anthropic.
 
 Production database configuration uses dedicated fields:
 
-| Variable                      | Required when | Purpose                                                                                                 |
-| ----------------------------- | ------------- | ------------------------------------------------------------------------------------------------------- |
-| `BRUNCH_POSTGRES_AUTH_MODE`   | Always        | `iam` or `password`                                                                                     |
-| `BRUNCH_POSTGRES_HOST`        | Always        | Exact RDS endpoint used for TLS and IAM signing                                                         |
-| `BRUNCH_POSTGRES_PORT`        | Always        | PostgreSQL port                                                                                         |
-| `BRUNCH_POSTGRES_DATABASE`    | Always        | Flue database                                                                                           |
-| `BRUNCH_POSTGRES_USER`        | Always        | PostgreSQL role                                                                                         |
-| `BRUNCH_POSTGRES_TLS_CA_PATH` | Always        | Trusted RDS CA bundle; the image sets it to the bundled AWS global bundle, override only for another CA |
-| `BRUNCH_POSTGRES_AWS_REGION`  | IAM only      | Region used by the RDS signer; rejected in password mode                                                |
-| `BRUNCH_POSTGRES_PASSWORD`    | Password only | Runtime-injected database password; rejected in IAM mode                                                |
-| `HASH_OTLP_ENDPOINT`          | Always        | HASH OTLP/gRPC collector endpoint                                                                       |
-| `OTEL_SERVICE_NAME`           | Optional      | OTel service name; defaults to `Brunch Agent`                                                           |
-| `BRUNCH_CORS_ALLOWED_ORIGINS` | Optional      | Exact-origin browser JavaScript allowlist for `/agents/*`; missing or blank grants no CORS access       |
+| Variable                      | Required when | Purpose                                                                                                   |
+| ----------------------------- | ------------- | --------------------------------------------------------------------------------------------------------- |
+| `BRUNCH_POSTGRES_AUTH_MODE`   | Always        | `iam` or `password`                                                                                       |
+| `BRUNCH_POSTGRES_HOST`        | Always        | Exact RDS endpoint used for TLS and IAM signing                                                           |
+| `BRUNCH_POSTGRES_PORT`        | Always        | PostgreSQL port                                                                                           |
+| `BRUNCH_POSTGRES_DATABASE`    | Always        | Flue database                                                                                             |
+| `BRUNCH_POSTGRES_USER`        | Always        | PostgreSQL role                                                                                           |
+| `BRUNCH_POSTGRES_TLS_CA_PATH` | Always        | Trusted RDS CA bundle; the image sets it to the bundled AWS global bundle, override only for another CA   |
+| `BRUNCH_POSTGRES_AWS_REGION`  | IAM only      | Region used by the RDS signer; rejected in password mode                                                  |
+| `BRUNCH_POSTGRES_PASSWORD`    | Password only | Runtime-injected database password; rejected in IAM mode                                                  |
+| `HASH_OTLP_ENDPOINT`          | Always        | HASH OTLP/gRPC collector endpoint                                                                         |
+| `OTEL_SERVICE_NAME`           | Optional      | OTel service name; defaults to `Brunch Agent`                                                             |
+| `BRUNCH_CORS_ALLOWED_ORIGINS` | Optional      | Browser JavaScript allowlist for `/agents/*`: exact origins or `https://*.domain`; blank grants no access |
 
-`BRUNCH_CORS_ALLOWED_ORIGINS` is a comma-separated list of exact origins whose browser JavaScript
-may read cross-origin responses from `/agents/*`. For example:
+`BRUNCH_CORS_ALLOWED_ORIGINS` is a comma-separated list of origins whose browser JavaScript may
+read cross-origin responses from `/agents/*`. An entry is either an exact origin or a wildcard for
+exactly one leading host label, which covers per-branch preview deployments. For example:
 
 ```sh
-BRUNCH_CORS_ALLOWED_ORIGINS=https://app.example.com,https://preview.example.com
+BRUNCH_CORS_ALLOWED_ORIGINS=https://app.example.com,https://*.preview.example.com
 ```
 
-Prefer stable preview hostnames and list an exact preview origin only when that deployment needs
-Brunch access. Each ephemeral preview origin must be listed explicitly. The variable does not
-accept wildcards, non-root paths, queries, fragments, credentials, or non-HTTP(S) schemes. Missing or blank
+`https://*.preview.example.com` admits `https://feature-x.preview.example.com` but not
+`https://preview.example.com`, `https://a.b.preview.example.com`, or another scheme or port. The
+wildcard must be the whole first label in front of a domain with at least two labels. Non-root
+paths, queries, fragments, credentials, and non-HTTP(S) schemes are rejected. Missing or blank
 configuration grants no cross-origin browser access while preserving same-origin requests. CORS
 controls browser JavaScript access; it is not a server-side access gate and does not restrict
 non-browser callers. The deployment still requires its separate identity, authorization, ingress,

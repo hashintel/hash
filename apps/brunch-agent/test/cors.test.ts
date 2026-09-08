@@ -49,13 +49,40 @@ describe("parseCorsAllowedOrigins", () => {
     "https://app.example.com?preview=true",
     "https://app.example.com#",
     "https://app.example.com#preview",
-    "https://*.example.com",
     "not-an-origin",
   ])("rejects invalid or broader-than-origin entry %s", (value) => {
     expect(() => parseCorsAllowedOrigins(value)).toThrow(
       BRUNCH_CORS_ALLOWED_ORIGINS_ENV,
     );
   });
+
+  test("accepts one leading wildcard label in front of a domain", () => {
+    expect(
+      parseCorsAllowedOrigins(
+        "https://*.stage.example.com, HTTPS://*.Stage.Example.com:443, https://*.preview.example.com:8443, https://*.example.com",
+      ),
+    ).toEqual([
+      "https://*.stage.example.com",
+      "https://*.preview.example.com:8443",
+      "https://*.example.com",
+    ]);
+  });
+
+  test.each([
+    "https://*",
+    "https://*.com",
+    "https://preview-*.example.com",
+    "https://*.*.example.com",
+    "https://app.*.example.com",
+    "https://**.example.com",
+  ])(
+    "rejects wildcard entry %s that is not one leading label before a domain",
+    (value) => {
+      expect(() => parseCorsAllowedOrigins(value)).toThrow(
+        BRUNCH_CORS_ALLOWED_ORIGINS_ENV,
+      );
+    },
+  );
 
   test.each([
     "https:example.com",
@@ -79,9 +106,13 @@ const identity = {
 const instanceId = flueConversationIdFrom(identity);
 const conversationUrl = `http://brunch.test${mount}/${instanceId}`;
 
-const buildCorsTestApp = () => {
+const wildcardOrigin = "https://*.stage.example.com";
+
+const buildCorsTestApp = (
+  allowedOrigins: readonly string[] = [allowedOrigin],
+) => {
   const app = new Hono();
-  app.use("/agents/*", createAgentCors([allowedOrigin]));
+  app.use("/agents/*", createAgentCors(allowedOrigins));
   app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`));
   app.all(`${mount}/*`, (context) => context.text("admitted"));
   app.get(HEALTH_ROUTE, (context) => context.text("healthy"));
@@ -224,3 +255,40 @@ test.each(["/", HEALTH_ROUTE, "/assets/app.js"])(
     expect(response.headers.get("access-control-allow-origin")).toBeNull();
   },
 );
+
+test.each([
+  "https://petrinaut-git-main.stage.example.com",
+  "https://x.stage.example.com",
+])(
+  "grants a wildcard-matched preview origin %s a preflight",
+  async (origin) => {
+    const response = await buildCorsTestApp([wildcardOrigin]).fetch(
+      new Request(conversationUrl, {
+        method: "OPTIONS",
+        headers: { Origin: origin, "Access-Control-Request-Method": "GET" },
+      }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe(origin);
+  },
+);
+
+test.each([
+  "https://stage.example.com",
+  "https://a.b.stage.example.com",
+  "https://evil-stage.example.com",
+  "https://stage.example.com.attacker.example",
+  "http://preview.stage.example.com",
+  "https://preview.stage.example.com:8443",
+])("gives %s no CORS grant under a one-label wildcard", async (origin) => {
+  const response = await buildCorsTestApp([wildcardOrigin]).fetch(
+    new Request(conversationUrl, {
+      method: "OPTIONS",
+      headers: { Origin: origin, "Access-Control-Request-Method": "GET" },
+    }),
+  );
+
+  expect(response.status).toBe(204);
+  expect(response.headers.get("access-control-allow-origin")).toBeNull();
+});
