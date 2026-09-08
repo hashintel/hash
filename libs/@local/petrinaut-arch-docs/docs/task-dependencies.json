@@ -3,6 +3,7 @@
   "dependencies": [
     "@apps/petrinaut-opt",
     "@apps/petrinaut-website",
+    "@hashintel/oauth-session",
     "@hashintel/petrinaut",
     "@hashintel/petrinaut-cli",
     "@hashintel/petrinaut-core",

@@ -118,6 +118,7 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
 export const EditorView = ({
   aiAssistant,
   hideNetManagementControls,
+  menuItems: hostMenuItems,
   slots,
   viewportActions,
 }: {
@@ -126,6 +127,8 @@ export const EditorView = ({
    * See {@link TopBar} for the full semantics.
    */
   hideNetManagementControls?: "all" | "except-title";
+  /** Appended after the editor's own items. See {@link PetrinautProps}. */
+  menuItems?: MenuItem[];
   slots?: PetrinautSlots;
   viewportActions?: ViewportAction[];
 }) => {
@@ -451,6 +454,7 @@ export const EditorView = ({
         );
       },
     },
+    ...(hostMenuItems ?? []),
   ];
 
   const showEmptyAiHero =

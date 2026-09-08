@@ -5,6 +5,7 @@
     "@hashintel/brunch-agent-transport-aisdk",
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
+    "@hashintel/oauth-session",
     "@hashintel/petrinaut",
     "@hashintel/petrinaut-core",
     "@local/petrinaut-optimizer-client"

@@ -1,0 +1,87 @@
+---
+title: Sign-in and the stateless session
+description: Why identity is its own package, how the OAuth flow carries no server-side state, and what a session token asserts.
+attachTo: auth
+sidebar_order: 10
+---
+
+Petrinaut AI spends money per request. The routes that do so answer 401 without
+a session, and a session is only obtainable by signing in with a provider.
+
+Identity is its own package rather than part of the site that first needed it.
+Petrinaut AI is one consumer; Brunch is another, and it runs on a different
+origin. A verifier that had to import the editor, or the site, to check who is
+calling would make the second consumer harder than the first.
+
+![Signing in with GitHub, end to end](@diagrams/oauth-sign-in-flow.svg)
+
+## No database, and what that costs
+
+The only fact that has to survive between two requests is which account this
+is. A signed token carries it, so nothing is stored.
+
+This is not merely convenient. The functions serving these routes start cold
+and do not share memory, so a table of pending sign-ins kept in the process
+would reject the very callback it had just issued. Both halves of the OAuth
+handshake — the `state` nonce and the PKCE verifier — travel in a short-lived
+`HttpOnly` cookie for the same reason.
+
+What it costs is revocation. A token stays valid until it expires, so signing
+out ends one browser's session and leaves any token already issued working.
+Rotating the signing secret invalidates every session at once, and is the only
+lever that acts faster than expiry.
+
+## What a token asserts, and what is checked
+
+A session is an HS256 JWS carrying the provider-scoped account id, the handle at
+sign-in, and an expiry. Verification pins all of it:
+
+- `algorithms` is `["HS256"]`. A verifier that reads the algorithm out of the
+  token accepts `alg: "none"`, and accepts a token symmetrically signed with a
+  key it believed was for asymmetric verification.
+- `requiredClaims` names `iss`, `aud`, `sub`, `exp` and `iat`. `exp` is only
+  enforced when present, so without this a token minted without an expiry
+  verifies for ever.
+- `iss` and `aud` are compared. One deployment's tokens do not work on another,
+  and the short-lived token minted for Brunch is refused by Petrinaut AI.
+- The secret must be at least 32 bytes. A missing one throws rather than
+  encoding the characters of some short string into a key everybody can guess.
+
+The subject is built from the provider's immutable numeric id, never the handle:
+handles are renameable, and a released handle can be claimed by somebody else.
+
+The provider's access token is used twice inside one function — once to read the
+profile, once to discard — and never returned, stored, or logged. The requested
+scope is empty, so even in that window the token grants its holder nothing but
+the identity we asked for.
+
+## Adding a provider
+
+A provider is data: two endpoints, a profile endpoint, the scope to ask for, and
+a function reading an account out of the profile response. Neither the flow nor
+the route handlers name one.
+
+The callback is a single route for every provider, and the provider travels in
+the handshake cookie rather than the URL, so a callback cannot be replayed
+against a provider other than the one whose authorization it carries. When a
+second provider lands, the callback should also compare the provider in the
+cookie against the one it is completing — the countermeasure that stands in for
+the OIDC `iss` parameter, which GitHub does not issue.
+
+## Where sign-in works
+
+A provider's callback URL has to match a registration exactly. Production and
+local development each register one:
+
+- `https://demo.petrinaut.org/api/auth/callback`
+- `http://localhost:5173/api/auth/callback`
+
+Branch previews get neither. They are served from a different registrable
+domain, and per-URI wildcard matching requires the host to match exactly, so no
+registration covers a hostname that is generated per branch. A deployment with
+no provider credentials reports sign-in unavailable and hides the assistant,
+which is the expected state on a preview rather than a fault.
+
+Leave wildcard matching off on the registrations that do exist. With it on, a
+provider accepts a redirect to any subdomain or deeper path of the callback, and
+whoever controls one receives the authorization code.

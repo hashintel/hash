@@ -22,6 +22,7 @@
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
     "@hashintel/ds-components": "workspace:*",
     "@hashintel/ds-helpers": "workspace:*",
+    "@hashintel/oauth-session": "workspace:*",
     "@hashintel/petrinaut": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
     "@local/petrinaut-optimizer-client": "workspace:*",

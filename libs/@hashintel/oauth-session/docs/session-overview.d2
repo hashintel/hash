@@ -1,0 +1,51 @@
+# Source for session-overview.svg, which the README shows. Render with:
+#
+#   mise exec -- d2 --layout elk --pad 16 \
+#     --font-regular ../../@local/petrinaut-arch-docs/fonts/Inter-Regular.ttf \
+#     --font-bold ../../@local/petrinaut-arch-docs/fonts/Inter-Bold.ttf \
+#     docs/session-overview.d2 docs/session-overview.svg
+#
+# Who issues, who verifies, and why there are two credentials. The
+# authorization-code handshake has its own sequence diagram in the
+# architecture docs; this one is the topology.
+#
+# Palette matches those docs: this package purple, anything outside the model
+# grey, and a credential amber.
+direction: down
+
+provider: "OAuth provider\nGitHub today" {
+  style.fill: "#f2f2f2"
+  style.stroke: "#777777"
+}
+
+issuer: "One issuing service\nprovider credentials, and the keyring" {
+  style.fill: "#f3e3f4"
+  style.stroke: "#8f4f9c"
+}
+
+cookie: "__Host- session cookie\nHttpOnly, SameSite=Lax, 8 h" {
+  style.fill: "#fff3d6"
+  style.stroke: "#b8862b"
+}
+
+bearer: "Bearer token\naudience-scoped, minutes" {
+  style.fill: "#fff3d6"
+  style.stroke: "#b8862b"
+}
+
+firstParty: "Verifier on the issuer's origin\nkeyring only, no credentials" {
+  style.fill: "#f3e3f4"
+  style.stroke: "#8f4f9c"
+}
+
+thirdParty: "Verifier on another origin\nkeyring only, no credentials" {
+  style.fill: "#f3e3f4"
+  style.stroke: "#8f4f9c"
+}
+
+issuer <-> provider: "authorization-code flow\nstate, PKCE, then the profile"
+issuer -> cookie: "mint for the account id"
+
+cookie -> firstParty: "browser sends"
+cookie -> bearer: "mints"
+bearer -> thirdParty: "authorization header"

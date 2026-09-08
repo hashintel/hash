@@ -64,10 +64,17 @@ export const config: ArchitectureConfig = {
       language: "python",
     },
     {
+      name: "@hashintel/oauth-session",
+      path: "libs/@hashintel/oauth-session",
+      description:
+        "OAuth sign-in and stateless signed sessions, shared by every service that gates on a HASH demo identity. No React, no framework, no database.",
+      language: "typescript",
+    },
+    {
       name: "@apps/petrinaut-website",
       path: "apps/petrinaut-website",
       description:
-        "Demo site and embed host: TanStack Router routes, published example models, and server functions for oEmbed discovery.",
+        "Demo site and embed host: TanStack Router routes, published example models, and the server functions for oEmbed discovery, AI chat, voice and sign-in.",
       language: "typescript",
       // The whole app, not just `src`: the Vercel functions in `api/` are part
       // of the architecture, and they deploy separately from the SPA. The
@@ -118,6 +125,18 @@ export const config: ArchitectureConfig = {
       to: "ui.adhoc-form",
       reason:
         "the worksheet keyboard flow is generic: it must never know the form state it navigates",
+    },
+    {
+      from: "auth",
+      to: "website",
+      reason:
+        "the session package is shared by several services and must not know which one is gating on it",
+    },
+    {
+      from: "auth",
+      to: "core",
+      reason:
+        "identity has nothing to do with Petri nets: the package stays usable by services that never load a model",
     },
     {
       from: "core",

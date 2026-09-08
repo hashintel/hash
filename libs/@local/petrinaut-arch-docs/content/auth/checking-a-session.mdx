@@ -1,0 +1,88 @@
+---
+title: Checking a session
+description: How a server route guards itself, how a page reads the current sign-in, and why the two credentials are not interchangeable.
+attachTo: auth
+sidebar_order: 20
+---
+
+Two credentials, because the services that consume a session do not share an
+origin with the one that issues it.
+
+![The two credentials and the routes that accept them](@diagrams/session-verification.svg)
+
+The cookie is the real session: `HttpOnly`, so no page script can read it, and
+`SameSite=Lax`, so the browser attaches it to this site's own routes and never
+to a third party's. A service on another origin therefore cannot receive it, and
+reads a short-lived bearer token the page fetched for it instead.
+
+## On the server
+
+Wrap the handler. `createSessionGuard` needs a keyring — a secret, an issuer, an
+audience — and nothing else: no provider credentials, so a service that only
+checks sessions cannot start a sign-in.
+
+```ts
+const requireSignedIn = createSessionGuard({
+  keyring: { secret, issuer, audience: "petrinaut-ai" },
+  message: "Sign in with GitHub to use Petrinaut AI",
+});
+
+export default {
+  fetch: requireSignedIn(async (request, session) => {
+    // `session.sub` is the account that got past the guard
+  }),
+};
+```
+
+The session is passed to the handler rather than left for it to read again, so a
+guarded route cannot end up keyed on something other than the identity that let
+it through. Petrinaut AI uses it for the rate-limit bucket: every request that
+reaches the handler is authenticated, and one account can arrive from as many
+addresses as it likes, so an address-keyed bucket bounds the wrong thing.
+
+Guard inside the function. A routing rule or a header check is not an
+authorization boundary — a paid route is addressable directly, whatever the page
+does.
+
+Put the method checks ahead of the guard, so a preflight and a wrong verb are
+answered as such rather than as a request to sign in. Keeping the paid routes
+POST-only is also what makes the residual `SameSite=Lax` exposure harmless: the
+cookie rides along on a cross-site top-level GET, and there is no GET to reach.
+
+`readSession` accepts either credential and prefers the bearer token when one is
+present, answering on it alone. A caller presenting a token is asking to be
+judged on that token, and falling through to the cookie would let a browser's
+ambient session stand in for a rejected one. A cookie arriving with
+`Sec-Fetch-Site: cross-site` is refused; page scripts cannot set a `Sec-`
+header, which is what makes it worth reading.
+
+## On the client
+
+The cookie is unreadable from script, so the page asks. `/api/auth/session`
+reports the current account and whether sign-in works on this deployment at all.
+
+`loading` is a real third state rather than an optimistic guess: rendering as
+signed out and then correcting flashes a sign-in item at somebody who is
+already signed in.
+
+Withholding a feature is the client-side gate. Petrinaut's assistant is one
+optional prop, so passing nothing removes the panel, the toolbar toggle and the
+empty-canvas prompt together. That is presentation only — the server gate is
+what enforces anything, and hiding the surface merely keeps a signed-out visitor
+from typing into something that would 401.
+
+## Reaching another origin
+
+Mint a token, send it as a bearer. It is audience-scoped and expires in minutes,
+so what a page script can hold is worth little and briefly.
+
+Attach it only when the endpoint really is on another origin. The guard judges a
+request on its bearer token whenever one is present, so sending a token minted
+for one audience to a route expecting another is refused — even with a valid
+cookie sitting beside it. An endpoint configured by environment variable may
+well name this same origin, so the check is on the resolved origin rather than
+on whether the variable is set.
+
+A token can only be minted from the cookie. Honouring a bearer token at the mint
+route would let one delegated token be exchanged for another and refreshed
+without limit.

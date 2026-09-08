@@ -1,0 +1,21 @@
+# Hand-written; rendered by the arch-docs build.
+shape: sequence_diagram
+
+browser: Browser
+start: "website.api\nGET /api/auth/github"
+github: GitHub
+callback: "website.api\nGET /api/auth/callback"
+
+browser -> start: menu item
+start -> start: "new state + PKCE verifier"
+start -> browser: "302, handshake cookie (10 min)"
+browser -> github: "authorize, code_challenge=S256"
+github -> browser: "302 with code + state"
+browser -> callback: "code, state, handshake cookie"
+callback -> callback: "state matches the cookie?"
+callback -> github: "exchange code + code_verifier"
+github -> callback: access token
+callback -> github: read profile
+github -> callback: "immutable account id, login"
+callback -> callback: "mint HS256 session\ndiscard the access token"
+callback -> browser: "302 to /, __Host- session cookie\nhandshake cleared"

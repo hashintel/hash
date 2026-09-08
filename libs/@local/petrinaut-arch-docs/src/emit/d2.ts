@@ -52,6 +52,7 @@ const layerPalette: Record<string, { fill: string; stroke: string }> = {
   "python-bindings": { fill: "#fff4d6", stroke: "#a3801f" },
   optimizer: { fill: "#e0f2f1", stroke: "#2b7a72" },
   website: { fill: "#eef3d9", stroke: "#6f8f2f" },
+  auth: { fill: "#f3e3f4", stroke: "#8f4f9c" },
   other: { fill: "#f2f2f2", stroke: "#777777" },
   elided: { fill: "#ffffff", stroke: "#aaaaaa" },
 };
@@ -95,6 +96,7 @@ const knownRoots = [
   "python-bindings",
   "optimizer",
   "website",
+  "auth",
 ];
 
 const classFor = (id: string): string => {

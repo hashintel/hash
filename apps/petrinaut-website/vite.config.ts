@@ -21,7 +21,17 @@ const loadServerEnv = (mode: string) => {
   }
 };
 
+// Every file under `api/` needs an entry here as well. Vite's SPA fallback
+// answers an unregistered `/api/...` path with index.html and a 200, so a route
+// that is missing from this table looks like it deployed fine and hands the
+// browser a page where it expected JSON — and an OAuth callback lands on the
+// app instead of finishing the sign-in.
 const apiModules = [
+  ["/api/auth/callback", "/api/auth/callback.ts"],
+  ["/api/auth/github", "/api/auth/github.ts"],
+  ["/api/auth/logout", "/api/auth/logout.ts"],
+  ["/api/auth/session", "/api/auth/session.ts"],
+  ["/api/auth/token", "/api/auth/token.ts"],
   ["/api/chat", "/api/chat.ts"],
   ["/api/oembed", "/api/oembed.ts"],
   ["/api/voice/config", "/api/voice/config.ts"],

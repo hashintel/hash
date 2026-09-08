@@ -1,6 +1,6 @@
 /**
  * @layerRoot website.api
- * @role Server functions: JSON oEmbed discovery and the AI chat proxy
+ * @role Server functions: oEmbed discovery, the AI chat and voice proxies, and the OAuth sign-in routes
  * @talksTo website.routes via the embed URL it returns to consumers
  */
 

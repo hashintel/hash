@@ -63,6 +63,10 @@ export type { ViewportAction } from "./types/viewport-action";
 // Slots — named locations into which the host can inject arbitrary React components.
 export type { PetrinautSlots } from "./types/petrinaut-slots";
 
+// Menu item — shape of the entries a host appends to the top bar's burger
+// menu, re-exported so a host need not depend on the design system to type one.
+export type { MenuItem } from "@hashintel/ds-components";
+
 // Walkthrough — first-visit product tour. Exposed so embedders can drive it
 // programmatically (e.g. trigger from their own help menu) without relying on
 // the built-in TopBar button.

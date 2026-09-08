@@ -1,0 +1,14 @@
+{
+  "package": "@hashintel/oauth-session",
+  "dependencies": [],
+  "tasks": {
+    "fix:eslint": [
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [],
+    "test:unit": []
+  }
+}
