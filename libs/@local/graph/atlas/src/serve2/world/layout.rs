@@ -18,7 +18,7 @@ use super::{
 use crate::{
     identity::{BasePosition, ImportanceRank, NodeRowId},
     math::Vec2,
-    postgres::id::ArchivedEntityId,
+    morton::{Depth, MortonCell, MortonKey},
     serve2::delta::{
         epoch::Epoch,
         layout::provider::{NaiveLayoutProvider, VersionedLayoutProvider as _},
@@ -211,6 +211,52 @@ impl Layout {
         }
 
         Ok(())
+    }
+
+    /// Reads one recorded bucket's rows and keys inside a cell, in fitted delivery order.
+    pub(crate) fn run(
+        &self,
+        bucket: Depth,
+        cell: MortonCell,
+    ) -> impl Iterator<Item = (MortonKey, NodeRowId)> {
+        let morton = self.geometry.morton();
+        morton
+            .run(bucket, cell)
+            .map(move |position| (morton.code(position), self.index[position]))
+    }
+
+    /// Returns a fitted row's recorded bucket, independent of visibility.
+    pub(crate) fn bucket_of(&self, node: NodeRowId) -> Option<Depth> {
+        let position = self.index.reverse(node)?;
+        Some(self.geometry.morton().bucket_of(position))
+    }
+
+    /// Counts fitted rows in the recorded buckets through `cut`.
+    pub(crate) fn count_through(&self, cut: Depth) -> usize {
+        self.geometry
+            .morton()
+            .fenceposts()
+            .segment(cut)
+            .end
+            .as_usize()
+    }
+
+    /// Returns the deepest occupied recorded bucket.
+    pub(crate) fn deepest_occupied(&self) -> Option<Depth> {
+        self.geometry
+            .morton()
+            .fenceposts()
+            .segments()
+            .into_iter()
+            .enumerate()
+            .rev()
+            .find(|(_, segment)| !segment.is_empty())
+            .map(|(bucket, _)| Depth::from_usize(bucket))
+    }
+
+    /// Returns whether a recorded bucket contains a fitted row inside `cell`.
+    pub(crate) fn occupied(&self, bucket: Depth, cell: MortonCell) -> bool {
+        !self.geometry.morton().run(bucket, cell).is_empty()
     }
 
     /// Returns an allocated row's priority, independent of visibility.

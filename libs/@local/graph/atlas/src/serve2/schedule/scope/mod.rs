@@ -26,6 +26,9 @@ use crate::{
     },
 };
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Copy, Clone)]
 pub(super) struct ScheduleNode {
     pub node: NodeRowId,
@@ -173,6 +176,3 @@ impl HeapMemoryUsage for ScopeSchedule {
         self.memory_usage.get() as u64
     }
 }
-
-#[cfg(test)]
-mod tests;

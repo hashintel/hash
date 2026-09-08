@@ -23,7 +23,7 @@ use crate::{
         lod::stage::{LodConfig, WIRE_FRAME},
     },
     serve2::{
-        schedule::{BucketSchedule, ScopeSchedule},
+        schedule::{BucketSchedule, DeliverySchedule, ScopeSchedule},
         tests::fixture::{EDGES, ENDPOINTS, NODES, TYPES, TamperFixture, secret},
         visibility::{VisibilityActor, VisibilityMask},
         world::World,
@@ -539,6 +539,55 @@ fn schedule_captured_visibility() {
             .rows,
         [fitted, higher_row]
     );
+}
+
+#[test]
+fn schedule_corpus_withdrawal() {
+    let (_fixture, mut delta) = fixture("schedule-corpus-withdrawal");
+    let world = Arc::clone(&delta.world);
+    let schedule = DeliverySchedule::corpus(&world);
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    let zoom = world.schedule().max_tile_depth();
+    let baseline = schedule.total(zoom, root);
+    let root_count = schedule.root_delivered();
+    let resolution = schedule.min_resolution();
+    let node = NodeRowId::MIN;
+    let identity = world
+        .layout
+        .index
+        .identity
+        .key_of(node)
+        .expect("should resolve the fitted identity");
+    let captured = epoch(&delta);
+
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(identity), "should withdraw the fitted row");
+    let withdrawn = epoch(&delta);
+    assert!(world.layout.position(&captured, node).is_some());
+    assert_eq!(world.layout.position(&withdrawn, node), None);
+    assert_eq!(schedule.total(zoom, root), baseline);
+    assert_eq!(schedule.root_delivered(), root_count);
+    assert_eq!(schedule.min_resolution(), resolution);
+    assert!(schedule.bucket_of(node).is_some());
+
+    let mut nodes = CompressedBitSet::default();
+    for row in 0..NODES {
+        nodes.insert(NodeRowId::new(row));
+    }
+    let mask = VisibilityMask::partial(
+        VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        },
+        nodes,
+        CompressedBitSet::default(),
+    );
+    let scope = ScopeSchedule::of(&world.layout, &withdrawn, &mask);
+    let cut = scope
+        .cut(world.schedule(), Zoom::MIN)
+        .expect("should bind the scoped schedule");
+    assert_eq!(cut.bucket_of(node), None);
+    assert_eq!(cut.total(zoom, root).rows.len() + 1, baseline.rows.len());
 }
 
 /// Normalization uses the fitted bounds rather than the already-normalized geometry bounds.

@@ -89,6 +89,10 @@ impl Geometry {
         errors.finish_ok(this)
     }
 
+    pub(super) const fn morton(&self) -> &MortonFile {
+        &self.morton_order
+    }
+
     pub(crate) fn position(&self, position: BasePosition) -> Option<Vec2> {
         self.positions.view().get(position).copied()
     }

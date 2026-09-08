@@ -97,6 +97,10 @@ impl World {
         sink.finish_ok(this)
     }
 
+    pub(crate) const fn schedule(&self) -> BucketSchedule {
+        self.schedule
+    }
+
     /// Returns the coordinate bounds before wire-frame normalization.
     pub(crate) const fn bounds(&self) -> Bounds2 {
         self.generation.repository().metadata.evidence.lod.world
