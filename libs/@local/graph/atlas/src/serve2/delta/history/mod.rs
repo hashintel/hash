@@ -8,7 +8,7 @@ use super::DeltaRevision;
 #[cfg(test)]
 mod tests;
 
-// Overlay's eviction tests use the same retention capacity.
+// Identity, layout and topology eviction tests share this retention capacity.
 #[cfg(test)]
 pub(super) use self::tests::CAPACITY;
 
@@ -38,11 +38,13 @@ impl History {
         }
     }
 
-    /// Records a decision, replacing any decision at the same revision.
+    /// Records a visibility transition, replacing one at the same revision.
+    ///
+    /// Returns whether visibility changed. Repeated states preserve retained history.
     ///
     /// # Panics
     ///
-    /// Panics if `revision` precedes the latest recorded revision.
+    /// Panics if `revision` precedes the latest recorded transition.
     pub(super) fn push(&mut self, kind: EntryKind, revision: DeltaRevision) -> bool {
         let latest = self.revisions[HISTORY_SIZE - 1];
         assert!(
@@ -51,6 +53,15 @@ impl History {
         );
 
         let prev = self.alive & 1;
+        let next = match kind {
+            EntryKind::Live => 1,
+            EntryKind::Withdrawn => 0,
+        };
+
+        if prev == next {
+            return false;
+        }
+
         if revision > latest {
             self.revisions.shift_left([revision]);
             self.alive <<= 1;
@@ -58,10 +69,6 @@ impl History {
             self.alive &= !1;
         }
 
-        let next = match kind {
-            EntryKind::Live => 1,
-            EntryKind::Withdrawn => 0,
-        };
         self.alive |= next;
 
         next != prev
@@ -114,13 +121,15 @@ impl<T> Versioned<T> {
         &self.data
     }
 
-    /// Records a visibility decision without changing the birth revision.
+    /// Records a visibility transition without changing the birth revision.
+    ///
+    /// Returns whether visibility changed.
     ///
     /// # Panics
     ///
-    /// Panics if `revision` precedes the latest recorded revision.
-    pub(super) fn push(&mut self, kind: EntryKind, revision: DeltaRevision) {
-        self.history.push(kind, revision);
+    /// Panics if `revision` precedes birth or the latest recorded transition.
+    pub(super) fn push(&mut self, kind: EntryKind, revision: DeltaRevision) -> bool {
+        self.history.push(kind, revision)
     }
 
     pub(super) fn is_live(&self, revision: Option<DeltaRevision>) -> bool {

@@ -77,14 +77,24 @@ fn assert_at(
     revision: DeltaRevision,
     payload: Option<&str>,
 ) {
-    assert_eq!(provider.key_of_at(row, revision), payload.map(|_| key));
-    assert_eq!(provider.row_of_at(key, revision), payload.map(|_| row));
     assert_eq!(
-        provider.payload_of_key_at(key, revision).map(Icon::as_ref),
+        provider.provide_key_of_at(row, revision),
+        payload.map(|_| key)
+    );
+    assert_eq!(
+        provider.provide_row_of_at(key, revision),
+        payload.map(|_| row)
+    );
+    assert_eq!(
+        provider
+            .provide_payload_of_key_at(key, revision)
+            .map(Icon::as_ref),
         payload
     );
     assert_eq!(
-        provider.payload_of_row_at(row, revision).map(Icon::as_ref),
+        provider
+            .provide_payload_of_row_at(row, revision)
+            .map(Icon::as_ref),
         payload
     );
 }
@@ -227,10 +237,14 @@ fn base_origin_rollover() {
     let mut data = IdentityProviderResidual::new(origin);
     let row = OntologyRowId::new(0);
     let mut history = History::new(EntryKind::Withdrawn, DeltaRevision(2));
-    let end = u64::try_from(HISTORY_SIZE + 3).expect("should fit the history size");
-    for revision in 3..=end {
-        history.push(EntryKind::Withdrawn, DeltaRevision(revision));
+    let capacity = u64::try_from(HISTORY_SIZE).expect("should fit the history size");
+    let end = 2 + 2 * capacity;
+    for offset in 1..=capacity {
+        let revision = 2 + 2 * offset;
+        assert!(history.push(EntryKind::Live, DeltaRevision(revision - 1)));
+        assert!(history.push(EntryKind::Withdrawn, DeltaRevision(revision)));
     }
+    assert_eq!(history.at(DeltaRevision(2)), None);
     data.history.insert(row, history);
     data.payload.insert(base.key, OwnedIcon::from("latest"));
     let provider = DeltaIdentityProvider::from_parts(&data, origin);
@@ -244,9 +258,14 @@ fn arrival_origin_rollover() {
     let base = NaiveIdentityProvider::new(Base::new());
     let mut data = IdentityProviderResidual::new(&base);
     let (key, row) = add_arrival(&mut data, DeltaRevision(1));
-    let end = u64::try_from(HISTORY_SIZE + 2).expect("should fit the history size");
-    for revision in 2..=end {
-        data.inverse[DeltaRowId::new(0)].push(EntryKind::Withdrawn, DeltaRevision(revision));
+    let entry = &mut data.inverse[DeltaRowId::new(0)];
+    assert!(entry.push(EntryKind::Withdrawn, DeltaRevision(2)));
+    let capacity = u64::try_from(HISTORY_SIZE).expect("should fit the history size");
+    let end = 2 + 2 * capacity;
+    for offset in 1..=capacity {
+        let revision = 2 + 2 * offset;
+        assert!(entry.push(EntryKind::Live, DeltaRevision(revision - 1)));
+        assert!(entry.push(EntryKind::Withdrawn, DeltaRevision(revision)));
     }
     data.payload.insert(key, OwnedIcon::from("latest"));
     let provider = DeltaIdentityProvider::from_parts(&data, &base);
@@ -270,7 +289,7 @@ fn nested_origin_revision() {
     let mut upper_data = IdentityProviderResidual::new(&lower);
     {
         let upper = DeltaIdentityProvider::from_parts(&upper_data, &lower);
-        assert_eq!(upper.universe().size(), 2);
+        assert_eq!(upper.provide_universe().size(), 2);
         assert_current(&upper, key, row, None);
         assert_at(&upper, key, row, DeltaRevision(3), None);
         assert_at(&upper, key, row, DeltaRevision(4), Some("lower latest"));

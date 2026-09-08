@@ -1,3 +1,8 @@
+//! Node-row lookup through the fitted layout's independent permutations.
+//!
+//! [`NodeIndex`] maps stable rows to [`BasePosition`] before coordinate and importance lookup.
+//! Keeping these domains distinct preserves the layout's storage order.
+
 use core::{error::Error, fmt};
 
 use error_stack::{Report, ReportSink, TryReportTupleExt as _};
@@ -7,7 +12,33 @@ use super::{
     OpenOptions, error::WorldError, geometry::Geometry, node_importance::NodeImportance,
     node_index::NodeIndex,
 };
-use crate::identity::{BasePosition, ImportanceRank, NodeRowId};
+use crate::{
+    identity::{BasePosition, ImportanceRank, NodeRowId},
+    math::Vec2,
+    serve2::delta::{
+        epoch::Epoch,
+        layout::provider::{NaiveLayoutProvider, VersionedLayoutProvider as _},
+    },
+};
+
+/// Visible node coordinates addressed by stable row identity.
+///
+/// Positions use the [wire frame](crate::salt::lod::stage::WIRE_FRAME). The allocated row count
+/// includes withdrawn and unplaced rows, whose position lookups return [`None`].
+pub(crate) trait LayoutProvider {
+    fn provide_node_count(&self) -> usize;
+    fn provide_position(&self, node: NodeRowId) -> Option<Vec2>;
+}
+
+impl<T: LayoutProvider + ?Sized> LayoutProvider for &T {
+    fn provide_node_count(&self) -> usize {
+        T::provide_node_count(self)
+    }
+
+    fn provide_position(&self, node: NodeRowId) -> Option<Vec2> {
+        T::provide_position(self, node)
+    }
+}
 
 /// A layout permutation whose recorded inverse disagrees with it at a sampled position.
 #[derive(Debug)]
@@ -79,6 +110,7 @@ impl fmt::Display for LayoutRoundtripError {
 
 impl Error for LayoutRoundtripError {}
 
+/// Fitted coordinates and importance ranks joined through the base-position permutation.
 #[derive(Debug)]
 pub(crate) struct Layout {
     index: NodeIndex,
@@ -88,6 +120,12 @@ pub(crate) struct Layout {
 }
 
 impl Layout {
+    /// Opens the fitted layout and checks column counts and sampled inverse mappings.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WorldError`] for artifact opening, count, row-domain or sampled roundtrip
+    /// failures.
     pub(crate) fn open(options: OpenOptions<'_>) -> Result<Self, Report<[WorldError]>> {
         let index = NodeIndex::open(options);
         let importance = NodeImportance::open(options);
@@ -130,7 +168,7 @@ impl Layout {
     )]
     fn try_roundtrip_sample(&self) -> Result<(), LayoutRoundtripError> {
         const SAMPLES: u64 = 64;
-        let nodes = self.node_count() as u64;
+        let nodes = self.geometry.node_count() as u64;
 
         // Validation reports the node bound rather than returning on it, and a position is a u32.
         if nodes == 0 || u32::try_from(nodes - 1).is_err() {
@@ -171,8 +209,37 @@ impl Layout {
         Ok(())
     }
 
-    pub(crate) fn node_count(&self) -> usize {
+    /// Returns the allocated node count, including withdrawn and unplaced rows.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this layout does not belong to the epoch's world.
+    pub(crate) fn node_count(&self, epoch: &Epoch) -> usize {
+        let base = NaiveLayoutProvider::new(self);
+        epoch.layout(self).provider(&base).provide_node_count()
+    }
+
+    /// Returns the visible wire-frame position at the captured epoch's revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this layout does not belong to the epoch's world.
+    pub(crate) fn position(&self, epoch: &Epoch, node: NodeRowId) -> Option<Vec2> {
+        let base = NaiveLayoutProvider::new(self);
+        epoch
+            .layout(self)
+            .provider(&base)
+            .provide_position_at(node, epoch.revision())
+    }
+}
+
+impl LayoutProvider for Layout {
+    fn provide_node_count(&self) -> usize {
         self.geometry.node_count()
+    }
+
+    fn provide_position(&self, node: NodeRowId) -> Option<Vec2> {
+        self.geometry.position(self.index.reverse(node)?)
     }
 }
 
@@ -182,7 +249,7 @@ mod tests {
 
     use hashql_core::id::Id as _;
 
-    use super::{Layout, LayoutRoundtripError};
+    use super::{Layout, LayoutProvider, LayoutRoundtripError};
     use crate::{
         identity::{BasePosition, ImportanceRank, NodeRowId},
         serve2::{
@@ -192,6 +259,32 @@ mod tests {
             world::{OpenOptions, error::WorldError},
         },
     };
+
+    #[test]
+    fn positions_row_permutation() {
+        let fixture = TamperFixture::publish("layout-position-permutation");
+        let layout = Layout::open(OpenOptions {
+            generation: fixture.generation(),
+            secret: &secret(),
+        })
+        .expect("should open the fitted layout");
+
+        let mut permuted = false;
+        for index in 0..LayoutProvider::provide_node_count(&layout) {
+            let position = BasePosition::from_usize(index);
+            let row = layout.index[position];
+            permuted |= row.as_usize() != index;
+            assert_eq!(
+                LayoutProvider::provide_position(&layout, row),
+                layout.geometry.position(position),
+            );
+        }
+        assert!(permuted, "should exercise a non-identity row permutation");
+        assert_eq!(
+            LayoutProvider::provide_position(&layout, NodeRowId::MAX),
+            None
+        );
+    }
 
     /// Open refuses a position-of-rank column that is no permutation, under
     /// [`WorldError::LayoutRoundtrip`] from [`LayoutRoundtripError::RankInverse`].

@@ -1,3 +1,8 @@
+//! The permutation between stable node rows and fitted storage positions.
+//!
+//! [`NodeRowId`] identifies a node independently of layout order. [`BasePosition`] indexes the
+//! geometry and importance columns.
+
 use core::ops::Index;
 
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
@@ -9,6 +14,7 @@ use crate::{
     salt::fit::prepare::identity::IdentityTableArchive,
 };
 
+/// Node identities and the inverse mappings between row and base-position order.
 #[derive(Debug)]
 pub struct NodeIndex {
     identity: IdentityTableArchive<ArchivedEntityId, NodeRowId>,
@@ -19,6 +25,11 @@ pub struct NodeIndex {
 }
 
 impl NodeIndex {
+    /// Opens the identity and permutation artifacts and checks their counts.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WorldError`] for artifact opening or mismatched row counts.
     pub(crate) fn open(
         options @ OpenOptions {
             generation,
@@ -77,10 +88,12 @@ impl NodeIndex {
         sink.finish_ok(this)
     }
 
+    /// Returns the row at `index`, or [`None`] outside the fitted position domain.
     pub(crate) fn lookup(&self, index: BasePosition) -> Option<NodeRowId> {
         self.lookup.view().get(index).copied()
     }
 
+    /// Returns the fitted position of `index`, or [`None`] outside the fitted row domain.
     pub(crate) fn reverse(&self, index: NodeRowId) -> Option<BasePosition> {
         self.reverse.view().get(index).copied()
     }

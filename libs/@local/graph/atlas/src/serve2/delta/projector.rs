@@ -1,9 +1,8 @@
 use core::{error::Error, fmt, num::NonZero};
 use std::fs::File;
 
-use error_stack::{Report, ReportSink, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use hashql_core::id::{Id as _, IdSlice, IdVec};
-use tokio::sync::mpsc;
 
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
@@ -25,6 +24,13 @@ use crate::{
     },
 };
 
+#[derive(Debug, Copy, Clone)]
+struct Position(Vec2); // Guaranteed to be finite
+
+impl Position {
+    const ZERO: Self = Self(Vec2::ZERO);
+}
+
 hashql_core::id::newtype! {
     /// A row in one complete projection request.
     #[id(const)]
@@ -39,7 +45,7 @@ pub(crate) struct Positioned<T> {
 #[derive(Debug)]
 pub(crate) enum ProjectionError {
     /// An aligned point lies outside the fitted world.
-    OutOfBounds { row: ForwardIndex, global: Vec2 },
+    OutOfBounds { global: Vec2 },
     /// The model produced a non-finite point.
     NonFiniteProjection,
     /// Alignment produced a non-finite point.
@@ -49,9 +55,9 @@ pub(crate) enum ProjectionError {
 impl fmt::Display for ProjectionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::OutOfBounds { row, global } => write!(
+            Self::OutOfBounds { global } => write!(
                 fmt,
-                "projected row {row} at ({}, {}) lies outside the fitted world",
+                "projected point at ({}, {}) lies outside the fitted world",
                 global.x(),
                 global.y(),
             ),
@@ -128,18 +134,18 @@ impl fmt::Display for ProjectorError {
 
 impl Error for ProjectorError {}
 
-pub(crate) struct ProjectorState {
-    transformed: Box<[Vec2; PROJECTOR_DIMENSIONS]>,
+pub(crate) struct ProjectorScratch {
+    forward: IdVec<ForwardIndex, Vec2>,
     inputs: MatrixN<PROJECTOR_DIMENSIONS>,
     roles: Vec<NodeRole>,
 }
 
-impl ProjectorState {
+impl ProjectorScratch {
     const CHUNK_SIZE: usize = 256;
 
     pub(crate) fn new() -> Self {
         Self {
-            transformed: Box::new([Vec2::ZERO; PROJECTOR_DIMENSIONS]),
+            forward: IdVec::with_capacity(Self::CHUNK_SIZE),
             inputs: MatrixN::zeroed(Self::CHUNK_SIZE),
             roles: vec![NodeRole::KnowledgeEntity; Self::CHUNK_SIZE],
         }
@@ -154,7 +160,7 @@ pub(crate) struct DeltaProjector {
     world: Bounds2,
     forward_rows: NonZero<usize>,
 
-    state: ProjectorState,
+    scratch: ProjectorScratch,
 }
 
 impl DeltaProjector {
@@ -236,7 +242,7 @@ impl DeltaProjector {
             alignment,
             world: metadata.evidence.lod.world,
             forward_rows: options.forward_rows,
-            state: ProjectorState::new(),
+            scratch: ProjectorScratch::new(),
         };
 
         this.try_roundtrip_sample(generation)?;
@@ -248,8 +254,7 @@ impl DeltaProjector {
     ///
     /// # Errors
     ///
-    /// Returns [`ProjectorError`] if opening a column fails or [`Self::roundtrip_sample`] rejects
-    /// it.
+    /// Returns [`ProjectorError`] for artifact opening or sampled projection failures.
     fn try_roundtrip_sample(
         &mut self,
         generation: &Generation,
@@ -308,13 +313,15 @@ impl DeltaProjector {
         })?;
         let sampled_rows = sampled.iter().map(|&row| &representations[row]);
 
-        let aligned = self
+        let aligned: Vec<_> = self
             .forward(sampled_rows)
+            .into_iter()
+            .try_collect()
             .change_context(ProjectorError::RoundtripSampleForward)?;
 
         let mut max_error = DNonNegative::ZERO;
         for (&published, &reprojected) in published.iter().zip(aligned.iter()) {
-            let difference = DVec2::from(reprojected) - DVec2::from(published);
+            let difference = DVec2::from(reprojected.0) - DVec2::from(published);
             // Differences of finite f32 coordinates remain finite after widening to f64.
             let error = DNonNegative::new_unchecked(difference.x().abs().max(difference.y().abs()));
             max_error = max_error.max(error);
@@ -346,16 +353,18 @@ impl DeltaProjector {
             Item: AsRef<AlignedVecN<PROJECTOR_DIMENSIONS>>,
             IntoIter: ExactSizeIterator,
         >,
-    ) -> Result<Box<FinitePointField<ForwardIndex>>, Report<[ProjectionError]>> {
-        let aligned = self.forward(rows)?;
-        let mut sink = ReportSink::new_armed();
-        for (row, &global) in aligned.iter_enumerated() {
-            if !self.world.contains(global) {
-                sink.capture(ProjectionError::OutOfBounds { row, global });
-            }
-        }
+    ) -> impl Iterator<Item = Result<Position, ProjectionError>> {
+        let world = self.world;
 
-        sink.finish_ok(aligned)
+        self.forward(rows).into_iter().map(move |result| {
+            result.and_then(|position| {
+                if !world.contains(position.0) {
+                    return Err(ProjectionError::OutOfBounds { global: position.0 });
+                }
+
+                Ok(position)
+            })
+        })
     }
 
     /// Projects and aligns rows without checking the fitted world bounds.
@@ -370,16 +379,15 @@ impl DeltaProjector {
             Item: AsRef<AlignedVecN<PROJECTOR_DIMENSIONS>>,
             IntoIter: ExactSizeIterator,
         >,
-    ) -> Result<Box<FinitePointField<ForwardIndex>>, Report<[ProjectionError]>> {
+    ) -> impl IntoIterator<Item = Result<Position, ProjectionError>> {
         let mut rows = rows.into_iter();
-        let mut aligned = FinitePointField::zeroed(rows.len());
-        let mut sink = ReportSink::new_armed();
+        let mut results = vec![Ok(Position::ZERO)];
 
         let mut offset = 0;
         loop {
             let mut filled = 0_usize;
 
-            for (slot, row) in self.state.inputs.rows_mut().iter_mut().zip(&mut rows) {
+            for (slot, row) in self.scratch.inputs.rows_mut().iter_mut().zip(&mut rows) {
                 slot.copy_from(row.as_ref());
                 filled += 1;
             }
@@ -389,50 +397,41 @@ impl DeltaProjector {
             }
 
             let columns: NodeColumns<'_, ForwardIndex> = NodeColumns {
-                representations: IdSlice::from_raw(&self.state.inputs.rows()[..filled]),
-                roles: IdSlice::from_raw(&self.state.roles[..filled]),
+                representations: IdSlice::from_raw(&self.scratch.inputs.rows()[..filled]),
+                roles: IdSlice::from_raw(&self.scratch.roles[..filled]),
             };
 
-            let frame = sink.attempt(
-                refresh::forward(
-                    &self.model,
-                    columns,
-                    self.condition,
-                    self.forward_rows,
-                    &self.device,
-                )
-                .map_err(|error| error.map_rows(|row| row.plus(offset)))
-                .change_context(ProjectionError::NonFiniteProjection),
+            refresh::forward_unchecked_in(
+                &self.model,
+                columns,
+                self.condition,
+                self.forward_rows,
+                &self.device,
+                &mut self.scratch.forward,
             );
 
-            if let Some(frame) = frame {
-                let points = self.alignment.map_or_else(
-                    || frame.as_slice(),
-                    |alignment| {
-                        for (target, &point) in self.state.transformed.iter_mut().zip(frame.iter())
-                        {
-                            *target = alignment.apply(point);
-                        }
+            for (index, point) in self.scratch.forward.iter_mut().enumerate() {
+                if !point.is_finite() {
+                    results[offset + index] = Err(ProjectionError::NonFiniteProjection);
+                }
 
-                        IdSlice::from_raw(&self.state.transformed[..filled])
-                    },
-                );
+                if let Some(alignment) = &self.alignment {
+                    *point = alignment.apply(*point);
 
-                sink.attempt(
-                    aligned
-                        .copy_from(ForwardIndex::from_usize(offset), points)
-                        .change_context(ProjectionError::NonFiniteAlignment),
-                );
+                    if !point.is_finite() {
+                        results[offset + index] = Err(ProjectionError::NonFiniteAlignment);
+                    }
+                }
             }
 
-            if filled < ProjectorState::CHUNK_SIZE {
+            if filled < ProjectorScratch::CHUNK_SIZE {
                 break;
             }
 
             offset += filled;
         }
 
-        sink.finish_ok(aligned)
+        results
     }
 }
 
@@ -444,7 +443,7 @@ mod tests {
     use rand::SeedableRng as _;
     use rand_xoshiro::Xoshiro256PlusPlus;
 
-    use super::{DeltaProjector, ForwardIndex, ProjectionError, ProjectorError, ProjectorState};
+    use super::{DeltaProjector, ForwardIndex, ProjectionError, ProjectorError, ProjectorScratch};
     use crate::{
         dataset::PROJECTOR_DIMENSIONS,
         device::Device,
@@ -479,7 +478,7 @@ mod tests {
             world: Bounds2::new(Vec2::splat(-100.0), Vec2::splat(100.0))
                 .expect("should have ordered finite bounds"),
             forward_rows: NonZero::new(64).expect("should have a non-zero forward bound"),
-            state: ProjectorState::new(),
+            scratch: ProjectorScratch::new(),
         }
     }
 
@@ -493,7 +492,7 @@ mod tests {
 
     #[test]
     fn forward_chunk_boundaries() {
-        let inputs = representations(ProjectorState::CHUNK_SIZE * 2 + 1);
+        let inputs = representations(ProjectorScratch::CHUNK_SIZE * 2 + 1);
         let alignment = Similarity::new(
             positive!(2.0),
             Rotation::from_radians(0.5),
@@ -527,7 +526,7 @@ mod tests {
     #[test]
     fn forward_empty_and_reused() {
         let mut projector = projector(None);
-        let inputs = representations(ProjectorState::CHUNK_SIZE + 1);
+        let inputs = representations(ProjectorScratch::CHUNK_SIZE + 1);
         let first = projector
             .forward(inputs.rows())
             .expect("should project the initial batch");
@@ -547,8 +546,8 @@ mod tests {
     #[test]
     fn forward_non_finite_chunks() {
         let mut projector = projector(None);
-        let mut inputs = representations(ProjectorState::CHUNK_SIZE * 2 + 1);
-        let offenders = [1, ProjectorState::CHUNK_SIZE + 3];
+        let mut inputs = representations(ProjectorScratch::CHUNK_SIZE * 2 + 1);
+        let offenders = [1, ProjectorScratch::CHUNK_SIZE + 3];
         for row in offenders {
             inputs.rows_mut()[row].as_array_mut()[0] = f32::NAN;
         }
@@ -674,7 +673,7 @@ mod tests {
             Similarity::new(positive!(2.0), Rotation::IDENTITY, Vec2::new(3.0, -4.0))
                 .expect("should have a valid similarity"),
         ));
-        let inputs = representations(ProjectorState::CHUNK_SIZE * 2 + 1);
+        let inputs = representations(ProjectorScratch::CHUNK_SIZE * 2 + 1);
         let coordinates = projector
             .forward(inputs.rows())
             .expect("should project sample coordinates");

@@ -1,12 +1,12 @@
-mod epoch;
+pub(crate) mod epoch;
 mod feed;
 mod history;
 mod id;
-mod layout;
+pub(crate) mod layout;
 mod overlay;
 mod placement;
 mod projector;
-mod topology;
+pub(crate) mod topology;
 
 use alloc::sync::Arc;
 
@@ -25,7 +25,7 @@ use crate::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct DeltaRevision(u64);
+pub(crate) struct DeltaRevision(u64);
 
 impl DeltaRevision {
     fn increment(&mut self) {
@@ -37,6 +37,7 @@ impl DeltaRevision {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 struct DeltaId(u64);
 
 impl DeltaId {
@@ -106,19 +107,14 @@ impl Delta {
                 endpoints: Some([source, target]),
             } => todo!(),
             feed::DeltaEventKind::Defect => {
-                // We ignore the event, because an error occured during it.
                 return false;
             }
             feed::DeltaEventKind::Withdrawn => {
-                // retract from either store
-                let mut changed = false;
-                changed |= self
-                    .node
-                    .withdraw((), self.revision, event.entity.entity_uuid);
-                changed |= self
-                    .edge
-                    .withdraw((), self.revision, event.entity.entity_uuid);
-                changed
+                // let mut changed = false;
+                // changed |= self.node.withdraw((), self.revision, event.entity.entity_uuid);
+                // changed |= self.edge.withdraw((), self.revision, event.entity.entity_uuid);
+                // changed
+                todo!("connect the identity providers before applying withdrawals")
             }
         }
     }
@@ -130,7 +126,9 @@ impl Clone for Delta {
     #[inline]
     fn clone(&self) -> Self {
         Self {
-            world: self.world.clone(),
+            world: Arc::clone(&self.world),
+            id: self.id,
+            revision: self.revision,
             ontology: self.ontology.clone(),
             node: self.node.clone(),
             edge: self.edge.clone(),
@@ -143,6 +141,8 @@ impl Clone for Delta {
     fn clone_from(&mut self, source: &Self) {
         let Self {
             world,
+            id,
+            revision,
             ontology,
             node,
             edge,
@@ -151,6 +151,8 @@ impl Clone for Delta {
         } = self;
 
         world.clone_from(&source.world);
+        id.clone_from(&source.id);
+        revision.clone_from(&source.revision);
         ontology.clone_from(&source.ontology);
         node.clone_from(&source.node);
         edge.clone_from(&source.edge);

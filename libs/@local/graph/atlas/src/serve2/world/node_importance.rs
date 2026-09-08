@@ -1,3 +1,8 @@
+//! The fitted importance ranking in base-position order.
+//!
+//! [`ImportanceRank`] orders nodes by importance, with zero first. [`BasePosition`] indexes their
+//! geometry. The inverse mappings support access in either order.
+
 use core::ops::Index;
 
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
@@ -5,6 +10,7 @@ use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 use super::{OpenOptions, error::WorldError};
 use crate::identity::{BasePosition, Column, ImportanceRank};
 
+/// Inverse mappings between fitted importance ranks and base positions.
 #[derive(Debug)]
 pub(crate) struct NodeImportance {
     lookup: Column<BasePosition, ImportanceRank>,
@@ -12,6 +18,11 @@ pub(crate) struct NodeImportance {
 }
 
 impl NodeImportance {
+    /// Opens the rank permutations and checks their lengths.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WorldError`] for artifact opening or mismatched rank counts.
     pub(crate) fn open(
         OpenOptions { generation, .. }: OpenOptions<'_>,
     ) -> Result<Self, Report<[WorldError]>> {
@@ -47,10 +58,12 @@ impl NodeImportance {
         sink.finish_ok(this)
     }
 
+    /// Returns the fitted rank at `index`, or [`None`] outside the position domain.
     pub(crate) fn lookup(&self, index: BasePosition) -> Option<ImportanceRank> {
         self.lookup.view().get(index).copied()
     }
 
+    /// Returns the fitted position at `index`, or [`None`] outside the rank domain.
     pub(crate) fn reverse(&self, index: ImportanceRank) -> Option<BasePosition> {
         self.reverse.view().get(index).copied()
     }

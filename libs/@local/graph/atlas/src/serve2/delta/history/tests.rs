@@ -42,6 +42,28 @@ fn history_rollover() {
 }
 
 #[test]
+fn history_unchanged_retention() {
+    for initial in [EntryKind::Live, EntryKind::Withdrawn] {
+        let next = match initial {
+            EntryKind::Live => EntryKind::Withdrawn,
+            EntryKind::Withdrawn => EntryKind::Live,
+        };
+        let mut history = History::new(initial, DeltaRevision(3));
+        assert!(history.push(next, DeltaRevision(5)));
+        let end = 6 + u64::try_from(HISTORY_SIZE).expect("should fit the history size");
+        for revision in 6..=end {
+            assert!(!history.push(next, DeltaRevision(revision)));
+        }
+        assert_eq!(history.at(DeltaRevision(2)), None);
+        assert_eq!(history.at(DeltaRevision(3)), Some(initial));
+        assert_eq!(history.at(DeltaRevision(4)), Some(initial));
+        assert_eq!(history.at(DeltaRevision(5)), Some(next));
+        assert_eq!(history.at(DeltaRevision(end)), Some(next));
+        assert_eq!(history.now(), next);
+    }
+}
+
+#[test]
 fn history_same_revision() {
     let mut history = History::new(EntryKind::Live, DeltaRevision(3));
     for _ in 0..=HISTORY_SIZE {
@@ -76,15 +98,29 @@ fn history_max_revision() {
 #[test]
 fn versioned_birth_rollover() {
     let mut value = Versioned::new("value", DeltaRevision(3));
-    for offset in 1..=HISTORY_SIZE + 1 {
-        let revision =
-            DeltaRevision(3 + u64::try_from(offset).expect("should fit the history size"));
-        value.push(EntryKind::Withdrawn, revision);
+    assert!(value.push(EntryKind::Withdrawn, DeltaRevision(4)));
+    let capacity = u64::try_from(HISTORY_SIZE).expect("should fit the history size");
+    for offset in 1..=capacity {
+        let revision = 4 + 2 * offset;
+        assert!(value.push(EntryKind::Live, DeltaRevision(revision - 1)));
+        assert!(value.push(EntryKind::Withdrawn, DeltaRevision(revision)));
     }
+    assert_eq!(value.history.at(DeltaRevision(4)), None);
     assert!(!value.is_live(Some(DeltaRevision(2))));
     assert!(value.is_live(Some(DeltaRevision(3))));
+    assert!(value.is_live(Some(DeltaRevision(4))));
     assert!(!value.is_live(None));
     assert_eq!(value.data(), &"value");
+}
+
+#[test]
+fn versioned_change_flag() {
+    let mut value = Versioned::new((), DeltaRevision(3));
+    assert!(!value.push(EntryKind::Live, DeltaRevision(4)));
+    assert!(value.push(EntryKind::Withdrawn, DeltaRevision(5)));
+    assert!(!value.push(EntryKind::Withdrawn, DeltaRevision(6)));
+    assert!(value.push(EntryKind::Live, DeltaRevision(6)));
+    assert!(value.is_live(None));
 }
 
 #[test]

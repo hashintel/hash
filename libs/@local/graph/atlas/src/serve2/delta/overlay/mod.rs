@@ -32,15 +32,15 @@ where
     R: Row,
     K: Key,
 {
-    fn universe(&self) -> Universe<R>;
+    fn provide_universe(&self) -> Universe<R>;
 
-    fn key_of_at(&self, row: R, revision: DeltaRevision) -> Option<K>;
+    fn provide_key_of_at(&self, row: R, revision: DeltaRevision) -> Option<K>;
 
-    fn row_of_at(&self, key: K, revision: DeltaRevision) -> Option<R>;
+    fn provide_row_of_at(&self, key: K, revision: DeltaRevision) -> Option<R>;
 
-    fn payload_of_key_at(&self, key: K, revision: DeltaRevision) -> Option<&K::Payload>;
+    fn provide_payload_of_key_at(&self, key: K, revision: DeltaRevision) -> Option<&K::Payload>;
 
-    fn payload_of_row_at(&self, row: R, revision: DeltaRevision) -> Option<&K::Payload>;
+    fn provide_payload_of_row_at(&self, row: R, revision: DeltaRevision) -> Option<&K::Payload>;
 }
 
 impl<K, R, T: VersionedIdentityProvider<K, R> + ?Sized> VersionedIdentityProvider<K, R> for &T
@@ -48,24 +48,24 @@ where
     R: Row,
     K: Key,
 {
-    fn universe(&self) -> Universe<R> {
-        T::universe(self)
+    fn provide_universe(&self) -> Universe<R> {
+        T::provide_universe(self)
     }
 
-    fn key_of_at(&self, row: R, revision: DeltaRevision) -> Option<K> {
-        T::key_of_at(self, row, revision)
+    fn provide_key_of_at(&self, row: R, revision: DeltaRevision) -> Option<K> {
+        T::provide_key_of_at(self, row, revision)
     }
 
-    fn row_of_at(&self, key: K, revision: DeltaRevision) -> Option<R> {
-        T::row_of_at(self, key, revision)
+    fn provide_row_of_at(&self, key: K, revision: DeltaRevision) -> Option<R> {
+        T::provide_row_of_at(self, key, revision)
     }
 
-    fn payload_of_key_at(&self, key: K, revision: DeltaRevision) -> Option<&K::Payload> {
-        T::payload_of_key_at(self, key, revision)
+    fn provide_payload_of_key_at(&self, key: K, revision: DeltaRevision) -> Option<&K::Payload> {
+        T::provide_payload_of_key_at(self, key, revision)
     }
 
-    fn payload_of_row_at(&self, row: R, revision: DeltaRevision) -> Option<&K::Payload> {
-        T::payload_of_row_at(self, row, revision)
+    fn provide_payload_of_row_at(&self, row: R, revision: DeltaRevision) -> Option<&K::Payload> {
+        T::provide_payload_of_row_at(self, row, revision)
     }
 }
 
@@ -137,27 +137,27 @@ where
     K: Key,
 {
     #[inline]
-    fn universe(&self) -> Universe<R> {
+    fn provide_universe(&self) -> Universe<R> {
         Universe::from_length(self.count())
     }
 
     #[inline]
-    fn key_of_at(&self, row: R, _: DeltaRevision) -> Option<K> {
+    fn provide_key_of_at(&self, row: R, _: DeltaRevision) -> Option<K> {
         self.key_of(row)
     }
 
     #[inline]
-    fn row_of_at(&self, key: K, _: DeltaRevision) -> Option<R> {
+    fn provide_row_of_at(&self, key: K, _: DeltaRevision) -> Option<R> {
         self.row_of(key)
     }
 
     #[inline]
-    fn payload_of_key_at(&self, key: K, _: DeltaRevision) -> Option<&K::Payload> {
+    fn provide_payload_of_key_at(&self, key: K, _: DeltaRevision) -> Option<&K::Payload> {
         self.payload_of_key(key)
     }
 
     #[inline]
-    fn payload_of_row_at(&self, row: R, _: DeltaRevision) -> Option<&K::Payload> {
+    fn provide_payload_of_row_at(&self, row: R, _: DeltaRevision) -> Option<&K::Payload> {
         self.payload_of_row(row)
     }
 }
@@ -181,7 +181,7 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
         R: Row,
     {
         Self {
-            universe: base.universe(),
+            universe: base.provide_universe(),
 
             forward: FastHashMap::default(),
             inverse: IdVec::default(),
@@ -201,7 +201,7 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
         R: Row,
     {
         if let Some(&row) = self.forward.get(&key) {
-            let Some(delta) = DeltaRowId::derive(base.universe(), row) else {
+            let Some(delta) = DeltaRowId::derive(base.provide_universe(), row) else {
                 tracing::warn!("todo");
                 return false;
             };
@@ -272,7 +272,7 @@ where
     B: VersionedIdentityProvider<K, R>,
 {
     fn permits_row(&self, row: R, revision: Option<DeltaRevision>) -> bool {
-        DeltaRowId::derive(self.base.universe(), row).map_or_else(
+        DeltaRowId::derive(self.base.provide_universe(), row).map_or_else(
             || {
                 self.data
                     .history
@@ -296,11 +296,12 @@ where
         if !self.permits_row(row, revision) {
             return None;
         }
-        DeltaRowId::derive(self.base.universe(), row).map_or_else(
+
+        DeltaRowId::derive(self.base.provide_universe(), row).map_or_else(
             || {
                 revision.map_or_else(
                     || self.base.key_of(row),
-                    |revision| self.base.key_of_at(row, revision),
+                    |revision| self.base.provide_key_of_at(row, revision),
                 )
             },
             |delta| self.data.inverse.get(delta).map(|entry| *entry.data()),
@@ -311,9 +312,10 @@ where
         let row = self.data.forward.get(&key).copied().or_else(|| {
             revision.map_or_else(
                 || self.base.row_of(key),
-                |revision| self.base.row_of_at(key, revision),
+                |revision| self.base.provide_row_of_at(key, revision),
             )
         })?;
+
         self.permits_row(row, revision).then_some(row)
     }
 
@@ -326,7 +328,7 @@ where
         self.data.payload.get(&key).map(Borrow::borrow).or_else(|| {
             revision.map_or_else(
                 || self.base.payload_of_key(key),
-                |revision| self.base.payload_of_key_at(key, revision),
+                |revision| self.base.provide_payload_of_key_at(key, revision),
             )
         })
     }
@@ -340,7 +342,7 @@ where
         self.data.payload.get(&key).map(Borrow::borrow).or_else(|| {
             revision.map_or_else(
                 || self.base.payload_of_row(row),
-                |revision| self.base.payload_of_row_at(row, revision),
+                |revision| self.base.provide_payload_of_row_at(row, revision),
             )
         })
     }
@@ -386,23 +388,23 @@ where
     K: Key + Hash + Eq,
     B: VersionedIdentityProvider<K, R>,
 {
-    fn universe(&self) -> Universe<R> {
+    fn provide_universe(&self) -> Universe<R> {
         self.data.universe
     }
 
-    fn key_of_at(&self, row: R, revision: DeltaRevision) -> Option<K> {
+    fn provide_key_of_at(&self, row: R, revision: DeltaRevision) -> Option<K> {
         self.lookup_key(row, Some(revision))
     }
 
-    fn row_of_at(&self, key: K, revision: DeltaRevision) -> Option<R> {
+    fn provide_row_of_at(&self, key: K, revision: DeltaRevision) -> Option<R> {
         self.lookup_row(key, Some(revision))
     }
 
-    fn payload_of_key_at(&self, key: K, revision: DeltaRevision) -> Option<&K::Payload> {
+    fn provide_payload_of_key_at(&self, key: K, revision: DeltaRevision) -> Option<&K::Payload> {
         self.lookup_payload_of_key(key, Some(revision))
     }
 
-    fn payload_of_row_at(&self, row: R, revision: DeltaRevision) -> Option<&K::Payload> {
+    fn provide_payload_of_row_at(&self, row: R, revision: DeltaRevision) -> Option<&K::Payload> {
         self.lookup_payload_of_row(row, Some(revision))
     }
 }

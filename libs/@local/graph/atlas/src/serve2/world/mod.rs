@@ -1,3 +1,8 @@
+//! Opened artifacts of one fitted generation.
+//!
+//! [`World`] checks that its components share a node domain. Its layout and topology accessors use
+//! an [`Epoch`](super::delta::epoch::Epoch) to include revision-dependent changes.
+
 use std::io;
 
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
@@ -9,37 +14,45 @@ mod cache;
 mod encoding;
 mod error;
 mod geometry;
-mod layout;
+pub(crate) mod layout;
 mod node_importance;
 mod node_index;
 mod ontology;
-mod topology;
+pub(crate) mod topology;
 
 pub(crate) use self::{
     cache::Cache, encoding::Encoding, error::WorldError, geometry::Geometry, layout::Layout,
     node_importance::NodeImportance, node_index::NodeIndex, ontology::Ontology, topology::Topology,
 };
 
+/// A generation and the secret used to derive its wire-ID codecs.
 #[derive(Clone, Copy)]
 pub(crate) struct OpenOptions<'context> {
     pub generation: &'context Generation,
     pub secret: &'context ServeSecret,
 }
 
+/// The serving artifacts of one fitted generation with matching component node counts.
 #[derive(Debug)]
 pub(crate) struct World {
     generation: Generation,
 
     schedule: BucketSchedule,
 
-    layout: Layout,
-    topology: Topology,
+    pub layout: Layout,
+    pub topology: Topology,
     cache: Cache,
 
     ontology: Ontology,
 }
 
 impl World {
+    /// Opens the generation's serving components and checks their shared node domain.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WorldError`] for invalid schedules, component opening failures or mismatched node
+    /// counts.
     pub(crate) fn open(
         generation: Generation,
         secret: &ServeSecret,
@@ -70,13 +83,14 @@ impl World {
 
         let mut sink = ReportSink::new_armed();
 
-        if this.layout.node_count() != this.topology.node_count()
-            || this.layout.node_count() != this.ontology.node_count()
-        {
+        let layout = layout::LayoutProvider::provide_node_count(&this.layout);
+        let topology = topology::TopologyProvider::provide_node_count(&this.topology);
+        let ontology = this.ontology.node_count();
+        if layout != topology || layout != ontology {
             sink.capture(WorldError::NodeCountMismatch {
-                layout: this.layout.node_count(),
-                topology: this.topology.node_count(),
-                ontology: this.ontology.node_count(),
+                layout,
+                topology,
+                ontology,
             });
         }
 
@@ -87,9 +101,9 @@ impl World {
     ///
     /// # Errors
     ///
-    /// Returns the filesystem error when the directory cannot be removed.
+    /// Returns any filesystem error from removing the directory.
     pub(crate) async fn destroy(self) -> io::Result<()> {
-        // A file is only truly deleted once all of it's file descriptors are closed, and each
+        // A file is only truly deleted once all of its file descriptors are closed, and each
         // artifact holds two file descriptors. One for the mmap, another one for the
         // advisory read lock. Therefore it is safe to remove the directory, and then
         // release the file descriptors at the end of the call through `Drop`.
@@ -101,7 +115,7 @@ impl World {
 mod tests {
     use core::assert_matches;
 
-    use super::{World, error::WorldError};
+    use super::{World, error::WorldError, layout::LayoutProvider, topology::TopologyProvider};
     use crate::serve2::tests::fixture::{
         ENDPOINTS, NODES, TamperFixture, respan_adjacency, retarget_postings_points, secret,
     };
@@ -115,10 +129,13 @@ mod tests {
             .expect("the untampered generation opens");
         let nodes = usize::try_from(NODES).expect("fixture node counts fit usize");
 
-        assert_eq!(world.layout.node_count(), nodes);
-        assert_eq!(world.topology.node_count(), nodes);
+        assert_eq!(LayoutProvider::provide_node_count(&world.layout), nodes);
+        assert_eq!(TopologyProvider::provide_node_count(&world.topology), nodes);
         assert_eq!(world.ontology.node_count(), nodes);
-        assert_eq!(world.topology.edge_count(), ENDPOINTS.len());
+        assert_eq!(
+            TopologyProvider::provide_edge_count(&world.topology),
+            ENDPOINTS.len()
+        );
     }
 
     /// Open refuses an adjacency spanning an extra node row, under

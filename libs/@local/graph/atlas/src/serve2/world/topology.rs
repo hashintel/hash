@@ -1,12 +1,60 @@
+//! Directed graph queries in stable node and edge row order.
+//!
+//! [`Topology`] combines fitted endpoint bindings with the changes captured by an [`Epoch`].
+//! Adjacency queries exclude withdrawn edges.
+
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 
 use super::{OpenOptions, error::WorldError};
 use crate::{
     identity::{Column, EdgeRowId, NodeRowId},
     postgres::id::ArchivedEntityId,
-    salt::{adjacency::AdjacencyArchive, fit::prepare::identity::IdentityTableArchive},
+    salt::{
+        adjacency::{AdjacencyArchive, EdgeList},
+        fit::prepare::identity::IdentityTableArchive,
+    },
+    serve2::delta::{
+        epoch::Epoch,
+        topology::provider::{NaiveTopologyProvider, VersionedTopologyProvider as _},
+    },
 };
 
+/// Endpoint and adjacency lookups over allocated node and edge rows.
+///
+/// Node and edge rows occupy the zero-based domains bounded by their respective counts. Counts
+/// include absent rows. Adjacency lists contain existing edges in strictly ascending row order.
+pub(crate) trait TopologyProvider {
+    fn provide_node_count(&self) -> usize;
+    fn provide_edge_count(&self) -> usize;
+    /// Returns the visible `[source, target]` pair, or [`None`] for an absent edge.
+    fn provide_endpoints(&self, edge: EdgeRowId) -> Option<[NodeRowId; 2]>;
+    fn provide_incoming(&self, node: NodeRowId) -> impl Iterator<Item = EdgeRowId>;
+    fn provide_outgoing(&self, node: NodeRowId) -> impl Iterator<Item = EdgeRowId>;
+}
+
+impl<T: TopologyProvider + ?Sized> TopologyProvider for &T {
+    fn provide_node_count(&self) -> usize {
+        T::provide_node_count(self)
+    }
+
+    fn provide_edge_count(&self) -> usize {
+        T::provide_edge_count(self)
+    }
+
+    fn provide_endpoints(&self, edge: EdgeRowId) -> Option<[NodeRowId; 2]> {
+        T::provide_endpoints(self, edge)
+    }
+
+    fn provide_incoming(&self, node: NodeRowId) -> impl Iterator<Item = EdgeRowId> {
+        T::provide_incoming(self, node)
+    }
+
+    fn provide_outgoing(&self, node: NodeRowId) -> impl Iterator<Item = EdgeRowId> {
+        T::provide_outgoing(self, node)
+    }
+}
+
+/// The fitted endpoint bindings and adjacency lists of one generation.
 #[derive(Debug)]
 pub(crate) struct Topology {
     identity: IdentityTableArchive<ArchivedEntityId, EdgeRowId>,
@@ -16,6 +64,11 @@ pub(crate) struct Topology {
 }
 
 impl Topology {
+    /// Opens the fitted topology and checks its edge counts.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WorldError`] for artifact opening, mismatched counts or an oversized edge domain.
     pub(crate) fn open(
         OpenOptions { generation, .. }: OpenOptions<'_>,
     ) -> Result<Self, Report<[WorldError]>> {
@@ -71,16 +124,103 @@ impl Topology {
         sink.finish_ok(this)
     }
 
-    pub(crate) fn edge_count(&self) -> usize {
-        self.endpoints.len()
+    /// Returns the visible `[source, target]` pair at the captured epoch's revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this topology does not belong to the epoch's world.
+    pub(crate) fn endpoints(&self, epoch: &Epoch, edge: EdgeRowId) -> Option<[NodeRowId; 2]> {
+        let base = NaiveTopologyProvider::from_ref(self);
+        epoch
+            .topology(self)
+            .provider(base)
+            .provide_endpoints_at(edge, epoch.revision())
     }
 
+    /// Returns visible incoming edges in ascending row order at the captured revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this topology does not belong to the epoch's world.
+    pub(crate) fn incoming<'epoch>(
+        &'epoch self,
+        epoch: &'epoch Epoch,
+        node: NodeRowId,
+    ) -> impl Iterator<Item = EdgeRowId> + 'epoch {
+        let base = NaiveTopologyProvider::from_ref(self);
+        epoch
+            .topology(self)
+            .provider(base)
+            .into_incoming_at(node, epoch.revision())
+    }
+
+    /// Returns visible outgoing edges in ascending row order at the captured revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this topology does not belong to the epoch's world.
+    pub(crate) fn outgoing<'epoch>(
+        &'epoch self,
+        epoch: &'epoch Epoch,
+        node: NodeRowId,
+    ) -> impl Iterator<Item = EdgeRowId> + 'epoch {
+        let base = NaiveTopologyProvider::from_ref(self);
+        epoch
+            .topology(self)
+            .provider(base)
+            .into_outgoing_at(node, epoch.revision())
+    }
+
+    /// Returns the allocated edge count, including withdrawn and unbound rows.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this topology does not belong to the epoch's world.
+    pub(crate) fn edge_count(&self, epoch: &Epoch) -> usize {
+        let base = NaiveTopologyProvider::from_ref(self);
+        epoch.topology(self).provider(base).provide_edge_count()
+    }
+
+    /// Returns the allocated node count, including nodes without incident edges.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this topology does not belong to the epoch's world.
+    pub(crate) fn node_count(&self, epoch: &Epoch) -> usize {
+        let base = NaiveTopologyProvider::from_ref(self);
+        epoch.topology(self).provider(base).provide_node_count()
+    }
+}
+
+impl TopologyProvider for Topology {
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the world's open compares the count against the layout's `usize` node count"
     )]
-    pub(crate) const fn node_count(&self) -> usize {
+    fn provide_node_count(&self) -> usize {
         self.adjacency.rows() as usize
+    }
+
+    fn provide_edge_count(&self) -> usize {
+        self.endpoints.len()
+    }
+
+    fn provide_endpoints(&self, edge: EdgeRowId) -> Option<[NodeRowId; 2]> {
+        self.endpoints.view().get(edge).copied()
+    }
+
+    fn provide_incoming(&self, node: NodeRowId) -> impl Iterator<Item = EdgeRowId> {
+        self.adjacency
+            .incoming(node)
+            .into_iter()
+            .flat_map(EdgeList::iter)
+    }
+
+    fn provide_outgoing(&self, node: NodeRowId) -> impl Iterator<Item = EdgeRowId> {
+        self.adjacency
+            .outgoing(node)
+            .into_iter()
+            .flat_map(EdgeList::iter)
     }
 }
 

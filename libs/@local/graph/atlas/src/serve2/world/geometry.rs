@@ -1,3 +1,7 @@
+//! Wire-frame coordinates and spatial indexes for a fitted layout.
+//!
+//! Coordinate access uses [`BasePosition`], the shared order of the geometry artifacts.
+
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 
 use super::{OpenOptions, error::WorldError};
@@ -8,6 +12,7 @@ use crate::{
     salt::lod::stage::WIRE_FRAME,
 };
 
+/// Fitted coordinates with their world bounds and spatial indexes.
 #[derive(Debug)]
 pub struct Geometry {
     bounds: Option<Bounds2>,
@@ -18,6 +23,11 @@ pub struct Geometry {
 }
 
 impl Geometry {
+    /// Opens the geometry artifacts and checks their point counts.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WorldError`] for artifact opening or mismatched point counts.
     pub(crate) fn open(
         OpenOptions { generation, .. }: OpenOptions<'_>,
     ) -> Result<Self, Report<[WorldError]>> {
@@ -77,6 +87,10 @@ impl Geometry {
         }
 
         errors.finish_ok(this)
+    }
+
+    pub(crate) fn position(&self, position: BasePosition) -> Option<Vec2> {
+        self.positions.view().get(position).copied()
     }
 
     pub(crate) fn node_count(&self) -> usize {
