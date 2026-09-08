@@ -61,7 +61,7 @@ use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hashql_core::id::{Id as _, IdSlice, IdVec};
 
 pub use self::{
-    cache::scope::VisibilityLimits, delta::staging::EmbeddingEnsure, locate::LocateLimits,
+    cache::scope::VisibilityLimits, delta::staging::EmbeddingWorkflow, locate::LocateLimits,
     tile::TileLimits, translate::TranslateLimits,
 };
 pub(crate) use self::{

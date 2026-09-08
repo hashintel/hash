@@ -91,9 +91,7 @@ pub(crate) async fn openai<P>(
     progress: P,
 ) -> Result<ExternalEmbeddingProvider<OpenAiEmbeddingClient, P>, EmbedderError> {
     let generator = OpenAiEmbeddingClient::new(OpenAiEmbeddingClientConfig {
-        // Zeroizing custody ends here: the embeddings client's config takes the key as a
-        // bare owned `String`.
-        api_key: api_key.into_unguarded(),
+        api_key: api_key.into_unguarded().as_ref().to_owned(),
         base_url: Some(EMBEDDING_ENDPOINT.to_owned()),
     })
     .map_err(EmbedderError::Construct)?;

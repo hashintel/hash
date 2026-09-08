@@ -445,7 +445,9 @@ async fn run_rest_server(
     Ok(())
 }
 
-async fn create_temporal_client(
+/// Connects to the Temporal server, retrying with exponential backoff until
+/// [`REACHABILITY_WINDOW`] has elapsed.
+pub(crate) async fn create_temporal_client(
     config: &TemporalConfig,
 ) -> Result<Option<TemporalClient>, Report<GraphError>> {
     if let Some(host) = config

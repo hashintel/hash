@@ -49,6 +49,7 @@ import { gptQueryTypes } from "./ai/gpt/gpt-query-types";
 import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client";
 import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
 import { setupAnalysisHandler } from "./analysis/setup-analysis-handler";
+import { setupAtlasProxy } from "./atlas-proxy";
 import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
@@ -618,6 +619,15 @@ const main = async () => {
     app.use("/oauth2/token", authRouteRateLimiter, hydraProxy);
     app.use("/oauth2/fallbacks", authRouteRateLimiter, hydraProxy);
   }
+
+  /**
+   * The atlas REST surface, proxied to the `hash-graph atlas` server. The caller's Kratos session
+   * credential crosses the hop untouched, and the atlas resolves the actor itself.
+   *
+   * Mounted here so the body reaches the proxy unread: the atlas digests the body it is handed,
+   * and a parse-then-re-serialise round trip does not preserve JSON text. See `setupAtlasProxy`.
+   */
+  setupAtlasProxy(app, logger);
 
   /** END PROXIES */
 
