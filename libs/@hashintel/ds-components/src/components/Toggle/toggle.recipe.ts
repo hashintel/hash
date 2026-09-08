@@ -186,7 +186,7 @@ export const styles = sva({
             backgroundColor: "neutral.s65",
           },
           "&[data-disabled][data-state='unchecked']": {
-            backgroundColor: "neutral.s35 !important",
+            backgroundColor: "neutral.s30 !important",
           },
         },
       },
@@ -199,7 +199,7 @@ export const styles = sva({
             backgroundColor: "red.s65",
           },
           "&[data-disabled][data-state='unchecked']": {
-            backgroundColor: "red.s35 !important",
+            backgroundColor: "red.s30 !important",
           },
         },
       },

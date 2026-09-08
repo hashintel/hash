@@ -215,11 +215,15 @@ export const selectRecipe = sva({
       right: "[100%]",
       maskImage: "[linear-gradient(to right, transparent, black)]",
     },
+    // At least as wide as the trigger, growing to fit item content up to
+    // 18rem. !important beats the SelectableList content min-width (140px).
     list: {
       ...formWidths.base,
-      width: "var(--reference-width)",
-      maxWidth: "var(--reference-width)",
-      minWidth: "[var(--form-min-width) !important]",
+      "--select-list-reference-width": "var(--reference-width)",
+      width: "[fit-content]",
+      minWidth:
+        "[max(var(--select-list-reference-width), var(--form-min-width)) !important]",
+      maxWidth: "[max(var(--select-list-reference-width), 18rem)]",
     },
   },
   variants: {
@@ -290,10 +294,8 @@ export const selectRecipe = sva({
           },
         },
         list: {
-          width:
-            "[calc(var(--reference-width) + var(--base-input-padding-x) * 2)]",
-          maxWidth:
-            "[calc(var(--reference-width) + var(--base-input-padding-x) * 2)]",
+          "--select-list-reference-width":
+            "calc(var(--reference-width) + var(--base-input-padding-x) * 2)",
           marginLeft: "[calc(-1 * var(--base-input-padding-x))]",
         },
       },
@@ -412,7 +414,7 @@ export const selectRecipe = sva({
         },
         list: {
           width: "[auto]",
-          maxWidth: "[auto]",
+          maxWidth: "[none]",
         },
       },
     },

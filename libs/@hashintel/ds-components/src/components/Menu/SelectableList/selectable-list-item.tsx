@@ -93,7 +93,11 @@ export const ItemBody = ({
         />
       )}
       <span className={classes.textColumn}>
-        {item.text}
+        {typeof item.text === "string" ? (
+          item.text
+        ) : (
+          <span className={classes.customText}>{item.text}</span>
+        )}
         {item.description !== undefined && item.description !== null && (
           <span className={classes.description}>{item.description}</span>
         )}

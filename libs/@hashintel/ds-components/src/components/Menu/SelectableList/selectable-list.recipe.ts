@@ -3,18 +3,31 @@ import { sva } from "@hashintel/ds-helpers/css";
 import type { FormInputSize } from "../../../util/form-shared";
 
 export const styles = sva({
-  slots: ["content", "group", "groupLabel", "emptyContainer", "customItem"],
+  slots: [
+    "content",
+    "group",
+    "groupLabel",
+    "emptyContainer",
+    "customItem",
+    "scrollArea",
+    "scrollSizer",
+    "header",
+    "footer",
+  ],
   base: {
     content: {
-      // A flex column so rows can re-order themselves by placement (the
-      // search row moves to the bottom edge when the dropdown flips upward).
-      // Children must not shrink, or long lists would compress rows to fit
-      // maxHeight instead of scrolling.
+      // A flex column so the header/footer can swap edges by placement when
+      // swapHeaderFooterOnFlip is set. Children must not shrink, or long
+      // lists would compress rows to fit maxHeight instead of scrolling.
       display: "flex",
       flexDirection: "column",
       "& > *": {
         flexShrink: "0",
       },
+      "& > [data-selectable-list-scroll]": {
+        flexShrink: "1",
+      },
+      padding: "[var(--selectable-list-content-padding)]",
       backgroundColor: "white",
       border: "1px solid {colors.bd.subtle}",
       borderRadius: "lg",
@@ -61,13 +74,72 @@ export const styles = sva({
       padding: "1",
     },
     customItem: {
+      // Flex, so inline-block children (e.g. a Button) don't pick up line-box
+      // leading from the row's line-height. Centered rather than stretched to
+      // leave the children's heights alone.
+      display: "flex",
+      alignItems: "center",
       width: "full",
       paddingX: "[var(--selectable-list-padding-x)]",
       paddingY: "[var(--selectable-list-padding-y)]",
-      // A search row moves to the bottom edge when the dropdown flips upward
+    },
+    scrollArea: {
+      display: "flex",
+      flexDirection: "column",
+      // A tall header/footer may squeeze the scroll area, but no further
+      // than 200px — or the list's natural height when that is smaller
+      // (measured into the variable by the component). Any excess overflows
+      // to the outer content instead.
+      minHeight: "[min(200px, var(--selectable-list-items-height, 0px))]",
+      overflowY: "auto",
+      scrollbarWidth: "[thin]",
+      "& > *": {
+        flexShrink: "0",
+      },
+    },
+    scrollSizer: {
+      display: "flex",
+      flexDirection: "column",
+      "& > *": {
+        flexShrink: "0",
+      },
+    },
+    header: {
+      width: "[min-content]",
+      minWidth: "[100%]",
+      boxSizing: "border-box",
+      paddingX: "[var(--selectable-list-padding-x)]",
+      paddingY: "[var(--selectable-list-padding-y)]",
+      marginBottom: "1",
+      // A search header brings its own full-bleed chrome (see searchRow)
+      "&:has([data-selectable-list-search])": {
+        marginBottom: "0",
+      },
+      // With swap-on-flip, an upward-opening dropdown puts the header on
+      // the bottom edge (nearest the trigger)
       "[data-placement^='top'] &": {
-        "&:has([data-selectable-list-search])": {
+        "&[data-selectable-list-swap-on-flip]": {
           order: "[1]",
+          marginBottom: "0",
+          marginTop: "1",
+          "&:has([data-selectable-list-search])": {
+            marginTop: "0",
+          },
+        },
+      },
+    },
+    footer: {
+      width: "[min-content]",
+      minWidth: "[100%]",
+      boxSizing: "border-box",
+      paddingX: "[var(--selectable-list-padding-x)]",
+      paddingY: "[var(--selectable-list-padding-y)]",
+      marginTop: "1",
+      "[data-placement^='top'] &": {
+        "&[data-selectable-list-swap-on-flip]": {
+          order: "[-1]",
+          marginTop: "0",
+          marginBottom: "1",
         },
       },
     },
@@ -76,7 +148,7 @@ export const styles = sva({
     size: {
       xxs: {
         content: {
-          padding: "0.5",
+          "--selectable-list-content-padding": "var(--spacing-0\\.5)",
           "--selectable-list-padding-x": "var(--spacing-1\\.5)",
           "--selectable-list-padding-y": "var(--spacing-0\\.5)",
         },
@@ -93,10 +165,16 @@ export const styles = sva({
         customItem: {
           textStyle: "xxs",
         },
+        header: {
+          textStyle: "xxs",
+        },
+        footer: {
+          textStyle: "xxs",
+        },
       },
       xs: {
         content: {
-          padding: "0.5",
+          "--selectable-list-content-padding": "var(--spacing-0\\.5)",
           "--selectable-list-padding-x": "var(--spacing-2)",
           "--selectable-list-padding-y": "3px",
         },
@@ -111,10 +189,16 @@ export const styles = sva({
         customItem: {
           textStyle: "xs",
         },
+        header: {
+          textStyle: "xs",
+        },
+        footer: {
+          textStyle: "xs",
+        },
       },
       sm: {
         content: {
-          padding: "1",
+          "--selectable-list-content-padding": "var(--spacing-1)",
           "--selectable-list-padding-x": "var(--spacing-2)",
           "--selectable-list-padding-y": "3px",
         },
@@ -129,10 +213,16 @@ export const styles = sva({
         customItem: {
           textStyle: "sm",
         },
+        header: {
+          textStyle: "sm",
+        },
+        footer: {
+          textStyle: "sm",
+        },
       },
       md: {
         content: {
-          padding: "1",
+          "--selectable-list-content-padding": "var(--spacing-1)",
           "--selectable-list-padding-x": "var(--spacing-2\\.5)",
           "--selectable-list-padding-y": "4px",
         },
@@ -147,10 +237,16 @@ export const styles = sva({
         customItem: {
           textStyle: "base",
         },
+        header: {
+          textStyle: "base",
+        },
+        footer: {
+          textStyle: "base",
+        },
       },
       lg: {
         content: {
-          padding: "1.5",
+          "--selectable-list-content-padding": "var(--spacing-1\\.5)",
           "--selectable-list-padding-x": "var(--spacing-2\\.5)",
           "--selectable-list-padding-y": "4px",
         },
@@ -163,6 +259,12 @@ export const styles = sva({
           textStyle: "sm",
         },
         customItem: {
+          textStyle: "base",
+        },
+        header: {
+          textStyle: "base",
+        },
+        footer: {
           textStyle: "base",
         },
       },

@@ -99,6 +99,61 @@ export const CustomItems: Story<SelectableListProps> = (args) => (
   </div>
 );
 
+export const HeaderAndFooter: Story<SelectableListProps> = (args) => (
+  <div
+    className={css({
+      // The static menu has no positioner to set --available-height, so
+      // provide it here — short enough that the items must scroll, showing
+      // the header and footer stay pinned outside the scroll area (but tall
+      // enough for the scroll area's 200px floor).
+      "--available-height": "320px",
+    })}
+  >
+    <StaticMenu>
+      <SelectableList
+        {...args}
+        items={groupedItems}
+        selected={defaultSelected}
+        header={
+          // The slots are undecorated; dividers are the consumer's to draw.
+          // For an edge-to-edge one, pull out of the slot AND content padding
+          // with the list's padding vars, re-applying them as own padding.
+          <span
+            className={css({
+              display: "block",
+              marginX:
+                "[calc(-1 * (var(--selectable-list-padding-x) + var(--selectable-list-content-padding)))]",
+              marginBottom: "[calc(-1 * var(--selectable-list-padding-y))]",
+              paddingX:
+                "[calc(var(--selectable-list-padding-x) + var(--selectable-list-content-padding))]",
+              paddingBottom: "[var(--selectable-list-padding-y)]",
+              borderBottom: "1px solid {colors.neutral.s30}",
+            })}
+          >
+            Header — outside the scroll area
+          </span>
+        }
+        footer={
+          <span
+            className={css({
+              display: "block",
+              marginX:
+                "[calc(-1 * (var(--selectable-list-padding-x) + var(--selectable-list-content-padding)))]",
+              marginTop: "[calc(-1 * var(--selectable-list-padding-y))]",
+              paddingX:
+                "[calc(var(--selectable-list-padding-x) + var(--selectable-list-content-padding))]",
+              paddingTop: "[var(--selectable-list-padding-y)]",
+              borderTop: "1px solid {colors.neutral.s30}",
+            })}
+          >
+            Footer — outside the scroll area
+          </span>
+        }
+      />
+    </StaticMenu>
+  </div>
+);
+
 export const Disabled: Story<SelectableListProps> = (args) => (
   <StaticMenu>
     <SelectableList

@@ -37,6 +37,26 @@ const sampleItems: Array<ItemOrGroup<SelectItem>> = [
   { value: "date", text: "Date" },
 ];
 
+const groupedItemsForRow = (label: string): Array<ItemOrGroup<SelectItem>> => [
+  {
+    id: "group-one",
+    label: "Group one",
+    items: [
+      { value: label, text: label },
+      { value: "apple", text: "Apple" },
+      { value: "banana", text: "Banana" },
+    ],
+  },
+  {
+    id: "group-two",
+    label: "Group two",
+    items: [
+      { value: "cherry", text: "Cherry" },
+      { value: "date", text: "Date" },
+    ],
+  },
+];
+
 type RowVariant = {
   variant: Variant;
   readonly: boolean;
@@ -195,6 +215,7 @@ const stateRows: Array<{
   key: string;
   label: string;
   clearable?: boolean;
+  grouped?: boolean;
   extraProps: Partial<SingleSelectProps>;
 }> = [
   { key: "disabled", label: "Disabled", extraProps: { disabled: true } },
@@ -249,6 +270,12 @@ const stateRows: Array<{
         ),
       },
     },
+  },
+  {
+    key: "item-groups",
+    label: "Item groups",
+    grouped: true,
+    extraProps: { required: true },
   },
 ];
 
@@ -342,7 +369,9 @@ export const Default: Story<SingleSelectProps> = (args) => (
             const itemsForRow: Array<ItemOrGroup<SelectItem>> =
               row.key === "loading"
                 ? []
-                : [{ value: row.label, text: row.label }, ...sampleItems];
+                : row.grouped
+                  ? groupedItemsForRow(row.label)
+                  : [{ value: row.label, text: row.label }, ...sampleItems];
             return stateColumns.map((col) => {
               const value =
                 row.key === "loading"
