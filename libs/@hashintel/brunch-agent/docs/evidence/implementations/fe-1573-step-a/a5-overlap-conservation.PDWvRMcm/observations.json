@@ -1,0 +1,80 @@
+{
+  "first": {
+    "revisionId": "evidence-revision",
+    "sha256": "8b74f23f8cfcfacf40aa6924604a53e83fb715623cd5bfe66e094593f0543e0e",
+    "markdown": "# TEST account\nReserve one crew.\n\nTiming remains unknown.",
+    "evidence": [
+      {
+        "locator": {
+          "start": 15,
+          "end": 32
+        },
+        "messageIds": ["entry_direct_c3ViXzAxTTIxR0NZQTNERFE4WEVEQjBINlZXM1ZK"],
+        "kind": "elicited"
+      },
+      {
+        "locator": {
+          "start": 15,
+          "end": 32
+        },
+        "messageIds": [],
+        "kind": "formalism-constraint"
+      }
+    ],
+    "evidenceValidated": true,
+    "ordinal": 1
+  },
+  "carried": {
+    "revisionId": "carried-revision",
+    "sha256": "77acbb92f5f988e26ec22bb2afe73cd0b7d8279895500a34682ccda037b4c1f0",
+    "markdown": "# TEST account\nReserve one crew.\n\nTiming remains unknown.\nUnrelated context.",
+    "evidence": [
+      {
+        "locator": {
+          "start": 15,
+          "end": 32
+        },
+        "messageIds": ["entry_direct_c3ViXzAxTTIxR0NZQTNERFE4WEVEQjBINlZXM1ZK"],
+        "kind": "elicited"
+      },
+      {
+        "locator": {
+          "start": 15,
+          "end": 32
+        },
+        "messageIds": [],
+        "kind": "formalism-constraint"
+      }
+    ],
+    "evidenceValidated": true,
+    "ordinal": 2
+  },
+  "reopened": {
+    "revisionId": "carried-revision",
+    "sha256": "77acbb92f5f988e26ec22bb2afe73cd0b7d8279895500a34682ccda037b4c1f0",
+    "markdown": "# TEST account\nReserve one crew.\n\nTiming remains unknown.\nUnrelated context.",
+    "evidence": [
+      {
+        "locator": {
+          "start": 15,
+          "end": 32
+        },
+        "messageIds": ["entry_direct_c3ViXzAxTTIxR0NZQTNERFE4WEVEQjBINlZXM1ZK"],
+        "kind": "elicited"
+      },
+      {
+        "locator": {
+          "start": 15,
+          "end": 32
+        },
+        "messageIds": [],
+        "kind": "formalism-constraint"
+      }
+    ],
+    "evidenceValidated": true,
+    "ordinal": 2
+  },
+  "syntheticSdkRequests": 29,
+  "assertionCompletions": 10,
+  "claim": "Overlapping relation conservation only; no new semantic or utility acceptance."
+}
