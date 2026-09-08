@@ -12,8 +12,8 @@ type CanonicalSchema = Exclude<
 >;
 
 /**
- * Carry the JSON Schema vocabulary exercised by addType, not a second copy of
- * Petrinaut's fields. New keywords fail closed until their carriage is proved.
+ * Carry the locally proved canonical vocabulary, not a second copy of Petrinaut's
+ * fields. Mechanical support does not grant tool admission. New keywords fail closed.
  * Canonical Zod validation remains the authority at execution.
  */
 const schemaCarrier = (schema: CanonicalSchema): v.GenericSchema => {
@@ -22,7 +22,56 @@ const schemaCarrier = (schema: CanonicalSchema): v.GenericSchema => {
     for (const keyword of keywords) supportedKeywords.add(keyword);
   };
   let carrier: v.GenericSchema;
-  if (schema.anyOf) {
+  if (schema.oneOf) {
+    consumes("oneOf");
+    const options = schema.oneOf.map((option) => {
+      if (
+        typeof option === "boolean" ||
+        option.type !== "object" ||
+        !option.properties ||
+        option.additionalProperties !== false
+      )
+        throw new Error(
+          "Unsupported oneOf: expected closed object alternatives",
+        );
+      return option;
+    });
+    // A shared, required, distinct string constant proves that alternatives cannot
+    // overlap. Valibot variant is not a general exactly-one validator.
+    const discriminator = options[0]?.required?.find((key) => {
+      const values = options.map((option) => {
+        const property = option.properties?.[key];
+        return option.required?.includes(key) &&
+          property &&
+          typeof property !== "boolean" &&
+          property.type === "string" &&
+          typeof property.const === "string"
+          ? property.const
+          : undefined;
+      });
+      return (
+        values.every((value) => value !== undefined) &&
+        new Set(values).size === options.length
+      );
+    });
+    if (discriminator === undefined) {
+      throw new Error(
+        "Unsupported oneOf: no disjoint required string discriminator",
+      );
+    }
+    carrier = v.variant(
+      discriminator,
+      options.map(
+        (option) =>
+          // Each checked alternative is a closed object; recursive validation below
+          // still rejects unsupported siblings, including on the discriminator.
+          schemaCarrier(option) as v.StrictObjectSchema<
+            v.ObjectEntries,
+            undefined
+          >,
+      ),
+    );
+  } else if (schema.anyOf) {
     consumes("anyOf");
     carrier = v.union(
       schema.anyOf.map((option) => {
@@ -31,6 +80,15 @@ const schemaCarrier = (schema: CanonicalSchema): v.GenericSchema => {
         return schemaCarrier(option);
       }),
     );
+  } else if ("const" in schema) {
+    consumes("type", "const");
+    if (schema.type !== "string" || typeof schema.const !== "string") {
+      throw new Error(
+        "Unsupported const: only typed string constants are carried",
+      );
+    }
+    // literal() exports const alone. value() retains the canonical type as well.
+    carrier = v.pipe(v.string(), v.value(schema.const));
   } else if (schema.enum) {
     consumes("type", "enum");
     if (
@@ -51,6 +109,11 @@ const schemaCarrier = (schema: CanonicalSchema): v.GenericSchema => {
           throw new Error("Only closed canonical objects are carried");
         }
         const required = new Set(schema.required ?? []);
+        if (
+          [...required].some((name) => !Object.hasOwn(schema.properties!, name))
+        ) {
+          throw new Error("Unsupported required property without a schema");
+        }
         const entries: v.ObjectEntries = Object.fromEntries(
           Object.entries(schema.properties).map(([name, property]) => {
             if (typeof property === "boolean")
@@ -73,13 +136,38 @@ const schemaCarrier = (schema: CanonicalSchema): v.GenericSchema => {
         }
         carrier = v.array(schemaCarrier(schema.items));
         break;
-      case "string":
-        consumes("minLength");
-        carrier =
-          schema.minLength === undefined
-            ? v.string()
-            : v.pipe(v.string(), v.minLength(schema.minLength));
+      case "string": {
+        consumes("minLength", "maxLength");
+        let text: v.GenericSchema<string> = v.string();
+        if (schema.minLength !== undefined)
+          text = v.pipe(text, v.minLength(schema.minLength));
+        if (schema.maxLength !== undefined)
+          text = v.pipe(text, v.maxLength(schema.maxLength));
+        carrier = text;
         break;
+      }
+      case "boolean":
+        carrier = v.boolean();
+        break;
+      case "number":
+      case "integer": {
+        consumes("minimum", "maximum", "exclusiveMinimum");
+        // JSON numbers are finite; Valibot number() alone also accepts Infinity.
+        let numeric: v.GenericSchema<number> = v.pipe(v.number(), v.finite());
+        if (schema.type === "integer") numeric = v.pipe(numeric, v.integer());
+        if (schema.minimum !== undefined)
+          numeric = v.pipe(numeric, v.minValue(schema.minimum));
+        if (schema.maximum !== undefined)
+          numeric = v.pipe(numeric, v.maxValue(schema.maximum));
+        if (schema.exclusiveMinimum !== undefined) {
+          if (typeof schema.exclusiveMinimum !== "number") {
+            throw new Error("Unsupported non-numeric exclusiveMinimum");
+          }
+          numeric = v.pipe(numeric, v.gtValue(schema.exclusiveMinimum));
+        }
+        carrier = numeric;
+        break;
+      }
       case "null":
         carrier = v.null();
         break;
