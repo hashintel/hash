@@ -62,6 +62,11 @@ process.env.BRUNCH_DEV_DB_PATH = dbPath;
 process.env.BRUNCH_TEST_KEEP_RECENT_TOKENS = String(keepRecentTokens);
 process.env.NODE_ENV = "test";
 process.env.OTEL_SDK_DISABLED = "true";
+delete process.env.HASH_OTLP_ENDPOINT;
+const nativeFetch = globalThis.fetch;
+globalThis.fetch = () => {
+  throw new Error("External fetch forbidden in the in-process A4 probe");
+};
 
 const save = async (name: string, value: unknown) =>
   writeFile(join(directory, name), `${JSON.stringify(value, null, 2)}\n`);
@@ -520,6 +525,7 @@ try {
   } finally {
     await application.stop();
     unsubscribe();
+    globalThis.fetch = nativeFetch;
   }
   await save(`${phase}-events.json`, events);
   await save(`${phase}-contexts.json`, contexts);
