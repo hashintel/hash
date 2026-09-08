@@ -14,7 +14,7 @@ No paid calls or reservations; **US$0**. Shared usage remains the owner's 5 call
 ## Branch, commits and write set
 
 - Worktree `/Users/lunelson/.herdr/worktrees/hash/m7-admission`, branch `ln/fe-1573-admission-feasibility`; inspected clean at `e1b2989738adbdfabb3b5514ea107fc9de6ad4eb` before editing.
-- Source/test commit: **`c45c1a67c8f414ce004980b364321fd7fa4b2555` — Probe production admission controls with a faux provider**. The following evidence-only commit contains this packet; its ID is provided in the relay message.
+- Source/test commit: **`c45c1a67c8f414ce004980b364321fd7fa4b2555` — Probe production admission controls with a faux provider**. Evidence commit **`5b9c4fbb7c76f3fc9923c5c16b6c0bcef6acc307`** contains this packet. A final evidence-only hash-refresh commit follows; its ID is provided in the relay message.
 - `apps/brunch-agent/test/admission-controls.integration.ts`: controlled public observer/interceptor/provider experiments on the existing built production mount, disposable stores, full event/wire/request capture and canonical headless execution. It is not a production import or registration.
 - `apps/brunch-agent/test/admission-controls.test.ts`: four normal-discovery capability discriminators and positive controls. They do not replace, skip, invert or modify the original red safety assertion.
 - `apps/brunch-agent/test/architecture/boundaries.integration.ts`: one exact hermetic-inventory entry for the new runtime-using instrument. Exact set equality and existing assertions remain unchanged.
@@ -99,7 +99,7 @@ key=$(yarn workspace @apps/brunch-agent exec node --input-type=module -e 'import
 python3 libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a2-admission-feasibility/summarize.py libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a2-admission-feasibility "$key"
 ```
 
-**56 cases inspected successfully.** This requires the local disposable databases; retained state extracts permit artifact inspection elsewhere but are not a supported import route.
+**56 cases inspected successfully.** This requires the local disposable databases; retained state extracts permit artifact inspection elsewhere but are not a supported import route. The final hash audit caught commit-time JSON formatting changing artifact bytes; all four committed control observation payloads were compared with their original stdout and are equal as JSON values. The follow-up manifest pins the formatted committed representation, while compressed raw requests/events/proposals remain byte-identical.
 
 No production or UI code changed, so the narrower core/plugin/binding/transport/app regression portfolio was used; no new full website/Petrinaut UI run or browser witness is claimed. Existing protected marker, model/compaction forwarding, prepared fixture, scoped catalogue, matching-call errors, causal client-result and folded Voice-origin tests ran in those packages. The accepted Mission 6b active-Stop path and its three limitations remain unchanged, not newly re-proved under the unmounted candidate. Overflow continuation and interrupted-revision recovery were deliberately not re-investigated; their prior red/unproved status remains.
 
