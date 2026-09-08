@@ -1,3 +1,4 @@
+mod consumer;
 mod overlay;
 mod placement;
 
