@@ -7,14 +7,41 @@ import type { JsonValue } from "./json-value";
 
 export const workpieceRevisionStateKey = "brunch.workpiece.current.v1";
 
+/** Locators have meaning only within their immutable revision's Markdown. */
+export type WorkpieceEvidenceRelation = {
+  readonly locator: { readonly start: number; readonly end: number };
+  readonly messageIds: readonly string[];
+  readonly kind:
+    | "elicited"
+    | "inference"
+    | "default"
+    | "formalism-constraint"
+    | "external"
+    | "correction";
+};
+
+/** The app acquires these from this instance's authorized public history. */
+export interface WorkpieceEvidenceSource {
+  readonly id: string;
+  readonly role: string;
+  readonly purpose: string;
+  readonly text: string;
+}
+
+export interface WorkpieceEvidenceServices {
+  readonly currentRevision: WorkpieceRevision | null;
+  readonly readSources: () => Promise<readonly WorkpieceEvidenceSource[]>;
+}
+
 /** Current settled artifact; ordinal is presentation only, never citation identity. */
 export interface WorkpieceRevision {
   readonly revisionId: string;
   readonly sha256: string;
   readonly ordinal: number;
   readonly markdown: string;
-  /** Unverified carriage, never an authorization or causal-support claim. */
+  /** Retained legacy carriage is not verified unless evidenceValidated is true. */
   readonly evidence?: JsonValue;
+  readonly evidenceValidated?: true;
 }
 
 export const preparedWorkpieceSignalType = "brunch.fixture.prepared";

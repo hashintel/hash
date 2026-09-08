@@ -66,6 +66,15 @@ describe("settled root arc basis", () => {
       ),
     ).rejects.toThrow(/unknown/iu);
   });
+  test("refuses missing current state even with retained history and supersession intent", async () => {
+    await expect(
+      validateDeclaredBasis(
+        { ...basis, supersessionIntended: true },
+        null,
+        async () => current,
+      ),
+    ).rejects.toThrow(/current.*unknown/iu);
+  });
   test("refuses wrong hashes and out-of-revision locators", async () => {
     await expect(
       validateDeclaredBasis(

@@ -199,6 +199,59 @@ export const observedArcOutcome = (
     : "unknown";
 };
 
+export const verifyDefinitionObservation = async (
+  observation: DefinitionObservation,
+): Promise<DefinitionObservation> => {
+  const detached = structuredClone(observation);
+  const parsed = parseSDCPNFile({
+    ...detached.definition,
+    title: "Browser observation",
+  });
+  if (!parsed.ok)
+    throw new Error(`Invalid canonical observation: ${parsed.error}`);
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(JSON.stringify(detached.definition)),
+  );
+  const actual = Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+  if (actual !== detached.sha256)
+    throw new Error(
+      "Transition observation hash does not match its definition.",
+    );
+  return detached;
+};
+
+/** Reconciliation only: never an alias or relaxation of mutation/base checks. */
+export const reconcileDefinitionObservations = async (
+  recorded: DefinitionObservation,
+  observed: DefinitionObservation,
+) => {
+  if (
+    !objectValue(recorded) ||
+    !objectValue(observed) ||
+    !objectValue(recorded.definition) ||
+    !objectValue(observed.definition)
+  )
+    throw new Error("Reconciliation requires both full observations.");
+  const [verifiedRecord, verifiedObservation] = await Promise.all([
+    verifyDefinitionObservation(recorded),
+    verifyDefinitionObservation(observed),
+  ]);
+  return {
+    status:
+      canonicalContent(verifiedRecord.definition) !==
+      canonicalContent(verifiedObservation.definition)
+        ? ("different" as const)
+        : verifiedRecord.sha256 === verifiedObservation.sha256
+          ? ("hash-equal" as const)
+          : ("serialization-equivalent" as const),
+    recordedSha256: verifiedRecord.sha256,
+    observedSha256: verifiedObservation.sha256,
+  };
+};
+
 /** Recompute observation hashes at a receiving boundary, not from the request's base. */
 export const verifyArcTransitionAttempt = async (
   delivery: ArcTransitionAttempt,
@@ -224,23 +277,7 @@ export const verifyArcTransitionAttempt = async (
   await Promise.all(
     [attempt.pre, attempt.post].map(async (observation) => {
       if (!observation) return;
-      const parsed = parseSDCPNFile({
-        ...observation.definition,
-        title: "Transition observation",
-      });
-      if (!parsed.ok)
-        throw new Error(`Invalid canonical observation: ${parsed.error}`);
-      const digest = await globalThis.crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(JSON.stringify(observation.definition)),
-      );
-      const actual = Array.from(new Uint8Array(digest), (byte) =>
-        byte.toString(16).padStart(2, "0"),
-      ).join("");
-      if (actual !== observation.sha256)
-        throw new Error(
-          "Transition observation hash does not match its definition.",
-        );
+      await verifyDefinitionObservation(observation);
     }),
   );
   assertArcEffects(attempt);

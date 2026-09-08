@@ -207,6 +207,7 @@ export const createJoinedBrowserTransitionRecorder = (input: {
 }) => {
   const binding = structuredClone(input.binding);
   const requestedBaseHash = input.requestedBaseHash;
+  const issuedReads = new Set<string>();
   const issued = new Map<
     string,
     { request: ArcMutationRequest; envelope: unknown }
@@ -223,6 +224,10 @@ export const createJoinedBrowserTransitionRecorder = (input: {
   const mapClientToolInput: NonNullable<
     FlueChatTransportOptions["mapClientToolInput"]
   > = (call) => {
+    if (call.toolName === "getLatestNetDefinition") {
+      issuedReads.add(call.toolCallId);
+      return call.input;
+    }
     if (call.toolName !== "addArc") return call.input;
     const { brunch, ...canonicalInput } = parseJoinedRootArcInput(call.input);
     if (brunch.requestedBaseHash !== requestedBaseHash)
@@ -245,6 +250,24 @@ export const createJoinedBrowserTransitionRecorder = (input: {
   const clientToolResultMetadata: NonNullable<
     FlueChatTransportOptions["clientToolResultMetadata"]
   > = (result) => {
+    if (result.toolName === "getLatestNetDefinition") {
+      if (!issuedReads.has(result.toolCallId))
+        throw new Error("Unknown issued browser read.");
+      const observed = observeBrowserDefinition(input.handle);
+      if (
+        typeof result.output !== "object" ||
+        result.output === null ||
+        !("definition" in result.output) ||
+        canonicalContent(result.output.definition) !==
+          canonicalContent(observed.definition)
+      )
+        throw new Error(
+          "Browser read output differs from the independently observed live handle.",
+        );
+      return {
+        observation: { toolCallId: result.toolCallId, binding, observed },
+      };
+    }
     if (result.toolName !== "addArc") return undefined;
     const transitionRecord = recorder
       .records()

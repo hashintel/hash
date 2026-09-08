@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { describe, expect, test, vi } from "vitest";
 
 import {
@@ -60,6 +62,55 @@ const setup = () => {
 };
 
 describe("browser transition adapter (canonical handle, not a real browser witness)", () => {
+  test("keeps mutation raw-base refusal even for object-key-order-equivalent definitions", () => {
+    const fixture = setup();
+    const observed = observeBrowserDefinition(fixture.handle);
+    const reordered = Object.fromEntries(
+      Object.entries(observed.definition).reverse(),
+    );
+    fixture.request.requestedBaseHash = createHash("sha256")
+      .update(JSON.stringify(reordered))
+      .digest("hex");
+    expect(fixture.request.requestedBaseHash).not.toBe(observed.sha256);
+    expect(fixture.run().applied).toBe(false);
+    expect(fixture.recorder.records()[0]?.outcome).toBe("stale");
+    expect(fixture.execute).not.toHaveBeenCalled();
+    fixture.instance.dispose();
+  });
+  test("correlates a live read with an independently observed bound handle and refuses intervening edits", () => {
+    const fixture = setup();
+    const joined = createJoinedBrowserTransitionRecorder({
+      handle: fixture.handle,
+      binding: fixture.request.binding,
+      requestedBaseHash: fixture.request.requestedBaseHash,
+    });
+    const call = {
+      toolName: "getLatestNetDefinition",
+      toolCallId: "live-read",
+      input: {},
+    };
+    joined.mapClientToolInput(call);
+    const output = { definition: structuredClone(fixture.handle.doc()) };
+    expect(joined.clientToolResultMetadata({ ...call, output })).toMatchObject({
+      observation: {
+        toolCallId: "live-read",
+        binding: fixture.request.binding,
+        observed: observeBrowserDefinition(fixture.handle),
+      },
+    });
+    fixture.execute();
+    expect(() => joined.clientToolResultMetadata({ ...call, output })).toThrow(
+      /differs/iu,
+    );
+    expect(() =>
+      joined.clientToolResultMetadata({
+        ...call,
+        toolCallId: "unknown",
+        output,
+      }),
+    ).toThrow(/issued/iu);
+    fixture.instance.dispose();
+  });
   test("joins issued canonical arguments to record carriage and refuses replacement of the basis envelope", () => {
     const fixture = setup();
     const joined = createJoinedBrowserTransitionRecorder({

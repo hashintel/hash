@@ -49,7 +49,18 @@ export const retainedSettledRevision = (
         createHash("sha256").update(markdown).digest("hex") !== sha256
       )
         continue;
-      return { revisionId, sha256, ordinal, markdown };
+      return {
+        revisionId,
+        sha256,
+        ordinal,
+        markdown,
+        ...(part.output.evidenceValidated === true
+          ? {
+              evidence: part.output.evidence as WorkpieceRevision["evidence"],
+              evidenceValidated: true as const,
+            }
+          : {}),
+      };
     }
   }
   return undefined;

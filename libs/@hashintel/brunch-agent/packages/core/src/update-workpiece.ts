@@ -4,7 +4,92 @@ import * as v from "valibot";
 
 import { isJsonValue } from "./json-value";
 
-import type { WorkpieceRevision } from "./workpiece";
+import type {
+  WorkpieceEvidenceRelation,
+  WorkpieceEvidenceSource,
+  WorkpieceRevision,
+} from "./workpiece";
+
+const evidenceRelationSchema = v.strictObject({
+  locator: v.strictObject({
+    start: v.pipe(v.number(), v.integer(), v.minValue(0)),
+    end: v.pipe(v.number(), v.integer(), v.minValue(1)),
+  }),
+  messageIds: v.array(v.pipe(v.string(), v.minLength(1))),
+  kind: v.picklist([
+    "elicited",
+    "inference",
+    "default",
+    "formalism-constraint",
+    "external",
+    "correction",
+  ]),
+});
+
+/** Validation earns structural linkage and authorship only, never relevance or template quality. */
+export const settleWorkpieceEvidence = async (
+  input: { markdown: string; evidence?: unknown },
+  previous: WorkpieceRevision | null,
+  readSources: () => Promise<readonly WorkpieceEvidenceSource[]>,
+): Promise<WorkpieceEvidenceRelation[] | undefined> => {
+  const relations =
+    input.evidence === undefined
+      ? []
+      : v.parse(v.array(evidenceRelationSchema), input.evidence);
+  // No guessed cross-revision identity. Only a unique unchanged passage at the
+  // same span carries; moves/edits/duplicates need an explicit new declaration.
+  const retained = v.safeParse(
+    v.array(evidenceRelationSchema),
+    previous?.evidence,
+  );
+  if (previous?.evidenceValidated && retained.success) {
+    for (const relation of retained.output) {
+      const { start, end } = relation.locator;
+      const text = previous.markdown.slice(start, end);
+      if (
+        start >= end ||
+        !text ||
+        input.markdown.slice(start, end) !== text ||
+        previous.markdown.indexOf(text) !== start ||
+        previous.markdown.lastIndexOf(text) !== start ||
+        input.markdown.indexOf(text) !== start ||
+        input.markdown.lastIndexOf(text) !== start ||
+        relations.some(
+          (declared) =>
+            declared.locator.start < end && declared.locator.end > start,
+        )
+      )
+        continue;
+      relations.push(relation);
+    }
+  }
+  if (relations.length === 0)
+    return input.evidence === undefined ? undefined : [];
+  const sources = await readSources();
+  for (const relation of relations) {
+    if (
+      relation.locator.start >= relation.locator.end ||
+      relation.locator.end > input.markdown.length
+    )
+      throw new Error("Evidence locator is outside the immutable revision.");
+    if (relation.kind === "elicited" && relation.messageIds.length === 0)
+      throw new Error(
+        "Elicited evidence requires an authorized true-user source.",
+      );
+    for (const id of relation.messageIds) {
+      const matches = sources.filter((source) => source.id === id);
+      if (
+        matches.length !== 1 ||
+        matches[0]?.role !== "user" ||
+        matches[0].purpose !== "user"
+      )
+        throw new Error(
+          "Evidence must resolve to an authorized true-user source in this conversation.",
+        );
+    }
+  }
+  return relations;
+};
 
 /** Ceiling in UTF-8 bytes, before hashing; whitespace and line endings are preserved. */
 export const workpieceMarkdownByteCeiling = 262_144;
@@ -22,9 +107,48 @@ export const updateWorkpieceInputSchema = v.object({
       "Markdown exceeds the 262144-byte UTF-8 ceiling.",
     ),
   ),
-  // Carriage only. Authorization, relation validation and passage policy belong to the join.
-  evidence: v.optional(v.unknown()),
+  evidence: v.optional(v.array(evidenceRelationSchema)),
 });
+
+export const workpieceLocatorTextsSchema = v.pipe(
+  v.array(v.pipe(v.string(), v.minLength(1), v.maxLength(4096))),
+  v.maxLength(16),
+);
+
+/** Literal revision-local locators only: no settlement, evidence or continuity is inferred. */
+export const lookupWorkpieceLocators = (
+  markdown: string,
+  texts: readonly string[],
+) => {
+  const content = v.parse(
+    updateWorkpieceInputSchema.entries.markdown,
+    markdown,
+  );
+  const queries = v.parse(workpieceLocatorTextsSchema, texts).map((text) => {
+    const occurrences: { start: number; end: number }[] = [];
+    let matchedCount = 0;
+    let start = content.indexOf(text);
+    while (start !== -1) {
+      matchedCount += 1;
+      if (occurrences.length < 32)
+        occurrences.push({ start, end: start + text.length });
+      // Increment one code unit, so overlapping literal occurrences remain visible.
+      start = content.indexOf(text, start + 1);
+    }
+    return {
+      text,
+      occurrences,
+      matchedCount,
+      omittedCount: matchedCount - occurrences.length,
+    };
+  });
+  return {
+    sha256: createHash("sha256").update(content, "utf8").digest("hex"),
+    utf16Length: content.length,
+    utf8Bytes: Buffer.byteLength(content, "utf8"),
+    queries,
+  };
+};
 
 export const prepareWorkpieceRevision = (
   input: v.InferOutput<typeof updateWorkpieceInputSchema>,

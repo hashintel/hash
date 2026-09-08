@@ -2,7 +2,43 @@
 
 import { createHash } from "node:crypto";
 
-import { selectRunbookWorkpiece } from "@hashintel/brunch-agent/workpiece";
+import {
+  selectRunbookWorkpiece,
+  type WorkpieceEvidenceSource,
+  type WorkpieceRevision,
+} from "@hashintel/brunch-agent/workpiece";
+
+/** The caller owns the already-authorized instance URL; this never fetches another conversation. */
+export const workpieceEvidenceSources = (
+  snapshot: FlueConversationSnapshot,
+  current?: WorkpieceRevision | null,
+): WorkpieceEvidenceSource[] => {
+  if (
+    current === null &&
+    snapshot.messages.some(
+      (message) =>
+        message.role === "assistant" &&
+        message.purpose === "assistant" &&
+        message.parts.some(
+          (part) =>
+            part.type === "dynamic-tool" &&
+            part.toolName === "update_workpiece" &&
+            part.state === "output-available",
+        ),
+    )
+  )
+    throw new Error(
+      "Current workpiece state is missing despite a settled revision; recovery is required before another settlement.",
+    );
+  return snapshot.messages.map((message) => ({
+    id: message.id,
+    role: message.role,
+    purpose: message.purpose,
+    text: message.parts
+      .flatMap((part) => (part.type === "text" ? [part.text] : []))
+      .join(""),
+  }));
+};
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 

@@ -17,6 +17,8 @@ export {
   observedArcOutcome,
   reconcileArcTransitionAttempts,
   verifyArcTransitionAttempt,
+  verifyDefinitionObservation,
+  reconcileDefinitionObservations,
   type ArcEffects,
   type ArcMutationRequest,
   type ArcTransitionAttempt,
@@ -29,6 +31,9 @@ export {
   parseJoinedRootArcInput,
   browserBindingSchema,
   rootArcEnvelopeSchema,
+  rootArcWhyInputSchema,
+  locateRootArc,
+  type RootArcWhyInput,
 } from "./root-arc";
 export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";
 

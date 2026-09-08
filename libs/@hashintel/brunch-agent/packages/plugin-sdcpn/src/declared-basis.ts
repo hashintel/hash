@@ -38,15 +38,19 @@ export const validateDeclaredBasis = async (
 ): Promise<DeclaredBasis> => {
   const basis = declaredBasisSchema.parse(input);
   if (basis.kind === "absent") return basis;
+  if (!current)
+    throw new Error(
+      "Current workpiece state is unknown; retained history cannot replace it.",
+    );
   const revision =
-    current?.revisionId === basis.revisionId
+    current.revisionId === basis.revisionId
       ? current
       : await retainedRevisionFor(basis.revisionId);
   if (!revision) throw new Error("Unknown settled workpiece revision.");
   if (revision.sha256 !== basis.sha256)
     throw new Error("Workpiece citation hash mismatch.");
   if (
-    revision.revisionId !== current?.revisionId &&
+    revision.revisionId !== current.revisionId &&
     basis.supersessionIntended !== true
   )
     throw new Error(

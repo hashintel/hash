@@ -33,7 +33,7 @@ const run = (
   evidence?: unknown,
 ) =>
   tool.run({
-    data: { markdown, evidence },
+    data: { markdown, evidence } as Parameters<typeof tool.run>[0]["data"],
     toolCallId,
     log: { info: () => {}, warn: () => {}, error: () => {} },
     step: {
@@ -62,34 +62,41 @@ test("returns revisionId equal to toolCallId and sha256 of the Markdown", async 
 
 test("persists Markdown with the pointer", async () => {
   await run("# First", "first");
-  const result = await run("# Second", "second", { unverified: ["message-1"] });
+  const evidence = [
+    { locator: { start: 0, end: 8 }, messageIds: [], kind: "default" },
+  ];
+  const result = await run("# Second", "second", evidence);
   expect(current).toEqual({
     ...result.output,
     markdown: "# Second",
-    evidence: { unverified: ["message-1"] },
+    evidence,
+    evidenceValidated: true,
   });
   expect(result.output.ordinal).toBe(2);
   expect(tool.durable).toBe(true);
   expect((await run("# Second", "second")).output.ordinal).toBe(2);
 });
 
-test("refuses empty Markdown", () => {
-  for (const markdown of ["", " \r\n\t"])
-    expect(() => run(markdown)).toThrow("must not be empty");
+test("refuses empty Markdown", async () => {
+  await Promise.all(
+    ["", " \r\n\t"].map((markdown) =>
+      expect(run(markdown)).rejects.toThrow("must not be empty"),
+    ),
+  );
   expect(current).toBeNull();
 });
 
 test("refuses Markdown over the size ceiling", async () => {
   await run("a".repeat(workpieceMarkdownByteCeiling));
   const previous = current;
-  expect(() => run("é".repeat(workpieceMarkdownByteCeiling / 2 + 1))).toThrow(
-    "ceiling",
-  );
+  await expect(
+    run("é".repeat(workpieceMarkdownByteCeiling / 2 + 1)),
+  ).rejects.toThrow("ceiling");
   expect(current).toBe(previous);
 });
 
-test("refuses lone surrogates instead of hashing replacement characters", () => {
-  expect(() => run("# Invalid \ud800")).toThrow("well-formed Unicode");
+test("refuses lone surrogates instead of hashing replacement characters", async () => {
+  await expect(run("# Invalid \ud800")).rejects.toThrow("well-formed Unicode");
   expect(current).toBeNull();
 });
 
@@ -146,9 +153,52 @@ test("exposes the one render's settled revision without registering another stat
   expect(prompt).not.toContain("# Settled");
 });
 
-test("carries evidence without blessing support and rejects non-JSON values", () => {
-  expect(() => run("# Current", "bad-evidence", { value: Infinity })).toThrow(
-    "JSON-compatible",
-  );
+test("rejects unstructured or unauthorized evidence before writing state", async () => {
+  await expect(
+    run("# Current", "bad-evidence", { value: Infinity }),
+  ).rejects.toThrow(/array/iu);
+  await expect(
+    run("# Current", "bad-source", [
+      {
+        locator: { start: 0, end: 9 },
+        kind: "elicited",
+        messageIds: ["not-authorized"],
+      },
+    ]),
+  ).rejects.toThrow("authorized true-user");
+  expect(current).toBeNull();
+});
+
+test("an acquisition refusal or cancellation cannot settle even an evidence-absent revision", async () => {
+  const controller = new AbortController();
+  const cancelled = createUpdateWorkpieceTool(setRevision, {
+    currentRevision: null,
+    readSources: async () => {
+      controller.abort();
+      return [];
+    },
+  });
+  const context = {
+    data: { markdown: "# Do not settle" },
+    toolCallId: "cancelled",
+    signal: controller.signal,
+    step: {
+      do: () => {
+        throw new Error("State must not use a separate checkpoint");
+      },
+    },
+    log: { info: () => {}, warn: () => {}, error: () => {} },
+  };
+  await expect(cancelled.run(context)).rejects.toThrow(/abort/iu);
+  expect(current).toBeNull();
+  const refused = createUpdateWorkpieceTool(setRevision, {
+    currentRevision: null,
+    readSources: async () => {
+      throw new Error("Current state missing");
+    },
+  });
+  await expect(
+    refused.run({ ...context, signal: new AbortController().signal }),
+  ).rejects.toThrow("Current state missing");
   expect(current).toBeNull();
 });

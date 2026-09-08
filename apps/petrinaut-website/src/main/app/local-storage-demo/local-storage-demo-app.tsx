@@ -5,7 +5,14 @@
 
 import { createFlueClient, type FlueConversationSettlement } from "@flue/sdk";
 import { castDraft, produce } from "immer";
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { createPortal } from "react-dom";
 
 import {
@@ -56,6 +63,7 @@ import {
 } from "./brunch-panel-transport";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
+import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import {
   isCrewReservationFixtureSelected,
   isRootArcTracerSelected,
@@ -641,6 +649,19 @@ export const LocalStorageDemoApp = ({
       requestedBaseHash: net.rootArcRequestedBaseHash,
     };
   }, [tracerIsCurrent, activeHandle, conversationId]);
+  // The handle mutates behind a stable identity. Subscribe to its real snapshot;
+  // a render-time read alone can be memoized by React Compiler across hand edits.
+  const observedLiveHash = useSyncExternalStore(
+    (changed) =>
+      rootArcBrowser && activeHandle
+        ? activeHandle.handle.subscribe(changed)
+        : () => {},
+    () =>
+      rootArcBrowser && activeHandle?.handle.doc()
+        ? observeBrowserDefinition(activeHandle.handle).sha256
+        : undefined,
+    () => undefined,
+  );
   const transitionRecorder = useMemo(
     () =>
       rootArcBrowser && activeHandle
@@ -809,6 +830,13 @@ export const LocalStorageDemoApp = ({
           <RootArcTracerBanner status={tracerPreparation.status} />,
           document.body,
         )}
+      {tracerIsCurrent && rootArcBrowser && (
+        <BrunchWorkpiecePane
+          messages={flueHistory.snapshot?.messages ?? []}
+          binding={rootArcBrowser.binding}
+          liveHash={observedLiveHash}
+        />
+      )}
       {preparedFixtureIsCurrent &&
         !tracerIsCurrent &&
         createPortal(

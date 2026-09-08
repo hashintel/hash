@@ -50,6 +50,7 @@ import {
   nativeSchemaProvider,
   type NativeRequestCapture,
 } from "./native-schema-provider.ts";
+import { runReopenedWhyWitness } from "./reopened-why.integration.ts";
 
 // Keep these in lockstep with apps/petrinaut-website prepared-crew-reservation-fixture.
 // Brunch-agent lint cannot typecheck a relative import into that app.
@@ -138,7 +139,7 @@ installFauxProvider(
 faux.setResponses([
   fauxAssistantMessage([fauxText("Prepared mechanical fixture acknowledged.")]),
 ]);
-const application = await loadBuiltBrunchApplication();
+let application = await loadBuiltBrunchApplication();
 const httpErrors: string[] = [];
 const deliveries: { path: string; body: string }[] = [];
 const handleRequest = async (
@@ -695,6 +696,18 @@ try {
     blocked,
   });
   process.stdout.write(`Browser tracer passed: ${outputDirectory}\n`);
+  if (process.env.M7_A5 === "1")
+    await runReopenedWhyWitness({
+      browser,
+      origin,
+      faux,
+      contexts,
+      outputDirectory,
+      restart: async () => {
+        await application.stop();
+        application = await loadBuiltBrunchApplication();
+      },
+    });
 } catch (error) {
   save("failure.json", {
     error: String(error),
