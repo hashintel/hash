@@ -38,10 +38,9 @@ Canonical example pages live below `/examples`. The JSON oEmbed endpoint at
 `/api/oembed` accepts their production URLs and returns an
 `/embed/examples/...` iframe. Canonical pages send both CSP `frame-ancestors
 'none'` and `X-Frame-Options: DENY`; only the dedicated embed routes permit
-third-party framing. Every page also sends `upgrade-insecure-requests`: TLS to the Brunch agent ends at Cloudflare and
-again at the load balancer, the last hop to the agent is plain HTTP, and the agent builds its absolute
-stream URLs from that hop (`http://…`). An HTTPS page would block those as mixed content before the
-request ever leaves the browser. The returned iframe is sandboxed with
+third-party framing. Every page also sends `upgrade-insecure-requests`: the deployed Brunch agent runs behind a proxy,
+sees plain HTTP and returns `http://` stream URLs, which an HTTPS page would otherwise block as mixed
+content. The returned iframe is sandboxed with
 `allow-scripts allow-same-origin` and does not send a referrer.
 
 Because this is a client-rendered SPA, a static `index.html` discovery link
