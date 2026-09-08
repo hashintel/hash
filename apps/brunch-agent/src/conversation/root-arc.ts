@@ -1,10 +1,8 @@
 import { createHash } from "node:crypto";
 
-import * as v from "valibot";
-
 import {
   canonicalContent,
-  joinedRootArcInputSchema,
+  parseJoinedRootArcInput,
   reconcileArcTransitionAttempts,
   verifyArcTransitionAttempt,
   type ArcMutationRequest,
@@ -94,10 +92,7 @@ export const verifyRootArcResults = async (input: {
           "The browser result has no matching admitted canonical call.",
         );
       if (call.toolName !== "addArc") return;
-      const { brunch, ...canonicalInput } = v.parse(
-        joinedRootArcInputSchema,
-        call.input,
-      );
+      const { brunch, ...canonicalInput } = parseJoinedRootArcInput(call.input);
       const expected: ArcMutationRequest = {
         toolCallId: call.toolCallId,
         toolName: "addArc",

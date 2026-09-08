@@ -14,7 +14,7 @@ import {
   type WorkpieceRevision,
 } from "@hashintel/brunch-agent/workpiece";
 
-import { sha256Schema } from "./declared-basis";
+import { sha256Pattern } from "./declared-basis";
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
 import { browserBindingSchema } from "./root-arc";
 import {
@@ -44,7 +44,7 @@ export const sdcpnInitialDataSchema = v.optional(
       browser: v.optional(
         v.strictObject({
           binding: browserBindingSchema,
-          requestedBaseHash: sha256Schema,
+          requestedBaseHash: v.pipe(v.string(), v.regex(sha256Pattern)),
         }),
       ),
     }),

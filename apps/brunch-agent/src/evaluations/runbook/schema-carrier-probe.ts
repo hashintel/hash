@@ -1,4 +1,4 @@
-/** Unpaid regression replay of the isolated Mission 7 A1 carrier boundary. */
+/** Unpaid native addType/headless regression; original A1 evidence remains pinned at its commit. */
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -154,8 +154,9 @@ try {
     (tool) => tool.name === "addType",
   );
   assert(generatedAddType, "addType not mounted at provider boundary");
-  const { $schema: _dialect, ...canonicalSchema } =
-    petrinautAiTools.addType.inputSchema.toJSONSchema();
+  const canonicalSchema = petrinautAiTools.addType.inputSchema.toJSONSchema({
+    io: "input",
+  });
   assert.deepEqual(generatedAddType.parameters, canonicalSchema);
   assert(
     generatedTools.some((tool) => tool.name === "brunch_mark_question"),

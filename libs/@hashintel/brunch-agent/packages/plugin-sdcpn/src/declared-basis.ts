@@ -1,32 +1,32 @@
-import * as v from "valibot";
+import { z } from "zod";
 
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
-const nonempty = v.pipe(v.string(), v.minLength(1));
-export const sha256Schema = v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/u));
+const nonempty = z.string().min(1);
+export const sha256Pattern = /^[a-f0-9]{64}$/u;
+export const sha256Schema = z.string().regex(sha256Pattern);
 
 /** Immutable revision-local UTF-16 spans; no cross-revision continuity claim. */
-export const declaredBasisSchema = v.variant("kind", [
-  v.strictObject({
-    kind: v.literal("declared"),
+export const declaredBasisSchema = z.discriminatedUnion("kind", [
+  z.strictObject({
+    kind: z.literal("declared"),
     revisionId: nonempty,
     sha256: sha256Schema,
-    locators: v.pipe(
-      v.array(
-        v.strictObject({
-          start: v.pipe(v.number(), v.integer(), v.minValue(0)),
-          end: v.pipe(v.number(), v.integer(), v.minValue(1)),
+    locators: z
+      .array(
+        z.strictObject({
+          start: z.number().int().min(0),
+          end: z.number().int().min(1),
         }),
-      ),
-      v.minLength(1),
-    ),
+      )
+      .min(1),
     rationale: nonempty,
-    scope: v.literal("operation"),
-    supersessionIntended: v.optional(v.boolean()),
+    scope: z.literal("operation"),
+    supersessionIntended: z.boolean().optional(),
   }),
-  v.strictObject({ kind: v.literal("absent"), reason: nonempty }),
+  z.strictObject({ kind: z.literal("absent"), reason: nonempty }),
 ]);
-export type DeclaredBasis = v.InferOutput<typeof declaredBasisSchema>;
+export type DeclaredBasis = z.output<typeof declaredBasisSchema>;
 
 /** Current state is authoritative; history is used only to resolve an explicit older citation. */
 export const validateDeclaredBasis = async (
@@ -36,7 +36,7 @@ export const validateDeclaredBasis = async (
     revisionId: string,
   ) => Promise<WorkpieceRevision | undefined>,
 ): Promise<DeclaredBasis> => {
-  const basis = v.parse(declaredBasisSchema, input);
+  const basis = declaredBasisSchema.parse(input);
   if (basis.kind === "absent") return basis;
   const revision =
     current?.revisionId === basis.revisionId

@@ -31,6 +31,7 @@ import { chromium, type Browser, type Page } from "@playwright/test";
 
 import {
   verifyArcTransitionAttempt,
+  joinedRootArcInputSchema,
   type ArcTransitionRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
@@ -45,6 +46,10 @@ import {
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import {
+  nativeSchemaProvider,
+  type NativeRequestCapture,
+} from "./native-schema-provider.ts";
 
 // Keep these in lockstep with apps/petrinaut-website prepared-crew-reservation-fixture.
 // Brunch-agent lint cannot typecheck a relative import into that app.
@@ -126,13 +131,10 @@ const faux = fauxProvider({
   models: [{ id: "claude-sonnet-4-6", reasoning: true }],
 });
 const contexts: Context[] = [];
-installFauxProvider({
-  ...faux.provider,
-  streamSimple(model, context, options) {
-    contexts.push(context);
-    return faux.provider.streamSimple(model, context, options);
-  },
-});
+const nativeCaptures: NativeRequestCapture[] = [];
+installFauxProvider(
+  nativeSchemaProvider(faux.provider, nativeCaptures, contexts),
+);
 faux.setResponses([
   fauxAssistantMessage([fauxText("Prepared mechanical fixture acknowledged.")]),
 ]);
@@ -361,6 +363,56 @@ try {
       },
     },
   };
+  // Native refusal must precede browser publication; generic coercion would turn true into 1.
+  faux.setResponses([
+    fauxAssistantMessage(
+      [
+        fauxToolCall(
+          "addArc",
+          { ...arc, weight: true },
+          { id: "m7-browser-boolean-weight" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    ),
+    fauxAssistantMessage([
+      fauxText(
+        "Boolean weight refused by native validation; no browser mutation was authorized.",
+      ),
+    ]),
+  ]);
+  await composer.fill(
+    "Negative control: attempt a boolean weight, not a numeric string.",
+  );
+  await composer.press("Enter");
+  await page
+    .getByText(
+      "Boolean weight refused by native validation; no browser mutation was authorized.",
+      { exact: true },
+    )
+    .waitFor({ timeout: 30_000 });
+  assert.deepEqual(await page.evaluate(readBrowserDocument, document.id), pre);
+  const booleanHistory = await client.history();
+  save("boolean-refusal-history.json", booleanHistory);
+  assert(
+    !clientToolHistoryFrom(booleanHistory.messages).results.some(
+      (entry) => entry.toolCallId === "m7-browser-boolean-weight",
+    ),
+  );
+  assert(
+    booleanHistory.messages.some((entry) =>
+      entry.parts.some(
+        (part) =>
+          part.type === "dynamic-tool" &&
+          part.toolCallId === "m7-browser-boolean-weight" &&
+          part.state === "output-error",
+      ),
+    ),
+  );
+  await page.screenshot({
+    path: join(outputDirectory, "boolean-refusal.png"),
+    fullPage: true,
+  });
   const invalidArc = {
     ...arc,
     brunch: {
@@ -444,6 +496,18 @@ try {
   );
   const snapshot = await client.history();
   save("history.json", snapshot);
+  const issuedArc = snapshot.messages
+    .flatMap((message) => message.parts)
+    .find(
+      (part) =>
+        part.type === "dynamic-tool" && part.toolCallId === "m7-browser-arc",
+    );
+  assert(issuedArc?.type === "dynamic-tool");
+  assert.deepEqual(
+    issuedArc.input,
+    arc,
+    "Canonical history retains numeric-string input and immutable basis",
+  );
   const projected = clientToolHistoryFrom(snapshot.messages);
   const liveRead = projected.results.find(
     (entry) => entry.toolCallId === "m7-browser-read",
@@ -485,6 +549,11 @@ try {
   assert.equal(record.outcome, "applied");
   assert.equal(record.attempts.length, 1);
   const attempt = await verifyArcTransitionAttempt(record.attempts[0]!);
+  assert.equal(attempt.request.input.weight, 1);
+  assert(
+    !("brunch" in attempt.request.input),
+    "Brunch basis is stripped only at canonical execution",
+  );
   assert.equal(attempt.request.binding.conversationId, conversationId);
   assert.equal(attempt.request.binding.incarnationId, document.incarnationId);
   assert.equal(
@@ -538,6 +607,12 @@ try {
       { exact: true },
     )
     .waitFor();
+  await page
+    .getByText(
+      "Verified browser result received. The prepared arc will not be applied again.",
+      { exact: true },
+    )
+    .scrollIntoViewIfNeeded();
   await page.screenshot({
     path: join(outputDirectory, "browser.png"),
     fullPage: true,
@@ -589,12 +664,27 @@ try {
     ),
   );
   assert.deepEqual(await page.evaluate(readBrowserDocument, document.id), post);
+  assert(nativeCaptures.length > 0);
+  const nativeArcs = nativeCaptures.flatMap((capture) =>
+    capture.serialized.tools.filter((tool) => tool.name === "addArc"),
+  );
+  assert(nativeArcs.length > 0);
+  for (const tool of nativeArcs)
+    assert.deepEqual(
+      tool.input_schema,
+      joinedRootArcInputSchema["~standard"].jsonSchema.input({
+        target: "draft-2020-12",
+      }),
+    );
   save("observations.json", {
     oracle:
       "correlates the real browser transition record and resumes without reapplying",
     outcome: "pass",
     source: "real local Chrome; synthetic model; prepared fixture",
     syntheticModelRequests: contexts.length,
+    syntheticNativeSdkRequests: nativeCaptures.length,
+    booleanWeightBrowserResults: 0,
+    nativeRootSchemaPreservedWithoutStrict: true,
     actualProviderCalls: 0,
     providerCost: 0,
     unknownCitationBrowserResults: 0,
@@ -633,6 +723,10 @@ try {
   writeFileSync(
     join(outputDirectory, "requests.json.gz"),
     gzipSync(`${JSON.stringify(contexts, null, 2)}\n`),
+  );
+  writeFileSync(
+    join(outputDirectory, "native-sdk-requests.json.gz"),
+    gzipSync(`${JSON.stringify(nativeCaptures, null, 2)}\n`),
   );
   save("http-deliveries.json", deliveries);
   await browser?.close();

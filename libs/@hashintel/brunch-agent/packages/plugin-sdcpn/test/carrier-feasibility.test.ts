@@ -18,13 +18,13 @@ import {
   type PetrinautAiToolName,
 } from "@hashintel/petrinaut-core/ai";
 
-import { canonicalSchemaCarrier } from "../src/tools/canonical-schema-carrier";
 import {
   deriveArcEffects,
   verifyArcTransitionAttempt,
   type ArcMutationRequest,
   type ArcTransitionAttempt,
 } from "../src/transition-record";
+import { canonicalSchemaCarrier } from "./schema-carrier";
 
 // Mission envelope, NOT a production admission list. Parameters remain conditional.
 const operations = [

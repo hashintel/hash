@@ -4,8 +4,7 @@ import { describe, expect, test } from "vitest";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { canonicalSchemaCarrier } from "../src/tools/canonical-schema-carrier";
-import { petrinautConstructionTools } from "../src/tools/petrinaut-construction";
+import { canonicalSchemaCarrier } from "./schema-carrier";
 
 // Flue 2.0.3 uses this converter in ignore mode and removes the dialect marker.
 const providerSchema = (schema: v.GenericSchema) => {
@@ -15,9 +14,12 @@ const providerSchema = (schema: v.GenericSchema) => {
   return jsonSchema;
 };
 
-const addType = petrinautConstructionTools.find(
-  (tool) => tool.name === "addType",
-)!;
+// Retained interim converter oracle only; production addType now uses native Zod.
+const addType = {
+  input: canonicalSchemaCarrier(
+    petrinautAiTools.addType.inputSchema.toJSONSchema(),
+  ),
+};
 const nestedType = {
   id: "qualification",
   name: "Qualification",

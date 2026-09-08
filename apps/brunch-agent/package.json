@@ -24,6 +24,7 @@
     "test:browser-tracer": "node --experimental-strip-types test/transition-records.integration.ts",
     "test:docker": "node --experimental-strip-types test/container-smoke.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:native-schema": "node --experimental-strip-types test/native-schema-carriage.integration.ts",
     "test:unit": "vitest run --config vitest.config.ts",
     "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"
   },

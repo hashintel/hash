@@ -1,5 +1,5 @@
 diff --git a/dist/conversation-stream-store-CXwRWonS.mjs b/dist/conversation-stream-store-CXwRWonS.mjs
-index 3fa342b27631ffcf2a05f0f8dcf571fc2236e2cd..1f113abc6bb64a9f2d819a6bc8b4b23cd03c9fc0 100644
+index 3fa342b27631ffcf2a05f0f8dcf571fc2236e2cd..d958ccee79f7c34fea3df132bd29b3749421d6a8 100644
 --- a/dist/conversation-stream-store-CXwRWonS.mjs
 +++ b/dist/conversation-stream-store-CXwRWonS.mjs
 @@ -3,8 +3,8 @@ import { A as createEditTool, D as READ_SKILL_RESOURCE_TOOL_NAME, E as redactObs
@@ -44,7 +44,7 @@ index 3fa342b27631ffcf2a05f0f8dcf571fc2236e2cd..1f113abc6bb64a9f2d819a6bc8b4b23c
  				try {
  					if (signal?.aborted) throw abortErrorFor(signal);
 -					prepared = prepare(toolCallId, params, signal);
-+					prepared = await abandonToolOnAbort(() => prepare(toolCallId, params, signal), signal);
++					prepared = await abandonToolOnAbort(async () => prepare(toolCallId, params, signal), signal);
  				} catch (error) {
  					const call = this.activeToolCalls.get(toolCallId) ?? {
  						startedAt: Date.now(),

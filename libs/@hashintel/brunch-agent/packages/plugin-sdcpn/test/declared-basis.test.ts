@@ -1,13 +1,15 @@
 import { createHash } from "node:crypto";
 
-import { toJsonSchema } from "@valibot/to-json-schema";
-import * as v from "valibot";
 import { describe, expect, test } from "vitest";
+import { z } from "zod";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { validateDeclaredBasis } from "../src/declared-basis";
-import { joinedRootArcInputSchema } from "../src/tools/petrinaut-construction";
+import {
+  joinedRootArcInputSchema,
+  parseJoinedRootArcInput,
+} from "../src/root-arc";
 
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
@@ -81,13 +83,13 @@ describe("settled root arc basis", () => {
     ).rejects.toThrow(/locator/iu);
   });
   test("exports canonical root structure with only the basis envelope added, without claiming provider fidelity", () => {
-    const generated = toJsonSchema(joinedRootArcInputSchema, {
-      errorMode: "ignore",
-    });
+    const generated = z.toJSONSchema(joinedRootArcInputSchema, { io: "input" });
     const { brunch: _brunch, ...properties } = generated.properties ?? {};
     const { $schema: _generatedDialect, ...withoutDialect } = generated;
-    const { $schema: _canonicalDialect, ...canonical } =
-      petrinautAiTools.addArc.inputSchema.toJSONSchema();
+    const { $schema: _canonicalDialect, ...canonical } = z.toJSONSchema(
+      petrinautAiTools.addArc.inputSchema,
+      { io: "input" },
+    );
     expect({
       ...withoutDialect,
       properties,
@@ -103,7 +105,7 @@ describe("settled root arc basis", () => {
       type: "standard",
       brunch: { basis, requestedBaseHash: "a".repeat(64) },
     };
-    expect(v.parse(joinedRootArcInputSchema, input)).toEqual({
+    expect(parseJoinedRootArcInput(input)).toEqual({
       ...input,
       weight: 1,
     });
@@ -113,9 +115,7 @@ describe("settled root arc basis", () => {
       { ...input, targetSubnetId: "subnet" },
       { ...input, placeId: { id: "place" } },
     ]) {
-      expect(v.safeParse(joinedRootArcInputSchema, invalid).success).toBe(
-        false,
-      );
+      expect(() => parseJoinedRootArcInput(invalid)).toThrow(z.ZodError);
     }
   });
 });

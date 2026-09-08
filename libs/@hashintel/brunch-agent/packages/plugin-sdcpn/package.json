@@ -26,7 +26,8 @@
     "@flue/runtime": "2.0.3",
     "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
-    "valibot": "1.4.2"
+    "valibot": "1.4.2",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "22.18.13",

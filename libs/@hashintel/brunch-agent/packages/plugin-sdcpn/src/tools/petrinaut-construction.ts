@@ -9,7 +9,6 @@ import {
 
 import { validateDeclaredBasis } from "../declared-basis";
 import { joinedRootArcInputSchema } from "../root-arc";
-import { canonicalSchemaCarrier } from "./canonical-schema-carrier";
 
 import type { ArcMutationRequest } from "../transition-record";
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
@@ -29,6 +28,7 @@ export const createJoinedRootArcTool = (options: {
     name: "addArc",
     description: `${petrinautAiTools.addArc.description}\nRoot place arcs only. Cite a settled workpiece in brunch.basis and the issued brunch.requestedBaseHash. Numeric-string weights normalize before structural and canonical validation.`,
     input: joinedRootArcInputSchema,
+    prepareArguments: (input) => normalizePetrinautAiToolInput("addArc", input),
     output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
     async run({ data }) {
       if (data.brunch.requestedBaseHash !== options.requestedBaseHash)
@@ -84,14 +84,22 @@ const issuePathFrom = (
 };
 
 const canonicalInputFor = (toolName: PetrinautConstructionToolName) => {
+  if (toolName === "addType") {
+    const canonical = petrinautAiTools.addType;
+    return {
+      description: [
+        canonical.description,
+        "Canonical Petrinaut input JSON Schema:",
+        JSON.stringify(canonical.inputSchema.toJSONSchema({ io: "input" })),
+      ].join("\n"),
+      schema: canonical.inputSchema,
+    };
+  }
   const canonicalTool = petrinautAiTools[toolName];
   const jsonSchema = canonicalTool.inputSchema.toJSONSchema();
-  // A1 earns nested addType carriage only. Other inherited carriers stay
-  // unchanged and must not be treated as scenario-admitted schema classes.
-  const carrier =
-    toolName === "addType"
-      ? canonicalSchemaCarrier(jsonSchema)
-      : v.looseObject({});
+  // Unjoined legacy/headless classes retain their original loose validation path.
+  // This does not admit any new class.
+  const carrier = v.looseObject({});
 
   return {
     description: [
