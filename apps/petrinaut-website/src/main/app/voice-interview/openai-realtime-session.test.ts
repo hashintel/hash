@@ -726,6 +726,52 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.localTracks[0]!.enabled).toBe(true);
   });
 
+  test("keeps active audio owned when completed output omits audio metadata", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    harness.session.speakCanonical([
+      canonicalSegment("playing", "This response is already playing."),
+    ]);
+    const channel = harness.channels[0]!;
+    authorizeLatestSpeechResponse(channel, "response-playing");
+    channel.receive({
+      response_id: "response-playing",
+      type: "output_audio_buffer.started",
+    });
+
+    channel.receive({
+      response: {
+        id: "response-playing",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    expect(harness.events).toContainEqual({
+      connectionEpoch: 1,
+      playbackExpected: true,
+      responseId: "response-playing",
+      speechRequestId: "canonical-1-1",
+      status: "completed",
+      type: "response-terminal",
+    });
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+
+    channel.receive({
+      response_id: "response-playing",
+      type: "output_audio_buffer.stopped",
+    });
+
+    expect(harness.events).toContainEqual({
+      connectionEpoch: 1,
+      responseId: "response-playing",
+      type: "output-stopped",
+    });
+    expect(harness.localTracks[0]!.enabled).toBe(true);
+  });
+
   test("keeps the microphone closed when an earlier stop follows a queued response request", async () => {
     const harness = createHarness();
     await harness.session.connect();

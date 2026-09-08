@@ -875,7 +875,9 @@ export class OpenAIRealtimeSession {
         this.#handleConnectionFailure("invalid-response", "connection");
         return;
       }
-      playbackExpected = responseContainsAudio(output);
+      playbackExpected =
+        this.#speakingResponseId === responseId ||
+        responseContainsAudio(output);
       if (this.#authorizedResponseIds.has(responseId)) {
         if (playbackExpected) {
           this.#terminalCanonicalResponseIds.add(responseId);

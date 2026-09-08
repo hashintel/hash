@@ -780,7 +780,10 @@ export class VoiceTurnController {
     }
     if (event.type === "response-terminal") {
       if (event.responseId === this.#activeSpeechResponseId) {
-        if (!event.playbackExpected || this.#activeSpeechOutputEnded) {
+        if (
+          this.#activeSpeechOutputEnded ||
+          (event.status !== "completed" && !event.playbackExpected)
+        ) {
           this.#clearSettledSpeech();
         } else {
           this.#activeSpeechResponseTerminal = true;

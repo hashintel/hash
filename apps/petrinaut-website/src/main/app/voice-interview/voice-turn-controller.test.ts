@@ -1402,6 +1402,45 @@ describe("VoiceTurnController", () => {
     expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(true);
   });
 
+  test("keeps active playback owned when terminal metadata omits audio", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-playing",
+      type: "canonical-speech-requested",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-playing",
+      speechRequestId: "speech-playing",
+      type: "output-started",
+    });
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      playbackExpected: false,
+      responseId: "response-playing",
+      speechRequestId: "speech-playing",
+      status: "completed",
+      type: "response-terminal",
+    });
+
+    expect(harness.controller.getSnapshot().output).toBe("speaking");
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(true);
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-playing",
+      type: "output-stopped",
+    });
+
+    expect(harness.controller.getSnapshot().output).toBe("idle");
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+  });
+
   test("preserves speaking output when canonical settlement arrives during playback", async () => {
     const harness = createHarness();
     const nextQuestion = markedQuestion("ask-playing", "Who acts next?");
