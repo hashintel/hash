@@ -1,0 +1,108 @@
+{
+  "v": 1,
+  "conversationId": "conv_01M20613HY4C8XXKGED490SHT2",
+  "offset": "0000000000000000_0000000000000027",
+  "messages": [
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNjEzSFZCTkRLTTdZV0ZFWFRaUUc5",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_01M20613HVBNDKM7YWFEXTZQG9",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Record this test-authored synthetic account; no operational facts are claimed.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20613JXXHZNP7APK3X7CGQH",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_01M20613HVBNDKM7YWFEXTZQG9",
+      "turnId": "turn_01M20613JVTT9NHM0HSA1D2FGX",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "update_workpiece",
+          "toolCallId": "settled-revision",
+          "state": "output-available",
+          "input": {
+            "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+          },
+          "output": {
+            "revisionId": "settled-revision",
+            "sha256": "f6a6e097317c3e5fbb7fdff1412fa54188495f66477f3115d1459792d98eaead",
+            "ordinal": 1
+          },
+          "durationMs": 2
+        },
+        {
+          "type": "text",
+          "text": "Synthetic revision recorded.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNjEzS0g4TktGQ1pTVFk3N0M2MUtK",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_01M20613KH8NKFCZSTY77C61KJ",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Record a second synthetic revision.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20613KNW2H1CVDH2ASK059S",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_01M20613KH8NKFCZSTY77C61KJ",
+      "turnId": "turn_01M20613KN7PCFH9HZWP2DGX54",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "update_workpiece",
+          "toolCallId": "second-revision",
+          "state": "output-available",
+          "input": {
+            "markdown": "# Second synthetic account"
+          },
+          "output": {
+            "revisionId": "second-revision",
+            "sha256": "e3388bf9f4151879ccff3520bc9b8d78b19c7f0874f32c647e684d477907244d",
+            "ordinal": 2
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "text",
+          "text": "Second synthetic revision recorded.",
+          "state": "done"
+        }
+      ]
+    }
+  ],
+  "settlements": [
+    {
+      "submissionId": "sub_01M20613HVBNDKM7YWFEXTZQG9",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_01M20613HVBNDKM7YWFEXTZQG9"
+    },
+    {
+      "submissionId": "sub_01M20613KH8NKFCZSTY77C61KJ",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_01M20613KH8NKFCZSTY77C61KJ"
+    }
+  ],
+  "incarnation": "inc_01M20613HWE87Q76BQDM26ZJH0"
+}

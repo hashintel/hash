@@ -1,0 +1,76 @@
+{
+  "v": 1,
+  "conversationId": "conv_01M20613MXY323C8TP1QJM1N4M",
+  "offset": "0000000000000000_0000000000000016",
+  "messages": [
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNjEzTVdRUFpYV1E5UTU5M05FWTJZ",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_01M20613MWQPZXWQ9Q593NEY2Y",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Unpaid test-authored mixed-batch safety probe.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20613N43YVZAAY4SG2KG594",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_01M20613MWQPZXWQ9Q593NEY2Y",
+      "turnId": "turn_01M20613N3R0Q8M1MBE93VZRNW",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "update_workpiece",
+          "toolCallId": "update_workpiece-addType-update_workpiece",
+          "state": "output-available",
+          "input": {
+            "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+          },
+          "output": {
+            "revisionId": "update_workpiece-addType-update_workpiece",
+            "sha256": "f6a6e097317c3e5fbb7fdff1412fa54188495f66477f3115d1459792d98eaead",
+            "ordinal": 1
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "addType",
+          "toolCallId": "update_workpiece-addType-addType",
+          "state": "output-available",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "text",
+          "text": "Server continued before any browser result. What remains unknown?",
+          "state": "done"
+        }
+      ]
+    }
+  ],
+  "settlements": [
+    {
+      "submissionId": "sub_01M20613MWQPZXWQ9Q593NEY2Y",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_01M20613MWQPZXWQ9Q593NEY2Y"
+    }
+  ],
+  "incarnation": "inc_01M20613MWMZF5ZFB572KWEHRM"
+}

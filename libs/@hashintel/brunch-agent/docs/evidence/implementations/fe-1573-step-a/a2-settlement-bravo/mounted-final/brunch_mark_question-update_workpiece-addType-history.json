@@ -1,0 +1,96 @@
+{
+  "v": 1,
+  "conversationId": "conv_01M20613NNXHT56Y1J2RTNRCT7",
+  "offset": "0000000000000000_0000000000000019",
+  "messages": [
+    {
+      "id": "entry_direct_c3ViXzAxTTIwNjEzTktLSkoxQUJHNDQ2S0JNSkVK",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_01M20613NKKJJ1ABG446KBMJEJ",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Unpaid test-authored mixed-batch safety probe.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20613NTYZK4KMFNEW7J5Q3B",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_01M20613NKKJJ1ABG446KBMJEJ",
+      "turnId": "turn_01M20613NSGP7R2M8B9PWQVPSW",
+      "parts": [
+        {
+          "type": "dynamic-tool",
+          "toolName": "brunch_mark_question",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-brunch_mark_question",
+          "state": "output-available",
+          "input": {
+            "question": "What remains unknown?"
+          },
+          "output": {
+            "marked": true
+          },
+          "durationMs": 2
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "update_workpiece",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+          "state": "output-available",
+          "input": {
+            "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+          },
+          "output": {
+            "revisionId": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+            "sha256": "f6a6e097317c3e5fbb7fdff1412fa54188495f66477f3115d1459792d98eaead",
+            "ordinal": 1
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "dynamic-tool",
+          "toolName": "addType",
+          "toolCallId": "brunch_mark_question-update_workpiece-addType-addType",
+          "state": "output-available",
+          "input": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          },
+          "output": {
+            "awaiting": "client"
+          },
+          "durationMs": 1
+        },
+        {
+          "type": "data-brunch-question",
+          "data": {
+            "question": "What remains unknown?",
+            "toolCallId": "brunch_mark_question-update_workpiece-addType-brunch_mark_question"
+          }
+        },
+        {
+          "type": "text",
+          "text": "Server continued before any browser result. What remains unknown?",
+          "state": "done"
+        }
+      ]
+    }
+  ],
+  "settlements": [
+    {
+      "submissionId": "sub_01M20613NKKJJ1ABG446KBMJEJ",
+      "outcome": "completed",
+      "answeredBySubmissionId": "sub_01M20613NKKJJ1ABG446KBMJEJ"
+    }
+  ],
+  "incarnation": "inc_01M20613NK99GK9F1HFEHGP6B6"
+}

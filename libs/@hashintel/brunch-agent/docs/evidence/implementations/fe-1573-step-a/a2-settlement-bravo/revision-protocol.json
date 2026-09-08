@@ -1,0 +1,109 @@
+{
+  "chunk": "Mission 7 A2",
+  "status": "partial",
+  "integrationBase": "c4f5a54b355f25b2588a1a23659fdc996d14986a",
+  "branch": "ln/fe-1573-a2",
+  "paidProviderCalls": 0,
+  "paidUsd": 0,
+  "runtime": "@flue/runtime@2.0.3",
+  "entrypoint": "Built ChatAgent via loadBuiltBrunchApplication, application.fetch and createFlueClient at the existing /agents/chat/:instanceId mount",
+  "networkListenerStarted": false,
+  "api": {
+    "name": "update_workpiece",
+    "inputSchemaOwner": "@hashintel/brunch-agent/flue:updateWorkpieceInputSchema",
+    "factoryOwner": "@hashintel/brunch-agent/flue:createUpdateWorkpieceTool",
+    "stateTypeOwner": "@hashintel/brunch-agent/workpiece:WorkpieceRevision",
+    "stateKeyOwner": "@hashintel/brunch-agent/workpiece:workpieceRevisionStateKey",
+    "stateKey": "brunch.workpiece.current.v1",
+    "input": "{ markdown: string, evidence?: unknown } at provider boundary; evidence must be an existing core JsonValue before persistence",
+    "evidenceMeaning": "Unverified JSON carriage only. No relation, locator policy, authorization, relevance, inheritance, or true-user support is established.",
+    "state": "{ revisionId, sha256, ordinal, markdown, evidence? }",
+    "output": "{ revisionId, sha256, ordinal }",
+    "revisionId": "Actual ToolContext.toolCallId, not a generated ordinal or message id",
+    "hash": "SHA-256, lowercase hex, exact well-formed Unicode Markdown encoded as UTF-8, no trim, newline conversion, BOM removal or Unicode normalization",
+    "markdownByteCeiling": 262144,
+    "rejects": [
+      "empty or whitespace-only Markdown",
+      "more than 262144 UTF-8 bytes",
+      "lone UTF-16 surrogates",
+      "non-JSON evidence"
+    ],
+    "ordinal": "1-based display only; functional StateSetter reads latest buffered value. Same-current-call replay does not increment it.",
+    "terminate": false,
+    "durable": true,
+    "durabilityEvidence": "Normal state_write and tool_results_committed share one SQLite batch; application stop/reload preserves public history and the next update receives ordinal 2. Crash fault injection and compaction are not proved.",
+    "hooks": "usePersistentState is called once at render in useBrunchAgent; its setter is closed over by run. No hooks in callbacks or changing state interpolated into instructions."
+  },
+  "oracles": [
+    {
+      "assertion": "returns revisionId equal to toolCallId and sha256 of the Markdown",
+      "status": "pass",
+      "artifact": "verification-final.log; packages/core/test/update-workpiece.test.ts"
+    },
+    {
+      "assertion": "persists Markdown with the pointer",
+      "status": "pass",
+      "scope": "Normal settlement, not crash recovery or compaction",
+      "artifact": "state-records.json; packages/core/test/update-workpiece.test.ts"
+    },
+    {
+      "assertion": "refuses empty Markdown",
+      "status": "pass",
+      "artifact": "verification-final.log; packages/core/test/update-workpiece.test.ts"
+    },
+    {
+      "assertion": "refuses Markdown over the size ceiling",
+      "status": "pass",
+      "artifact": "verification-final.log; packages/core/test/update-workpiece.test.ts"
+    },
+    {
+      "assertion": "declares a non-terminating result",
+      "status": "pass",
+      "artifact": "verification-final.log; packages/core/test/update-workpiece.test.ts"
+    },
+    {
+      "assertion": "captures the persistent-state setter at render and writes from run",
+      "status": "pass",
+      "artifact": "verification-final.log; mounted-final/observations.json; state-records.json"
+    },
+    {
+      "assertion": "the built agent settles a revision over the mounted route",
+      "status": "pass",
+      "artifact": "mounted-final/settled-history.json; verification-final.log"
+    },
+    {
+      "assertion": "public history preserves the tool call identity",
+      "status": "pass",
+      "artifact": "mounted-final/settled-history.json; mounted-final/reopened-history.json; verification-final.log"
+    },
+    {
+      "assertion": "mixed workpiece and browser tool batch does not apply a mutation",
+      "status": "fail",
+      "scope": "Server admits pending mutation and real-headless executor changes canonical definition. Actual browser application remains untested; this is not a browser witness.",
+      "artifact": "mounted-final/observations.json; verification-final.log"
+    }
+  ],
+  "mixedBatch": {
+    "cases": [
+      "brunch_mark_question + addType",
+      "update_workpiece + addType",
+      "brunch_mark_question + update_workpiece + addType",
+      "addType + update_workpiece + brunch_mark_question"
+    ],
+    "allCases": "Generated calls validate/run. addType settles only the awaiting-client server result. A second provider call occurs before any client result. The real-headless executor adds the canonical type. No browser host was run.",
+    "providerCallsBeforeClientResultPerCase": 2,
+    "runtimeTerminationPredicate": "nonempty batch AND every finalized result has terminate === true",
+    "guardStatus": "Not implemented: tool run context has no sibling batch; core mounting cannot withdraw integration-owned plugin tools. Prompt wording and call order cannot satisfy the guard.",
+    "actualBrowserApplication": "blocked/unproved"
+  },
+  "stop": "Mixed-batch feasibility gate: changing the shared mounting/admission protocol requires integration-owner decision. Keep the exact failing safety test; do not promote the unsafe observation to an expected pass.",
+  "additionalUnresolvedPremise": "See durability-review.md for an unexercised outcome-before-state crash window found by source review. Do not claim crash-safe durability from normal settlement or the durable flag.",
+  "notAuthorized": [
+    "A5/A6 paid work",
+    "Step A acceptance",
+    "Step B",
+    "prompt-only safety",
+    "terminating update_workpiece",
+    "removal or reclassification of brunch_mark_question"
+  ]
+}
