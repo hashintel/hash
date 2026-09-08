@@ -16,12 +16,6 @@ import { cva } from "@hashintel/ds-helpers/css";
 
 import type { CanvasArcFocus, CanvasNodeFocus } from "../canvas-focus";
 
-/**
- * How long the pointer has to rest before the neighbourhood lights up.
- * Sweeping across the canvas passes over nodes without any of them flashing.
- */
-export const HOVER_FOCUS_DELAY_MS = 100;
-
 const FOCUSED_COLOR = "var(--colors-neutral-s115)";
 const UPSTREAM_COLOR = "var(--colors-blue-s90)";
 const DOWNSTREAM_COLOR = "var(--colors-orange-s90)";

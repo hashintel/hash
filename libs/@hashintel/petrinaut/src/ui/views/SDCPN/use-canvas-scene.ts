@@ -1,4 +1,4 @@
-import { use } from "react";
+import { use, useState } from "react";
 
 import {
   classicNodeDimensions,
@@ -11,8 +11,7 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { buildCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
-import { useDebouncedValue } from "./hooks/util/use-debounced-value";
-import { HOVER_FOCUS_DELAY_MS } from "./styles/focus";
+import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 import { useStableItems } from "./use-stable-items";
 
 /** The scene for the active net, as the editor currently shows it. */
@@ -23,12 +22,18 @@ export const useCanvasScene = (): CanvasScene => {
     use(EditorContext);
   const { compactNodes } = use(UserSettingsContext);
 
-  // Trailing, so the neighbourhood only lights up once the pointer has come to
-  // rest: sweeping the canvas passes over nodes without any of them flashing.
-  const settledHoverId = useDebouncedValue(
-    hoveredItem?.id ?? null,
-    HOVER_FOCUS_DELAY_MS,
-  );
+  /*
+   * The neighbourhood follows the pointer only once it stops. Sweeping across
+   * the canvas passes over nodes without lighting any of them up, and what
+   * settles is whatever the pointer came to rest on rather than everything it
+   * crossed to get there.
+   */
+  const hoveredId = hoveredItem?.id ?? null;
+  const pointerAtRest = usePointerAtRest();
+  const [settledHoverId, setSettledHoverId] = useState(hoveredId);
+  if (pointerAtRest && settledHoverId !== hoveredId) {
+    setSettledHoverId(hoveredId);
+  }
 
   const scene = buildCanvasScene({
     net: activeNet,
