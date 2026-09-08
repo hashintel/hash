@@ -520,10 +520,12 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       } = {},
     ) => {
       const { extra = {} } = options;
-      // A settled study can run more steps while its local machinery is
-      // here; it goes when the study is removed or its connection is
-      // disposed, and with it the kept sampler.
-      const resumable = () => studiesRef.current.has(optimizationId);
+      // A settled study can run more steps while the worker kept it, which
+      // the terminal event says (a first segment stopped before it reached
+      // the worker has no study), and while its local machinery is here; it
+      // goes when the study is removed or its connection is disposed.
+      const resumable = (terminal: { resumable?: boolean }) =>
+        terminal.resumable === true && studiesRef.current.has(optimizationId);
       switch (event.type) {
         case "started":
           patchOptimization(optimizationId, (current) =>
@@ -576,7 +578,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
                 requestedTrials: event.requestedTrials,
                 best: event.best ?? current.best,
               },
-              () => ({ resumable: resumable() }),
+              () => ({ resumable: resumable(event) }),
             ),
           );
           settleStudy(optimizationId, "complete", event.best);
@@ -610,7 +612,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
                       error: event.message,
                     }),
               },
-              () => ({ resumable: cancelled && resumable() }),
+              () => ({ resumable: cancelled && resumable(event) }),
             ),
           );
           settleStudy(optimizationId, cancelled ? "cancelled" : "error");

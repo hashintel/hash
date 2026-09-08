@@ -190,6 +190,7 @@ const createEvaluatingSource = (infectedRatios: readonly number[]) => {
             prunedTrials: 0,
             failedTrials: 0,
             best: null,
+            resumable: true,
             seq,
           };
         },
@@ -1449,6 +1450,7 @@ const createResumableSource = (
                 code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
                 message: "optimization cancelled",
                 retryable: false,
+                resumable: true,
               }
             : {
                 type: "complete",
@@ -1457,6 +1459,7 @@ const createResumableSource = (
                 prunedTrials: 0,
                 failedTrials: 0,
                 best: null,
+                resumable: true,
               },
         );
       };
@@ -1679,5 +1682,60 @@ describe("OptimizationsProvider lifecycle of a connected study", () => {
       status: "cancelled",
       connected: { resumable: false },
     });
+  });
+  it("offers no continuation for a study stopped before its segment reached the worker", async () => {
+    let cancelled: () => void = () => {};
+    const stopped = new Promise<void>((resolve) => {
+      cancelled = resolve;
+    });
+    const source: PetrinautConnectedOptimization = {
+      kind: "connected",
+      connect: () => ({
+        createOptimizationRun: () => Promise.resolve({ runId: "run-queued" }),
+        async *attachOptimizationRun(_runId, options) {
+          options?.onAttached?.();
+          yield { type: "started", requestedTrials: 3, seq: 1 };
+          await stopped;
+          // The runtime never created a study for a segment cancelled while
+          // it waited for the worker, and its terminal event says so.
+          yield {
+            type: "error",
+            code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
+            message: "optimization cancelled",
+            retryable: false,
+            resumable: false,
+            seq: 2,
+          };
+        },
+        cancelOptimizationRun: () => {
+          cancelled();
+          return Promise.resolve();
+        },
+        extendOptimizationRun: () => Promise.resolve(),
+        releaseOptimizationRun: () => Promise.resolve(),
+        dispose: () => {},
+      }),
+    };
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input);
+    });
+    await waitFor(() => expect(getValue().optimizations[0]?.lastSeq).toBe(1));
+
+    act(() => getValue().cancelOptimization(optimizationId));
+    await waitFor(() => expect(getValue().optimizations[0]?.lastSeq).toBe(2));
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "cancelled",
+      connected: { resumable: false },
+    });
+    await expect(
+      getValue().extendOptimization(optimizationId, 1),
+    ).rejects.toThrow("cannot be continued");
   });
 });
