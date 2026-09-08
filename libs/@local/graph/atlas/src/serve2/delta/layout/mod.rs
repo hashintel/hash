@@ -143,10 +143,7 @@ impl LayoutDelta {
         history.push(EntryKind::Withdrawn, revision) | changed
     }
 
-    pub(crate) const fn provider<'delta, B: ?Sized>(
-        &'delta self,
-        base: &'delta B,
-    ) -> DeltaLayoutProvider<'delta, B> {
+    pub(crate) const fn bind<'delta, B>(&'delta self, base: B) -> DeltaLayoutProvider<'delta, B> {
         DeltaLayoutProvider::from_parts(self, base)
     }
 }

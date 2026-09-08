@@ -153,6 +153,10 @@ unsafe impl<A: Allocator> Allocator for MemoryUsageAllocator<A> {
     }
 }
 
+pub(crate) trait HeapMemoryUsage {
+    fn heap_memory_usage(&self) -> u64;
+}
+
 #[cfg(test)]
 mod tests {
     /// The tests the `miri` nextest profile selects.

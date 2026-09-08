@@ -89,7 +89,7 @@ fn assert_edges(
 fn adjacency_origin() {
     let base = NaiveTopologyProvider::new(Origin::new());
     let data = TopologyDelta::default();
-    let provider = data.provider(&base);
+    let provider = data.bind(&base);
     assert_edges(&provider, 0, 0, &[], &[0, 1]);
     assert_edges(&provider, 1, 0, &[0, 1, 2], &[2]);
     assert_edges(&provider, 2, 0, &[], &[]);
@@ -107,7 +107,7 @@ fn inherited_withdrawal_revival() {
     let edge = EdgeRowId::new(0);
     assert!(data.withdraw(&base, edge, DeltaRevision::new(2)));
     {
-        let provider = data.provider(&base);
+        let provider = data.bind(&base);
         assert_edges(&provider, 0, 1, &[], &[0, 1]);
         assert_edges(&provider, 0, 2, &[], &[1]);
         assert_edges(&provider, 1, 2, &[1, 2], &[2]);
@@ -117,7 +117,7 @@ fn inherited_withdrawal_revival() {
         );
     }
     assert!(data.insert(&base, edge, [NodeRowId::new(2); 2], DeltaRevision::new(4)));
-    let provider = data.provider(&base);
+    let provider = data.bind(&base);
     assert_edges(&provider, 0, 3, &[], &[1]);
     assert_edges(&provider, 0, 4, &[], &[0, 1]);
     assert_edges(&provider, 1, 4, &[0, 1, 2], &[2]);
@@ -136,7 +136,7 @@ fn addition_birth_withdrawal_revival() {
     let endpoints = [NodeRowId::new(0), NodeRowId::new(3)];
     assert!(data.insert(&base, edge, endpoints, DeltaRevision::new(2)));
     {
-        let provider = data.provider(&base);
+        let provider = data.bind(&base);
         assert_edges(&provider, 0, 1, &[], &[0, 1]);
         assert_edges(&provider, 3, 1, &[], &[]);
         assert_edges(&provider, 0, 2, &[], &[0, 1, 3]);
@@ -152,7 +152,7 @@ fn addition_birth_withdrawal_revival() {
     }
     assert!(data.withdraw(&base, edge, DeltaRevision::new(4)));
     assert!(data.insert(&base, edge, [NodeRowId::new(1); 2], DeltaRevision::new(6)));
-    let provider = data.provider(&base);
+    let provider = data.bind(&base);
     assert_edges(&provider, 0, 4, &[], &[0, 1]);
     assert_edges(&provider, 3, 4, &[], &[]);
     assert_eq!(
@@ -176,7 +176,7 @@ fn binding_out_of_order() {
     assert!(data.insert(&base, EdgeRowId::new(5), endpoints, DeltaRevision::new(2)));
     assert!(!data.withdraw(&base, EdgeRowId::new(3), DeltaRevision::new(3)));
     assert!(data.insert(&base, EdgeRowId::new(3), endpoints, DeltaRevision::new(4)));
-    let provider = data.provider(&base);
+    let provider = data.bind(&base);
     assert_edges(&provider, 0, 2, &[], &[0, 1, 5]);
     assert_edges(&provider, 3, 2, &[5], &[]);
     assert_edges(&provider, 0, 4, &[], &[0, 1, 3, 5]);
@@ -203,12 +203,12 @@ fn self_loop_replay() {
     let pair = [NodeRowId::new(3); 2];
     assert!(data.insert(&base, edge, pair, DeltaRevision::new(1)));
     assert!(!data.insert(&base, edge, pair, DeltaRevision::new(2)));
-    assert_edges(&data.provider(&base), 3, 2, &[3], &[3]);
+    assert_edges(&data.bind(&base), 3, 2, &[3], &[3]);
     assert!(data.withdraw(&base, edge, DeltaRevision::new(3)));
     assert!(!data.withdraw(&base, edge, DeltaRevision::new(4)));
-    assert_edges(&data.provider(&base), 3, 4, &[], &[]);
+    assert_edges(&data.bind(&base), 3, 4, &[], &[]);
     assert!(data.insert(&base, edge, pair, DeltaRevision::new(5)));
-    assert_edges(&data.provider(&base), 3, 5, &[3], &[3]);
+    assert_edges(&data.bind(&base), 3, 5, &[3], &[3]);
 }
 
 #[test]
@@ -235,7 +235,7 @@ fn history_origin_rollover() {
             assert!(data.withdraw(&base, edge, DeltaRevision::new(revision)));
         }
     }
-    let provider = data.provider(&base);
+    let provider = data.bind(&base);
     assert_edges(&provider, 0, 3, &[], &[0, 1]);
     assert_edges(&provider, 0, end, &[], &[1]);
     assert_edges(&provider, 3, 1, &[], &[]);
@@ -255,10 +255,10 @@ fn history_same_revision() {
     let pair = [NodeRowId::new(3); 2];
     assert!(data.insert(&base, edge, pair, DeltaRevision::new(2)));
     assert!(data.withdraw(&base, edge, DeltaRevision::new(2)));
-    assert_edges(&data.provider(&base), 3, 2, &[], &[]);
+    assert_edges(&data.bind(&base), 3, 2, &[], &[]);
     assert!(data.insert(&base, edge, pair, DeltaRevision::new(2)));
-    assert_edges(&data.provider(&base), 3, 1, &[], &[]);
-    assert_edges(&data.provider(&base), 3, 2, &[3], &[3]);
+    assert_edges(&data.bind(&base), 3, 1, &[], &[]);
+    assert_edges(&data.bind(&base), 3, 2, &[3], &[3]);
 }
 
 #[test]
@@ -279,9 +279,9 @@ fn clone_from_replacement() {
         [NodeRowId::new(4); 2],
         DeltaRevision::new(5),
     );
-    assert_edges(&target.provider(&base), 4, 5, &[5], &[5]);
+    assert_edges(&target.bind(&base), 4, 5, &[5], &[5]);
     target.clone_from(&source);
-    let provider = target.provider(&base);
+    let provider = target.bind(&base);
     assert_edges(&provider, 4, 5, &[], &[]);
     assert_edges(&provider, 3, 2, &[3], &[3]);
     assert_edges(&provider, 0, 3, &[], &[0, 1]);
@@ -301,7 +301,7 @@ fn nested_provider_revisions() {
     let pair = [NodeRowId::new(3); 2];
     lower_data.insert(base, edge, pair, DeltaRevision::new(2));
     lower_data.withdraw(base, edge, DeltaRevision::new(4));
-    let lower = lower_data.provider(base);
+    let lower = lower_data.bind(base);
     let mut upper_data = TopologyDelta::default();
     upper_data.withdraw(&lower, EdgeRowId::new(0), DeltaRevision::new(3));
     upper_data.insert(
@@ -310,7 +310,7 @@ fn nested_provider_revisions() {
         [NodeRowId::new(3), NodeRowId::new(4)],
         DeltaRevision::new(5),
     );
-    let upper = upper_data.provider(&lower);
+    let upper = upper_data.bind(&lower);
 
     assert_eq!(upper.provide_node_count(), 5);
     assert_eq!(upper.provide_edge_count(), 5);
@@ -343,7 +343,7 @@ fn nested_history_rollover() {
     let pair = [NodeRowId::new(3); 2];
     lower_data.insert(&base, edge, pair, DeltaRevision::new(2));
     lower_data.withdraw(&base, edge, DeltaRevision::new(4));
-    let lower = lower_data.provider(&base);
+    let lower = lower_data.bind(&base);
     let mut upper_data = TopologyDelta::default();
     assert!(upper_data.withdraw(&lower, edge, DeltaRevision::new(3)));
     let capacity = u64::try_from(CAPACITY).expect("should fit the retention capacity");
@@ -352,7 +352,7 @@ fn nested_history_rollover() {
         assert!(upper_data.insert(&lower, edge, pair, DeltaRevision::new(revision - 1)));
         assert!(upper_data.withdraw(&lower, edge, DeltaRevision::new(revision)));
     }
-    let upper = upper_data.provider(&lower);
+    let upper = upper_data.bind(&lower);
     assert_edges(&upper, 3, 1, &[], &[]);
     assert_edges(&upper, 3, 2, &[3], &[3]);
     assert_edges(&upper, 3, 3, &[3], &[3]);
@@ -374,7 +374,7 @@ fn reserved_rows_unbound() {
     let mut data = TopologyDelta::default();
     data.reserve_node(&base, NodeRowId::new(5));
     data.reserve_edge(&base, EdgeRowId::new(6));
-    let provider = data.provider(&base);
+    let provider = data.bind(&base);
     assert_eq!(provider.provide_node_count(), 6);
     assert_eq!(provider.provide_edge_count(), 7);
     assert_edges(&provider, 5, 0, &[], &[]);

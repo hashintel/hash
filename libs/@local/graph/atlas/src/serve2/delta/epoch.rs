@@ -3,10 +3,21 @@ use core::ptr;
 
 use arc_swap::Guard;
 
-use super::{Delta, DeltaRevision, layout::LayoutDelta, topology::TopologyDelta};
+use super::{
+    Delta, DeltaRevision,
+    importance::DeltaImportanceProvider,
+    layout::LayoutDelta,
+    overlay::{DeltaIdentityProvider, IdentityProviderResidual, NaiveIdentityProvider},
+    topology::TopologyDelta,
+};
 use crate::{
-    identity::NodeRowId,
-    serve2::world::{layout::Layout, topology::Topology},
+    dataset::auxiliary::OwnedLegend,
+    identity::{EdgeRowId, NodeRowId},
+    postgres::id::ArchivedEntityId,
+    serve2::world::{
+        Geometry, NodeIndex, layout::Layout, node_importance::ImportanceProvider,
+        topology::Topology,
+    },
 };
 
 /// A guard retaining one immutable delta publication for a request.
@@ -36,7 +47,51 @@ impl Epoch {
             ptr::eq(layout, ptr::from_ref(&self.delta.world.layout)),
             "layout must belong to the epoch's world",
         );
+
         &self.delta.layout
+    }
+
+    pub(crate) fn nodes(
+        &self,
+        index: &NodeIndex,
+    ) -> &IdentityProviderResidual<ArchivedEntityId, NodeRowId, OwnedLegend> {
+        assert!(
+            ptr::eq(index, ptr::from_ref(&self.delta.world.layout.index)),
+            "index must belong to the epoch's world",
+        );
+
+        &self.delta.node
+    }
+
+    pub(crate) fn edges(
+        &self,
+        topology: &Topology,
+    ) -> &IdentityProviderResidual<ArchivedEntityId, EdgeRowId, OwnedLegend> {
+        assert!(
+            ptr::eq(topology, ptr::from_ref(&self.delta.world.topology)),
+            "topology must belong to the epoch's world",
+        );
+
+        &self.delta.edge
+    }
+
+    /// Returns priorities over this publication's allocated nodes.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `layout` does not belong to the epoch's world.
+    pub(crate) fn importance<'epoch>(
+        &'epoch self,
+        layout: &Layout,
+    ) -> impl ImportanceProvider + use<'epoch> {
+        self.layout(layout);
+        DeltaImportanceProvider::from_parts(
+            &self.delta.world.layout,
+            DeltaIdentityProvider::from_parts(
+                &self.delta.node,
+                NaiveIdentityProvider::from_ref(&self.delta.world.layout.index.identity),
+            ),
+        )
     }
 
     /// Borrows the captured topology changes after checking their world association.

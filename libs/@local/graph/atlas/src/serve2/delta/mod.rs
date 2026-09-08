@@ -2,8 +2,9 @@ pub(crate) mod epoch;
 mod feed;
 mod history;
 mod id;
+mod importance;
 pub(crate) mod layout;
-mod overlay;
+pub(crate) mod overlay;
 mod placement;
 mod projector;
 pub(crate) mod topology;
@@ -216,6 +217,18 @@ impl Delta {
             ontology,
             icon,
         )
+    }
+
+    pub(crate) fn withdrawn_nodes(&self) -> impl IntoIterator<Item = NodeRowId> {
+        self.node.withdrawn(NaiveIdentityProvider::from_ref(
+            &self.world.layout.index.identity,
+        ))
+    }
+
+    pub(crate) fn withdrawn_edges(&self) -> impl IntoIterator<Item = EdgeRowId> {
+        self.edge.withdrawn(NaiveIdentityProvider::from_ref(
+            &self.world.topology.identity,
+        ))
     }
 }
 

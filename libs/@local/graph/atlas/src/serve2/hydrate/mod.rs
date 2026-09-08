@@ -12,7 +12,7 @@ pub(crate) mod visibility;
 #[cfg(test)]
 pub(crate) use self::locate::{LocateLinkResponse, LocateNodeResponse};
 pub(crate) use self::{
-    client::{GraphDatabaseClient, HydrateError, VisibilityActor},
+    client::{GraphDatabaseClient, HydrateError},
     columns::{
         EdgeLinkColumns, EdgeSlot, LocateLinkColumns, LocateNodeColumns, NodeRequestColumns,
         NodeSlot, NodeTrailerColumns, TypeSlot,

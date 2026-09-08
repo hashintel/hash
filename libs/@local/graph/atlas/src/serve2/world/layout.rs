@@ -9,12 +9,16 @@ use error_stack::{Report, ReportSink, TryReportTupleExt as _};
 use hashql_core::id::Id as _;
 
 use super::{
-    OpenOptions, error::WorldError, geometry::Geometry, node_importance::NodeImportance,
+    OpenOptions,
+    error::WorldError,
+    geometry::Geometry,
+    node_importance::{ImportanceProvider, NodeImportance, NodePriority},
     node_index::NodeIndex,
 };
 use crate::{
     identity::{BasePosition, ImportanceRank, NodeRowId},
     math::Vec2,
+    postgres::id::ArchivedEntityId,
     serve2::delta::{
         epoch::Epoch,
         layout::provider::{NaiveLayoutProvider, VersionedLayoutProvider as _},
@@ -209,6 +213,15 @@ impl Layout {
         Ok(())
     }
 
+    /// Returns an allocated row's priority, independent of visibility.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this layout does not belong to the epoch's world.
+    pub(crate) fn priority(&self, epoch: &Epoch, node: NodeRowId) -> Option<NodePriority> {
+        epoch.importance(self).provide_priority(node)
+    }
+
     /// Returns the allocated node count, including withdrawn and unplaced rows.
     ///
     /// # Panics
@@ -216,7 +229,7 @@ impl Layout {
     /// Panics if this layout does not belong to the epoch's world.
     pub(crate) fn node_count(&self, epoch: &Epoch) -> usize {
         let base = NaiveLayoutProvider::new(self);
-        epoch.layout(self).provider(&base).provide_node_count()
+        epoch.layout(self).bind(&base).provide_node_count()
     }
 
     /// Returns the visible wire-frame position at the captured epoch's revision.
@@ -228,8 +241,16 @@ impl Layout {
         let base = NaiveLayoutProvider::new(self);
         epoch
             .layout(self)
-            .provider(&base)
+            .bind(&base)
             .provide_position_at(node, epoch.revision())
+    }
+}
+
+impl ImportanceProvider for Layout {
+    fn provide_priority(&self, node: NodeRowId) -> Option<NodePriority> {
+        self.importance
+            .lookup(self.index.reverse(node)?)
+            .map(NodePriority::Rank)
     }
 }
 
@@ -256,9 +277,42 @@ mod tests {
             tests::fixture::{
                 NODES, TamperFixture, constant_u32_column, constant_u64_column, secret,
             },
-            world::{OpenOptions, error::WorldError},
+            world::{
+                OpenOptions,
+                error::WorldError,
+                node_importance::{ImportanceProvider, NodePriority},
+            },
         },
     };
+
+    /// Priority follows the row-to-position permutation before rank lookup.
+    #[test]
+    fn priority_row_permutation() {
+        let fixture = TamperFixture::publish("layout-priority-row-position-rank");
+        let layout = Layout::open(OpenOptions {
+            generation: fixture.generation(),
+            secret: &secret(),
+        })
+        .expect("should open the fitted layout");
+
+        let mut permuted = false;
+        for index in 0..LayoutProvider::provide_node_count(&layout) {
+            let position = BasePosition::from_usize(index);
+            let row = layout.index[position];
+            permuted |= row.as_usize() != index;
+            assert_eq!(
+                ImportanceProvider::provide_priority(&layout, row),
+                Some(NodePriority::Rank(layout.importance[position])),
+                "should resolve the rank through the row's base position"
+            );
+        }
+        assert!(permuted, "should exercise a non-identity row permutation");
+        assert_eq!(
+            ImportanceProvider::provide_priority(&layout, NodeRowId::MAX),
+            None,
+            "should return no priority outside the row domain"
+        );
+    }
 
     #[test]
     fn positions_row_permutation() {

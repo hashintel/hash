@@ -16,62 +16,9 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-/// Identity lookups with revision-dependent visibility and current payload values.
-///
-/// Decisions apply inclusively at their revision. Added rows are absent before birth. Without a
-/// retained decision, fitted rows use the base provider and added rows are live.
-///
-/// # Warning
-///
-/// Evicting decisions can change answers to older revision queries.
-pub(super) trait VersionedIdentityProvider<K, R>: IdentityProvider<K, R>
-where
-    R: Row,
-    K: Key,
-{
-    fn provide_universe(&self) -> Universe<R>;
+mod provider;
 
-    /// Resolves an allocated row regardless of visibility.
-    fn provide_allocated_row_of(&self, key: K) -> Option<R>;
-
-    fn provide_key_of_at(&self, row: R, revision: DeltaRevision) -> Option<K>;
-
-    fn provide_row_of_at(&self, key: K, revision: DeltaRevision) -> Option<R>;
-
-    fn provide_payload_of_key_at(&self, key: K, revision: DeltaRevision) -> Option<&K::Payload>;
-
-    fn provide_payload_of_row_at(&self, row: R, revision: DeltaRevision) -> Option<&K::Payload>;
-}
-
-impl<K, R, T: VersionedIdentityProvider<K, R> + ?Sized> VersionedIdentityProvider<K, R> for &T
-where
-    R: Row,
-    K: Key,
-{
-    fn provide_universe(&self) -> Universe<R> {
-        T::provide_universe(self)
-    }
-
-    fn provide_allocated_row_of(&self, key: K) -> Option<R> {
-        T::provide_allocated_row_of(self, key)
-    }
-
-    fn provide_key_of_at(&self, row: R, revision: DeltaRevision) -> Option<K> {
-        T::provide_key_of_at(self, row, revision)
-    }
-
-    fn provide_row_of_at(&self, key: K, revision: DeltaRevision) -> Option<R> {
-        T::provide_row_of_at(self, key, revision)
-    }
-
-    fn provide_payload_of_key_at(&self, key: K, revision: DeltaRevision) -> Option<&K::Payload> {
-        T::provide_payload_of_key_at(self, key, revision)
-    }
-
-    fn provide_payload_of_row_at(&self, row: R, revision: DeltaRevision) -> Option<&K::Payload> {
-        T::provide_payload_of_row_at(self, row, revision)
-    }
-}
+pub(crate) use self::provider::VersionedIdentityProvider;
 
 #[repr(transparent)]
 pub(crate) struct NaiveIdentityProvider<T: ?Sized>(T);
@@ -151,6 +98,11 @@ where
     }
 
     #[inline]
+    fn provide_allocated_key_of(&self, row: R) -> Option<K> {
+        self.key_of(row)
+    }
+
+    #[inline]
     fn provide_key_of_at(&self, row: R, _: DeltaRevision) -> Option<K> {
         self.key_of(row)
     }
@@ -197,6 +149,35 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
             payload: FastHashMap::default(),
             history: FastHashMap::default(),
         }
+    }
+
+    #[inline]
+    pub(crate) fn bind<'this, B>(&'this self, base: B) -> DeltaIdentityProvider<'this, B, K, R, P> {
+        DeltaIdentityProvider::from_parts(self, base)
+    }
+
+    pub(crate) fn withdrawn<'this, I: VersionedIdentityProvider<K, R> + ?Sized>(
+        &'this self,
+        base: &I,
+    ) -> impl IntoIterator<Item = R> + use<'this, I, K, R, P>
+    where
+        K: Key<Payload: ToOwned<Owned = P>>,
+        R: Row,
+    {
+        let base = base.provide_universe();
+
+        self.history
+            .iter()
+            .filter_map(|(&row, history)| history.now().is_withdrawn().then_some(row))
+            .chain(
+                self.inverse
+                    .iter_enumerated()
+                    .filter_map(move |(delta, versioned)| {
+                        versioned
+                            .is_withdrawn(None)
+                            .then(|| R::from_u64(delta.get()).plus(base.size()))
+                    }),
+            )
     }
 
     /// Records local activation and a current payload without changing an allocated row.
@@ -464,6 +445,13 @@ where
             .get(&key)
             .copied()
             .or_else(|| self.base.provide_allocated_row_of(key))
+    }
+
+    fn provide_allocated_key_of(&self, row: R) -> Option<K> {
+        DeltaRowId::derive(self.base.provide_universe(), row).map_or_else(
+            || self.base.provide_allocated_key_of(row),
+            |delta| self.data.inverse.get(delta).map(|entry| *entry.data()),
+        )
     }
 
     fn provide_key_of_at(&self, row: R, revision: DeltaRevision) -> Option<K> {

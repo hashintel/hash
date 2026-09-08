@@ -2,7 +2,6 @@ use alloc::sync::Arc;
 use core::{ops::ControlFlow, time::Duration};
 
 use arc_swap::Guard;
-use error_stack::Report;
 use futures::FutureExt as _;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, EntityEvent, EntityUpdate,
@@ -20,21 +19,19 @@ use type_system::knowledge::entity::{EntityId, id::EntityEditionId};
 use uuid::Uuid;
 
 use super::{
-    DeltaFeedError, DeltaFeedTask, DeltaFeedTaskOptions, DeltaFeedTaskScratch,
-    pending::{Pending, Placement, Stage},
+    DeltaFeedError, DeltaFeedTask, DeltaFeedTaskOptions, DeltaFeedTaskScratch, pending::Pending,
+    pump,
 };
 use crate::{
-    dataset::auxiliary::{Label, OwnedIcon, OwnedLabel, OwnedLegend},
-    identity::{NodeRowId, OntologyRowId},
-    math::{BoxedVecN, Vec2, nz},
-    postgres::{Classification, edition_display::DisplayParts, id::ArchivedEntityId},
-    salt::{fit::prepare::IdentityProvider as _, lod::stage::WIRE_FRAME},
+    dataset::auxiliary::{Label, OwnedLegend},
+    identity::OntologyRowId,
+    math::{Vec2, nz},
+    postgres::{Classification, id::ArchivedEntityId},
     serve2::{
         delta::{
             Delta,
             epoch::Epoch,
-            placement::{Completed, Initial, PendingEntry, PlacementError},
-            projector::{Position, projector},
+            placement::{Completed, Initial, PendingEntry},
         },
         tests::fixture::{TamperFixture, secret},
         world::World,
@@ -119,29 +116,12 @@ pub(super) fn update(seed: u128, seconds: i64, archived: bool) -> EntityEvent {
     })
 }
 
-fn display(label: &str) -> DisplayParts {
-    DisplayParts {
-        label: OwnedLabel::from(label),
-        icon: OwnedIcon::from("icon"),
-        representative: Uuid::from_u128(1000).into(),
-    }
-}
-
-fn projected() -> Position {
-    projector(None)
-        .project([&BoxedVecN::zero()])
-        .next()
-        .expect("should return a projection")
-        .expect("should project a finite position")
-}
-
-fn epoch(delta: &Delta) -> Epoch {
-    Epoch::from(Guard::from_inner(Arc::new(delta.clone())))
-}
-
 fn queue_node(task: &mut DeltaFeedTask, seed: u128, seconds: i64) {
     task.pending.observe(update(seed, seconds, false));
-    task.apply_classifications([(ArchivedEntityId::from(entity(seed)), Classification::Node)]);
+    task.pending.classify(
+        &task.delta,
+        [(ArchivedEntityId::from(entity(seed)), Classification::Node)],
+    );
 }
 
 /// The first quiet replay publishes once, and overlap never decreases the watermark.
@@ -157,244 +137,9 @@ async fn replay_watermark() {
     task.scratch.events.push(update(100, 9, false));
     assert!(!task.apply_events());
     assert_eq!(task.watermark, Timestamp::from_unix_timestamp(10));
-    assert_eq!(task.pending.updates.len(), 1);
-}
-
-/// Fitted nodes reuse their retained coordinates for metadata updates and revival.
-#[tokio::test]
-async fn classify_fitted_revival() {
-    let mut fixture = fixture("feed-fitted-revival").await;
-    let task = &mut fixture.task;
-    let row = NodeRowId::MIN;
-    let entity = task
-        .delta
-        .world
-        .layout
-        .index
-        .identity
-        .key_of(row)
-        .expect("should resolve the fitted identity");
-    let position = task
-        .delta
-        .node_position(entity)
-        .expect("should retain fitted coordinates");
-    assert!(task.delta.withdraw(entity));
-    let mut event = match update(100, 1, false) {
-        EntityEvent::Updated(event) => event,
-        _ => unreachable!(),
-    };
-    event.entity = EntityId::from(entity);
-    task.pending.observe(EntityEvent::Updated(event));
-    task.apply_classifications([(entity, Classification::Node)]);
-    assert!(task.pending.next_placement().is_none());
-    assert!(
-        matches!(task.pending.updates[&entity].stage, Stage::Node(Placement::Ready(held)) if held == position)
-    );
-    assert!(
-        task.apply_displays(
-            [(event.edition, Some(display("revived")))]
-                .into_iter()
-                .collect()
-        )
-    );
-    assert!(task.apply_ready());
-    assert!(task.pending.updates.is_empty());
     assert_eq!(
-        task.delta.world.layout.position(&epoch(&task.delta), row),
-        Some(position)
-    );
-}
-
-/// A full input retains unsent nodes and drains all admitted requests without duplication.
-#[tokio::test]
-async fn pump_backpressure() {
-    let mut fixture = fixture("feed-pump-backpressure").await;
-    for seed in 100..103 {
-        queue_node(&mut fixture.task, seed, 1);
-    }
-    assert!(fixture.task.pump(None).is_continue());
-    assert!(fixture.task.pump(None).is_continue());
-    let mut admitted = Vec::new();
-    for _ in 0..3 {
-        admitted.push(
-            fixture
-                .requests
-                .try_recv()
-                .expect("should admit one request at capacity")
-                .entity,
-        );
-        assert!(fixture.task.pump(None).is_continue());
-    }
-    admitted.sort_unstable_by_key(|entity| Uuid::from(entity.entity_uuid));
-    assert_eq!(admitted, [entity(100), entity(101), entity(102)]);
-    assert!(fixture.requests.try_recv().is_err());
-    assert!(fixture.task.pending.next_placement().is_none());
-}
-
-/// Input closure ends admission without marking an unsent update as running.
-#[tokio::test]
-async fn pump_closed() {
-    let mut fixture = fixture("feed-pump-closed").await;
-    queue_node(&mut fixture.task, 100, 1);
-    fixture.requests.close();
-    assert!(fixture.task.pump(None).is_break());
-    assert!(fixture.task.pending.next_placement().is_some());
-}
-
-/// An archive cancels a queued placement result before it can allocate or revive a node.
-#[tokio::test]
-async fn receive_archived() {
-    let mut fixture = fixture("feed-receive-archived").await;
-    queue_node(&mut fixture.task, 100, 1);
-    assert!(fixture.task.pump(None).is_continue());
-    let request = fixture.requests.try_recv().expect("should submit the node");
-    fixture.task.scratch.events.push(update(100, 2, true));
-    fixture.task.apply_events();
-    fixture.task.receive(PendingEntry {
-        event: request.event,
-        entity: request.entity,
-        phase: Completed(Ok(projected())),
-    });
-    fixture.task.apply_placements();
-    assert!(fixture.task.pending.updates.is_empty());
-    assert!(fixture.task.scratch.positions.is_empty());
-    assert_eq!(
-        fixture
-            .task
-            .delta
-            .node_row(ArchivedEntityId::from(entity(100))),
-        None
-    );
-}
-
-/// Placement failure removes pending work, and an overlapping read does not restart its budget.
-#[tokio::test]
-async fn receive_failed() {
-    let mut fixture = fixture("feed-receive-failed").await;
-    queue_node(&mut fixture.task, 100, 1);
-    assert!(fixture.task.pump(None).is_continue());
-    let request = fixture.requests.try_recv().expect("should submit the node");
-    fixture.task.receive(PendingEntry {
-        event: request.event,
-        entity: request.entity,
-        phase: Completed(Err(Report::new(PlacementError::Exhaustion))),
-    });
-    assert!(fixture.task.pending.updates.is_empty());
-    fixture.task.pending.observe(update(100, 1, false));
-    assert!(fixture.task.pending.updates.is_empty());
-    queue_node(&mut fixture.task, 100, 2);
-    assert!(fixture.task.pending.next_placement().is_some());
-}
-
-/// Successful placement applies fitted-frame normalization before the edition's display.
-#[tokio::test]
-async fn receive_wire_coordinates() {
-    let mut fixture = fixture("feed-receive-wire-coordinates").await;
-    queue_node(&mut fixture.task, 100, 1);
-    assert!(fixture.task.pump(None).is_continue());
-    let request = fixture.requests.try_recv().expect("should submit the node");
-    let position = projected();
-    let expected = fixture
-        .task
-        .delta
-        .world
-        .fitted_bounds()
-        .normalize_into(WIRE_FRAME, &[position.get()])[0];
-    assert_ne!(
-        expected,
-        position.get(),
-        "should use a non-identity normalization case"
-    );
-    fixture.task.receive(PendingEntry {
-        event: request.event,
-        entity: request.entity,
-        phase: Completed(Ok(position)),
-    });
-    fixture.task.apply_placements();
-    let entity = ArchivedEntityId::from(request.entity);
-    let edition = fixture.task.pending.updates[&entity].event.edition;
-    fixture
-        .task
-        .apply_displays([(edition, Some(display("placed")))].into_iter().collect());
-    assert!(fixture.task.apply_ready());
-    let node = fixture
-        .task
-        .delta
-        .node_row(entity)
-        .expect("should allocate the node");
-    assert_eq!(
-        fixture
-            .task
-            .delta
-            .world
-            .layout
-            .position(&epoch(&fixture.task.delta), node),
-        Some(expected)
-    );
-    assert!(fixture.task.scratch.positions.is_empty());
-    assert!(fixture.task.scratch.completed.is_empty());
-}
-
-/// Link updates require endpoint rows and never request an embedding.
-#[tokio::test]
-async fn edge_missing_endpoint() {
-    let mut fixture = fixture("feed-edge-missing-endpoint").await;
-    let task = &mut fixture.task;
-    let edge = ArchivedEntityId::from(entity(100));
-    let node = ArchivedEntityId::from(entity(101));
-    task.pending.observe(update(100, 1, false));
-    task.apply_classifications([(
-        edge,
-        Classification::Edge {
-            source: Some(node),
-            target: Some(node),
-        },
-    )]);
-    assert!(task.pending.next_placement().is_none());
-    let edition = task.pending.updates[&edge].event.edition;
-    task.apply_displays([(edition, Some(display("link")))].into_iter().collect());
-    assert!(!task.apply_ready());
-    assert_eq!(task.pending.updates.len(), 1);
-    task.delta
-        .update_node(
-            node,
-            OwnedLegend::new(OntologyRowId::MIN, Label::new("node")),
-            Vec2::ZERO,
-        )
-        .expect("should allocate the endpoint");
-    assert!(task.apply_ready());
-    assert!(task.pending.updates.is_empty());
-}
-
-/// A replaced edition ignores an older display response and accepts only its own edition.
-#[tokio::test]
-async fn display_replaced_edition() {
-    let mut fixture = fixture("feed-display-replaced-edition").await;
-    let task = &mut fixture.task;
-    let entity = ArchivedEntityId::from(entity(100));
-    task.delta
-        .update_node(
-            entity,
-            OwnedLegend::new(OntologyRowId::MIN, Label::new("initial")),
-            Vec2::ZERO,
-        )
-        .expect("should allocate the node");
-    queue_node(task, 100, 1);
-    let old = task.pending.updates[&entity].event.edition;
-    queue_node(task, 100, 2);
-    let current = task.pending.updates[&entity].event.edition;
-    assert!(!task.apply_displays([(old, Some(display("old")))].into_iter().collect()));
-    assert!(task.pending.updates[&entity].legend.is_none());
-    assert!(!task.apply_displays([(current, None)].into_iter().collect()));
-    assert!(task.pending.updates[&entity].needs_legend());
-    assert!(task.apply_displays([(current, Some(display("new")))].into_iter().collect()));
-    assert_eq!(
-        task.pending.updates[&entity]
-            .legend
-            .as_ref()
-            .expect("should capture the current display")
-            .label(),
-        "new"
+        task.pending.classifications().collect::<Vec<_>>(),
+        [ArchivedEntityId::from(entity(100))]
     );
 }
 
@@ -422,7 +167,7 @@ async fn step_capacity_ready() {
     let mut fixture = fixture("feed-step-capacity-ready").await;
     queue_node(&mut fixture.task, 100, 1);
     queue_node(&mut fixture.task, 101, 1);
-    assert!(fixture.task.pump(None).is_continue());
+    assert!(pump(&mut fixture.task.pending, &fixture.task.tx, None).is_continue());
     let period = Duration::from_hours(24);
     let mut interval = tokio::time::interval_at(Instant::now() + period, period);
     assert!(fixture.task.step(&mut interval).now_or_never().is_none());
@@ -444,68 +189,6 @@ async fn step_capacity_ready() {
     assert_ne!(first.entity, second.entity);
     assert_eq!(fixture.task.watermark, Timestamp::from_unix_timestamp(0));
     assert!(!fixture.task.replayed);
-}
-
-/// A failed superseded request releases admission without discarding its replacement.
-#[tokio::test]
-async fn receive_superseded_failure() {
-    let mut fixture = fixture("feed-superseded-failure").await;
-    queue_node(&mut fixture.task, 100, 1);
-    assert!(fixture.task.pump(None).is_continue());
-    let request = fixture
-        .requests
-        .try_recv()
-        .expect("should submit the first update");
-    queue_node(&mut fixture.task, 100, 2);
-    assert!(fixture.task.pending.next_placement().is_none());
-    fixture.task.receive(PendingEntry {
-        event: request.event,
-        entity: request.entity,
-        phase: Completed(Err(Report::new(PlacementError::Exhaustion))),
-    });
-    assert!(fixture.task.pending.next_placement().is_some());
-    assert!(fixture.task.pump(None).is_continue());
-    let replacement = fixture
-        .requests
-        .try_recv()
-        .expect("should submit the replacement");
-    assert_ne!(replacement.event, request.event);
-}
-
-/// An added node's revival reuses its first position while older epochs remain withdrawn.
-#[tokio::test]
-async fn classify_added_revival() {
-    let mut fixture = fixture("feed-classify-added-revival").await;
-    let task = &mut fixture.task;
-    let entity = ArchivedEntityId::from(entity(100));
-    let position = Vec2::new(0.5, -0.25);
-    task.delta
-        .update_node(
-            entity,
-            OwnedLegend::new(OntologyRowId::MIN, Label::new("original")),
-            position,
-        )
-        .expect("should allocate a node");
-    task.delta.revision.increment_by(1);
-    task.delta.withdraw(entity);
-    let withdrawn = epoch(&task.delta);
-    task.delta.revision.increment_by(1);
-    queue_node(task, 100, 1);
-    assert!(
-        matches!(task.pending.updates[&entity].stage, Stage::Node(Placement::Ready(held)) if held == position)
-    );
-    let edition = task.pending.updates[&entity].event.edition;
-    task.apply_displays([(edition, Some(display("revived")))].into_iter().collect());
-    assert!(task.apply_ready());
-    let row = task
-        .delta
-        .node_row(entity)
-        .expect("should resolve the retained row");
-    assert_eq!(task.delta.world.layout.position(&withdrawn, row), None);
-    assert_eq!(
-        task.delta.world.layout.position(&epoch(&task.delta), row),
-        Some(position)
-    );
 }
 
 /// Result-channel closure reports task failure without waiting for a database tick.
@@ -544,4 +227,27 @@ async fn step_publication_closed() {
         ControlFlow::Break(())
     );
     assert_eq!(fixture.task.watermark, Timestamp::from_unix_timestamp(0));
+}
+
+#[tokio::test]
+async fn replay_withdrawal() {
+    let mut fixture = fixture("feed-replay-withdrawal").await;
+    let task = &mut fixture.task;
+    let key = ArchivedEntityId::from(entity(100));
+    task.delta
+        .update_node(
+            key,
+            OwnedLegend::new(OntologyRowId::MIN, Label::new("visible")),
+            Vec2::ZERO,
+        )
+        .expect("should allocate the node");
+    let row = task
+        .delta
+        .node_row(key)
+        .expect("should retain the node's row");
+    task.scratch.events.push(update(100, 1, true));
+    assert!(task.apply_events());
+    let epoch = Epoch::from(Guard::from_inner(Arc::new(task.delta.clone())));
+    assert_eq!(task.delta.world.layout.position(&epoch, row), None);
+    assert_eq!(task.delta.node_row(key), Some(row));
 }

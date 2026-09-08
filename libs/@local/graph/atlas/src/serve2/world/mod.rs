@@ -15,7 +15,7 @@ mod encoding;
 mod error;
 mod geometry;
 pub(crate) mod layout;
-mod node_importance;
+pub(crate) mod node_importance;
 mod node_index;
 mod ontology;
 pub(crate) mod topology;

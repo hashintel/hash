@@ -42,7 +42,7 @@ fn position_origin() {
     let origin = Origin::new();
     let base = NaiveLayoutProvider::new(&origin);
     let data = LayoutDelta::default();
-    let provider = data.provider(&base);
+    let provider = data.bind(&base);
     assert_eq!(provider.provide_node_universe().size(), 2);
     for node in [NodeRowId::new(0), NodeRowId::new(1), NodeRowId::new(99)] {
         assert_eq!(
@@ -63,7 +63,7 @@ fn inherited_withdrawal_revival() {
     let node = NodeRowId::new(0);
     assert!(data.withdraw(&base, node, DeltaRevision::new(2)));
     {
-        let provider = data.provider(&base);
+        let provider = data.bind(&base);
         assert_eq!(
             provider.provide_position_at(node, DeltaRevision::new(1)),
             base.provide_position(node)
@@ -75,7 +75,7 @@ fn inherited_withdrawal_revival() {
         assert_eq!(provider.provide_position(node), None);
     }
     assert!(data.insert(&base, node, Vec2::ZERO, DeltaRevision::new(4)));
-    let provider = data.provider(&base);
+    let provider = data.bind(&base);
     assert_eq!(
         provider.provide_position_at(node, DeltaRevision::new(3)),
         None
@@ -95,19 +95,19 @@ fn addition_birth_withdrawal_revival() {
     let position = Vec2::new(1.0, -2.0);
     assert!(data.insert(&base, node, position, DeltaRevision::new(2)));
     assert_eq!(
-        data.provider(&base)
+        data.bind(&base)
             .provide_position_at(node, DeltaRevision::new(1)),
         None
     );
     assert_eq!(
-        data.provider(&base)
+        data.bind(&base)
             .provide_position_at(node, DeltaRevision::new(2)),
         Some(position)
     );
     assert!(data.withdraw(&base, node, DeltaRevision::new(3)));
-    assert_eq!(data.provider(&base).provide_position(node), None);
+    assert_eq!(data.bind(&base).provide_position(node), None);
     assert!(data.insert(&base, node, Vec2::ZERO, DeltaRevision::new(4)));
-    let provider = data.provider(&base);
+    let provider = data.bind(&base);
     assert_eq!(
         provider.provide_position_at(node, DeltaRevision::new(3)),
         None
@@ -126,13 +126,13 @@ fn placement_out_of_order() {
     let earlier = NodeRowId::new(2);
     let later = NodeRowId::new(3);
     data.reserve_node(&base, later);
-    assert_eq!(data.provider(&base).provide_node_count(), 4);
-    assert_eq!(data.provider(&base).provide_position(later), None);
+    assert_eq!(data.bind(&base).provide_node_count(), 4);
+    assert_eq!(data.bind(&base).provide_position(later), None);
     assert!(!data.withdraw(&base, earlier, DeltaRevision::new(1)));
     assert!(data.insert(&base, later, Vec2::splat(3.0), DeltaRevision::new(2)));
-    assert_eq!(data.provider(&base).provide_position(earlier), None);
+    assert_eq!(data.bind(&base).provide_position(earlier), None);
     assert!(data.insert(&base, earlier, Vec2::splat(2.0), DeltaRevision::new(3)));
-    let provider = data.provider(&base);
+    let provider = data.bind(&base);
     assert_eq!(provider.provide_position(earlier), Some(Vec2::splat(2.0)));
     assert_eq!(provider.provide_position(later), Some(Vec2::splat(3.0)));
     assert_eq!(
@@ -147,18 +147,18 @@ fn decisions_replay_same_revision() {
     let mut data = LayoutDelta::default();
     for node in [NodeRowId::new(0), NodeRowId::new(2)] {
         data.insert(&base, node, Vec2::splat(2.0), DeltaRevision::new(1));
-        let position = data.provider(&base).provide_position(node);
+        let position = data.bind(&base).provide_position(node);
         assert!(!data.insert(&base, node, Vec2::ZERO, DeltaRevision::new(1)));
         assert!(data.withdraw(&base, node, DeltaRevision::new(2)));
         assert!(!data.withdraw(&base, node, DeltaRevision::new(2)));
         assert!(data.insert(&base, node, Vec2::ZERO, DeltaRevision::new(2)));
         assert_eq!(
-            data.provider(&base)
+            data.bind(&base)
                 .provide_position_at(node, DeltaRevision::new(2)),
             position
         );
         assert!(!data.insert(&base, node, Vec2::ZERO, DeltaRevision::new(3)));
-        assert_eq!(data.provider(&base).provide_position(node), position);
+        assert_eq!(data.bind(&base).provide_position(node), position);
     }
 }
 
@@ -180,7 +180,7 @@ fn decisions_eviction() {
             assert!(data.withdraw(&base, node, DeltaRevision::new(revision)));
         }
     }
-    let provider = data.provider(&base);
+    let provider = data.bind(&base);
     assert_eq!(
         provider.provide_position_at(inherited, DeltaRevision::new(3)),
         base.provide_position(inherited)
@@ -206,7 +206,7 @@ fn nested_visibility() {
     lower.insert(&base, lower_node, Vec2::splat(2.0), DeltaRevision::new(2));
     lower.withdraw(&base, inherited, DeltaRevision::new(3));
     lower.withdraw(&base, lower_node, DeltaRevision::new(4));
-    let lower = lower.provider(&base);
+    let lower = lower.bind(&base);
     let mut upper = LayoutDelta::default();
     upper.withdraw(&lower, lower_node, DeltaRevision::new(3));
     upper.insert(&lower, lower_node, Vec2::ZERO, DeltaRevision::new(5));
@@ -216,7 +216,7 @@ fn nested_visibility() {
         Vec2::splat(3.0),
         DeltaRevision::new(6),
     );
-    let provider = upper.provider(&lower);
+    let provider = upper.bind(&lower);
     assert_eq!(provider.provide_node_universe().size(), 4);
     assert_eq!(
         provider.provide_position_at(inherited, DeltaRevision::new(2)),
@@ -253,7 +253,7 @@ fn nested_eviction() {
     let node = NodeRowId::new(0);
     lower.withdraw(&base, node, DeltaRevision::new(2));
     lower.insert(&base, node, Vec2::ZERO, DeltaRevision::new(4));
-    let lower = lower.provider(&base);
+    let lower = lower.bind(&base);
     let mut upper = LayoutDelta::default();
     assert!(upper.withdraw(&lower, node, DeltaRevision::new(5)));
     let capacity = u64::try_from(CAPACITY).expect("should fit the retention capacity");
@@ -262,7 +262,7 @@ fn nested_eviction() {
         assert!(upper.insert(&lower, node, Vec2::ZERO, DeltaRevision::new(revision - 1)));
         assert!(upper.withdraw(&lower, node, DeltaRevision::new(revision)));
     }
-    let provider = upper.provider(&lower);
+    let provider = upper.bind(&lower);
     assert_eq!(
         provider.provide_position_at(node, DeltaRevision::new(3)),
         None
@@ -292,7 +292,7 @@ fn clone_replacement() {
     source.withdraw(&base, added, DeltaRevision::new(4));
     let cloned = target.clone();
     for data in [&target, &cloned] {
-        let provider = data.provider(&base);
+        let provider = data.bind(&base);
         assert_eq!(provider.provide_node_count(), 3);
         assert_eq!(provider.provide_position(added), Some(Vec2::splat(2.0)));
         assert_eq!(provider.provide_position(NodeRowId::new(0)), None);

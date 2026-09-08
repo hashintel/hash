@@ -42,39 +42,8 @@ use super::{
 use crate::{
     bitset::DenseBitSlice,
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+    serve2::visibility::VisibilityActor,
 };
-
-/// The resolved actor one hydration masks properties for.
-///
-/// Property protection is a per-actor condition on the graph's read path, and a hydration
-/// carries the actor identity the scope's policy resolution produced.
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct VisibilityActor {
-    /// The actor the request's admitted scope names.
-    pub id: ActorId,
-    /// Whether the actor is an instance admin, whose reads bypass property protection.
-    pub instance_admin: bool,
-}
-
-impl VisibilityActor {
-    /// Returns whether `config` masks this actor's reads.
-    #[must_use]
-    pub(crate) fn masked_by(self, config: &PropertyProtectionFilterConfig<'_>) -> bool {
-        !config.is_empty() && !self.instance_admin
-    }
-
-    /// Returns the property protection over this actor's reads, absent when nothing masks.
-    ///
-    /// The self-access clause binds to this actor, who reads their own protected properties.
-    #[must_use]
-    pub(crate) fn protection<'config, 'rules>(
-        self,
-        config: &'config PropertyProtectionFilterConfig<'rules>,
-    ) -> Option<PropertyProtectionFilter<'config, 'rules>> {
-        self.masked_by(config)
-            .then(|| config.to_property_protection_filter(Some(self.id)))
-    }
-}
 
 /// A detail hydration failed against the store.
 #[derive(Debug)]

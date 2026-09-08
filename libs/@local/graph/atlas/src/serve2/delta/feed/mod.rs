@@ -14,30 +14,28 @@ use core::{fmt, ops::ControlFlow, pin::pin, time::Duration};
 
 use error_stack::{Report, ReportSink, ResultExt as _};
 use futures::StreamExt as _;
-use hash_graph_postgres_store::store::{EntityEvent, EntityUpdate, PostgresStorePool};
+use hash_graph_postgres_store::store::{EntityEvent, PostgresStorePool};
 use hash_graph_store::{error::QueryError, pool::StorePool as _};
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hashql_core::{collections::FastHashMap, id::Id as _};
 use tokio::{
     sync::{
         Notify,
-        mpsc::{self, Permit},
+        mpsc::{self, Permit, error::TrySendError},
         oneshot,
     },
     time::Interval,
 };
 use type_system::knowledge::entity::id::EntityEditionId;
 
-use self::pending::{DeltaAction, Pending, Placement, Stage};
+use self::pending::{DeltaAction, Pending};
 use super::{
     Delta,
     placement::{Completed, Initial, PendingEntry},
 };
 use crate::{
-    dataset::auxiliary::OwnedLegend,
     math::Vec2,
-    postgres::{self, Classification, edition_display::DisplayParts, id::ArchivedEntityId},
-    salt::lod::stage::WIRE_FRAME,
+    postgres::{self, edition_display::DisplayParts, id::ArchivedEntityId},
 };
 
 #[derive(Debug)]
@@ -67,6 +65,28 @@ hashql_core::id::newtype! {
     pub(crate) struct EventId(u32)
 }
 
+fn pump(
+    pending: &mut Pending,
+    tx: &mpsc::Sender<PendingEntry<Initial>>,
+    mut permit: Option<Permit<'_, PendingEntry<Initial>>>,
+) -> ControlFlow<()> {
+    let mut placements = pending.placements();
+    while let Some(placement) = placements.next_placement() {
+        let request = placement.request();
+        if let Some(permit) = permit.take() {
+            permit.send(request);
+        } else {
+            match tx.try_send(request) {
+                Ok(()) => {}
+                Err(TrySendError::Full(_)) => break,
+                Err(TrySendError::Closed(_)) => return ControlFlow::Break(()),
+            }
+        }
+        placement.submitted();
+    }
+    ControlFlow::Continue(())
+}
+
 struct DeltaFeedTaskOptions {
     safety_lag: Duration,
     tick_rate: Duration,
@@ -75,7 +95,6 @@ struct DeltaFeedTaskOptions {
 #[derive(Default)]
 struct DeltaFeedTaskScratch {
     events: Vec<EntityEvent>,
-    completed: Vec<(EventId, ArchivedEntityId)>,
     positions: Vec<Vec2>,
     entities: Vec<ArchivedEntityId>,
     editions: Vec<EntityEditionId>,
@@ -132,9 +151,9 @@ impl DeltaFeedTask {
                     false
                 }
             },
-            permit = tx.reserve(), if self.pending.next_placement().is_some() => {
+            permit = tx.reserve(), if self.pending.has_placements() => {
                 let permit = permit.change_context(DeltaFeedError::PlacementClosed)?;
-                if self.pump(Some(permit)).is_break() {
+                if pump(&mut self.pending, &self.tx, Some(permit)).is_break() {
                     return Err(Report::new(DeltaFeedError::PlacementClosed));
                 }
 
@@ -143,13 +162,13 @@ impl DeltaFeedTask {
             result = self.rx.recv() => {
                 let result = result.ok_or_else(|| Report::new(DeltaFeedError::PlacementClosed))?;
 
-                self.receive(result);
+                self.pending.receive(result);
                 while let Ok(result) = self.rx.try_recv() {
-                    self.receive(result);
+                    self.pending.receive(result);
                 }
 
-                self.apply_placements();
-                self.apply_ready()
+                self.pending.normalize(self.delta.world.fitted_bounds(), &mut self.scratch.positions);
+                self.pending.apply(&mut self.delta)
             },
             request = self.update.recv() => {
                 let Some((previous, reply)) = request else {
@@ -161,7 +180,7 @@ impl DeltaFeedTask {
             },
         };
 
-        if self.pump(None).is_break() {
+        if pump(&mut self.pending, &self.tx, None).is_break() {
             return Err(Report::new(DeltaFeedError::PlacementClosed));
         }
 
@@ -219,11 +238,7 @@ impl DeltaFeedTask {
 
     async fn classify(&mut self) -> Result<(), Report<DeltaFeedError>> {
         self.scratch.entities.clear();
-        self.scratch
-            .entities
-            .extend(self.pending.updates.iter().filter_map(|(&entity, update)| {
-                matches!(update.stage, Stage::Classify).then_some(entity)
-            }));
+        self.scratch.entities.extend(self.pending.classifications());
 
         if self.scratch.entities.is_empty() {
             return Ok(());
@@ -238,51 +253,13 @@ impl DeltaFeedTask {
             .await
             .change_context(DeltaFeedError::Classification)?;
 
-        self.apply_classifications(classifications);
+        self.pending.classify(&self.delta, classifications);
         Ok(())
-    }
-
-    fn apply_classifications(
-        &mut self,
-        classifications: impl IntoIterator<Item = (ArchivedEntityId, Classification)>,
-    ) {
-        for (entity, classification) in classifications {
-            let Some(
-                update @ pending::Update {
-                    stage: Stage::Classify,
-                    ..
-                },
-            ) = self.pending.updates.get_mut(&entity)
-            else {
-                continue;
-            };
-
-            update.stage = match classification {
-                Classification::Node => Stage::Node(
-                    self.delta
-                        .node_position(entity)
-                        .map_or(Placement::Waiting, Placement::Ready),
-                ),
-                Classification::Edge { source, target } => {
-                    if source.is_none() || target.is_none() {
-                        tracing::warn!(?entity, "The link has an incomplete endpoint pair");
-                    }
-
-                    Stage::Edge { source, target }
-                }
-            };
-        }
     }
 
     async fn capture_displays(&mut self) -> Result<bool, Report<DeltaFeedError>> {
         self.scratch.editions.clear();
-        self.scratch.editions.extend(
-            self.pending
-                .updates
-                .values()
-                .filter(|update| update.needs_legend())
-                .map(|update| update.event.edition),
-        );
+        self.scratch.editions.extend(self.pending.editions());
 
         if self.scratch.editions.is_empty() {
             return Ok(false);
@@ -307,164 +284,9 @@ impl DeltaFeedTask {
         }
 
         self.scratch.displays.extend(displays);
-        Ok(self.apply_displays())
-    }
-
-    fn apply_displays(&mut self) -> bool {
-        let mut changed = false;
-
-        for update in self
+        Ok(self
             .pending
-            .updates
-            .values_mut()
-            .filter(|update| update.needs_legend())
-        {
-            let Some(Some(DisplayParts {
-                label,
-                icon,
-                representative,
-            })) = self.scratch.displays.remove(&update.event.edition)
-            else {
-                continue;
-            };
-
-            let Some((representative, registered)) =
-                self.delta.register_ontology(representative, icon)
-            else {
-                tracing::warn!(entity = ?update.event.entity, "No ontology row remains for the display");
-                continue;
-            };
-
-            changed |= registered;
-            update.legend = Some(OwnedLegend::new(representative, &label));
-        }
-
-        changed
-    }
-
-    fn receive(
-        &mut self,
-        PendingEntry {
-            event,
-            entity,
-            phase: Completed(result),
-        }: PendingEntry<Completed>,
-    ) {
-        let entity = ArchivedEntityId::from(entity);
-        if !self.pending.complete(entity, event) {
-            return;
-        }
-
-        match result {
-            Ok(position) => {
-                self.scratch.completed.push((event, entity));
-                self.scratch.positions.push(position.get());
-            }
-            Err(error) => {
-                self.pending.updates.remove(&entity);
-                tracing::warn!(?entity, ?error, "Discard the failed placement");
-            }
-        }
-    }
-
-    fn apply_placements(&mut self) {
-        if self.scratch.positions.is_empty() {
-            return;
-        }
-
-        let positions = self
-            .delta
-            .world
-            .fitted_bounds()
-            .normalize_into(WIRE_FRAME, &self.scratch.positions);
-
-        for ((event, entity), position) in self.scratch.completed.drain(..).zip(positions) {
-            if let Some(update) = self
-                .pending
-                .updates
-                .get_mut(&entity)
-                .filter(|update| update.id == event)
-            {
-                update.stage = Stage::Node(Placement::Ready(position));
-            }
-        }
-
-        self.scratch.positions.clear();
-    }
-
-    fn pump(&mut self, mut permit: Option<Permit<'_, PendingEntry<Initial>>>) -> ControlFlow<()> {
-        while let Some(&pending::Update {
-            id,
-            event:
-                EntityUpdate {
-                    entity,
-                    edition: _,
-                    archived: _,
-                    changed_at: _,
-                },
-            stage: _,
-            legend: _,
-        }) = self.pending.next_placement()
-        {
-            let request = PendingEntry {
-                event: id,
-                entity,
-                phase: Initial,
-            };
-
-            if let Some(permit) = permit.take() {
-                permit.send(request);
-            } else {
-                match self.tx.try_send(request) {
-                    Ok(()) => {}
-                    Err(mpsc::error::TrySendError::Full(_)) => break,
-                    Err(mpsc::error::TrySendError::Closed(_)) => return ControlFlow::Break(()),
-                }
-            }
-
-            self.pending.submitted(ArchivedEntityId::from(entity), id);
-        }
-
-        ControlFlow::Continue(())
-    }
-
-    fn apply_ready(&mut self) -> bool {
-        let mut changed = false;
-
-        self.pending.updates.retain(|&entity, update| {
-            let Some(legend) = &update.legend else {
-                return true;
-            };
-
-            let outcome = match update.stage {
-                Stage::Node(Placement::Ready(position)) => {
-                    self.delta.update_node(entity, legend.clone(), position)
-                }
-                Stage::Edge {
-                    source: Some(source),
-                    target: Some(target),
-                } => {
-                    let (Some(source), Some(target)) =
-                        (self.delta.node_row(source), self.delta.node_row(target))
-                    else {
-                        return true;
-                    };
-                    self.delta
-                        .update_edge(entity, legend.clone(), Some([source, target]))
-                }
-                _ => return true,
-            };
-
-            if let Some(applied) = outcome {
-                changed |= applied;
-                false
-            } else {
-                tracing::warn!(?entity, "No entity row remains for the update");
-                true
-            }
-        });
-
-        changed
+            .capture(&mut self.delta, &mut self.scratch.displays))
     }
 
     async fn tick(&mut self) -> Result<bool, Report<DeltaFeedError>> {
@@ -478,7 +300,7 @@ impl DeltaFeedTask {
             Err(error) => tracing::warn!(?error, "Retry edition displays on the next tick"),
         }
 
-        changed |= self.apply_ready();
+        changed |= self.pending.apply(&mut self.delta);
         Ok(changed)
     }
 }

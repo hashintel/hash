@@ -12,6 +12,10 @@ use crate::{
     identity::{BasePosition, Column, NodeRowId},
     postgres::id::ArchivedEntityId,
     salt::fit::prepare::identity::IdentityTableArchive,
+    serve2::delta::{
+        epoch::Epoch,
+        overlay::{NaiveIdentityProvider, VersionedIdentityProvider},
+    },
 };
 
 /// Node identities and the inverse mappings between row and base-position order.
@@ -88,13 +92,29 @@ impl NodeIndex {
         sink.finish_ok(this)
     }
 
+    pub(crate) fn row_of(&self, epoch: &Epoch, entity_id: ArchivedEntityId) -> Option<NodeRowId> {
+        let provider = epoch
+            .nodes(self)
+            .bind(NaiveIdentityProvider::from_ref(&self.identity));
+
+        provider.provide_row_of_at(entity_id, epoch.revision())
+    }
+
+    pub(crate) fn key_of(&self, epoch: &Epoch, row: NodeRowId) -> Option<ArchivedEntityId> {
+        let provider = epoch
+            .nodes(self)
+            .bind(NaiveIdentityProvider::from_ref(&self.identity));
+
+        provider.provide_key_of_at(row, epoch.revision())
+    }
+
     /// Returns the row at `index`, or [`None`] outside the fitted position domain.
-    pub(crate) fn lookup(&self, index: BasePosition) -> Option<NodeRowId> {
+    pub(super) fn lookup(&self, index: BasePosition) -> Option<NodeRowId> {
         self.lookup.view().get(index).copied()
     }
 
     /// Returns the fitted position of `index`, or [`None`] outside the fitted row domain.
-    pub(crate) fn reverse(&self, index: NodeRowId) -> Option<BasePosition> {
+    pub(super) fn reverse(&self, index: NodeRowId) -> Option<BasePosition> {
         self.reverse.view().get(index).copied()
     }
 

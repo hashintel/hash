@@ -18,6 +18,16 @@ pub(super) enum EntryKind {
     Withdrawn,
 }
 
+impl EntryKind {
+    pub(super) const fn is_live(self) -> bool {
+        matches!(self, EntryKind::Live)
+    }
+
+    pub(super) const fn is_withdrawn(self) -> bool {
+        matches!(self, EntryKind::Withdrawn)
+    }
+}
+
 type HistoryBitset = u8;
 const HISTORY_SIZE: usize = HistoryBitset::BITS as usize;
 
@@ -138,6 +148,17 @@ impl<T> Versioned<T> {
             |revision| {
                 revision >= self.birth
                     && self.history.at(revision).unwrap_or(EntryKind::Live) == EntryKind::Live
+            },
+        )
+    }
+
+    pub(super) fn is_withdrawn(&self, revision: Option<DeltaRevision>) -> bool {
+        revision.map_or_else(
+            || self.history.now() == EntryKind::Withdrawn,
+            |revision| {
+                revision >= self.birth
+                    && self.history.at(revision).unwrap_or(EntryKind::Withdrawn)
+                        == EntryKind::Withdrawn
             },
         )
     }

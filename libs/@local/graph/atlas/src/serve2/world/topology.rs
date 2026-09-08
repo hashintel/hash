@@ -15,6 +15,7 @@ use crate::{
     },
     serve2::delta::{
         epoch::Epoch,
+        overlay::{NaiveIdentityProvider, VersionedIdentityProvider},
         topology::provider::{NaiveTopologyProvider, VersionedTopologyProvider as _},
     },
 };
@@ -130,11 +131,11 @@ impl Topology {
     ///
     /// Panics if this topology does not belong to the epoch's world.
     pub(crate) fn endpoints(&self, epoch: &Epoch, edge: EdgeRowId) -> Option<[NodeRowId; 2]> {
-        let base = NaiveTopologyProvider::from_ref(self);
         let endpoints = epoch
             .topology(self)
-            .provider(base)
+            .bind(NaiveTopologyProvider::from_ref(self))
             .provide_endpoints_at(edge, epoch.revision())?;
+
         endpoints
             .iter()
             .all(|&node| epoch.contains_node(node))
@@ -151,10 +152,9 @@ impl Topology {
         epoch: &'epoch Epoch,
         node: NodeRowId,
     ) -> impl Iterator<Item = EdgeRowId> + 'epoch {
-        let base = NaiveTopologyProvider::from_ref(self);
         epoch
             .topology(self)
-            .provider(base)
+            .bind(NaiveTopologyProvider::from_ref(self))
             .into_incoming_at(node, epoch.revision())
             .filter(move |&edge| self.endpoints(epoch, edge).is_some())
     }
@@ -169,12 +169,25 @@ impl Topology {
         epoch: &'epoch Epoch,
         node: NodeRowId,
     ) -> impl Iterator<Item = EdgeRowId> + 'epoch {
-        let base = NaiveTopologyProvider::from_ref(self);
         epoch
             .topology(self)
-            .provider(base)
+            .bind(NaiveTopologyProvider::from_ref(self))
             .into_outgoing_at(node, epoch.revision())
             .filter(move |&edge| self.endpoints(epoch, edge).is_some())
+    }
+
+    pub(crate) fn row_of(&self, epoch: &Epoch, edge: ArchivedEntityId) -> Option<EdgeRowId> {
+        epoch
+            .edges(self)
+            .bind(NaiveIdentityProvider::from_ref(&self.identity))
+            .provide_row_of_at(edge, epoch.revision())
+    }
+
+    pub(crate) fn key_of(&self, epoch: &Epoch, edge: EdgeRowId) -> Option<ArchivedEntityId> {
+        epoch
+            .edges(self)
+            .bind(NaiveIdentityProvider::from_ref(&self.identity))
+            .provide_key_of_at(edge, epoch.revision())
     }
 
     /// Returns the allocated edge count, including withdrawn and unbound rows.
@@ -183,8 +196,10 @@ impl Topology {
     ///
     /// Panics if this topology does not belong to the epoch's world.
     pub(crate) fn edge_count(&self, epoch: &Epoch) -> usize {
-        let base = NaiveTopologyProvider::from_ref(self);
-        epoch.topology(self).provider(base).provide_edge_count()
+        epoch
+            .topology(self)
+            .bind(NaiveTopologyProvider::from_ref(self))
+            .provide_edge_count()
     }
 
     /// Returns the allocated node count, including nodes without incident edges.
@@ -193,8 +208,10 @@ impl Topology {
     ///
     /// Panics if this topology does not belong to the epoch's world.
     pub(crate) fn node_count(&self, epoch: &Epoch) -> usize {
-        let base = NaiveTopologyProvider::from_ref(self);
-        epoch.topology(self).provider(base).provide_node_count()
+        epoch
+            .topology(self)
+            .bind(NaiveTopologyProvider::from_ref(self))
+            .provide_node_count()
     }
 }
 

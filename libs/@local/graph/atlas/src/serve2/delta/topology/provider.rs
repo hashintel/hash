@@ -159,11 +159,13 @@ impl<'delta, B: VersionedTopologyProvider + ?Sized> DeltaTopologyProvider<'delta
         node: NodeRowId,
         revision: Option<DeltaRevision>,
     ) -> impl Iterator<Item = EdgeRowId> + use<'delta, B> {
-        let Self { data, base } = *self;
+        let &Self { data, base } = self;
+
         let current = revision.is_none().then(|| base.provide_incoming(node));
         let historical = revision
             .into_iter()
             .flat_map(move |revision| base.provide_incoming_at(node, revision));
+
         current
             .into_iter()
             .flatten()
@@ -173,7 +175,7 @@ impl<'delta, B: VersionedTopologyProvider + ?Sized> DeltaTopologyProvider<'delta
                     .incoming
                     .get(base.provide_node_universe(), node),
             )
-            .filter(move |&edge| data.endpoint.get(base, edge, revision).is_some())
+            .filter(move |&edge| data.endpoint.get(&base, edge, revision).is_some())
     }
 
     fn lookup_outgoing(
@@ -181,11 +183,13 @@ impl<'delta, B: VersionedTopologyProvider + ?Sized> DeltaTopologyProvider<'delta
         node: NodeRowId,
         revision: Option<DeltaRevision>,
     ) -> impl Iterator<Item = EdgeRowId> + use<'delta, B> {
-        let Self { data, base } = *self;
+        let &Self { data, base } = self;
+
         let current = revision.is_none().then(|| base.provide_outgoing(node));
         let historical = revision
             .into_iter()
             .flat_map(move |revision| base.provide_outgoing_at(node, revision));
+
         current
             .into_iter()
             .flatten()
@@ -195,7 +199,7 @@ impl<'delta, B: VersionedTopologyProvider + ?Sized> DeltaTopologyProvider<'delta
                     .outgoing
                     .get(base.provide_node_universe(), node),
             )
-            .filter(move |&edge| data.endpoint.get(base, edge, revision).is_some())
+            .filter(move |&edge| data.endpoint.get(&base, edge, revision).is_some())
     }
 
     /// Returns incoming edges with a borrow of the stored data rather than this provider.
@@ -263,7 +267,7 @@ impl<B: VersionedTopologyProvider + ?Sized> VersionedTopologyProvider
         edge: EdgeRowId,
         revision: DeltaRevision,
     ) -> Option<[NodeRowId; 2]> {
-        self.data.endpoint.get(self.base, edge, Some(revision))
+        self.data.endpoint.get(&self.base, edge, Some(revision))
     }
 
     fn provide_incoming_at(

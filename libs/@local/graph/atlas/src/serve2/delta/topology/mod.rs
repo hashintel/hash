@@ -243,7 +243,7 @@ impl TopologyDelta {
         history.push(EntryKind::Withdrawn, revision) | changed
     }
 
-    pub(crate) const fn provider<'delta, B>(
+    pub(crate) const fn bind<'delta, B: ?Sized>(
         &'delta self,
         base: &'delta B,
     ) -> DeltaTopologyProvider<'delta, B> {

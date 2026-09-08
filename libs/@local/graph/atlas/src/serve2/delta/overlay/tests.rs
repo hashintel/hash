@@ -113,6 +113,58 @@ fn assert_current(
     assert_eq!(provider.payload_of_row(row).map(Icon::as_ref), payload);
 }
 
+/// Naive and reference providers expose allocated keys and reject unknown rows.
+#[test]
+fn allocated_base() {
+    let base = Base::new();
+    let origin = NaiveIdentityProvider::from_ref(&base);
+    assert_eq!(
+        VersionedIdentityProvider::provide_allocated_key_of(&origin, OntologyRowId::MIN),
+        Some(base.key),
+        "should forward the allocated key through a provider reference"
+    );
+    assert_eq!(
+        origin.provide_allocated_key_of(OntologyRowId::MAX),
+        None,
+        "should reject an unallocated row"
+    );
+}
+
+/// Withdrawal hides both base and delta rows without erasing their allocated keys.
+#[test]
+fn allocated_hidden() {
+    let base = Base::new();
+    let origin = NaiveIdentityProvider::from_ref(&base);
+    let mut data = IdentityProviderResidual::new(origin);
+    let key = ArchivedOntologyTypeUuid::from(Uuid::from_u128(2));
+    let (row, _) = data
+        .insert(
+            origin,
+            DeltaRevision::new(1),
+            key,
+            OwnedIcon::from("arrival"),
+        )
+        .expect("should allocate a delta row");
+    assert!(
+        data.withdraw(origin, DeltaRevision::new(2), base.key),
+        "should withdraw the base row"
+    );
+    assert!(
+        data.withdraw(origin, DeltaRevision::new(2), key),
+        "should withdraw the delta row"
+    );
+    let provider = DeltaIdentityProvider::from_parts(&data, origin);
+    for (row, key) in [(OntologyRowId::MIN, base.key), (row, key)] {
+        assert_eq!(provider.key_of(row), None, "should hide the withdrawn row");
+        assert_eq!(
+            provider.provide_allocated_key_of(row),
+            Some(key),
+            "should retain the withdrawn row's allocated key"
+        );
+    }
+    assert_eq!(provider.provide_allocated_key_of(OntologyRowId::MAX), None);
+}
+
 #[test]
 fn insert_fitted() {
     let base = Base::new();

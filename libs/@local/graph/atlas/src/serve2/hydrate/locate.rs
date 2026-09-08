@@ -20,17 +20,19 @@ use hashql_core::id::{IdSlice, IdVec, bit_vec::DenseBitSet};
 use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
 use super::{
-    EdgeSlot, NodeRequestColumns, NodeSlot, TypeSlot,
-    client::{HydrateError, VisibilityActor},
+    EdgeSlot, NodeRequestColumns, NodeSlot, TypeSlot, client::HydrateError,
     scalar::ScalarProperties,
 };
 use crate::{
     bitset::DenseBitSlice,
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+    serve2::visibility::VisibilityActor,
 };
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct LocateRequest<'doc> {
+    /// The resolved actor the store masks properties for.
+    pub actor: VisibilityActor,
     /// The delivered node identities, source first.
     pub nodes: NodeRequestColumns<'doc>,
     /// The delivered link-entity identities, ascending identity bytes.
@@ -41,8 +43,6 @@ pub(crate) struct LocateRequest<'doc> {
     pub link_type_ids: u32,
     /// Most properties each link's map delivers.
     pub link_properties: u32,
-    /// The resolved actor the store masks properties for.
-    pub actor: VisibilityActor,
 }
 
 /// The store's answer to one [`LocateOrder`], every column in delivered order.
