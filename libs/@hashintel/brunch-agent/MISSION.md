@@ -1,86 +1,156 @@
-# Mission 6b — Reconcile Voice with resumable browser work
+# Brunch remote browser-origin policy
 
 ## Status
 
-**Accepted by Lu on 2026-09-07 with explicit limitations**, on `ln/fe-1580-reconcile-voice-resumable-workpiece`, [PR #9564](https://github.com/hashintel/hash/pull/9564), above Mission 6 and Mission 5. The accepted [owner witness](docs/evidence/implementations/voice-resumable-reconciliation/owner-witness-2026-09-07/witness.md) proved the local Voice → causal browser mutation → coherent resume → active-submission Stop/reopen path after repairing cross-step client-result accumulation and the fixture's non-causal prepared answer. Direct spoken-user Voice attribution after hydration, durable recovery of locally withheld post-settlement browser work, and comparative audible latency are explicitly deferred with narrowed claims; the full pre-registered telemetry bundle was not retained and is not inferred.
+**Live as of 2026-09-08** for
+[FE-1626](https://linear.app/hash/issue/FE-1626/add-cors-handling-to-brunch-agents-agents-routes-for-the-petrinaut)
+on `kafe-1626-cors-agents-routes`, cut directly from `main` after
+[FE-1574](https://github.com/hashintel/hash/pull/9528) established
+`/agents/chat/:instanceId` as the Petrinaut browser's Brunch transport and
+[FE-1625](https://github.com/hashintel/hash/pull/9573) made the image deployable on ECS.
+This file is the branch's sole execution authority.
 
-KA's branch and [PR #9531](https://github.com/hashintel/hash/pull/9531) remain untouched. The replacement imports the contribution `58f75840804766a84ce85b9daab5b5194f3875ec..be56a18ff0244c5750a8702e9c7f45c0b607dc06` with attribution, never the distant merge-base delta. Its live `MISSION.md` is historical source, not imported authority. This is the explicit exception to one new issue per mission; FE-1580 was referenced without rewriting its issue. No Linear write or KA-record change is part of acceptance.
-
-**Accepted implementation and evidence:** the pre-witness restacked candidate passed 39 uncached scoped build/test/type/lint tasks (1,318 tests). Commits `1e238f498e` and `48e2b66666` repair causal client-result delivery and require explicit true-user fixture evidence. Focused post-repair checks and the sanitized canonical record are listed in the [owner witness](docs/evidence/implementations/voice-resumable-reconciliation/owner-witness-2026-09-07/witness.md); the earlier [verification](docs/evidence/implementations/voice-resumable-reconciliation/verification.md) retains the broader local suite and the exact accepted dispositions. Mission 7 may consume this narrowed accepted foundation after restack; its own integrated witnesses remain necessary.
+The owner selected deployment-configured exact origins over wildcard preview-host patterns or a
+new same-origin proxy. The policy is a browser boundary only: it does not authenticate a caller,
+authorize a conversation, or make public exposure safe by itself.
 
 ## Imperative
 
-Make KA's completed-transcript, half-duplex Voice experience work safely over Mission 6's resumable browser mutations and coherent workpiece/document recovery. Preserve both capabilities instead of replacing either. Distinguish committed prose, submission settlement, pending browser work/continuation, coherent document settlement and terminal provider output at the actual shared boundaries. Start from the parent's new busy/follow-up/Stop behavior rather than adding a parallel coordinator.
-
-**Release note:** speak to Brunch, let it change the prepared net, interrupt or stop safely, and reopen the same work without replaying speech or duplicating the change. Transcript, tool failures and stopped entries remain understandable. Direct spoken-user attribution on reopen is explicitly unsupported; Stop is durable for active Flue submissions, while browser work withheld after a settled tool-call step may reappear as pending after reopen.
-
-**Demo:** run `yarn dev:brunch`, open the honestly labelled crew-reservation fixture, make a typed turn followed by a spoken confirmation, and watch the single crew-reservation arc and coherent bundle settle. During another response use **Your turn**, wait for safe fresh capture, and speak again. Separately Stop before completion. Reopen in Tab B and inspect the conversation and net, then continue without duplicate preparation, mutation or autoplay. Inspect compact/expanded Voice, exact full-response and question replay, and a visible tool failure. This local demo and its acceptance gates, not merely a clean merge or green unit tests, define the visible advance. Vestera construction/explanation remain Mission 7.
+Let a deployed Petrinaut website use the Brunch `/agents/*` Flue routes from an explicitly trusted
+browser origin while granting no cross-origin access to unlisted origins. Do this now because the
+Petrinaut Vercel deployment and Brunch ECS service are separate origins and
+[SRE-1042](https://linear.app/hash/issue/SRE-1042/configure-petrinauts-deployment-variables-for-the-brunch-agent-chat)
+cannot point the browser at the deployed Brunch route until preflight and response headers work.
 
 ## Throughline
 
 ```text
-completed current-turn microphone transcript
-→ shared panel submitVoiceInputWithAdmission/useChat admission
-→ browser ChatTransport over the memoized FlueClient
-→ same-origin /agents/chat/:instanceId and mounted Brunch ChatAgent
-→ committed canonical prose, hidden server question marker, browser-tool requests
-→ existing canonical browser validation and effects on the bound document
-→ original call-id outputs resume the same conversation
-→ canonical speech queue and acknowledged cancellation
-→ coherent workpiece/document settlement
-→ canonical history reopen and another real turn
+Petrinaut browser at one configured exact origin
+→ OPTIONS /agents/<agent>/<instance> with requested method and headers
+→ route-scoped Hono CORS middleware before ownership middleware
+→ 204 preflight carrying the matching origin, GET/POST/OPTIONS, and Flue request headers
+→ browser FlueClient GET/POST with x-brunch-principal + x-brunch-conversation
+→ existing agentOwnershipGuard and createAgentRouter
+→ response exposes the Flue/Durable Streams headers the browser SDK reads
 ```
 
-### Departure and protected sources
+`BRUNCH_CORS_ALLOWED_ORIGINS` is a comma-separated list of exact HTTP(S) origins read when the app
+starts. Values may have surrounding whitespace and an origin's optional trailing slash; they are
+normalized through `URL.origin` and deduplicated. A configured value containing credentials, a
+non-root path, query, fragment, wildcard, opaque origin, or non-HTTP(S) scheme is a startup
+configuration error. Missing or blank configuration means an empty allowlist: same-origin and
+non-browser callers continue through the existing route, but no cross-origin caller receives a
+CORS grant.
 
-- Mission 5 `b1295ad454` holds composer status busy across automatic follow-up and permits Stop to withhold it. Mission 6 `976bb1c67c` repairs fixture routing, docs-reader catalogue retention, workpiece numbering, coherent persistence and mutation no-op honesty. These committed repairs satisfy the earlier wait-for-parent handoff. Recheck the combined deferred static-tool path rather than assuming that either source closes it.
-- Read KA's pinned `MISSION.md` and the imported `docs/evidence/implementations/mission-5-voice-safety-parity/{donor-behavior-matrix,provenance-blocker,witness-blocker}.md` plus `docs/evidence/design/mission-5-question-marker-and-provenance-decision-2026-09-04.md`. Import their historical evidence without relabelling its tests or witnesses as this candidate's proof. Retain the latest repeated-output-cancellation regression from `db8184b2e6`.
-- Mission 6's accepted authority is [archived](docs/mission-archive/6-resumable-workpiece-petrinaut.md). Its [implementation record](docs/evidence/implementations/fe-1575-resumable-workpiece-petrinaut.md) and `fe-1575-outer-browser-witness-2026-09-04{,-r2}` raw bundles establish the prepared document/workpiece path, not Voice/stopped-entry presentation: the inspected bundles have completed settlements and no recorded Voice origins. Preserve the historical owner close and raw records while correcting current interpretation.
-- Trace `packages/transport-aisdk/src/{index,transcript,ui-stream,client-tool-history}.ts`, website `local-storage-demo/{brunch-panel-transport,use-flue-chat-history,use-crew-reservation-fixture-session,crew-reservation-settled-manifest}.ts`, Petrinaut `ai-assistant-panel.tsx` and mutation helper, and website `voice-interview/{openai-realtime-session,realtime-brunch-bridge,voice-turn-controller,canonical-speech,voice-interview-control}.ts*`. Matching source tests, installed SDK 2.0.3 types and [Flue routing](docs/reference/architecture/flue-routing.md) guide the smallest repair.
+The middleware applies only to `/agents/*` and runs before `agentOwnershipGuard`, so a valid
+preflight does not need conversation headers. It permits `GET`, `POST`, and `OPTIONS`; permits
+`Content-Type`, `x-brunch-principal`, and `x-brunch-conversation`; does not permit credentials; and
+uses a 600-second preflight cache. It exposes the non-safelisted response headers read by the
+installed Flue 2.0.3 and Durable Streams 0.2.6 clients:
 
-### Import and reconciliation boundary
+- `flue-error-ref`
+- `Stream-Next-Offset`
+- `Stream-Cursor`
+- `Stream-Up-To-Date`
+- `Stream-Closed`
+- `stream-sse-data-encoding`
 
-Commit this authority separately, then a credited squashed source import with necessary conflict resolutions recorded, followed by focused reconciliation commits and verification evidence. Retain the existing launcher repair and fixture configuration. Reconcile the hidden question marker with the scoped browser catalogue and identical live/history normalization; a browser mutation cannot become server-executed through a missing catalogue entry. Reconcile deterministic user/tool keys with stable payload ordering, bounded keys, causal per-step result batches and admission outcomes; prefix selection alone is insufficient. Carry source output-insertion failure handling through the actual deferred automatic-tool path and preserve fixture refusal/coherent-bundle feedback in the new Voice presentation.
+Hono's maintained CORS middleware owns header emission, `Vary` handling, and the `OPTIONS` response.
+An unlisted origin may still receive an ordinary HTTP response when it directly sends a request,
+but that response carries no `Access-Control-Allow-Origin`; the browser therefore grants it no
+cross-origin access.
 
 ## Proof
 
-The first milestone is a spoken fixture turn whose browser mutation returns through the shared route and produces canonical audio without duplication. Readiness additionally requires the following discriminators. Existing test locations are relative to their packages; scenario names describe required assertions, not pre-existing test claims. Evidence lives under `docs/evidence/implementations/voice-resumable-reconciliation/`, pinned to the final implementation, source and parent commits.
+This mission establishes the application-side CORS contract required by the deployed browser
+transport. It does **not** establish authentication, authorization, rate limiting, infrastructure
+configuration, a deployed endpoint, or end-to-end remote verification.
 
-1. **Canonical input and explicit half-duplex handoff.** Website `voice-interview/{openai-realtime-session,realtime-brunch-bridge,voice-turn-controller,voice-interview-control}.test.ts*` retain completed keyed transcripts, speech-request-before-audio invalidation, stale/duplicate/boundaryless rejection, queued-output ownership, latest mute preference, acknowledged cancellation and in-flight/repeated-cancel reuse. `voice-preview.integration.test.ts` proves actual shared panel/transport admission once, with model function arguments unable to submit.
-2. **Browser continuations and Stop.** A test mounting the real `AiAssistantPanel` with the Voice bridge holds browser execution/output insertion and continuation at intermediate `ready`, both with preceding canonical prose and without it. Capture and replay must not become available prematurely. Stop before tool execution, during output insertion and before scheduled continuation prevents later work that has not been admitted; already-applied mutations stay inspectable without a rollback claim. Your turn cancels audio without durably aborting admitted Brunch work. Parent regression tests remain green.
-3. **Tools and canonical projection.** Website `local-storage-demo/{brunch-panel-transport,use-flue-chat-history}.test.ts` and transport `test/{ui-stream,transcript}.test.ts` preserve fixture browser tools while hiding only the server marker; normalize the same client input live and from history; and fold continuations without losing surviving Voice origins. `canonical-speech.test.ts` and bridge/controller tests allow exact canonical segments only, seed history without autoplay, gate exact replay until all terminal conditions, and leave question replay disabled for absent/unmatched markers.
-4. **Admission identity and failure.** Transport `test/chat-transport.test.ts` covers exact user retry, cumulative/reordered logical tool-result retries, changed-payload conflict retaining the original submission ID, bounded identity, ambiguous admission without automatic retry and local abort without durable abort. App `test/petrinaut-chat.test.ts`/its built-runtime integration verify deduplicated receipts. Petrinaut `ai-assistant-panel.test.tsx` covers matching per-tool output errors; combined panel/Voice tests cover textless browser-continuation failure. Distinguish input rejection, effect failure/no-op, output insertion rejection and continuation rejection. Partial failure cannot advance the prior coherent bundle or strand ownership.
-5. **Supported reopen.** Transport/history tests reconstruct surviving client-tool Voice origins and each aborted assistant entry from canonical data without browser origin storage. Retain before/after/Tab-B snapshots and rendered stopped-entry evidence, including a later completed response so a global latest-status banner is not mistaken for per-message state. Direct spoken-user attribution has its own gate below.
-6. **Real product/stock coexistence.** Human/browser witness of the demo retains `witness.md`, sanitized `voice-events.jsonl`, `network-routes.json`, canonical snapshots, settlements and commit/hash manifest. Verify original call/result IDs, one target arc, coherent bundle identity, fresh Tab-B continuation, no duplicate mutation/autoplay and same-origin routes. Panel/contents tests and rendered inspection cover compact/expanded Voice, persistent/copyable errors and stock behavior when Brunch is absent/unselected. Actual microphone/audible behavior cannot be claimed from simulation.
-7. **Comparative latency.** Keep KA's gate: ten comparable real-audio donor #9496 trials at `c7fe8a2e68e8fdc37018b21ec2e9daf4e9ef7c82` and ten at the final candidate, same machine/browser/input/model and warm/cold policy, finalized speech to first audible canonical TTS. Candidate median must not regress and p95 regression must be below 20%. Retain raw sanitized samples, method, environment and pins. Earlier diagnostic turns with nearly zero text-to-settlement delay prove no improvement. No paid trials are authorized by this cut; Lu must first approve caller/model, bounded trials, ceiling and accounting owner. Mission 7's budget is unavailable here.
-8. **Repository verification and docs.** Run root Yarn/Turbo `build test:unit lint:tsc lint:eslint` for `@hashintel/brunch-agent`, binding-flue, plugin-sdcpn, transport-aisdk, `@apps/brunch-agent`, `@hashintel/petrinaut`, and `@apps/petrinaut-website`; use narrow package tests first to discriminate failures. Check changed-file formatting, `git diff --check` and `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`. User docs describe exact supported behavior and limits; exactly one source patch changeset covers this PR's published Petrinaut behavior. Report screenshot updates if needed. Prior counts are not a final run.
-
-**Direct-user provenance gate:** SDK 2.0.3's canonical user messages do not expose caller Voice metadata or idempotency keys. Supported signal/tool-result origin reconstruction is not direct-user provenance. The owner witness observed both live Voice chips disappear after Tab-B hydration. Lu explicitly deferred this chip with truthful presentation on 2026-09-07: canonical spoken text survives, but direct spoken-user origin is not claimed after reopen. No local Flue patch, sidecar/signal admission or text encoding is authorized.
-
-**Close:** Lu accepted the narrowed mission claim on 2026-09-07 after the owner witness. The real path and automated evidence passed as recorded; the three deferred claims and evidence-bundle limitation remain visible rather than being counted as proof.
+1. **Configuration is exact and fail-closed.** Missing and blank configuration produce no allowed
+   origins; whitespace, trailing slashes, duplicates, and multiple exact origins normalize
+   deterministically; malformed or broader-than-origin entries fail with the offending variable
+   named. Oracle: focused unit cases in `apps/brunch-agent/test/cors.test.ts`.
+2. **Allowed browser traffic receives the complete grant.** An allowed origin receives its exact
+   value on an `/agents/*` response. Its preflight receives 204 before ownership, the three allowed
+   methods, the three allowed request headers, the six exposed response headers, no credentials
+   grant, and the required `Vary` values. Oracle: in-process Hono requests in
+   `apps/brunch-agent/test/cors.test.ts`.
+3. **Rejected origins receive no grant.** An unlisted origin's preflight and ordinary response omit
+   `Access-Control-Allow-Origin`; an allowed origin does not make another origin pass. Oracle:
+   focused negative cases in `apps/brunch-agent/test/cors.test.ts`.
+4. **The policy cannot widen unrelated routes.** `/health`, `/`, and `/assets/*` carry no Brunch
+   CORS grant. Existing ownership checks still return 401/403 for actual agent requests with
+   missing or mismatched identity. Oracle: CORS route-scope tests plus the existing
+   `apps/brunch-agent/test/agent-ownership.test.ts`.
+5. **The shipped artifact and operator contract agree.** Brunch's README documents the variable,
+   exact-origin examples (`https://demo.petrinaut.org`, `https://petrinaut.stage.hash.ai`, and a
+   selected stable `petrinaut-git-<branch>.stage.hash.ai` alias), empty-list behavior, and the fact
+   that CORS is not authentication. Oracle:
+   `yarn workspace @apps/brunch-agent test:unit`,
+   `yarn workspace @apps/brunch-agent lint:tsc`,
+   `yarn workspace @apps/brunch-agent lint:eslint`, and
+   `yarn workspace @apps/brunch-agent build`.
 
 ## Constraints
 
-- One conversation/log, memoized Flue client, shared `useChat` path-B admission and mounted route. No direct Voice send, separate mutable transcript, simplifier, live `brunch_ask`, or interactive question path. The core marker annotates exact existing prose without accepting answers.
-- Realtime has no tools, `tool_choice: none`, and semantic VAD with `create_response: false`. Normalize completed transcript once in the bridge (trim/Unicode whitespace collapse), then enforce 32,000 code points. Generic panel validation must not mutate that normalized payload.
-- Microphone closes from canonical speech request through queued/playing output, cancellation, pause, error and submission; invalidate unfinished input before sending `response.create`. Fresh capture needs explicit handoff, acknowledged provider cancellation and settled correlated conversation work. Automatic duplex remains rejected because playback can become authoritative user input.
-- Only new durably completed, submission-correlated canonical segments may speak before settlement. Never deltas, unfinished text, reasoning, tool payloads, inferred prose, hydrated history or failed/aborted continuation segments. Exact full-response and marked-question replay remain gated by conversation/output/input terminal conditions; cancellation suppresses queued and later continuation speech.
-- Keep local playback, observation, HTTP cancellation and durable conversation Stop distinct. Stable logical delivery identity plus stable payload ordering yields at most one admission; ambiguous outcomes never auto-retry. Preserve each surviving tool Voice origin independently.
-- Preserve repaired fixture/conversation/document/workpiece identity, canonical browser schemas/callbacks, scoped catalogue, recovery, no-op honesty, prior-coherent-bundle refusal and automatic document persistence. Transient UI/audio state cannot bless durability. No cross-store atomicity or concurrency claim.
-- Preserve KA's authorship and source records. Existing source policy excluding Mission 6 mutation work is superseded only for this explicit combined-path reconciliation; unrelated donor and stakeholder PRs remain untouched. Import source evidence as history, not candidate acceptance.
+- Use Hono's built-in CORS middleware; do not create a parallel HTTP server or hand-maintain generic
+  CORS response logic.
+- Keep one Flue product route and the existing ownership guard. CORS must not add, proxy, rename, or
+  reinterpret an agent route.
+- The origin list is exact. Do not hard-code Petrinaut domains, accept wildcard entries, infer trust
+  from `.stage.hash.ai`, reflect arbitrary `Origin` values, or silently skip malformed entries.
+- Keep credentials disabled. The current browser client uses explicit ownership headers, not
+  cookies, and those headers are not authentication.
+- Answer preflight before ownership while preserving ownership enforcement on every non-preflight
+  agent request.
+- Read configuration once at startup. Dynamic policy storage or hot reload is not earned by this
+  deployment.
+- Preserve local same-origin proxying when the variable is unset.
+- No implementation begins until this authority cut is committed separately. Material changes to
+  this contract require owner review and another focused authority commit.
+
+### Expected touched paths
+
+```text
+~ libs/@hashintel/brunch-agent/MISSION.md      branch authority
++ apps/brunch-agent/src/http/cors.ts           exact-origin parsing and Hono middleware
+~ apps/brunch-agent/src/app.ts                 mount CORS before ownership on /agents/*
++ apps/brunch-agent/test/cors.test.ts          parser, allowed, rejected, preflight, route-scope tests
+~ apps/brunch-agent/README.md                  deployment variable and security boundary
+~ apps/brunch-agent/turbo.json                 pass the variable into the local dev task
+```
 
 ## Fog-line
 
-The source-grounded intermediate-ready hazard may already be reduced by the parent fix; the deferred static-tool path must decide what remains. Output insertion rejection, textless continuation failure, retained idempotency compatibility and cancellation ordering need discriminators before mechanisms. Prefer existing SDK and local mechanisms; no parallel scheduler or generalized state machine merely to name a boundary. Source green suites and a textual merge do not prove these joins.
-
-Question-marker compliance remains a model limitation: missing/unmatched markers disable replay, never justify inference. The real microphone witness passed. Direct-user attribution and comparative latency were explicitly deferred with no corresponding claim. No unobserved evidence may be inferred from owner acceptance.
+- Infrastructure repository access is unavailable in this worktree, so this branch can prove only
+  the application contract. The ECS task definition must supply the chosen origins before remote
+  verification.
+- Exact origins intentionally do not cover every random Vercel deployment URL. Use canonical
+  domains and stable branch aliases; add a one-off random deployment origin only when a named test
+  requires it. Re-enter constrained patterns or a same-origin proxy only if maintaining stable
+  aliases becomes observed operational strain.
+- The allowed and exposed headers are pinned to the installed Flue and Durable Streams clients.
+  Re-evaluate them from client source when either dependency changes.
 
 ## Stop or reorient
 
-Stop if source/parent pins move without inspection, another checkout's work would be disturbed, or the join requires another conversation route/authority, ambiguous automatic retry, rewritten speech, new batch/termination policy, local Flue patch or provenance store. Reorient if half-duplex cannot ensure fresh post-barrier capture, provider acknowledgement cannot bound cancellation, mutations duplicate, Stop allows withheld work to execute, failures disappear, or coherent settlement is falsely reported. Do not manufacture human/latency evidence or hide an unresolved gate to call the base verified.
+Stop if the real browser client emits a request method or non-safelisted request header outside the
+pinned contract, reads another non-safelisted response header, or needs cookie credentials. Bring
+that evidence back to the contract before broadening the grant.
+
+Stop if middleware ordering bypasses ownership for a non-`OPTIONS` request, if an invalid
+configuration widens access or is ignored, if an unlisted origin receives
+`Access-Control-Allow-Origin`, or if `/health`, `/`, or `/assets/*` inherit the policy.
+
+Do not represent a green CORS test as permission for unauthenticated public exposure. Authentication,
+per-conversation authorization, rate/spend controls, and the infrastructure ingress boundary remain
+separate release gates.
 
 ## Deferred
 
-Mission 7 consumes this accepted local reconciliation, not a new Vestera implementation. Amend its departure base and preserve the hidden/server marker versus browser-tool distinction, canonical identity, speech exclusions, causal per-step client results, continuation and cancellation contracts in A2/A3; re-pin the prompt/tool baseline before instrument freeze or paid runs. Its Step B genuine typed/Voice/stopped-entry witness remains necessary over new revision/basis semantics and cannot inherit Mission 6b's scenario evidence as its own.
-
-The [future spine](MISSION.next.md) retains construction/explanation, declared basis, workpiece revision tools, broad projection, orphan-code retirement, concurrent editing, remote durability/deployment and further UX policy changes with their existing owners. Direct-user Voice attribution, post-settlement durable withholding and comparative latency re-enter only under the conditions in the owner witness. The observed verbose negative-control answer and Stop discoverability strain are future UX inputs, not silent passes. Retirement of KA's original PR requires separate authorization. No Linear write is part of this close.
+- SRE-1013 owns injection of the allowlist into the Brunch ECS task. SRE-1042 owns
+  `VITE_BRUNCH_CHAT_ENDPOINT`, Voice deployment variables, and the deployed browser verification
+  after this application contract lands.
+- FE-1615 and FE-1616 retain authentication and rate-limit work. CORS does not discharge either.
+- A same-origin Petrinaut proxy or constrained preview-host pattern re-enters only under observed
+  exact-list maintenance strain.
