@@ -15,6 +15,7 @@ from petrinaut_optimizer_core import (
     suggest,
 )
 from petrinaut_optimizer_core.ask_tell import (
+    UNREPORTED_ATTR,
     best_summary,
     objective_of,
     study_summary,
@@ -246,15 +247,20 @@ def test_cancellation_waits_for_the_trials_in_flight_and_the_study_continues(
     assert settled_early is False
     assert stopped["cancelled"] is True
     assert stopped["completedTrials"] == 0
-    assert stopped["failedTrials"] == 3
+    assert stopped["failedTrials"] == 0
     assert harness.interrupted == []
     assert [event["trial"] for event in harness.events] == [3, 4]
     assert resumed["completedTrials"] == 2
-    assert resumed["failedTrials"] == 3
+    assert resumed["failedTrials"] == 0
     assert resumed["cancelled"] is False
     assert [trial.state for trial in harness.study.get_trials(deepcopy=False)] == [
         TrialState.FAIL
     ] * 3 + [TrialState.COMPLETE] * 2
+    # The stopped trials never produced an event, so the counters skip them
+    # and add up to the trials the loop reported.
+    assert resumed["completedTrials"] + resumed["prunedTrials"] + resumed[
+        "failedTrials"
+    ] == told_trials(harness.study)
 
 
 def test_an_evaluation_error_cancels_and_fails_the_trials_in_flight(
@@ -339,6 +345,9 @@ def test_a_non_finite_objective_ends_the_study(
         harness.run(evaluate)
 
     assert harness.events == []
+    assert [trial.state for trial in harness.study.get_trials(deepcopy=False)] == [
+        TrialState.FAIL
+    ], "the rejected trial is told failed, not left running"
 
 
 def test_cancellation_after_an_evaluate_fails_the_trial_without_an_event(
@@ -356,11 +365,11 @@ def test_cancellation_after_an_evaluate_fails_the_trial_without_an_event(
     assert len(harness.evaluations) == 1
     assert harness.events == []
     assert summary["completedTrials"] == 0
-    assert summary["failedTrials"] == 1
+    assert summary["failedTrials"] == 0
     assert summary["cancelled"] is True
-    assert [trial.state for trial in harness.study.get_trials(deepcopy=False)] == [
-        TrialState.FAIL
-    ]
+    (failed,) = harness.study.get_trials(deepcopy=False)
+    assert failed.state == TrialState.FAIL
+    assert failed.user_attrs == {UNREPORTED_ATTR: True}
 
 
 def test_cancellation_between_trials_keeps_the_told_trials(
@@ -450,3 +459,13 @@ def test_trial_events_and_summary_track_best_and_states(
         "failedTrials": 0,
         "best": third_event["best"],
     }
+
+    # A failure the loop reported counts; one it marked unreported does not.
+    fourth = study.ask()
+    suggest(fourth, description.parameters)
+    study.tell(fourth, state=TrialState.FAIL)
+    fifth = study.ask()
+    suggest(fifth, description.parameters)
+    fifth.set_user_attr(UNREPORTED_ATTR, True)
+    study.tell(fifth, state=TrialState.FAIL)
+    assert study_summary(study)["failedTrials"] == 1

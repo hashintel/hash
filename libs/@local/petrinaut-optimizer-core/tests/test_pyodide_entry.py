@@ -108,16 +108,16 @@ def test_a_stopped_study_continues_from_the_trials_it_holds(
     assert stopped["cancelled"] is True
     assert stopped["requestedTrials"] == 4
     assert stopped["completedTrials"] == 1
-    assert stopped["failedTrials"] == 1
+    assert stopped["failedTrials"] == 0
     assert [event["trial"] for event in events] == [0, 2, 3]
     assert resumed == {
         "requestedTrials": 3,
         "completedTrials": 3,
         "prunedTrials": 0,
-        "failedTrials": 1,
+        "failedTrials": 0,
         "best": events[-1]["best"],
         "cancelled": False,
-    }
+    }, "the stopped trial appears in no counter, so 3 of 3 steps read as finished"
     assert handle.requested == 3
     assert handle.study is not None
     assert [trial.state for trial in handle.study.get_trials(deepcopy=False)] == [
@@ -167,7 +167,7 @@ def test_a_failed_segment_leaves_the_study_resumable_without_over_counting(
         "requestedTrials": 3,
         "completedTrials": 3,
         "prunedTrials": 0,
-        "failedTrials": 1,
+        "failedTrials": 0,
         "best": events[-1]["best"],
         "cancelled": False,
     }

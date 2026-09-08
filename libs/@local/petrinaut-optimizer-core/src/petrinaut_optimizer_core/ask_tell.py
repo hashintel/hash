@@ -68,6 +68,11 @@ def trial_event(study: optuna.Study, trial: FrozenTrial) -> dict[str, Any]:
     }
 
 
+# Set on a trial the loop tells failed without reporting it, at a stop or an
+# error, so the summary's counters skip it as the events did.
+UNREPORTED_ATTR = "petrinaut_unreported"
+
+
 def told_trials(study: optuna.Study) -> int:
     """How many of the study's trials were told an outcome the loop reported: complete or pruned.
 
@@ -82,11 +87,18 @@ def told_trials(study: optuna.Study) -> int:
 
 
 def study_summary(study: optuna.Study) -> dict[str, Any]:
-    states = [trial.state for trial in study.get_trials(deepcopy=False)]
+    """The study's counters and best, over the trials the loop reported."""
+    trials = study.get_trials(deepcopy=False)
+    states = [trial.state for trial in trials]
     return {
         "completedTrials": states.count(TrialState.COMPLETE),
         "prunedTrials": states.count(TrialState.PRUNED),
-        "failedTrials": states.count(TrialState.FAIL),
+        "failedTrials": sum(
+            1
+            for trial in trials
+            if trial.state == TrialState.FAIL
+            and not trial.user_attrs.get(UNREPORTED_ATTR)
+        ),
         "best": best_summary(study),
     }
 
@@ -128,7 +140,8 @@ async def run_study(
     a finite objective nor a pruned marker, and any exception from `evaluate`
     or `on_trial`, ends the study with that error after cancelling the
     evaluations still in flight. Either way, every trial asked and not
-    reported is told failed so the sampler gives it no weight.
+    reported is told failed so the sampler gives it no weight, and marked
+    unreported so the summary's counters skip it as the events did.
     """
     if trials < 1:
         raise ValueError("an optimization run must ask for at least 1 trial")
@@ -145,8 +158,11 @@ async def run_study(
     def tell_settled() -> None:
         while settled:
             trial, outcome = settled.popleft()
+            # Told before it leaves the cleanup list: an outcome the tell
+            # rejects leaves the trial to be failed below, never running.
+            event = _tell(study, trial, outcome)
             del untold[trial.number]
-            on_trial(_tell(study, trial, outcome))
+            on_trial(event)
 
     asked = 0
     cancelled = False
@@ -177,5 +193,6 @@ async def run_study(
         if in_flight:
             await asyncio.gather(*in_flight, return_exceptions=True)
         for trial in untold.values():
+            trial.set_user_attr(UNREPORTED_ATTR, True)
             study.tell(trial, state=TrialState.FAIL)
     return {**study_summary(study), "cancelled": cancelled}
