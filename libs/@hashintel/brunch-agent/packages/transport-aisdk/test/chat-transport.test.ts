@@ -99,6 +99,53 @@ const sendOptions = (
   abortSignal: undefined,
 });
 
+test("forwards opaque initial data on every user submission, never client results", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const initialData = { mode: "test-bound", browser: { incarnationId: "one" } };
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["getLatestNetDefinition"]),
+    initialData,
+  });
+  const user = sendOptions([
+    { id: "user-one", role: "user", parts: [{ type: "text", text: "Hello" }] },
+  ]);
+  await readChunks(await transport.sendMessages(user));
+  await readChunks(await transport.sendMessages(user));
+  expect(send.mock.calls[0]?.[0].initialData).toBe(initialData);
+  expect(send.mock.calls[1]?.[0]).toEqual(send.mock.calls[0]?.[0]);
+  await readChunks(
+    await transport.sendMessages(
+      sendOptions(
+        [
+          {
+            id: "reply",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "getLatestNetDefinition",
+                toolCallId: "read",
+                input: {},
+                state: "output-available",
+                output: {},
+              },
+            ],
+          },
+        ],
+        "reply",
+      ),
+    ),
+  );
+  expect(send.mock.calls[2]?.[0]).not.toHaveProperty("initialData");
+  const ordinary = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+  });
+  await readChunks(await ordinary.sendMessages(user));
+  expect(send.mock.calls[3]?.[0]).not.toHaveProperty("initialData");
+});
+
 test("submits results from the latest assistant step with completed client tools", async () => {
   const { client, send } = clientWith(completedEvents);
   const transport = createFlueChatTransport({

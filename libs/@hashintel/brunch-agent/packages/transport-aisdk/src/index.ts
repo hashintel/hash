@@ -6,6 +6,7 @@ import { serializeErrorText } from "./error-text";
 import { createFlueUiStream } from "./ui-stream";
 
 import type {
+  AgentPromptOptions,
   AgentSendResult,
   ConversationStreamChunk,
   DeliveredMessage,
@@ -65,6 +66,8 @@ export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseM
 
 export interface FlueChatTransportOptions {
   readonly client: FlueClient;
+  /** Opaque host-owned initialization, sent on user submissions only. */
+  readonly initialData?: AgentPromptOptions["initialData"];
   readonly clientToolNames: ReadonlySet<string>;
   readonly validatedClientToolNames?: ReadonlySet<string>;
   readonly clientToolResultMetadata?: (result: ClientToolResult) => unknown;
@@ -479,6 +482,9 @@ export const createFlueChatTransport = <
       admission = await options.client.send({
         idempotencyKey,
         message,
+        ...(messageId === undefined && options.initialData !== undefined
+          ? { initialData: options.initialData }
+          : {}),
         signal: abortSignal,
       });
     } catch (error) {

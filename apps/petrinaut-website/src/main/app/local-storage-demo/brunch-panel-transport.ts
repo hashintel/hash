@@ -312,6 +312,7 @@ export const createBrunchPanelTransport = (
   clientPromise: Promise<FlueClient>,
   tracker: BrunchPanelConversationTracker,
   options?: {
+    readonly initialData?: FlueChatTransportOptions["initialData"];
     /** Fixture-scoped client tools; defaults to the Petrinaut docs reader alone. */
     readonly clientToolNames?: ReadonlySet<string>;
     readonly validatedClientToolNames?: ReadonlySet<string>;
@@ -331,6 +332,9 @@ export const createBrunchPanelTransport = (
         const client = await clientPromise;
         const transport = createFlueChatTransport({
           client,
+          ...(options?.initialData === undefined
+            ? {}
+            : { initialData: options.initialData }),
           clientToolNames: options?.clientToolNames ?? brunchClientToolNames,
           validatedClientToolNames: options?.validatedClientToolNames,
           clientToolResultMetadata: options?.clientToolResultMetadata,
