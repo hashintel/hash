@@ -1,0 +1,144 @@
+diff --git a/dist/agent-execution-store-DvID6-b8.d.mts b/dist/agent-execution-store-DvID6-b8.d.mts
+index 46517de611a8c67a143bfc093847696f780486d2..da5b13d594a2a7ae723e4633a91133ba1dfe83dd 100644
+--- a/dist/agent-execution-store-DvID6-b8.d.mts
++++ b/dist/agent-execution-store-DvID6-b8.d.mts
+@@ -21,6 +21,8 @@ interface ReducedEntryBase {
+ interface ReducedMessageEntry extends ReducedEntryBase {
+   type: 'message';
+   message: AgentMessage;
++  /** FE-1630: private delivery cursor metadata, not model/public content. */
++  deliveryContext?: unknown;
+   attachmentRefs?: Map<string, AttachmentRef>;
+   /**
+    * Validated structured tool output for tool-result entries, distinct from the
+diff --git a/dist/attachment-store-CukHsFkd.d.mts b/dist/attachment-store-CukHsFkd.d.mts
+index 962a56a83c6ccd249dc4741e1c226b6801f2ff23..574b768df7b9ad8489cb79cf8c874dabc3104c36 100644
+--- a/dist/attachment-store-CukHsFkd.d.mts
++++ b/dist/attachment-store-CukHsFkd.d.mts
+@@ -138,6 +138,7 @@ interface UserMessageRecord extends ConversationRecordEnvelope {
+   messageId: string;
+   parentId: string | null;
+   content: CanonicalUserContent[];
++  context?: unknown;
+ }
+ interface SignalRecord extends ConversationRecordEnvelope {
+   type: 'signal';
+@@ -147,6 +148,7 @@ interface SignalRecord extends ConversationRecordEnvelope {
+   tagName?: string;
+   content: string;
+   attributes?: Record<string, string>;
++  context?: unknown;
+ }
+ type AssistantModelInfo = Omit<AssistantMessage, 'role' | 'content' | 'stopReason' | 'errorMessage' | 'timestamp' | 'usage'>;
+ interface AssistantMessageStartedRecord extends ConversationRecordEnvelope {
+diff --git a/dist/conversation-stream-store-CXwRWonS.mjs b/dist/conversation-stream-store-CXwRWonS.mjs
+index 3fa342b27631ffcf2a05f0f8dcf571fc2236e2cd..709ed17cdee9540bb30c82105af3316fd34d0f96 100644
+--- a/dist/conversation-stream-store-CXwRWonS.mjs
++++ b/dist/conversation-stream-store-CXwRWonS.mjs
+@@ -1871,6 +1871,7 @@ var Session = class {
+ 					kind: "signal",
+ 					type: message.type,
+ 					body: message.content,
++					...entry.deliveryContext !== void 0 ? { context: entry.deliveryContext } : {},
+ 					...message.attributes ? { attributes: message.attributes } : {},
+ 					...message.tagName ? { tagName: message.tagName } : {}
+ 				});
+@@ -1883,6 +1884,7 @@ var Session = class {
+ 			this.advanceDelivery({
+ 				kind: "user",
+ 				body,
++				...entry.deliveryContext !== void 0 ? { context: entry.deliveryContext } : {},
+ 				...attachments?.length ? { attachments } : {}
+ 			});
+ 			return;
+@@ -4299,6 +4301,7 @@ var Session = class {
+ 				type: "user_message",
+ 				messageId,
+ 				parentId,
++				...message.context !== void 0 ? { context: message.context } : {},
+ 				content: [{
+ 					type: "text",
+ 					text: message.body
+@@ -4314,6 +4317,7 @@ var Session = class {
+ 			type: "signal",
+ 			messageId,
+ 			parentId,
++			...message.context !== void 0 ? { context: message.context } : {},
+ 			signalType: message.type,
+ 			...message.tagName ? { tagName: message.tagName } : {},
+ 			content: message.body,
+diff --git a/dist/dispatch-nU3cIlT-.mjs b/dist/dispatch-nU3cIlT-.mjs
+index c661b214b2c1e0e33c5fe696e23f44e3ac96a474..abf1d372ef4a9ecbf3121ac698898b3a0d03df42 100644
+--- a/dist/dispatch-nU3cIlT-.mjs
++++ b/dist/dispatch-nU3cIlT-.mjs
+@@ -365,6 +365,7 @@ function applyConversationRecord(state, record) {
+ 				timestamp: record.timestamp,
+ 				submissionId: record.submissionId,
+ 				turnId: record.turnId,
++				...record.context !== void 0 ? { deliveryContext: record.context } : {},
+ 				message: userMessage(record.content, record.timestamp),
+ 				attachmentRefs: attachmentRefs(record.content)
+ 			});
+@@ -377,6 +378,7 @@ function applyConversationRecord(state, record) {
+ 				timestamp: record.timestamp,
+ 				submissionId: record.submissionId,
+ 				turnId: record.turnId,
++				...record.context !== void 0 ? { deliveryContext: record.context } : {},
+ 				message: {
+ 					role: "signal",
+ 					type: record.signalType,
+@@ -2927,15 +2929,33 @@ const DeliveredAttachmentSchema = v.object({
+ 	mimeType: v.string(),
+ 	filename: v.optional(v.string())
+ });
++// FE-1630 local extension: code-facing JSON context, never model content.
++const DeliveredContextSchema = v.pipe(v.unknown(), v.check((input) => {
++	const ancestors = new Set();
++	const isJson = (value) => {
++		if (value === null || typeof value === "string" || typeof value === "boolean") return true;
++		if (typeof value === "number") return Number.isFinite(value);
++		if (typeof value !== "object" || ancestors.has(value)) return false;
++		if (!Array.isArray(value) && Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) return false;
++		if (Object.getOwnPropertySymbols(value).length > 0) return false;
++		ancestors.add(value);
++		const valid = (Array.isArray(value) ? [...value] : Object.values(value)).every(isJson);
++		ancestors.delete(value);
++		return valid;
++	};
++	try { return isJson(input); } catch { return false; }
++}, "Delivered message context must contain only finite, acyclic JSON values."));
+ const DeliveredUserMessageSchema = v.object({
+ 	kind: v.literal("user"),
+ 	body: v.string(),
++	context: v.optional(DeliveredContextSchema),
+ 	attachments: v.optional(v.array(DeliveredAttachmentSchema))
+ });
+ const DeliveredSignalMessageSchema = v.object({
+ 	kind: v.literal("signal"),
+ 	type: v.pipe(v.string(), v.nonEmpty("Signal message \"type\" must not be empty."), v.check((type) => !RESERVED_SIGNAL_TYPES.has(type), (issue) => `Signal type "${issue.input}" is framework-reserved vocabulary (the runtime's own narration and recovery signals) — use an application-specific type.`)),
+ 	body: v.string(),
++	context: v.optional(DeliveredContextSchema),
+ 	attributes: v.optional(v.record(v.string(), v.string())),
+ 	tagName: v.optional(v.pipe(v.string(), v.regex(/^[A-Za-z_][A-Za-z0-9_.-]*$/, "Signal message \"tagName\" must be a valid XML tag name (letters, digits, \"_\", \"-\", \".\"; must not start with a digit, \"-\", or \".\").")))
+ });
+diff --git a/dist/types-CVx9SjIx.d.mts b/dist/types-CVx9SjIx.d.mts
+index 0c9ab2477d44e4df8b60c007f5e04c327abb20c3..78499db37c9e25562aea4b67c1050a197e925421 100644
+--- a/dist/types-CVx9SjIx.d.mts
++++ b/dist/types-CVx9SjIx.d.mts
+@@ -224,12 +224,16 @@ type DeliveredAttachment = PromptImage & {
+ type DeliveredMessage = {
+   kind: 'user';
+   body: string;
++  /** FE-1630 local extension: JSON-only code-facing context; never model text. */
++  context?: unknown;
+   attachments?: DeliveredAttachment[];
+ } | {
+   kind: 'signal';
+   /** Caller-defined event/signal type, e.g. `'slack.message'`. */
+   type: string;
+   body: string;
++  /** FE-1630 local extension: JSON-only code-facing context; never model text. */
++  context?: unknown;
+   attributes?: Record<string, string>;
+   tagName?: string;
+ };

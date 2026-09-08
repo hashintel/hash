@@ -1,0 +1,20 @@
+diff --git a/dist/index.d.mts b/dist/index.d.mts
+index f7292215b2ac4ca3ba27554f316f6b43c0440015..e171bb7bbf4e2e6ae97c622fa19ea4edf95e4c53 100644
+--- a/dist/index.d.mts
++++ b/dist/index.d.mts
+@@ -473,11 +473,15 @@ interface DeliveredAttachment {
+ type DeliveredMessage = {
+   kind: 'user';
+   body: string;
++  /** FE-1630 local extension: JSON-only code-facing context; never model text. */
++  context?: unknown;
+   attachments?: DeliveredAttachment[];
+ } | {
+   kind: 'signal';
+   type: string;
+   body: string;
++  /** FE-1630 local extension: JSON-only code-facing context; never model text. */
++  context?: unknown;
+   attributes?: Record<string, string>;
+   tagName?: string;
+ };
