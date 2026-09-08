@@ -1,13 +1,14 @@
 import { PETRINAUT_OPTIMIZATION_MAX_SEED } from "@hashintel/petrinaut-core/optimization";
 
 /**
- * A fresh study seed. Every study used to share one fixed seed, so two studies
- * over different models drew the same normalized positions for their random
- * start-up steps and painted the same surface. A draw per form keeps a study
- * reproducible through the field while making studies differ by default.
+ * A fresh study seed, drawn per form so studies differ by default while a
+ * study stays reproducible through the field. The seed range is a power of
+ * two, so reducing a uniform 32-bit draw into it leaves every value in
+ * 0..PETRINAUT_OPTIMIZATION_MAX_SEED equally likely.
  */
 export const randomOptimizationSeed = (): number =>
-  Math.floor(Math.random() * (PETRINAUT_OPTIMIZATION_MAX_SEED + 1));
+  crypto.getRandomValues(new Uint32Array(1))[0]! %
+  (PETRINAUT_OPTIMIZATION_MAX_SEED + 1);
 
 export const isValidOptimizationSeed = (seed: number | null): seed is number =>
   seed !== null &&

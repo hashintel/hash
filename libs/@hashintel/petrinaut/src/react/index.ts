@@ -82,16 +82,12 @@ export {
   OptimizationsContext,
 } from "./optimizations/context";
 export type {
-  CreateOptimizationOptions,
   OptimizationBest,
   OptimizationConnectionState,
-  OptimizationNavigation,
   OptimizationRecord,
-  OptimizationSelectionStream,
   OptimizationStatus,
   OptimizationsContextValue,
 } from "./optimizations/context";
-export { useOptimizationSource } from "./optimizations/use-optimization-source";
 export {
   ExperimentsActionsContext,
   ExperimentsContext,
@@ -99,12 +95,6 @@ export {
 } from "./experiments/context";
 export type {
   CreateExperimentInput,
-  DetachedObjectiveRequest,
-  DetachedObjectiveRun,
-  DetachedObjectiveRunOutcome,
-  DetachedObjectiveRunRequest,
-  DetachedObjectiveRunResult,
-  ExperimentComputeBackend,
   ExperimentRecord,
   ExperimentsActionsValue,
   ExperimentStatus,

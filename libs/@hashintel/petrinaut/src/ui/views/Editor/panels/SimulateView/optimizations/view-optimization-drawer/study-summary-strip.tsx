@@ -1,15 +1,16 @@
 /**
- * A connected study's summary as one strip: status, steps finished over
- * requested, the best value so far and the backend the steps run on, with
- * the progress bars and the "N computing" chip beneath — the steps bar over
- * the followed step's runs — then the fallback note and the error when there
- * is one.
+ * A study's summary as one strip: status, steps finished over requested and
+ * the best value so far, with the steps bar beneath and the error when there
+ * is one. A connected study adds the backend its steps run on, the followed
+ * step's runs under the steps bar, the "N computing" chip and the fallback
+ * note.
  */
 import { Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ComputeActivity } from "../../shared/compute-activity";
 import { ComputeBackendBadge } from "../../shared/compute-backend-badge";
+import { formatNumber, formatParameters } from "../../shared/format-value";
 import {
   SummaryStat,
   SummaryStatusDot,
@@ -17,7 +18,6 @@ import {
   SummaryStrip,
 } from "../../shared/summary-strip";
 import { describeOptimizationStatus } from "../optimization-status";
-import { formatNumber, formatParameters } from "./shared/format-value";
 import {
   activityBatches,
   finishedStepCount,
@@ -65,17 +65,16 @@ export const describeStepProgress = (
     | "prunedTrials"
     | "failedTrials"
     | "requestedTrials"
-    | "parallelism"
+    | "connected"
     | "input"
   >,
 ): string => {
   const runsPerStep = optimization.input.execution.seedsPerTrial ?? 1;
+  const parallelism = optimization.connected?.parallelism ?? 1;
   return [
     `${finishedStepCount(optimization)} / ${optimization.requestedTrials}`,
     ...(runsPerStep > 1 ? [`${runsPerStep} runs each`] : []),
-    ...(optimization.parallelism > 1
-      ? [`${optimization.parallelism} at once`]
-      : []),
+    ...(parallelism > 1 ? [`${parallelism} at once`] : []),
   ].join(" · ");
 };
 
@@ -84,11 +83,25 @@ export const StudySummaryStrip = ({
 }: {
   optimization: OptimizationRecord;
 }) => {
+  const { connected } = optimization;
   const status = describeOptimizationStatus(optimization);
+  const fallbackReason = connected?.computeBackendFallbackReason ?? null;
 
   return (
     <div className={stripSectionStyle}>
-      <SummaryStrip trailing={<ComputeBackendBadge backend={optimization} />}>
+      <SummaryStrip
+        trailing={
+          connected ? (
+            <ComputeBackendBadge
+              backend={{
+                computeBackend: optimization.computeBackend,
+                computeBackendFallbackReason:
+                  connected.computeBackendFallbackReason,
+              }}
+            />
+          ) : undefined
+        }
+      >
         <SummaryStat label="Status" minChars={STATUS_CHARS}>
           <SummaryStatusDot tone={STATUS_TONE[optimization.status]} />
           {status}
@@ -125,12 +138,10 @@ export const StudySummaryStrip = ({
       <ComputeActivity
         bar={stepsBar(optimization)}
         secondaryBar={followedStepBar(optimization)}
-        batches={activityBatches(optimization)}
+        batches={activityBatches(connected)}
       />
-      {optimization.computeBackendFallbackReason === null ? null : (
-        <span className={noteStyle}>
-          Ran on the CPU: {optimization.computeBackendFallbackReason}
-        </span>
+      {fallbackReason === null ? null : (
+        <span className={noteStyle}>Ran on the CPU: {fallbackReason}</span>
       )}
       {optimization.error ? (
         <span className={errorStyle}>{optimization.error}</span>

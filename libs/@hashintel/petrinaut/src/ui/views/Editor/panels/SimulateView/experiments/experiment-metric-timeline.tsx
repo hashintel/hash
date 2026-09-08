@@ -10,6 +10,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import "uplot/dist/uPlot.min.css";
 
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
+import { formatFixed } from "../shared/format-value";
 import { FramePopover } from "./experiment-metric-timeline/frame-popover";
 import { distributionBandLegend } from "./experiment-metric-timeline/shared/distribution-bands";
 import { TimelineControls } from "./experiment-metric-timeline/timeline-controls";
@@ -19,7 +20,6 @@ import {
   deriveMetricViewState,
   selectedFrameFrom,
 } from "./experiment-metric-timeline/view-state";
-import { formatNumber } from "./shared/format-number";
 
 import type { MetricFrame } from "./experiment-metric-timeline/shared/metric-frames";
 import type { FrameSelection } from "./experiment-metric-timeline/view-state";
@@ -268,7 +268,7 @@ export const ExperimentMetricTimeline = ({
         <div className={aggregateNumberStyle} style={plotSizeStyle}>
           {view.aggregateNumber === null
             ? "n/a"
-            : formatNumber(view.aggregateNumber)}
+            : formatFixed(view.aggregateNumber)}
         </div>
       ) : (
         <div className={chartFrameStyle}>

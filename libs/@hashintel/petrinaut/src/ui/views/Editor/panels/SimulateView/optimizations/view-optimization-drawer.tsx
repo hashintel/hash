@@ -4,16 +4,15 @@ import { Button, Drawer, HelpTooltip, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
+  type ConnectedStudyState,
   isOptimizationActive,
   type OptimizationNavigation,
   type OptimizationRecord,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
-import { optimizationBooleanIdentifiers } from "../../../../../../react/optimizations/surface-grid";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { Section, SectionList } from "../../../../../components/section";
-import { ComputeActivity } from "../shared/compute-activity";
-import { describeOptimizationStatus } from "./optimization-status";
+import { formatScalar } from "../shared/format-value";
 import {
   NavigatedOptimizationSurface,
   OptimizationSurface,
@@ -22,65 +21,10 @@ import {
   ContinueControl,
   remainingOptimizationSteps,
 } from "./view-optimization-drawer/continue-control";
+import { NavigatorBand } from "./view-optimization-drawer/navigator-band";
 import { OptimizationMetrics } from "./view-optimization-drawer/optimization-metrics";
-import {
-  OptimizationNavigator,
-  OptimizationNavigatorStatus,
-} from "./view-optimization-drawer/optimization-navigator";
-import {
-  formatNumber,
-  formatScalar,
-} from "./view-optimization-drawer/shared/format-value";
-import {
-  activityBatches,
-  finishedStepCount,
-  followedStepBar,
-  stepsBar,
-} from "./view-optimization-drawer/shared/study-progress";
 import { StepsTable } from "./view-optimization-drawer/steps-table";
 import { StudySummaryStrip } from "./view-optimization-drawer/study-summary-strip";
-
-const summaryStyle = css({
-  marginTop: "-1",
-  marginBottom: "3",
-});
-
-const summaryGridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: "3",
-});
-
-const statStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  minWidth: "[0]",
-});
-
-const statLabelStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s80",
-});
-
-const statValueStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-const activityStyle = css({
-  marginTop: "4",
-});
-
-const errorStyle = css({
-  fontSize: "sm",
-  color: "red.s100",
-  whiteSpace: "pre-wrap",
-});
 
 // The drawer body is a column: the summary, the navigator and the surface
 // hold still at the top, and one region below them scrolls.
@@ -187,9 +131,6 @@ const bestParameterValueStyle = css({
   whiteSpace: "nowrap",
 });
 
-const PARAMETERS_HELP =
-  "The chart beside the surface shows the objective at this point. While the study runs and Follow steps is on, the point follows each step as it is evaluated and the controls only show it; turn Follow steps off, or wait for the study to finish, to move them and look elsewhere.";
-
 const SURFACE_HELP =
   "The objective over two optimized parameters, drawn from the study's own steps: each step is a dot, the best emphasized, pruned steps hollow, and the field is interpolated between them. The ringed dot is the step being evaluated, filling in as it runs; once the study is over, or Follow steps is off, click or drag the plot to refine a point.";
 
@@ -205,68 +146,6 @@ const describeStudy = (optimization: OptimizationRecord): string => {
   const direction =
     input.objective.direction === "maximize" ? "Maximize" : "Minimize";
   return `${scenario?.name ?? input.scenario.id} · ${direction} ${metric?.name ?? input.objective.metricId}`;
-};
-
-const OptimizationSummary = ({
-  optimization,
-}: {
-  optimization: OptimizationRecord;
-}) => {
-  const finishedSteps = finishedStepCount(optimization);
-  const seedsPerTrial = optimization.input.execution.seedsPerTrial ?? 1;
-
-  return (
-    <div className={summaryStyle}>
-      <div className={summaryGridStyle}>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Status</span>
-          <span className={statValueStyle}>
-            {describeOptimizationStatus(optimization)}
-            {optimization.connectionState === "reconnecting"
-              ? " (reconnecting…)"
-              : ""}
-          </span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Steps</span>
-          <span className={statValueStyle}>
-            {finishedSteps} / {optimization.requestedTrials}
-            {seedsPerTrial > 1 ? ` · ${seedsPerTrial} runs each` : ""}
-            {optimization.parallelism > 1
-              ? ` · ${optimization.parallelism} at once`
-              : ""}
-          </span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Best value</span>
-          <span className={statValueStyle}>
-            {optimization.best
-              ? formatNumber(optimization.best.objective)
-              : "—"}
-          </span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Failed / pruned</span>
-          <span className={statValueStyle}>
-            {optimization.failedTrials} / {optimization.prunedTrials}
-          </span>
-        </div>
-      </div>
-      <div className={activityStyle}>
-        <ComputeActivity
-          bar={stepsBar(
-            optimization,
-            `Steps · ${finishedSteps} / ${optimization.requestedTrials}`,
-          )}
-          secondaryBar={followedStepBar(optimization)}
-          batches={activityBatches(optimization)}
-        />
-      </div>
-      {optimization.error ? (
-        <span className={errorStyle}>{optimization.error}</span>
-      ) : null}
-    </div>
-  );
 };
 
 const BestParametersSection = ({
@@ -296,7 +175,7 @@ const BestParametersSection = ({
     </Section>
   ) : null;
 
-/** A study run elsewhere: results only, plus the experimental surface. */
+/** A study run elsewhere: the summary strip and the results, plus the experimental surface. */
 const RemoteStudySections = ({
   optimization,
 }: {
@@ -308,14 +187,9 @@ const RemoteStudySections = ({
 
   return (
     <>
-      <Section
-        title="Summary"
-        collapsible
-        defaultOpen
-        className={fixedSectionStyle}
-      >
-        <OptimizationSummary optimization={optimization} />
-      </Section>
+      <div className={fixedSectionStyle}>
+        <StudySummaryStrip optimization={optimization} />
+      </div>
       <BestParametersSection optimization={optimization} />
       {surfaceEligible ? (
         <Section
@@ -353,10 +227,10 @@ const RemoteStudySections = ({
  */
 const ConnectedStudySections = ({
   optimization,
-  navigation,
+  connected,
 }: {
   optimization: OptimizationRecord;
-  navigation: OptimizationNavigation;
+  connected: ConnectedStudyState;
 }) => {
   const { setOptimizationNavigation } = use(OptimizationsContext);
   const onNavigationChange = (patch: Partial<OptimizationNavigation>) =>
@@ -368,41 +242,18 @@ const ConnectedStudySections = ({
       <div className={fixedSectionStyle}>
         <StudySummaryStrip optimization={optimization} />
       </div>
-      <Section
-        title="Parameters"
-        tooltip={PARAMETERS_HELP}
-        className={fixedSectionStyle}
-        renderHeaderAction={() => (
-          <OptimizationNavigatorStatus
-            navigation={navigation}
-            selection={optimization.selection}
-            running={running}
-            onNavigationChange={onNavigationChange}
-          />
-        )}
-        // Not collapsible: the navigator stays usable while the plots
-        // beside each other stream.
-        renderStickyBand={() => (
-          <OptimizationNavigator
-            axes={optimization.axes}
-            booleanParameters={optimizationBooleanIdentifiers(
-              optimization.input,
-            )}
-            navigation={navigation}
-            running={running}
-            onNavigationChange={onNavigationChange}
-          />
-        )}
-      >
-        {null}
-      </Section>
+      <NavigatorBand
+        optimization={optimization}
+        connected={connected}
+        running={running}
+        onNavigationChange={onNavigationChange}
+      />
       <div className={panesStyle}>
         {optimization.axes.length >= 2 ? (
           <NavigatedOptimizationSurface
             key={`surface-${optimization.id}`}
             optimization={optimization}
-            navigation={navigation}
-            selection={optimization.selection}
+            connected={connected}
             onNavigationChange={onNavigationChange}
             controls={<HelpTooltip content={SURFACE_HELP} />}
           />
@@ -412,7 +263,7 @@ const ConnectedStudySections = ({
         <OptimizationMetrics
           key={`metrics-${optimization.id}`}
           optimization={optimization}
-          selection={optimization.selection}
+          selection={connected.selection}
         />
       </div>
       <div className={connectedStepsStyle}>
@@ -447,7 +298,7 @@ export const ViewOptimizationDrawer = ({
   }
 
   const active = isOptimizationActive(optimization);
-  const connected = optimization.navigation !== null;
+  const { connected } = optimization;
 
   return (
     <Drawer
@@ -462,10 +313,10 @@ export const ViewOptimizationDrawer = ({
       />
       <Drawer.Body className={drawerBodyStyle}>
         <SectionList>
-          {optimization.navigation ? (
+          {connected ? (
             <ConnectedStudySections
               optimization={optimization}
-              navigation={optimization.navigation}
+              connected={connected}
             />
           ) : (
             <RemoteStudySections optimization={optimization} />
@@ -500,7 +351,7 @@ export const ViewOptimizationDrawer = ({
                 {connected ? "Stop" : "Cancel"}
               </Button>
             ) : null}
-            {optimization.resumable ? (
+            {connected?.resumable ? (
               <ContinueControl
                 // Reset with the segment, so the count starts fresh after
                 // each continuation.

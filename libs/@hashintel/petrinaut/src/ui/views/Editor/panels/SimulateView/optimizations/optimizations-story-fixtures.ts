@@ -26,11 +26,11 @@ import type {
 } from "../../../../../../react/experiments/context";
 import type { SweepCellSnapshot } from "../../../../../../react/experiments/sweep-session";
 import type {
-  OptimizationBatchStatus,
+  ConnectedStudyState,
   OptimizationBest,
-  OptimizationInFlightStep,
   OptimizationNavigation,
   OptimizationRecord,
+  OptimizationsContextValue,
   OptimizationSelectionStream,
   OptimizationStatus,
 } from "../../../../../../react/optimizations/context";
@@ -249,21 +249,52 @@ export function makeTrials(
   return { trials, best };
 }
 
+/** The navigation a connected study starts with: every axis at its midpoint, following. */
+export function initialNavigation(
+  input: PetrinautOptimizationInput,
+): OptimizationNavigation {
+  return {
+    positions: Object.fromEntries(
+      buildOptimizationSurfaceAxes(input).map((axis) => [
+        axis.identifier,
+        Math.round(axis.stepCount / 2),
+      ]),
+    ),
+    booleans: Object.fromEntries(
+      optimizationBooleanIdentifiers(input).map((identifier) => [
+        identifier,
+        false,
+      ]),
+    ),
+    followTrials: true,
+  };
+}
+
+/** A connected study's local state: idle at the initial navigation unless overridden. */
+export function makeConnectedStudyState(
+  input: PetrinautOptimizationInput,
+  overrides: Partial<ConnectedStudyState> = {},
+): ConnectedStudyState {
+  return {
+    navigation: initialNavigation(input),
+    selection: null,
+    activity: [],
+    inFlight: [],
+    resumable: false,
+    parallelism: 1,
+    computeBackendFallbackReason: null,
+    ...overrides,
+  };
+}
+
 export function makeOptimizationRecord(options: {
   input: PetrinautOptimizationInput;
   trials?: readonly PetrinautOptimizationTrialEvent[];
   best?: OptimizationBest | null;
   status?: OptimizationStatus;
   computeBackend?: ExperimentComputeBackend;
-  computeBackendFallbackReason?: string | null;
-  /** Set for a connected study; a remote study has neither. */
-  navigation?: OptimizationNavigation | null;
-  selection?: OptimizationSelectionStream | null;
-  /** Whether the study can be continued; a settled connected study by default. */
-  resumable?: boolean;
-  parallelism?: number;
-  activity?: readonly OptimizationBatchStatus[];
-  inFlight?: readonly OptimizationInFlightStep[];
+  /** The local state of a connected study; a remote study has none. */
+  connected?: ConnectedStudyState | null;
 }): OptimizationRecord {
   const {
     input,
@@ -271,14 +302,7 @@ export function makeOptimizationRecord(options: {
     best = null,
     status = "running",
     computeBackend = "cpu",
-    computeBackendFallbackReason = null,
-    navigation = null,
-    selection = null,
-    resumable = navigation !== null &&
-      (status === "complete" || status === "cancelled"),
-    parallelism = 1,
-    activity = [],
-    inFlight = [],
+    connected = null,
   } = options;
   return {
     id: "optimization-story-1",
@@ -298,15 +322,29 @@ export function makeOptimizationRecord(options: {
     failedTrials: trials.filter((trial) => trial.state === "failed").length,
     trials,
     best,
-    resumable,
-    parallelism,
     computeBackend,
-    computeBackendFallbackReason,
     axes: buildOptimizationSurfaceAxes(input),
-    navigation,
-    selection,
-    activity,
-    inFlight,
+    connected,
+  };
+}
+
+/** An optimizations context holding one selected record, with inert actions unless overridden. */
+export function makeOptimizationsContextValue(
+  optimization: OptimizationRecord,
+  overrides: Partial<OptimizationsContextValue> = {},
+): OptimizationsContextValue {
+  return {
+    optimizations: [optimization],
+    selectedOptimizationId: optimization.id,
+    selectedOptimization: optimization,
+    setSelectedOptimizationId: () => {},
+    createOptimization: () => Promise.resolve(optimization.id),
+    cancelOptimization: () => {},
+    removeOptimization: () => {},
+    extendOptimization: () => Promise.resolve(),
+    setOptimizationNavigation: () => {},
+    retryOptimization: () => Promise.resolve(null),
+    ...overrides,
   };
 }
 

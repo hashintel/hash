@@ -3,6 +3,7 @@ import {
   mergeMetricFramesAcrossCells,
 } from "../../experiments/parameter-grid";
 import { sweepBatchSeed } from "../../experiments/sweep-session";
+import { POINT_REFINEMENT_MAX_RUNS } from "../context";
 import {
   estimateObjective,
   shouldStopRefining,
@@ -18,9 +19,6 @@ import type { OptimizationSelectionStream } from "../context";
 import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
 
 export { shouldStopRefining } from "./point-refinement/objective-estimate";
-
-/** The most runs the selected point is refined to. */
-export const POINT_REFINEMENT_MAX_RUNS = 100;
 
 /** The study fields every refinement batch shares. */
 export type PointRefinementStudy = Pick<

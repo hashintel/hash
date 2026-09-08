@@ -30,7 +30,7 @@ import { surfacePositions } from "../../shared/surface-sampling";
 
 import type {
   OptimizationBest,
-  OptimizationInFlightStep,
+  OptimizationInFlightTrial,
   OptimizationNavigation,
   OptimizationRecord,
   OptimizationSelectionStream,
@@ -131,7 +131,7 @@ export const trialSurfaceField = ({
 };
 
 /**
- * The steps being evaluated, projected onto the shown axes: each is a ring
+ * The trials being evaluated, projected onto the shown axes: each is a ring
  * where the optimizer is looking, and one with a running objective is a
  * sample of the field too, so the surface fills in as its runs complete.
  */
@@ -140,15 +140,15 @@ export const inFlightSurfaceField = ({
   xAxis,
   yAxis,
 }: {
-  inFlight: readonly OptimizationInFlightStep[];
+  inFlight: readonly OptimizationInFlightTrial[];
   xAxis: OptimizationSurfaceAxis;
   yAxis: OptimizationSurfaceAxis;
 }): TrialSurfaceField => {
   const values = new Map<string, number>();
   const markers: ContourSurfaceMarker[] = [];
-  for (const step of inFlight) {
-    const xValue = step.parameters[xAxis.identifier];
-    const yValue = step.parameters[yAxis.identifier];
+  for (const trial of inFlight) {
+    const xValue = trial.parameters[xAxis.identifier];
+    const yValue = trial.parameters[yAxis.identifier];
     if (typeof xValue !== "number" || typeof yValue !== "number") {
       continue;
     }
@@ -160,8 +160,8 @@ export const inFlightSurfaceField = ({
       yAxis,
       optimizationAxisPositionFor(yAxis, yValue),
     );
-    if (step.objective !== null) {
-      values.set(contourSurfaceKey(x, y), step.objective);
+    if (trial.objective !== null) {
+      values.set(contourSurfaceKey(x, y), trial.objective);
     }
     markers.push({ x, y, kind: "point" });
   }

@@ -1,3 +1,5 @@
+import { createReadableStore } from "@hashintel/petrinaut-core";
+
 import type {
   DetachedObjectiveRun,
   DetachedObjectiveRunOutcome,
@@ -9,36 +11,14 @@ import type {
   MonteCarloWorkerProgress,
 } from "@hashintel/petrinaut-core";
 
-type Store<T> = {
-  get(): T;
-  set(value: T): void;
-  subscribe(listener: (value: T) => void): () => void;
-};
-
-const createStore = <T>(initial: T): Store<T> => {
-  let current = initial;
-  const listeners = new Set<(value: T) => void>();
-  return {
-    get: () => current,
-    set: (value) => {
-      current = value;
-      for (const listener of listeners) {
-        listener(value);
-      }
-    },
-    subscribe: (listener) => {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-  };
-};
-
 export type FakeDetachedObjectiveRun = {
   request: DetachedObjectiveRunRequest;
-  frames: Store<readonly MonteCarloUserDefinedMetricFrame[]>;
-  progress: Store<MonteCarloWorkerProgress | null>;
+  frames: ReturnType<
+    typeof createReadableStore<readonly MonteCarloUserDefinedMetricFrame[]>
+  >;
+  progress: ReturnType<
+    typeof createReadableStore<MonteCarloWorkerProgress | null>
+  >;
   run: DetachedObjectiveRun;
   cancelled: boolean;
   settle: (outcome: DetachedObjectiveRunOutcome) => void;
@@ -60,8 +40,10 @@ export const createFakeDetachedObjectiveRuns = () => {
   const runDetachedObjective = (
     request: DetachedObjectiveRunRequest,
   ): DetachedObjectiveRun => {
-    const frames = createStore<readonly MonteCarloUserDefinedMetricFrame[]>([]);
-    const progress = createStore<MonteCarloWorkerProgress | null>(null);
+    const frames = createReadableStore<
+      readonly MonteCarloUserDefinedMetricFrame[]
+    >([]);
+    const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
     const { promise, resolve } =
       Promise.withResolvers<DetachedObjectiveRunOutcome>();
     const entry: FakeDetachedObjectiveRun = {

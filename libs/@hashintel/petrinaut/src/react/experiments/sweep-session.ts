@@ -32,9 +32,9 @@ import {
   mergeMetricFramesAcrossCells,
   normalizeSweepSelection,
 } from "./parameter-grid";
+import { type BatchStatus, createBatchRegistry } from "./shared/batch-registry";
 import { createThrottle } from "./shared/throttle";
 import { sweepCellObjective } from "./sweep-cell-objective";
-import { createBatchRegistry } from "./sweep-session/batch-registry";
 import {
   groupCellMeans,
   layoutCellBatch,
@@ -49,7 +49,6 @@ import {
 } from "./sweep-session/selection-draws";
 
 import type { ExperimentParameterAxis, SweepSelection } from "./parameter-grid";
-import type { SweepBatchStatus } from "./sweep-session/batch-registry";
 import type { SweepRunDraws } from "./sweep-session/selection-draws";
 import type {
   ExperimentCompletion,
@@ -59,9 +58,24 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 export type { SweepSelection } from "./parameter-grid";
-export type { SweepBatchStatus } from "./sweep-session/batch-registry";
 export { sweepBatchSeed } from "./sweep-session/selection-draws";
 export type { SweepRunDraws } from "./sweep-session/selection-draws";
+
+/**
+ * "selection" is the navigator's own ladder — the priority work; "surface"
+ * is a contour chunk; "refine" is a single cell brought up to depth.
+ * Selection batches sort first.
+ */
+export type SweepBatchKind = "selection" | "surface" | "refine";
+
+const SWEEP_BATCH_KIND_ORDER: readonly SweepBatchKind[] = [
+  "selection",
+  "surface",
+  "refine",
+];
+
+/** One batch currently computing, for the host's activity display. */
+export type SweepBatchStatus = BatchStatus<{ kind: SweepBatchKind }>;
 
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === "AbortError";
@@ -261,7 +275,13 @@ export function createSweepSession(
   const isForegroundComputing = (): boolean =>
     computingGeneration === generation;
 
-  const registry = createBatchRegistry(options.onBatches ?? (() => {}));
+  const registry = createBatchRegistry<
+    SweepBatchKind,
+    { kind: SweepBatchKind }
+  >({
+    kindOrder: SWEEP_BATCH_KIND_ORDER,
+    onPublish: options.onBatches ?? (() => {}),
+  });
 
   const snapshotFor = (key: string): SweepCellSnapshot =>
     cache.get(key) ?? { runsCompleted: 0, metricFrames: [] };
@@ -509,7 +529,11 @@ export function createSweepSession(
     };
 
     handle.start();
-    const unregister = registry.register("selection", target - from, handle);
+    const unregister = registry.register(
+      { kind: "selection" },
+      target - from,
+      handle.progress,
+    );
     void done.then(unregister);
 
     return {
@@ -735,9 +759,9 @@ export function createSweepSession(
     }
 
     const unregister = registry.register(
-      "refine",
+      { kind: "refine" },
       target - snapshot.runsCompleted,
-      handle,
+      handle.progress,
     );
     backgroundHandles.add(handle);
     const { event, frames } = await runExperimentToCompletion(handle);
@@ -801,7 +825,11 @@ export function createSweepSession(
 
     const means = (results: ExperimentCompletion["runResults"]) =>
       groupCellMeans(results, positions.length, runsPerCell);
-    const unregister = registry.register("surface", runSeeds.length, handle);
+    const unregister = registry.register(
+      { kind: "surface" },
+      runSeeds.length,
+      handle.progress,
+    );
     backgroundHandles.add(handle);
     const { event, runResults } = await runExperimentToCompletion(handle, {
       // CPU workers report per-run values as each shard completes, so a

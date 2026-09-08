@@ -44,6 +44,7 @@ const trialRequest = (
 const setup = () => {
   const fake = createFakeDetachedObjectiveRuns();
   const study: OptimizationChannelStudy = {
+    cacheKey: "run-1",
     computeBackend: "webgpu",
     trialStarted: vi.fn(),
     trialSettled: vi.fn(),
@@ -89,11 +90,6 @@ describe("createOptimizationChannel", () => {
     await expect(outcome).resolves.toEqual({
       kind: "objective",
       objective: 0.25,
-      replicates: [
-        { seed: 1, objective: 0.5 },
-        { seed: 2, objective: 0.25 },
-        { seed: 3, objective: 0 },
-      ],
     });
     expect(study.trialSettled).toHaveBeenCalledWith(0, result);
   });

@@ -25,8 +25,8 @@ import { ExperimentsActionsContext } from "../../../../../../react/experiments/c
 import { distributionStats } from "../../../../../../react/experiments/distribution-stats";
 import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
 import { sweepCellObjective } from "../../../../../../react/experiments/sweep-cell-objective";
+import { POINT_REFINEMENT_MAX_RUNS } from "../../../../../../react/optimizations/context";
 import {
-  buildOptimizationSurfaceAxes,
   optimizationAxisValueAt,
   optimizationBooleanIdentifiers,
 } from "../../../../../../react/optimizations/surface-grid";
@@ -62,14 +62,11 @@ import { useStudySurfaceWalk } from "./optimization-surface/use-study-surface-wa
 
 import type { DistributionStats } from "../../../../../../react/experiments/distribution-stats";
 import type {
+  ConnectedStudyState,
   OptimizationNavigation,
   OptimizationRecord,
-  OptimizationSelectionStream,
 } from "../../../../../../react/optimizations/context";
 import type { OptimizationSurfaceAxis } from "../../../../../../react/optimizations/surface-grid";
-
-/** Ladder cap for the selected point's local refinement. */
-const SELECTED_POINT_MAX_RUNS = 100;
 
 const sliderRowStyle = css({
   display: "flex",
@@ -120,8 +117,7 @@ export const OptimizationSurface = ({
   optimization: OptimizationRecord;
 }) => {
   const { sampleDetachedObjective } = use(ExperimentsActionsContext);
-  const input = optimization.input;
-  const axes = buildOptimizationSurfaceAxes(input);
+  const { input, axes } = optimization;
   const metricId = input.objective.metricId;
   const objectiveMetric = input.model.definition.metrics?.find(
     (metric) => metric.id === metricId,
@@ -174,12 +170,11 @@ export const OptimizationSurface = ({
   // The selected point's refinement: escalating batches, streaming the
   // objective's mean/median into the readout and refreshing its grid cell.
   useEffect(() => {
-    // Only the study's identity and input drive the refinement; streamed
-    // trials replace the record without restarting it.
+    // Only the study's identity, input and axes drive the refinement;
+    // streamed trials replace the record without restarting it.
     const study = { id: optimizationId, input };
-    const walkAxes = buildOptimizationSurfaceAxes(input);
-    const walkXAxis = walkAxes.find((axis) => axis.identifier === xAxisId);
-    const walkYAxis = walkAxes.find((axis) => axis.identifier === yAxisId);
+    const walkXAxis = axes.find((axis) => axis.identifier === xAxisId);
+    const walkYAxis = axes.find((axis) => axis.identifier === yAxisId);
     const walkMetricId = input.objective.metricId;
     if (!walkXAxis || !walkYAxis || walkXAxis === walkYAxis) {
       return;
@@ -195,14 +190,14 @@ export const OptimizationSurface = ({
 
     const run = async () => {
       for (const target of EXPERIMENT_RUN_LADDER) {
-        if (target > SELECTED_POINT_MAX_RUNS) {
+        if (target > POINT_REFINEMENT_MAX_RUNS) {
           return;
         }
         const snapshot = await sampleStudyCell({
           sampleDetachedObjective,
           cache: cellCacheRef.current,
           optimization: study,
-          axes: walkAxes,
+          axes,
           xAxisId,
           yAxisId,
           slice,
@@ -234,6 +229,7 @@ export const OptimizationSurface = ({
   }, [
     optimizationId,
     input,
+    axes,
     xAxisId,
     yAxisId,
     slice,
@@ -331,21 +327,19 @@ export const OptimizationSurface = ({
 
 export const NavigatedOptimizationSurface = ({
   optimization,
-  navigation,
-  selection,
+  connected,
   onNavigationChange,
   controls,
 }: {
   optimization: OptimizationRecord;
-  navigation: OptimizationNavigation;
-  /** The provider's stream at the navigated point (or the followed step). */
-  selection: OptimizationSelectionStream | null;
+  /** The study's local state: its navigation, the stream at the navigated point (or the followed step) and the trials in flight. */
+  connected: ConnectedStudyState;
   onNavigationChange: (patch: Partial<OptimizationNavigation>) => void;
   /** Further controls at the end of the axis row, e.g. a help tooltip. */
   controls?: ReactNode;
 }) => {
-  const input = optimization.input;
-  const axes = optimization.axes;
+  const { input, axes } = optimization;
+  const { navigation, selection } = connected;
   const [view, setView] = useState(() => initialView(axes));
 
   const positions = resolveSurfacePositions(
@@ -373,7 +367,7 @@ export const NavigatedOptimizationSurface = ({
       yAxis,
       mark: "dot",
     }),
-    inFlightSurfaceField({ inFlight: optimization.inFlight, xAxis, yAxis }),
+    inFlightSurfaceField({ inFlight: connected.inFlight, xAxis, yAxis }),
   );
   const values = withNavigatedSample(
     field.values,

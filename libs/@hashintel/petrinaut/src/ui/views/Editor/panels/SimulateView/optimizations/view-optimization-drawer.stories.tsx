@@ -11,12 +11,13 @@ import { useEffect, useState } from "react";
 import {
   type OptimizationNavigation,
   OptimizationsContext,
-  type OptimizationsContextValue,
 } from "../../../../../../react/optimizations/context";
 import { FakeExperimentsProvider } from "../experiments/experiments-story-fixtures";
 import {
+  makeConnectedStudyState,
   makeOptimizationInput,
   makeOptimizationRecord,
+  makeOptimizationsContextValue,
   makeSelectionStream,
   makeTrials,
   navigationAtTrial,
@@ -122,24 +123,18 @@ const FakeConnectedStudy = ({
     trials,
     best: trials.at(-1)?.best ?? null,
     status: inFlight ? "running" : "complete",
-    computeBackendFallbackReason: fallbackReason,
-    navigation,
-    selection,
+    connected: makeConnectedStudyState(input, {
+      navigation,
+      selection,
+      resumable: !inFlight,
+      computeBackendFallbackReason: fallbackReason,
+    }),
   });
 
-  const value: OptimizationsContextValue = {
-    optimizations: [optimization],
-    selectedOptimizationId: optimization.id,
-    selectedOptimization: optimization,
-    setSelectedOptimizationId: () => {},
-    createOptimization: () => Promise.resolve(optimization.id),
-    cancelOptimization: () => {},
-    removeOptimization: () => {},
-    extendOptimization: () => Promise.resolve(),
+  const value = makeOptimizationsContextValue(optimization, {
     setOptimizationNavigation: (_optimizationId, patch) =>
       setChosen({ ...navigation, ...patch }),
-    retryOptimization: () => Promise.resolve(null),
-  };
+  });
 
   return (
     <OptimizationsContext value={value}>
@@ -189,18 +184,7 @@ const RemoteStudy = () => {
     best: allTrials.best,
     status: "complete",
   });
-  const value: OptimizationsContextValue = {
-    optimizations: [optimization],
-    selectedOptimizationId: optimization.id,
-    selectedOptimization: optimization,
-    setSelectedOptimizationId: () => {},
-    createOptimization: () => Promise.resolve(optimization.id),
-    cancelOptimization: () => {},
-    removeOptimization: () => {},
-    extendOptimization: () => Promise.resolve(),
-    setOptimizationNavigation: () => {},
-    retryOptimization: () => Promise.resolve(null),
-  };
+  const value = makeOptimizationsContextValue(optimization);
 
   return (
     <OptimizationsContext value={value}>

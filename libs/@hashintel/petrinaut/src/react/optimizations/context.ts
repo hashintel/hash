@@ -1,6 +1,7 @@
 import { createContext } from "react";
 
 import type { ExperimentComputeBackend } from "../experiments/context";
+import type { BatchStatus } from "../experiments/shared/batch-registry";
 import type { OptimizationSurfaceAxis } from "./surface-grid";
 import type {
   MonteCarloUserDefinedMetricFrame,
@@ -42,6 +43,9 @@ export type OptimizationConnectionState = "streaming" | "reconnecting";
 export type OptimizationBest = NonNullable<
   Extract<PetrinautOptimizationEvent, { type: "complete" }>["best"]
 >;
+
+/** The most runs a study's navigated point is refined to. */
+export const POINT_REFINEMENT_MAX_RUNS = 100;
 
 /** Where a connected study's drawer points: one parameter point. */
 export type OptimizationNavigation = {
@@ -85,23 +89,58 @@ export type OptimizationSelectionStream = {
   note: string | null;
 };
 
-/** One batch a connected study is computing, for the drawer's activity list. */
-export type OptimizationBatchStatus = {
-  id: string;
-  /** A step's runs, or one rung of the navigated point's refinement ladder. */
-  kind: "step" | "refine";
-  /** "Step 4", or "Refining population 1850 · infected_ratio 0.36". */
-  label: string;
-  runCount: number;
-  completedRuns: number;
-};
+/**
+ * One batch a connected study computes: a trial's runs, or one rung of the
+ * refinement ladder at the navigated point's optimized parameter values.
+ */
+export type OptimizationBatch =
+  | { kind: "trial"; trial: number }
+  | { kind: "refine"; values: Readonly<Record<string, OptimizationScalar>> };
 
-/** A step the optimizer is evaluating, with its objective so far. */
-export type OptimizationInFlightStep = {
+/** A batch as the drawer's activity list receives it, with its progress. */
+export type OptimizationBatchStatus = BatchStatus<OptimizationBatch>;
+
+/** A trial the optimizer is evaluating, with its objective so far. */
+export type OptimizationInFlightTrial = {
   trial: number;
   parameters: Readonly<Record<string, OptimizationScalar>>;
   /** The running objective, null before the first frame with samples. */
   objective: number | null;
+};
+
+/**
+ * What a study evaluated in this tab carries beyond its event stream: where
+ * its drawer points and what computes there, and what the local run allows.
+ */
+export type ConnectedStudyState = {
+  /** Where the drawer points. */
+  navigation: OptimizationNavigation;
+  /** The objective's live stream at the navigation or the followed trial. */
+  selection: OptimizationSelectionStream | null;
+  /**
+   * Every batch computing right now — the trials in flight and the navigated
+   * point's refinement rung. Empty when idle.
+   */
+  activity: readonly OptimizationBatchStatus[];
+  /**
+   * The trials being evaluated, most recently started last, each with its
+   * running objective. Empty when none is.
+   */
+  inFlight: readonly OptimizationInFlightTrial[];
+  /**
+   * Whether more steps can be run on the study: it keeps its sampler's
+   * history until it is removed, so it is resumable once a segment ends — by
+   * completion, or by a stop once its terminal event lands. False while it
+   * runs, and once it failed.
+   */
+  resumable: boolean;
+  /** Trials the study keeps in flight at once. */
+  parallelism: number;
+  /**
+   * Why the requested backend declined, from the first trial that ran
+   * elsewhere; null while every trial ran where asked.
+   */
+  computeBackendFallbackReason: string | null;
 };
 
 export type OptimizationRecord = {
@@ -131,48 +170,17 @@ export type OptimizationRecord = {
   trials: readonly PetrinautOptimizationTrialEvent[];
   best: OptimizationBest | null;
   /**
-   * Whether more steps can be run on the study: a connected study keeps its
-   * sampler's history until it is removed, so it is resumable once a segment
-   * ends — by completion, or by a stop once its steps in flight are pruned.
-   * False for a remote study, and for one that failed.
-   */
-  resumable: boolean;
-  /** Steps a connected study keeps in flight at once; 1 for a remote study. */
-  parallelism: number;
-  /**
    * The backend the study's trials run on: the one asked for, until the
    * first trial that ran elsewhere reports where. `cpu` for a remote study.
    */
   computeBackend: ExperimentComputeBackend;
-  /**
-   * Why the requested backend declined, from the first trial that ran
-   * elsewhere; null while every trial ran where asked.
-   */
-  computeBackendFallbackReason: string | null;
   /** The study's navigable axes: its optimized numeric parameters. */
   axes: readonly OptimizationSurfaceAxis[];
   /**
-   * Where the drawer points; null for a remote study, which computes nothing
-   * locally.
+   * The local state of a study evaluated in this tab; null for a remote
+   * study, which computes nothing here.
    */
-  navigation: OptimizationNavigation | null;
-  /**
-   * The objective's live stream at the navigation or the followed trial;
-   * null for a remote study.
-   */
-  selection: OptimizationSelectionStream | null;
-  /**
-   * Every batch a connected study computes right now — the steps in flight
-   * and the navigated point's refinement rung. Empty when idle, and always
-   * for a remote study.
-   */
-  activity: readonly OptimizationBatchStatus[];
-  /**
-   * The steps a connected study is evaluating, most recently started last,
-   * each with its running objective. Empty when none is, and always for a
-   * remote study.
-   */
-  inFlight: readonly OptimizationInFlightStep[];
+  connected: ConnectedStudyState | null;
 };
 
 const TRIAL_SELECTION_KEY_PREFIX = "trial:";
@@ -194,6 +202,38 @@ export function isOptimizationActive(
   );
 }
 
+/**
+ * The best after one trial event: the best the event carries when it does,
+ * else the completed trial itself when its objective beats the one kept, else
+ * the one kept. Attachments deliver `best: null` (the service does not know
+ * the objective direction once the creating request has ended), so the fold
+ * keeps the best itself from every trial it applies.
+ */
+export const foldBestTrial = (
+  direction: PetrinautOptimizationInput["objective"]["direction"],
+  best: OptimizationBest | null,
+  event: PetrinautOptimizationTrialEvent,
+): OptimizationBest | null => {
+  if (event.best) {
+    return event.best;
+  }
+  if (event.state !== "complete" || event.objective === null) {
+    return best;
+  }
+  const isBetter =
+    best === null ||
+    (direction === "maximize"
+      ? event.objective > best.objective
+      : event.objective < best.objective);
+  return isBetter
+    ? {
+        trial: event.trial,
+        parameters: event.parameters,
+        objective: event.objective,
+      }
+    : best;
+};
+
 export type CreateOptimizationOptions = {
   /**
    * Backend a connected study's trials and refinement try first; a remote
@@ -201,9 +241,9 @@ export type CreateOptimizationOptions = {
    */
   computeBackend?: ExperimentComputeBackend;
   /**
-   * Steps a connected study keeps in flight at once, 1 to
-   * `PETRINAUT_OPTIMIZATION_MAX_PARALLELISM`; a remote study ignores it.
-   * Defaults to 1.
+   * Trials a connected study keeps in flight at once, 1 to
+   * `PETRINAUT_OPTIMIZATION_MAX_PARALLELISM`, fixed for the study's life; a
+   * remote study ignores it. Defaults to 1.
    */
   parallelism?: number;
 };
@@ -219,8 +259,8 @@ export type OptimizationsContextValue = {
   ) => Promise<string>;
   /**
    * Stops the study. A remote run is cancelled server-side; a connected
-   * study prunes the steps in flight and keeps its sampler's history, so it
-   * can be continued.
+   * study ends its segment, its trials in flight told failed without an
+   * event, and keeps its sampler's history, so it can be continued.
    */
   cancelOptimization: (optimizationId: string) => void;
   removeOptimization: (optimizationId: string) => void;

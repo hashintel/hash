@@ -1,3 +1,7 @@
+/**
+ * @layerRoot ui.views.editor.optimizations
+ * @role The Optimizations tab: the create and view drawers, the study surface and the steps table over the optimizations provider
+ */
 import { use } from "react";
 
 import { Button, Chip, Icon, LoadingSpinner } from "@hashintel/ds-components";
@@ -8,6 +12,7 @@ import {
 } from "../../../../../../react/optimizations/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../components/table";
+import { formatNumber } from "../shared/format-value";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { describeOptimizationStatus } from "./optimization-status";
 import { ViewOptimizationDrawer } from "./view-optimization-drawer";
@@ -41,10 +46,6 @@ const OptimizationStatusBadge = ({
     </Chip>
   );
 };
-
-function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toPrecision(5);
-}
 
 const optimizationColumns = [
   {

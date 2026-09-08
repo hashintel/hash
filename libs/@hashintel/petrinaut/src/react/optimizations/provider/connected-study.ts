@@ -1,4 +1,10 @@
+/**
+ * @layerRoot react.optimizations.connected-study
+ * @role Per-record local state of a study run in the tab: navigation and following, the refinement ladder at the navigated point, the activity list
+ */
+import { createBatchRegistry } from "../../experiments/shared/batch-registry";
 import { sweepCellObjective } from "../../experiments/sweep-cell-objective";
+import { foldBestTrial } from "../context";
 import {
   optimizationAxisMidpoint,
   optimizationAxisPositionFor,
@@ -6,7 +12,6 @@ import {
   optimizationNavigationKey,
   optimizationNavigationValues,
 } from "../surface-grid";
-import { createActivityRegistry } from "./activity-registry";
 import { createPointRefinement } from "./point-refinement";
 
 import type {
@@ -16,11 +21,12 @@ import type {
   ExperimentsActionsValue,
 } from "../../experiments/context";
 import type {
+  ConnectedStudyState,
+  OptimizationBatch,
   OptimizationBatchStatus,
   OptimizationBest,
-  OptimizationInFlightStep,
+  OptimizationInFlightTrial,
   OptimizationNavigation,
-  OptimizationRecord,
   OptimizationSelectionStream,
   OptimizationStatus,
 } from "../context";
@@ -33,7 +39,7 @@ import type { OptimizationScalar } from "@hashintel/petrinaut-core/optimization"
 
 /** What a connected study publishes into its record. */
 export type ConnectedStudyUpdate = Pick<
-  OptimizationRecord,
+  ConnectedStudyState,
   "navigation" | "selection" | "activity" | "inFlight"
 >;
 
@@ -99,9 +105,10 @@ export type ConnectedStudy = {
   dispose(this: void): void;
 };
 
-const labelValue = new Intl.NumberFormat("en-US", {
-  maximumSignificantDigits: 3,
-});
+const BATCH_KIND_ORDER: readonly OptimizationBatch["kind"][] = [
+  "trial",
+  "refine",
+];
 
 /**
  * The local machinery behind one connected study: where its drawer points,
@@ -166,7 +173,7 @@ export const createConnectedStudy = ({
   const evaluating = new Map<number, EvaluatingTrial>();
   let followed: { trial: number; off: () => void } | null = null;
 
-  const inFlight = (): readonly OptimizationInFlightStep[] =>
+  const inFlight = (): readonly OptimizationInFlightTrial[] =>
     [...evaluating.values()].map((entry) => ({
       trial: entry.trial,
       parameters: entry.values,
@@ -179,9 +186,15 @@ export const createConnectedStudy = ({
     }
   };
 
-  const activityRegistry = createActivityRegistry((next) => {
-    activity = next;
-    publish();
+  const registry = createBatchRegistry<
+    OptimizationBatch["kind"],
+    OptimizationBatch
+  >({
+    kindOrder: BATCH_KIND_ORDER,
+    onPublish: (next) => {
+      activity = next;
+      publish();
+    },
   });
 
   /** The navigation at a trial's values; unset axes keep their position. */
@@ -218,27 +231,28 @@ export const createConnectedStudy = ({
   const keyOf = (target: OptimizationNavigation): string =>
     optimizationNavigationKey(axes, booleanIdentifiers, target);
 
-  const refineLabel = (
-    values: Readonly<Record<string, number | boolean>>,
-  ): string =>
-    `Refining ${optimizedIdentifiers
-      .map((identifier) => {
+  /** A point's optimized parameter values, without the study's fixed ones. */
+  const optimizedValues = (
+    values: Readonly<Record<string, OptimizationScalar>>,
+  ): Record<string, OptimizationScalar> =>
+    Object.fromEntries(
+      optimizedIdentifiers.flatMap((identifier) => {
         const value = values[identifier];
-        return `${identifier} ${
-          typeof value === "number" ? labelValue.format(value) : String(value)
-        }`;
-      })
-      .join(" · ")}`;
+        return value === undefined ? [] : [[identifier, value]];
+      }),
+    );
 
   const refinement = createPointRefinement({
     runDetachedObjective: (request) => {
       const run = runDetachedObjective(request);
-      const off = activityRegistry.register({
-        kind: "refine",
-        label: refineLabel(request.scenarioParameterValues),
-        runCount: request.runCount,
-        progress: run.progress,
-      });
+      const off = registry.register(
+        {
+          kind: "refine",
+          values: optimizedValues(request.scenarioParameterValues),
+        },
+        request.runCount,
+        run.progress,
+      );
       void run.completion.then(off, off);
       return run;
     },
@@ -321,28 +335,6 @@ export const createConnectedStudy = ({
     publish();
   };
 
-  const foldBest = (event: PetrinautOptimizationTrialEvent) => {
-    if (event.best) {
-      best = event.best;
-      return;
-    }
-    if (event.state !== "complete" || event.objective === null) {
-      return;
-    }
-    const isBetter =
-      best === null ||
-      (direction === "maximize"
-        ? event.objective > best.objective
-        : event.objective < best.objective);
-    if (isBetter) {
-      best = {
-        trial: event.trial,
-        parameters: event.parameters,
-        objective: event.objective,
-      };
-    }
-  };
-
   return {
     computeBackend,
     initialNavigation: navigation,
@@ -374,12 +366,11 @@ export const createConnectedStudy = ({
       if (disposed) {
         return;
       }
-      const offActivity = activityRegistry.register({
-        kind: "step",
-        label: `Step ${trial + 1}`,
+      const offActivity = registry.register(
+        { kind: "trial", trial },
         runCount,
-        progress: run.progress,
-      });
+        run.progress,
+      );
       // The followed trial's own mirror publishes its frames.
       const offFrames = run.frames.subscribe(() => {
         if (followed?.trial !== trial) {
@@ -447,7 +438,7 @@ export const createConnectedStudy = ({
     },
     trialReported: (event) => {
       if (!disposed) {
-        foldBest(event);
+        best = foldBestTrial(direction, best, event);
       }
     },
     settle: (outcome, settledBest) => {
@@ -478,7 +469,7 @@ export const createConnectedStudy = ({
         entry.release();
       }
       evaluating.clear();
-      activityRegistry.clear();
+      registry.clear();
       refinement.dispose();
     },
   };

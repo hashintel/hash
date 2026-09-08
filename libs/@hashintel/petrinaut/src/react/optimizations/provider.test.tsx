@@ -42,7 +42,6 @@ import {
 import {
   buildOptimizationSurfaceAxes,
   optimizationAxisPositionFor,
-  optimizationAxisValueAt,
 } from "./surface-grid";
 
 import type { PetrinautNavigationState } from "../navigation";
@@ -146,7 +145,7 @@ const createQuietConnectedSource = () => {
  * channel, in order, then completes — the shape of the in-browser optimizer.
  */
 const createEvaluatingSource = (infectedRatios: readonly number[]) => {
-  const calls = { connect: 0, dispose: 0 };
+  const calls = { connect: 0, dispose: 0, release: [] as string[] };
   const source: PetrinautConnectedOptimization = {
     kind: "connected",
     connect: (channel) => {
@@ -196,7 +195,10 @@ const createEvaluatingSource = (infectedRatios: readonly number[]) => {
         },
         cancelOptimizationRun: () => Promise.resolve(),
         extendOptimizationRun: () => Promise.resolve(),
-        releaseOptimizationRun: () => Promise.resolve(),
+        releaseOptimizationRun: (runId) => {
+          calls.release.push(runId);
+          return Promise.resolve();
+        },
         dispose: () => {
           calls.dispose += 1;
         },
@@ -1140,7 +1142,7 @@ describe("OptimizationsProvider", () => {
       expect(getValue().optimizations[0]?.status).toBe("running"),
     );
     expect(calls).toEqual({ connect: 1, dispose: 0 });
-    expect(getValue().optimizations[0]?.navigation).toEqual({
+    expect(getValue().optimizations[0]?.connected?.navigation).toEqual({
       positions: { infected_ratio: 25 },
       booleans: {},
       followTrials: true,
@@ -1188,7 +1190,7 @@ describe("OptimizationsProvider", () => {
     ).not.toBeNull();
   });
 
-  it("uses a remote capability regardless of the In-browser optimization setting", async () => {
+  it("uses a remote capability regardless of the In-browser optimization setting, and never continues its runs", async () => {
     const capability: PetrinautOptimization = {
       createOptimizationRun: () => Promise.resolve({ runId: "run-remote" }),
       async *attachOptimizationRun(_runId, options) {
@@ -1218,23 +1220,28 @@ describe("OptimizationsProvider", () => {
       return latest;
     };
 
+    let optimizationId = "";
     await act(async () => {
-      await getValue().createOptimization(input, { computeBackend: "webgpu" });
+      optimizationId = await getValue().createOptimization(input, {
+        computeBackend: "webgpu",
+      });
     });
     await waitFor(() =>
       expect(getValue().optimizations[0]?.runId).toBe("run-remote"),
     );
-    // A remote study computes nothing locally: no backend choice, no navigation.
+    // A remote study computes nothing locally: no backend choice, no local state.
     expect(getValue().optimizations[0]).toMatchObject({
       computeBackend: "cpu",
-      navigation: null,
-      selection: null,
+      connected: null,
       axes: [expect.objectContaining({ identifier: "infected_ratio" })],
     });
+    await expect(
+      getValue().extendOptimization(optimizationId, 1),
+    ).rejects.toThrow("cannot be continued");
   });
 
-  it("evaluates a connected study's trials through runDetachedObjective, following each step, then refines the selection", async () => {
-    const { source, calls } = createEvaluatingSource([0.05, 0.02]);
+  it("wires a connected study through the channel: trials run on the study's backend, the record carries the local state, removal releases the study", async () => {
+    const { source, calls } = createEvaluatingSource([0.05]);
     const fake = createFakeDetachedObjectiveRuns();
     const { getValue, unmount } = renderConnectedProvider({
       source,
@@ -1245,45 +1252,58 @@ describe("OptimizationsProvider", () => {
     await act(async () => {
       optimizationId = await getValue().createOptimization(input, {
         computeBackend: "webgpu",
+        parallelism: 2,
       });
     });
 
-    // Trial 0 runs on the study's backend with its seeds pinned, and the
-    // navigation follows it while its batch streams as the selection.
+    // Trial 0 runs on the study's backend with its seeds pinned, on a queue
+    // of its own, under the study's own cache key so the refinement below
+    // reuses its compiled snapshot, and the study follows it.
     await waitFor(() => expect(fake.runs).toHaveLength(1));
     expect(fake.runs[0]!.request).toMatchObject({
-      cacheKey: "run-connected",
+      cacheKey: optimizationId,
+      queueKey: "run-connected:trial:0",
       seed: 1,
       runCount: 3,
       runSeeds: [1, 2, 3],
       computeBackend: "webgpu",
       scenarioParameterValues: { population: 1_000, infected_ratio: 0.05 },
     });
-    const followedPosition = optimizationAxisPositionFor(
-      infectedRatioAxis,
-      0.05,
-    );
     await waitFor(() =>
-      expect(getValue().optimizations[0]?.selection?.key).toBe("trial:0"),
+      expect(getValue().optimizations[0]?.connected?.selection?.key).toBe(
+        "trial:0",
+      ),
     );
     expect(getValue().optimizations[0]).toMatchObject({
       computeBackend: "webgpu",
-      computeBackendFallbackReason: null,
-      navigation: {
-        positions: { infected_ratio: followedPosition },
-        followTrials: true,
+      connected: {
+        parallelism: 2,
+        resumable: false,
+        computeBackendFallbackReason: null,
+        navigation: {
+          positions: {
+            infected_ratio: optimizationAxisPositionFor(
+              infectedRatioAxis,
+              0.05,
+            ),
+          },
+          followTrials: true,
+        },
+        inFlight: [
+          { trial: 0, parameters: { infected_ratio: 0.05 }, objective: null },
+        ],
+        activity: [
+          expect.objectContaining({ kind: "trial", trial: 0, runCount: 3 }),
+        ],
       },
-      selection: { key: "trial:0", runTarget: null, computing: true },
     });
-    const streamed = distributionFrame(metricId, 1, [[0.2, 3]]);
-    fake.runs[0]!.frames.set([streamed]);
-    await waitFor(() =>
-      expect(getValue().optimizations[0]?.selection?.metricFrames).toEqual([
-        streamed,
-      ]),
-    );
+    expect(
+      sessionStorage.getItem("petrinaut:active-optimization-runs"),
+      "a run in this page cannot be re-attached to after a reload",
+    ).toBeNull();
 
-    // Its outcome reaches Optuna; the first fallback reason lands on the record.
+    // The outcome reaches Optuna; the first trial that ran elsewhere than
+    // asked records where, and why, on the record.
     fake.runs[0]!.settle(
       completedRunResult({
         metricId,
@@ -1293,186 +1313,67 @@ describe("OptimizationsProvider", () => {
         fallbackReason: "no adapter",
       }),
     );
-    await waitFor(() => expect(fake.runs).toHaveLength(2));
     await waitFor(() =>
-      expect(getValue().optimizations[0]?.trials).toEqual([
+      expect(getValue().optimizations[0]?.status).toBe("complete"),
+    );
+    expect(getValue().optimizations[0]).toMatchObject({
+      computeBackend: "cpu",
+      trials: [
         expect.objectContaining({
           trial: 0,
           objective: 0.25,
           state: "complete",
         }),
-      ]),
-    );
-    // The record names the backend the trials ran on, not the one asked for.
-    expect(getValue().optimizations[0]).toMatchObject({
-      computeBackend: "cpu",
-      computeBackendFallbackReason: "no adapter",
-    });
-    expect(getValue().optimizations[0]?.selection?.key).toBe("trial:1");
-    expect(
-      getValue().optimizations[0]?.navigation?.positions.infected_ratio,
-    ).toBe(optimizationAxisPositionFor(infectedRatioAxis, 0.02));
-
-    fake.runs[1]!.settle(
-      completedRunResult({
-        metricId,
-        frames: [distributionFrame(metricId, 180, [[0.125, 3]])],
-        runValues: [0.125, 0.125, 0.125],
-      }),
-    );
-    await waitFor(() =>
-      expect(getValue().optimizations[0]?.status).toBe("complete"),
-    );
-    expect(getValue().optimizations[0]?.best).toMatchObject({
-      trial: 1,
-      objective: 0.125,
-    });
-
-    // Complete: the selection refines at the followed point, up the ladder.
-    const lastPosition = optimizationAxisPositionFor(infectedRatioAxis, 0.02);
-    await waitFor(() => expect(fake.runs).toHaveLength(3));
-    expect(fake.runs[2]!.request).toMatchObject({
-      cacheKey: optimizationId,
-      computeBackend: "webgpu",
-      seed: 1,
-      runCount: 8,
-      scenarioParameterValues: {
-        population: 1_000,
-        infected_ratio: optimizationAxisValueAt(
-          infectedRatioAxis,
-          lastPosition,
-        ),
+      ],
+      best: { trial: 0, objective: 0.25 },
+      connected: {
+        resumable: true,
+        computeBackendFallbackReason: "no adapter",
+        inFlight: [],
+        navigation: { followTrials: false },
       },
     });
-    expect(fake.runs[2]!.request.runSeeds).toBeUndefined();
-    await waitFor(() =>
-      expect(getValue().optimizations[0]?.selection).toMatchObject({
-        key: `infected_ratio=${lastPosition}`,
-        runsCompleted: 0,
-        runTarget: 8,
-        computing: true,
-      }),
-    );
-    fake.runs[2]!.settle(
-      completedRunResult({
-        metricId,
-        frames: [distributionFrame(metricId, 180, [[0.1, 8]])],
-        runsCompleted: 8,
-      }),
-    );
-    await waitFor(() => expect(fake.runs).toHaveLength(4));
-    expect(fake.runs[3]!.request.runCount).toBe(17);
-    await waitFor(() =>
-      expect(getValue().optimizations[0]?.selection).toMatchObject({
-        runsCompleted: 8,
-        runTarget: 25,
-        computing: true,
-      }),
-    );
-
-    // A navigation change cancels the batch in flight and refines the new point.
-    act(() => {
-      getValue().setOptimizationNavigation(optimizationId, {
-        positions: { infected_ratio: 3 },
-      });
-    });
-    expect(fake.runs[3]!.cancelled).toBe(true);
-    await waitFor(() => expect(fake.runs).toHaveLength(5));
-    expect(fake.runs[4]!.request).toMatchObject({
-      runCount: 8,
-      scenarioParameterValues: {
-        infected_ratio: optimizationAxisValueAt(infectedRatioAxis, 3),
-      },
-    });
-    expect(getValue().optimizations[0]?.selection?.key).toBe(
-      "infected_ratio=3",
-    );
-
-    // Removing the study cancels its batches; unmounting disposes the source.
-    act(() => getValue().removeOptimization(optimizationId));
-    expect(fake.runs[4]!.cancelled).toBe(true);
-    expect(getValue().optimizations).toHaveLength(0);
-    expect(calls).toEqual({ connect: 1, dispose: 0 });
-    unmount();
-    expect(calls).toEqual({ connect: 1, dispose: 1 });
-  });
-
-  it("lets a user move stop following while the study runs, refining beside the trials", async () => {
-    const { source } = createEvaluatingSource([0.05, 0.02]);
-    const fake = createFakeDetachedObjectiveRuns();
-    const { getValue } = renderConnectedProvider({
-      source,
-      runDetachedObjective: fake.runDetachedObjective,
-    });
-
-    let optimizationId = "";
-    await act(async () => {
-      optimizationId = await getValue().createOptimization(input);
-    });
-    await waitFor(() =>
-      expect(getValue().optimizations[0]?.selection?.key).toBe("trial:0"),
-    );
-    expect(fake.runs[0]!.request.computeBackend).toBe("cpu");
-
-    act(() => {
-      getValue().setOptimizationNavigation(optimizationId, {
-        positions: { infected_ratio: 40 },
-      });
-    });
-    await waitFor(() =>
-      expect(getValue().optimizations[0]?.navigation).toEqual({
-        positions: { infected_ratio: 40 },
-        booleans: {},
-        followTrials: false,
-      }),
-    );
+    // Complete: the point the study settled on refines through the same
+    // backend the trials asked for.
+    await waitFor(() => expect(fake.runs).toHaveLength(2));
     expect(fake.runs[1]!.request).toMatchObject({
       cacheKey: optimizationId,
-      computeBackend: "cpu",
+      computeBackend: "webgpu",
       runCount: 8,
-      scenarioParameterValues: {
-        infected_ratio: optimizationAxisValueAt(infectedRatioAxis, 40),
-      },
     });
-    expect(getValue().optimizations[0]?.selection?.key).toBe(
-      "infected_ratio=40",
-    );
 
-    // The next trial starts without moving the navigation or the selection.
-    fake.runs[0]!.settle(
-      completedRunResult({
-        metricId,
-        frames: [distributionFrame(metricId, 180, [[0.25, 3]])],
-        runValues: [0.25, 0.25, 0.25],
-      }),
-    );
-    await waitFor(() => expect(fake.runs).toHaveLength(3));
-    expect(fake.runs[2]!.request.cacheKey).toBe("run-connected");
-    expect(getValue().optimizations[0]?.navigation?.positions).toEqual({
-      infected_ratio: 40,
-    });
-    expect(getValue().optimizations[0]?.selection?.key).toBe(
-      "infected_ratio=40",
-    );
-    expect(fake.runs[1]!.cancelled).toBe(false);
+    act(() => getValue().removeOptimization(optimizationId));
+    expect(fake.runs[1]!.cancelled).toBe(true);
+    expect(calls.release).toEqual(["run-connected"]);
+    expect(getValue().optimizations).toHaveLength(0);
+    expect(calls.dispose).toBe(0);
+    unmount();
+    expect(calls.dispose).toBe(1);
   });
 });
 
 /**
  * A connected source shaped like the in-browser optimizer's lifecycle: a run
  * log in segments, each begun by `started` and ended by a terminal event,
- * which a settled study continues with more trials; a stop ends the segment
- * once the trial in flight has settled. Segment `n` evaluates
- * `ratiosBySegment[n]`, one trial per value, through the channel.
+ * which a settled study continues with more trials. A stop tells the trial in
+ * flight failed without an event, then ends the segment. Segment `n`
+ * evaluates `ratiosBySegment[n]`, one trial per value, through the channel.
  */
 const createResumableSource = (
   ratiosBySegment: readonly (readonly number[])[],
   { rejectExtension }: { rejectExtension?: string } = {},
 ) => {
-  const calls = { extend: [] as number[], release: [] as string[], cancel: 0 };
-  // The cancelled terminal is the worker's own message, sent once the pruned
-  // steps in flight have reported; a test decides when it arrives.
-  let closeStoppedSegment: () => void = () => {};
+  const calls = { extend: [] as number[], cancel: 0 };
+  // The cancelled terminal is the worker's own message, sent once the steps
+  // in flight have been resolved; a test decides when it arrives, before or
+  // after the segment gets there.
+  let closeRequested = false;
+  let closeStoppedSegment: () => void = () => {
+    closeRequested = true;
+  };
+  // Read through a call so the flag is re-checked after the awaits (a plain
+  // property read would be control-flow-narrowed to `false`).
+  const isCloseRequested = () => closeRequested;
   const source: PetrinautConnectedOptimization = {
     kind: "connected",
     connect: (channel) => {
@@ -1499,14 +1400,17 @@ const createResumableSource = (
       const runSegment = async (ratios: readonly number[]) => {
         running = true;
         cancelled = false;
+        closeRequested = false;
         for (const ratio of ratios) {
           if (isCancelled()) {
             break;
           }
           const suggestedValues = { infected_ratio: ratio };
+          const evaluated = trial;
+          trial += 1;
           const outcome = await channel.evaluateTrial({
             runId: "run-resumable",
-            trial,
+            trial: evaluated,
             manifest: input,
             suggestedValues,
             scenarioParameterValues: resolveTrialScenarioParameterValues(
@@ -1516,19 +1420,25 @@ const createResumableSource = (
             seeds: [1, 2, 3],
             signal: controller.signal,
           });
+          if (isCancelled()) {
+            // Told failed without an event; its number stays consumed.
+            break;
+          }
           append({
             type: "trial",
-            trial,
+            trial: evaluated,
             parameters: suggestedValues,
             objective: outcome.kind === "objective" ? outcome.objective : null,
             state: outcome.kind === "objective" ? "complete" : "pruned",
             best: null,
           });
-          trial += 1;
         }
-        if (isCancelled()) {
+        if (isCancelled() && !isCloseRequested()) {
           await new Promise<void>((resolve) => {
-            closeStoppedSegment = resolve;
+            closeStoppedSegment = () => {
+              closeRequested = true;
+              resolve();
+            };
           });
         }
         running = false;
@@ -1608,10 +1518,7 @@ const createResumableSource = (
           controller.abort();
           return Promise.resolve();
         },
-        releaseOptimizationRun: (runId) => {
-          calls.release.push(runId);
-          return Promise.resolve();
-        },
+        releaseOptimizationRun: () => Promise.resolve(),
         dispose: () => {},
       };
     },
@@ -1620,113 +1527,6 @@ const createResumableSource = (
 };
 
 describe("OptimizationsProvider lifecycle of a connected study", () => {
-  it("settles on the best, then continues from its cursor, following the new steps", async () => {
-    const { source, calls } = createResumableSource([[0.05], [0.02]]);
-    const fake = createFakeDetachedObjectiveRuns();
-    const { getValue } = renderConnectedProvider({
-      source,
-      runDetachedObjective: fake.runDetachedObjective,
-    });
-
-    let optimizationId = "";
-    await act(async () => {
-      optimizationId = await getValue().createOptimization(input, {
-        parallelism: 2,
-      });
-    });
-    await waitFor(() => expect(fake.runs).toHaveLength(1));
-    expect(fake.runs[0]!.request.queueKey).toBe("run-resumable:trial:0");
-    await waitFor(() =>
-      expect(getValue().optimizations[0]).toMatchObject({
-        parallelism: 2,
-        resumable: false,
-        inFlight: [
-          { trial: 0, parameters: { infected_ratio: 0.05 }, objective: null },
-        ],
-        activity: [expect.objectContaining({ label: "Step 1", runCount: 3 })],
-      }),
-    );
-
-    fake.runs[0]!.settle(
-      completedRunResult({
-        metricId,
-        frames: [distributionFrame(metricId, 180, [[0.25, 3]])],
-        runValues: [0.25, 0.25, 0.25],
-      }),
-    );
-    await waitFor(() =>
-      expect(getValue().optimizations[0]?.status).toBe("complete"),
-    );
-    // Following ended where the study did best, and that point refines.
-    const bestPosition = optimizationAxisPositionFor(infectedRatioAxis, 0.05);
-    expect(getValue().optimizations[0]).toMatchObject({
-      resumable: true,
-      requestedTrials: 1,
-      navigation: {
-        positions: { infected_ratio: bestPosition },
-        followTrials: false,
-      },
-      inFlight: [],
-    });
-    await waitFor(() => expect(fake.runs).toHaveLength(2));
-    expect(fake.runs[1]!.request).toMatchObject({
-      cacheKey: optimizationId,
-      scenarioParameterValues: {
-        infected_ratio: optimizationAxisValueAt(
-          infectedRatioAxis,
-          bestPosition,
-        ),
-      },
-    });
-
-    await act(async () => {
-      await getValue().extendOptimization(optimizationId, 1);
-    });
-    expect(calls.extend).toEqual([1]);
-    expect(fake.runs[1]!.cancelled).toBe(true);
-    await waitFor(() =>
-      expect(getValue().optimizations[0]).toMatchObject({
-        status: "running",
-        resumable: false,
-        requestedTrials: 2,
-        navigation: { followTrials: true },
-      }),
-    );
-    await waitFor(() => expect(fake.runs).toHaveLength(3));
-    expect(fake.runs[2]!.request.queueKey).toBe("run-resumable:trial:1");
-    await waitFor(() =>
-      expect(getValue().optimizations[0]?.selection?.key).toBe("trial:1"),
-    );
-
-    fake.runs[2]!.settle(
-      completedRunResult({
-        metricId,
-        frames: [distributionFrame(metricId, 180, [[0.125, 3]])],
-        runValues: [0.125, 0.125, 0.125],
-      }),
-    );
-    await waitFor(() =>
-      expect(getValue().optimizations[0]?.status).toBe("complete"),
-    );
-    expect(getValue().optimizations[0]).toMatchObject({
-      resumable: true,
-      requestedTrials: 2,
-      completedTrials: 2,
-      trials: [
-        expect.objectContaining({ trial: 0 }),
-        expect.objectContaining({ trial: 1 }),
-      ],
-    });
-    expect(getValue().optimizations[0]?.best).toMatchObject({
-      trial: 1,
-      objective: 0.125,
-    });
-
-    act(() => getValue().removeOptimization(optimizationId));
-    expect(calls.release).toEqual(["run-resumable"]);
-    expect(getValue().optimizations).toHaveLength(0);
-  });
-
   it("stops a study without dropping its attachment, so the segment's terminal event lands before a continuation", async () => {
     const { source, calls, closeStoppedSegment } = createResumableSource([
       [0.05, 0.02],
@@ -1746,47 +1546,50 @@ describe("OptimizationsProvider lifecycle of a connected study", () => {
 
     act(() => getValue().cancelOptimization(optimizationId));
     expect(calls.cancel).toBe(1);
+    expect(fake.runs[0]!.cancelled).toBe(true);
     expect(getValue().optimizations[0]).toMatchObject({
       status: "cancelled",
-      resumable: false,
+      connected: { resumable: false },
     });
-    // The trial in flight is pruned as cancelled and reports before the
-    // worker acknowledges the stop.
+    // The trial in flight is told failed without an event: nothing lands
+    // until the worker acknowledges the stop with the segment's terminal.
+    closeStoppedSegment();
     await waitFor(() => expect(getValue().optimizations[0]?.lastSeq).toBe(2));
     expect(getValue().optimizations[0]).toMatchObject({
       status: "cancelled",
-      resumable: false,
-      prunedTrials: 1,
-    });
-    closeStoppedSegment();
-    await waitFor(() => expect(getValue().optimizations[0]?.lastSeq).toBe(3));
-    expect(getValue().optimizations[0]).toMatchObject({
-      status: "cancelled",
-      resumable: true,
-      prunedTrials: 1,
+      trials: [],
+      prunedTrials: 0,
+      failedTrials: 0,
+      connected: { resumable: true },
     });
 
     await act(async () => {
       await getValue().extendOptimization(optimizationId, 1);
     });
+    expect(calls.extend).toEqual([1]);
     await waitFor(() =>
       expect(getValue().optimizations[0]).toMatchObject({
         status: "running",
         requestedTrials: 3,
-        lastSeq: 4,
+        lastSeq: 3,
+        connected: { resumable: false, navigation: { followTrials: true } },
       }),
     );
     // The stop settled the study on a point, which began refining (the
-    // second run); the continuation cancels that and runs the new trial.
+    // second run); the continuation cancels that and runs the new trial,
+    // numbered after the one the stop consumed.
     await waitFor(() => expect(fake.runs).toHaveLength(3));
     expect(fake.runs[1]!.request.cacheKey).toBe(optimizationId);
     expect(fake.runs[1]!.cancelled).toBe(true);
-    // The stopped segment asked for its second trial never, so numbering
-    // continues from the pruned one.
     expect(fake.runs[2]!.request).toMatchObject({
       queueKey: "run-resumable:trial:1",
       scenarioParameterValues: { infected_ratio: 0.01 },
     });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.connected?.selection?.key).toBe(
+        "trial:1",
+      ),
+    );
   });
 
   it("puts a refused continuation on the record and leaves the study resumable", async () => {
@@ -1812,7 +1615,7 @@ describe("OptimizationsProvider lifecycle of a connected study", () => {
       }),
     );
     await waitFor(() =>
-      expect(getValue().optimizations[0]?.resumable).toBe(true),
+      expect(getValue().optimizations[0]?.connected?.resumable).toBe(true),
     );
 
     await expect(
@@ -1824,38 +1627,8 @@ describe("OptimizationsProvider lifecycle of a connected study", () => {
     });
     expect(getValue().optimizations[0]).toMatchObject({
       status: "complete",
-      resumable: true,
       error: "An optimization may run at most 1,000 trials in total",
+      connected: { resumable: true },
     });
-  });
-
-  it("never marks a remote run resumable", async () => {
-    const capability: PetrinautOptimization = {
-      createOptimizationRun: () => Promise.resolve({ runId: "run-remote-2" }),
-      async *attachOptimizationRun() {
-        yield {
-          type: "complete",
-          requestedTrials: 2,
-          completedTrials: 0,
-          prunedTrials: 0,
-          failedTrials: 0,
-          best: null,
-          seq: 1,
-        };
-      },
-      cancelOptimizationRun: () => Promise.resolve(),
-    };
-    const getValue = renderProvider(capability);
-
-    await act(async () => {
-      await getValue().createOptimization(input);
-    });
-    await waitFor(() =>
-      expect(getValue().optimizations[0]?.status).toBe("complete"),
-    );
-    expect(getValue().optimizations[0]?.resumable).toBe(false);
-    await expect(
-      getValue().extendOptimization(getValue().optimizations[0]!.id, 1),
-    ).rejects.toThrow("cannot be continued");
   });
 });

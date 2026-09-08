@@ -17,6 +17,7 @@ import {
   ComputeActivity,
   type ComputeActivityBatch,
 } from "../../shared/compute-activity";
+import { formatFixed } from "../../shared/format-value";
 import {
   SummaryStat,
   SummaryStatusDot,
@@ -24,7 +25,6 @@ import {
   SummaryStrip,
 } from "../../shared/summary-strip";
 import { formatDurationMs } from "../format-duration";
-import { formatNumber } from "../shared/format-number";
 
 const summaryStyle = css({
   marginTop: "-1",
@@ -160,12 +160,12 @@ export const ExperimentSummary = ({
         <SummaryStat
           label="Time"
           minChars={
-            `${formatNumber(experiment.maxTime)} / ${formatNumber(experiment.maxTime)}`
+            `${formatFixed(experiment.maxTime)} / ${formatFixed(experiment.maxTime)}`
               .length
           }
         >
-          {formatNumber(progress?.time ?? settledTime(experiment))} /{" "}
-          {formatNumber(experiment.maxTime)}
+          {formatFixed(progress?.time ?? settledTime(experiment))} /{" "}
+          {formatFixed(experiment.maxTime)}
         </SummaryStat>
         {/* Wall-clock, as distinct from the simulated time; dashed out
               when stepping never began. */}

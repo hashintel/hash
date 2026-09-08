@@ -2,6 +2,7 @@
  * @layerRoot react.optimizations.channel
  * @role Evaluates optimizer trials as detached objective runs on the experiments backend
  */
+import { errorMessage } from "../../experiments/shared/error-message";
 import {
   prunedTrialOutcome,
   trialOutcome,
@@ -23,6 +24,8 @@ import type {
  * for, and who watches the trials as they evaluate.
  */
 export type OptimizationChannelStudy = {
+  /** The key the study's own refinement compiles under, so trials share that snapshot. */
+  cacheKey: string;
   computeBackend: ExperimentComputeBackend;
   trialStarted: (
     trial: number,
@@ -36,9 +39,6 @@ export type OptimizationChannelStudy = {
 export type OptimizationChannel = PetrinautOptimizationChannel & {
   dispose(this: void): void;
 };
-
-const errorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
 
 /**
  * The channel a connected optimizer evaluates its trials through. Each trial
@@ -90,7 +90,7 @@ export const createOptimizationChannel = ({
     try {
       const study = resolveStudy(request.runId);
       run = runDetachedObjective({
-        cacheKey: request.runId,
+        cacheKey: study?.cacheKey ?? request.runId,
         // Trials in flight at once each take a queue of their own; the
         // compiled study is shared through the cache key.
         queueKey: `${request.runId}:trial:${request.trial}`,
@@ -123,7 +123,7 @@ export const createOptimizationChannel = ({
       }
       request.signal.removeEventListener("abort", forwardAbort);
     }
-    return trialOutcome(outcome, metric.id, request.seeds);
+    return trialOutcome(outcome, metric.id);
   };
 
   return {

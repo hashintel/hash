@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  makeConnectedStudyState,
   makeOptimizationInput,
   makeOptimizationRecord,
   optimizedBindingSets,
@@ -24,7 +25,10 @@ describe("describeStepProgress", () => {
   it("names the runs per step and the steps at once only above one", () => {
     expect(
       describeStepProgress({
-        ...makeOptimizationRecord({ input, parallelism: 2 }),
+        ...makeOptimizationRecord({
+          input,
+          connected: makeConnectedStudyState(input, { parallelism: 2 }),
+        }),
         completedTrials: 3,
         prunedTrials: 1,
         failedTrials: 0,

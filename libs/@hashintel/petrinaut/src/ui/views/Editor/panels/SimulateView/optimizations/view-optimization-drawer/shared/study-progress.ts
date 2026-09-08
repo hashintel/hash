@@ -1,12 +1,15 @@
 /**
  * A study's progress as the summary's bars and activity list show it: steps
  * finished over steps requested, the followed step's runs over the runs each
- * step gets, and the batches computing right now.
+ * step gets, and the batches computing right now, each named.
  */
 import {
+  type ConnectedStudyState,
   followedTrial,
+  type OptimizationBatchStatus,
   type OptimizationRecord,
 } from "../../../../../../../../react/optimizations/context";
+import { formatParameters } from "../../../shared/format-value";
 
 import type {
   ComputeActivityBar,
@@ -25,7 +28,10 @@ export const finishedStepCount = (
 
 /** The main bar: steps finished over steps requested. */
 export const stepsBar = (
-  optimization: OptimizationRecord,
+  optimization: Pick<
+    OptimizationRecord,
+    "completedTrials" | "prunedTrials" | "failedTrials" | "requestedTrials"
+  >,
   label?: string,
 ): ComputeActivityBar => {
   const finished = finishedStepCount(optimization);
@@ -43,9 +49,9 @@ export const stepsBar = (
  * gets, while a step is being followed.
  */
 export const followedStepBar = (
-  optimization: OptimizationRecord,
+  optimization: Pick<OptimizationRecord, "input" | "connected">,
 ): ComputeActivityBar | null => {
-  const { selection } = optimization;
+  const selection = optimization.connected?.selection ?? null;
   if (selection === null || !selection.computing) {
     return null;
   }
@@ -60,14 +66,20 @@ export const followedStepBar = (
   };
 };
 
+/** A batch as the activity list names it: "Step 4", or "Refining population=1850, infected_ratio=0.36". */
+export const describeBatch = (batch: OptimizationBatchStatus): string =>
+  batch.kind === "trial"
+    ? `Step ${batch.trial + 1}`
+    : `Refining ${formatParameters(batch.values)}`;
+
 /** The study's batches as the activity list shows them; steps are the priority work. */
 export const activityBatches = (
-  optimization: OptimizationRecord,
+  connected: ConnectedStudyState | null,
 ): ComputeActivityBatch[] =>
-  optimization.activity.map((batch) => ({
-    id: batch.id,
-    label: batch.label,
-    tone: batch.kind === "step" ? "priority" : "background",
+  (connected?.activity ?? []).map((batch) => ({
+    id: String(batch.id),
+    label: describeBatch(batch),
+    tone: batch.kind === "trial" ? "priority" : "background",
     runCount: batch.runCount,
     completedRuns: batch.completedRuns,
   }));

@@ -116,13 +116,7 @@ describe("createConnectedStudy", () => {
       note: null,
     });
     expect(latest()?.activity).toEqual([
-      {
-        id: "step-1",
-        kind: "step",
-        label: "Step 1",
-        runCount: 3,
-        completedRuns: 0,
-      },
+      { id: 1, kind: "trial", trial: 0, runCount: 3, completedRuns: 0 },
     ]);
     expect(latest()?.inFlight).toEqual([
       { trial: 0, parameters: { infected_ratio: 0.05 }, objective: null },
@@ -163,12 +157,12 @@ describe("createConnectedStudy", () => {
     startTrial(0, 0.05);
     const second = startTrial(1, 0.02);
     expect(latest()?.selection?.key).toBe("trial:1");
-    expect(latest()?.navigation?.positions).toEqual({
+    expect(latest()?.navigation.positions).toEqual({
       infected_ratio: optimizationAxisPositionFor(axis, 0.02),
     });
-    expect(latest()?.activity.map((batch) => batch.label)).toEqual([
-      "Step 1",
-      "Step 2",
+    expect(latest()?.activity).toEqual([
+      expect.objectContaining({ kind: "trial", trial: 0 }),
+      expect.objectContaining({ kind: "trial", trial: 1 }),
     ]);
     expect(latest()?.inFlight.map((step) => step.trial)).toEqual([0, 1]);
 
@@ -185,7 +179,7 @@ describe("createConnectedStudy", () => {
       key: "trial:0",
       computing: true,
     });
-    expect(latest()?.navigation?.positions).toEqual({
+    expect(latest()?.navigation.positions).toEqual({
       infected_ratio: optimizationAxisPositionFor(axis, 0.05),
     });
     expect(latest()?.inFlight.map((step) => step.trial)).toEqual([0]);
@@ -234,19 +228,17 @@ describe("createConnectedStudy", () => {
       computing: true,
     });
     expect(latest()?.activity).toEqual([
-      expect.objectContaining({ kind: "step", label: "Step 1", runCount: 3 }),
+      expect.objectContaining({ kind: "trial", trial: 0, runCount: 3 }),
       expect.objectContaining({
         kind: "refine",
-        label: `Refining infected_ratio ${optimizationAxisValueAt(axis, 10)
-          .toPrecision(3)
-          .replace(/\.?0+$/, "")}`,
+        values: { infected_ratio: optimizationAxisValueAt(axis, 10) },
         runCount: 8,
       }),
     ]);
 
     // Later trials no longer move the navigation or replace the selection.
     startTrial(1, 0.02);
-    expect(latest()?.navigation?.positions).toEqual({ infected_ratio: 10 });
+    expect(latest()?.navigation.positions).toEqual({ infected_ratio: 10 });
     expect(latest()?.selection?.key).toBe("infected_ratio=10");
   });
 
@@ -285,7 +277,7 @@ describe("createConnectedStudy", () => {
       objective: 0.05,
     });
     const bestPosition = optimizationAxisPositionFor(axis, 0.01);
-    expect(latest()?.navigation?.positions).toEqual({
+    expect(latest()?.navigation.positions).toEqual({
       infected_ratio: bestPosition,
     });
     expect(refinementRuns.runs[0]?.request.scenarioParameterValues).toEqual({
@@ -314,7 +306,7 @@ describe("createConnectedStudy", () => {
     trial.run.cancel();
     study.trialSettled(1, cancelledRunOutcome);
     const bestPosition = optimizationAxisPositionFor(axis, 0.05);
-    expect(latest()?.navigation?.positions).toEqual({
+    expect(latest()?.navigation.positions).toEqual({
       infected_ratio: bestPosition,
     });
     expect(refinementRuns.runs).toHaveLength(1);
@@ -328,7 +320,7 @@ describe("createConnectedStudy", () => {
       parameters: { infected_ratio: 0.05 },
       objective: 0.3,
     });
-    expect(moved.latest()?.navigation?.positions).toEqual({
+    expect(moved.latest()?.navigation.positions).toEqual({
       infected_ratio: 10,
     });
     expect(moved.refinementRuns.runs).toHaveLength(1);
@@ -361,11 +353,11 @@ describe("createConnectedStudy", () => {
 
     study.resume();
     expect(refinementRuns.runs[0]!.cancelled).toBe(true);
-    expect(latest()?.navigation?.followTrials).toBe(true);
+    expect(latest()?.navigation.followTrials).toBe(true);
 
     startTrial(1, 0.02);
     expect(latest()?.selection?.key).toBe("trial:1");
-    expect(latest()?.navigation?.positions).toEqual({
+    expect(latest()?.navigation.positions).toEqual({
       infected_ratio: optimizationAxisPositionFor(axis, 0.02),
     });
   });
@@ -379,6 +371,6 @@ describe("createConnectedStudy", () => {
     expect(refinementRuns.runs[0]!.cancelled).toBe(true);
     study.setNavigation({ positions: { infected_ratio: 4 } });
     expect(updates).toHaveLength(published);
-    expect(latest()?.navigation?.positions).toEqual({ infected_ratio: 3 });
+    expect(latest()?.navigation.positions).toEqual({ infected_ratio: 3 });
   });
 });

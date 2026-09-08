@@ -7,7 +7,7 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { Table, type TableColumn } from "../../../../../../components/table";
-import { formatNumber, formatParameters } from "./shared/format-value";
+import { formatNumber, formatParameters } from "../../shared/format-value";
 
 import type { OptimizationRecord } from "../../../../../../../react/optimizations/context";
 
@@ -118,14 +118,6 @@ const stepColumns = (
 /** The latest steps only: the table stays light on a long study. */
 const DISPLAYED_STEPS = 200;
 
-/** The note above a truncated table; null while every step is shown. */
-export const describeDisplayedSteps = (
-  optimization: Pick<OptimizationRecord, "trials">,
-): string | null =>
-  optimization.trials.length > DISPLAYED_STEPS
-    ? `Showing the latest ${DISPLAYED_STEPS} of ${optimization.trials.length} received steps.`
-    : null;
-
 export const StepsTable = ({
   optimization,
   bestTrial,
@@ -137,11 +129,15 @@ export const StepsTable = ({
   className: string;
 }) => {
   const displayedSteps = optimization.trials.slice(-DISPLAYED_STEPS).reverse();
-  const hint = describeDisplayedSteps(optimization);
 
   return (
     <>
-      {hint === null ? null : <span className={stepHintStyle}>{hint}</span>}
+      {optimization.trials.length > DISPLAYED_STEPS ? (
+        <span className={stepHintStyle}>
+          Showing the latest {DISPLAYED_STEPS} of {optimization.trials.length}{" "}
+          received steps.
+        </span>
+      ) : null}
       <div className={className}>
         <Table
           columns={stepColumns(bestTrial)}

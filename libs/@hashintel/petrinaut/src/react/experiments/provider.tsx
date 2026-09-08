@@ -59,6 +59,7 @@ import {
   patchExperimentRecords,
 } from "./provider/experiment-records";
 import { createSweepBatchInstantiator } from "./provider/sweep-batch-instantiation";
+import { errorMessage } from "./shared/error-message";
 import { createSweepSession, type SweepSession } from "./sweep-session";
 
 import type { ExperimentParameterAxis } from "./parameter-grid";
@@ -577,7 +578,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           return;
         }
 
-        const message = error instanceof Error ? error.message : String(error);
+        const message = errorMessage(error);
         patchExperiment(experimentId, { error: message, status: "error" });
         addNotification({
           message: `${experiment.name} failed: ${message}`,

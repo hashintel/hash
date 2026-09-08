@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { createReadableStore } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 import { WORKER_POOL_BACKEND_ID } from "@hashintel/petrinaut-core/experiments";
 import {
@@ -8,7 +9,6 @@ import {
 } from "@hashintel/petrinaut-core/hir";
 
 import { createDetachedObjectiveSampler } from "./detached-objective";
-import { createWritableStore } from "./detached-objective/writable-store";
 
 import type { LanguageClientContextValue } from "../../lsp/context";
 import type { DetachedObjectiveRunRequest } from "../context";
@@ -91,12 +91,12 @@ const frameOf = (value: number): MonteCarloUserDefinedMetricFrame => ({
 
 type FakeHandle = {
   handle: MonteCarloExperiment;
-  metrics: ReturnType<typeof createWritableStore<MonteCarloExperimentMetrics>>;
+  metrics: ReturnType<typeof createReadableStore<MonteCarloExperimentMetrics>>;
   progress: ReturnType<
-    typeof createWritableStore<MonteCarloWorkerProgress | null>
+    typeof createReadableStore<MonteCarloWorkerProgress | null>
   >;
   runResults: ReturnType<
-    typeof createWritableStore<
+    typeof createReadableStore<
       ReadonlyMap<number, Readonly<Record<string, number>>>
     >
   >;
@@ -117,13 +117,13 @@ const createFakeHandle = (signal?: AbortSignalLike): FakeHandle => {
     },
     { once: true },
   );
-  const status = createWritableStore<MonteCarloExperimentState>("Ready");
-  const progress = createWritableStore<MonteCarloWorkerProgress | null>(null);
-  const metrics = createWritableStore<MonteCarloExperimentMetrics>({
+  const status = createReadableStore<MonteCarloExperimentState>("Ready");
+  const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
+  const metrics = createReadableStore<MonteCarloExperimentMetrics>({
     frames: [],
     latestByMetricId: {},
   });
-  const runResults = createWritableStore<
+  const runResults = createReadableStore<
     ReadonlyMap<number, Readonly<Record<string, number>>>
   >(new Map());
   const listeners = new Set<(event: MonteCarloExperimentEvent) => void>();
@@ -597,5 +597,36 @@ describe("createDetachedObjectiveSampler().run", () => {
 
     sampler.dispose();
     expect(gpu.backend.dispose).toHaveBeenCalledOnce();
+  });
+});
+
+describe("createDetachedObjectiveSampler().sample", () => {
+  it("runs the sample on the CPU pool in the surface queue and resolves the finished snapshot", async () => {
+    const cpu = createFakeBackend(WORKER_POOL_BACKEND_ID);
+    const { sampler } = createSampler({ cpu });
+    const {
+      runSeeds: _runSeeds,
+      computeBackend: _backend,
+      ...request
+    } = runRequest();
+
+    const first = sampler.sample(request);
+    const second = sampler.sample(request);
+    await vi.waitFor(() => expect(cpu.handles).toHaveLength(1));
+    expect(cpu.requests[0]).toMatchObject({ seed: 7, runCount: 3 });
+    completeWith(cpu.handles[0]!, 0.2);
+    await expect(first).resolves.toEqual({
+      runsCompleted: 3,
+      metricFrames: [frameOf(0.2)],
+    });
+
+    // Samples queue behind each other, whichever study they belong to.
+    await vi.waitFor(() => expect(cpu.handles).toHaveLength(2));
+    cpu.handles[1]!.emit({
+      type: "error",
+      message: "worker lost",
+      itemId: null,
+    });
+    await expect(second).resolves.toBeNull();
   });
 });

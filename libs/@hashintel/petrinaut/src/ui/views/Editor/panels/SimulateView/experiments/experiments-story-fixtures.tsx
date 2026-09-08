@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
+import {
+  createReadableStore,
+  DEFAULT_PETRINAUT_EXTENSIONS,
+} from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
@@ -25,7 +28,6 @@ import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-cont
 import type {
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
-  ReadableStore,
 } from "@hashintel/petrinaut-core";
 
 export const sirSdcpnContextValue: SDCPNContextValue = {
@@ -403,27 +405,6 @@ export function makeFakeSurfaceSampler(
     });
 }
 
-/** A store the fake compute writes and the UI subscribes to. */
-function createFakeStore<T>(
-  initial: T,
-): ReadableStore<T> & { set(next: T): void } {
-  let current = initial;
-  const listeners = new Set<(value: T) => void>();
-  return {
-    get: () => current,
-    subscribe: (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    set: (next) => {
-      current = next;
-      for (const listener of listeners) {
-        listener(next);
-      }
-    },
-  };
-}
-
 /**
  * The fake of a streaming objective batch: ten frames of the synthetic bump
  * at the request's parameter values, one every 60 ms, then the result.
@@ -434,10 +415,10 @@ export const fakeRunDetachedObjective: ExperimentsActionsValue["runDetachedObjec
       (entry): entry is number => typeof entry === "number",
     );
     const objective = syntheticSweepObjective(values[0] ?? 0, values[1] ?? 0);
-    const frames = createFakeStore<readonly MonteCarloUserDefinedMetricFrame[]>(
-      [],
-    );
-    const progress = createFakeStore<MonteCarloWorkerProgress | null>(null);
+    const frames = createReadableStore<
+      readonly MonteCarloUserDefinedMetricFrame[]
+    >([]);
+    const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
     let cancelled = false;
     const completion = new Promise<DetachedObjectiveRunOutcome>((resolve) => {
       const totalTicks = 10;

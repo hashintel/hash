@@ -6,6 +6,7 @@ import {
   OptimizationSurface,
 } from "./optimization-surface";
 import {
+  makeConnectedStudyState,
   makeOptimizationInput,
   makeOptimizationRecord,
   makeSelectionStream,
@@ -204,26 +205,28 @@ const ConnectedSurfaceStory = ({ stepCount }: { stepCount: number }) => {
   const [navigation, setNavigation] = useState<OptimizationNavigation>(() =>
     navigationAtTrial(baseInput, study.trials[study.best?.trial ?? 0]!, false),
   );
-  const selection = makeSelectionStream({
-    input: baseInput,
+  const connected = makeConnectedStudyState(baseInput, {
     navigation,
-    runsCompleted: 100,
+    selection: makeSelectionStream({
+      input: baseInput,
+      navigation,
+      runsCompleted: 100,
+    }),
+    resumable: true,
   });
   const optimization = makeOptimizationRecord({
     input: baseInput,
     trials: study.trials,
     best: study.best,
     status: "complete",
-    navigation,
-    selection,
+    connected,
   });
 
   return (
     <div style={{ width: 640 }}>
       <NavigatedOptimizationSurface
         optimization={optimization}
-        navigation={navigation}
-        selection={selection}
+        connected={connected}
         onNavigationChange={(patch) =>
           setNavigation((previous) => ({ ...previous, ...patch }))
         }
@@ -265,31 +268,37 @@ const ConnectedMidRunStory = () => {
   const navigation = chosen.followTrials
     ? navigationAtTrial(baseInput, inFlight ?? study.trials.at(-1)!, true)
     : chosen;
-  const selection = inFlight
-    ? makeSelectionStream({
-        input: baseInput,
-        navigation,
-        followedTrial: inFlight.trial,
-        runsCompleted: 1,
-        computing: true,
-        progress,
-      })
-    : makeSelectionStream({ input: baseInput, navigation, runsCompleted: 100 });
+  const connected = makeConnectedStudyState(baseInput, {
+    navigation,
+    selection: inFlight
+      ? makeSelectionStream({
+          input: baseInput,
+          navigation,
+          followedTrial: inFlight.trial,
+          runsCompleted: 1,
+          computing: true,
+          progress,
+        })
+      : makeSelectionStream({
+          input: baseInput,
+          navigation,
+          runsCompleted: 100,
+        }),
+    resumable: !inFlight,
+  });
   const optimization = makeOptimizationRecord({
     input: baseInput,
     trials,
     best: trials.at(-1)?.best ?? null,
     status: inFlight ? "running" : "complete",
-    navigation,
-    selection,
+    connected,
   });
 
   return (
     <div style={{ width: 640 }}>
       <NavigatedOptimizationSurface
         optimization={optimization}
-        navigation={navigation}
-        selection={selection}
+        connected={connected}
         onNavigationChange={(patch) => setChosen({ ...navigation, ...patch })}
       />
     </div>

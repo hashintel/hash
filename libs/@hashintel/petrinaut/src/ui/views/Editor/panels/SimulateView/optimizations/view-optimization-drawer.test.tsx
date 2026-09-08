@@ -6,14 +6,17 @@ import { use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  type ConnectedStudyState,
   type OptimizationRecord,
   OptimizationsContext,
   type OptimizationsContextValue,
 } from "../../../../../../react/optimizations/context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import {
+  makeConnectedStudyState,
   makeOptimizationInput,
   makeOptimizationRecord,
+  makeOptimizationsContextValue,
   makeSelectionStream,
   makeTrials,
   navigationAtTrial,
@@ -71,10 +74,10 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
 vi.mock("./optimization-surface", () => ({
   OptimizationSurface: () => <div data-testid="remote-surface" />,
   NavigatedOptimizationSurface: ({
-    navigation,
+    connected,
     onNavigationChange,
   }: {
-    navigation: { positions: Record<string, number> };
+    connected: ConnectedStudyState;
     onNavigationChange: (patch: {
       positions: Record<string, number>;
       followTrials: boolean;
@@ -83,10 +86,10 @@ vi.mock("./optimization-surface", () => ({
     <button
       type="button"
       data-testid="navigated-surface"
-      data-positions={JSON.stringify(navigation.positions)}
+      data-positions={JSON.stringify(connected.navigation.positions)}
       onClick={() =>
         onNavigationChange({
-          positions: { ...navigation.positions, production_rate: 3 },
+          positions: { ...connected.navigation.positions, production_rate: 3 },
           followTrials: false,
         })
       }
@@ -139,26 +142,19 @@ const renderDrawer = (
   optimization: OptimizationRecord,
   options: {
     enableOptimizationSurface?: boolean;
-    setOptimizationNavigation?: OptimizationsContextValue["setOptimizationNavigation"];
-    cancelOptimization?: OptimizationsContextValue["cancelOptimization"];
-    extendOptimization?: OptimizationsContextValue["extendOptimization"];
-  } = {},
+  } & Partial<
+    Pick<
+      OptimizationsContextValue,
+      "setOptimizationNavigation" | "cancelOptimization" | "extendOptimization"
+    >
+  > = {},
 ) => {
-  const value: OptimizationsContextValue = {
-    optimizations: [optimization],
-    selectedOptimizationId: optimization.id,
-    selectedOptimization: optimization,
-    setSelectedOptimizationId: () => {},
-    createOptimization: () => Promise.resolve(optimization.id),
-    cancelOptimization: options.cancelOptimization ?? (() => {}),
-    removeOptimization: () => {},
-    extendOptimization: options.extendOptimization ?? (() => Promise.resolve()),
-    setOptimizationNavigation: options.setOptimizationNavigation ?? (() => {}),
-    retryOptimization: () => Promise.resolve(null),
-  };
+  const { enableOptimizationSurface = false, ...actions } = options;
   return render(
-    <OptimizationsContext value={value}>
-      <SurfaceSetting enabled={options.enableOptimizationSurface ?? false}>
+    <OptimizationsContext
+      value={makeOptimizationsContextValue(optimization, actions)}
+    >
+      <SurfaceSetting enabled={enableOptimizationSurface}>
         <ViewOptimizationDrawer
           open
           onClose={() => {}}
@@ -184,10 +180,14 @@ describe("ViewOptimizationDrawer for a remote study", () => {
     status: "complete",
   });
 
-  it("shows results without navigation, backend or metrics", () => {
+  it("shows the summary strip and the results without navigation, backend or metrics", () => {
     renderDrawer(remote);
 
-    expect(screen.getByText("Summary")).toBeTruthy();
+    expect(screen.getByText("Complete")).toBeTruthy();
+    expect(screen.getByText("5 / 30")).toBeTruthy();
+    expect(screen.getByText("Best").nextElementSibling?.textContent).toBe(
+      formatObjective(best!.objective),
+    );
     expect(screen.getByText("Best parameters")).toBeTruthy();
     expect(screen.getByRole("table")).toBeTruthy();
     expect(screen.queryAllByRole("slider")).toHaveLength(0);
@@ -215,25 +215,60 @@ describe("ViewOptimizationDrawer for a remote study", () => {
     expect(screen.getByTestId("remote-surface")).toBeTruthy();
     expect(screen.queryByTestId("navigated-surface")).toBeNull();
   });
+
+  it("lists the latest 200 steps and says how many were left out", () => {
+    const long = makeTrials(input, 201);
+    renderDrawer(
+      makeOptimizationRecord({
+        input,
+        trials: long.trials,
+        best: long.best,
+        status: "complete",
+      }),
+    );
+
+    expect(
+      screen.getByText("Showing the latest 200 of 201 received steps."),
+    ).toBeTruthy();
+    // The header row is row 1; the newest step comes first.
+    expect(screen.getAllByRole("row")).toHaveLength(201);
+    expect(screen.getAllByRole("row")[1]?.textContent).toContain("201");
+  });
+
+  it("keeps Cancel and Cancelled, and offers no continuation", () => {
+    const { unmount } = renderDrawer(
+      makeOptimizationRecord({ input, trials, best, status: "running" }),
+    );
+    expect(screen.getByRole("button", { name: /Cancel/ })).toBeTruthy();
+    unmount();
+
+    renderDrawer(
+      makeOptimizationRecord({ input, trials, best, status: "cancelled" }),
+    );
+    expect(screen.getByText("Cancelled")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Continue/ })).toBeNull();
+  });
 });
 
 describe("ViewOptimizationDrawer for a connected study", () => {
   const navigation = navigationAtTrial(input, trials[2]!, true);
-  const selection = makeSelectionStream({
-    input,
+  const following = makeConnectedStudyState(input, {
     navigation,
-    followedTrial: 2,
-    runsCompleted: 1,
-    computing: true,
-    frameCount: 4,
+    selection: makeSelectionStream({
+      input,
+      navigation,
+      followedTrial: 2,
+      runsCompleted: 1,
+      computing: true,
+      frameCount: 4,
+    }),
   });
   const connected = makeOptimizationRecord({
     input,
     trials: trials.slice(0, 3),
     best: trials[2]!.best,
     status: "running",
-    navigation,
-    selection,
+    connected: following,
   });
 
   it("adds the backend badge, the navigator, the surface and the objective chart", () => {
@@ -258,7 +293,6 @@ describe("ViewOptimizationDrawer for a connected study", () => {
   it("summarizes the study in one strip and stars the best step in the table", () => {
     renderDrawer(connected);
 
-    expect(screen.queryByText("Summary")).toBeNull();
     expect(screen.queryByText("Best parameters")).toBeNull();
     expect(screen.getByText("Running")).toBeTruthy();
     expect(screen.getByText("3 / 30")).toBeTruthy();
@@ -283,12 +317,15 @@ describe("ViewOptimizationDrawer for a connected study", () => {
         trials: trials.slice(0, 3),
         best: trials[2]!.best,
         status: "complete",
-        navigation: stopped,
-        selection: makeSelectionStream({
-          input,
+        connected: makeConnectedStudyState(input, {
           navigation: stopped,
-          runsCompleted: 0,
-          error: "metric__profit: Unexpected token ')'",
+          selection: makeSelectionStream({
+            input,
+            navigation: stopped,
+            runsCompleted: 0,
+            error: "metric__profit: Unexpected token ')'",
+          }),
+          resumable: true,
         }),
       }),
     );
@@ -316,10 +353,18 @@ describe("ViewOptimizationDrawer for a connected study", () => {
 
   it("frees the sliders once the study settles and moves the navigation through the provider", () => {
     const setOptimizationNavigation = vi.fn();
-    const settled = {
+    const settled: OptimizationRecord = {
       ...connected,
-      status: "complete" as const,
-      selection: makeSelectionStream({ input, navigation, runsCompleted: 100 }),
+      status: "complete",
+      connected: {
+        ...following,
+        resumable: true,
+        selection: makeSelectionStream({
+          input,
+          navigation,
+          runsCompleted: 100,
+        }),
+      },
     };
     renderDrawer(settled, { setOptimizationNavigation });
 
@@ -335,9 +380,12 @@ describe("ViewOptimizationDrawer for a connected study", () => {
 
   it("frees the sliders when Follow steps is turned off mid-run and commits a surface pick the same way", () => {
     const setOptimizationNavigation = vi.fn();
-    const takenOver = {
+    const takenOver: OptimizationRecord = {
       ...connected,
-      navigation: { ...navigation, followTrials: false },
+      connected: {
+        ...following,
+        navigation: { ...navigation, followTrials: false },
+      },
     };
     renderDrawer(takenOver, { setOptimizationNavigation });
 
@@ -358,7 +406,11 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     renderDrawer({
       ...connected,
       computeBackend: "cpu",
-      computeBackendFallbackReason: "the GPU cannot compute expression metrics",
+      connected: {
+        ...following,
+        computeBackendFallbackReason:
+          "the GPU cannot compute expression metrics",
+      },
     });
 
     expect(screen.getByText("CPU")).toBeTruthy();
@@ -394,8 +446,11 @@ describe("ViewOptimizationDrawer for a connected study", () => {
       trials: trials.slice(0, 3),
       best: trials[2]!.best,
       status: "cancelled",
-      navigation: { ...navigation, followTrials: false },
-      selection: makeSelectionStream({ input, navigation, runsCompleted: 8 }),
+      connected: makeConnectedStudyState(input, {
+        navigation: { ...navigation, followTrials: false },
+        selection: makeSelectionStream({ input, navigation, runsCompleted: 8 }),
+        resumable: true,
+      }),
     });
     renderDrawer(stopped, { extendOptimization });
 
@@ -408,50 +463,48 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     expect(extendOptimization).toHaveBeenCalledWith(stopped.id, 4);
   });
 
-  it("keeps Cancel and Cancelled for a remote study, which cannot be continued", () => {
-    const { unmount } = renderDrawer(
-      makeOptimizationRecord({ input, trials, best, status: "running" }),
-    );
-    expect(screen.getByRole("button", { name: /Cancel/ })).toBeTruthy();
-    unmount();
-
-    renderDrawer(
-      makeOptimizationRecord({ input, trials, best, status: "cancelled" }),
-    );
-    expect(screen.getByText("Cancelled")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /Continue/ })).toBeNull();
-  });
-
   it("shows the followed step's runs under the steps bar and lists the batches computing", () => {
     renderDrawer({
       ...connected,
-      activity: [
-        {
-          id: "step-3",
-          kind: "step",
-          label: "Step 3",
-          runCount: 1,
-          completedRuns: 0,
-        },
-      ],
+      connected: {
+        ...following,
+        activity: [
+          { id: 3, kind: "trial", trial: 2, runCount: 1, completedRuns: 0 },
+          {
+            id: 4,
+            kind: "refine",
+            values: { production_rate: 125, selling_price: 42.5 },
+            runCount: 8,
+            completedRuns: 2,
+          },
+        ],
+      },
     });
 
     expect(screen.getByText("3 / 30")).toBeTruthy();
     expect(screen.getByText("Step 3 · 1 / 1 runs")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /1 computing/ }));
+    fireEvent.click(screen.getByRole("button", { name: /2 computing/ }));
     expect(screen.getByText("Step 3")).toBeTruthy();
     expect(screen.getByText("0 / 1 runs")).toBeTruthy();
+    expect(
+      screen.getByText("Refining production_rate=125, selling_price=42.5000"),
+    ).toBeTruthy();
+    expect(screen.getByText("2 / 8 runs")).toBeTruthy();
   });
 
   it("hides the follow switch once the study is over", () => {
     renderDrawer({
       ...connected,
       status: "complete",
-      selection: makeSelectionStream({
-        input,
-        navigation,
-        runsCompleted: 100,
-      }),
+      connected: {
+        ...following,
+        resumable: true,
+        selection: makeSelectionStream({
+          input,
+          navigation,
+          runsCompleted: 100,
+        }),
+      },
     });
 
     expect(screen.queryByLabelText("Follow steps")).toBeNull();

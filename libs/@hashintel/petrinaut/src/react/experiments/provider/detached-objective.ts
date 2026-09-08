@@ -1,5 +1,6 @@
 import {
   compileScenario,
+  createReadableStore,
   DEFAULT_PETRINAUT_EXTENSIONS,
   getOwn,
   runExperimentToCompletion,
@@ -9,14 +10,13 @@ import {
   type Scenario,
 } from "@hashintel/petrinaut-core";
 import {
-  createWorkerPoolExperimentBackend,
   selectExperimentBackend,
   WORKER_POOL_BACKEND_ID,
 } from "@hashintel/petrinaut-core/experiments";
 
+import { errorMessage } from "../shared/error-message";
 import { createThrottle } from "../shared/throttle";
 import { experimentBackendRegistrations } from "./create-experiment";
-import { createWritableStore } from "./detached-objective/writable-store";
 import { instantiateOnBackend } from "./shared/instantiate-on-backend";
 
 import type { LanguageClientContextValue } from "../../lsp/context";
@@ -28,7 +28,6 @@ import type {
   ExperimentComputeBackend,
 } from "../context";
 import type { SweepCellSnapshot } from "../sweep-session";
-import type { WritableStore } from "./detached-objective/writable-store";
 import type {
   ExperimentBackend,
   ExperimentRequest,
@@ -58,10 +57,10 @@ type ChosenBackend = {
 
 export type DetachedObjectiveSampler = {
   /**
-   * Computes one objective sample against a study's frozen model snapshot.
-   * Batches are serialized on one background worker; compilation is cached
-   * per `cacheKey`. Resolves null when the batch is refused or fails — a
-   * hole in the surface, not an error.
+   * Computes one objective sample against a study's frozen model snapshot:
+   * a CPU run on the surface queue, so samples run one after another beside
+   * the studies' own runs. Resolves null when the batch is refused or fails
+   * — a hole in the surface, not an error.
    */
   sample: (
     request: DetachedObjectiveRequest,
@@ -82,6 +81,11 @@ export type DetachedObjectiveSampler = {
 /** How often a run republishes its frames and progress while streaming. */
 const RUN_PUBLISH_WINDOW_MS = 100;
 
+/** The queue every surface sample joins, whichever study it samples. */
+const SURFACE_QUEUE_KEY = "surface";
+
+type WritableStore<T> = ReturnType<typeof createReadableStore<T>>;
+
 const cancelledOutcome: DetachedObjectiveRunOutcome = {
   ok: false,
   cancelled: true,
@@ -93,9 +97,6 @@ const failedOutcome = (reason: string): DetachedObjectiveRunOutcome => ({
   cancelled: false,
   reason,
 });
-
-const errorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
 
 /**
  * The frozen definition, its scenario HIR and its HIR artifacts never change
@@ -172,8 +173,6 @@ export const createDetachedObjectiveSampler = ({
   const pendingChoices = new Map<string, Promise<ChosenBackend>>();
   const runQueues = new Map<string, Promise<void>>();
   const runsInFlight = new Set<AbortController>();
-  let sampleBackend: ExperimentBackend | null = null;
-  let sampleChain: Promise<unknown> = Promise.resolve();
   // The wide CPU lane of a sweep: a third of the pool, so a study's runs
   // leave room for the surface walk and the user's own experiments.
   const runShards = Math.max(1, Math.floor(shardCount / 3));
@@ -248,32 +247,6 @@ export const createDetachedObjectiveSampler = ({
         ? {}
         : { runs: options.runSeeds.map((seed) => ({ seed })) }),
     };
-  };
-
-  const sampleBatch = async (
-    request: DetachedObjectiveRequest,
-  ): Promise<SweepCellSnapshot | null> => {
-    try {
-      const experimentRequest = await buildRequest(request, {
-        includeHir: false,
-      });
-      sampleBackend ??= createWorkerPoolExperimentBackend({
-        createWorker,
-        shardCount: 1,
-      });
-      const handle = await instantiateOnBackend(
-        sampleBackend,
-        experimentRequest,
-        {},
-      );
-      const { event, frames } = await runExperimentToCompletion(handle);
-      if (event.type !== "complete") {
-        return null;
-      }
-      return { runsCompleted: request.runCount, metricFrames: frames };
-    } catch {
-      return null;
-    }
   };
 
   /** A run's handle on the backend its study settled on. */
@@ -494,10 +467,10 @@ export const createDetachedObjectiveSampler = ({
   };
 
   const run: DetachedObjectiveSampler["run"] = (request) => {
-    const frames = createWritableStore<
+    const frames = createReadableStore<
       readonly MonteCarloUserDefinedMetricFrame[]
     >([]);
-    const progress = createWritableStore<MonteCarloWorkerProgress | null>(null);
+    const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
     const controller = new AbortController();
     const forwardAbort = () => controller.abort();
     if (request.signal?.aborted) {
@@ -534,10 +507,18 @@ export const createDetachedObjectiveSampler = ({
   };
 
   return {
-    sample: (request) => {
-      const next = sampleChain.then(() => sampleBatch(request));
-      sampleChain = next.catch(() => null);
-      return next;
+    sample: async (request) => {
+      const outcome = await run({
+        ...request,
+        computeBackend: "cpu",
+        queueKey: SURFACE_QUEUE_KEY,
+      }).completion;
+      return outcome.ok
+        ? {
+            runsCompleted: outcome.runsCompleted,
+            metricFrames: outcome.metricFrames,
+          }
+        : null;
     },
     run,
     dispose: () => {
@@ -549,8 +530,6 @@ export const createDetachedObjectiveSampler = ({
         chosen.backend.dispose?.();
       }
       chosenBackends.clear();
-      sampleBackend?.dispose?.();
-      sampleBackend = null;
     },
   };
 };

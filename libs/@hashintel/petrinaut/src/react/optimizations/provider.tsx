@@ -13,6 +13,7 @@ import {
 } from "@hashintel/petrinaut-core";
 import {
   isConnectedOptimization,
+  isUnknownOptimizationRunError,
   type PetrinautConnectedOptimization,
   type PetrinautConnectedOptimizationCapability,
 } from "@hashintel/petrinaut-core/optimization";
@@ -21,6 +22,7 @@ import {
   ExperimentsActionsContext,
   type ExperimentsActionsValue,
 } from "../experiments/context";
+import { errorMessage } from "../experiments/shared/error-message";
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
 import {
@@ -32,6 +34,8 @@ import {
   type OptimizationChannelStudy,
 } from "./channel/create-optimization-channel";
 import {
+  type ConnectedStudyState,
+  foldBestTrial,
   type OptimizationBest,
   type OptimizationErrorCategory,
   type OptimizationErrorDiagnostics,
@@ -219,6 +223,15 @@ function classifyError(error: unknown): ClassifiedError | null {
   };
 }
 
+/** Whether the service no longer knows the run: an http 404, or the connected capability's own code. */
+const isUnknownRun = (
+  error: unknown,
+  classified: ClassifiedError | null,
+): boolean =>
+  isUnknownOptimizationRunError(error) ||
+  (classified?.category === "http" &&
+    classified.diagnostics.httpStatus === 404);
+
 /** Build a safe, actionable message from a classified failure. */
 function buildErrorMessage(
   classified: ClassifiedError,
@@ -251,33 +264,6 @@ function buildErrorMessage(
       return `Connection to the optimization service was interrupted ${after}. Retry the optimization.${diagnostic}`;
   }
 }
-
-/**
- * Fold a completed trial into the running best. Attachments deliver
- * `best: null` (the service no longer knows the objective direction after
- * the creating request ends), so the provider maintains the best itself from
- * every trial it applies; `event.best` is still preferred when present.
- */
-const computeRunningBest = (
-  current: OptimizationRecord,
-  event: Extract<PetrinautOptimizationEvent, { type: "trial" }>,
-): OptimizationBest | null => {
-  if (event.state !== "complete" || event.objective === null) {
-    return current.best;
-  }
-  const isBetter =
-    current.best === null ||
-    (current.input.objective.direction === "maximize"
-      ? event.objective > current.best.objective
-      : event.objective < current.best.objective);
-  return isBetter
-    ? {
-        trial: event.trial,
-        parameters: event.parameters,
-        objective: event.objective,
-      }
-    : current.best;
-};
 
 /**
  * A NodeAPI-authored terminal error event with `retryable: true`: the
@@ -317,17 +303,23 @@ const createOptimizationRecord = (
   failedTrials: 0,
   trials: [],
   best: null,
-  resumable: false,
-  parallelism: 1,
   computeBackend: "cpu",
-  computeBackendFallbackReason: null,
   axes: buildOptimizationSurfaceAxes(input),
-  navigation: null,
-  selection: null,
-  activity: [],
-  inFlight: [],
+  connected: null,
   ...overrides,
 });
+
+/** The record with its connected state patched; a remote record is returned as is. */
+const withConnected = (
+  record: OptimizationRecord,
+  patch: (connected: ConnectedStudyState) => Partial<ConnectedStudyState>,
+): OptimizationRecord =>
+  record.connected === null
+    ? record
+    : {
+        ...record,
+        connected: { ...record.connected, ...patch(record.connected) },
+      };
 
 /**
  * A connected source's capability together with the channel it evaluates
@@ -392,20 +384,28 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     shouldBlock: optimizations.some(isOptimizationActive),
   });
 
-  useEffect(() => {
-    const abortControllers = abortControllersRef.current;
-    const studies = studiesRef.current;
-    return () => {
-      for (const controller of abortControllers.values()) {
+  /**
+   * Everything the provider holds outside React ends with the source, and
+   * with the provider: the connection to a connected source, the attach
+   * loops (aborting settles each record as cancelled) and the studies' own
+   * batches.
+   */
+  useEffect(
+    () => () => {
+      connectionRef.current?.dispose();
+      connectionRef.current = null;
+      for (const controller of abortControllersRef.current.values()) {
         controller.abort();
       }
-      abortControllers.clear();
-      for (const study of studies.values()) {
+      abortControllersRef.current.clear();
+      runIdsRef.current.clear();
+      for (const study of studiesRef.current.values()) {
         study.dispose();
       }
-      studies.clear();
-    };
-  }, []);
+      studiesRef.current.clear();
+    },
+    [source],
+  );
 
   const patchOptimization = useCallback(
     (
@@ -454,31 +454,25 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     studiesRef.current.delete(optimizationId);
   };
 
-  /**
-   * Whether a settled record can run more steps: a connected study whose
-   * local machinery is still here. The machinery goes when the study is
-   * removed or its connection is disposed, and with it the kept sampler.
-   */
-  const resumableAfterSettling = (
-    optimizationId: string,
-    current: OptimizationRecord,
-  ): boolean =>
-    current.navigation !== null && studiesRef.current.has(optimizationId);
-
   const markOptimizationCancelled = useCallback(
     (optimizationId: string) => {
-      patchOptimization(optimizationId, (current) => ({
-        ...current,
-        status: "cancelled",
-        // The segment's terminal event, not this mark, makes a connected
-        // study resumable: a stop lands here while its steps in flight are
-        // still being pruned, and the core refuses to extend it until then.
-        resumable: false,
-        error: null,
-        errorCategory: null,
-        errorDiagnostics: null,
-        connectionState: null,
-      }));
+      patchOptimization(optimizationId, (current) =>
+        withConnected(
+          {
+            ...current,
+            status: "cancelled",
+            error: null,
+            errorCategory: null,
+            errorDiagnostics: null,
+            connectionState: null,
+          },
+          // The segment's terminal event, not this mark, makes a connected
+          // study resumable: a stop lands here while the worker is still
+          // resolving its steps in flight, and the core refuses to extend
+          // it until then.
+          () => ({ resumable: false }),
+        ),
+      );
       settleStudy(optimizationId, "cancelled");
     },
     [patchOptimization],
@@ -490,21 +484,23 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       error: unknown,
       classified: ClassifiedError | null,
     ) => {
-      patchOptimization(optimizationId, (current) => ({
-        ...current,
-        status: "error",
-        resumable: false,
-        connectionState: null,
-        // A classified transport failure yields a safe, actionable message
-        // and correlation ids; anything else keeps its message.
-        error: classified
-          ? buildErrorMessage(classified, current)
-          : error instanceof Error
-            ? error.message
-            : String(error),
-        errorCategory: classified?.category ?? null,
-        errorDiagnostics: classified?.diagnostics ?? null,
-      }));
+      patchOptimization(optimizationId, (current) =>
+        withConnected(
+          {
+            ...current,
+            status: "error",
+            connectionState: null,
+            // A classified transport failure yields a safe, actionable
+            // message and correlation ids; anything else keeps its message.
+            error: classified
+              ? buildErrorMessage(classified, current)
+              : errorMessage(error),
+            errorCategory: classified?.category ?? null,
+            errorDiagnostics: classified?.diagnostics ?? null,
+          },
+          () => ({ resumable: false }),
+        ),
+      );
       settleStudy(optimizationId, "error");
     },
     [patchOptimization],
@@ -524,22 +520,30 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       } = {},
     ) => {
       const { extra = {} } = options;
+      // A settled study can run more steps while its local machinery is
+      // here; it goes when the study is removed or its connection is
+      // disposed, and with it the kept sampler.
+      const resumable = () => studiesRef.current.has(optimizationId);
       switch (event.type) {
         case "started":
-          patchOptimization(optimizationId, (current) => ({
-            ...current,
-            ...extra,
-            status: "running",
-            resumable: false,
-            requestedTrials: event.requestedTrials,
-          }));
+          patchOptimization(optimizationId, (current) =>
+            withConnected(
+              {
+                ...current,
+                ...extra,
+                status: "running",
+                requestedTrials: event.requestedTrials,
+              },
+              () => ({ resumable: false }),
+            ),
+          );
           break;
         case "trial":
           patchOptimization(optimizationId, (current) => ({
             ...current,
             ...extra,
-            // A stopped study's pruned steps still report; they do not
-            // revive it.
+            // A trial that settled as the study was stopped still reports;
+            // it does not revive the study.
             status: current.status === "cancelled" ? "cancelled" : "running",
             completedTrials:
               current.completedTrials + (event.state === "complete" ? 1 : 0),
@@ -548,60 +552,70 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
             failedTrials:
               current.failedTrials + (event.state === "failed" ? 1 : 0),
             trials: [...current.trials, event],
-            best: event.best ?? computeRunningBest(current, event),
+            best: foldBestTrial(
+              current.input.objective.direction,
+              current.best,
+              event,
+            ),
           }));
           studiesRef.current.get(optimizationId)?.trialReported(event);
           break;
         case "complete":
-          patchOptimization(optimizationId, (current) => ({
-            ...current,
-            ...extra,
-            status: "complete",
-            resumable: resumableAfterSettling(optimizationId, current),
-            connectionState: null,
-            // The complete event's requested-trial count is the true total,
-            // but its completed/pruned/failed counts only cover the frames
-            // this attachment observed (everything past its cursor), so the
-            // record's own accumulated counters and running best stay
-            // authoritative.
-            requestedTrials: event.requestedTrials,
-            best: event.best ?? current.best,
-          }));
+          patchOptimization(optimizationId, (current) =>
+            withConnected(
+              {
+                ...current,
+                ...extra,
+                status: "complete",
+                connectionState: null,
+                // The complete event's requested-trial count is the true
+                // total, but its completed/pruned/failed counts only cover
+                // the frames this attachment observed (everything past its
+                // cursor), so the record's own accumulated counters and
+                // running best stay authoritative.
+                requestedTrials: event.requestedTrials,
+                best: event.best ?? current.best,
+              },
+              () => ({ resumable: resumable() }),
+            ),
+          );
           settleStudy(optimizationId, "complete", event.best);
           break;
-        case "error":
-          patchOptimization(optimizationId, (current) => ({
-            ...current,
-            ...extra,
-            connectionState: null,
-            /**
-             * A cancellation reaches us as a non-retryable error event — the
-             * stream has no type of its own for it. It is an outcome, not a
-             * failure, so settle it exactly as a locally-driven cancel does:
-             * otherwise re-attaching after a give-up cancel, a reaped orphan,
-             * or a cancel issued elsewhere shows a failed run offering Retry.
-             */
-            ...(event.code === PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE
-              ? {
-                  status: "cancelled" as const,
-                  resumable: resumableAfterSettling(optimizationId, current),
-                  error: null,
-                  errorCategory: null,
-                  errorDiagnostics: null,
-                }
-              : {
-                  status: "error" as const,
-                  resumable: false,
-                  error: event.message,
-                }),
-          }));
-          settleStudy(
-            optimizationId,
-            event.code === PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE
-              ? "cancelled"
-              : "error",
+        case "error": {
+          const cancelled =
+            event.code === PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE;
+          patchOptimization(optimizationId, (current) =>
+            withConnected(
+              {
+                ...current,
+                ...extra,
+                connectionState: null,
+                /**
+                 * A cancellation reaches us as a non-retryable error event —
+                 * the stream has no type of its own for it. It is an outcome,
+                 * not a failure, so settle it exactly as a locally-driven
+                 * cancel does: otherwise re-attaching after a give-up cancel,
+                 * a reaped orphan, or a cancel issued elsewhere shows a failed
+                 * run offering Retry.
+                 */
+                ...(cancelled
+                  ? {
+                      status: "cancelled" as const,
+                      error: null,
+                      errorCategory: null,
+                      errorDiagnostics: null,
+                    }
+                  : {
+                      status: "error" as const,
+                      error: event.message,
+                    }),
+              },
+              () => ({ resumable: cancelled && resumable() }),
+            ),
           );
+          settleStudy(optimizationId, cancelled ? "cancelled" : "error");
           break;
+        }
       }
     },
     [patchOptimization],
@@ -649,8 +663,9 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       /** The record's last applied `seq`, when it already holds earlier events. */
       cursor?: number;
       /**
-       * Silently drop the record when the very first attachment 404s — used
-       * when re-attaching to a stored run that may have expired server-side.
+       * Silently drop the record when the very first attachment finds no
+       * such run — used when re-attaching to a stored run that may have
+       * expired server-side.
        */
       dropRecordOnNotFound?: boolean;
     }): Promise<void> => {
@@ -739,8 +754,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
           if (
             dropRecordOnNotFound &&
             !receivedAnyEvent &&
-            classified?.category === "http" &&
-            classified.diagnostics.httpStatus === 404
+            isUnknownRun(error, classified)
           ) {
             removeStoredActiveRun(runId);
             dropOptimizationRecord(optimizationId);
@@ -812,44 +826,46 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
    * backend, and the hooks that follow its trials. The first trial that ran
    * elsewhere than asked records where, and why, on the record.
    */
-  const resolveChannelStudy = useCallback(
-    (runId: string): OptimizationChannelStudy | null => {
-      const entry = [...runIdsRef.current].find(
-        ([, knownRunId]) => knownRunId === runId,
-      );
-      const study = entry ? studiesRef.current.get(entry[0]) : undefined;
-      if (!entry || !study) {
-        return null;
-      }
-      const [optimizationId] = entry;
-      return {
-        computeBackend: study.computeBackend,
-        trialStarted: study.trialStarted,
-        trialSettled: (trial, outcome) => {
-          study.trialSettled(trial, outcome);
-          if (outcome.ok && outcome.computeBackendFallbackReason !== null) {
-            const { computeBackend, computeBackendFallbackReason } = outcome;
-            patchOptimization(optimizationId, (current) =>
-              current.computeBackendFallbackReason === null
-                ? { ...current, computeBackend, computeBackendFallbackReason }
-                : current,
-            );
-          }
-        },
-      };
-    },
-    [patchOptimization],
-  );
+  const resolveChannelStudy = (
+    runId: string,
+  ): OptimizationChannelStudy | null => {
+    const entry = [...runIdsRef.current].find(
+      ([, knownRunId]) => knownRunId === runId,
+    );
+    const study = entry ? studiesRef.current.get(entry[0]) : undefined;
+    if (!entry || !study) {
+      return null;
+    }
+    const [optimizationId] = entry;
+    return {
+      cacheKey: optimizationId,
+      computeBackend: study.computeBackend,
+      trialStarted: study.trialStarted,
+      trialSettled: (trial, outcome) => {
+        study.trialSettled(trial, outcome);
+        if (outcome.ok && outcome.computeBackendFallbackReason !== null) {
+          const { computeBackend, computeBackendFallbackReason } = outcome;
+          patchOptimization(optimizationId, (current) =>
+            current.connected?.computeBackendFallbackReason === null
+              ? withConnected({ ...current, computeBackend }, () => ({
+                  computeBackendFallbackReason,
+                }))
+              : current,
+          );
+        }
+      },
+    };
+  };
 
   /**
    * The capability behind the source: the remote one as given, or a connected
    * one wired to the experiments backend on first use and kept while the
    * source stays the same. Connecting happens on demand rather than in render
-   * so a source never connects twice, and the cleanup below tears the
+   * so a source never connects twice; the cleanup effect tears the
    * connection down, with the runs made through it, when the source changes
    * or the provider unmounts.
    */
-  const resolveCapability = useCallback((): PetrinautOptimization | null => {
+  const resolveCapability = (): PetrinautOptimization | null => {
     if (source === null || !isConnectedOptimization(source)) {
       return source;
     }
@@ -865,28 +881,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     );
     connectionRef.current = connection;
     return connection.capability;
-  }, [experimentsActionsRef, resolveChannelStudy, source]);
-
-  useEffect(
-    () => () => {
-      const connection = connectionRef.current;
-      if (connection?.source === source) {
-        connection.dispose();
-        connectionRef.current = null;
-        // A connected capability's runs end with its connection: aborting
-        // their attach loops settles each record as cancelled, and the
-        // studies' own batches stop with them.
-        for (const controller of abortControllersRef.current.values()) {
-          controller.abort();
-        }
-        for (const study of studiesRef.current.values()) {
-          study.dispose();
-        }
-        studiesRef.current.clear();
-      }
-    },
-    [source],
-  );
+  };
 
   const createOptimization: OptimizationsContextValue["createOptimization"] =
     async (rawInput, options) => {
@@ -916,10 +911,9 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
             runDetachedObjective: (request) =>
               experimentsActionsRef.current.runDetachedObjective(request),
             onUpdate: (update) => {
-              patchOptimization(optimizationId, (current) => ({
-                ...current,
-                ...update,
-              }));
+              patchOptimization(optimizationId, (current) =>
+                withConnected(current, () => update),
+              );
             },
           })
         : null;
@@ -931,8 +925,17 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       setOptimizations((current) => [
         createOptimizationRecord(optimizationId, input, {
           computeBackend,
-          parallelism,
-          navigation: study?.initialNavigation ?? null,
+          connected: study
+            ? {
+                navigation: study.initialNavigation,
+                selection: null,
+                activity: [],
+                inFlight: [],
+                resumable: false,
+                parallelism,
+                computeBackendFallbackReason: null,
+              }
+            : null,
         }),
         ...current,
       ]);
@@ -1012,7 +1015,8 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
   /**
    * Re-attach to the detached runs a previous document in this tab recorded
    * (sessionStorage survives reloads but not new tabs). Each restored run is
-   * rebuilt from a full replay (cursor 0).
+   * rebuilt from a full replay (cursor 0). A connected source's runs live in
+   * the page that made them, so nothing is restored through one.
    *
    * The cleanup aborts the loops and drops the records this invocation
    * created, so a re-run (React StrictMode double-invokes effects; a swapped
@@ -1021,15 +1025,12 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
    * again.
    */
   useEffect(() => {
-    if (source !== null && isConnectedOptimization(source)) {
+    if (source === null || isConnectedOptimization(source)) {
       return;
     }
+    const capability = source;
     const storedRuns = Object.entries(readStoredActiveRuns());
     if (storedRuns.length === 0) {
-      return;
-    }
-    const capability = resolveCapability();
-    if (!capability) {
       return;
     }
 
@@ -1086,7 +1087,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
         current.filter((optimization) => !startedIds.includes(optimization.id)),
       );
     };
-  }, [resolveCapability, runAttachLoop, source]);
+  }, [runAttachLoop, source]);
 
   /**
    * The run id of a detached record: from the live-loop map while its attach
@@ -1114,11 +1115,12 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
         .catch(() => undefined);
     }
     if (connected) {
-      // The study's segment ends with a terminal event once its steps in
-      // flight are pruned. The attachment stays to apply it, so the record's
-      // cursor covers the whole segment and a continuation resumes right
-      // after it; the status settles here without waiting, and the terminal
-      // event offers the continuation.
+      // The study's segment ends with a terminal event once the worker has
+      // resolved its steps in flight; those are told failed without an
+      // event, so they appear nowhere. The attachment stays to apply the
+      // terminal event, so the record's cursor covers the whole segment and
+      // a continuation resumes right after it; the status settles here
+      // without waiting, and the terminal event offers the continuation.
       markOptimizationCancelled(optimizationId);
       return;
     }
@@ -1161,7 +1163,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       const connection = connectionRef.current;
       const study = studiesRef.current.get(optimizationId);
       if (
-        !existing?.resumable ||
+        !existing?.connected?.resumable ||
         existing.runId === null ||
         !connection ||
         !study
@@ -1170,11 +1172,9 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       }
       const { runId } = existing;
       try {
-        await connection.capability.extendOptimizationRun(runId, trials, {
-          parallelism: existing.parallelism,
-        });
+        await connection.capability.extendOptimizationRun(runId, trials);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = errorMessage(error);
         patchOptimization(optimizationId, (current) => ({
           ...current,
           error: message,
@@ -1185,15 +1185,19 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       abortControllersRef.current.set(optimizationId, abortController);
       runIdsRef.current.set(optimizationId, runId);
       study.resume();
-      patchOptimization(optimizationId, (current) => ({
-        ...current,
-        status: "running",
-        resumable: false,
-        error: null,
-        errorCategory: null,
-        errorDiagnostics: null,
-        connectionState: "streaming",
-      }));
+      patchOptimization(optimizationId, (current) =>
+        withConnected(
+          {
+            ...current,
+            status: "running",
+            error: null,
+            errorCategory: null,
+            errorDiagnostics: null,
+            connectionState: "streaming",
+          },
+          () => ({ resumable: false }),
+        ),
+      );
       void runAttachLoop({
         optimizationId,
         runId,
@@ -1230,7 +1234,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       }
       return createOptimization(existing.input, {
         computeBackend: existing.computeBackend,
-        parallelism: existing.parallelism,
+        parallelism: existing.connected?.parallelism,
       });
     };
 
