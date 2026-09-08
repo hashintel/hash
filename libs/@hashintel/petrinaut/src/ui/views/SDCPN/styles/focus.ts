@@ -44,6 +44,12 @@ export const nodeFocusStyle = cva({
   base: {
     outline: "[4px solid transparent]",
     outlineOffset: "[3px]",
+    // Muting reaches a node from the pane, so a hover rewrites only the
+    // handful of nodes that carry a role. The wrapper marks those.
+    "[data-focus-active] .react-flow__node:not(.canvas-focus-role) &": {
+      borderColor: "neutral.s45",
+      color: "neutral.s90",
+    },
     boxShadow:
       "[var(--focus-glow, 0 0 #0000), var(--node-elevation, 0 0 #0000)]",
     /**
@@ -78,25 +84,17 @@ export const nodeFocusStyle = cva({
       /**
        * Border and label recede, the fill and the token count do not: the rest
        * of the net stays readable, and stays put, while a neighbourhood is
-       * highlighted. A node's border colour is its own — a place's is its
-       * type's, set inline — so muting outranks it with `!important` rather
-       * than by stylesheet order. The label colour is inherited by a title;
-       * a subtitle already sits at this shade.
+       * highlighted. Applied from the pane to every node without a role, so
+       * muting costs no per-node work. A node's border colour is its own — a
+       * place's is its type's, set inline — so muting outranks it with
+       * `!important` rather than by stylesheet order. The label colour is
+       * inherited by a title; a subtitle already sits at this shade.
        */
       muted: { borderColor: "neutral.s45!", color: "neutral.s90" },
     },
   },
   defaultVariants: { focus: "none" },
 });
-
-/**
- * An arc's own stroke and arrowhead colour. An arc in the neighbourhood keeps
- * its token type's colour and takes the role's colour as a casing around it,
- * the way a node keeps its border inside its ring. Arcs away from the
- * neighbourhood keep that colour too, only lighter.
- */
-export const arcFocusColor = (focus: CanvasArcFocus, color: string): string =>
-  focus === "muted" ? `color-mix(in oklab, white 60%, ${color})` : color;
 
 /**
  * The colour of the casing drawn around an arc's stroke, or undefined for an
@@ -124,9 +122,6 @@ export const arcHaloColor = (focus: CanvasArcFocus): string | undefined => {
  */
 export const ARC_WHITE_OVERHANG = 2;
 export const ARC_HALO_OVERHANG = ARC_WHITE_OVERHANG + 2;
-
-/** How far a shape off the neighbourhood recedes on the minimap. */
-export const MINI_MAP_MUTED_OPACITY = 0.3;
 
 /**
  * The ring colour for a shape on the minimap, or undefined for a shape that

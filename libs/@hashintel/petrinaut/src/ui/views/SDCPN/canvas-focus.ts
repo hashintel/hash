@@ -187,7 +187,7 @@ export const buildCanvasFocus = ({
       if (fedByFocus) {
         return "downstream";
       }
-      return "muted";
+      return "none";
     },
 
     arcFocus: (id) => {
@@ -206,7 +206,7 @@ export const buildCanvasFocus = ({
       if (outOfFocus) {
         return "outgoing";
       }
-      return "muted";
+      return "none";
     },
   };
 };

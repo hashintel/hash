@@ -13,6 +13,7 @@ import { buildCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
 import { useDebouncedValue } from "./hooks/util/use-debounced-value";
 import { HOVER_FOCUS_DELAY_MS } from "./styles/focus";
+import { useStableItems } from "./use-stable-items";
 
 /** The scene for the active net, as the editor currently shows it. */
 export const useCanvasScene = (): CanvasScene => {
@@ -29,7 +30,7 @@ export const useCanvasScene = (): CanvasScene => {
     HOVER_FOCUS_DELAY_MS,
   );
 
-  return buildCanvasScene({
+  const scene = buildCanvasScene({
     net: activeNet,
     sdcpn: petriNetDefinition,
     extensions,
@@ -42,4 +43,13 @@ export const useCanvasScene = (): CanvasScene => {
       selectedIds: new Set(selection.keys()),
     }),
   });
+
+  // A hover re-roles a handful of items and rebuilds them all. Carrying the
+  // untouched ones over at their previous identity is what lets the renderer
+  // skip them.
+  return {
+    ...scene,
+    nodes: useStableItems(scene.nodes),
+    arcs: useStableItems(scene.arcs),
+  };
 };

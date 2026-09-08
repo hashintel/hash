@@ -6,10 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { PANEL_MARGIN } from "../../../../../constants/ui";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
-import {
-  miniMapFocusColor,
-  MINI_MAP_MUTED_OPACITY,
-} from "../../../styles/focus";
+import { miniMapFocusColor } from "../../../styles/focus";
 import { miniMapPlaceFillColor } from "../../../styles/type-colors";
 
 import type { NodeType } from "./react-flow-types";
@@ -58,12 +55,17 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
 
   const focus = node.selected ? "focused" : node.data.focus;
   const ringColor = miniMapFocusColor(focus);
+  // The pane fades the shapes outside the neighbourhood, keyed off these
+  // classes, so a hover leaves every other shape's props untouched.
+  const shapeClass =
+    ringColor === undefined
+      ? "minimap-shape"
+      : "minimap-shape canvas-focus-role";
   const shapeStyle = {
     fill,
     stroke: ringColor ?? "none",
     strokeWidth: ringColor === undefined ? 0 : FOCUS_STROKE_WIDTH,
     strokeOpacity: 0.55,
-    opacity: focus === "muted" ? MINI_MAP_MUTED_OPACITY : 1,
   };
 
   if (node.data.kind === "place") {
@@ -72,6 +74,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
         cx={x + SHAPE_SIZE / 2}
         cy={y + SHAPE_SIZE / 2}
         r={SHAPE_SIZE / 2}
+        className={shapeClass}
         style={shapeStyle}
       />
     );
@@ -85,6 +88,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
         width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
         height={SHAPE_SIZE}
         rx={12}
+        className={shapeClass}
         style={shapeStyle}
       />
     );
@@ -96,6 +100,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
       y={y - SHAPE_SIZE / TRANSITION_WIDTH_RATIO}
       width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
       height={SHAPE_SIZE}
+      className={shapeClass}
       style={shapeStyle}
     />
   );

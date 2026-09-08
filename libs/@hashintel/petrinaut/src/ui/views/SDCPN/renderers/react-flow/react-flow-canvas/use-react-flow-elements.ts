@@ -2,7 +2,8 @@ import { MarkerType } from "@xyflow/react";
 import { use } from "react";
 
 import { ExecutionFrameSourceContext } from "../../../../../../react/execution-frame/context";
-import { arcFocusColor, arcHaloColor } from "../../../styles/focus";
+import { arcHaloColor } from "../../../styles/focus";
+import { useStableItems } from "../../../use-stable-items";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 
 import type { SimulationFrameReader } from "../../../../../../react/simulation/context";
@@ -18,6 +19,9 @@ const toReactFlowNode = (
 ): NodeType => {
   const size = { width: node.width, height: node.height };
   const common = {
+    // Only a node carrying a role is marked, so the pane can mute the rest
+    // without touching them.
+    className: node.focus === "none" ? undefined : "canvas-focus-role",
     id: node.id,
     position: node.position,
     ...size,
@@ -46,7 +50,7 @@ const toReactFlowEdge = (
   arc: CanvasArc,
   frameReader: SimulationFrameReader | null,
 ): ArcEdgeType => {
-  const color = arcFocusColor(arc.focus, arc.color);
+  const color = arc.color;
   // The casing cannot wrap the arrowhead, so the arrowhead takes its colour:
   // the cased arc then runs into a head of the same colour rather than
   // stopping at a grey one.
@@ -62,6 +66,7 @@ const toReactFlowEdge = (
       ? portInHandleId(arc.targetPortId)
       : undefined,
     type: "default",
+    className: arc.focus === "none" ? undefined : "canvas-focus-role",
     selected: arc.selected,
     markerEnd: {
       type: MarkerType.ArrowClosed,
@@ -90,8 +95,14 @@ export const useReactFlowElements = (
   scene: CanvasScene,
 ): { nodes: NodeType[]; edges: ArcEdgeType[] } => {
   const { currentFrameReader } = use(ExecutionFrameSourceContext);
+  // Rebuilt from the scene, then held at their previous identity where
+  // nothing changed, so React Flow re-renders only what a hover touched.
   return {
-    nodes: scene.nodes.map((node) => toReactFlowNode(node, currentFrameReader)),
-    edges: scene.arcs.map((arc) => toReactFlowEdge(arc, currentFrameReader)),
+    nodes: useStableItems(
+      scene.nodes.map((node) => toReactFlowNode(node, currentFrameReader)),
+    ),
+    edges: useStableItems(
+      scene.arcs.map((arc) => toReactFlowEdge(arc, currentFrameReader)),
+    ),
   };
 };

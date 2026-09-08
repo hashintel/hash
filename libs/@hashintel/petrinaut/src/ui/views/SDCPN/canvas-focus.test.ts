@@ -82,7 +82,9 @@ describe("buildCanvasFocus", () => {
     expect(focus.nodeFocus("t1")).toBe("focused");
     expect(focus.nodeFocus("p1")).toBe("upstream");
     expect(focus.nodeFocus("p2")).toBe("downstream");
-    expect(focus.nodeFocus("lonely")).toBe("muted");
+    // Everything outside the neighbourhood keeps its plain role: `active`
+    // tells the pane to mute it, so a hover rewrites nothing else.
+    expect(focus.nodeFocus("lonely")).toBe("none");
   });
 
   it("roles the arcs at a focused node by the direction they carry tokens", () => {
@@ -90,7 +92,7 @@ describe("buildCanvasFocus", () => {
 
     expect(focus.arcFocus(p1ToT1)).toBe("incoming");
     expect(focus.arcFocus(t1ToP2)).toBe("outgoing");
-    expect(focus.arcFocus(p2ToT2)).toBe("muted");
+    expect(focus.arcFocus(p2ToT2)).toBe("none");
   });
 
   it("marks a neighbour that is both a source and a sink as bidirectional", () => {
@@ -140,7 +142,7 @@ describe("buildCanvasFocus", () => {
     expect(focus.nodeFocus("t1")).toBe("focused");
     // The hover, not the selection, decides the neighbourhood.
     expect(focus.arcFocus(p2ToT2)).toBe("incoming");
-    expect(focus.arcFocus(p1ToT1)).toBe("muted");
+    expect(focus.arcFocus(p1ToT1)).toBe("none");
   });
 
   it("focuses nothing when the selection names no canvas item", () => {

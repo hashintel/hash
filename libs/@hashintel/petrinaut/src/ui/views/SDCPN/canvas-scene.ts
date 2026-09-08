@@ -104,6 +104,11 @@ export type CanvasScene = {
   nodes: CanvasNode[];
   arcs: CanvasArc[];
   dimensions: RenderNodeDimensions;
+  /**
+   * Whether anything is focused. Drives the muting of everything outside the
+   * neighbourhood from the pane, so a hover leaves the other items untouched.
+   */
+  focusActive: boolean;
 };
 
 export type CanvasSceneInput = {
@@ -272,5 +277,5 @@ export const buildCanvasScene = ({
     }
   }
 
-  return { nodes, arcs, dimensions };
+  return { nodes, arcs, dimensions, focusActive: focus.active };
 };

@@ -73,6 +73,17 @@ const paneStyle = css({
   "& .react-flow__pane": {
     cursor: `var(--pane-cursor) !important`,
   },
+  // An arc outside the neighbourhood recedes from here, so a hover leaves
+  // every arc it did not touch alone. Only the strokes fade: an arc's weight
+  // is worth reading whether or not the arc carrying it is in focus.
+  "&[data-focus-active] .react-flow__edge:not(.canvas-focus-role) .arc-strokes":
+    {
+      opacity: "[0.45]",
+    },
+  // A minimap shape outside the neighbourhood recedes the same way.
+  "&[data-focus-active] .minimap-shape:not(.canvas-focus-role)": {
+    opacity: "[0.3]",
+  },
 });
 
 const ReactFlowCanvasInner: CanvasRenderer = ({
@@ -147,6 +158,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     <CanvasControllerContext value={controller}>
       <div
         className={paneStyle}
+        data-focus-active={scene.focusActive ? "" : undefined}
         style={{
           // @ts-expect-error CSS variables work at runtime, but are not in the type system
           "--pane-cursor": interactions.paneCursor,
