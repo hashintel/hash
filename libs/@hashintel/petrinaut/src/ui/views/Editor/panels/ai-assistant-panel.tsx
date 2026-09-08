@@ -998,6 +998,8 @@ const ConversationAiAssistantPanel = ({
     const output = applyPetrinautAiMutation({
       aiToolCall,
       instance,
+      toolCallId: toolCall.toolCallId,
+      executeMutation: aiAssistant.executeMutation,
     });
 
     await addAutomaticToolOutput({

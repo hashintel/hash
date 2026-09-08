@@ -325,6 +325,73 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(getVoiceToolCallIds({ toolCallId: "legacy-question" })).toEqual([]);
   });
 
+  test("runs the host mutation boundary once before matching output insertion and continuation in StrictMode", async () => {
+    let boundInstance: ReturnType<typeof createPetrinaut> | undefined;
+    const observedNames: (string | undefined)[] = [];
+    const executeMutation = vi.fn<
+      NonNullable<PetrinautAiAssistant["executeMutation"]>
+    >((call) => {
+      expect(call.toolCallId).toBe("a3-panel-call");
+      expect(call.toolName).toBe("updatePlace");
+      observedNames.push(boundInstance?.definition.get().places[0]?.name);
+      const output = call.execute();
+      observedNames.push(boundInstance?.definition.get().places[0]?.name);
+      return output;
+    });
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async ({ messages }) => {
+        expect(observedNames).toEqual(["PlaceOne", "ObservedPlace"]);
+        expect(messages.flatMap((message) => message.parts)).toContainEqual(
+          expect.objectContaining({
+            toolCallId: "a3-panel-call",
+            state: "output-available",
+            output: expect.objectContaining({ applied: true }) as unknown,
+          }),
+        );
+        return streamChunks([
+          ...textChunks("a3-reply", "Continued after observation."),
+          { type: "finish", finishReason: "stop" },
+        ]);
+      },
+    );
+    const { instance } = renderTestPanel({
+      strictMode: true,
+      petriNetDefinition: nonEmptySDCPN,
+      aiAssistant: {
+        conversationId: "a3-panel-conversation",
+        executeMutation,
+        messages: [
+          {
+            id: "a3-panel-message",
+            role: "assistant",
+            parts: [
+              {
+                type: "tool-updatePlace",
+                toolCallId: "a3-panel-call",
+                state: "input-available",
+                input: {
+                  placeId: "place-1",
+                  update: { name: "ObservedPlace" },
+                },
+              },
+            ],
+          },
+        ],
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+    });
+    boundInstance = instance;
+    await waitFor(() => expect(executeMutation).toHaveBeenCalledOnce());
+    expect(observedNames).toEqual(["PlaceOne", "ObservedPlace"]);
+    // The production diagnostics wrapper can wait one second before sending.
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce(), {
+      timeout: 5_000,
+    });
+    expect(
+      await screen.findByText("Continued after observation."),
+    ).not.toBeNull();
+  });
+
   test("disables Clear when the host owns canonical conversation history", () => {
     const transport: PetrinautAiTransport = {
       reconnectToStream: () => Promise.resolve(null),

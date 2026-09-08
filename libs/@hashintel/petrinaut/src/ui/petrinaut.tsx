@@ -45,6 +45,7 @@ import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
 } from "./views/Editor/panels/ai-assistant-panel";
+import type { PetrinautAiMutationExecutor } from "./views/Editor/panels/ai-assistant-panel/types";
 
 export type PetrinautAiChatTransport = PetrinautAiTransport;
 
@@ -55,6 +56,13 @@ export type PetrinautAiAssistant = {
   canClearMessages?: boolean;
   /** Optional host-owned identity; `useChat` generates one when omitted. */
   conversationId?: string;
+  /**
+   * Optional synchronous boundary around canonical mutations. Hosts can inspect
+   * their bound document before/after `execute()` or refuse without executing.
+   * The panel still owns output insertion, continuation, and cancellation.
+   * Not called for read-only refusals, schema failures, title changes or commands.
+   */
+  executeMutation?: PetrinautAiMutationExecutor;
   /** Host-owned dynamic tools that render inline in the AI conversation. */
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   messages?: PetrinautAiMessage[];
