@@ -6,6 +6,7 @@ import { useIsomorphicLayoutEffect } from "../../util/use-isomorphic-layout-effe
 import { Icon, type IconName } from "../Icon/icon";
 import { Menu, type MenuItem } from "../Menu/menu";
 import { Tooltip } from "../Tooltip/tooltip";
+import { menuCustomContent } from "./breadcrumbs.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
 import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
@@ -85,13 +86,44 @@ export const collectEntries = (children: React.ReactNode): BreadcrumbEntry[] =>
 export const isCollapsible = (entry: BreadcrumbEntry): boolean =>
   entry.item !== undefined && !entry.item.noCollapse;
 
+/**
+ * Whether `children` renders as plain text and can take the truncating
+ * `label` class. Composed children like `{first} {last}` arrive as an array
+ * of strings, so arrays of text count too; nullish/boolean entries render
+ * nothing and don't disqualify. Anything containing elements renders via
+ * `custom`, untruncated.
+ */
+const isTextChildren = (children: React.ReactNode): boolean => {
+  if (Array.isArray(children)) {
+    return children.every(isTextChildren);
+  }
+  return (
+    typeof children === "string" ||
+    typeof children === "number" ||
+    children == null ||
+    typeof children === "boolean"
+  );
+};
+
+/** A crumb's content as menu-item text: custom (non-text) content gets a flex wrapper. */
+const toMenuText = (children: React.ReactNode): React.ReactNode =>
+  isTextChildren(children) ? (
+    children
+  ) : (
+    <span className={menuCustomContent}>{children}</span>
+  );
+
 /** Converts a crumb's `subItems` (breadcrumb-shaped, possibly grouped or nested) into Menu items. */
 function toMenuSubEntries(
   entries: Array<ItemOrGroup<BreadcrumbSubItem>>,
   idPrefix: string,
 ): Array<ItemOrGroup<MenuItem>> {
   const toEntry = (subItem: BreadcrumbSubItem, id: string): MenuItem => {
-    const base = { id, text: subItem.children, icon: subItem.iconName };
+    const base = {
+      id,
+      text: toMenuText(subItem.children),
+      icon: subItem.iconName,
+    };
     if (subItem.subItems) {
       return { ...base, subItems: toMenuSubEntries(subItem.subItems, id) };
     }
@@ -119,7 +151,7 @@ export const toMenuItem = (
 ): MenuItem => {
   const base = {
     id: `breadcrumb-${originalIndex}`,
-    text: item.collapsedChildren ?? item.children,
+    text: toMenuText(item.collapsedChildren ?? item.children),
     icon: item.iconName,
   };
   if (item.subItems) {
@@ -143,25 +175,6 @@ export const chevronIcons = (
   size === "lg"
     ? { right: "chevronRight", down: "chevronDown" }
     : { right: "chevronRightHeavy", down: "chevronDownHeavy" };
-
-/**
- * Whether `children` renders as plain text and can take the truncating
- * `label` class. Composed children like `{first} {last}` arrive as an array
- * of strings, so arrays of text count too; nullish/boolean entries render
- * nothing and don't disqualify. Anything containing elements renders via
- * `custom`, untruncated.
- */
-const isTextChildren = (children: React.ReactNode): boolean => {
-  if (Array.isArray(children)) {
-    return children.every(isTextChildren);
-  }
-  return (
-    typeof children === "string" ||
-    typeof children === "number" ||
-    children == null ||
-    typeof children === "boolean"
-  );
-};
 
 export const ItemContent = ({
   item,
