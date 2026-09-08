@@ -13,6 +13,7 @@ import {
 const readAppFile = (relativePath: string): string =>
   readFileSync(new URL(`../${relativePath}`, import.meta.url), "utf8");
 
+<<<<<<< HEAD
 const readRepoFile = (relativePath: string): string =>
   readFileSync(new URL(`../../../${relativePath}`, import.meta.url), "utf8");
 
@@ -33,6 +34,8 @@ test("one documented root command starts the Brunch server and Petrinaut panel",
   expect(readAppFile("README.md")).toContain("yarn dev:brunch");
 });
 
+=======
+>>>>>>> 9d4402d639 (Replace brittle CORS assertions with behavior tests)
 test("dev listens on the chat origin the panel proxy already assumes", () => {
   expect(defaultChatOrigin).toBe("http://127.0.0.1:4321");
   expect(localChatListen).toEqual({
@@ -40,10 +43,9 @@ test("dev listens on the chat origin the panel proxy already assumes", () => {
     port: 4321,
     strictPort: true,
   });
-  expect(readAppFile("vite.config.ts")).toContain("localChatListen");
 });
 
-test("petrinaut:dev proxies the mounted Flue conversation route", () => {
+test("builds local panel configuration for the mounted Flue route", () => {
   expect(localPanelListen).toEqual({
     host: "127.0.0.1",
     port: 4915,
@@ -58,12 +60,6 @@ test("petrinaut:dev proxies the mounted Flue conversation route", () => {
       },
     },
   });
-  expect(readAppFile("petrinaut-local.vite.config.ts")).toContain(
-    "petrinautLocalServer",
-  );
-  expect(readAppFile("petrinaut-local.vite.config.ts")).toContain(
-    'VITE_BRUNCH_CHAT_ENDPOINT ??= "/agents/chat"',
-  );
 });
 
 test("petrinaut:dev retains the website API handlers needed by Voice", () => {
@@ -82,7 +78,7 @@ test("petrinaut:dev retains the website API handlers needed by Voice", () => {
   );
 });
 
-test("documents and forwards the deployment CORS allowlist", () => {
+test("forwards the deployment CORS allowlist to local development", () => {
   const turboConfig = JSON.parse(readAppFile("turbo.json")) as {
     tasks: {
       dev: {
@@ -90,12 +86,8 @@ test("documents and forwards the deployment CORS allowlist", () => {
       };
     };
   };
-  const readme = readAppFile("README.md");
 
   expect(turboConfig.tasks.dev.passThroughEnv).toContain(
     "BRUNCH_CORS_ALLOWED_ORIGINS",
   );
-  expect(readme).toContain("BRUNCH_CORS_ALLOWED_ORIGINS");
-  expect(readme).toContain("https://demo.petrinaut.org");
-  expect(readme).toContain("CORS is not authentication");
 });

@@ -17,7 +17,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application";
 
@@ -27,17 +27,28 @@ const DEV_APP = fileURLToPath(new URL("..", import.meta.url)).replace(
 );
 const DIST = join(DEV_APP, "dist");
 const CLIENT = join(DIST, "client");
+const allowedCorsOrigin = "https://demo.petrinaut.org";
+const previousAllowedCorsOrigins = process.env.BRUNCH_CORS_ALLOWED_ORIGINS;
 
 /** Everything the server build emitted, concatenated. */
 let bundle = "";
 
 beforeAll(() => {
+  process.env.BRUNCH_CORS_ALLOWED_ORIGINS = allowedCorsOrigin;
   // `test:unit` depends on the app's build in `turbo.json`; the test inspects
   // that graph-owned artifact rather than hiding a nested build invocation.
   bundle = readdirSync(DIST)
     .filter((entry) => entry.endsWith(".mjs"))
     .map((entry) => readFileSync(join(DIST, entry), "utf8"))
     .join("\n");
+});
+
+afterAll(() => {
+  if (previousAllowedCorsOrigins === undefined) {
+    delete process.env.BRUNCH_CORS_ALLOWED_ORIGINS;
+  } else {
+    process.env.BRUNCH_CORS_ALLOWED_ORIGINS = previousAllowedCorsOrigins;
+  }
 });
 
 /** The pinned identity of every agent module in the app, read from source. */
@@ -90,28 +101,9 @@ describe("the emitted server bundle", () => {
     }
   });
 
-  test("mounts the agent router, health check, and fail-closed production store", () => {
+  test("includes the fail-closed production store", () => {
     // Without db.ts reaching the bundle, conversations are process-memory and a
     // restart loses them — a difference invisible until something restarts.
-    //
-    // Witnessed by strings that exist only in the app's own modules. The
-    // obvious witnesses are vacuous: `createAgentRouter` survives in a
-    // bootstrap JSDoc comment and `sqlite` in the bootstrap's unconditional
-    // default-adapter fallback, so both match even when the mount or db.ts
-    // never reach the bundle. (Bare `/agents/` is no better — a bundler
-    // region comment for `src/agents/` carries it.)
-    expect(bundle).toContain(
-      "app.route(chatAgentMount, createAgentRouter(ChatAgent));",
-    );
-    expect(bundle).toContain(`agentMount = "/agents"`);
-    expect(bundle).toContain(
-      `chatAgentMount = \`\${agentMount}/\${CHAT_AGENT_ROUTE}\``,
-    );
-    expect(bundle).toContain(
-      `app.use(\`\${agentMount}/*\`, createAgentCors(parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS)))`,
-    );
-    expect(bundle).toContain("app.get(HEALTH_ROUTE, healthHandler);");
-    expect(bundle).toContain("application/health+json");
     expect(bundle).toContain("BRUNCH_POSTGRES_AUTH_MODE");
     expect(bundle).toContain(`config.kind === "postgres"`);
     expect(bundle).toContain(
@@ -134,6 +126,67 @@ describe("the emitted server bundle", () => {
 
     expect(legacyResponse.status).toBe(404);
     expect(flueResponse.status).toBe(401);
+  });
+
+  test("applies route-scoped CORS before ownership", async () => {
+    const application = await loadBuiltBrunchApplication();
+    const [preflight, guardedResponse, bareOptions, healthResponse] =
+      await Promise.all([
+        application.fetch(
+          new Request("http://brunch.test/agents/chat/conversation", {
+            method: "OPTIONS",
+            headers: {
+              Origin: allowedCorsOrigin,
+              "Access-Control-Request-Method": "POST",
+              "Access-Control-Request-Headers":
+                "content-type,x-brunch-principal,x-brunch-conversation",
+            },
+          }),
+        ),
+        application.fetch(
+          new Request("http://brunch.test/agents/chat/conversation", {
+            headers: { Origin: allowedCorsOrigin },
+          }),
+        ),
+        application.fetch(
+          new Request("http://brunch.test/agents/chat/conversation", {
+            method: "OPTIONS",
+          }),
+        ),
+        application.fetch(
+          new Request("http://brunch.test/health", {
+            headers: { Origin: allowedCorsOrigin },
+          }),
+        ),
+      ]);
+
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-origin")).toBe(
+      allowedCorsOrigin,
+    );
+    expect(preflight.headers.get("access-control-allow-methods")).toBe(
+      "GET,POST,OPTIONS",
+    );
+    expect(preflight.headers.get("access-control-allow-headers")).toBe(
+      "Content-Type,x-brunch-principal,x-brunch-conversation",
+    );
+    expect(
+      preflight.headers.get("access-control-allow-credentials"),
+    ).toBeNull();
+
+    expect(guardedResponse.status).toBe(401);
+    expect(guardedResponse.headers.get("access-control-allow-origin")).toBe(
+      allowedCorsOrigin,
+    );
+    expect(bareOptions.status).toBe(401);
+    expect(bareOptions.headers.get("access-control-allow-origin")).toBeNull();
+    expect(healthResponse.status).toBe(200);
+    expect(healthResponse.headers.get("content-type")).toContain(
+      "application/health+json",
+    );
+    expect(
+      healthResponse.headers.get("access-control-allow-origin"),
+    ).toBeNull();
   });
 
   test("packages the authored skill without the retired filesystem loader", () => {
