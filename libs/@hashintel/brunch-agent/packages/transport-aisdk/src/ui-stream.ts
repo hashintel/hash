@@ -1,3 +1,5 @@
+import { serializeErrorText } from "./error-text";
+
 import type { AgentSendResult, ConversationStreamChunk } from "@flue/sdk";
 import type { UIMessageChunk } from "ai";
 
@@ -8,6 +10,7 @@ export interface FlueUiStreamOptions {
     readonly input: unknown;
     readonly toolName: string;
   }) => unknown;
+  readonly hiddenToolNames?: ReadonlySet<string>;
   readonly write: (chunk: UIMessageChunk) => void;
 }
 
@@ -30,6 +33,7 @@ export const createFlueUiStream = (
   let turnId: string | undefined;
   let partOrdinal = 0;
   let streamingPart: StreamingPart | undefined;
+  const hiddenToolCallIds = new Set<string>();
   const pendingClientToolCallIds = new Set<string>();
 
   const finishPart = (): void => {
@@ -97,7 +101,7 @@ export const createFlueUiStream = (
             case "failed":
               options.write({
                 type: "error",
-                errorText: "The chat turn failed.",
+                errorText: serializeErrorText(chunk.error),
               });
               break;
             case "aborted":
@@ -134,6 +138,10 @@ export const createFlueUiStream = (
           if (!accepting || messageId === undefined) return;
           if (chunk.messageId !== messageId) return;
           finishPart();
+          if (options.hiddenToolNames?.has(chunk.toolName) === true) {
+            hiddenToolCallIds.add(chunk.toolCallId);
+            return;
+          }
           const isClientTool = options.clientToolNames.has(chunk.toolName);
           if (isClientTool) pendingClientToolCallIds.add(chunk.toolCallId);
           options.write({
@@ -153,6 +161,7 @@ export const createFlueUiStream = (
         }
         case "tool-output": {
           if (!accepting || messageId === undefined) return;
+          if (hiddenToolCallIds.has(chunk.toolCallId)) return;
           if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
           options.write({
             type: "tool-output-available",
@@ -164,6 +173,7 @@ export const createFlueUiStream = (
         }
         case "tool-output-error": {
           if (!accepting || messageId === undefined) return;
+          if (hiddenToolCallIds.has(chunk.toolCallId)) return;
           if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
           options.write({
             type: "tool-output-error",

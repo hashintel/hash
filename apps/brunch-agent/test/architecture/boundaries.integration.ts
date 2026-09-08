@@ -385,6 +385,7 @@ describe("core auxiliary subpaths stay in their assigned lanes", () => {
       ".",
       "./client-tools",
       "./flue",
+      "./question-marker",
       "./storage",
       "./workpiece",
     ]);
@@ -424,6 +425,8 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
    * path enters here by review only.
    */
   const SUBSTRATE_INTEGRATION_ENTRY_POINTS: Readonly<Record<string, string>> = {
+    "libs/@hashintel/brunch-agent/packages/core/test/question-marker.test.ts":
+      "Types the Flue logger and calls the core marker tool with a mocked data-part writer and logger; no runtime boot, provider, key or socket.",
     "apps/brunch-agent/test/brunch-turn.test.ts":
       "Types Flue's client, admission, and conversation snapshot and constructs FlueExecutionError so the persona bridge can be unit-tested against a stubbed client — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/flue-transcript.test.ts":

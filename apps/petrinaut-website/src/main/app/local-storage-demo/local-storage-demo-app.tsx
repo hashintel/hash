@@ -26,7 +26,6 @@ import {
 import {
   DefaultChatTransport,
   Petrinaut,
-  type PetrinautAiInteractiveTool,
   type PetrinautAiMessage,
   type PetrinautAiStopResult,
   type PetrinautAiVoiceMode,
@@ -46,10 +45,10 @@ import {
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../voice-interview/voice-interview-control";
-import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
 import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
 import {
   BrunchPanelConversationTracker,
+  type BrunchPanelAdmissionTarget,
   createBrunchPanelTransport,
   createUnavailableBrunchPanelTransport,
 } from "./brunch-panel-transport";
@@ -110,30 +109,43 @@ export const getBrunchVoiceMode = (
   config: OpenAIVoiceConfig | null | undefined,
   tracker?: BrunchPanelConversationTracker,
   settlements?: readonly FlueConversationSettlement[],
-): PetrinautAiVoiceMode | undefined =>
-  config
-    ? (context: PetrinautAiVoiceModeContext) => (
-        <VoiceInterviewControl
-          {...context}
-          config={config}
-          settlements={settlements}
-          resolveInputSubmission={(messageId) =>
-            tracker?.submissionForInput(messageId)
-          }
-          resolveResponseSubmission={(messageId) =>
-            tracker?.submissionsForResponse(messageId)
-          }
-          subscribeToAdmission={
-            tracker === undefined
-              ? undefined
-              : (target, listener) =>
-                  tracker.subscribeToAdmission(target, ({ admission }) =>
-                    listener(admission.submissionId),
-                  )
-          }
-        />
-      )
-    : undefined;
+): PetrinautAiVoiceMode | undefined => {
+  if (!config) return undefined;
+
+  const resolveInputSubmission = tracker?.submissionForInput.bind(tracker);
+  const resolveResponseSubmission =
+    tracker?.submissionsForResponse.bind(tracker);
+  const subscribeToResponseMessageCompleted =
+    tracker?.subscribeToResponseMessageCompleted.bind(tracker);
+  const subscribeToResponseMessageStarted =
+    tracker?.subscribeToResponseMessageStarted.bind(tracker);
+  const subscribeToStopRequested =
+    tracker?.subscribeToStopRequested.bind(tracker);
+  const subscribeToAdmission =
+    tracker === undefined
+      ? undefined
+      : (target: BrunchPanelAdmissionTarget, listener: (id: string) => void) =>
+          tracker.subscribeToAdmission(target, ({ admission }) =>
+            listener(admission.submissionId),
+          );
+  const subscribeToAdmissionFailure =
+    tracker?.subscribeToAdmissionFailure.bind(tracker);
+
+  return (context: PetrinautAiVoiceModeContext) => (
+    <VoiceInterviewControl
+      {...context}
+      config={config}
+      settlements={settlements}
+      resolveInputSubmission={resolveInputSubmission}
+      resolveResponseSubmission={resolveResponseSubmission}
+      subscribeToResponseMessageCompleted={subscribeToResponseMessageCompleted}
+      subscribeToResponseMessageStarted={subscribeToResponseMessageStarted}
+      subscribeToStopRequested={subscribeToStopRequested}
+      subscribeToAdmission={subscribeToAdmission}
+      subscribeToAdmissionFailure={subscribeToAdmissionFailure}
+    />
+  );
+};
 
 const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   createJsonDocHandle({
@@ -143,11 +155,6 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   });
 
 const brunchPrincipal = getOrCreateBrunchPrincipal();
-
-/** Every widget here must answer a tool named in `brunchClientToolNames`. */
-export const brunchInteractiveTools: readonly PetrinautAiInteractiveTool[] = [
-  brunchAskInteractiveTool,
-];
 
 const stockChatTransport = new DefaultChatTransport({
   api: brunchPreviewConfig.chatEndpoint,
@@ -180,6 +187,7 @@ export const requestFlueStop = async (
   clientPromise: Promise<ReturnType<typeof createFlueClient>>,
   tracker: BrunchPanelConversationTracker,
 ): Promise<PetrinautAiStopResult> => {
+  tracker.recordStopRequested();
   const client = await clientPromise;
   await tracker.settleInFlightSubmissions();
   const result = await client.abort();
@@ -219,64 +227,6 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
   netId: net.id,
   fallbackNet: net,
 });
-
-type FlueChatHistory = ReturnType<typeof useFlueChatHistory>;
-
-const errorStatus = (error: Error | undefined): number | undefined => {
-  if (
-    error !== undefined &&
-    "status" in error &&
-    typeof error.status === "number"
-  ) {
-    return error.status;
-  }
-  return undefined;
-};
-
-const BrunchConversationStatus = ({
-  error,
-  latestSettlement,
-  phase,
-  refresh,
-}: Pick<
-  FlueChatHistory,
-  "error" | "latestSettlement" | "phase" | "refresh"
->) => {
-  if (phase === undefined) return null;
-
-  const label =
-    phase === "loading"
-      ? "Loading Brunch conversation…"
-      : phase === "connecting"
-        ? "Reconnecting to Brunch…"
-        : phase === "absent"
-          ? "New Brunch conversation"
-          : phase === "error"
-            ? errorStatus(error) === 401 || errorStatus(error) === 403
-              ? "Brunch access was denied."
-              : "Brunch conversation unavailable."
-            : phase === "closed"
-              ? "Brunch conversation closed."
-              : latestSettlement?.outcome === "aborted"
-                ? "Last Brunch response stopped."
-                : latestSettlement?.outcome === "failed"
-                  ? "Last Brunch response failed."
-                  : "Brunch conversation ready.";
-
-  return (
-    <span aria-live="polite">
-      {label}
-      {phase === "error" && (
-        <>
-          {" "}
-          <button type="button" onClick={refresh}>
-            Retry
-          </button>
-        </>
-      )}
-    </span>
-  );
-};
 
 /**
  * The demo's own palette command, registered beside Petrinaut's: picking it
@@ -658,25 +608,13 @@ export const LocalStorageDemoApp = ({
     () => ({
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
-      interactiveTools: brunchInteractiveTools,
+      interactiveTools: [],
       transport: petrinautAiChatTransport,
       ...(flueClientPromise === null
         ? {}
         : {
             requestStop: () =>
               requestFlueStop(flueClientPromise, conversationTracker),
-          }),
-      ...(flueClientPromise === null
-        ? {}
-        : {
-            renderComposerControl: () => (
-              <BrunchConversationStatus
-                error={flueHistory.error}
-                latestSettlement={flueHistory.latestSettlement}
-                phase={flueHistory.phase}
-                refresh={flueHistory.refresh}
-              />
-            ),
           }),
       messages:
         flueClientPromise === null
@@ -718,11 +656,7 @@ export const LocalStorageDemoApp = ({
       conversationId,
       currentNetId,
       flueClientPromise,
-      flueHistory.error,
-      flueHistory.latestSettlement,
       flueHistory.messages,
-      flueHistory.phase,
-      flueHistory.refresh,
       petrinautAiChatTransport,
       setAiMessagesByNetId,
     ],

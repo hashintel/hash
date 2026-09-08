@@ -9,10 +9,17 @@ import type { UIMessage } from "ai";
 
 type UiMessagePart = UIMessage["parts"][number];
 
+export interface UiHistoryMessageMetadata {
+  readonly source?: "voice";
+  readonly voiceToolCallIds?: readonly string[];
+  readonly stopped?: true;
+}
+
 export type UiHistoryMessage = Omit<
-  UIMessage,
+  UIMessage<UiHistoryMessageMetadata>,
   "metadata" | "parts" | "role"
 > & {
+  metadata?: UiHistoryMessageMetadata;
   role: Extract<UIMessage["role"], "assistant" | "user">;
   parts: UiMessagePart[];
 };
@@ -23,6 +30,7 @@ export interface SnapshotToUiMessagesOptions {
     readonly input: unknown;
     readonly toolName: string;
   }) => unknown;
+  readonly hiddenToolNames?: ReadonlySet<string>;
 }
 
 const unhandledConversationPart = (part: never): never => {
@@ -37,11 +45,16 @@ const isFlueDataPart = (
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
+interface ClientToolResult {
+  readonly output: unknown;
+  readonly source?: "voice";
+}
+
 const clientToolResultsFrom = (
   snapshot: Pick<FlueConversationState, "messages">,
   signalName: string,
-): ReadonlyMap<string, unknown> => {
-  const outputsByCallId = new Map<string, unknown>();
+): ReadonlyMap<string, ClientToolResult> => {
+  const resultsByCallId = new Map<string, ClientToolResult>();
   for (const message of snapshot.messages) {
     if (message.purpose !== "dispatch") continue;
     if (message.signal?.tagName !== signalName) continue;
@@ -67,19 +80,22 @@ const clientToolResultsFrom = (
       ) {
         continue;
       }
-      outputsByCallId.set(result.toolCallId, result.output);
+      resultsByCallId.set(result.toolCallId, {
+        output: result.output,
+        ...(result.source === "voice" ? { source: "voice" } : {}),
+      });
     }
   }
-  return outputsByCallId;
+  return resultsByCallId;
 };
 
 const toolPartFrom = (
   part: Extract<FlueConversationPart, { type: "dynamic-tool" }>,
   options: SnapshotToUiMessagesOptions,
-  clientOutputs: ReadonlyMap<string, unknown>,
+  clientResults: ReadonlyMap<string, ClientToolResult>,
 ): UiMessagePart => {
   const isClientTool = options.clientToolNames.has(part.toolName);
-  const hasClientOutput = clientOutputs.has(part.toolCallId);
+  const hasClientOutput = clientResults.has(part.toolCallId);
   const input =
     isClientTool && options.mapClientToolInput !== undefined
       ? options.mapClientToolInput({
@@ -106,7 +122,7 @@ const toolPartFrom = (
     };
   }
   const output = isClientTool
-    ? clientOutputs.get(part.toolCallId)
+    ? clientResults.get(part.toolCallId)?.output
     : part.state === "output-available"
       ? part.output
       : undefined;
@@ -132,7 +148,7 @@ const toolPartFrom = (
 const partsFrom = (
   message: FlueConversationMessage,
   options: SnapshotToUiMessagesOptions,
-  clientOutputs: ReadonlyMap<string, unknown>,
+  clientResults: ReadonlyMap<string, ClientToolResult>,
 ): UiMessagePart[] => {
   const parts: UiMessagePart[] = [];
   for (const part of message.parts) {
@@ -145,7 +161,8 @@ const partsFrom = (
       continue;
     }
     if (part.type === "dynamic-tool") {
-      parts.push(toolPartFrom(part, options, clientOutputs));
+      if (options.hiddenToolNames?.has(part.toolName) === true) continue;
+      parts.push(toolPartFrom(part, options, clientResults));
       continue;
     }
     if (part.type === "file") {
@@ -167,14 +184,24 @@ const partsFrom = (
 };
 
 export const snapshotToUiMessages = (
-  snapshot: Pick<FlueConversationState, "messages">,
+  snapshot: Pick<FlueConversationState, "messages"> &
+    Partial<Pick<FlueConversationState, "settlements">>,
   options: SnapshotToUiMessagesOptions,
 ): UiHistoryMessage[] => {
-  const clientOutputs = clientToolResultsFrom(
+  const clientResults = clientToolResultsFrom(
     snapshot,
     CLIENT_TOOL_RESULT_SIGNAL,
   );
   const messages: UiHistoryMessage[] = [];
+  const abortedSubmissions = new Set(
+    snapshot.settlements
+      ?.filter(({ outcome }) => outcome === "aborted")
+      .flatMap(({ submissionId, answeredBySubmissionId }) =>
+        answeredBySubmissionId === undefined
+          ? [submissionId]
+          : [submissionId, answeredBySubmissionId],
+      ),
+  );
   // The live stream projects a client-tool continuation onto the assistant
   // message it resumes; the snapshot records that continuation as a separate
   // Flue message behind the `client-tool-result` dispatch, so fold it back.
@@ -193,21 +220,64 @@ export const snapshotToUiMessages = (
     if (message.display !== "visible") continue;
     if (message.purpose !== "user" && message.purpose !== "assistant") continue;
     if (message.role !== "user" && message.role !== "assistant") continue;
-    const parts = partsFrom(message, options, clientOutputs);
+    const parts = partsFrom(message, options, clientResults);
     if (message.role === "user") {
       resumableAssistant = undefined;
       awaitingClientResult = false;
       continuationPending = false;
     }
     if (parts.length === 0) continue;
-    if (
+    const foldsIntoPrevious =
       message.role === "assistant" &&
       (awaitingClientResult || continuationPending) &&
-      resumableAssistant !== undefined
-    ) {
+      resumableAssistant !== undefined;
+    const voiceToolCallIds =
+      message.role === "assistant"
+        ? message.parts.flatMap((part) =>
+            part.type === "dynamic-tool" &&
+            clientResults.get(part.toolCallId)?.source === "voice"
+              ? [part.toolCallId]
+              : [],
+          )
+        : [];
+    const stopped =
+      message.role === "assistant" &&
+      message.submissionId !== undefined &&
+      abortedSubmissions.has(message.submissionId);
+    const metadata: UiHistoryMessageMetadata = {
+      ...(voiceToolCallIds.length > 0
+        ? { source: "voice" as const, voiceToolCallIds }
+        : {}),
+      ...(stopped ? { stopped: true as const } : {}),
+    };
+    awaitingClientResult =
+      message.role === "assistant" &&
+      !stopped &&
+      message.parts.some(
+        (part) =>
+          part.type === "dynamic-tool" &&
+          options.clientToolNames.has(part.toolName) &&
+          !clientResults.has(part.toolCallId),
+      );
+    if (foldsIntoPrevious && resumableAssistant !== undefined) {
       // Live continuations start a new step. Keep that boundary after reopen
       // so completedClientToolResults still selects only the latest step.
       resumableAssistant.parts.push({ type: "step-start" }, ...parts);
+      if (voiceToolCallIds.length > 0 || stopped) {
+        const combinedOrigins = [
+          ...new Set([
+            ...(resumableAssistant.metadata?.voiceToolCallIds ?? []),
+            ...voiceToolCallIds,
+          ]),
+        ];
+        resumableAssistant.metadata = {
+          ...resumableAssistant.metadata,
+          ...metadata,
+          ...(combinedOrigins.length > 0
+            ? { voiceToolCallIds: combinedOrigins }
+            : {}),
+        };
+      }
       continuationPending = false;
       continue;
     }
@@ -215,17 +285,10 @@ export const snapshotToUiMessages = (
       id: message.id,
       role: message.role,
       parts,
+      ...(voiceToolCallIds.length > 0 || stopped ? { metadata } : {}),
     };
     messages.push(projected);
-    if (message.role === "assistant") {
-      resumableAssistant = projected;
-      awaitingClientResult = message.parts.some(
-        (part) =>
-          part.type === "dynamic-tool" &&
-          options.clientToolNames.has(part.toolName) &&
-          !clientOutputs.has(part.toolCallId),
-      );
-    }
+    if (message.role === "assistant") resumableAssistant = projected;
   }
   return messages;
 };
