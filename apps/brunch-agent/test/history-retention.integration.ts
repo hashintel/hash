@@ -9,7 +9,7 @@ import {
   fauxProvider,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
-import { observe, setProvider } from "@flue/runtime";
+import { observe } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
 import { projectFlueHistoryForSweep } from "@hashintel/brunch-agent-binding-flue";
@@ -23,6 +23,7 @@ import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
+import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 
 import type { FauxResponseStep } from "@earendil-works/pi-ai";
@@ -76,7 +77,7 @@ const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: modelId, contextWindow, maxTokens }],
 });
-setProvider(faux.provider);
+installFauxProvider(faux.provider);
 const contexts: {
   purpose: Extract<FlueObservation, { type: "turn_request" }>["purpose"];
   context: unknown;

@@ -30,7 +30,13 @@
       "dependsOn": ["codegen", "examples:generate", "^build"]
     },
     "test:unit": {
-      "dependsOn": ["codegen", "examples:generate", "^build"],
+      // The buffered-admission Voice check consumes the real non-listening app.
+      "dependsOn": [
+        "codegen",
+        "examples:generate",
+        "^build",
+        "@apps/brunch-agent#build"
+      ],
       // Restated because a package task definition replaces the root one, and
       // the root declares this so a coverage run cannot reuse a plain cache
       // entry.

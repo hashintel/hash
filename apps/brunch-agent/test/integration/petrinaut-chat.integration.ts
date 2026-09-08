@@ -9,7 +9,6 @@ import {
   fauxThinking,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
-import { setProvider } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
 import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
@@ -34,6 +33,7 @@ import {
   flueConversationIdFrom,
 } from "../../src/conversation/identity.ts";
 import { formatFlueTranscript } from "../../src/conversation/transcript.ts";
+import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
 import { CHAT_AGENT_ROUTE } from "../../src/http/routes.ts";
 
@@ -117,7 +117,7 @@ const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: CHAT_MODEL_ID, reasoning: true }],
 });
-setProvider(faux.provider);
+installFauxProvider(faux.provider);
 const application = await loadBuiltBrunchApplication();
 
 try {

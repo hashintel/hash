@@ -7,7 +7,6 @@ import {
   fauxText,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
-import { setProvider } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 
 import {
@@ -25,6 +24,7 @@ import {
   flueConversationIdFrom,
 } from "../../src/conversation/identity.ts";
 import { recoverRunbookWorkpiece } from "../../src/conversation/workpiece.ts";
+import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
 import { createHeadlessPetrinautClient } from "../../src/evaluations/runbook/headless-petrinaut-client.ts";
 import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
 import { CHAT_AGENT_ROUTE } from "../../src/http/routes.ts";
@@ -55,7 +55,7 @@ const provider = fauxProvider({
   provider: "anthropic",
   models: [{ id: modelId, reasoning: true }],
 });
-setProvider(provider.provider);
+installFauxProvider(provider.provider);
 provider.setResponses([
   fauxAssistantMessage([
     fauxText(

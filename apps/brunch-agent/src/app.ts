@@ -1,10 +1,18 @@
 /** The app's route map — one ownership-guarded Flue conversation door. */
 
 import "./telemetry-bootstrap.ts";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { readFile } from "node:fs/promises";
 
+import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
+import { instrument, setProvider } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
+
+import {
+  PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+  READ_PETRINAUT_DOC_TOOL_NAME,
+} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
 import { healthHandler } from "./health.ts";
@@ -12,6 +20,36 @@ import { assetHandler } from "./http/assets.ts";
 import { createAgentCors, parseCorsAllowedOrigins } from "./http/cors.ts";
 import { agentOwnershipGuard } from "./http/ownership.ts";
 import { CHAT_AGENT_ROUTE, HEALTH_ROUTE } from "./http/routes.ts";
+import { withBufferedToolAdmission } from "./provider-admission.ts";
+
+// Scope follows the runtime's submission execution, not the HTTP request that
+// merely queues it. It is an async execution flag, never a proposal/state ledger.
+const admissionScope = new AsyncLocalStorage<boolean>();
+instrument({
+  key: Symbol.for("brunch.buffered-tool-admission"),
+  observe() {},
+  interceptor(operation, context, next) {
+    if (operation.type === "agent" && context.agentName !== undefined) {
+      return admissionScope.run(
+        context.agentName === ChatAgent.agentName,
+        next,
+      );
+    }
+    if (operation.type === "task") return admissionScope.run(false, next);
+    return next();
+  },
+  dispose() {},
+});
+setProvider(
+  withBufferedToolAdmission(
+    anthropicProvider(),
+    () => admissionScope.getStore() === true,
+    new Set([
+      ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+      READ_PETRINAUT_DOC_TOOL_NAME,
+    ]),
+  ),
+);
 
 const app = new Hono();
 

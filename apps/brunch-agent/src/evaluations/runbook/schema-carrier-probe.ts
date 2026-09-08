@@ -10,7 +10,6 @@ import {
   fauxText,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
-import { setProvider } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 
 import { VALIDATED_CONSTRUCTION_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
@@ -24,6 +23,7 @@ import {
   flueConversationIdFrom,
 } from "../../conversation/identity.ts";
 import { CHAT_AGENT_ROUTE } from "../../http/routes.ts";
+import { installFauxProvider } from "../install-faux-provider.ts";
 import { createBrunchTurnTool } from "../persona/brunch-turn.ts";
 import { createHeadlessPetrinautClient } from "./headless-petrinaut-client.ts";
 import { loadBuiltBrunchApplication } from "./load-built-application.ts";
@@ -86,7 +86,7 @@ const provider: Provider = {
     return faux.provider.streamSimple(model, context, options);
   },
 };
-setProvider(provider);
+installFauxProvider(provider);
 
 const identity = {
   principalKey: "principal-mission-7-a1",

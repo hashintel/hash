@@ -1,148 +1,172 @@
 import { join } from "node:path";
 
-import { isToolUIPart } from "ai";
+import { isToolUIPart, type UIMessageChunk } from "ai";
 import { beforeAll, expect, test } from "vitest";
+
+import { createFlueUiStream } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { runNodeScript } from "./run-node-script";
 
 import type { AdmissionControlsResult } from "./admission-controls.integration";
 
-const controls = [
-  "baseline",
-  "observer-throw",
-  "tool-veto",
-  "provider-reject",
-] as const;
-let results: AdmissionControlsResult[];
+let result: AdmissionControlsResult;
 beforeAll(async () => {
-  results = await Promise.all(
-    controls.map(async (control) => {
-      const { exitCode, stdout, stderr } = await runNodeScript(
-        join(import.meta.dirname, "admission-controls.integration.ts"),
-        join(import.meta.dirname, "../../.."),
-        { A2_ADMISSION_CONTROL: control },
-      );
-      if (exitCode !== 0) throw new Error(stderr || stdout);
-      const line = stdout
-        .split("\n")
-        .find((entry) => entry.startsWith("ADMISSION_CONTROLS "));
-      if (line === undefined) throw new Error(stdout);
-      return JSON.parse(
-        line.slice("ADMISSION_CONTROLS ".length),
-      ) as AdmissionControlsResult;
-    }),
+  const { exitCode, stdout, stderr } = await runNodeScript(
+    join(import.meta.dirname, "admission-controls.integration.ts"),
+    join(import.meta.dirname, "../../.."),
+    {},
   );
+  if (exitCode !== 0) throw new Error(stderr || stdout);
+  const line = stdout
+    .split("\n")
+    .find((entry) => entry.startsWith("ADMISSION_CONTROLS "));
+  if (line === undefined) throw new Error(stdout);
+  result = JSON.parse(
+    line.slice("ADMISSION_CONTROLS ".length),
+  ) as AdmissionControlsResult;
 });
 
-// These are capability discriminators, not replacements for the unchanged red
-// production safety oracle in workpiece-revisions.test.ts. No control is mounted
-// by production: only the child process registers these diagnostic candidates.
-test("an observer throw cannot veto the mounted mixed proposal", () => {
-  for (const result of results.filter(
-    ({ control }) => control === "baseline" || control === "observer-throw",
-  )) {
-    for (const observation of result.observations.filter(
-      ({ generated }) =>
-        generated.length > 1 &&
-        generated.some((call) => call.name === "addType"),
-    )) {
-      expect(observation.providerCallsBeforeClientResult).toBe(2);
-      expect(observation.mutationApplied).toBe(true);
-      expect(observation.pendingMutationIds).toHaveLength(1);
-    }
-  }
-});
-
-test("a tool interceptor refuses execution but does not prevent provider continuation", () => {
-  const result = results.find(({ control }) => control === "tool-veto")!;
-  for (const observation of result.observations.filter(
+test("production rejects every mixed proposal before publishing or partially executing it", () => {
+  expect(result.observations).toHaveLength(14);
+  const mixed = result.observations.filter(
     ({ generated }) =>
       generated.length > 1 && generated.some((call) => call.name === "addType"),
-  )) {
-    expect(observation.pendingMutationIds).toEqual([]);
-    expect(observation.mutationApplied).toBe(false);
-    expect(observation.providerCallsBeforeClientResult).toBe(2);
-    expect(observation.attempt.error).toBeNull();
-  }
-});
-
-test("buffered custom-provider rejection fails closed before publishing a mixed proposal", () => {
-  const result = results.find(({ control }) => control === "provider-reject")!;
-  for (const observation of result.observations.filter(
-    ({ generated }) =>
-      generated.length > 1 && generated.some((call) => call.name === "addType"),
-  )) {
+  );
+  expect(mixed).toHaveLength(11);
+  for (const observation of mixed) {
     expect(observation.pendingMutationIds).toEqual([]);
     expect(observation.after).toEqual(observation.before);
     expect(observation.providerCallsBeforeClientResult).toBe(1);
-    expect(observation.attempt.error).toContain("Diagnostic admission refusal");
-    const seededIds = new Set(
-      observation.seeded.messages.map((message) => message.id),
+    expect(observation.attempt.error).toContain(
+      "Mixed browser/server proposal refused",
     );
-    const attemptedTools = observation.history.messages
-      .filter((message) => !seededIds.has(message.id))
-      .flatMap((message) =>
-        message.parts.filter((part) => part.type === "dynamic-tool"),
-      );
-    expect(attemptedTools).toEqual([]);
+    const uiChunks: UIMessageChunk[] = [];
+    const ui = createFlueUiStream({
+      submissionId: observation.attempt.receipt.submissionId,
+      clientToolNames: new Set(["addType"]),
+      write: (chunk) => {
+        uiChunks.push(chunk);
+      },
+    });
+    for (const { chunk } of result.wire) ui.accept(chunk);
+    expect(uiChunks).toContainEqual(expect.objectContaining({ type: "error" }));
+    expect(
+      uiChunks.some((chunk) => chunk.type === "tool-input-available"),
+    ).toBe(false);
+    const ids = new Set(observation.generated.map((call) => call.id));
+    expect(
+      result.wire.filter(
+        ({ chunk }) => "toolCallId" in chunk && ids.has(chunk.toolCallId),
+      ),
+    ).toEqual([]);
+    expect(
+      observation.history.messages
+        .filter(
+          (message) =>
+            message.submissionId === observation.attempt.receipt.submissionId,
+        )
+        .flatMap((message) =>
+          message.parts.filter((part) => part.type === "dynamic-tool"),
+        ),
+    ).toEqual([]);
+    expect(observation.history.settlements).toContainEqual(
+      expect.objectContaining({
+        submissionId: observation.attempt.receipt.submissionId,
+        outcome: "failed",
+      }),
+    );
   }
 });
 
-test("each diagnostic control permits settlement, noninteractive markers and independent browser result continuation", () => {
-  expect(results).toHaveLength(4);
-  for (const result of results) {
-    expect(result.observations).toHaveLength(14);
-    for (const observation of result.observations) {
-      expect(observation.seed.error).toBeNull();
-      const revision = observation.seeded.messages
-        .flatMap((message) => message.parts)
-        .find(
-          (part) =>
-            part.type === "dynamic-tool" &&
-            part.toolName === "update_workpiece",
-        );
-      expect(revision).toMatchObject({
-        toolName: "update_workpiece",
-        output: {
-          revisionId: `${observation.caseId}-old-revision`,
-          ordinal: 1,
-        },
-      });
-    }
-    const marker = result.observations.find(
-      ({ caseId }) => caseId === "brunch_mark_question",
+test("production still settles revisions and noninteractive markers without browser results", () => {
+  for (const observation of result.observations) {
+    expect(observation.seed.error).toBeNull();
+    const revision = observation.seeded.messages
+      .flatMap((message) => message.parts)
+      .find(
+        (part) =>
+          part.type === "dynamic-tool" && part.toolName === "update_workpiece",
+      );
+    expect(revision).toMatchObject({
+      output: { revisionId: `${observation.caseId}-old-revision`, ordinal: 1 },
+    });
+  }
+  for (const caseId of [
+    "brunch_mark_question",
+    "update_workpiece-brunch_mark_question",
+  ]) {
+    const observation = result.observations.find(
+      (entry) => entry.caseId === caseId,
     )!;
-    expect(marker.attempt.error).toBeNull();
-    expect(marker.providerCallsBeforeClientResult).toBe(2);
-    const serverOnly = result.observations.find(
-      ({ caseId }) => caseId === "update_workpiece-brunch_mark_question",
-    )!;
-    expect(serverOnly.attempt.error).toBeNull();
-    expect(serverOnly.providerCallsBeforeClientResult).toBe(2);
-    const browser = result.observations.find(
-      ({ caseId }) => caseId === "addType",
-    )!;
-    expect(browser.providerCallsBeforeClientResult).toBe(1);
-    expect(browser.pendingMutationIds).toEqual(["addType-addType"]);
-    expect(browser.after.types).toHaveLength(1);
-    expect(browser.continuation?.outcome.error).toBeNull();
-    expect(browser.continuation?.totalProviderCalls).toBe(2);
-    expect(browser.continuation?.history.conversationId).toBe(
-      browser.history.conversationId,
-    );
-    expect(browser.continuation?.definitionAfterResume).toEqual(browser.after);
-    const projectedTools = browser
-      .continuation!.projected.flatMap((message) => message.parts)
-      .filter(isToolUIPart);
-    expect(projectedTools).toContainEqual(
-      expect.objectContaining({
-        toolCallId: "addType-addType",
-        state: "output-available",
-        output: { applied: true },
-      }),
-    );
+    expect(observation.attempt.error).toBeNull();
+    expect(observation.providerCallsBeforeClientResult).toBe(2);
+  }
+});
+
+test("an independently admitted browser mutation waits for its correlated result and does not reapply", () => {
+  const browser = result.observations.find(
+    ({ caseId }) => caseId === "addType",
+  )!;
+  expect(browser.providerCallsBeforeClientResult).toBe(1);
+  expect(browser.pendingMutationIds).toEqual(["addType-addType"]);
+  expect(browser.after.types).toHaveLength(1);
+  expect(browser.continuation?.outcome.error).toBeNull();
+  expect(browser.continuation?.totalProviderCalls).toBe(2);
+  expect(browser.continuation?.history.conversationId).toBe(
+    browser.history.conversationId,
+  );
+  expect(browser.continuation?.definitionAfterResume).toEqual(browser.after);
+  const projected = browser.continuation!.projected;
+  const tools = projected
+    .flatMap((message) => message.parts)
+    .filter(isToolUIPart);
+  expect(tools).toContainEqual(
+    expect.objectContaining({
+      toolCallId: "addType-addType",
+      state: "output-available",
+      output: { applied: true },
+    }),
+  );
+  expect(tools.filter((part) => part.state === "input-available")).toEqual([]);
+  expect(
+    projected.some((message) =>
+      message.metadata?.voiceToolCallIds?.includes("addType-addType"),
+    ),
+  ).toBe(true);
+});
+
+test("active Stop cancels buffered output and late completion cannot leak prose or tools", () => {
+  for (const sample of result.buffering) {
     expect(
-      projectedTools.filter((part) => part.state === "input-available"),
+      sample.projectedDuring.filter((message) => message.role === "assistant"),
     ).toEqual([]);
   }
+  const stopped = result.buffering.find(
+    ({ caseId }) => caseId === "buffered-cancelled",
+  )!;
+  expect(stopped.upstreamAborted).toBe(true);
+  expect(stopped.error).not.toBeNull();
+  expect(stopped.after.settlements).toContainEqual(
+    expect.objectContaining({
+      submissionId: stopped.receipt.submissionId,
+      outcome: "aborted",
+    }),
+  );
+  expect(
+    stopped.projectedAfter.filter((message) => message.role === "assistant"),
+  ).toEqual([]);
+  expect(
+    result.wire.filter(
+      ({ caseId, chunk }) =>
+        caseId === stopped.caseId &&
+        (chunk.type === "tool-input" || chunk.type === "message-delta"),
+    ),
+  ).toEqual([]);
+  const valid = result.buffering.find(
+    ({ caseId }) => caseId === "buffered-valid",
+  )!;
+  expect(valid.error).toBeNull();
+  expect(
+    valid.projectedAfter.flatMap((message) => message.parts),
+  ).toContainEqual(expect.objectContaining({ type: "text", text: valid.text }));
 });

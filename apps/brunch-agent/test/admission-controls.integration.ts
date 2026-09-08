@@ -1,22 +1,23 @@
-/** Unpaid control experiments on the built mount, NOT production admission wiring. */
-/* eslint-disable no-await-in-loop -- A single faux response queue and event timeline discriminate ordering. */
+/** Unpaid production registration, rejection, continuation and active-Stop probe. */
+/* eslint-disable no-await-in-loop -- One faux response queue; ordering is the assertion boundary. */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
-  EventStream,
-  type AssistantMessage,
-  type AssistantMessageEventStream,
+  createAssistantMessageEventStream,
   fauxAssistantMessage,
   fauxProvider,
   fauxText,
   fauxToolCall,
-  type AssistantMessageEvent,
   type Provider,
 } from "@earendil-works/pi-ai";
-import { instrument, setProvider } from "@flue/runtime";
-import { createFlueClient, type FlueConversationSnapshot } from "@flue/sdk";
+import { observe } from "@flue/runtime";
+import {
+  createFlueClient,
+  type ConversationStreamChunk,
+  type FlueConversationSnapshot,
+} from "@flue/sdk";
 
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
@@ -34,19 +35,13 @@ import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
+import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { createHeadlessPetrinautClient } from "../src/evaluations/runbook/headless-petrinaut-client.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 
+import type { AdmissionVoiceEvidence } from "./admission-voice-evidence.ts";
 import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 
-const control = process.env.A2_ADMISSION_CONTROL ?? "baseline";
-if (
-  !["baseline", "observer-throw", "tool-veto", "provider-reject"].includes(
-    control,
-  )
-) {
-  throw new Error(`Unknown diagnostic control: ${control}`);
-}
 const directory =
   process.env.A2_OUTPUT_DIRECTORY ??
   join(tmpdir(), `admission-${crypto.randomUUID()}`);
@@ -57,110 +52,53 @@ const save = (name: string, value: unknown) =>
   writeFileSync(join(directory, name), `${JSON.stringify(value, null, 2)}\n`);
 const timeline: unknown[] = [];
 const requests: unknown[] = [];
-const proposals: unknown[] = [];
 let caseId = "setup";
-let finalizedNames: string[] = [];
-const record = (type: string, detail: unknown) =>
+const record = (type: string, detail: unknown) => {
   timeline.push({ sequence: timeline.length, caseId, type, detail });
+};
+const wire: { caseId: string; chunk: ConversationStreamChunk }[] = [];
+const recordWire = (chunk: ConversationStreamChunk) => {
+  wire.push({ caseId, chunk });
+  record("wire", chunk);
+};
+const unobserve = observe((event) => record("runtime", event));
 const browserNames: ReadonlySet<string> = new Set([
   ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   READ_PETRINAUT_DOC_TOOL_NAME,
 ]);
-const mixedClasses = (names: readonly string[]) =>
-  names.some((name) => browserNames.has(name)) &&
-  names.some((name) => !browserNames.has(name));
-const dispose = instrument({
-  observe(event) {
-    record("runtime", event);
-    if (event.type === "turn" && event.response.output?.role === "assistant") {
-      finalizedNames = event.response.output.content.flatMap((part) =>
-        part.type === "toolCall" ? [part.name] : [],
-      );
-      if (control === "observer-throw" && mixedClasses(finalizedNames)) {
-        record("observer-veto-attempt", finalizedNames);
-        throw new Error("Diagnostic observer refusal");
-      }
-    }
-  },
-  async interceptor(operation, context, next) {
-    record("interceptor-enter", { operation, context });
-    if (
-      control === "tool-veto" &&
-      operation.type === "tool" &&
-      browserNames.has(operation.toolName) &&
-      mixedClasses(finalizedNames)
-    ) {
-      // Diagnostic correlation only: one serial conversation at a time. This
-      // live observer variable is NOT an authorized production state authority.
-      record("tool-veto", { operation, finalizedNames });
-      throw new Error("Diagnostic per-tool refusal of mixed batch");
-    }
-    return next();
-  },
-  dispose() {},
-});
-
-// Demonstrate the supported custom-provider boundary without patching Flue or
-// mounting a second agent. Buffer/reject is an interaction-policy candidate,
-// not a shipped fix: unsafe responses fail the submission, without auto retry.
-class DiagnosticAdmissionStream extends EventStream<
-  AssistantMessageEvent,
-  AssistantMessage
-> {
-  readonly admitted;
-  constructor(upstream: AssistantMessageEventStream) {
-    super(
-      (event) => event.type === "done" || event.type === "error",
-      (event) => {
-        if (event.type === "done") return event.message;
-        if (event.type === "error") return event.error;
-        throw new Error("Not a terminal provider event");
-      },
-    );
-    this.admitted = (async () => {
-      const events: AssistantMessageEvent[] = [];
-      for await (const event of upstream) events.push(structuredClone(event));
-      const message = await upstream.result();
-      proposals.push({ caseId, message, events });
-      const names = message.content.flatMap((part) =>
-        part.type === "toolCall" ? [part.name] : [],
-      );
-      record("provider-finalized", { names, stopReason: message.stopReason });
-      if (mixedClasses(names)) {
-        record("provider-refusal", names);
-        throw new Error(
-          "Diagnostic admission refusal: mixed browser/server proposal",
-        );
-      }
-      return { events, message };
-    })();
-  }
-  override async *[Symbol.asyncIterator]() {
-    yield* (await this.admitted).events;
-  }
-  override async result() {
-    return (await this.admitted).message;
-  }
-}
+const project = (history: FlueConversationSnapshot) =>
+  snapshotToUiMessages(history, {
+    clientToolNames: browserNames,
+    hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
+  });
 const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: "claude-sonnet-4-6", reasoning: true }],
 });
-const provider: Provider = {
+const createStall = () => ({
+  upstream: createAssistantMessageEventStream(),
+  started: Promise.withResolvers<void>(),
+  signal: undefined as AbortSignal | undefined,
+});
+let nextStall: ReturnType<typeof createStall> | undefined;
+installFauxProvider({
   ...faux.provider,
   stream() {
-    throw new Error("Expected streamSimple");
+    throw new Error("Expected production streamSimple");
   },
   streamSimple(model, context, options) {
     requests.push({ caseId, context });
     record("provider-request", { requestIndex: requests.length - 1 });
-    const upstream = faux.provider.streamSimple(model, context, options);
-    return control === "provider-reject"
-      ? new DiagnosticAdmissionStream(upstream)
-      : upstream;
+    if (nextStall) {
+      const stalled = nextStall;
+      nextStall = undefined;
+      stalled.signal = options?.signal;
+      stalled.started.resolve();
+      return stalled.upstream;
+    }
+    return faux.provider.streamSimple(model, context, options);
   },
-};
-setProvider(provider);
+} satisfies Provider);
 const toolsFrom = (snapshot: FlueConversationSnapshot) =>
   snapshot.messages.flatMap((message) =>
     message.parts.flatMap((part) =>
@@ -181,15 +119,18 @@ const typeInput = {
   displayColor: "#808080",
   elements: [],
 } satisfies PetrinautAiToolInput<"addType">;
-const makeCall = (name: string, suffix = name) =>
+const question = "What remains unknown?";
+const privateMarkdown =
+  "# Workpiece payload must not be spoken\nUnknown timing.";
+const makeCall = (name: string) =>
   fauxToolCall(
     name,
     name === "addType"
       ? typeInput
       : name === "update_workpiece"
-        ? { markdown: "# Synthetic replacement\nUnknown timing." }
-        : { question: "What remains unknown?" },
-    { id: `${caseId}-${suffix}` },
+        ? { markdown: privateMarkdown }
+        : { question },
+    { id: `${caseId}-${name}` },
   );
 const run = async () => {
   const application = await loadBuiltBrunchApplication();
@@ -209,7 +150,7 @@ const run = async () => {
   };
   const observations = [];
   try {
-    const mixedCases = [
+    for (const names of [
       [BRUNCH_QUESTION_TOOL_NAME, "addType"],
       ["addType", BRUNCH_QUESTION_TOOL_NAME],
       ["update_workpiece", "addType"],
@@ -224,10 +165,8 @@ const run = async () => {
       ["addType"],
       [BRUNCH_QUESTION_TOOL_NAME],
       ["update_workpiece", BRUNCH_QUESTION_TOOL_NAME],
-    ];
-    for (const names of mixedCases) {
+    ]) {
       caseId = names.join("-");
-      finalizedNames = [];
       const client = clientFor();
       const send = async (
         message: Parameters<typeof client.send>[0]["message"],
@@ -239,16 +178,13 @@ const run = async () => {
         try {
           await client.wait(receipt, {
             signal: AbortSignal.timeout(10000),
-            onEvent: (chunk) => {
-              record("wire", chunk);
-            },
+            onEvent: recordWire,
           });
           return { receipt, error: null };
         } catch (error) {
           return { receipt, error: String(error) };
         }
       };
-      // Each attempted mixed proposal has an independently settled older revision.
       faux.setResponses([
         fauxAssistantMessage(
           [
@@ -268,12 +204,10 @@ const run = async () => {
       });
       const seeded = await client.history();
       const requestStart = requests.length;
-      const generated = names.map((name) => makeCall(name));
+      const generated = names.map(makeCall);
       faux.setResponses([
         fauxAssistantMessage(generated, { stopReason: "toolUse" }),
-        fauxAssistantMessage([
-          fauxText("Continuation without a client result."),
-        ]),
+        fauxAssistantMessage([fauxText(question)]),
       ]);
       const attempt = await send({
         kind: "user",
@@ -301,7 +235,9 @@ const run = async () => {
             kind: "signal" as const,
             type: CLIENT_TOOL_RESULT_SIGNAL,
             tagName: CLIENT_TOOL_RESULT_SIGNAL,
-            body: JSON.stringify(results),
+            body: JSON.stringify(
+              results.map((result) => ({ ...result, source: "voice" })),
+            ),
           };
           faux.setResponses([
             fauxAssistantMessage([
@@ -314,9 +250,7 @@ const run = async () => {
           continuation = {
             outcome,
             history: resumed,
-            projected: snapshotToUiMessages(resumed, {
-              clientToolNames: browserNames,
-            }),
+            projected: project(resumed),
             definitionAfterResume: structuredClone(headless.definition()),
             totalProviderCalls: requests.length - requestStart,
           };
@@ -328,6 +262,7 @@ const run = async () => {
           generated,
           attempt,
           history,
+          projected: project(history),
           providerCallsBeforeClientResult,
           pendingMutationIds: pending.map((part) => part.toolCallId),
           results,
@@ -341,13 +276,128 @@ const run = async () => {
         headless.dispose();
       }
     }
-    return { control, observations };
+    const buffering = [];
+    for (const abort of [false, true]) {
+      caseId = abort ? "buffered-cancelled" : "buffered-valid";
+      const client = clientFor();
+      const stalled = createStall();
+      nextStall = stalled;
+      const receipt = await client.send({
+        initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
+        message: {
+          kind: "user",
+          body: "Synthetic completed Voice transcript.",
+        },
+      });
+      const settlement = client
+        .wait(receipt, {
+          signal: AbortSignal.timeout(10000),
+          onEvent: recordWire,
+        })
+        .then(
+          () => null,
+          (error: unknown) => String(error),
+        );
+      await stalled.started.promise;
+      const text = abort
+        ? "Cancelled prose must never be spoken."
+        : `The account is recorded. ${question}`;
+      const message = fauxAssistantMessage(
+        [
+          fauxText(text),
+          ...(abort
+            ? [makeCall("addType")]
+            : [
+                makeCall("update_workpiece"),
+                makeCall(BRUNCH_QUESTION_TOOL_NAME),
+              ]),
+        ],
+        { stopReason: "toolUse" },
+      );
+      stalled.upstream.push({ type: "start", partial: message });
+      stalled.upstream.push({
+        type: "text_start",
+        contentIndex: 0,
+        partial: message,
+      });
+      stalled.upstream.push({
+        type: "text_delta",
+        contentIndex: 0,
+        delta: text,
+        partial: message,
+      });
+      stalled.upstream.push({
+        type: "text_end",
+        contentIndex: 0,
+        content: text,
+        partial: message,
+      });
+      for (const [contentIndex, part] of message.content.entries()) {
+        if (part.type === "toolCall") {
+          stalled.upstream.push({
+            type: "toolcall_start",
+            contentIndex,
+            partial: message,
+          });
+          stalled.upstream.push({
+            type: "toolcall_delta",
+            contentIndex,
+            delta: JSON.stringify(part.arguments),
+            partial: message,
+          });
+          stalled.upstream.push({
+            type: "toolcall_end",
+            contentIndex,
+            toolCall: part,
+            partial: message,
+          });
+        }
+      }
+      // Reading the mounted store while the provider is unfinished must expose
+      // neither the prose nor the proposed tool inputs to Voice/browser hosts.
+      const during = await client.history();
+      if (abort) await client.abort();
+      else
+        faux.setResponses([
+          fauxAssistantMessage([fauxText("Timing remains unknown.")]),
+        ]);
+      if (abort) await settlement;
+      stalled.upstream.push({ type: "done", reason: "toolUse", message });
+      const error = await settlement;
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      const after = await client.history();
+      buffering.push({
+        caseId,
+        receipt,
+        error,
+        upstreamAborted: stalled.signal?.aborted,
+        during,
+        after,
+        projectedDuring: project(during),
+        projectedAfter: project(after),
+        text,
+        privateMarkdown,
+      });
+    }
+    const rejected = observations.find(
+      (observation) => observation.caseId === "brunch_mark_question-addType",
+    )!;
+    const priorIds = new Set(
+      rejected.seeded.messages.map((message) => message.id),
+    );
+    const voice: AdmissionVoiceEvidence = {
+      question,
+      buffering,
+      rejectedMessages: rejected.projected.filter(
+        (message) => !priorIds.has(message.id),
+      ),
+    };
+    return { observations, buffering, question, wire, voice };
   } finally {
     await application.stop();
-    await dispose();
+    unobserve();
     save("timeline.json", timeline);
     save("requests.json", requests);
-    save("proposals.json", proposals);
   }
 };
 export type AdmissionControlsResult = Awaited<ReturnType<typeof run>>;

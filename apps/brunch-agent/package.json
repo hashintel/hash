@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@aws-sdk/rds-signer": "3.1117.0",
+    "@earendil-works/pi-ai": "0.83.0",
     "@flue/opentelemetry": "2.0.3",
     "@flue/postgres": "2.0.3",
     "@flue/react": "2.0.3",
@@ -48,7 +49,6 @@
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.74.0",
-    "@earendil-works/pi-ai": "0.83.0",
     "@earendil-works/pi-tui": "0.84.3",
     "@flue/vite": "2.0.3",
     "@types/node": "22.18.13",

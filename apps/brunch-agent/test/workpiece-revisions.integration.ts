@@ -12,7 +12,6 @@ import {
   type Context,
   type Provider,
 } from "@earendil-works/pi-ai";
-import { setProvider } from "@flue/runtime";
 import { createFlueClient, type FlueConversationSnapshot } from "@flue/sdk";
 
 import { VALIDATED_CONSTRUCTION_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
@@ -22,6 +21,7 @@ import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
+import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { createHeadlessPetrinautClient } from "../src/evaluations/runbook/headless-petrinaut-client.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
@@ -54,7 +54,7 @@ const provider: Provider = {
     return faux.provider.streamSimple(model, context, options);
   },
 };
-setProvider(provider);
+installFauxProvider(provider);
 const toolsFrom = (snapshot: FlueConversationSnapshot) =>
   snapshot.messages.flatMap((message) =>
     message.parts.flatMap((part) =>
@@ -164,15 +164,19 @@ const probe = async () => {
         ]),
       ]);
       const mixedClient = clientFor(caseId);
-      await mixedClient.wait(
-        await mixedClient.send({
-          initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
-          message: {
-            kind: "user",
-            body: "Unpaid test-authored mixed-batch safety probe.",
-          },
-        }),
-      );
+      const mixedReceipt = await mixedClient.send({
+        initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
+        message: {
+          kind: "user",
+          body: "Unpaid test-authored mixed-batch safety probe.",
+        },
+      });
+      let submissionError: string | null = null;
+      try {
+        await mixedClient.wait(mixedReceipt);
+      } catch (error) {
+        submissionError = String(error);
+      }
       const history = await mixedClient.history();
       save(`${caseId}-history.json`, history);
       const pending = toolsFrom(history).filter(
@@ -199,6 +203,7 @@ const probe = async () => {
         mixed.push({
           caseId,
           generated,
+          submissionError,
           tools: toolsFrom(history),
           providerCallsBeforeClientResult: contexts.length - contextStart,
           pendingMutationIds: pending.map((call) => call.toolCallId),
