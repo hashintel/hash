@@ -23,6 +23,7 @@ import {
 
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { NotificationsProvider } from "../../../../react/notifications/provider";
+import { notificationsToaster } from "../../../../react/notifications/toaster";
 import {
   EditorContext,
   initialEditorState,
@@ -263,6 +264,7 @@ const renderTestPanel = ({
 
 afterEach(() => {
   cleanup();
+  notificationsToaster.remove();
   for (const instance of testInstances.splice(0)) {
     instance.dispose();
   }
@@ -2590,14 +2592,6 @@ describe("AiAssistantPanel composer submissions", () => {
         "PlaceOne",
       );
       expect(sendMessages).toHaveBeenCalledOnce();
-      for (const closeButton of screen.getAllByRole("button", {
-        name: "Close notification",
-      })) {
-        fireEvent.click(closeButton);
-      }
-      await waitFor(() =>
-        expect(screen.queryAllByText(/Durable stop failed/u)).toHaveLength(0),
-      );
     },
   );
 
