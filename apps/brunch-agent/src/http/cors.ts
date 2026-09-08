@@ -15,6 +15,7 @@ const AGENT_CORS_REQUEST_HEADERS = [
   BRUNCH_PRINCIPAL_HEADER,
   BRUNCH_CONVERSATION_HEADER,
 ];
+// No upstream package exports this complete set, so keep the browser-response list local.
 const AGENT_CORS_RESPONSE_HEADERS = [
   "flue-error-ref",
   "Stream-Next-Offset",
@@ -23,6 +24,7 @@ const AGENT_CORS_RESPONSE_HEADERS = [
   "Stream-Closed",
   "stream-sse-data-encoding",
 ];
+// Enforce exact lexical origins before WHATWG URL parsing normalizes forgiving separator forms.
 const exactHttpOriginPattern =
   /^https?:\/\/(?:\[[0-9a-f:.]+\]|[^\s:/?#@\\]+)(?::[0-9]+)?\/?$/iu;
 

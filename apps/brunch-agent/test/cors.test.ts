@@ -24,18 +24,15 @@ describe("parseCorsAllowedOrigins", () => {
   test("normalizes and deduplicates exact HTTP origins", () => {
     expect(
       parseCorsAllowedOrigins(
-        " https://demo.petrinaut.org/, HTTPS://PETRINAUT.STAGE.HASH.AI:443, https://demo.petrinaut.org ",
+        " https://app.example.com/, HTTPS://PREVIEW.EXAMPLE.COM:443, https://app.example.com ",
       ),
-    ).toEqual([
-      "https://demo.petrinaut.org",
-      "https://petrinaut.stage.hash.ai",
-    ]);
+    ).toEqual(["https://app.example.com", "https://preview.example.com"]);
   });
 
   test.each([
-    ",https://demo.petrinaut.org",
-    "https://demo.petrinaut.org,",
-    "https://demo.petrinaut.org,,https://petrinaut.stage.hash.ai",
+    ",https://app.example.com",
+    "https://app.example.com,",
+    "https://app.example.com,,https://preview.example.com",
   ])("rejects an empty comma-separated entry in %s", (value) => {
     expect(() => parseCorsAllowedOrigins(value)).toThrow(
       BRUNCH_CORS_ALLOWED_ORIGINS_ENV,
@@ -43,25 +40,36 @@ describe("parseCorsAllowedOrigins", () => {
   });
 
   test.each([
-    "ftp://demo.petrinaut.org",
-    "https://user:secret@demo.petrinaut.org",
-    "https://@demo.petrinaut.org",
-    "https://demo.petrinaut.org/path",
-    "https://demo.petrinaut.org/a/..",
-    "https://demo.petrinaut.org?",
-    "https://demo.petrinaut.org?preview=true",
-    "https://demo.petrinaut.org#",
-    "https://demo.petrinaut.org#preview",
-    "https://*.stage.hash.ai",
+    "ftp://app.example.com",
+    "https://user:secret@app.example.com",
+    "https://@app.example.com",
+    "https://app.example.com/path",
+    "https://app.example.com/a/..",
+    "https://app.example.com?",
+    "https://app.example.com?preview=true",
+    "https://app.example.com#",
+    "https://app.example.com#preview",
+    "https://*.example.com",
     "not-an-origin",
   ])("rejects invalid or broader-than-origin entry %s", (value) => {
     expect(() => parseCorsAllowedOrigins(value)).toThrow(
       BRUNCH_CORS_ALLOWED_ORIGINS_ENV,
     );
   });
+
+  test.each([
+    "https:example.com",
+    "https:///example.com",
+    String.raw`https:\example.com`,
+    String.raw`https:\\example.com`,
+  ])("rejects forgiving WHATWG URL form %s", (value) => {
+    expect(() => parseCorsAllowedOrigins(value)).toThrow(
+      BRUNCH_CORS_ALLOWED_ORIGINS_ENV,
+    );
+  });
 });
 
-const allowedOrigin = "https://demo.petrinaut.org";
+const allowedOrigin = "https://app.example.com";
 const rejectedOrigin = "https://attacker.example";
 const mount = `/agents/${CHAT_AGENT_ROUTE}`;
 const identity = {

@@ -58,21 +58,22 @@ Production database configuration uses dedicated fields:
 | `BRUNCH_POSTGRES_PASSWORD`    | Password only | Runtime-injected database password; rejected in IAM mode                                                |
 | `HASH_OTLP_ENDPOINT`          | Always        | HASH OTLP/gRPC collector endpoint                                                                       |
 | `OTEL_SERVICE_NAME`           | Optional      | OTel service name; defaults to `Brunch Agent`                                                           |
-| `BRUNCH_CORS_ALLOWED_ORIGINS` | Optional      | Exact browser origins allowed to call `/agents/*`; missing or blank grants no cross-origin access       |
+| `BRUNCH_CORS_ALLOWED_ORIGINS` | Optional      | Exact-origin browser JavaScript allowlist for `/agents/*`; missing or blank grants no CORS access       |
 
-`BRUNCH_CORS_ALLOWED_ORIGINS` is a comma-separated list of exact browser origins allowed to call
-`/agents/*`. For example:
+`BRUNCH_CORS_ALLOWED_ORIGINS` is a comma-separated list of exact origins whose browser JavaScript
+may read cross-origin responses from `/agents/*`. For example:
 
 ```sh
-BRUNCH_CORS_ALLOWED_ORIGINS=https://demo.petrinaut.org,https://petrinaut.stage.hash.ai
+BRUNCH_CORS_ALLOWED_ORIGINS=https://app.example.com,https://preview.example.com
 ```
 
-Use stable preview aliases such as
-`https://petrinaut-git-<branch>.stage.hash.ai` only when that preview needs Brunch access. Random
-preview URLs must be explicitly listed if used. The variable does not accept wildcards, paths,
-queries, fragments, credentials, or non-HTTP(S) schemes. Missing or blank configuration grants no
-cross-origin access while preserving same-origin requests. CORS is not authentication; the
-deployment still requires its separate identity, authorization, ingress, and rate-limit gates.
+Prefer stable preview hostnames and list an exact preview origin only when that deployment needs
+Brunch access. Each ephemeral preview origin must be listed explicitly. The variable does not
+accept wildcards, paths, queries, fragments, credentials, or non-HTTP(S) schemes. Missing or blank
+configuration grants no cross-origin browser access while preserving same-origin requests. CORS
+controls browser JavaScript access; it is not a server-side access gate and does not restrict
+non-browser callers. The deployment still requires its separate identity, authorization, ingress,
+and rate-limit gates.
 
 `DATABASE_URL`, `BRUNCH_DEV_DB_PATH`, and `BRUNCH_CHAT_DB_PATH` are rejected in production.
 TLS verification is always enabled, and connection acquisition fails after 10 seconds rather than
