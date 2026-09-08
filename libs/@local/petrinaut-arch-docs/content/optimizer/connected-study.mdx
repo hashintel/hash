@@ -85,7 +85,9 @@ first, and the core refuses to extend the run until the segment's terminal
 event lands. The attachment stays to apply that event, so the record's cursor
 covers the whole segment. The stopped trials in flight are told failed without
 an event, so they appear nowhere: in neither the steps table nor the counts.
-The terminal event sets `resumable`, and the footer offers **Continue**.
+The terminal event's `resumable` flag sets `connected.resumable`: a segment
+that never reached the worker carries `false`, and the footer offers
+**Continue** only when it is `true`.
 
 **Continue** calls `extendOptimization(optimizationId, trials)`: the provider
 calls `extendOptimizationRun(runId, trials)`, then `resume()` on the study

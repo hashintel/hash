@@ -118,7 +118,11 @@ every trial asked and not yet told as failed **without reporting it**, so a
 stopped step appears in no event, table or count, and returns its summary
 with `cancelled` set. The worker posts `cancelled { runId }`, and the
 capability appends the cancelled error event (`optimization_cancelled`) and
-marks the run `finished-resumable`. The study stays in the worker.
+marks the run `finished-resumable`. The study stays in the worker. Every
+terminal event carries `resumable`: `true` when the study stays in the worker,
+`false` when the run failed or its first segment never reached the worker,
+as when a study is stopped while the runtime still loads or another study
+holds the worker. The host offers Continue from that flag alone.
 
 **Continue** calls `extendOptimizationRun(runId, trials)`. The capability
 computes the new total from the trials the log holds (`requestedTotal`),
