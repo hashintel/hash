@@ -1,0 +1,325 @@
+diff --git a/dist/conversation-stream-store-CXwRWonS.mjs b/dist/conversation-stream-store-CXwRWonS.mjs
+index 3fa342b27631ffcf2a05f0f8dcf571fc2236e2cd..1f113abc6bb64a9f2d819a6bc8b4b23cd03c9fc0 100644
+--- a/dist/conversation-stream-store-CXwRWonS.mjs
++++ b/dist/conversation-stream-store-CXwRWonS.mjs
+@@ -3,8 +3,8 @@ import { A as createEditTool, D as READ_SKILL_RESOURCE_TOOL_NAME, E as redactObs
+ import { $ as generateIncarnationId, A as SubmissionConflictError, F as ToolNameConflictError, J as createConversationIdentity, K as serializeEventError, M as SubmissionRetryExhaustedError, N as SubmissionTimeoutError, O as SubagentNotDeclaredError, S as SessionBusyError, T as SkillNotRegisteredError, W as normalizeLogAttributes, X as generateAttemptId, Y as deriveKeyedSubmissionId, Z as generateBlockId, a as AttachmentNotAvailableError, c as ConversationRecordInvariantError, ct as generateToolCallId, d as FlueError, ft as interceptExecution, h as OperationFailedError, j as SubmissionInterruptedError, k as SubmissionAbortedError, l as ConversationStreamStoreError, lt as generateTurnId, n as AgentInstanceNotFoundError, nt as generateInvocationId, ot as generateSubmissionId, p as InvalidRequestError, rt as generateOperationId, st as generateTaskId, t as AgentInstanceExistsError, tt as generateInstanceUid, u as DelegationDepthExceededError, z as classifyError } from "./errors-CsDcT_C4.mjs";
+ import { $ as shouldCompact, B as aggregateConversationUsageSince, C as DeliveredMessageSchema, Ct as generateConversationEntryId, E as assertDurability, G as findTrailingPartialToolBatch, H as getActiveConversationPathSince, I as MAX_READ_LIMIT, J as calculateContextTokens, K as isRetryableModelError, L as agentStreamPath, Q as prepareCompaction, R as formatOffset, St as encodeCanonicalId, Tt as toolStepRecordId, U as getLatestConversationCompaction, V as classifyConversationSubmission, W as countConsecutiveRetryableModelErrors, X as deriveCompactionDefaults, Y as compact, Z as isAssistantContextOverflow, _t as assertAppendMessage, bt as fnv1a64, ct as toolOutcomeKey, d as resolveAgentInitialDataSchema, et as addUsage, ft as createSessionStorageKey, gt as renderSignalMessage, ht as createUserContextMessage, it as buildConversationContextEntries, lt as toolResultEntryId, mt as parseSessionStorageKey, nt as fromProviderUsage, ot as getActiveConversationPath, q as DEFAULT_COMPACTION_SETTINGS, rt as buildConversationContext, tt as emptyUsage, w as MAX_IMAGE_DATA_LENGTH, wt as generateConversationRecordId, xt as RESERVED_SIGNAL_TYPES, yt as runResponseMetadataHooks, z as parseOffset } from "./dispatch-nU3cIlT-.mjs";
+ import { i as providerTelemetryName, n as getRuntimeModels } from "./providers-B1VyW-aH.mjs";
+-import { i as valibotToJsonSchema } from "./schema-DIDpvZZa.mjs";
+-import { a as parseToolInput, n as claimStepName, o as resolveToolRun, r as cloneStepValue, t as assertToolDefinition } from "./tool-DZ5dxCl_.mjs";
++import { toolInputToJsonSchema, isNativeToolInput, n as isValibotSchema } from "./schema-DIDpvZZa.mjs";
++import { toolContextBase, a as parseToolInput, n as claimStepName, o as resolveToolRun, r as cloneStepValue, t as assertToolDefinition } from "./tool-DZ5dxCl_.mjs";
+ import { n as readProviderResponseDiagnostics } from "./provider-diagnostics-C8itP2qI.mjs";
+ import { r as migrateFlueSqlSchema, s as createAttachmentRef } from "./format-version-Bmc1L_3t.mjs";
+ import * as v from "valibot";
+@@ -541,7 +541,7 @@ function toolResourceEntry(tool) {
+ 	return {
+ 		name: tool.name,
+ 		description: tool.description,
+-		...tool.input ? { schema: JSON.stringify(valibotToJsonSchema(tool.input)) } : {}
++		...tool.input ? { schema: JSON.stringify(toolInputToJsonSchema(tool.input)) } : {}
+ 	};
+ }
+ /**
+@@ -2651,12 +2651,14 @@ var Session = class {
+ 		try {
+ 			const invocationId = toolDef.harness ? generateInvocationId() : void 0;
+ 			harness = invocationId ? this.createInvocationHarness(invocationId, signal) : void 0;
+-			const parsed = parseToolInput(toolDef, params, signal, {
++			const preparedParams = toolDef.prepareArguments ? toolDef.prepareArguments(structuredClone(params)) : params;
++			const parsed = await abandonToolOnAbort(() => parseToolInput(toolDef, preparedParams, signal, {
+ 				log,
+ 				toolCallId,
+ 				step: this.createToolStep(toolDef.name, toolCallId, log),
+ 				...harness ? { harness } : {}
+-			});
++			}), signal);
++			if (signal.aborted) throw abortErrorFor(signal);
+ 			const resolved = resolveToolRun(toolDef, await toolDef.run(parsed.context));
+ 			return buildOutcome(false, resolved.output === void 0 ? "null" : JSON.stringify(resolved.output), resolved.output, resolved.terminate);
+ 		} catch (error) {
+@@ -3161,7 +3163,7 @@ var Session = class {
+ 				let prepared;
+ 				try {
+ 					if (signal?.aborted) throw abortErrorFor(signal);
+-					prepared = prepare(toolCallId, params, signal);
++					prepared = await abandonToolOnAbort(() => prepare(toolCallId, params, signal), signal);
+ 				} catch (error) {
+ 					const call = this.activeToolCalls.get(toolCallId) ?? {
+ 						startedAt: Date.now(),
+@@ -3319,11 +3321,17 @@ var Session = class {
+ 		return tools.map((toolDef) => {
+ 			const preparedToolAdapter = getPreparedToolAdapter(toolDef);
+ 			if (!preparedToolAdapter) assertToolDefinition(toolDef, `Tool "${toolDef.name}"`);
++			const nativeInput = !preparedToolAdapter && !isValibotSchema(toolDef.input) && isNativeToolInput(toolDef.input);
+ 			const tool = {
++				...(nativeInput ? { validateArguments: async (args, { toolCallId, signal }) => {
++					const parsed = await abandonToolOnAbort(() => parseToolInput(toolDef, args, signal, { toolCallId }), signal);
++					return parsed.data;
++				} } : {}),
+ 				name: toolDef.name,
+ 				label: toolDef.name,
++				...(toolDef.prepareArguments ? { prepareArguments: (args) => toolDef.prepareArguments(structuredClone(args)) } : {}),
+ 				description: toolDef.description,
+-				parameters: preparedToolAdapter?.parameters ?? (toolDef.input ? valibotToJsonSchema(toolDef.input) : {
++				parameters: preparedToolAdapter?.parameters ?? (toolDef.input ? toolInputToJsonSchema(toolDef.input) : {
+ 					type: "object",
+ 					properties: {},
+ 					additionalProperties: false
+@@ -3332,7 +3340,7 @@ var Session = class {
+ 					throw new Error("unreachable");
+ 				}
+ 			};
+-			return this.wrapModelTool(tool, "custom", (toolCallId, params, signal) => {
++			return this.wrapModelTool(tool, "custom", async (toolCallId, params, signal) => {
+ 				if (preparedToolAdapter) return {
+ 					args: params,
+ 					run: async () => ({
+@@ -3345,11 +3353,9 @@ var Session = class {
+ 					result: toolResultText
+ 				};
+ 				const toolLogger = this.createToolLogger(toolDef.name, toolCallId);
+-				const parsed = parseToolInput(toolDef, params, signal, {
+-					log: toolLogger,
+-					toolCallId,
+-					...toolDef.durable ? { step: this.createToolStep(toolDef.name, toolCallId, toolLogger) } : {}
+-				});
++				const facilities = { log: toolLogger, toolCallId, ...toolDef.durable ? { step: this.createToolStep(toolDef.name, toolCallId, toolLogger) } : {} };
++				// Native args were parsed once by validateArguments, before beforeToolCall.
++				const parsed = nativeInput ? { data: params, context: { ...toolContextBase(toolDef, signal, facilities), data: params } } : await parseToolInput(toolDef, params, signal, facilities);
+ 				return {
+ 					args: parsed.data,
+ 					run: async () => {
+diff --git a/dist/index.d.mts b/dist/index.d.mts
+index 96e42a23d7f97c244c22ae1ea702d82287a5fff0..3424697d4543eb7363eb546ca08c49713eebf3cb 100644
+--- a/dist/index.d.mts
++++ b/dist/index.d.mts
+@@ -890,6 +890,7 @@ declare function useTool<const TInput extends ToolInputSchema | undefined = unde
+   name: string;
+   description: string;
+   input?: TInput;
++  prepareArguments?: (args: unknown) => unknown;
+   output?: TOutput;
+   /**
+    * Connect this tool to the agent's runtime: `run` receives `harness` —
+diff --git a/dist/schema-DIDpvZZa.mjs b/dist/schema-DIDpvZZa.mjs
+index af697f9c85917b9697762f4adbb7bc50397ff933..c3e25a90a1769c0888b596bf8af55edc8d6e76d3 100644
+--- a/dist/schema-DIDpvZZa.mjs
++++ b/dist/schema-DIDpvZZa.mjs
+@@ -60,4 +60,30 @@ function normalizeValibotIssue(issue) {
+ 	} : { message: issue.message };
+ }
+ //#endregion
+-export { valibotToJsonSchema as i, isValibotSchema as n, parseValibot as r, isTopLevelObjectSchema as t };
++// Native custom-tool inputs use Standard Schema and Standard JSON Schema together.
++function isNativeToolInput(schema) {
++	const standard = schema?.["~standard"];
++	return standard?.version === 1 && typeof standard.vendor === "string" && typeof standard.validate === "function" && typeof standard.jsonSchema?.input === "function";
++}
++function toolInputToJsonSchema(schema) {
++	if (isValibotSchema(schema)) return valibotToJsonSchema(schema);
++	if (!isNativeToolInput(schema)) throw new TypeError("[flue] Expected a Valibot or native Standard Schema with input JSON Schema.");
++	const cached = jsonSchemas.get(schema);
++	if (cached) return cached;
++	const exported = schema["~standard"].jsonSchema.input({ target: "draft-2020-12" });
++	if (!exported || typeof exported !== "object" || Array.isArray(exported) || exported.type !== "object") throw new TypeError("[flue] Native tool input must export a top-level object schema.");
++	const frozen = deepFreeze(structuredClone(exported));
++	jsonSchemas.set(schema, frozen);
++	return frozen;
++}
++async function parseToolInputSchema(schema, value) {
++	if (isValibotSchema(schema)) return parseValibot(schema, value);
++	if (!isNativeToolInput(schema)) throw new TypeError("[flue] Expected a native Standard Schema with input JSON Schema.");
++	const parsed = await schema["~standard"].validate(value);
++	if (!parsed.issues) return { success: true, output: parsed.value };
++	return { success: false, issues: parsed.issues.map((issue) => {
++		const path = issue.path?.map((segment) => typeof segment === "object" && segment !== null ? segment.key : segment);
++		return path?.length ? { message: issue.message, path } : { message: issue.message };
++	}) };
++}
++export { valibotToJsonSchema as i, isValibotSchema as n, parseValibot as r, isTopLevelObjectSchema as t, isNativeToolInput, toolInputToJsonSchema, parseToolInputSchema };
+diff --git a/dist/tool-DZ5dxCl_.mjs b/dist/tool-DZ5dxCl_.mjs
+index abcc3f3699a59be1228be9e7a89c1ad1c7cd94d5..e4060a9a1a5a386ae0f65460dfddaa34fa8acaa4 100644
+--- a/dist/tool-DZ5dxCl_.mjs
++++ b/dist/tool-DZ5dxCl_.mjs
+@@ -1,5 +1,5 @@
+ import { I as ToolOutputSerializationError, L as ToolOutputValidationError, P as ToolInputValidationError, ct as generateToolCallId } from "./errors-CsDcT_C4.mjs";
+-import { n as isValibotSchema, r as parseValibot, t as isTopLevelObjectSchema } from "./schema-DIDpvZZa.mjs";
++import { n as isValibotSchema, r as parseValibot, t as isTopLevelObjectSchema, isNativeToolInput, toolInputToJsonSchema, parseToolInputSchema } from "./schema-DIDpvZZa.mjs";
+ //#region src/json-snapshot.ts
+ function cloneJsonSerializable(value, label) {
+ 	assertJsonLike(value, label, /* @__PURE__ */ new WeakSet());
+@@ -42,6 +42,7 @@ function defineTool(options) {
+ 		name: options.name,
+ 		description: options.description,
+ 		input: options.input,
++		prepareArguments: options.prepareArguments,
+ 		output: options.output,
+ 		harness: options.harness,
+ 		durable: options.durable,
+@@ -52,6 +53,7 @@ const TOOL_DEFINITION_FIELDS = /* @__PURE__ */ new Set([
+ 	"name",
+ 	"description",
+ 	"input",
++	"prepareArguments",
+ 	"output",
+ 	"harness",
+ 	"durable",
+@@ -64,27 +66,35 @@ function assertToolDefinition(value, label) {
+ 	assertNonEmptyString(tool.name, `${label} name`);
+ 	assertNonEmptyString(tool.description, `${label} description`);
+ 	if (tool.input !== void 0) {
+-		if (!isValibotSchema(tool.input)) throw new Error(`[flue] ${label} input must be a Valibot schema.`);
+-		if (!isTopLevelObjectSchema(tool.input)) throw new Error(`[flue] ${label} input must be a top-level object schema.`);
++		if (isValibotSchema(tool.input)) {
++			if (!isTopLevelObjectSchema(tool.input)) throw new Error(`[flue] ${label} input must be a top-level object schema.`);
++		} else {
++			if (!isNativeToolInput(tool.input)) throw new Error(`[flue] ${label} input must be a Valibot or native Standard Schema with input JSON Schema.`);
++			toolInputToJsonSchema(tool.input);
++		}
+ 	}
++	if (tool.prepareArguments !== void 0 && typeof tool.prepareArguments !== "function") throw new Error(`[flue] ${label} prepareArguments must be a function.`);
+ 	if (tool.output !== void 0 && !isValibotSchema(tool.output)) throw new Error(`[flue] ${label} output must be a Valibot schema.`);
+ 	if (tool.harness !== void 0 && typeof tool.harness !== "boolean") throw new Error(`[flue] ${label} harness must be a boolean.`);
+ 	if (tool.durable !== void 0 && typeof tool.durable !== "boolean") throw new Error(`[flue] ${label} durable must be a boolean.`);
+ 	if (typeof tool.run !== "function") throw new Error(`[flue] ${label} run must be a function.`);
+ }
+-function parseToolInput(tool, data, signal, facilities) {
+-	const base = {
++function toolContextBase(tool, signal, facilities) {
++	return {
+ 		signal,
+ 		log: facilities?.log ?? NOOP_LOGGER,
+ 		toolCallId: facilities?.toolCallId ?? generateToolCallId(),
+ 		...facilities?.harness ? { harness: facilities.harness } : {},
+ 		...tool.durable ? { step: facilities?.step ?? createEphemeralToolStep(tool.name) } : {}
+ 	};
++}
++async function parseToolInput(tool, data, signal, facilities) {
++	const base = toolContextBase(tool, signal, facilities);
+ 	if (!tool.input) return {
+ 		context: base,
+ 		data: void 0
+ 	};
+-	const parsed = parseValibot(tool.input, data === void 0 ? {} : data);
++	const parsed = await parseToolInputSchema(tool.input, data === void 0 ? {} : data);
+ 	if (!parsed.success) throw new ToolInputValidationError({
+ 		tool: tool.name,
+ 		issues: parsed.issues
+@@ -203,4 +213,4 @@ function assertNonEmptyString(value, label) {
+ 	if (typeof value !== "string" || value.trim().length === 0) throw new Error(`[flue] ${label} must be a non-empty string.`);
+ }
+ //#endregion
+-export { parseToolInput as a, defineTool as i, claimStepName as n, resolveToolRun as o, cloneStepValue as r, assertToolDefinition as t };
++export { toolContextBase, parseToolInput as a, defineTool as i, claimStepName as n, resolveToolRun as o, cloneStepValue as r, assertToolDefinition as t };
+diff --git a/dist/tool-NmMNtPCM.d.mts b/dist/tool-NmMNtPCM.d.mts
+index e2a78862b5771dd96315a664fb40f365658e2a9c..653a91a69ba162b74739d7a66ba5f51e9ac921f7 100644
+--- a/dist/tool-NmMNtPCM.d.mts
++++ b/dist/tool-NmMNtPCM.d.mts
+@@ -4,6 +4,7 @@ declare function defineTool<const TInput extends ToolInputSchema | undefined = u
+   name: string;
+   description: string;
+   input?: TInput;
++  prepareArguments?: (args: unknown) => unknown;
+   output?: TOutput;
+   harness?: THarness;
+   durable?: TDurable;
+diff --git a/dist/types-CVx9SjIx.d.mts b/dist/types-CVx9SjIx.d.mts
+index 0c9ab2477d44e4df8b60c007f5e04c327abb20c3..fcdb7860c01b8184ec2798b4a55226f5f773fcd8 100644
+--- a/dist/types-CVx9SjIx.d.mts
++++ b/dist/types-CVx9SjIx.d.mts
+@@ -1,5 +1,6 @@
+ import { ImageContent, Model } from "@earendil-works/pi-ai";
+ import * as v from "valibot";
++import type { StandardSchemaV1, StandardJSONSchemaV1 } from "@standard-schema/spec";
+ import { AgentMessage, AgentTool, ThinkingLevel } from "@earendil-works/pi-agent-core";
+ //#region src/mcp-types.d.ts
+ /**
+@@ -76,7 +77,7 @@ type JsonValue = null | boolean | number | string | JsonValue[] | {
+ };
+ //#endregion
+ //#region src/tool-types.d.ts
+-type ToolInputSchema = v.GenericSchema<Record<string, unknown>, unknown>;
++type ToolInputSchema = v.GenericSchema<Record<string, unknown>, unknown> | (StandardSchemaV1 & StandardJSONSchemaV1);
+ type ToolOutputSchema = v.GenericSchema<any, NonNullable<unknown> | null>;
+ /**
+  * The durable-step surface a `durable: true` tool's `run` receives. Each
+@@ -126,7 +127,7 @@ type ToolContext<S extends ToolInputSchema | undefined, H extends boolean | unde
+    */
+   readonly log: FlueLogger;
+ } & (S extends ToolInputSchema ? {
+-  readonly data: v.InferOutput<S>;
++  readonly data: StandardSchemaV1.InferOutput<S>;
+ } : Record<never, never>) & ([H] extends [true] ? {
+   readonly harness: FlueHarness;
+ } : Record<never, never>) & ([D] extends [true] ? {
+@@ -153,6 +154,8 @@ interface ToolDefinition<TInput extends ToolInputSchema | undefined = ToolInputS
+   readonly name: string;
+   readonly description: string;
+   readonly input: TInput;
++  /** Explicit compatibility normalization before validation; never inferred from JSON Schema. */
++  readonly prepareArguments?: (args: unknown) => unknown;
+   readonly output: TOutput;
+   /**
+    * Connect this tool to the agent's runtime: `run` receives `harness`,
+@@ -173,7 +176,7 @@ interface ToolDefinition<TInput extends ToolInputSchema | undefined = ToolInputS
+   readonly durable?: TDurable;
+   run(context: ToolContext<TInput, THarness, TDurable>): ToolRunReturn<TOutput> | Promise<ToolRunReturn<TOutput>> | (TOutput extends undefined ? void | Promise<void> : never);
+ }
+-type ToolInput<TTool extends ToolDefinition> = TTool extends ToolDefinition<infer TInput, any, any> ? TInput extends ToolInputSchema ? v.InferInput<TInput> : never : never;
++type ToolInput<TTool extends ToolDefinition> = TTool extends ToolDefinition<infer TInput, any, any> ? TInput extends ToolInputSchema ? StandardSchemaV1.InferInput<TInput> : never : never;
+ type ToolOutput<TTool extends ToolDefinition> = TTool extends ToolDefinition<any, infer TOutput, any> ? TOutput extends ToolOutputSchema ? v.InferOutput<TOutput> : unknown : never;
+ //#endregion
+ //#region src/types.d.ts
+diff --git a/docs/guide/tools.md b/docs/guide/tools.md
+index 0b82b030770bf2df34adbbb277743ea79b07dc0e..413967d9334ced937850e6ee56f424bb6107403b 100644
+--- a/docs/guide/tools.md
++++ b/docs/guide/tools.md
+@@ -50,7 +50,9 @@ The model reads the tool's name, description, and input schema; when it decides
+ 
+ **What the model sees.** Each mounted tool is presented to the model as its `name`, its `description`, and its `input` schema (converted to JSON Schema; a tool without an `input` schema presents an empty object). The description is the model's _only_ documentation: state what the tool does, when to use it, and what it returns. Vague descriptions are the most common cause of a tool being called incorrectly or not at all.
+ 
+-**Input.** The `input` schema is a [Valibot](https://valibot.dev) schema and must be a top-level object schema. Model-supplied arguments are parsed by it before `run` executes, and `run` receives the parsed value as `data`, fully typed. When validation fails, `run` is never called — the failure goes back to the model as a tool error so it can correct its arguments and retry.
++**Input.** `input` accepts the existing top-level Valibot object schemas or a native schema implementing both Standard Schema V1 and Standard JSON Schema V1. A native schema must export an object input via `~standard.jsonSchema.input({ target: 'draft-2020-12' })`; export failures refuse the definition. Flue carries that native input schema unchanged and uses its `~standard.validate` method as the authoritative parser before Pi's `beforeToolCall` hook and tool execution, without prior generic JSON-Schema coercion. `run.data` is the inferred parsed output, including native defaults/transforms, not the unparsed input type. Validation failure becomes a matching-call tool error and never calls `run`. Async native validation is supported and abandoned on cancellation. Valibot conversion/validation and output/result schemas retain their existing behavior.
++
++An optional synchronous `prepareArguments(args)` compatibility normalizer runs before validation. It does not change the model-facing input schema or confer validity; the native validator still checks the normalized input. Use only an explicitly chosen normalization policy, never derive coercions from JSON Schema. Durable re-execution uses the same normalizer and validator on the retained raw arguments. Native schemas may contain executable refinements not expressible in JSON Schema; carriage does not claim those refinements were exported.
+ 
+ **Output.** `run` returns a result envelope, `{ output?, terminate? }`, not a bare value. `output` is the JSON-compatible data (an object, array, string, number — anything JSON-serializable) that's JSON-stringified for the model, and a bare `string` return is shorthand for `{ output: <string> }`. Returning nothing is allowed only when no `output` schema is declared; any other bare return throws. `terminate: true` ends the agent's turn once the current tool batch settles, the same contract `finish`/`give_up` use. Add an optional `output` schema when the returned shape should be typed and validated too:
+ 
+diff --git a/docs/reference/agent-api.md b/docs/reference/agent-api.md
+index 9dfc5ee1e98675b4a90fa0b3c7168af97f2b6f9a..1d2f76dce8caa656b8844dc0e62734f29e6f092a 100644
+--- a/docs/reference/agent-api.md
++++ b/docs/reference/agent-api.md
+@@ -488,7 +488,8 @@ The agent's environment itself: the live [`Sandbox`](/docs/reference/sandbox-api
+ function defineTool<...>(options: {
+   name: string;
+   description: string;
+-  input?: ToolInputSchema;   // Valibot schema; top-level object
++  input?: ToolInputSchema;   // Valibot object or native Standard Schema + Standard JSON Schema input
++  prepareArguments?: (args: unknown) => unknown; // explicit synchronous compatibility normalization
+   output?: ToolOutputSchema; // Valibot schema
+   harness?: boolean;
+   durable?: boolean;
+@@ -499,7 +500,8 @@ function defineTool<...>(options: {
+ A typing and validation helper: it validates the definition and returns it frozen, so bad definitions fail at module load instead of first render. Also importable from the lighter `@flue/runtime/tool` entry for tool-only modules. Agents mount the returned value per render with [`useTool()`](/docs/reference/agent-hooks-api/#usetool).
+ 
+ - `name`, `description` — required non-empty strings. The description is the model-facing catalog line.
+-- `input` — a Valibot schema for the call's arguments. Must be a top-level object schema (the model sends a JSON object); anything else throws. When present, the parsed output arrives as `context.data`, typed by inference. When absent, the tool receives no `data` property and callers' arguments are ignored.
++- `input` — a Valibot object schema or native Standard Schema V1 plus Standard JSON Schema V1. The native input exporter must produce an object schema for draft 2020-12. Native arguments reach its validator without prior generic schema coercion; parsed output reaches `beforeToolCall` and `context.data` once, typed by native output inference. Export/validation errors fail closed. When absent, the tool receives no `data` property and callers' arguments are ignored.
++- `prepareArguments` — optional synchronous compatibility normalization before validation; retained raw history and model-facing input JSON Schema are unchanged. Applied in both live execution and durable re-execution.
+ - `output` — a Valibot schema for the return value. When present, the runtime parses the returned value through it before recording; a mismatch throws `ToolOutputValidationError`, and a schema producing `undefined` throws `ToolOutputSerializationError`.
+ - `harness`, `durable` — capability flags, detailed below. Must be booleans when present.
+ - `run` — the implementation. May be async, and returns a `ToolRunEnvelope` — `{ output?, terminate? }`. `output` is the tool's result: it must be JSON-serializable, is snapshotted as JSON-compatible data, and is then JSON-stringified for the model; non-serializable output throws `ToolOutputSerializationError`. Returning a bare `string` is shorthand for `{ output: <string> }`, and returning nothing (`void`) is allowed only when no `output` schema is declared, reaching the model as `null`; any other bare return — a plain object, array, number, boolean, or `null` — throws, telling you to wrap it as `{ output: <value> }`. `terminate: true` ends the agent's turn once the current tool batch settles, the same loop-ending contract `finish`/`give_up` use — a multi-tool batch ends the turn only when every result in it terminates, a throwing tool never terminates, and the flag is recorded on the tool's canonical outcome, so termination survives a crash between the batch committing and the submission settling. Throwing inside `run` records a tool error the model sees; it does not fail the submission.
+diff --git a/package.json b/package.json
+index dcd2069fcab0b373810f4e136fed206653c23938..307e3bd3cceaa749fcca614597df0afe0f94a64d 100644
+--- a/package.json
++++ b/package.json
+@@ -78,6 +78,7 @@
+     "node": ">=22.19.0"
+   },
+   "dependencies": {
++    "@standard-schema/spec": "1.1.0",
+     "@earendil-works/pi-agent-core": "^0.83.0",
+     "@earendil-works/pi-ai": "^0.83.0",
+     "@hono/node-server": "^2.0.3",

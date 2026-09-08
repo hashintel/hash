@@ -1,0 +1,38 @@
+diff --git a/README.md b/README.md
+index ed4e4a545f30a40b8da8ac7ffd5cdc427f562e6b..3463a097ad3c15c2d2ba4dd6ea120b8a2990077f 100644
+--- a/README.md
++++ b/README.md
+@@ -480,6 +480,8 @@ const bookMeetingTool: Tool = {
+ 
+ ### Constrained Sampling for Tools
+ 
++Anthropic tool preparation preserves the supplied parameter schema independently of constrained sampling, including root descriptions, additional-properties constraints, definitions and references. The adapter does not rewrite missing `required` lists or remove the declared dialect. This is schema carriage, not a promise that the remote provider accepts every JSON Schema keyword or that arbitrary runtime refinements can be exported.
++
+ Tools can opt in to provider-side constrained sampling. For JSON-schema tools, `strict: 'prefer'` uses provider-side strict schema enforcement when supported and otherwise falls back to normal tool calling. `strict: 'require'` fails the request when the active provider/model cannot honor it. Set `constrainedSampling: false` to explicitly opt out; it behaves the same as omitting the field.
+ 
+ ```typescript
+diff --git a/dist/api/anthropic-messages.js b/dist/api/anthropic-messages.js
+index 17ec1ac38f1124cbb520522660b6f0dcab70d64d..692f81e97038bd8f2cab749d5a43fcc8e7f0d8af 100644
+--- a/dist/api/anthropic-messages.js
++++ b/dist/api/anthropic-messages.js
+@@ -997,18 +997,8 @@ function convertTools(tools, isOAuthToken, supportsEagerToolInputStreaming, supp
+         return [];
+     return tools.map((tool, index) => {
+         const strict = resolveJsonSchemaStrictSampling(tool, supportsStrictTools);
+-        const schema = tool.parameters;
+-        const legacyInputSchema = {
+-            type: "object",
+-            properties: schema.properties ?? {},
+-            required: schema.required ?? [],
+-        };
+-        const inputSchema = strict === true
+-            ? {
+-                ...tool.parameters,
+-                ...legacyInputSchema,
+-            }
+-            : legacyInputSchema;
++        // Schema carriage is independent of constrained generation policy.
++        const inputSchema = tool.parameters;
+         return {
+             name: isOAuthToken ? toClaudeCodeName(tool.name) : tool.name,
+             description: tool.description,
