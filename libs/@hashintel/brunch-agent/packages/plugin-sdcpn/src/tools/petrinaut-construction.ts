@@ -7,6 +7,8 @@ import {
   petrinautAiTools,
 } from "@hashintel/petrinaut-core/ai";
 
+import { canonicalSchemaCarrier } from "./canonical-schema-carrier";
+
 export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
   "getLatestNetDefinition",
   "addType",
@@ -51,6 +53,12 @@ const issuePathFrom = (
 const canonicalInputFor = (toolName: PetrinautConstructionToolName) => {
   const canonicalTool = petrinautAiTools[toolName];
   const jsonSchema = canonicalTool.inputSchema.toJSONSchema();
+  // A1 earns nested addType carriage only. Other inherited carriers stay
+  // unchanged and must not be treated as scenario-admitted schema classes.
+  const carrier =
+    toolName === "addType"
+      ? canonicalSchemaCarrier(jsonSchema)
+      : v.looseObject({});
 
   return {
     description: [
@@ -64,7 +72,7 @@ const canonicalInputFor = (toolName: PetrinautConstructionToolName) => {
       JSON.stringify(jsonSchema),
     ].join("\n"),
     schema: v.pipe(
-      v.looseObject({}),
+      carrier,
       v.rawTransform((context) => {
         const normalizedInput = normalizePetrinautAiToolInput(
           toolName,
