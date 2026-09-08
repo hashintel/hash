@@ -1,0 +1,271 @@
+{
+  "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  ",
+  "settled": [
+    {
+      "type": "dynamic-tool",
+      "toolName": "update_workpiece",
+      "toolCallId": "settled-revision",
+      "state": "output-available",
+      "input": {
+        "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+      },
+      "output": {
+        "revisionId": "settled-revision",
+        "sha256": "f6a6e097317c3e5fbb7fdff1412fa54188495f66477f3115d1459792d98eaead",
+        "ordinal": 1
+      },
+      "durationMs": 3
+    }
+  ],
+  "reopened": [
+    {
+      "type": "dynamic-tool",
+      "toolName": "update_workpiece",
+      "toolCallId": "settled-revision",
+      "state": "output-available",
+      "input": {
+        "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+      },
+      "output": {
+        "revisionId": "settled-revision",
+        "sha256": "f6a6e097317c3e5fbb7fdff1412fa54188495f66477f3115d1459792d98eaead",
+        "ordinal": 1
+      },
+      "durationMs": 3
+    }
+  ],
+  "second": [
+    {
+      "type": "dynamic-tool",
+      "toolName": "update_workpiece",
+      "toolCallId": "settled-revision",
+      "state": "output-available",
+      "input": {
+        "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+      },
+      "output": {
+        "revisionId": "settled-revision",
+        "sha256": "f6a6e097317c3e5fbb7fdff1412fa54188495f66477f3115d1459792d98eaead",
+        "ordinal": 1
+      },
+      "durationMs": 3
+    },
+    {
+      "type": "dynamic-tool",
+      "toolName": "update_workpiece",
+      "toolCallId": "second-revision",
+      "state": "output-available",
+      "input": {
+        "markdown": "# Second synthetic account"
+      },
+      "output": {
+        "revisionId": "second-revision",
+        "sha256": "e3388bf9f4151879ccff3520bc9b8d78b19c7f0874f32c647e684d477907244d",
+        "ordinal": 2
+      },
+      "durationMs": 1
+    }
+  ],
+  "mixed": [
+    {
+      "caseId": "brunch_mark_question-addType",
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-addType-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-addType-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        }
+      ],
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ4B252CF8GNGHXQPQD9K failed: direct(sub_01M20JQ4B252CF8GNGHXQPQD9K) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "tools": [],
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "results": [],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": false,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "update_workpiece-addType",
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-addType-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "update_workpiece-addType-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        }
+      ],
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ4BGMQWKC8B5J5V2P3PT failed: direct(sub_01M20JQ4BGMQWKC8B5J5V2P3PT) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "tools": [],
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "results": [],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": false,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "brunch_mark_question-update_workpiece-addType",
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-update_workpiece-addType-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-update_workpiece-addType-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "brunch_mark_question-update_workpiece-addType-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        }
+      ],
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ4BW6P1MDXEFV2W7ZV91 failed: direct(sub_01M20JQ4BW6P1MDXEFV2W7ZV91) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "tools": [],
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "results": [],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": false,
+      "actualBrowserApplied": null
+    },
+    {
+      "caseId": "addType-update_workpiece-brunch_mark_question",
+      "generated": [
+        {
+          "type": "toolCall",
+          "id": "addType-update_workpiece-brunch_mark_question-addType",
+          "name": "addType",
+          "arguments": {
+            "id": "synthetic-type",
+            "name": "SyntheticType",
+            "iconSlug": "circle",
+            "displayColor": "#808080",
+            "elements": []
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "addType-update_workpiece-brunch_mark_question-update_workpiece",
+          "name": "update_workpiece",
+          "arguments": {
+            "markdown": "  # Synthetic account\r\n\nTiming remains unknown.  "
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "addType-update_workpiece-brunch_mark_question-brunch_mark_question",
+          "name": "brunch_mark_question",
+          "arguments": {
+            "question": "What remains unknown?"
+          }
+        }
+      ],
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ4C7PAFM05XT5E7NMQYA failed: direct(sub_01M20JQ4C7PAFM05XT5E7NMQYA) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "tools": [],
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "results": [],
+      "before": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "after": {
+        "places": [],
+        "transitions": [],
+        "types": [],
+        "differentialEquations": [],
+        "parameters": []
+      },
+      "mutationApplied": false,
+      "actualBrowserApplied": null
+    }
+  ]
+}

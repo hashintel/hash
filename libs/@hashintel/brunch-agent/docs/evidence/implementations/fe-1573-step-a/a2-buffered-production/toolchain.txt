@@ -1,0 +1,4 @@
+v22.21.1
+/Users/lunelson/.local/share/mise/installs/node/22.21.1/bin/node
+4.16.0
+14e4c661bfcb296b5a0760e1583b70fa211e3e99

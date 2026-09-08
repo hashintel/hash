@@ -1,0 +1,33 @@
+{
+  "scope": "Synthetic evidence; local databases and credentials excluded. Self hash omitted.",
+  "files": {
+    "architecture.log": "eadacc41e36699be006a7c283e8ca0e5b552a14a6c3622d39a2594196c4694d5",
+    "changed-files.txt": "327af6a9de6b167c3eb3d4bbb5a63d888633458c2af9fac5df563c66742cd715",
+    "format.log": "cdbfe8c3ad4726577c02ee8f9808881dc015b5b475cb473cb5f99e0c0e47f514",
+    "handoff.md": "157d2a8b63a80f4d62e884523b0fc52b5f5618a914a8d4b441fe86765147f647",
+    "inspect-state.py": "7c970ce3f44d2895ad07149fb0bba673fde7028df9190af5bd1ba319f6b487af",
+    "install.log": "582b183e0a39702b57cdd81585d4772b9198b1ed8385a2b6f09f067be7200c51",
+    "mounted/observations.json": "2b82b66ccf862b447a5ada459fb5f8402834df5b34cf70af14933ffc9f8291df",
+    "mounted/requests.json.gz": "5924db2899597b5fc04226faac00d96cafaf5bfbe769677fe4f313efa4c11bc2",
+    "mounted/run.log": "14136dd29a3210cb3fcf3b3753a5c4dcb17c261d4d244017b6021c2dd8745e2c",
+    "mounted/timeline.json.gz": "15673c8503f639f89e1839cb6f09ebe3bf59d6956935e2d8305f952ec4f4676c",
+    "original-oracle/addType-update_workpiece-brunch_mark_question-history.json": "a9edca0bf583036b5b1f5f9f448feabf8e4ac4161bd8ea321eb609d6377f11d2",
+    "original-oracle/brunch_mark_question-addType-history.json": "5116226979c5bd259bb22f31766dfc409290f00fbb7954deea63721b67c019aa",
+    "original-oracle/brunch_mark_question-update_workpiece-addType-history.json": "bff9fb33d438f8323df860f002f0ca6b56cfa9a16a548fc0667d8749a1ce32a6",
+    "original-oracle/contexts.json.gz": "2d08d1154ae769c08a1d0f775e26756e5362c07a326cec34b1fc062526534b7b",
+    "original-oracle/observations.json": "b1bfe5f11e04f85e7755bd0bc5e71c8f877c8a99841c032955f33414bfdee456",
+    "original-oracle/reopened-history.json": "dd571f044c0470bbab4ce4421c4cc3f7dfa3a955dd2952d957b303a8f2597e07",
+    "original-oracle/second-history.json": "c8b289f0c10dd82f4c99be8cfd26ad9a52848c1ccfdf00f0b157225d4476327a",
+    "original-oracle/settled-history.json": "dd571f044c0470bbab4ce4421c4cc3f7dfa3a955dd2952d957b303a8f2597e07",
+    "original-oracle/update_workpiece-addType-history.json": "bf20fc997ad062a51ec2fe07007c4f86bd4358cc85196d31d494a4b1712c685f",
+    "original-oracle.log": "0a6e9dcb970c50540b1dc71b6ae6c0619aca89bf6252d7aff28d7e5e7288a8fd",
+    "source-manifest.json": "2808b85002db133520b4c39867a1a49cbf3614d0c2b1392ac784030dcba5574e",
+    "state-records.json": "e409f878715e90de89bf2e38fc654342f1214fe719c6378d12aba6c3a4201159",
+    "summary.json": "9ebb5f59f406fa1e32fb8e197c23771c0a54b450f16df5bf7b852d2ee5438921",
+    "toolchain.txt": "3de5fa0cbf5c9faa75744caf171e7c6d835cfd5fbece5712dad31f648cf41cfa",
+    "unit-red.log": "da07bc92ce7fba0e077f6cc4d9747b6d7d3c0c63766246136cf22b83a82f44df",
+    "verification-intermediate.log.gz": "8b7c19124a335d277da838c5001fa04dcb3f916abb5c781a47770f43711d641c",
+    "verification-shell-failure.log.gz": "60aff1fd0f8251b3ade5301508d2233954e4325c3c7fe4ed98cef320762cd7a0",
+    "verification.log": "54e4b2a14c4b75c3a5dbf6a850f2dbd99ee54d477933b71612c65e9be39d13e5"
+  }
+}

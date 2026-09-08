@@ -1,0 +1,224 @@
+Registered OpenTelemetry (traces + logs + metrics) at endpoint http://localhost:4317 for Brunch Agent
+[flue:submission-processing] {
+  submissionId: 'sub_01M20JQ276VGV4WX1VWF76B3MH',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20JQ276VGV4WX1VWF76B3MH) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20JQ276VGV4WX1VWF76B3MH)',
+    reason: 'Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20JQ287W6E7Z3GENV1WBBJZ',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20JQ287W6E7Z3GENV1WBBJZ) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20JQ287W6E7Z3GENV1WBBJZ)',
+    reason: 'Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20JQ296X6KWMHDA80P68WRD',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20JQ296X6KWMHDA80P68WRD) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20JQ296X6KWMHDA80P68WRD)',
+    reason: 'Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20JQ2A5FC4RVY74Z7ENTEZ7',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20JQ2A5FC4RVY74Z7ENTEZ7) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20JQ2A5FC4RVY74Z7ENTEZ7)',
+    reason: 'Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20JQ2B1PM158H143YWHK1ZA',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20JQ2B1PM158H143YWHK1ZA) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20JQ2B1PM158H143YWHK1ZA)',
+    reason: 'Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20JQ2BSKVG9SJFDZSG1K800',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20JQ2BSKVG9SJFDZSG1K800) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20JQ2BSKVG9SJFDZSG1K800)',
+    reason: 'Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20JQ2CJSWS8CNPV3ABTTPD7',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20JQ2CJSWS8CNPV3ABTTPD7) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20JQ2CJSWS8CNPV3ABTTPD7)',
+    reason: 'Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20JQ2DA8TQK909FV4K79P6D',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20JQ2DA8TQK909FV4K79P6D) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20JQ2DA8TQK909FV4K79P6D)',
+    reason: 'Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20JQ2E5MVRW6HBNXDB88DM7',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20JQ2E5MVRW6HBNXDB88DM7) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20JQ2E5MVRW6HBNXDB88DM7)',
+    reason: 'Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20JQ2EVMNBYG57SWYS90302',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20JQ2EVMNBYG57SWYS90302) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20JQ2EVMNBYG57SWYS90302)',
+    reason: 'Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M20JQ2FHH79VVXWHWF9XP8AQ',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M20JQ2FHH79VVXWHWF9XP8AQ) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-admission/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M20JQ2FHH79VVXWHWF9XP8AQ)',
+    reason: 'Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.'
+  },
+  cause: undefined
+}
+(node:44528) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Instrument exit 0; structured output retained in observations.json.

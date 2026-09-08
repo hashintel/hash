@@ -1,0 +1,48 @@
+{
+  "v": 1,
+  "conversationId": "conv_01M20JQ4BWTHC0NVWHNSRHHW9W",
+  "offset": "0000000000000000_0000000000000006",
+  "messages": [
+    {
+      "id": "entry_direct_c3ViXzAxTTIwSlE0Qlc2UDFNRFhFRlYyVzdaVjkx",
+      "role": "user",
+      "purpose": "user",
+      "display": "visible",
+      "submissionId": "sub_01M20JQ4BW6P1MDXEFV2W7ZV91",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Unpaid test-authored mixed-batch safety probe.",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "entry_01M20JQ4C3XYZX323E2S8JDETE",
+      "role": "assistant",
+      "purpose": "assistant",
+      "display": "visible",
+      "submissionId": "sub_01M20JQ4BW6P1MDXEFV2W7ZV91",
+      "turnId": "turn_01M20JQ4C1QZT20MH2NM3YEYCY",
+      "parts": []
+    }
+  ],
+  "settlements": [
+    {
+      "submissionId": "sub_01M20JQ4BW6P1MDXEFV2W7ZV91",
+      "outcome": "failed",
+      "error": {
+        "name": "FlueError",
+        "message": "direct(sub_01M20JQ4BW6P1MDXEFV2W7ZV91) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+        "type": "operation_failed",
+        "details": "",
+        "meta": {
+          "operation": "direct(sub_01M20JQ4BW6P1MDXEFV2W7ZV91)",
+          "reason": "Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work."
+        }
+      },
+      "answeredBySubmissionId": "sub_01M20JQ4BW6P1MDXEFV2W7ZV91"
+    }
+  ],
+  "incarnation": "inc_01M20JQ4BWXN9DDMEPHNAAN8QV"
+}

@@ -1,0 +1,37 @@
+
+ RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent
+
+ ❯ test/provider-admission.test.ts (7 tests | 2 failed | 5 skipped) 4ms
+   × stream rejects a complete mixed proposal before emitting anything 3ms
+   × streamSimple rejects a complete mixed proposal before emitting anything 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/provider-admission.test.ts > stream rejects a complete mixed proposal before emitting anything
+ FAIL  test/provider-admission.test.ts > streamSimple rejects a complete mixed proposal before emitting anything
+AssertionError: promise resolved "undefined" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+undefined
+
+ ❯ test/provider-admission.test.ts:30:90
+     28|   const events = [];
+     29|   const stream = provider[method](model, { messages: [] });
+     30|   await expect((async () => { for await (const event of stream) events…
+       |                                                                                          ^
+     31|   expect(events).toEqual([]);
+     32|   await expect(stream.result()).rejects.toThrow("Mixed browser/server …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 5 skipped (7)
+   Start at  14:52:20
+   Duration  412ms (transform 13ms, setup 0ms, import 205ms, tests 4ms, environment 0ms)
+

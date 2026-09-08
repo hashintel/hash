@@ -1,0 +1,500 @@
+{
+  "cases": [
+    {
+      "caseId": "brunch_mark_question-addType",
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ276VGV4WX1VWF76B3MH failed: direct(sub_01M20JQ276VGV4WX1VWF76B3MH) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "currentRevision": {
+        "revisionId": "brunch_mark_question-addType-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "addType-brunch_mark_question",
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ287W6E7Z3GENV1WBBJZ failed: direct(sub_01M20JQ287W6E7Z3GENV1WBBJZ) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "currentRevision": {
+        "revisionId": "addType-brunch_mark_question-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "update_workpiece-addType",
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ296X6KWMHDA80P68WRD failed: direct(sub_01M20JQ296X6KWMHDA80P68WRD) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "currentRevision": {
+        "revisionId": "update_workpiece-addType-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "addType-update_workpiece",
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ2A5FC4RVY74Z7ENTEZ7 failed: direct(sub_01M20JQ2A5FC4RVY74Z7ENTEZ7) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "currentRevision": {
+        "revisionId": "addType-update_workpiece-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "brunch_mark_question-update_workpiece-addType",
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ2B1PM158H143YWHK1ZA failed: direct(sub_01M20JQ2B1PM158H143YWHK1ZA) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "currentRevision": {
+        "revisionId": "brunch_mark_question-update_workpiece-addType-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "brunch_mark_question-addType-update_workpiece",
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ2BSKVG9SJFDZSG1K800 failed: direct(sub_01M20JQ2BSKVG9SJFDZSG1K800) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "currentRevision": {
+        "revisionId": "brunch_mark_question-addType-update_workpiece-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "update_workpiece-brunch_mark_question-addType",
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ2CJSWS8CNPV3ABTTPD7 failed: direct(sub_01M20JQ2CJSWS8CNPV3ABTTPD7) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "currentRevision": {
+        "revisionId": "update_workpiece-brunch_mark_question-addType-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "update_workpiece-addType-brunch_mark_question",
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ2DA8TQK909FV4K79P6D failed: direct(sub_01M20JQ2DA8TQK909FV4K79P6D) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "currentRevision": {
+        "revisionId": "update_workpiece-addType-brunch_mark_question-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "addType-brunch_mark_question-update_workpiece",
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ2E5MVRW6HBNXDB88DM7 failed: direct(sub_01M20JQ2E5MVRW6HBNXDB88DM7) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "currentRevision": {
+        "revisionId": "addType-brunch_mark_question-update_workpiece-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "addType-update_workpiece-brunch_mark_question",
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ2EVMNBYG57SWYS90302 failed: direct(sub_01M20JQ2EVMNBYG57SWYS90302) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "currentRevision": {
+        "revisionId": "addType-update_workpiece-brunch_mark_question-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "addType-unmounted_admission_probe",
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": "FlueExecutionError: Agent submission sub_01M20JQ2FHH79VVXWHWF9XP8AQ failed: direct(sub_01M20JQ2FHH79VVXWHWF9XP8AQ) failed: Mixed browser/server proposal refused before admission. Submit revision or server work separately from browser work.",
+      "currentRevision": {
+        "revisionId": "addType-unmounted_admission_probe-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "addType",
+      "providerCallsBeforeClientResult": 1,
+      "pendingMutationIds": ["addType-addType"],
+      "mutationApplied": true,
+      "submissionError": null,
+      "currentRevision": {
+        "revisionId": "addType-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "brunch_mark_question",
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": null,
+      "currentRevision": {
+        "revisionId": "brunch_mark_question-old-revision",
+        "sha256": "4aebf881da2d0a8f0d3d7eec994ee19ba1774105bdbd3bda147e0df23075f6d3",
+        "markdown": "# Synthetic settled account\nUnknown timing.",
+        "ordinal": 1
+      }
+    },
+    {
+      "caseId": "update_workpiece-brunch_mark_question",
+      "providerCallsBeforeClientResult": 2,
+      "pendingMutationIds": [],
+      "mutationApplied": false,
+      "submissionError": null,
+      "currentRevision": {
+        "revisionId": "update_workpiece-brunch_mark_question-update_workpiece",
+        "sha256": "ce8c260ede22cb142cd6ecf3766a18db68ab2c89449a5fd3ccc14c7a6a94f1fa",
+        "markdown": "# Workpiece payload must not be spoken\nUnknown timing.",
+        "ordinal": 2
+      }
+    }
+  ],
+  "buffering": [
+    {
+      "caseId": "buffered-valid",
+      "receipt": {
+        "streamUrl": "http://brunch.local/agents/chat/4abca086c2a7e97c565bd38327a0113378d09a48cc7cdcf6cc302ec1df33aa08",
+        "offset": "0000000000000000_0000000000000000",
+        "submissionId": "sub_01M20JQ2JT90GJ3C6GW9PZRETS",
+        "uid": "inst_01M20JQ2JV61Z6QXYRAB354648"
+      },
+      "error": null,
+      "upstreamAborted": false,
+      "during": {
+        "v": 1,
+        "conversationId": "conv_01M20JQ2JVPSZ5HBN0NAY46FM9",
+        "offset": "0000000000000000_0000000000000003",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwSlEySlQ5MEdKM0M2R1c5UFpSRVRT",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20JQ2JT90GJ3C6GW9PZRETS",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic completed Voice transcript.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [],
+        "incarnation": "inc_01M20JQ2JTKFR2X0XV4TZ5TWX8"
+      },
+      "after": {
+        "v": 1,
+        "conversationId": "conv_01M20JQ2JVPSZ5HBN0NAY46FM9",
+        "offset": "0000000000000000_0000000000000020",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwSlEySlQ5MEdKM0M2R1c5UFpSRVRT",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20JQ2JT90GJ3C6GW9PZRETS",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic completed Voice transcript.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20JQ2JZJ6RJPKD1P4CB75FQ",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20JQ2JT90GJ3C6GW9PZRETS",
+            "turnId": "turn_01M20JQ2JYQAAETZAN456AB5YT",
+            "parts": [
+              {
+                "type": "text",
+                "text": "The account is recorded. What remains unknown?",
+                "state": "done"
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "update_workpiece",
+                "toolCallId": "buffered-valid-update_workpiece",
+                "state": "output-available",
+                "input": {
+                  "markdown": "# Workpiece payload must not be spoken\nUnknown timing."
+                },
+                "output": {
+                  "revisionId": "buffered-valid-update_workpiece",
+                  "sha256": "ce8c260ede22cb142cd6ecf3766a18db68ab2c89449a5fd3ccc14c7a6a94f1fa",
+                  "ordinal": 1
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "dynamic-tool",
+                "toolName": "brunch_mark_question",
+                "toolCallId": "buffered-valid-brunch_mark_question",
+                "state": "output-available",
+                "input": {
+                  "question": "What remains unknown?"
+                },
+                "output": {
+                  "marked": true
+                },
+                "durationMs": 0
+              },
+              {
+                "type": "data-brunch-question",
+                "data": {
+                  "question": "What remains unknown?",
+                  "toolCallId": "buffered-valid-brunch_mark_question"
+                }
+              },
+              {
+                "type": "text",
+                "text": "Timing remains unknown.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20JQ2JT90GJ3C6GW9PZRETS",
+            "outcome": "completed",
+            "answeredBySubmissionId": "sub_01M20JQ2JT90GJ3C6GW9PZRETS"
+          }
+        ],
+        "incarnation": "inc_01M20JQ2JTKFR2X0XV4TZ5TWX8"
+      },
+      "projectedDuring": [
+        {
+          "id": "entry_direct_c3ViXzAxTTIwSlEySlQ5MEdKM0M2R1c5UFpSRVRT",
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Synthetic completed Voice transcript.",
+              "state": "done"
+            }
+          ]
+        }
+      ],
+      "projectedAfter": [
+        {
+          "id": "entry_direct_c3ViXzAxTTIwSlEySlQ5MEdKM0M2R1c5UFpSRVRT",
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Synthetic completed Voice transcript.",
+              "state": "done"
+            }
+          ]
+        },
+        {
+          "id": "entry_01M20JQ2JZJ6RJPKD1P4CB75FQ",
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "The account is recorded. What remains unknown?",
+              "state": "done"
+            },
+            {
+              "type": "tool-update_workpiece",
+              "toolCallId": "buffered-valid-update_workpiece",
+              "state": "output-available",
+              "input": {
+                "markdown": "# Workpiece payload must not be spoken\nUnknown timing."
+              },
+              "output": {
+                "revisionId": "buffered-valid-update_workpiece",
+                "sha256": "ce8c260ede22cb142cd6ecf3766a18db68ab2c89449a5fd3ccc14c7a6a94f1fa",
+                "ordinal": 1
+              },
+              "providerExecuted": true
+            },
+            {
+              "type": "data-brunch-question",
+              "data": {
+                "question": "What remains unknown?",
+                "toolCallId": "buffered-valid-brunch_mark_question"
+              }
+            },
+            {
+              "type": "text",
+              "text": "Timing remains unknown.",
+              "state": "done"
+            }
+          ]
+        }
+      ],
+      "text": "The account is recorded. What remains unknown?",
+      "privateMarkdown": "# Workpiece payload must not be spoken\nUnknown timing."
+    },
+    {
+      "caseId": "buffered-cancelled",
+      "receipt": {
+        "streamUrl": "http://brunch.local/agents/chat/33745814fc2bb3433555b80201327300946fdd531642db568c7545ac568df41f",
+        "offset": "0000000000000000_0000000000000000",
+        "submissionId": "sub_01M20JQ2KGVY41KX1A7AQHV5SV",
+        "uid": "inst_01M20JQ2KG4QCTFHPE31SVJZ3X"
+      },
+      "error": "FlueExecutionError: Agent submission sub_01M20JQ2KGVY41KX1A7AQHV5SV was aborted: Submission was aborted.",
+      "upstreamAborted": true,
+      "during": {
+        "v": 1,
+        "conversationId": "conv_01M20JQ2KG86WY4WWC7W8K6T5V",
+        "offset": "0000000000000000_0000000000000003",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwSlEyS0dWWTQxS1gxQTdBUUhWNVNW",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20JQ2KGVY41KX1A7AQHV5SV",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic completed Voice transcript.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [],
+        "incarnation": "inc_01M20JQ2KGA3JPFA87VQTYZPPS"
+      },
+      "after": {
+        "v": 1,
+        "conversationId": "conv_01M20JQ2KG86WY4WWC7W8K6T5V",
+        "offset": "0000000000000000_0000000000000007",
+        "messages": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIwSlEyS0dWWTQxS1gxQTdBUUhWNVNW",
+            "role": "user",
+            "purpose": "user",
+            "display": "visible",
+            "submissionId": "sub_01M20JQ2KGVY41KX1A7AQHV5SV",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Synthetic completed Voice transcript.",
+                "state": "done"
+              }
+            ]
+          },
+          {
+            "id": "entry_01M20JQ2KN6Q3GMZK12BP9G2S1",
+            "role": "assistant",
+            "purpose": "assistant",
+            "display": "visible",
+            "submissionId": "sub_01M20JQ2KGVY41KX1A7AQHV5SV",
+            "turnId": "turn_01M20JQ2KKXHR6YWXK9ZH0MH4H",
+            "parts": []
+          },
+          {
+            "id": "entry_submission_aborted_sub_01M20JQ2KGVY41KX1A7AQHV5SV",
+            "role": "system",
+            "purpose": "advisory",
+            "display": "diagnostic",
+            "signal": {
+              "attributes": {
+                "submissionId": "sub_01M20JQ2KGVY41KX1A7AQHV5SV",
+                "kind": "direct",
+                "reason": "aborted"
+              }
+            },
+            "settlement": {
+              "outcome": "aborted"
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "Submission was aborted.",
+                "state": "done"
+              }
+            ]
+          }
+        ],
+        "settlements": [
+          {
+            "submissionId": "sub_01M20JQ2KGVY41KX1A7AQHV5SV",
+            "outcome": "aborted",
+            "error": {
+              "name": "FlueError",
+              "message": "Submission was aborted.",
+              "type": "submission_aborted",
+              "details": "The operation was stopped before it produced a completed response."
+            },
+            "answeredBySubmissionId": "sub_01M20JQ2KGVY41KX1A7AQHV5SV"
+          }
+        ],
+        "incarnation": "inc_01M20JQ2KGA3JPFA87VQTYZPPS"
+      },
+      "projectedDuring": [
+        {
+          "id": "entry_direct_c3ViXzAxTTIwSlEyS0dWWTQxS1gxQTdBUUhWNVNW",
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Synthetic completed Voice transcript.",
+              "state": "done"
+            }
+          ]
+        }
+      ],
+      "projectedAfter": [
+        {
+          "id": "entry_direct_c3ViXzAxTTIwSlEyS0dWWTQxS1gxQTdBUUhWNVNW",
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Synthetic completed Voice transcript.",
+              "state": "done"
+            }
+          ]
+        }
+      ],
+      "text": "Cancelled prose must never be spoken.",
+      "privateMarkdown": "# Workpiece payload must not be spoken\nUnknown timing."
+    }
+  ]
+}
