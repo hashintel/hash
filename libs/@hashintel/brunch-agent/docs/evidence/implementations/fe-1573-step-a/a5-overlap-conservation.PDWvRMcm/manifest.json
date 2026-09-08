@@ -440,8 +440,8 @@
       "uncompressedSha256": "3140a50a2773d30fadae5451d1a7107e6086b8c400d5032b9963be7274c5c427"
     },
     "observations.json": {
-      "bytes": 2203,
-      "sha256": "1c0dc39482621319f060ef289c2620c9e4eb14d7dec02c5e98cba32d8a7a789b"
+      "bytes": 2143,
+      "sha256": "24c0a22d3f4353270513f167ca0f3b98aea92c5d317742145e22eedc3b096570"
     },
     "reviewer-original-failure.json.gz": {
       "bytes": 561967,
