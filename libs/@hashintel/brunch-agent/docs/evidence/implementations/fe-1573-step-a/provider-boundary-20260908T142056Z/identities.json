@@ -1,0 +1,119 @@
+{
+  "base": "550abe7dc76110c1fe5de240821f477c50d8d645",
+  "node": "v22.21.1",
+  "packages": {
+    "@earendil-works/pi-ai": {
+      "name": "@earendil-works/pi-ai",
+      "version": "0.83.0",
+      "packageJsonSha256": "a3e39900a10bc5d6fd01e8de86899ac15991a849160bae1b4bd741eeaddf05d8"
+    },
+    "@earendil-works/pi-agent-core": {
+      "name": "@earendil-works/pi-agent-core",
+      "version": "0.83.0",
+      "packageJsonSha256": "33aa9a2c1435a59e3a0d62ebd29cd4f8f39c4b4dfb1dc6bce4762835950ee0c5"
+    },
+    "@flue/runtime": {
+      "name": "@flue/runtime",
+      "version": "2.0.3",
+      "packageJsonSha256": "fcf87a592b6d002779af358dd29218b08e624effe9e545540c4eb81add766eab"
+    },
+    "@valibot/to-json-schema": {
+      "name": "@valibot/to-json-schema",
+      "version": "1.7.1",
+      "packageJsonSha256": "5487440309ff6296d0d9359eb6b2712b26d68bb562d60ad5ac314a3fb1bcc1a2"
+    },
+    "valibot": {
+      "name": "valibot",
+      "version": "1.4.2",
+      "packageJsonSha256": "f8c0413b3a5b951c5e3522e0ec0a3b1c4bce6d4d98d87b02bbaff05a2cb4abcb"
+    },
+    "zod": {
+      "name": "zod",
+      "version": "4.4.3",
+      "packageJsonSha256": "c630bd10b52dcf71c112a2bf78dbf2734b9db58d62de663b8d86c2ec2c8cda2e"
+    },
+    "@anthropic-ai/sdk": {
+      "name": "@anthropic-ai/sdk",
+      "version": "0.74.0",
+      "packageJsonSha256": "9a1b6a0d55d27b4a0d2a9b611898a695444e2e119d6ed5afdb3aa7dd05fc9d15"
+    },
+    "@earendil-works/pi-ai/node_modules/@anthropic-ai/sdk": {
+      "name": "@anthropic-ai/sdk",
+      "version": "0.91.1",
+      "packageJsonSha256": "28aaef57dd52864476e417dac7b0b389ca65b9e4f3ee42631e450a9c1a654f82"
+    }
+  },
+  "protectedSources": {
+    "yarn.lock": {
+      "sha256": "bd12ef77cc0eb437cd29fca716b34578a9022e46eecf64e9193da6d7847d04cd",
+      "unchangedFromBase": true
+    },
+    "apps/brunch-agent/package.json": {
+      "sha256": "389dbb9da0249a30ee0eb683a346d9eb5cc701b92d830334a6181b1e0283a882",
+      "unchangedFromBase": true
+    },
+    "apps/brunch-agent/src/app.ts": {
+      "sha256": "3260d6c6e54c5f40e0bfc182bdb9fa9d9e9374aa841270999d43ae9e89624f46",
+      "unchangedFromBase": true
+    },
+    "apps/brunch-agent/src/provider-admission.ts": {
+      "sha256": "9bbeff61d12ccbc881db4239b0e8c1eb8104d52168ed0c59a6412ce925f5b5d0",
+      "unchangedFromBase": true
+    },
+    "apps/brunch-agent/src/agents/chat-agent/agent.ts": {
+      "sha256": "e0767d495b1c26910f8f7d3d5ebc6f473f86bf625171c6b8653725e011d76cd2",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/brunch-agent/MISSION.md": {
+      "sha256": "34c0a7c024ed5d5fddf8169622c89d144a8ee643ca94005da9b024737fe072ab",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/flue.ts": {
+      "sha256": "cbbb990cc54d46404580e625e218399b76165433d8d09da76adf77bdce47434d",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/canonical-schema-carrier.ts": {
+      "sha256": "cab940f7145343e30bdf5cd107583c7f1afe1c761112da79021cacbc6fc20805",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/petrinaut-construction.ts": {
+      "sha256": "8a98b249f4d59793e0a8c88deacd70eb92004244fdfeed3b69a77d786e1cd170",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/petrinaut-core/src/ai.ts": {
+      "sha256": "7cad4a539e0148ff576b2031bb52e827929a77e3f3dff116b417656f0e787d46",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/petrinaut-core/src/action-schemas.ts": {
+      "sha256": "1348e8c2c517a26eb7106303193169750b576cb74b25712c6075ca825df37452",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/usage-ledger.json": {
+      "sha256": "d5041ddc422a1889ce013b002ce6ed0250a2992ae4ab19501188d51a9c6eedf4",
+      "unchangedFromBase": true
+    },
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/attempt-ledger.md": {
+      "sha256": "da55752de0b939ac817f7679ab1dadd9ff058fdcaa2e602063e04d188a5d0833",
+      "unchangedFromBase": true
+    }
+  },
+  "installedSources": {
+    "@earendil-works/pi-ai/README.md": "4f98650a8f49a9eee72e8aa9d064b5daadbf517b7e382c39dd06085f414ce36b",
+    "@earendil-works/pi-ai/dist/providers/anthropic.js": "b8f62bd241458100fba088fef87c9a36d216f92291f6881c88de69781d091d97",
+    "@earendil-works/pi-ai/dist/providers/data/anthropic.json": "fea1226a62396c8d4a3d9c3b7f65d4dc527ac025d05719880418d3a2b0665a69",
+    "@earendil-works/pi-ai/dist/api/anthropic-messages.js": "b0facd0b3e2bac08e749e83c6810735281beb344eaf977715daa009275f8421a",
+    "@earendil-works/pi-ai/dist/api/constrained-sampling.js": "e169359bf728f767158f226aac74bfc39bd6112c26a8fcb30f586b3247bc6be6",
+    "@earendil-works/pi-ai/dist/models.js": "ceb81be470cd45410f5586844b27ee65a70c474acc7eae7e8911752b5dfa7c2e",
+    "@earendil-works/pi-ai/dist/utils/event-stream.js": "44a2498660ca61efa952ad6a3f10cc0491883411bd2b4572c9a392ec4e9553ec",
+    "@earendil-works/pi-ai/dist/utils/provider-retry.js": "f14a8cfb9a99901a7cde6d588fad11aa8030e409d760d76050e580b6dba5c3f5",
+    "@earendil-works/pi-ai/node_modules/@anthropic-ai/sdk/resources/messages/messages.mjs": "7dc75ff6bba72d7959842ed1fc5176f6ca5f0fa75eaa4b36a743031bb70e2afb",
+    "@earendil-works/pi-ai/node_modules/@anthropic-ai/sdk/internal/request-options.mjs": "f531d2038dfc1aec9a0637fedaa9524920fbf94f353955034cd9c11165a2969b",
+    "@earendil-works/pi-agent-core/dist/agent.js": "02e5f6dfcea09280d7c6818fd264dc9a1219087f1d6c49115752b7086f6f2b62",
+    "@flue/runtime/dist/schema-DIDpvZZa.mjs": "59334d05502c564d3eb7c27c801c2722980ee0546df8507b6ffba7a8bb59d982",
+    "@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs": "7d7c413cef14f401b5977a7c64ff1d9365cc78932ec624ca87b05ec9f0a7e1c4",
+    "@flue/runtime/dist/dispatch-nU3cIlT-.mjs": "254a36e05bfc63ffb0a223cdb15e1f41424e105a2792c1627d1175099d1c1ca8",
+    "@flue/runtime/docs/guide/observability.md": "c86f3b8fdad0e9d9650c078ec43e030a149fb29c79b0f3a12c3acc5a3fa68fcd",
+    "@flue/runtime/docs/reference/events.md": "faade6b201df8257b18a3441f19c7e0ac43c61456e5b211f82a283f8fc14c405"
+  },
+  "scope": "Evidence-only, zero paid usage. No production source, policy, dependency version, or ledger edits."
+}
