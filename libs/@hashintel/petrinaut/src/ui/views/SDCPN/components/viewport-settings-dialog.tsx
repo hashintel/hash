@@ -7,7 +7,10 @@ import { isWebGpuAvailable } from "@hashintel/petrinaut-core";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 
-import type { ArcRendering } from "../../../../react/state/user-settings-context";
+import type {
+  ArcRendering,
+  CanvasRendererName,
+} from "../../../../react/state/user-settings-context";
 
 const rowStyle = css({
   display: "grid",
@@ -94,6 +97,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setCompactNodes,
     arcRendering,
     setArcRendering,
+    canvasRenderer,
+    setCanvasRenderer,
     showMinimap,
     setShowMinimap,
     snapToGrid,
@@ -171,6 +176,31 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               { value: "smoothstep", text: "Square" },
               { value: "bezier", text: "Bezier" },
               { value: "custom", text: "Adaptive Bezier" },
+            ]}
+          />
+        </SettingRow>
+        <SettingRow
+          label={
+            <>
+              Renderer{" "}
+              <Chip size="xs" color="orange" variant="outline" shape="round">
+                Experimental
+              </Chip>
+            </>
+          }
+          description="Draw the canvas with React Flow or on a GPU-accelerated Pixi canvas"
+        >
+          <Select
+            size="sm"
+            className={selectStyle}
+            required
+            value={canvasRenderer}
+            onChange={(nextRenderer) =>
+              setCanvasRenderer(nextRenderer as CanvasRendererName)
+            }
+            items={[
+              { value: "react-flow", text: "React Flow" },
+              { value: "pixi", text: "Pixi (GPU)" },
             ]}
           />
         </SettingRow>

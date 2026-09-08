@@ -73,3 +73,14 @@ Choose how arcs are drawn between nodes:
 | **Square**          | Right-angle paths (smoothstep routing).                     |
 | **Bezier**          | Smooth curved paths.                                        |
 | **Adaptive Bezier** | Curved paths that adjust based on node positions. (Default) |
+
+### Renderer (experimental)
+
+Choose which engine draws the canvas:
+
+| Renderer       | Description                                                                                                                                     |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **React Flow** | The default. Nodes and arcs are regular page elements.                                                                                          |
+| **Pixi (GPU)** | Draws the net on a GPU-accelerated canvas. Stays smooth on large nets and during playback; some visual details differ slightly from React Flow. |
+
+Both renderers share the same nets, selection, tools and settings, so switching is safe at any time. The choice is saved with your other settings.

@@ -8,7 +8,8 @@ import { use, useRef } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
-import { canvasRenderers, defaultCanvasRenderer } from "./canvas-renderers";
+import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { canvasRenderers } from "./canvas-renderers";
 import { CursorTooltip } from "./components/cursor-tooltip";
 import { useContainerSize } from "./hooks/util/use-container-size";
 import { useCanvasScene } from "./use-canvas-scene";
@@ -27,8 +28,8 @@ const canvasContainerStyle = css({
  * SDCPNView builds the renderer-agnostic scene for the active net and hands
  * it to the active canvas renderer. It measures the canvas container and only
  * mounts the renderer once the size is known, so the net renders centered
- * from its very first frame. Switching to another net remounts the renderer,
- * centering it on the new net.
+ * from its very first frame. Switching to another net, or to another renderer
+ * in the settings, remounts the renderer, centering it on the current net.
  */
 export const SDCPNView: React.FC<{
   viewportActions?: ViewportAction[];
@@ -39,14 +40,15 @@ export const SDCPNView: React.FC<{
     containerSizeSettleMs,
   );
   const { petriNetId } = use(SDCPNContext);
+  const { canvasRenderer } = use(UserSettingsContext);
   const scene = useCanvasScene();
-  const Renderer = canvasRenderers[defaultCanvasRenderer];
+  const Renderer = canvasRenderers[canvasRenderer];
 
   return (
     <div ref={canvasContainer} className={canvasContainerStyle}>
       {containerSize && (
         <Renderer
-          key={petriNetId}
+          key={`${petriNetId}:${canvasRenderer}`}
           scene={scene}
           containerSize={containerSize}
           viewportActions={viewportActions}

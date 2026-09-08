@@ -18,6 +18,11 @@ import type {
 
 export type ArcRendering = "smoothstep" | "bezier" | "custom";
 
+/** Which engine draws the canvas. */
+export const canvasRendererNames = ["react-flow", "pixi"] as const;
+
+export type CanvasRendererName = (typeof canvasRendererNames)[number];
+
 export type SubViewSectionSettings = {
   collapsed: boolean;
   /** Last known panel height in pixels */
@@ -35,6 +40,7 @@ export type UserSettings = {
   keepPanelsMounted: boolean;
   compactNodes: boolean;
   arcRendering: ArcRendering;
+  canvasRenderer: CanvasRendererName;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
@@ -104,6 +110,7 @@ export type UserSettingsActions = {
   setKeepPanelsMounted: (value: boolean) => void;
   setCompactNodes: (value: boolean) => void;
   setArcRendering: (value: ArcRendering) => void;
+  setCanvasRenderer: (value: CanvasRendererName) => void;
   setIsLeftSidebarOpen: (value: boolean) => void;
   setLeftSidebarWidth: (value: number) => void;
   setPropertiesPanelWidth: (value: number) => void;
@@ -139,6 +146,7 @@ export const defaultUserSettings: UserSettings = {
   keepPanelsMounted: true,
   compactNodes: false,
   arcRendering: "custom",
+  canvasRenderer: "react-flow",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
   leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
@@ -169,6 +177,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setKeepPanelsMounted: () => {},
   setCompactNodes: () => {},
   setArcRendering: () => {},
+  setCanvasRenderer: () => {},
   setIsLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},
   setPropertiesPanelWidth: () => {},

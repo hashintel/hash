@@ -14,6 +14,7 @@ import type {
 } from "./editor-context";
 import type {
   ArcRendering,
+  CanvasRendererName,
   SubViewSectionSettings,
   UserSettings,
 } from "./user-settings-context";
@@ -74,6 +75,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, compactNodes: value })),
     setArcRendering: (value: ArcRendering) =>
       setState((prev) => ({ ...prev, arcRendering: value })),
+    setCanvasRenderer: (value: CanvasRendererName) =>
+      setState((prev) => ({ ...prev, canvasRenderer: value })),
     setCursorMode: (value: CursorMode) =>
       setState((prev) => ({ ...prev, cursorMode: value })),
     setIsLeftSidebarOpen: (value: boolean) =>
