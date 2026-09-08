@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   petrinautOptimizationEventSchema,
   petrinautOptimizationManifestSchema,
-} from "./optimization";
+} from "./index";
 
 const scenario = {
   id: "baseline",

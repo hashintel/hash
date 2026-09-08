@@ -13,3 +13,8 @@ declare module "*?worker&inline" {
 
   export default WorkerConstructor;
 }
+
+declare module "*?worker&url" {
+  const workerUrl: string;
+  export default workerUrl;
+}
