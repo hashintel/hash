@@ -317,6 +317,7 @@ describe("RealtimeBrunchBridge", () => {
     });
     harness.emit({
       connectionEpoch: 3,
+      playbackExpected: true,
       responseId: "response-early",
       status: "completed",
       type: "response-terminal",
@@ -328,6 +329,7 @@ describe("RealtimeBrunchBridge", () => {
     });
     harness.emit({
       connectionEpoch: 3,
+      playbackExpected: true,
       responseId: "response-follow-on",
       speechRequestId: "speech-follow-on",
       status: "completed",
@@ -411,6 +413,46 @@ describe("RealtimeBrunchBridge", () => {
     expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
       expect.objectContaining({
         text: "This follows acknowledged cancellation.",
+      }),
+    );
+  });
+
+  test("releases the matching pending request when completed output has no audio", async () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.emit({
+      connectionEpoch: 3,
+      speechRequestId: "speech-silent",
+      type: "canonical-speech-requested",
+    });
+
+    harness.emit({
+      connectionEpoch: 3,
+      playbackExpected: false,
+      responseId: "response-silent",
+      speechRequestId: "speech-silent",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      itemId: "item-after-silent-response",
+      type: "input-speech-started",
+    });
+    harness.emit(
+      completedTranscript(
+        3,
+        "This follows a completed response without audio.",
+        "item-after-silent-response",
+      ),
+    );
+
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "This follows a completed response without audio.",
       }),
     );
   });
@@ -558,6 +600,52 @@ describe("RealtimeBrunchBridge", () => {
       segments: [correlated],
       type: "canonical-response-ready",
     });
+  });
+
+  test("settles a completed submission with no canonical response and accepts the next turn", async () => {
+    const harness = createHarness();
+    startReady(harness, 7);
+    harness.emit(completedTranscript(7, "The silent answer."));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "submitted",
+    });
+    const eventCountBeforeUnrelatedSettlement = harness.events.length;
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      settlements: [{ outcome: "completed", submissionId: "submission-other" }],
+      status: "ready",
+    });
+    expect(harness.events).toHaveLength(eventCountBeforeUnrelatedSettlement);
+
+    const deliveryId = createRealtimeSubmissionId(transcriptKey(7));
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      settlements: [
+        { outcome: "completed", submissionId: "submission-other" },
+        { outcome: "completed", submissionId: "submission-voice-1" },
+      ],
+      status: "ready",
+    });
+    expect(harness.events.slice(-2)).toEqual([
+      { deliveryId, type: "submission-settled" },
+      { deliveryId, segments: [], type: "canonical-response-ready" },
+    ]);
+
+    harness.emit(completedTranscript(7, "The next answer.", "next-item"));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledTimes(2),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenLastCalledWith(
+      expect.objectContaining({ text: "The next answer." }),
+    );
   });
 
   test("speaks a completed canonical segment while chat remains streaming and settles separately", async () => {

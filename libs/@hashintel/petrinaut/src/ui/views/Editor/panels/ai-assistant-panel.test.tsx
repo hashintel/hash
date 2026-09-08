@@ -2516,6 +2516,86 @@ describe("AiAssistantPanel composer submissions", () => {
     );
   });
 
+  test.each([false, true])(
+    "preserves a failed durable Stop after completion (pending tool: %s)",
+    async (withTool) => {
+      let streamController:
+        | ReadableStreamDefaultController<UIMessageChunk>
+        | undefined;
+      let latest: PetrinautAiComposerControlContext | undefined;
+      const failure = new Error("Durable stop failed");
+      const requestStop = vi.fn(async () => {
+        throw failure;
+      });
+      const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            streamController = controller;
+            controller.enqueue({ type: "start-step" });
+            controller.enqueue({ type: "text-start", id: "preamble" });
+            controller.enqueue({
+              type: "text-delta",
+              id: "preamble",
+              delta: "Work in progress",
+            });
+          },
+        }),
+      );
+      renderTestPanel({
+        aiAssistant: {
+          requestStop,
+          transport: { reconnectToStream: async () => null, sendMessages },
+          renderComposerControl: (context) => {
+            latest = context;
+            return null;
+          },
+        },
+        initialMessage: "Start work",
+        petriNetDefinition: nonEmptySDCPN,
+      });
+      await screen.findByText("Work in progress");
+      await act(async () => latest?.stop());
+      expect(requestStop).toHaveBeenCalledOnce();
+      expect(screen.getAllByText(/Durable stop failed/u).length).toBeGreaterThan(0);
+
+      await act(async () => {
+        streamController?.enqueue({ type: "text-end", id: "preamble" });
+        if (withTool) {
+          streamController?.enqueue({
+            type: "tool-input-available",
+            toolCallId: "withheld-mutation",
+            toolName: "updatePlace",
+            input: { placeId: "place-1", update: { name: "MustNotApply" } },
+          });
+        }
+        streamController?.enqueue({ type: "finish-step" });
+        streamController?.enqueue({
+          type: "finish",
+          finishReason: withTool ? "tool-calls" : "stop",
+        });
+        streamController?.close();
+      });
+      await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+
+      expect(latest?.status).toBe("error");
+      expect(latest?.stopped).toBe(false);
+      expect(screen.queryByText("Response stopped")).toBeNull();
+      expect(screen.getAllByText(/Durable stop failed/u).length).toBeGreaterThan(0);
+      expect(testInstances.at(-1)?.definition.get().places[0]?.name).toBe(
+        "PlaceOne",
+      );
+      expect(sendMessages).toHaveBeenCalledOnce();
+      for (const closeButton of screen.getAllByRole("button", {
+        name: "Close notification",
+      })) {
+        fireEvent.click(closeButton);
+      }
+      await waitFor(() =>
+        expect(screen.queryAllByText(/Durable stop failed/u)).toHaveLength(0),
+      );
+    },
+  );
+
   test("reports a textless automatic browser failure to hosts and its matching tool", async () => {
     let latest: PetrinautAiComposerControlContext | undefined;
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
