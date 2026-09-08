@@ -1,5 +1,7 @@
 //! The power-of-two shift exponent.
 
+use core::fmt;
+
 use super::unsafe_impl_try_from_bytes;
 
 /// A power-of-two exponent below the `u64` shift width, valid by construction.
@@ -57,6 +59,19 @@ impl Log2 {
     #[must_use]
     pub(crate) const fn get(self) -> u8 {
         self.0
+    }
+}
+
+impl fmt::Display for Log2 {
+    /// Formats as a power of two, e.g. `2⁶`.
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        const SUPERSCRIPTS: [char; 10] = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
+
+        write!(fmt, "2")?;
+        if self.0 >= 10 {
+            write!(fmt, "{}", SUPERSCRIPTS[usize::from(self.0 / 10)])?;
+        }
+        write!(fmt, "{}", SUPERSCRIPTS[usize::from(self.0 % 10)])
     }
 }
 

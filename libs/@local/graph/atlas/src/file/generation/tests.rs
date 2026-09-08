@@ -195,7 +195,7 @@ fn evidence() -> Evidence {
         quad: QuadMeasurements {
             nodes: 1,
             leaves: 1,
-            depth: Depth::new(0).expect("the root depth is within the key width"),
+            depth: Depth::try_new(0).expect("the root depth is within the key width"),
             type_entries: 3,
         },
         postings: PostingsMeasurements {

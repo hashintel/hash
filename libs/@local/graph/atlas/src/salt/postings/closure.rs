@@ -187,7 +187,10 @@ impl ClosureMap {
             }
 
             // We need to compute the membership instead
-            let mut membership = DenseBitSlice::new_empty(bits.row_domain_size());
+            let mut membership = DenseBitSlice::new_empty(
+                usize::try_from(postings.points())
+                    .expect("resident point domains should fit usize"),
+            );
             for col in row {
                 match postings
                     .membership(col)

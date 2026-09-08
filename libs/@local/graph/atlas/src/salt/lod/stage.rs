@@ -15,7 +15,7 @@
 
 use std::io;
 
-use hashql_core::id::{IdSlice, IdVec};
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 
 use super::{
     cascade, key,
@@ -89,7 +89,7 @@ impl LodConfig {
             return None;
         };
 
-        Depth::new(sum)
+        Depth::try_new(sum)
     }
 }
 
@@ -325,9 +325,9 @@ impl Lod {
         // belong to the zoom-0 root tile.
         let mut max_tile_delta = 0;
         for bucket in 0..=deepest.get() {
-            let tile = Depth::new(bucket.saturating_sub(config.span.get()))
+            let tile = Depth::try_new(bucket.saturating_sub(config.span.get()))
                 .expect("a tile depth never exceeds its bucket's own depth");
-            let bucket = Depth::new(bucket).expect("buckets never exceed the deepest grid");
+            let bucket = Depth::try_new(bucket).expect("buckets never exceed the deepest grid");
             let delta = largest_prefix_group(self.segment_codes(bucket), tile);
             max_tile_delta = max_tile_delta.max(delta);
         }

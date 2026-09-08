@@ -1,3 +1,4 @@
+use hashql_core::id::Id as _;
 use proptest::{prop_assert, prop_assert_eq, prop_assert_ne, property_test};
 
 use super::{Depth, MortonCell, MortonKey};
@@ -41,9 +42,9 @@ fn extremes_interleave_exactly() {
 
 #[test]
 fn depth_admits_the_documented_domain() {
-    assert_eq!(Depth::new(0), Some(Depth::MIN));
-    assert_eq!(Depth::new(32), Some(Depth::MAX));
-    assert_eq!(Depth::new(33), None);
+    assert_eq!(Depth::try_new(0), Some(Depth::MIN));
+    assert_eq!(Depth::try_new(32), Some(Depth::MAX));
+    assert_eq!(Depth::try_new(33), None);
 }
 
 #[test]
@@ -73,7 +74,7 @@ fn full_depth_cell_is_one_key() {
 
 #[test]
 fn cell_addresses_reject_coordinates_outside_the_grid() {
-    let depth = Depth::new(3).expect("3 subdivisions lie below the maximum of 32");
+    let depth = Depth::try_new(3).expect("3 subdivisions lie below the maximum of 32");
 
     assert!(MortonCell::new(depth, 7, 7).is_some());
     assert_eq!(MortonCell::new(depth, 8, 0), None);
@@ -86,7 +87,7 @@ fn prefixes_index_the_depth_grid_in_key_order() {
     // top of each 32-bit axis, and the prefix interleaves them.
     let key = MortonKey::new(2 << 30, 3 << 30);
 
-    let depth = Depth::new(2).expect("2 subdivisions lie below the maximum of 32");
+    let depth = Depth::try_new(2).expect("2 subdivisions lie below the maximum of 32");
     assert_eq!(key.prefix(depth), 0b1110);
     assert_eq!(key.prefix(Depth::MIN), 0);
     assert_eq!(key.prefix(Depth::MAX), key.to_bits());
@@ -117,7 +118,7 @@ fn shared_depth_is_the_deepest_shared_cell(left: u64, right: u64) {
     let shared = left.shared_depth(right);
 
     prop_assert_eq!(left.prefix(shared), right.prefix(shared));
-    if let Some(finer) = Depth::new(shared.get() + 1) {
+    if let Some(finer) = Depth::try_new(shared.get() + 1) {
         prop_assert_ne!(left.prefix(finer), right.prefix(finer));
     } else {
         prop_assert_eq!(left, right);
@@ -129,7 +130,7 @@ fn shared_depth_is_the_deepest_shared_cell(left: u64, right: u64) {
 /// The cell's address form agrees with the key's prefix.
 #[property_test]
 fn keys_lie_in_their_cells(bits: u64, #[strategy = 0_u8..=32] depth: u8) {
-    let depth = Depth::new(depth).expect("the strategy stays within the documented domain");
+    let depth = Depth::try_new(depth).expect("the strategy stays within the documented domain");
     let key = MortonKey::from_bits(bits);
     let cell = key.cell(depth);
 
@@ -142,7 +143,7 @@ fn keys_lie_in_their_cells(bits: u64, #[strategy = 0_u8..=32] depth: u8) {
 /// Children partition the parent range contiguously, in key order.
 #[property_test]
 fn children_partition_the_parent(bits: u64, #[strategy = 0_u8..32] depth: u8) {
-    let depth = Depth::new(depth).expect("the strategy stays within the documented domain");
+    let depth = Depth::try_new(depth).expect("the strategy stays within the documented domain");
     let parent = MortonKey::from_bits(bits).cell(depth);
     let children = parent
         .children()
@@ -162,14 +163,14 @@ fn children_partition_the_parent(bits: u64, #[strategy = 0_u8..32] depth: u8) {
 /// A key's next axis bits select the child that contains it.
 #[property_test]
 fn child_indexes_follow_the_axis_bits(bits: u64, #[strategy = 0_u8..32] depth: u8) {
-    let depth = Depth::new(depth).expect("the strategy stays within the documented domain");
+    let depth = Depth::try_new(depth).expect("the strategy stays within the documented domain");
     let key = MortonKey::from_bits(bits);
     let children = key
         .cell(depth)
         .children()
         .expect("depths below the maximum subdivide");
 
-    let child_depth = Depth::new(depth.get() + 1)
+    let child_depth = Depth::try_new(depth.get() + 1)
         .expect("one more subdivision stays within the documented domain");
     let [x, y] = key.coordinates();
     let axis_bit = |axis: u32| (axis >> (32 - u32::from(child_depth.get()))) & 1;

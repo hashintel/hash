@@ -86,7 +86,7 @@ pub(super) mod reference {
         let mut assigned: Vec<usize> = Vec::new();
         let mut unassigned = by_rank;
         for depth in 0..=Depth::MAX.get() {
-            let depth = Depth::new(depth).expect("depths at or below MAX are valid");
+            let depth = Depth::try_new(depth).expect("depths at or below MAX are valid");
             let represented: HashSet<u64> = assigned
                 .iter()
                 .map(|&local| rows[local].key.prefix(depth))
@@ -262,7 +262,7 @@ fn scope_battery(atlas: &Atlas) -> Vec<(&'static str, VisibilityProof)> {
     let most: Vec<u32> = (0..universe).filter(|_| rng.random_ratio(4, 5)).collect();
 
     // The corpus root schedule hidden whole: the shape that once drove the fill hardest.
-    let root_cut = Depth::new(FIXTURE_LOD.span.get()).expect("the fixture span is a depth");
+    let root_cut = Depth::try_new(FIXTURE_LOD.span.get()).expect("the fixture span is a depth");
     let scheduled: Vec<u32> = (BasePosition::MIN..atlas.morton.fenceposts().segment(root_cut).end)
         .map(row_at)
         .collect();
@@ -271,7 +271,7 @@ fn scope_battery(atlas: &Atlas) -> Vec<(&'static str, VisibilityProof)> {
     let densest = (0..2_u32)
         .flat_map(|x| (0..2_u32).map(move |y| (x, y)))
         .max_by_key(|&(x, y)| {
-            let cell = MortonCell::new(Depth::new(1).expect("1 is a depth"), x, y)
+            let cell = MortonCell::new(Depth::try_new(1).expect("1 is a depth"), x, y)
                 .expect("the z = 1 grid is on the key width");
             Depth::all()
                 .map(|bucket| {
@@ -281,8 +281,12 @@ fn scope_battery(atlas: &Atlas) -> Vec<(&'static str, VisibilityProof)> {
                 .sum::<usize>()
         })
         .expect("the z = 1 grid is nonempty");
-    let densest_cell = MortonCell::new(Depth::new(1).expect("1 is a depth"), densest.0, densest.1)
-        .expect("the densest cell is on the key width");
+    let densest_cell = MortonCell::new(
+        Depth::try_new(1).expect("1 is a depth"),
+        densest.0,
+        densest.1,
+    )
+    .expect("the densest cell is on the key width");
     let subtree: Vec<u32> = Depth::all()
         .flat_map(|bucket| atlas.morton.run(bucket, densest_cell))
         .map(row_at)
@@ -336,7 +340,7 @@ async fn restricted_delivery_agrees_with_the_scope_cascade_reference() {
             for z in 0..=FIXTURE_LOD.max_tile_depth.get() {
                 let cells = 1_u32 << z;
                 for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
-                    let cell = MortonCell::new(Depth::new(z).expect("zooms are depths"), x, y)
+                    let cell = MortonCell::new(Depth::try_new(z).expect("zooms are depths"), x, y)
                         .expect("the sweep stays on each zoom's grid");
 
                     for mode in [Mode::Delta, Mode::Total] {
@@ -586,7 +590,7 @@ async fn scoped_edges_bound_the_view_cascade_delivery() {
                 let cells: Vec<(u8, MortonCell)> = tiles
                     .iter()
                     .map(|&coordinate| {
-                        let depth = Depth::new(coordinate.z).expect("zooms are depths");
+                        let depth = Depth::try_new(coordinate.z).expect("zooms are depths");
                         (
                             coordinate.z,
                             MortonCell::new(depth, coordinate.x, coordinate.y)
@@ -607,7 +611,7 @@ async fn scoped_edges_bound_the_view_cascade_delivery() {
                     .iter()
                     .flat_map(|&(z, cell)| {
                         (0..=(z + FIXTURE_LOD.span.get()))
-                            .filter_map(Depth::new)
+                            .filter_map(Depth::try_new)
                             .flat_map(move |bucket| morton.run(bucket, cell))
                     })
                     .map(|position| row_at(position.as_u32()))
@@ -690,7 +694,7 @@ async fn scoped_locate_flies_to_the_view_cut_zoom() {
                 // rather than by replaying the addressing the implementation used.
                 assert_eq!(source.cell.z, source.zoom, "{at} flies to its own zoom");
                 let cell = MortonCell::new(
-                    Depth::new(source.cell.z).expect("zooms are depths"),
+                    Depth::try_new(source.cell.z).expect("zooms are depths"),
                     source.cell.x,
                     source.cell.y,
                 )
@@ -841,7 +845,7 @@ fn assert_saturated_scope_grid(
         for z in 0..=FIXTURE_LOD.max_tile_depth.get() {
             let cells = 1_u32 << z;
             for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
-                let cell = MortonCell::new(Depth::new(z).expect("zooms are depths"), x, y)
+                let cell = MortonCell::new(Depth::try_new(z).expect("zooms are depths"), x, y)
                     .expect("the sweep stays on each zoom's grid");
 
                 for mode in [Mode::Delta, Mode::Total] {

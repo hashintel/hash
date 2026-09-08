@@ -65,7 +65,8 @@ pub(crate) fn buckets<R: Id>(
     // assigned point therefore marks its cell before any unassigned visitor arrives. The first
     // unassigned visitor of an unmarked cell holds the cell's best still-unassigned rank.
     for depth in 0..=deepest.get() {
-        let depth = Depth::new(depth).expect("every depth at or below `deepest` is a valid depth");
+        let depth =
+            Depth::try_new(depth).expect("every depth at or below `deepest` is a valid depth");
 
         seen.clear();
         for &row in ranking.row_of_rank.iter() {
@@ -202,7 +203,8 @@ pub(crate) fn verify_coverage<R: Id>(
 
     let mut covered = HashSet::new();
     for depth in 0..=deepest.get() {
-        let depth = Depth::new(depth).expect("every depth at or below `deepest` is a valid depth");
+        let depth =
+            Depth::try_new(depth).expect("every depth at or below `deepest` is a valid depth");
 
         covered.clear();
         covered.extend(

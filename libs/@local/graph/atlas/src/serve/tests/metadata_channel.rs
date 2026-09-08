@@ -40,7 +40,7 @@ struct Reading {
 }
 
 fn depth(value: u8) -> Depth {
-    Depth::new(value).expect("test depths lie within the key width")
+    Depth::try_new(value).expect("test depths lie within the key width")
 }
 
 /// Builds the ranking that ranks row `r` at position `r`.

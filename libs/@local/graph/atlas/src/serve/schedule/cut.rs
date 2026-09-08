@@ -82,7 +82,7 @@ impl<'schedule> ScheduleCut<'schedule> {
             .max_tile_depth()
             .checked_add(grid.span_log2())
             .and_then(|depth| depth.checked_add(k.get()))
-            .and_then(Depth::new)
+            .and_then(Depth::try_new)
             .ok_or(width_error)?;
 
         Ok(Self {
@@ -127,7 +127,7 @@ impl ScheduleCut<'_> {
             cut <= self.deepest.get(),
             "the schedule serves zooms 0..=max_tile_depth",
         );
-        Depth::new(cut).expect("binding validated the deepest cut against the key width")
+        Depth::try_new(cut).expect("binding validated the deepest cut against the key width")
     }
 
     /// Feeds one bucket's delivered rows inside `cell` to `deliver`, ascending by `(key, rank)`,
@@ -157,7 +157,7 @@ impl ScheduleCut<'_> {
             }
             Ordering::Equal => {
                 let mut rows = Vec::new();
-                for bucket in (self.deepest.get()..=Depth::MAX.get()).filter_map(Depth::new) {
+                for bucket in (self.deepest.get()..=Depth::MAX.get()).filter_map(Depth::try_new) {
                     let slots = self.schedule.bucket_slots(bucket);
                     let bounds = ScopeSchedule::cell_bounds(slots, |slot| slot.row.key, cell);
                     rows.extend(slots[bounds].iter().map(|slot| slot.row));
@@ -215,7 +215,7 @@ impl ScheduleCut<'_> {
                     ScopeSchedule::cell_bounds(slots, |slot| slot.row.key, cell).len()
                 }
                 Ordering::Equal => (self.deepest.get()..=Depth::MAX.get())
-                    .filter_map(Depth::new)
+                    .filter_map(Depth::try_new)
                     .map(|bucket| {
                         let slots = self.schedule.bucket_slots(bucket);
                         ScopeSchedule::cell_bounds(slots, |slot| slot.row.key, cell).len()
@@ -228,7 +228,7 @@ impl ScheduleCut<'_> {
     /// Returns whether `cell` holds a view row in any bucket of `buckets`.
     fn occupied(&self, buckets: Range<u8>, cell: MortonCell) -> bool {
         buckets
-            .filter_map(Depth::new)
+            .filter_map(Depth::try_new)
             .any(|bucket| self.run_count(bucket, cell) > 0)
     }
 
@@ -358,7 +358,7 @@ impl ScheduleCut<'_> {
         let mut rows = Vec::new();
         let mut runs = Vec::with_capacity(usize::from(last.get() - first.get()) + 1);
 
-        for bucket in (first.get()..=last.get()).filter_map(Depth::new) {
+        for bucket in (first.get()..=last.get()).filter_map(Depth::try_new) {
             let count = self.run(bucket, cell, &mut |row| {
                 rows.push(row);
             });

@@ -25,48 +25,41 @@
     )
 )]
 
+use core::{fmt, iter::Step};
+
+use hashql_core::id::Id as _;
+
+use crate::math::Log2;
+
 #[cfg(test)]
 mod tests;
 
-/// A subdivision depth between the whole domain and a single key.
-///
-/// Depth `d` cells are the squares of a `2^d x 2^d` grid over the axis domain. [`Depth::MIN`] is
-/// the whole domain; [`Depth::MAX`] fixes all 32 bits of both axes, so a cell at it holds exactly
-/// one key.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Depth(u8);
+hashql_core::id::newtype! {
+    /// A subdivision depth between the whole domain and a single key.
+    ///
+    /// Depth `d` cells are the squares of a `2^d x 2^d` grid over the axis domain. [`Depth::MIN`] is
+    /// the whole domain; [`Depth::MAX`] fixes all 32 bits of both axes, so a cell at it holds exactly
+    /// one key.
+    #[id(unaligned, const, derive(Step))]
+    pub struct Depth(u8 is 0..=32)
+}
 
 impl Depth {
-    /// Both axes fully specified: one key per cell.
-    pub const MAX: Self = Self(32);
-    /// One cell covering the whole domain.
-    pub const MIN: Self = Self(0);
-
-    /// Wraps a subdivision count.
-    ///
-    /// Returns [`None`] above [`Depth::MAX`].
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// assert!(Depth::new(16).is_some());
-    /// assert_eq!(Depth::new(33), None);
-    /// ```
     #[inline]
-    #[must_use]
-    pub const fn new(depth: u8) -> Option<Self> {
-        if depth > Self::MAX.0 {
+    pub const fn try_new(depth: u8) -> Option<Self> {
+        if depth > Self::MAX.get() {
             return None;
         }
 
-        Some(Self(depth))
+        Some(Self::new(depth))
     }
 
-    /// Returns the subdivision count.
-    #[inline]
-    #[must_use]
-    pub const fn get(self) -> u8 {
-        self.0
+    pub const fn ceiling(self) -> Zoom {
+        Zoom(Self::MAX.get() - self.get())
+    }
+
+    pub const fn zoom(self, span: Log2) -> Zoom {
+        Zoom(self.get().saturating_sub(span.get()))
     }
 
     /// Adds `steps` subdivisions, saturating at [`Depth::MAX`].
@@ -84,18 +77,19 @@ impl Depth {
     #[inline]
     #[must_use]
     pub const fn saturating_add(self, steps: u8) -> Self {
-        let sum = self.0.saturating_add(steps);
-        if sum > Self::MAX.0 {
-            Self::MAX
-        } else {
-            Self(sum)
-        }
+        let sum = self.get().saturating_add(steps);
+        Self::try_new(sum).unwrap_or(Self::MAX)
+    }
+
+    pub const fn checked_add(self, steps: u8) -> Option<Self> {
+        let sum = self.get().checked_add(steps)?;
+        Self::try_new(sum)
     }
 
     /// Iterates every depth, [`Depth::MIN`] through [`Depth::MAX`].
     #[inline]
     pub fn all() -> impl DoubleEndedIterator<Item = Self> {
-        (Self::MIN.0..=Self::MAX.0).map(Self)
+        Self::MIN..=Self::MAX
     }
 }
 
@@ -104,10 +98,29 @@ impl Depth {
 /// Zoom `z` addresses the tiles of the `2^z x 2^z` grid, the cells of [`Depth`] `z`. A distinct
 /// type from [`Depth`] keeps a tile's level and a key's subdivision depth out of each other's
 /// arithmetic.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    zerocopy::IntoBytes,
+    zerocopy::TryFromBytes, // TODO: needs a manual impl?
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+)]
+#[repr(transparent)]
 pub(crate) struct Zoom(u8);
 
 impl Zoom {
+    /// The maximum zoom level, [`Depth::MAX`].
+    pub const MAX: Self = Self(Depth::MAX.get());
+    /// The minimum zoom level, [`Depth::MIN`].
+    pub const MIN: Self = Self(0);
+
     /// Validates a tile zoom level.
     ///
     /// Returns [`None`] above [`Depth::MAX`], the deepest grid a key addresses.
@@ -119,9 +132,75 @@ impl Zoom {
         Some(Self(zoom))
     }
 
+    pub(crate) const fn depth(self, span: Log2) -> Option<Depth> {
+        Depth::new(self.get()).checked_add(span.get())
+    }
+
+    pub(crate) const fn saturating_depth(self, span: Log2) -> Depth {
+        Depth::new(self.get()).saturating_add(span.get())
+    }
+
     /// Returns the level.
     pub(crate) const fn get(self) -> u8 {
         self.0
+    }
+}
+
+impl fmt::Display for Zoom {
+    /// Formats as the plain level.
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl Step for Zoom {
+    fn steps_between(start: &Self, end: &Self) -> (usize, Option<usize>) {
+        u8::steps_between(&start.0, &end.0)
+    }
+
+    fn forward_checked(start: Self, count: usize) -> Option<Self> {
+        u8::forward_checked(start.0, count).and_then(Self::new)
+    }
+
+    fn forward_overflowing(start: Self, count: usize) -> (Self, bool) {
+        match Self::forward_checked(start, count) {
+            Some(zoom) => (zoom, false),
+            None => {
+                // Stepping past `MAX` wraps into the domain as if the levels
+                // formed a cycle of `MAX + 1` values, mirroring the primitive
+                // integers' overflow semantics on this bounded range.
+                let span = usize::from(Self::MAX.0) + 1;
+                let wrapped = (usize::from(start.0) + count % span) % span;
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "the wrapped value is below `span`, which fits u8"
+                )]
+                (Self(wrapped as u8), true)
+            }
+        }
+    }
+
+    fn backward_checked(start: Self, count: usize) -> Option<Self> {
+        // Any value below `start` is a valid zoom, so underflow of the inner
+        // `u8` is the only failure mode.
+        u8::backward_checked(start.0, count).map(Self)
+    }
+
+    fn backward_overflowing(start: Self, count: usize) -> (Self, bool) {
+        match Self::backward_checked(start, count) {
+            Some(zoom) => (zoom, false),
+            None => {
+                // Stepping below `MIN` wraps around the same `MAX + 1` cycle
+                // as the forward direction.
+                let span = usize::from(Self::MAX.0) + 1;
+                let wrapped = (usize::from(start.0) + span - count % span) % span;
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "the wrapped value is below `span`, which fits u8"
+                )]
+                (Self(wrapped as u8), true)
+            }
+        }
     }
 }
 
@@ -238,7 +317,7 @@ impl MortonKey {
         let agreed = ((self.0 ^ other.0).leading_zeros() / 2) as u8;
 
         // At most 64 agreed bits halve to 32, which is `Depth::MAX` itself.
-        Depth::new(agreed).unwrap_or_else(const || unreachable!())
+        Depth::new(agreed)
     }
 
     /// Returns the cell containing this key at `depth`.
@@ -331,7 +410,7 @@ impl MortonCell {
     /// children's ranges partition the parent's in that order. Returns [`None`] at [`Depth::MAX`].
     #[must_use]
     pub const fn children(self) -> Option<[Self; 4]> {
-        let depth = Depth::new(self.depth.get() + 1)?;
+        let depth = Depth::try_new(self.depth.get() + 1)?;
 
         let step = 1_u64 << (64 - 2 * (depth.get() as u32));
         Some([

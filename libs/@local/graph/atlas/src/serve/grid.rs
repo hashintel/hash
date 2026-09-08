@@ -75,7 +75,7 @@ impl Grid {
             z <= self.max_tile_depth,
             "the grid serves zooms 0..=max_tile_depth",
         );
-        Depth::new(z + self.span).expect("construction validated the schedule's deepest cut")
+        Depth::try_new(z + self.span).expect("construction validated the schedule's deepest cut")
     }
 
     /// Returns the deepest served bucket: the deepest zoom's cut, the catch-all.
@@ -93,7 +93,7 @@ impl Grid {
     /// As [`cut`](Self::cut).
     pub(super) fn cut_buckets(self, z: u8) -> impl Iterator<Item = Depth> {
         let cut = self.cut(z);
-        (0..=cut.get()).map(|bucket| Depth::new(bucket).expect("bounded by the validated cut"))
+        (0..=cut.get()).map(|bucket| Depth::try_new(bucket).expect("bounded by the validated cut"))
     }
 
     /// Returns the first zoom whose cumulative schedule delivers bucket `bucket`.
@@ -109,7 +109,7 @@ impl Grid {
 ///
 /// [`None`] outside the zoom's `2^z` grid or beyond the key width.
 pub(super) const fn cell_of(coordinate: TileCoordinate) -> Option<MortonCell> {
-    let Some(depth) = Depth::new(coordinate.z) else {
+    let Some(depth) = Depth::try_new(coordinate.z) else {
         return None;
     };
 

@@ -108,7 +108,7 @@ fn hand_cascade_pins_the_first_occupant_law() {
     assert_eq!(cut.min_resolution(), 2, "the catch-all is occupied");
     assert_eq!(
         cut.bucket_of(BasePosition::new(1)),
-        Some(Depth::new(2).expect("2 is a depth"))
+        Some(Depth::try_new(2).expect("2 is a depth"))
     );
     assert_eq!(
         cut.bucket_of(BasePosition::new(4)),
@@ -374,7 +374,7 @@ fn replay_shared_depth(left: MortonKey, right: MortonKey) -> u8 {
     (0..=32_u8)
         .rev()
         .find(|&at| {
-            let at = Depth::new(at).expect("the oracle sweeps the documented domain");
+            let at = Depth::try_new(at).expect("the oracle sweeps the documented domain");
             left.prefix(at) == right.prefix(at)
         })
         .expect("depth zero prefixes are always equal")
@@ -699,7 +699,8 @@ fn total_delivery_bucket_major() {
          }| {
             for zoom in 0..=max_tile {
                 let cut_depth = zoom + span + k;
-                let zoom_grid = Depth::new(zoom).expect("served zooms lie within the key width");
+                let zoom_grid =
+                    Depth::try_new(zoom).expect("served zooms lie within the key width");
                 for cell in replay_cells(rows, zoom_grid) {
                     let total = cut.total(zoom, cell);
                     let (positions, runs) =
@@ -730,7 +731,8 @@ fn delta_delivery_first_bucket() {
          }| {
             for zoom in 0..=max_tile {
                 let cut_depth = zoom + span + k;
-                let zoom_grid = Depth::new(zoom).expect("served zooms lie within the key width");
+                let zoom_grid =
+                    Depth::try_new(zoom).expect("served zooms lie within the key width");
                 for cell in replay_cells(rows, zoom_grid) {
                     let delta = cut.delta(zoom, cell);
                     let first = if zoom == 0 { 0 } else { cut_depth };
@@ -763,7 +765,8 @@ fn children_mask_vs_quadratic_law() {
          }| {
             for zoom in 0..=max_tile {
                 let cut_depth = zoom + span + k;
-                let zoom_grid = Depth::new(zoom).expect("served zooms lie within the key width");
+                let zoom_grid =
+                    Depth::try_new(zoom).expect("served zooms lie within the key width");
                 for cell in replay_cells(rows, zoom_grid) {
                     let mask = cut.children(zoom, cell);
                     let expected = if cut_depth >= deepest {

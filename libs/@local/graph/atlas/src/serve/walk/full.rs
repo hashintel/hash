@@ -132,7 +132,7 @@ impl Walk<'_> {
         let mut delivered = 0_u32;
 
         for (index, run) in delivery.runs.iter_mut().enumerate() {
-            let bucket = Depth::new(delivery.first_bucket + index as u8)
+            let bucket = Depth::try_new(delivery.first_bucket + index as u8)
                 .expect("the delivered buckets lie within the grid's schedule");
             let fitted = *run;
             let segment = segments.take(fitted);

@@ -1,5 +1,7 @@
 use core::{error::Error, fmt};
 
+use hashql_core::id::Id as _;
+
 use crate::{
     file::{
         array::OpenArrayError,

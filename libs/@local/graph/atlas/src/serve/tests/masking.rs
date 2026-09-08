@@ -656,7 +656,7 @@ fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hid
     for z in 0..=FIXTURE_LOD.max_tile_depth.get() {
         let cells = 1_u32 << z;
         for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
-            let cell = MortonCell::new(Depth::new(z).expect("zooms are depths"), x, y)
+            let cell = MortonCell::new(Depth::try_new(z).expect("zooms are depths"), x, y)
                 .expect("the sweep stays on each zoom's grid");
 
             for mode in [Mode::Delta, Mode::Total] {

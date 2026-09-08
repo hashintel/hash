@@ -203,7 +203,8 @@ fn widened(atlas: &Atlas, hidden: &[u32], slots: &[NodeRowId]) -> VisibilityProo
 /// The candidates sweep distinct quadrants of the wire square, so one of them lands apart from
 /// the fixture's handful of points and the tile witnesses the arrival alone.
 pub(super) fn vacant_cell(atlas: &Atlas) -> (Vec2, TileCoordinate) {
-    let depth = Depth::new(FIXTURE_LOD.max_tile_depth.get()).expect("the fixture depth is a depth");
+    let depth =
+        Depth::try_new(FIXTURE_LOD.max_tile_depth.get()).expect("the fixture depth is a depth");
 
     'candidates: for candidate in [
         Vec2::new(0.25, -0.5),
@@ -237,7 +238,7 @@ fn expected_bucket(atlas: &Atlas, proof: &VisibilityProof, wire: Vec2, deepest: 
         (0..=Depth::MAX.get())
             .rev()
             .find(|&at| {
-                let at = Depth::new(at).expect("the sweep stays on the documented domain");
+                let at = Depth::try_new(at).expect("the sweep stays on the documented domain");
                 left.prefix(at) == right.prefix(at)
             })
             .expect("depth zero prefixes are always equal")
@@ -804,7 +805,8 @@ async fn ingress_withdrawal_subtracts_spliced_arrival_from_corpus_tiles() {
     let fitted_seed =
         u8::try_from(atlas.row_ids()[BasePosition::MIN].as_u32()).expect("fixture rows fit u8");
     let withdrawing_fitted = withdrawing(&atlas, &[fitted_seed]);
-    let depth = Depth::new(FIXTURE_LOD.max_tile_depth.get()).expect("the fixture depth is a depth");
+    let depth =
+        Depth::try_new(FIXTURE_LOD.max_tile_depth.get()).expect("the fixture depth is a depth");
     let shared_cell = coordinate_of(atlas.morton.code(BasePosition::MIN).cell(depth));
     let shared_tile = request(shared_cell.z, shared_cell.x, shared_cell.y, Mode::Total);
 
@@ -869,7 +871,7 @@ fn arrival_zoom_and_cell(
     let zoom = bucket.saturating_sub(FIXTURE_LOD.span.get());
     let [x, y] = WIRE_FRAME.quantize(wire);
     let cell = coordinate_of(
-        MortonKey::new(x, y).cell(Depth::new(zoom).expect("a served zoom is a depth")),
+        MortonKey::new(x, y).cell(Depth::try_new(zoom).expect("a served zoom is a depth")),
     );
     (zoom, cell)
 }

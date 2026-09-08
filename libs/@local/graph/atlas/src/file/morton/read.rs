@@ -166,7 +166,7 @@ impl MortonFile {
             clippy::cast_possible_truncation,
             reason = "fencepost indices are bounded by the 34 posts"
         )]
-        Depth::new(segment as u8 - 1).expect("every segment index names a valid depth")
+        Depth::try_new(segment as u8 - 1).expect("every segment index names a valid depth")
     }
 
     /// Views the index keys: one key per stride of codes.

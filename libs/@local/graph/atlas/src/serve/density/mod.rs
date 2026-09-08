@@ -60,6 +60,8 @@ mod tests;
 
 use core::{error::Error, fmt, num::NonZero};
 
+use hashql_core::id::Id as _;
+
 use crate::{
     math::Log2,
     morton::{Depth, MortonKey},
@@ -311,7 +313,7 @@ impl DensityPolicy {
         for offset in 0..=limit {
             // The ceiling bounded the search by the key width, so the fallback is unreachable; it
             // keeps the resolution total rather than fallible.
-            let cut = Depth::new(self.span.get() + offset).unwrap_or(Depth::MAX);
+            let cut = Depth::try_new(self.span.get() + offset).unwrap_or(Depth::MAX);
             // Strict improvement over an ascending walk is the ordered pair's tie-break: an equal
             // distance keeps the coarser offset already held.
             let candidate = self.band.distance(occupancy.occupied_cells(cut));

@@ -1,6 +1,7 @@
 use core::num::NonZero;
 use std::collections::HashSet;
 
+use hashql_core::id::Id as _;
 use proptest::{prop_assert, prop_assert_eq, property_test};
 
 use super::{CutOffset, DensityBand, DensityPolicy, DensityPolicyError, ViewOccupancy};
@@ -38,7 +39,7 @@ fn span(value: u8) -> Log2 {
 }
 
 fn depth(value: u8) -> Depth {
-    Depth::new(value).expect("the fixture depth lies within the key width")
+    Depth::try_new(value).expect("the fixture depth lies within the key width")
 }
 
 fn policy(band: DensityBand) -> DensityPolicy {
@@ -61,7 +62,7 @@ fn deep_view() -> ViewOccupancy {
 /// The corner key of one cell of the depth's grid.
 fn key(depth: u8, x: u32, y: u32) -> MortonKey {
     MortonCell::new(
-        Depth::new(depth).expect("the fixture depth lies within the key width"),
+        Depth::try_new(depth).expect("the fixture depth lies within the key width"),
         x,
         y,
     )

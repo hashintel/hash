@@ -705,7 +705,7 @@ impl WalkBench {
             let side = u64::from(1_u32 << depth);
             let bound = NonZero::new(side).expect("cell grids have nonzero sides");
             let cell = MortonCell::new(
-                Depth::new(depth).expect("depths 4 through 7 lie within the key width"),
+                Depth::new(depth),
                 u32::try_from(uniform_below(&mut rng, bound)).expect("draws stay below the side"),
                 u32::try_from(uniform_below(&mut rng, bound)).expect("draws stay below the side"),
             )
@@ -844,7 +844,7 @@ impl WalkBench {
             for quadrant in 0..4 {
                 let (cx, cy) = (2 * x + (quadrant & 1), 2 * y + (quadrant >> 1));
                 let cell = MortonCell::new(
-                    Depth::new(z).expect("tile zooms lie within the key width"),
+                    Depth::try_new(z).expect("tile zooms lie within the key width"),
                     cx,
                     cy,
                 )
@@ -1004,7 +1004,8 @@ impl WalkBench {
         let deepest = self.max_zoom + self.span;
         let mut levels = Vec::with_capacity(usize::from(self.max_zoom) + 1);
         for depth in self.span..=deepest {
-            let depth = Depth::new(depth).expect("the schedule's cuts lie within the key width");
+            let depth =
+                Depth::try_new(depth).expect("the schedule's cuts lie within the key width");
             let mut cells: Vec<u64> = Vec::new();
             for &bits in &codes {
                 let cell = MortonKey::from_bits(bits).prefix(depth);
@@ -1168,7 +1169,7 @@ impl WalkBench {
         row_of_rank.sort_unstable_by_key(|&entry| ranks[entry]);
         let ranking = Ranking::from_row_of_rank(row_of_rank);
 
-        let deepest = Depth::new(self.max_zoom + self.span)
+        let deepest = Depth::try_new(self.max_zoom + self.span)
             .expect("the schedule's cuts lie within the key width");
         let buckets = cascade::buckets(keyed, &ranking, deepest);
         let order = BaseOrder::new(keyed, &buckets, &ranking);
@@ -1645,7 +1646,7 @@ impl WalkBench {
         };
         let ranking = Ranking::from_row_of_rank(row_of_rank);
 
-        let deepest = Depth::new(self.max_zoom + self.span)
+        let deepest = Depth::try_new(self.max_zoom + self.span)
             .expect("the schedule's cuts lie within the key width");
         let buckets = cascade::buckets(keyed, &ranking, deepest);
 
@@ -1819,7 +1820,8 @@ impl WalkBench {
             },
         );
 
-        let cut = Depth::new(z + self.span).expect("the schedule's cuts lie within the key width");
+        let cut =
+            Depth::try_new(z + self.span).expect("the schedule's cuts lie within the key width");
         let inherited_cells = self.distinct_cells(&inside, cut);
         inside.extend_from_slice(&delivered);
         let cumulative_cells = self.distinct_cells(&inside, cut);
@@ -2091,8 +2093,8 @@ impl WalkBench {
             // Whole levels first: the coarsest grid stays the floor, so a level whose cut alone
             // overruns the budget still delivers the cut.
             while depth < Depth::MAX && cells.len() < range.len() {
-                let finer =
-                    Depth::new(depth.get() + 1).expect("a depth below the maximum has a successor");
+                let finer = Depth::try_new(depth.get() + 1)
+                    .expect("a depth below the maximum has a successor");
                 column.split(range.clone(), finer, &mut scratch.finer);
                 let wanted = needing(column, &scratch.finer, represented, finer);
                 scanned += scratch.finer.len();
@@ -2106,8 +2108,8 @@ impl WalkBench {
             }
 
             if refinement.order != RefineOrder::Whole && depth < Depth::MAX {
-                let finer =
-                    Depth::new(depth.get() + 1).expect("a depth below the maximum has a successor");
+                let finer = Depth::try_new(depth.get() + 1)
+                    .expect("a depth below the maximum has a successor");
                 let deepening = rank_deepen(
                     (refinement.order, budget.saturating_sub(target)),
                     column,
@@ -2122,7 +2124,7 @@ impl WalkBench {
             }
         }
 
-        let finer = Depth::new(depth.get().saturating_add(1).min(Depth::MAX.get()))
+        let finer = Depth::try_new(depth.get().saturating_add(1).min(Depth::MAX.get()))
             .expect("the clamped successor lies within the key width");
         let mut delivered = 0_usize;
         for (index, leaf) in cells.iter().enumerate() {
@@ -2280,7 +2282,8 @@ impl WalkBench {
             },
         );
 
-        let cut = Depth::new(z + self.span).expect("the schedule's cuts lie within the key width");
+        let cut =
+            Depth::try_new(z + self.span).expect("the schedule's cuts lie within the key width");
         let inherited_cells = self.distinct_cells(&inside, cut);
         inside.extend_from_slice(&delivered);
         let cumulative_cells = self.distinct_cells(&inside, cut);
@@ -2360,7 +2363,7 @@ impl WalkBench {
             "the schedule serves zooms up to {}",
             self.max_zoom,
         );
-        Depth::new(z)
+        Depth::try_new(z)
             .expect("the asserted zoom lies within the key width")
             .saturating_add(self.span)
             .saturating_add(additional_depth)
@@ -2687,7 +2690,7 @@ impl WalkBench {
         scratch.split.clear();
         scratch.split.resize(cells, false);
 
-        let finer = Depth::new(depth.get().saturating_add(1).min(Depth::MAX.get()))
+        let finer = Depth::try_new(depth.get().saturating_add(1).min(Depth::MAX.get()))
             .expect("the clamped successor lies within the key width");
         let mut deepened = 0_usize;
         if let RankPlan::Refined(refinement) = plan
@@ -2747,7 +2750,7 @@ impl WalkBench {
         let mut reads = 0_usize;
         while depth < Depth::MAX && covered < population {
             let finer =
-                Depth::new(depth.get() + 1).expect("a depth below the maximum has a successor");
+                Depth::try_new(depth.get() + 1).expect("a depth below the maximum has a successor");
             let reached = covered + extent.ranges[usize::from(finer.get())].len();
             reads += extent.held.len();
             if reached - distinct_prefixes(extent.held, finer) > budget {
@@ -2896,7 +2899,7 @@ impl WalkBench {
 
     /// Returns the level's cut depth.
     const fn cut_of(&self, z: u8) -> Depth {
-        Depth::new(z + self.span).expect("the schedule's cuts lie within the key width")
+        Depth::try_new(z + self.span).expect("the schedule's cuts lie within the key width")
     }
 
     /// Collects the cells the chain's deliveries inside the level's cell occupy at `cut`.
@@ -3171,7 +3174,8 @@ impl VisibleCellPyramid {
         let shallowest = self.shallowest;
         (0..self.levels.len()).map(move |offset| {
             let offset = u8::try_from(offset).expect("the levels span at most the key width");
-            Depth::new(shallowest + offset).expect("every level's depth lies within the key width")
+            Depth::try_new(shallowest + offset)
+                .expect("every level's depth lies within the key width")
         })
     }
 
@@ -3511,7 +3515,7 @@ impl VisibleCascade {
         let buckets: Vec<Depth> = self
             .points
             .iter()
-            .map(|&(_, bucket)| Depth::new(bucket).expect("buckets lie within the key width"))
+            .map(|&(_, bucket)| Depth::try_new(bucket).expect("buckets lie within the key width"))
             .collect();
 
         cascade::verify_coverage(
@@ -4071,7 +4075,7 @@ fn target_of(
 /// This panics when the zoom lies beyond the key width or the coordinate off the zoom's grid.
 const fn cell_of(z: u8, x: u32, y: u32) -> MortonCell {
     MortonCell::new(
-        Depth::new(z).expect("tile zooms lie within the key width"),
+        Depth::try_new(z).expect("tile zooms lie within the key width"),
         x,
         y,
     )
@@ -4100,6 +4104,7 @@ mod tests {
     use core::ops::RangeInclusive;
     use std::collections::HashSet;
 
+    use hashql_core::id::Id as _;
     use proptest::{
         prop_assert, prop_assert_eq, prop_oneof, property_test,
         sample::Index,
@@ -4246,7 +4251,7 @@ mod tests {
     fn buckets_by_position(generation: &ServedGeneration, positions: usize) -> Vec<Depth> {
         let mut buckets = vec![Depth::MAX; positions];
         for (bucket, segment) in generation.segments.iter().enumerate() {
-            let depth = Depth::new(
+            let depth = Depth::try_new(
                 u8::try_from(bucket).expect("the segment table lies in the depth domain"),
             )
             .expect("every segment names a valid depth");
@@ -4268,7 +4273,12 @@ mod tests {
                 ..
             }) => bench.scheduled(z, x, y).max(
                 bench
-                    .occupied_cells(z, x, y, Depth::new(z + bench.span()).expect("a valid cut"))
+                    .occupied_cells(
+                        z,
+                        x,
+                        y,
+                        Depth::try_new(z + bench.span()).expect("a valid cut"),
+                    )
                     .len(),
             ),
             FillRule::Refined(Refinement {
@@ -4488,8 +4498,8 @@ mod tests {
                 let (codes, _, _) = bench.columns();
 
                 for (z, x, y) in tiles(&bench) {
-                    let cut = Depth::new(z + bench.span()).expect("a valid cut");
-                    for depth in [cut, Depth::new(cut.get() + 2).expect("a valid grid")] {
+                    let cut = Depth::try_new(z + bench.span()).expect("a valid cut");
+                    for depth in [cut, Depth::try_new(cut.get() + 2).expect("a valid grid")] {
                         let served = bench.served_representatives(z, x, y, depth, &generation);
                         let cells: HashSet<u64> = served
                             .iter()
@@ -4955,7 +4965,7 @@ mod tests {
             let generation = bench.indexed_generation(GenerationLayout::Inline);
 
             for z in 0..=3_u8 {
-                let window_depth = Depth::new(z + 2).expect("the audit windows fit the key");
+                let window_depth = Depth::try_new(z + 2).expect("the audit windows fit the key");
                 let windows = 1_usize << (2 * u32::from(window_depth.get()));
                 let counts = |positions: Vec<u32>| {
                     let mut counts = vec![0_usize; windows];
@@ -5067,8 +5077,8 @@ mod tests {
         let (z, x, y) = tile(&bench, pick);
         let audit = bench.served_audit(rule, z, x, y, &generation);
         let delivered = bench.served_cumulative_delivery(rule, z, x, y, &generation);
-        let cut = Depth::new(z + bench.span()).expect("the cut lies in the key width");
-        let grid = Depth::new(cut.get() + audit.refined)
+        let cut = Depth::try_new(z + bench.span()).expect("the cut lies in the key width");
+        let grid = Depth::try_new(cut.get() + audit.refined)
             .expect("the delivered grid lies within the key width");
 
         for depth in [cut, grid] {
@@ -5196,7 +5206,8 @@ mod tests {
                 assert_eq!(column.len(), bench.visible_rows());
 
                 for (z, x, y) in bench.descent() {
-                    let cut = Depth::new(z + bench.span()).expect("the cut lies in the key width");
+                    let cut =
+                        Depth::try_new(z + bench.span()).expect("the cut lies in the key width");
                     assert_eq!(
                         pyramid.count(cell_of(z, x, y), cut),
                         cascade.covered(z, x, y),
@@ -5339,8 +5350,8 @@ mod tests {
         let (z, x, y) = tile(&bench, pick);
         let audit = bench.audit(rule, z, x, y, view);
         let delivered = bench.cumulative_delivery(rule, z, x, y, view);
-        let cut = Depth::new(z + bench.span()).expect("the cut lies within the key width");
-        let grid = Depth::new(cut.get() + audit.refined)
+        let cut = Depth::try_new(z + bench.span()).expect("the cut lies within the key width");
+        let grid = Depth::try_new(cut.get() + audit.refined)
             .expect("the delivered grid lies within the key width");
 
         for depth in [cut, grid] {
@@ -5392,7 +5403,7 @@ mod tests {
         let mut overruns = 0_usize;
         for (z, x, y) in tiles(&bench) {
             let audit = bench.audit(rule, z, x, y, view);
-            let cut = Depth::new(z + bench.span()).expect("the cut lies within the key width");
+            let cut = Depth::try_new(z + bench.span()).expect("the cut lies within the key width");
             let shown: HashSet<u64> = bench
                 .cumulative_delivery(rule, z, x, y, view)
                 .iter()

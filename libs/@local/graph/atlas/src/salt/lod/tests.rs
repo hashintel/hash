@@ -69,7 +69,7 @@ fn ranking_of(row_of_rank: &[u32]) -> Ranking<NodeRowId> {
 }
 
 fn depth(value: u8) -> Depth {
-    Depth::new(value).expect("test depths lie within the documented domain")
+    Depth::try_new(value).expect("test depths lie within the documented domain")
 }
 
 fn log2(value: u8) -> Log2 {

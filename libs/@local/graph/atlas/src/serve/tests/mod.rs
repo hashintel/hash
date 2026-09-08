@@ -880,7 +880,7 @@ pub(crate) fn extremes_vacating_a_root_cell(
     let (corpus, attaining) = extremes(points, row_ids);
 
     // The root's cut, which is the depth whose cells the root tile delivers one row apiece from.
-    let cut = Depth::new(FIXTURE_LOD.span.get()).expect("the fixture span is a valid depth");
+    let cut = Depth::try_new(FIXTURE_LOD.span.get()).expect("the fixture span is a valid depth");
     let cell_of = |position: usize| {
         atlas
             .morton
@@ -1114,7 +1114,7 @@ async fn serves_empty_and_deepest_cells() {
             let cells = 1_u32 << z;
             (0..cells).flat_map(move |x| {
                 (0..cells).map(move |y| {
-                    MortonCell::new(Depth::new(z).expect("fixture depths are valid"), x, y)
+                    MortonCell::new(Depth::try_new(z).expect("fixture depths are valid"), x, y)
                         .expect("the coordinates lie on the grid")
                 })
             })
@@ -1159,7 +1159,7 @@ async fn serves_empty_and_deepest_cells() {
     // At the deepest zoom a total tile delivers its cell's whole
     // population: the cut reaches the catch-all bucket.
     let deep_cell = MortonKey::from_bits(morton.codes()[BasePosition::from_u32(0)].get()).cell(
-        Depth::new(FIXTURE_LOD.max_tile_depth.get()).expect("the deepest tile depth is valid"),
+        Depth::try_new(FIXTURE_LOD.max_tile_depth.get()).expect("the deepest tile depth is valid"),
     );
     let bytes = atlas
         .tile(
@@ -1583,7 +1583,7 @@ async fn edges_exclude_partially_delivered_pairs() {
         .collect();
 
     let depth =
-        Depth::new(FIXTURE_LOD.max_tile_depth.get()).expect("the deepest tile depth is valid");
+        Depth::try_new(FIXTURE_LOD.max_tile_depth.get()).expect("the deepest tile depth is valid");
     let cell_of_row = |row: u64| {
         let position = positions[usize::try_from(row).expect("fixture rows fit usize")];
         MortonKey::from_bits(codes[BasePosition::from_u32(position)].get()).cell(depth)

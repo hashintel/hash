@@ -109,7 +109,7 @@ fn read(points: &[Vec2], visible: usize) -> (Bounds2, Reading) {
 }
 
 fn depth(value: u8) -> Depth {
-    Depth::new(value).expect("fixture depths lie within the key width")
+    Depth::try_new(value).expect("fixture depths lie within the key width")
 }
 
 /// The visible rows every world here shares, in world coordinates.

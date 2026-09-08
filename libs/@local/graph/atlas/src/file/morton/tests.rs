@@ -24,7 +24,7 @@ use crate::{
 };
 
 fn depth(value: u8) -> Depth {
-    Depth::new(value).expect("test depths lie within the documented domain")
+    Depth::try_new(value).expect("test depths lie within the documented domain")
 }
 
 /// Fenceposts holding `lengths.len()` leading segments and empty ones behind them.

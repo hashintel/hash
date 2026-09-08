@@ -389,7 +389,7 @@ mod tests {
         let mut keys: Vec<MortonKey> = (0..4)
             .map(|x| {
                 MortonCell::new(
-                    Depth::new(3).expect("the fixture depth lies within the key width"),
+                    Depth::try_new(3).expect("the fixture depth lies within the key width"),
                     x,
                     0,
                 )
