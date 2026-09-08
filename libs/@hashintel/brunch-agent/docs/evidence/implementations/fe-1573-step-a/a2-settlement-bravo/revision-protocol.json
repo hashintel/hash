@@ -3,6 +3,15 @@
   "status": "partial",
   "integrationBase": "c4f5a54b355f25b2588a1a23659fdc996d14986a",
   "branch": "ln/fe-1573-a2",
+  "coordinationFollowup": {
+    "policyCommitConsumed": "c265134393c6a8ecf131342482cd77ae0ceaa3a6",
+    "compactionCommitToPreserveAtIntegration": "f746bcd5ed6d60dfc24d5f1ae3147071b3de12b2",
+    "inventoryStatus": "pass: both A2 hermetic test entrypoints registered; exact set-equality assertion unchanged",
+    "architectureTests": "27 passed",
+    "aggregateTests": "101 core passed; 154 app passed and the original mixed-batch safety oracle failed",
+    "artifacts": ["inventory-followup.log", "verification-followup.log"],
+    "productionChanges": false
+  },
   "paidProviderCalls": 0,
   "paidUsd": 0,
   "runtime": "@flue/runtime@2.0.3",

@@ -2,13 +2,19 @@
 
 **Partial. Stop at the demonstrated mixed-batch feasibility gate.** The built production ChatAgent settles a server-side workpiece revision and preserves its call identity in public history. The installed runtime does **not** make a mixed non-terminating/server and terminating/browser batch safe: it admits the browser mutation and continues the model before any client result. Do not integrate this as a safe construction protocol or mark A2 complete.
 
+## Policy follow-up — mechanical inventory failure cleared
+
+Consumed the exact policy clarification in integration authority-only commit `c265134393c6a8ecf131342482cd77ae0ceaa3a6` without cherry-picking alpha or changing this branch's inherited `MISSION.md`. File lists are coordination hints, not per-file approval gates; shared production ownership and all safety/acceptance/budget constraints remain intact. Added the two justified hermetic-test entries in repository-root `apps/brunch-agent/test/architecture/boundaries.integration.ts`, preserving exact inventory set equality and all test assertions. This is the only additional code/test path beyond the six-file implementation below. The rationale is to register the actual authorized A2 test entrypoints, not loosen substrate-import rules.
+
+Current verification: `inventory-followup.log` records **27/27 architecture tests passing**. `verification-followup.log` records the root build/typecheck/lint/unit command below: **101 core tests pass; 154 app tests pass and 1 fails**. Only the original mixed-batch safety oracle remains red. Builds, typechecks and lint pass; 14 pre-existing app lint warnings remain. There were no production code, prompt, tool, termination, marker or paid-call changes in this follow-up. Earlier logs and their two-failure totals below are retained as historical evidence, not the current inventory verdict. `changed-files.txt` includes the actual follow-up paths.
+
 ## Branch, commits and scope
 
 - Base/ancestry: `c4f5a54b355f25b2588a1a23659fdc996d14986a`, verified with `git merge-base --is-ancestor`; starting worktree was clean.
 - Worktree: `/Users/lunelson/.herdr/worktrees/hash/bravo`; branch: `ln/fe-1573-a2`.
 - Implementation/tests: **`02062b00ad89a86e0710b9add4c6ac25863b277e`**. Follow-on evidence commits contain this directory, including explicitly retained ignored log files; the dispatch return lists every commit ID. `changed-files.txt` lists the exact changed paths across the complete handoff.
-- Exactly six implementation/test files changed: `packages/core/src/flue.ts`, `packages/core/src/workpiece.ts`, `packages/core/src/update-workpiece.ts`, `packages/core/test/update-workpiece.test.ts`, repository-root `apps/brunch-agent/test/workpiece-revisions.integration.ts`, and `apps/brunch-agent/test/workpiece-revisions.test.ts`.
-- `MISSION.md`, app ChatAgent, plugin mounting, website, shared helpers/configuration, shared paid ledgers and all sibling worktrees were unchanged. No new dependency, issue, PR, push, restack, merge or history rewrite. `yarn install --immutable` restored already-declared dependencies missing in this fresh worktree; it changed no tracked dependency file.
+- The original implementation/test commit changed six files: `packages/core/src/flue.ts`, `packages/core/src/workpiece.ts`, `packages/core/src/update-workpiece.ts`, `packages/core/test/update-workpiece.test.ts`, repository-root `apps/brunch-agent/test/workpiece-revisions.integration.ts`, and `apps/brunch-agent/test/workpiece-revisions.test.ts`.
+- `MISSION.md`, app ChatAgent, plugin mounting, website, shared production helpers/configuration, shared paid ledgers and all sibling worktrees were unchanged. The later policy follow-up changes only the focused hermetic-test inventory and this evidence packet. No new dependency, issue, PR, push, restack, merge or history rewrite. `yarn install --immutable` restored already-declared dependencies missing in this fresh worktree; it changed no tracked dependency file.
 - **Zero paid calls / US$0.** All model steps used `fauxProvider`; a Sonnet model identifier in faux metadata is not real-provider evidence or a spending reservation.
 
 ## Earned revision API
@@ -65,7 +71,7 @@ Installed behavior wins: `pi-agent-core/dist/agent-loop.js:377–379` requires *
 
 ## Commands and results
 
-All commands run from repository root unless prefixed with the workspace command. `verification-final.log` is the final aggregate check; earlier numbered logs retain setup/tooling failures, including missing lockfile-installed packages and the corrected attempt to structured-clone function-bearing provider context. They are not behavior evidence for the final code.
+All commands run from repository root unless prefixed with the workspace command. `verification-followup.log` is the current aggregate check after inventory registration; `verification-final.log` is the original handoff's aggregate check. Earlier numbered logs retain setup/tooling failures, including missing lockfile-installed packages and the corrected attempt to structured-clone function-bearing provider context. They are not behavior evidence for the final code.
 
 ```sh
 yarn exec turbo run build lint:tsc lint:eslint test:unit --filter=@hashintel/brunch-agent --filter=@apps/brunch-agent --continue=always
@@ -102,9 +108,9 @@ Read-only SQLite inspection exits 0 and produces `state-records.json`; this diag
 
 ## Integration-owner patches and decision
 
-### Mechanical test inventory patch (proposed, not applied)
+### Mechanical test inventory patch (now applied)
 
-In repository-root `apps/brunch-agent/test/architecture/boundaries.integration.ts`, add these two entries to the existing `SUBSTRATE_INTEGRATION_ENTRY_POINTS` object; retain exact set equality and every other reviewed entry:
+Under the `c265134393` clarification, these two entries were added to the existing `SUBSTRATE_INTEGRATION_ENTRY_POINTS` object in repository-root `apps/brunch-agent/test/architecture/boundaries.integration.ts`. Exact set equality and every other reviewed entry remain intact. No integration-owner patch is still needed for this inventory:
 
 ```ts
 "libs/@hashintel/brunch-agent/packages/core/test/update-workpiece.test.ts":
@@ -117,7 +123,7 @@ No production importer exception is needed: all core runtime imports remain in `
 
 ### Compaction seam coordination
 
-Alpha owns the separately authorized additive `useBrunchAgent(model: string, compaction?: CompactionConfig)` and its existing single `useModel(model, compaction === undefined ? undefined : { compaction })`, plus app-only `BRUNCH_TEST_KEEP_RECENT_TOKENS` validation. This branch neither implements nor imports that commit. Preserve the additive signature/forwarding when combining `flue.ts`, together with this branch's single persistent-state hook and unchanged marker. No sibling commit was merged here.
+Alpha commit `f746bcd5ed6d60dfc24d5f1ae3147071b3de12b2` owns the separately authorized additive `useBrunchAgent(model: string, compaction?: CompactionConfig)` and its existing single `useModel(model, compaction === undefined ? undefined : { compaction })`, plus app-only `BRUNCH_TEST_KEEP_RECENT_TOKENS` validation. This branch neither implements nor imports that commit. Preserve the additive signature/forwarding when combining `flue.ts`, together with this branch's single persistent-state hook and unchanged marker. No sibling commit was merged here.
 
 ### Safety/provenance join requirements — blocked, not fabricated patches
 
