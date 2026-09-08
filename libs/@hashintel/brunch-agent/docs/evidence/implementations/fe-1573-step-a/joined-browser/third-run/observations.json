@@ -1,0 +1,11 @@
+{
+  "oracle": "correlates the real browser transition record and resumes without reapplying",
+  "outcome": "pass",
+  "source": "real local Chrome; synthetic model; prepared fixture",
+  "providerCalls": 5,
+  "providerCost": 0,
+  "duplicateContinuationCalls": 0,
+  "browserErrors": [],
+  "httpErrors": [],
+  "blocked": []
+}

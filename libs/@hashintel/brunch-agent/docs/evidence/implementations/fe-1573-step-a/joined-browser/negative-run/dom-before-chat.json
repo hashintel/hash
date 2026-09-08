@@ -1,0 +1,237 @@
+[
+  {
+    "text": "​",
+    "title": null,
+    "label": "Collapse sidebar"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Menu"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Recent changes"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Resize panel from right"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Search list"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Search list"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Add token type"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Search list"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Add differential equation"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Search list"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Add parameter"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Close search"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Resize panel from left"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Zoom in"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Zoom out"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Fit view"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Fullscreen"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Lock view"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Settings"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Give feedback"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Resize panel from top"
+  },
+  {
+    "text": "Diagnostics​",
+    "title": null,
+    "label": null
+  },
+  {
+    "text": "Simulation Settings​",
+    "title": null,
+    "label": null
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Close panel"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Cursor mode"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Add place mode"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Add transition mode"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Show AI assistant"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Show panel"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "No diagnostic issues"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Run simulation"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Playback settings"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Resize AI assistant"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Clear AI chat"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Close AI assistant"
+  },
+  {
+    "text": "​Suggest improvements",
+    "title": null,
+    "label": null
+  },
+  {
+    "text": "​Review completeness",
+    "title": null,
+    "label": null
+  },
+  {
+    "text": "​Explain this model",
+    "title": null,
+    "label": null
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Dismiss quick actions"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Send message"
+  },
+  {
+    "text": "​",
+    "title": null,
+    "label": "Close dialog"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Go to step 1"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Go to step 2"
+  },
+  {
+    "text": "",
+    "title": null,
+    "label": "Go to step 3"
+  },
+  {
+    "text": "Skip tour",
+    "title": null,
+    "label": null
+  },
+  {
+    "text": "Back",
+    "title": null,
+    "label": null
+  },
+  {
+    "text": "Next",
+    "title": null,
+    "label": null
+  }
+]
