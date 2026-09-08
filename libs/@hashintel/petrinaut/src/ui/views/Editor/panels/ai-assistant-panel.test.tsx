@@ -2527,19 +2527,20 @@ describe("AiAssistantPanel composer submissions", () => {
       const requestStop = vi.fn(async () => {
         throw failure;
       });
-      const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
-        new ReadableStream<UIMessageChunk>({
-          start(controller) {
-            streamController = controller;
-            controller.enqueue({ type: "start-step" });
-            controller.enqueue({ type: "text-start", id: "preamble" });
-            controller.enqueue({
-              type: "text-delta",
-              id: "preamble",
-              delta: "Work in progress",
-            });
-          },
-        }),
+      const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              streamController = controller;
+              controller.enqueue({ type: "start-step" });
+              controller.enqueue({ type: "text-start", id: "preamble" });
+              controller.enqueue({
+                type: "text-delta",
+                id: "preamble",
+                delta: "Work in progress",
+              });
+            },
+          }),
       );
       renderTestPanel({
         aiAssistant: {
@@ -2556,7 +2557,9 @@ describe("AiAssistantPanel composer submissions", () => {
       await screen.findByText("Work in progress");
       await act(async () => latest?.stop());
       expect(requestStop).toHaveBeenCalledOnce();
-      expect(screen.getAllByText(/Durable stop failed/u).length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByText(/Durable stop failed/u).length,
+      ).toBeGreaterThan(0);
 
       await act(async () => {
         streamController?.enqueue({ type: "text-end", id: "preamble" });
@@ -2580,7 +2583,9 @@ describe("AiAssistantPanel composer submissions", () => {
       expect(latest?.status).toBe("error");
       expect(latest?.stopped).toBe(false);
       expect(screen.queryByText("Response stopped")).toBeNull();
-      expect(screen.getAllByText(/Durable stop failed/u).length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByText(/Durable stop failed/u).length,
+      ).toBeGreaterThan(0);
       expect(testInstances.at(-1)?.definition.get().places[0]?.name).toBe(
         "PlaceOne",
       );
