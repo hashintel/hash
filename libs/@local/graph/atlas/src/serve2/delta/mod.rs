@@ -1,4 +1,5 @@
 mod consumer;
+mod epoch;
 mod overlay;
 mod placement;
 
@@ -10,6 +11,7 @@ use crate::{
     math::Vec2,
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct DeltaRevision(u64);
 
 struct DeltaProviderId(u64);
@@ -55,3 +57,5 @@ pub(crate) struct DeltaEdge {
     source: NodeRowId,
     target: NodeRowId,
 }
+
+pub(crate) struct Delta {}

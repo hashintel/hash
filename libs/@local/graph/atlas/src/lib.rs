@@ -113,7 +113,8 @@
     time_saturating_systemtime,
     variant_count,
     unwrap_infallible,
-    integer_widen_truncate
+    integer_widen_truncate,
+    slice_shift
 )]
 #![cfg_attr(feature = "cli", feature(exitcode_exit_method))]
 #![cfg_attr(test, feature(iter_intersperse))]
