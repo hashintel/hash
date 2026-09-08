@@ -32,10 +32,13 @@ export const settleWorkpieceEvidence = async (
   previous: WorkpieceRevision | null,
   readSources: () => Promise<readonly WorkpieceEvidenceSource[]>,
 ): Promise<WorkpieceEvidenceRelation[] | undefined> => {
-  const relations =
+  const declaredRelations =
     input.evidence === undefined
       ? []
       : v.parse(v.array(evidenceRelationSchema), input.evidence);
+  // Only explicit declarations override old relations; carried relations must
+  // not suppress other unchanged relations that overlap them.
+  const relations = [...declaredRelations];
   // No guessed cross-revision identity. Only a unique unchanged passage at the
   // same span carries; moves/edits/duplicates need an explicit new declaration.
   const retained = v.safeParse(
@@ -54,7 +57,7 @@ export const settleWorkpieceEvidence = async (
         previous.markdown.lastIndexOf(text) !== start ||
         input.markdown.indexOf(text) !== start ||
         input.markdown.lastIndexOf(text) !== start ||
-        relations.some(
+        declaredRelations.some(
           (declared) =>
             declared.locator.start < end && declared.locator.end > start,
         )

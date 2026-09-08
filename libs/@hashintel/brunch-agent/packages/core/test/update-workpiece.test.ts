@@ -169,6 +169,92 @@ test("rejects unstructured or unauthorized evidence before writing state", async
   expect(current).toBeNull();
 });
 
+test.each([
+  "carried-source",
+  "later-explicit-span",
+  "cancellation",
+  "state-drift",
+] as const)(
+  "refuses %s atomically while carrying overlapping relations",
+  async (failure) => {
+    const markdown = "# Account\nReserve one crew.";
+    const locator = { start: 10, end: markdown.length };
+    const elicited = {
+      locator,
+      messageIds: ["user-1"],
+      kind: "elicited" as const,
+    };
+    const formalism = {
+      locator,
+      messageIds: ["user-2"],
+      kind: "formalism-constraint" as const,
+    };
+    const evidence = [elicited, formalism];
+    const previous: WorkpieceRevision = {
+      revisionId: "previous",
+      sha256: createHash("sha256").update(markdown).digest("hex"),
+      ordinal: 1,
+      markdown,
+      evidence,
+      evidenceValidated: true,
+    };
+    current = previous;
+    let expectedState = previous;
+    const controller = new AbortController();
+    const guarded = createUpdateWorkpieceTool(setRevision, {
+      currentRevision: previous,
+      readSources: async () => {
+        if (failure === "cancellation") controller.abort();
+        if (failure === "state-drift") {
+          expectedState = { ...previous, revisionId: "concurrent", ordinal: 2 };
+          current = expectedState;
+        }
+        return [
+          {
+            id: "user-1",
+            role: "user",
+            purpose: "user",
+            text: "Reserve one crew.",
+          },
+          {
+            id: "user-2",
+            role: failure === "carried-source" ? "assistant" : "user",
+            purpose: "user",
+            text: "Second source",
+          },
+        ];
+      },
+    });
+    await expect(
+      guarded.run({
+        data: {
+          markdown: `${markdown}\nUnrelated context.`,
+          ...(failure === "later-explicit-span"
+            ? {
+                evidence: [
+                  elicited,
+                  { ...formalism, locator: { start: 0, end: 1000 } },
+                ],
+              }
+            : {}),
+        },
+        toolCallId: "refused-carry",
+        signal: controller.signal,
+        log: { info: () => {}, warn: () => {}, error: () => {} },
+        step: {
+          do: () => {
+            throw new Error("No separate state checkpoint");
+          },
+        },
+      }),
+    ).rejects.toThrow(
+      /authorized true-user|outside the immutable revision|abort|changed during evidence validation/iu,
+    );
+    expect(current).toBe(expectedState);
+    expect(current.evidence).toEqual(evidence);
+  },
+);
+
 test("an acquisition refusal or cancellation cannot settle even an evidence-absent revision", async () => {
   const controller = new AbortController();
   const cancelled = createUpdateWorkpieceTool(setRevision, {

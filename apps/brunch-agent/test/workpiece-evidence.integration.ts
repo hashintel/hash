@@ -87,6 +87,10 @@ const call = (name: string, args: Record<string, unknown>, id: string) =>
 const markdown = "# TEST account\nReserve one crew.\n\nTiming remains unknown.";
 let locator = { start: -1, end: -1 };
 let sourceId = "";
+const expectedEvidence = () => [
+  { locator, messageIds: [sourceId], kind: "elicited" },
+  { locator, messageIds: [], kind: "formalism-constraint" },
+];
 const observations: unknown[] = [];
 try {
   faux.setResponses([
@@ -179,7 +183,7 @@ try {
         "update_workpiece",
         {
           markdown,
-          evidence: [{ locator, messageIds: [sourceId], kind: "elicited" }],
+          evidence: expectedEvidence(),
         },
         "evidence-revision",
       );
@@ -193,7 +197,7 @@ try {
       const result = toolResult(context, "brunch_workpiece");
       assert.deepEqual(
         (result.currentWorkpiece as { evidence: unknown }).evidence,
-        [{ locator, messageIds: [sourceId], kind: "elicited" }],
+        expectedEvidence(),
       );
       const settledLookup = result.locatorLookup as {
         subject: { kind: string; revisionId: string };
@@ -351,7 +355,7 @@ try {
       const result = toolResult(context, "brunch_workpiece");
       assert.deepEqual(
         (result.currentWorkpiece as { evidence: unknown }).evidence,
-        [{ locator, messageIds: [sourceId], kind: "elicited" }],
+        expectedEvidence(),
       );
       observations.push({ carried: result.currentWorkpiece });
       return fauxAssistantMessage([
@@ -379,6 +383,11 @@ try {
         (result.currentWorkpiece as { revisionId: string }).revisionId,
         "carried-revision",
       );
+      assert.deepEqual(
+        (result.currentWorkpiece as { evidence: unknown }).evidence,
+        expectedEvidence(),
+      );
+      assert.equal((result.currentWorkpiece as { ordinal: number }).ordinal, 2);
       observations.push({ reopenedModelFacingResult: result });
       return fauxAssistantMessage([
         fauxText(
@@ -388,6 +397,19 @@ try {
     },
   ]);
   await speak("TEST reopen and query the current workpiece.");
+  const carriedCall = (await tools()).find(
+    (entry) => entry.toolCallId === "carried-revision",
+  );
+  assert(carriedCall?.state === "output-available");
+  assert.deepEqual(
+    carriedCall.input,
+    { markdown: `${markdown}\nUnrelated context.` },
+    "Raw input must retain omitted evidence, not reconstructed declarations.",
+  );
+  assert.deepEqual(
+    (carriedCall.output as { evidence: unknown }).evidence,
+    expectedEvidence(),
+  );
   assert.equal(
     observations.length,
     10,

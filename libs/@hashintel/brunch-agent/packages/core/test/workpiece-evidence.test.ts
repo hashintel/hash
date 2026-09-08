@@ -2,7 +2,10 @@ import { expect, test } from "vitest";
 
 import { settleWorkpieceEvidence } from "../src/update-workpiece";
 
-import type { WorkpieceRevision } from "../src/workpiece";
+import type {
+  WorkpieceEvidenceRelation,
+  WorkpieceRevision,
+} from "../src/workpiece";
 
 const markdown = "# Account\nReserve one crew.\n\nTiming unknown.";
 const locator = { start: 10, end: 27 };
@@ -79,6 +82,71 @@ test("carries unchanged unambiguous revision-local relations and reauthorizes th
     settleWorkpieceEvidence({ markdown }, null, async () => [source]),
   ).resolves.toBeUndefined();
 });
+
+const formalism: WorkpieceEvidenceRelation = {
+  locator,
+  messageIds: [],
+  kind: "formalism-constraint",
+};
+const overlapping: WorkpieceEvidenceRelation = {
+  ...formalism,
+  locator: { start: 18, end: 27 },
+};
+
+test.each([
+  ["same-span elicited first", [relation, formalism]],
+  ["same-span formalism first", [formalism, relation]],
+  ["overlapping full span first", [relation, overlapping]],
+  ["overlapping narrower span first", [overlapping, relation]],
+] as const)(
+  "preserves every unchanged carried relation: %s",
+  async (_name, evidence) => {
+    await expect(
+      settleWorkpieceEvidence(
+        { markdown: `${markdown}\nUnrelated context.` },
+        { ...previous, evidence },
+        async () => [source],
+      ),
+    ).resolves.toEqual(evidence);
+  },
+);
+
+test("only explicit new declarations override overlapping old relations", async () => {
+  const unrelated: WorkpieceEvidenceRelation = {
+    locator: { start: 29, end: markdown.length },
+    messageIds: [],
+    kind: "default",
+  };
+  const declared: WorkpieceEvidenceRelation = {
+    ...overlapping,
+    kind: "correction",
+    messageIds: [source.id],
+  };
+  await expect(
+    settleWorkpieceEvidence(
+      { markdown: `${markdown}\nUnrelated context.`, evidence: [declared] },
+      { ...previous, evidence: [relation, formalism, unrelated] },
+      async () => [source],
+    ),
+  ).resolves.toEqual([declared, unrelated]);
+});
+
+test.each([
+  ["move", `Preface\n${markdown}`],
+  ["change", markdown.replace("Reserve one crew.", "Hold one crew.")],
+  ["duplicate ambiguity", `${markdown}\n${markdown}`],
+] as const)(
+  "refuses automatic carry for both overlapping relations after %s",
+  async (_name, changed) => {
+    await expect(
+      settleWorkpieceEvidence(
+        { markdown: changed },
+        { ...previous, evidence: [relation, formalism] },
+        async () => [source],
+      ),
+    ).resolves.toBeUndefined();
+  },
+);
 
 test("does not guess continuity for moves, renames, paraphrases, split, merge, deletion or reintroduction", async () => {
   for (const changed of [
