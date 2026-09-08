@@ -1221,7 +1221,7 @@ fn oracle_natural_buckets(points: &[(MortonKey, ImportanceRank)], deepest: Depth
             }
 
             best.map_or(Depth::MIN, |shared| {
-                depth(shared).saturating_add(1).min(deepest)
+                depth(shared).saturating_add(Log2::ONE).min(deepest)
             })
         })
         .collect()

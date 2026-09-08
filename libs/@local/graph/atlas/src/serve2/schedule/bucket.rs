@@ -1,6 +1,6 @@
 use hashql_core::id::Id as _;
 
-use super::ScheduleError;
+use super::{ScheduleError, ScheduleWidthError};
 use crate::{
     math::Log2,
     morton::{Depth, Zoom},
@@ -28,6 +28,22 @@ impl BucketSchedule {
         }
 
         Ok(Self(config))
+    }
+
+    pub(super) fn offset(self, offset: Zoom) -> Result<Self, ScheduleWidthError> {
+        self.deepest()
+            .checked_add(offset.into())
+            .ok_or(ScheduleWidthError {
+                schedule: self,
+                offset,
+            })?;
+
+        let span = self
+            .span()
+            .checked_add(Log2::from(offset))
+            .expect("the validated cut should fit within the key width");
+
+        Ok(Self(LodConfig { span, ..self.0 }))
     }
 
     /// Returns the deepest tile zoom the schedule serves.

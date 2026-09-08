@@ -22,9 +22,14 @@ use super::unsafe_impl_try_from_bytes;
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, zerocopy::Immutable)]
 #[repr(transparent)]
-pub(crate) struct Log2(u8);
+pub struct Log2(u8);
 
 impl Log2 {
+    /// One doubling.
+    pub(crate) const ONE: Self = Self(1);
+    /// No doublings: the exponent of one.
+    pub(crate) const ZERO: Self = Self(0);
+
     /// Validates a shift exponent.
     ///
     /// Returns [`None`] unless the value lies below the `u64` shift width: 64 and above have no
@@ -37,6 +42,11 @@ impl Log2 {
         }
 
         Some(Self(value))
+    }
+
+    pub(crate) const fn new_unchecked(value: u8) -> Self {
+        debug_assert!(u32::from(value) < u64::BITS);
+        Self(value)
     }
 
     /// Returns whether `value`'s exact bits are a stored exponent.
@@ -52,6 +62,14 @@ impl Log2 {
             Some(accepted) => accepted.0 == value,
             None => false,
         }
+    }
+
+    /// Adds another exponent, refusing a sum at or above the `u64` shift width.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn checked_add(self, other: Self) -> Option<Self> {
+        // Both exponents lie below the shift width, so the sum stays within `u8`.
+        Self::new(self.0 + other.0)
     }
 
     /// Returns the exponent.

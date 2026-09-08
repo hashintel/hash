@@ -54,6 +54,10 @@ impl Depth {
         Some(Self::new(depth))
     }
 
+    pub const fn from_zoom(zoom: Zoom) -> Self {
+        Self::new(zoom.get())
+    }
+
     pub const fn ceiling(self) -> Zoom {
         Zoom(Self::MAX.get() - self.get())
     }
@@ -80,13 +84,13 @@ impl Depth {
     /// ```
     #[inline]
     #[must_use]
-    pub const fn saturating_add(self, steps: u8) -> Self {
-        let sum = self.get().saturating_add(steps);
+    pub const fn saturating_add(self, steps: Log2) -> Self {
+        let sum = self.get().saturating_add(steps.get());
         Self::try_new(sum).unwrap_or(Self::MAX)
     }
 
-    pub const fn checked_add(self, steps: u8) -> Option<Self> {
-        let sum = self.get().checked_add(steps)?;
+    pub const fn checked_add(self, steps: Log2) -> Option<Self> {
+        let sum = self.get().checked_add(steps.get())?;
         Self::try_new(sum)
     }
 
@@ -151,7 +155,7 @@ impl schemars::JsonSchema for Depth {
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
-pub(crate) struct Zoom(u8);
+pub struct Zoom(u8);
 
 impl Zoom {
     /// The maximum zoom level, [`Depth::MAX`].
@@ -171,16 +175,39 @@ impl Zoom {
     }
 
     pub(crate) const fn depth(self, span: Log2) -> Option<Depth> {
-        Depth::new(self.get()).checked_add(span.get())
+        Depth::new(self.get()).checked_add(span)
     }
 
     pub(crate) const fn saturating_depth(self, span: Log2) -> Depth {
-        Depth::new(self.get()).saturating_add(span.get())
+        Depth::new(self.get()).saturating_add(span)
+    }
+
+    /// Returns the zoom one level shallower, [`None`] at the root.
+    #[must_use]
+    pub(crate) const fn shallower(self) -> Option<Self> {
+        match self.0.checked_sub(1) {
+            Some(level) => Some(Self(level)),
+            None => None,
+        }
+    }
+
+    /// Returns the zoom one level deeper, [`None`] at [`Zoom::MAX`].
+    #[must_use]
+    pub(crate) const fn deeper(self) -> Option<Self> {
+        // The level lies at or below `Depth::MAX`, so the increment stays within `u8`.
+        Self::new(self.0 + 1)
     }
 
     /// Returns the level.
     pub(crate) const fn get(self) -> u8 {
         self.0
+    }
+}
+
+impl From<Zoom> for Log2 {
+    fn from(zoom: Zoom) -> Self {
+        // 32 < u64::BITS
+        Self::new_unchecked(zoom.get())
     }
 }
 
@@ -271,6 +298,34 @@ pub(crate) struct MortonTile {
     pub x: u32,
     /// The cell's y index on the `2^z` grid.
     pub y: u32,
+}
+
+impl MortonTile {
+    /// Returns the tile's ancestor on `shallower`'s grid.
+    ///
+    /// # Panics
+    ///
+    /// This panics when `shallower` lies deeper than the tile's own zoom.
+    #[must_use]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "an ancestor coordinate is at most the original, which fits u32"
+    )]
+    pub(crate) const fn ancestor(self, shallower: Depth) -> Self {
+        assert!(
+            shallower.get() <= self.z.get(),
+            "the ancestor's grid lies at or above the tile's"
+        );
+
+        // The widened shift keeps the deepest zoom's root ancestor in range: the level
+        // difference can reach the full 32-bit axis width.
+        let shift = (self.z.get() - shallower.get()) as u32;
+        Self {
+            z: shallower,
+            x: ((self.x as u64) >> shift) as u32,
+            y: ((self.y as u64) >> shift) as u32,
+        }
+    }
 }
 
 /// A Z-order key interleaving two 32-bit axes into one `u64`.

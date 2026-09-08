@@ -3,6 +3,7 @@ use alloc::sync::Arc;
 use arc_swap::Guard;
 use hashql_core::id::Id as _;
 use rand::{SeedableRng as _, rngs::StdRng};
+use type_system::principal::actor::{ActorId, ActorType};
 use uuid::Uuid;
 
 use super::{
@@ -11,13 +12,20 @@ use super::{
     overlay::{DeltaIdentityProvider, NaiveIdentityProvider},
 };
 use crate::{
+    bitset::CompressedBitSet,
     dataset::auxiliary::{Label, OwnedIcon, OwnedLegend},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::Vec2,
+    math::{Log2, Vec2},
+    morton::{Depth, MortonCell, Zoom},
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
-    salt::{fit::prepare::IdentityProvider as _, lod::stage::WIRE_FRAME},
+    salt::{
+        fit::prepare::IdentityProvider as _,
+        lod::stage::{LodConfig, WIRE_FRAME},
+    },
     serve2::{
+        schedule::{BucketSchedule, ScopeSchedule},
         tests::fixture::{EDGES, ENDPOINTS, NODES, TYPES, TamperFixture, secret},
+        visibility::{VisibilityActor, VisibilityMask},
         world::World,
     },
 };
@@ -432,6 +440,105 @@ fn clone_from_publication() {
         Some(Vec2::ZERO)
     );
     assert_eq!(current.revision(), source.revision);
+}
+
+/// Schedule construction composes the mask with captured placement visibility.
+#[test]
+fn schedule_captured_visibility() {
+    let (_fixture, mut delta) = fixture("delta-schedule-captured");
+    let fitted = NodeRowId::MIN;
+    let fitted_id = delta
+        .world
+        .layout
+        .index
+        .identity
+        .key_of(fitted)
+        .expect("should resolve the fitted identity");
+    let position = delta
+        .world
+        .layout
+        .position(&epoch(&delta), fitted)
+        .expect("should resolve the fitted placement");
+    let higher = entity(200);
+    let lower = entity(100);
+    assert_eq!(
+        delta.update_node(higher, legend("higher"), position),
+        Some(true)
+    );
+    assert_eq!(
+        delta.update_node(lower, legend("lower"), position),
+        Some(true)
+    );
+    let higher_row = delta
+        .node_row(higher)
+        .expect("should resolve the added row");
+    let lower_row = delta.node_row(lower).expect("should resolve the added row");
+    let mut nodes = CompressedBitSet::default();
+    for row in [fitted, higher_row, lower_row] {
+        nodes.insert(row);
+    }
+    let mask = VisibilityMask::partial(
+        VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        },
+        nodes,
+        CompressedBitSet::default(),
+    );
+    let buckets = BucketSchedule::new(LodConfig {
+        span: Log2::new(0).expect("should fit the exponent domain"),
+        max_tile_depth: Zoom::new(1).expect("should fit the zoom domain"),
+    })
+    .expect("should fit the key width");
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    let leaf_zoom = Zoom::new(1).expect("should fit the zoom domain");
+    let captured = epoch(&delta);
+    let before = ScopeSchedule::of(&delta.world.layout, &captured, &mask);
+    let before_cut = before.cut(buckets, Zoom::MIN).expect("should bind the cut");
+    assert_eq!(before_cut.total(Zoom::MIN, root).rows, [fitted]);
+    assert_eq!(
+        before_cut.total(leaf_zoom, root).rows,
+        [fitted, lower_row, higher_row]
+    );
+
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(fitted_id), "should withdraw the fitted row");
+    assert!(
+        delta.withdraw(lower),
+        "should withdraw the better added priority"
+    );
+    let hidden = epoch(&delta);
+    let after = ScopeSchedule::of(&delta.world.layout, &hidden, &mask);
+    let after_cut = after.cut(buckets, Zoom::MIN).expect("should bind the cut");
+    assert_eq!(after_cut.total(Zoom::MIN, root).rows, [higher_row]);
+    assert_eq!(after_cut.root_delivered(), 1);
+    assert_eq!(after_cut.min_resolution(), Depth::MIN);
+    assert_eq!(after_cut.children(Zoom::MIN, root), 0);
+    assert_eq!(after_cut.first_zoom(fitted), None);
+    assert_eq!(after_cut.first_zoom(lower_row), None);
+    let rebuilt = ScopeSchedule::of(&delta.world.layout, &captured, &mask);
+    assert_eq!(
+        rebuilt
+            .cut(buckets, Zoom::MIN)
+            .expect("should bind the cut")
+            .total(leaf_zoom, root),
+        before_cut.total(leaf_zoom, root)
+    );
+
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_node(fitted_id, legend("revived"), Vec2::ZERO),
+        Some(true)
+    );
+    let revived = ScopeSchedule::of(&delta.world.layout, &epoch(&delta), &mask);
+    assert_eq!(
+        revived
+            .cut(buckets, Zoom::MIN)
+            .expect("should bind the cut")
+            .total(leaf_zoom, root)
+            .rows,
+        [fitted, higher_row]
+    );
 }
 
 /// Normalization uses the fitted bounds rather than the already-normalized geometry bounds.

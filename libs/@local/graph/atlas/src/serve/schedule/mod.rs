@@ -34,7 +34,7 @@ use crate::{
     allocator::{MemoryUsage, MemoryUsageAllocator},
     dataset::auxiliary::OwnedLegend,
     identity::{BasePosition, ImportanceRank, NodeRowId},
-    math::Vec2,
+    math::{Log2, Vec2},
     morton::{Depth, MortonCell, MortonKey},
     postgres::id::ArchivedEntityId,
     salt::lod::{cascade, stage::WIRE_FRAME},
@@ -665,7 +665,7 @@ impl ArrivalOverlay {
             }
             earlier.insert(at, key);
 
-            let bucket = shared.map_or(Depth::MIN, |depth| depth.saturating_add(1));
+            let bucket = shared.map_or(Depth::MIN, |depth| depth.saturating_add(Log2::ONE));
             slots.push(OverlaySlot {
                 bucket,
                 key,
