@@ -1,0 +1,878 @@
+• turbo 2.10.12
+
+   • Packages in scope: @apps/brunch-agent, @hashintel/brunch-agent
+   • Running build, lint:tsc, lint:eslint, test:unit in 2 packages
+   • Remote caching disabled, using shared worktree cache
+
+@hashintel/petrinaut-core:build: cache bypass, force executing d9d4c5a5d59c1d6a
+@hashintel/brunch-agent:test:unit: cache miss, executing 340ac2b4d86925c3
+@hashintel/brunch-agent:build: cache miss, executing 5c3048bddc4cea30
+@local/internal-api-client:build: cache hit, replaying logs c10bcdc5687c7f04
+@local/advanced-types:build: cache hit, replaying logs 38f9eeeeb4176261
+@hashintel/brunch-agent-transport-aisdk:build: cache hit, replaying logs 9cc8408e71e94749
+@local/status:build: cache hit, replaying logs ac8382af007adb70
+@local/hash-isomorphic-utils:codegen: cache hit, replaying logs 6a8cd05e7ded6141
+@hashintel/brunch-agent-transport-aisdk:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent-transport-aisdk:build: transforming...
+@hashintel/brunch-agent-transport-aisdk:build: ✓ 9 modules transformed.
+@hashintel/brunch-agent-transport-aisdk:build: rendering chunks...
+@hashintel/brunch-agent-transport-aisdk:build: computing gzip size...
+@hashintel/brunch-agent-transport-aisdk:build: dist/headers.js   0.20 kB │ gzip: 0.17 kB │ map:  0.35 kB
+@hashintel/brunch-agent-transport-aisdk:build: dist/index.js    16.17 kB │ gzip: 5.09 kB │ map: 52.92 kB
+@hashintel/brunch-agent-transport-aisdk:build: 
+@hashintel/brunch-agent-transport-aisdk:build: ✓ built in 13ms
+@local/hash-isomorphic-utils:codegen: ❯ Parse Configuration
+@local/hash-isomorphic-utils:codegen: ✔ Parse Configuration
+@local/hash-isomorphic-utils:codegen: ❯ Generate outputs
+@local/hash-isomorphic-utils:codegen: ❯ Generate to ./src/graphql/fragment-types.gen.json
+@local/hash-isomorphic-utils:codegen: ❯ Generate to ./src/graphql/api-types.gen.ts
+@local/hash-isomorphic-utils:codegen: ❯ Load GraphQL schemas
+@local/hash-isomorphic-utils:codegen: ❯ Load GraphQL schemas
+@local/hash-isomorphic-utils:codegen: ✔ Load GraphQL schemas
+@local/hash-isomorphic-utils:codegen: ✔ Load GraphQL schemas
+@local/hash-isomorphic-utils:codegen: ❯ Load GraphQL documents
+@local/hash-isomorphic-utils:codegen: ❯ Load GraphQL documents
+@local/hash-isomorphic-utils:codegen: ✔ Load GraphQL documents
+@local/hash-isomorphic-utils:codegen: ❯ Generate
+@local/hash-isomorphic-utils:codegen: ✔ Generate
+@local/hash-isomorphic-utils:codegen: ✔ Generate to ./src/graphql/fragment-types.gen.json
+@local/hash-isomorphic-utils:codegen: ✔ Load GraphQL documents
+@local/hash-isomorphic-utils:codegen: ❯ Generate
+@local/hash-isomorphic-utils:codegen: ✔ Generate
+@local/hash-isomorphic-utils:codegen: ✔ Generate to ./src/graphql/api-types.gen.ts
+@local/hash-isomorphic-utils:codegen: ✔ Generate outputs
+@local/eslint:build: cache hit, replaying logs 8df70cf8a04e0e2e
+@rust/hash-codec:build:types: cache hit, replaying logs 138ff0e08e0ce1a8
+@rust/hash-codec:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-codec:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-codec:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-codec:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-codec:build:types:     Blocking waiting for file lock on build directory
+@rust/hash-codec:build:types:    Compiling harpc-types v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/harpc/types)
+@rust/hash-codec:build:types:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/codec/rust)
+@rust/hash-codec:build:types:    Compiling hash-codegen v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/codegen)
+@rust/hash-codec:build:types:     Finished `test` profile [unoptimized + debuginfo] target(s) in 11.98s
+@rust/hash-codec:build:types:      Running tests/codegen.rs (/Users/lunelson/.herdr/worktrees/hash/bravo/target/debug/build/hash-codec/ac4a733b509c7198/out/codegen-ac4a733b509c7198)
+@rust/hash-codec:build:types: 
+@rust/hash-codec:build:types: running 1 test
+@rust/hash-codec:build:types: test index ... ok
+@rust/hash-codec:build:types: 
+@rust/hash-codec:build:types: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+@rust/hash-codec:build:types: 
+@rust/hash-codec:build:types: done: no snapshots to review
+@blockprotocol/type-system-rs:build:types: cache hit, replaying logs 9bbda5a595f71418
+@blockprotocol/type-system-rs:build:wasm: cache hit, replaying logs f19472dbb6902eea
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:types:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:types:    Compiling darling_core v0.21.3
+@blockprotocol/type-system-rs:build:types:    Compiling error-stack v0.8.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/error-stack)
+@blockprotocol/type-system-rs:build:types:    Compiling hash-codegen v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/codegen)
+@blockprotocol/type-system-rs:build:types:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/codec/rust)
+@blockprotocol/type-system-rs:build:wasm: [INFO]: 🎯  Checking for the Wasm target...
+@blockprotocol/type-system-rs:build:wasm: [INFO]: 🌀  Compiling to Wasm...
+@blockprotocol/type-system-rs:build:wasm:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:wasm:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:wasm:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:wasm:     Blocking waiting for file lock on package cache
+@blockprotocol/type-system-rs:build:wasm:    Compiling error-stack v0.8.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/error-stack)
+@blockprotocol/type-system-rs:build:wasm:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/codec/rust)
+@blockprotocol/type-system-rs:build:wasm:    Compiling hash-graph-temporal-versioning v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/graph/temporal-versioning)
+@blockprotocol/type-system-rs:build:types:    Compiling hash-graph-temporal-versioning v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/graph/temporal-versioning)
+@blockprotocol/type-system-rs:build:types:    Compiling darling_macro v0.21.3
+@blockprotocol/type-system-rs:build:wasm:    Compiling type-system v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@blockprotocol/type-system/rust)
+@rust/hash-graph-authorization:build:types: cache hit, replaying logs 872cd856bb0339c2
+@blockprotocol/type-system-rs:build:wasm:     Finished `release` profile [optimized] target(s) in 6.50s
+@blockprotocol/type-system-rs:build:wasm: [INFO]: ⬇️  Installing wasm-bindgen...
+@blockprotocol/type-system-rs:build:wasm: [INFO]: found wasm-opt at "/Users/lunelson/.local/share/mise/installs/github-web-assembly-binaryen/version_131/bin/wasm-opt"
+@blockprotocol/type-system-rs:build:wasm: [INFO]: Optimizing wasm binaries with `wasm-opt`...
+@blockprotocol/type-system-rs:build:wasm: [INFO]: ✨   Done in 6.81s
+@blockprotocol/type-system-rs:build:wasm: [INFO]: 📦   Your wasm pkg is ready to publish at pkg.
+@blockprotocol/type-system-rs:build:types:    Compiling type-system v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@blockprotocol/type-system/rust)
+@blockprotocol/type-system-rs:build:types:    Compiling darling v0.21.3
+@blockprotocol/type-system-rs:build:types:    Compiling bon-macros v3.9.3
+@blockprotocol/type-system-rs:build:types:    Compiling bon v3.9.3
+@local/harpc-client:build: cache hit, replaying logs f73d5b310e7f5300
+@blockprotocol/type-system-rs:build:types:    Compiling temporalio-common-wasm v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling temporalio-common v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling hash-graph-types v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/graph/types)
+@blockprotocol/type-system-rs:build:types:    Compiling hash-graph-authorization v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/graph/authorization/rust)
+@blockprotocol/type-system-rs:build:types:    Compiling temporalio-client v0.5.0
+@blockprotocol/type-system-rs:build:types:    Compiling hash-temporal-client v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/temporal-client)
+@blockprotocol/type-system-rs:build:types:    Compiling hash-graph-store v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/graph/store/rust)
+@blockprotocol/type-system-rs:build:types:    Compiling hash-graph-test-data v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/tests/graph/test-data/rust)
+@blockprotocol/type-system-rs:build:types:     Finished `test` profile [unoptimized + debuginfo] target(s) in 11.23s
+@blockprotocol/type-system-rs:build:types:      Running tests/codegen.rs (/Users/lunelson/.herdr/worktrees/hash/bravo/target/debug/build/type-system/e8f578c7eb92fdef/out/codegen-e8f578c7eb92fdef)
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: running 1 test
+@blockprotocol/type-system-rs:build:types: test index ... ok
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+@blockprotocol/type-system-rs:build:types: 
+@blockprotocol/type-system-rs:build:types: done: no snapshots to review
+@rust/hash-graph-store:build:types: cache hit, replaying logs 4e1abc3b29a2119d
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-authorization:build:types:     Blocking waiting for file lock on build directory
+@rust/hash-graph-authorization:build:types:    Compiling error-stack v0.8.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/error-stack)
+@rust/hash-graph-authorization:build:types:    Compiling hash-codegen v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/codegen)
+@rust/hash-graph-store:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-store:build:types:     Blocking waiting for file lock on package cache
+@rust/hash-graph-authorization:build:types:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/codec/rust)
+@rust/hash-graph-authorization:build:types:    Compiling hash-graph-temporal-versioning v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/graph/temporal-versioning)
+@rust/hash-graph-authorization:build:types:    Compiling type-system v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@blockprotocol/type-system/rust)
+@rust/hash-graph-authorization:build:types:    Compiling hash-graph-authorization v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/graph/authorization/rust)
+@rust/hash-graph-authorization:build:types:     Finished `test` profile [unoptimized + debuginfo] target(s) in 15.63s
+@rust/hash-graph-authorization:build:types:      Running tests/codegen.rs (/Users/lunelson/.herdr/worktrees/hash/bravo/target/debug/build/hash-graph-authorization/16c7ff128fd8ff0f/out/codegen-16c7ff128fd8ff0f)
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: running 1 test
+@rust/hash-graph-authorization:build:types: test index ... ok
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-authorization:build:types: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+@rust/hash-graph-authorization:build:types: 
+@rust/hash-graph-store:build:types:     Blocking waiting for file lock on build directory
+@rust/hash-graph-store:build:types:    Compiling hash-codec v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/codec/rust)
+@rust/hash-graph-store:build:types:    Compiling temporalio-common-wasm v0.5.0
+@rust/hash-graph-store:build:types:    Compiling hash-codegen v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/codegen)
+@rust/hash-graph-store:build:types:    Compiling hash-graph-temporal-versioning v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/graph/temporal-versioning)
+@rust/hash-graph-store:build:types:    Compiling temporalio-common v0.5.0
+@rust/hash-graph-store:build:types:    Compiling type-system v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@blockprotocol/type-system/rust)
+@rust/hash-graph-authorization:build:types: done: no snapshots to review
+@rust/hash-graph-store:build:types:    Compiling temporalio-client v0.5.0
+@rust/hash-graph-store:build:types:    Compiling hash-temporal-client v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/temporal-client)
+@rust/hash-graph-store:build:types:    Compiling hash-graph-types v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/graph/types)
+@rust/hash-graph-store:build:types:    Compiling hash-graph-authorization v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/graph/authorization/rust)
+@rust/hash-graph-store:build:types:    Compiling hash-graph-store v0.0.0 (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/graph/store/rust)
+@rust/hash-graph-store:build:types:     Finished `test` profile [unoptimized + debuginfo] target(s) in 22.33s
+@hashintel/brunch-agent:lint:eslint: cache miss, executing 5ff0c4d078d50d17
+@hashintel/brunch-agent:lint:tsc: cache miss, executing cb5849dd7c9a41a2
+@rust/hash-graph-store:build:types:      Running tests/codegen.rs (/Users/lunelson/.herdr/worktrees/hash/bravo/target/debug/build/hash-graph-store/17dfb30a5790cc47/out/codegen-17dfb30a5790cc47)
+@rust/hash-graph-store:build:types: 
+@rust/hash-graph-store:build:types: running 1 test
+@rust/hash-graph-store:build:types: test index ... ok
+@rust/hash-graph-store:build:types: 
+@rust/hash-graph-store:build:types: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+@rust/hash-graph-store:build:types: 
+@rust/hash-graph-store:build:types: done: no snapshots to review
+@local/hash-codec:codegen: cache hit, replaying logs 9eadaa32d82cc2db
+@blockprotocol/type-system:codegen: cache hit, replaying logs 2ed3557356297aed
+@blockprotocol/type-system:codegen: ../rust/pkg/type-system.d.ts -> src/generated/type-system.d.ts
+@blockprotocol/type-system:codegen: ../rust/types/index.snap.d.ts -> src/generated/types.d.ts
+@local/hash-graph-authorization:codegen: cache hit, replaying logs b74a9e78ef82e39e
+@local/hash-graph-store:codegen: cache hit, replaying logs a57e2fd3e8dcf2e0
+@local/hash-codec:build: cache hit, replaying logs 3fa2ae19f14df321
+@local/hash-graph-client:codegen: cache hit, replaying logs 31144d12486bbc50
+@local/hash-graph-client:codegen: 
+@local/hash-graph-client:codegen:     ╔═══════════════════════════════════════════════════════╗
+@local/hash-graph-client:codegen:     ║                                                       ║
+@local/hash-graph-client:codegen:     ║  A new version of Redocly CLI (2.51.2) is available.  ║
+@local/hash-graph-client:codegen:     ║  Update now: `npm i -g @redocly/cli@latest`.          ║
+@local/hash-graph-client:codegen:     ║  Changelog: https://redocly.com/docs/cli/changelog/   ║
+@local/hash-graph-client:codegen:     ║                                                       ║
+@local/hash-graph-client:codegen:     ╚═══════════════════════════════════════════════════════╝
+@local/hash-graph-client:codegen: 
+@local/hash-graph-client:codegen: bundling ../../api/openapi/openapi.json...
+@local/hash-graph-client:codegen: 📦 Created a bundle for ../../api/openapi/openapi.json at openapi.bundle.json 41ms.
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.github.benmanes.caffeine.cache.UnsafeAccess (file:/Users/lunelson/.herdr/worktrees/hash/bravo/node_modules/@openapitools/openapi-generator-cli/versions/6.6.0.jar)
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] WARNING: Please consider reporting this to the maintainers of class com.github.benmanes.caffeine.cache.UnsafeAccess
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] [main] WARN  o.o.codegen.DefaultCodegen - PathExpression_path_inner (oneOf schema) already has `string` defined and therefore it's skipped.
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] ################################################################################
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] # Thanks for using OpenAPI Generator.                                          #
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] # Please consider donation to help us maintain this project 🙏                 #
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] # https://opencollective.com/openapi_generator/donate                          #
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] ################################################################################
+@local/hash-graph-client:codegen: [[ts] openapi.bundle.json] java -Dlog.level=warn -jar "/Users/lunelson/.herdr/worktrees/hash/bravo/node_modules/@openapitools/openapi-generator-cli/versions/6.6.0.jar" generate --input-spec="openapi.bundle.json" --generate-alias-as-model --generator-name="typescript-axios" --output="/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@local/graph/client/typescript" --additional-properties="npmName=@local/hash-graph-client,npmVersion=0.0.0-private,supportsES6=true,withInterfaces=true,disallowAdditionalPropertiesIfNotPresent=true,withNodeImports=true,sortModelPropertiesByRequiredFlag=false" exited with code 0
+@local/hash-graph-client:codegen: [ts] openapi.bundle.json
+@local/hash-graph-client:codegen: done.
+@blockprotocol/type-system:build: cache hit, replaying logs 4f177d5b31a475fa
+@local/hash-graph-client:build: cache hit, replaying logs fa581cdd2d454afa
+@blockprotocol/type-system:build: [36m
+@blockprotocol/type-system:build: [1msrc/main.ts[22m → [1mdist/es[22m...[39m
+@blockprotocol/type-system:build: [1m[33m(!) Circular dependency[39m[22m
+@blockprotocol/type-system:build: ../../../../node_modules/semver/classes/comparator.js -> ../../../../node_modules/semver/classes/range.js -> ../../../../node_modules/semver/classes/comparator.js
+@blockprotocol/type-system:build: [32mcreated [1mdist/es[22m in [1m957ms[22m[39m
+@blockprotocol/type-system:build: [36m
+@blockprotocol/type-system:build: [1msrc/main-slim.ts[22m → [1mdist/es-slim[22m...[39m
+@blockprotocol/type-system:build: [1m[33m(!) Circular dependency[39m[22m
+@blockprotocol/type-system:build: ../../../../node_modules/semver/classes/comparator.js -> ../../../../node_modules/semver/classes/range.js -> ../../../../node_modules/semver/classes/comparator.js
+@blockprotocol/type-system:build: [32mcreated [1mdist/es-slim[22m in [1m791ms[22m[39m
+@local/hash-graph-authorization:build: cache hit, replaying logs c5b4be8b301259e4
+@local/hash-graph-store:build: cache hit, replaying logs 1fc6c0639601d9ac
+@blockprotocol/graph:build: cache hit, replaying logs 42bd4bef4d5e8466
+@local/hash-graph-sdk:build: cache hit, replaying logs c5b87a7421b57871
+@local/hash-isomorphic-utils:build: cache hit, replaying logs c6aadc29205c6e94
+@local/hash-backend-utils:build: cache hit, replaying logs 7b61e651362d3226
+@hashintel/brunch-agent:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent:build: transforming...
+@hashintel/brunch-agent:build: ✓ 20 modules transformed.
+@hashintel/brunch-agent:build: rendering chunks...
+@hashintel/brunch-agent:build: computing gzip size...
+@hashintel/brunch-agent:build: dist/storage.js                0.20 kB │ gzip: 0.15 kB
+@hashintel/brunch-agent:build: dist/client-tools.js           0.45 kB │ gzip: 0.30 kB │ map:  1.22 kB
+@hashintel/brunch-agent:build: dist/json-value-DfyVmP73.js    0.56 kB │ gzip: 0.35 kB │ map:  1.54 kB
+@hashintel/brunch-agent:build: dist/question-marker.js        0.59 kB │ gzip: 0.37 kB │ map:  1.27 kB
+@hashintel/brunch-agent:build: dist/naming-B-X_Ur_R.js        0.80 kB │ gzip: 0.49 kB │ map:  4.33 kB
+@hashintel/brunch-agent:build: dist/workpiece.js              2.97 kB │ gzip: 1.16 kB │ map:  9.97 kB
+@hashintel/brunch-agent:build: dist/session-log-g_FZuAXm.js   5.94 kB │ gzip: 2.12 kB │ map: 18.62 kB
+@hashintel/brunch-agent:build: dist/flue.js                  21.85 kB │ gzip: 8.38 kB │ map:  9.30 kB
+@hashintel/brunch-agent:build: dist/index.js                 24.89 kB │ gzip: 7.64 kB │ map: 76.56 kB
+@hashintel/brunch-agent:build: 
+@hashintel/brunch-agent:build: ✓ built in 17ms
+@hashintel/brunch-agent-binding-flue:build: cache miss, executing 3661e2aa892f83e6
+@hashintel/brunch-agent-plugin-dafny:build: cache miss, executing 094ee6348084a1a1
+@hashintel/brunch-agent-plugin-gherkin:build: cache miss, executing 55dd2742a9c8a384
+@hashintel/petrinaut-core:build: TypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.
+@hashintel/petrinaut-core:build: Emit types with @typescript/native-preview@7.0.0-dev.20260511.1
+@hashintel/petrinaut-core:build: vite v8.2.2 building client environment for production...
+@hashintel/petrinaut-core:build: transforming...
+@hashintel/brunch-agent:test:unit: 
+@hashintel/brunch-agent:test:unit:  RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/bravo/libs/@hashintel/brunch-agent/packages/core
+@hashintel/brunch-agent:test:unit: 
+@hashintel/brunch-agent-plugin-dafny:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent-plugin-dafny:build: transforming...
+@hashintel/brunch-agent-plugin-dafny:build: ✓ 6 modules transformed.
+@hashintel/brunch-agent-plugin-dafny:build: rendering chunks...
+@hashintel/brunch-agent-plugin-dafny:build: computing gzip size...
+@hashintel/brunch-agent-plugin-dafny:build: dist/index.js  0.19 kB │ gzip: 0.18 kB │ map: 0.83 kB
+@hashintel/brunch-agent-plugin-dafny:build: dist/flue.js   2.24 kB │ gzip: 1.10 kB │ map: 1.22 kB
+@hashintel/brunch-agent-plugin-dafny:build: 
+@hashintel/brunch-agent-plugin-dafny:build: ✓ built in 10ms
+@hashintel/brunch-agent:test:unit: 
+@hashintel/brunch-agent:test:unit: ⚠ 1 verification gaps are open (spec §14.5 and friends):
+@hashintel/brunch-agent:test:unit:    · compaction-vs-durable-history — FE-1386 (spec §9.7, §14.5)
+@hashintel/brunch-agent:test:unit:    Closing one means deleting its entry in the commit that lands its proof.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:     ,-[test/update-workpiece.test.ts:18:16]
+@hashintel/brunch-agent:lint:eslint:  17 |   ...(await importOriginal<typeof import("@flue/runtime")>()),
+@hashintel/brunch-agent:lint:eslint:  18 |   useModel: vi.fn(),
+@hashintel/brunch-agent:lint:eslint:     :                ^^
+@hashintel/brunch-agent:lint:eslint:  19 |   useSkill: vi.fn(),
+@hashintel/brunch-agent:lint:eslint:     `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:     ,-[test/update-workpiece.test.ts:19:16]
+@hashintel/brunch-agent:lint:eslint:  18 |   useModel: vi.fn(),
+@hashintel/brunch-agent:lint:eslint:  19 |   useSkill: vi.fn(),
+@hashintel/brunch-agent:lint:eslint:     :                ^^
+@hashintel/brunch-agent:lint:eslint:  20 |   useDataWriter: vi.fn(() => vi.fn()),
+@hashintel/brunch-agent:lint:eslint:     `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:     ,-[test/update-workpiece.test.ts:20:21]
+@hashintel/brunch-agent:lint:eslint:  19 |   useSkill: vi.fn(),
+@hashintel/brunch-agent:lint:eslint:  20 |   useDataWriter: vi.fn(() => vi.fn()),
+@hashintel/brunch-agent:lint:eslint:     :                     ^^
+@hashintel/brunch-agent:lint:eslint:  21 |   usePersistentState: vi.fn(),
+@hashintel/brunch-agent:lint:eslint:     `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:     ,-[test/update-workpiece.test.ts:20:33]
+@hashintel/brunch-agent:lint:eslint:  19 |   useSkill: vi.fn(),
+@hashintel/brunch-agent:lint:eslint:  20 |   useDataWriter: vi.fn(() => vi.fn()),
+@hashintel/brunch-agent:lint:eslint:     :                                 ^^
+@hashintel/brunch-agent:lint:eslint:  21 |   usePersistentState: vi.fn(),
+@hashintel/brunch-agent:lint:eslint:     `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:     ,-[test/update-workpiece.test.ts:21:26]
+@hashintel/brunch-agent:lint:eslint:  20 |   useDataWriter: vi.fn(() => vi.fn()),
+@hashintel/brunch-agent:lint:eslint:  21 |   usePersistentState: vi.fn(),
+@hashintel/brunch-agent:lint:eslint:     :                          ^^
+@hashintel/brunch-agent:lint:eslint:  22 |   useTool: vi.fn(),
+@hashintel/brunch-agent:lint:eslint:     `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:     ,-[test/update-workpiece.test.ts:22:15]
+@hashintel/brunch-agent:lint:eslint:  21 |   usePersistentState: vi.fn(),
+@hashintel/brunch-agent:lint:eslint:  22 |   useTool: vi.fn(),
+@hashintel/brunch-agent:lint:eslint:     :               ^^
+@hashintel/brunch-agent:lint:eslint:  23 | }));
+@hashintel/brunch-agent:lint:eslint:     `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:     ,-[test/update-workpiece.test.ts:38:21]
+@hashintel/brunch-agent:lint:eslint:  37 |     toolCallId,
+@hashintel/brunch-agent:lint:eslint:  38 |     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+@hashintel/brunch-agent:lint:eslint:     :                     ^^
+@hashintel/brunch-agent:lint:eslint:  39 |     step: { do: vi.fn() },
+@hashintel/brunch-agent:lint:eslint:     `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:     ,-[test/update-workpiece.test.ts:38:36]
+@hashintel/brunch-agent:lint:eslint:  37 |     toolCallId,
+@hashintel/brunch-agent:lint:eslint:  38 |     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+@hashintel/brunch-agent:lint:eslint:     :                                    ^^
+@hashintel/brunch-agent:lint:eslint:  39 |     step: { do: vi.fn() },
+@hashintel/brunch-agent:lint:eslint:     `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:     ,-[test/update-workpiece.test.ts:38:52]
+@hashintel/brunch-agent:lint:eslint:  37 |     toolCallId,
+@hashintel/brunch-agent:lint:eslint:  38 |     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+@hashintel/brunch-agent:lint:eslint:     :                                                    ^^
+@hashintel/brunch-agent:lint:eslint:  39 |     step: { do: vi.fn() },
+@hashintel/brunch-agent:lint:eslint:     `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:     ,-[test/update-workpiece.test.ts:39:20]
+@hashintel/brunch-agent:lint:eslint:  38 |     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+@hashintel/brunch-agent:lint:eslint:  39 |     step: { do: vi.fn() },
+@hashintel/brunch-agent:lint:eslint:     :                    ^^
+@hashintel/brunch-agent:lint:eslint:  40 |   });
+@hashintel/brunch-agent:lint:eslint:     `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:      ,-[test/update-workpiece.test.ts:118:21]
+@hashintel/brunch-agent:lint:eslint:  117 |     toolCallId: "from-run",
+@hashintel/brunch-agent:lint:eslint:  118 |     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+@hashintel/brunch-agent:lint:eslint:      :                     ^^
+@hashintel/brunch-agent:lint:eslint:  119 |   });
+@hashintel/brunch-agent:lint:eslint:      `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:      ,-[test/update-workpiece.test.ts:118:36]
+@hashintel/brunch-agent:lint:eslint:  117 |     toolCallId: "from-run",
+@hashintel/brunch-agent:lint:eslint:  118 |     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+@hashintel/brunch-agent:lint:eslint:      :                                    ^^
+@hashintel/brunch-agent:lint:eslint:  119 |   });
+@hashintel/brunch-agent:lint:eslint:      `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint:   x vitest(require-mock-type-parameters): Missing type parameters on mock function call
+@hashintel/brunch-agent:lint:eslint:      ,-[test/update-workpiece.test.ts:118:52]
+@hashintel/brunch-agent:lint:eslint:  117 |     toolCallId: "from-run",
+@hashintel/brunch-agent:lint:eslint:  118 |     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+@hashintel/brunch-agent:lint:eslint:      :                                                    ^^
+@hashintel/brunch-agent:lint:eslint:  119 |   });
+@hashintel/brunch-agent:lint:eslint:      `----
+@hashintel/brunch-agent:lint:eslint:   help: Add a type parameter to the mock function, e.g. `vi.fn<() => void>()`.
+@hashintel/brunch-agent:lint:eslint: 
+@hashintel/brunch-agent:lint:eslint: Found 0 warnings and 13 errors.
+@hashintel/brunch-agent:lint:eslint: Finished in 505ms on 36 files with 179 rules using 16 threads.
+@hashintel/brunch-agent-plugin-gherkin:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent#lint:eslint:  WARNING  command finished with error, but continuing...
+@hashintel/brunch-agent-plugin-gherkin:build: transforming...
+@hashintel/brunch-agent-plugin-gherkin:build: ✓ 9 modules transformed.
+@hashintel/brunch-agent-plugin-gherkin:build: rendering chunks...
+@hashintel/brunch-agent-plugin-gherkin:build: computing gzip size...
+@hashintel/brunch-agent-plugin-gherkin:build: dist/index.js   0.18 kB │ gzip:  0.17 kB │ map: 0.77 kB
+@hashintel/brunch-agent-plugin-gherkin:build: dist/flue.js   31.54 kB │ gzip: 10.81 kB │ map: 1.94 kB
+@hashintel/brunch-agent-plugin-gherkin:build: 
+@hashintel/brunch-agent-plugin-gherkin:build: ✓ built in 11ms
+@hashintel/brunch-agent-binding-flue:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent-binding-flue:build: transforming...
+@hashintel/brunch-agent-binding-flue:build: ✓ 7 modules transformed.
+@hashintel/brunch-agent-binding-flue:build: rendering chunks...
+@hashintel/brunch-agent-binding-flue:build: computing gzip size...
+@hashintel/brunch-agent-binding-flue:build: dist/index.js  10.81 kB │ gzip: 3.85 kB │ map: 30.78 kB
+@hashintel/brunch-agent-binding-flue:build: 
+@hashintel/brunch-agent-binding-flue:build: ✓ built in 10ms
+@hashintel/petrinaut-core:build: ✓ 385 modules transformed.
+@hashintel/petrinaut-core:build: rendering chunks...
+@hashintel/petrinaut-core:build: computing gzip size...
+@hashintel/petrinaut-core:build: dist/selection.js                            0.11 kB │ gzip:     0.11 kB
+@hashintel/petrinaut-core:build: dist/support-QFmoRTi4.js                     0.17 kB │ gzip:     0.16 kB │ map:   1.19 kB
+@hashintel/petrinaut-core:build: dist/workers/lsp.js                          0.25 kB │ gzip:     0.19 kB │ map:   0.76 kB
+@hashintel/petrinaut-core:build: dist/workers/simulation.js                   0.25 kB │ gzip:     0.19 kB │ map:   0.60 kB
+@hashintel/petrinaut-core:build: dist/hir-runtime.js                          0.29 kB │ gzip:     0.18 kB
+@hashintel/petrinaut-core:build: dist/selection.d.ts                          0.31 kB │ gzip:     0.16 kB
+@hashintel/petrinaut-core:build: dist/examples/index.js                       0.31 kB │ gzip:     0.22 kB
+@hashintel/petrinaut-core:build: dist/time-DeDKdkwN.js                        0.31 kB │ gzip:     0.23 kB │ map:   1.26 kB
+@hashintel/petrinaut-core:build: dist/compute-next-frame-C-jZtFBX.d.ts        0.57 kB │ gzip:     0.32 kB │ map:   9.03 kB
+@hashintel/petrinaut-core:build: dist/workers/lsp.d.ts                        0.72 kB │ gzip:     0.36 kB │ map:   0.54 kB
+@hashintel/petrinaut-core:build: dist/selection-RzC-zvk4.js                   0.79 kB │ gzip:     0.50 kB │ map:   4.68 kB
+@hashintel/petrinaut-core:build: dist/experiment-stores-DVh6E0s0.js           0.87 kB │ gzip:     0.46 kB │ map:   3.89 kB
+@hashintel/petrinaut-core:build: dist/hir-runtime.d.ts                        1.06 kB │ gzip:     0.34 kB
+@hashintel/petrinaut-core:build: dist/ai.js                                   1.07 kB │ gzip:     0.49 kB
+@hashintel/petrinaut-core:build: dist/capacity-Dj6JeNjt.js                    1.23 kB │ gzip:     0.65 kB │ map:   7.08 kB
+@hashintel/petrinaut-core:build: dist/hir.js                                  1.29 kB │ gzip:     0.59 kB
+@hashintel/petrinaut-core:build: dist/parameter-values-eu_sZKJb.js            1.32 kB │ gzip:     0.63 kB │ map:   5.68 kB
+@hashintel/petrinaut-core:build: dist/optimization.js                         1.54 kB │ gzip:     0.51 kB
+@hashintel/petrinaut-core:build: dist/instantiate-Cxld0cne.js                 1.64 kB │ gzip:     0.79 kB │ map:  12.54 kB
+@hashintel/petrinaut-core:build: dist/record-keys-1sJBaBt0.js                 1.73 kB │ gzip:     0.79 kB │ map:   7.26 kB
+@hashintel/petrinaut-core:build: dist/workers/monte-carlo.d.ts                1.78 kB │ gzip:     0.60 kB │ map:   1.38 kB
+@hashintel/petrinaut-core:build: dist/ai.d.ts                                 2.10 kB │ gzip:     0.58 kB
+@hashintel/petrinaut-core:build: dist/selection-D9ffUDiZ.d.ts                 2.37 kB │ gzip:     1.08 kB │ map:   2.99 kB
+@hashintel/petrinaut-core:build: dist/compiled-model.d.ts                     3.44 kB │ gzip:     1.23 kB │ map:   4.55 kB
+@hashintel/petrinaut-core:build: dist/type-policies-Bh5NEOvT.js               3.63 kB │ gzip:     1.31 kB │ map:  17.78 kB
+@hashintel/petrinaut-core:build: dist/optimization.d.ts                       3.67 kB │ gzip:     0.66 kB
+@hashintel/petrinaut-core:build: dist/surface-context-BCMn0Ywq.js             3.68 kB │ gzip:     1.32 kB │ map:  19.40 kB
+@hashintel/petrinaut-core:build: dist/extensions-C8I_9D-1.d.ts                4.00 kB │ gzip:     1.26 kB │ map:   5.83 kB
+@hashintel/petrinaut-core:build: dist/token-layout-BvitVYQC.js                4.07 kB │ gzip:     1.55 kB │ map:  21.47 kB
+@hashintel/petrinaut-core:build: dist/hir.d.ts                                4.44 kB │ gzip:     1.23 kB
+@hashintel/petrinaut-core:build: dist/experiments.d.ts                        4.47 kB │ gzip:     1.68 kB │ map:   6.93 kB
+@hashintel/petrinaut-core:build: dist/experiment-CN3O8DTt.d.ts                4.99 kB │ gzip:     1.85 kB │ map:   7.55 kB
+@hashintel/petrinaut-core:build: dist/workers/monte-carlo.js                  5.12 kB │ gzip:     1.90 kB │ map:  17.85 kB
+@hashintel/petrinaut-core:build: dist/workers/simulation.d.ts                 5.44 kB │ gzip:     1.99 kB │ map:  10.28 kB
+@hashintel/petrinaut-core:build: dist/webgpu.d.ts                             5.88 kB │ gzip:     2.39 kB │ map:  15.69 kB
+@hashintel/petrinaut-core:build: dist/experiments.js                          6.53 kB │ gzip:     2.38 kB │ map:  26.87 kB
+@hashintel/petrinaut-core:build: dist/examples/index.d.ts                     9.33 kB │ gzip:     3.77 kB │ map:  10.45 kB
+@hashintel/petrinaut-core:build: dist/api-L5t-x6dS.d.ts                       9.55 kB │ gzip:     3.54 kB │ map:  12.41 kB
+@hashintel/petrinaut-core:build: dist/experiment-backend--dHxenV2.d.ts       10.28 kB │ gzip:     3.95 kB │ map:  14.03 kB
+@hashintel/petrinaut-core:build: dist/sdcpn-CmLg1nPY.d.ts                    11.80 kB │ gzip:     4.00 kB │ map:  15.64 kB
+@hashintel/petrinaut-core:build: dist/experiment-Cw9P3MTS.js                 13.42 kB │ gzip:     4.35 kB │ map:  54.26 kB
+@hashintel/petrinaut-core:build: dist/compiled-model.js                      15.93 kB │ gzip:     5.15 kB │ map:  66.55 kB
+@hashintel/petrinaut-core:build: dist/optimization-DK5oBwQm.js               17.12 kB │ gzip:     4.86 kB │ map:  54.19 kB
+@hashintel/petrinaut-core:build: dist/hir-runtime-CaVQSVhv.d.ts              19.08 kB │ gzip:     6.46 kB │ map:  27.06 kB
+@hashintel/petrinaut-core:build: dist/messages-ChKNREKi.d.ts                 20.41 kB │ gzip:     5.56 kB │ map:  26.95 kB
+@hashintel/petrinaut-core:build: dist/user-defined-lYOWZg_0.js               22.75 kB │ gzip:     6.87 kB │ map:  84.32 kB
+@hashintel/petrinaut-core:build: dist/scenario-schema-CkXxxKxa.js            27.15 kB │ gzip:     8.34 kB │ map:  49.57 kB
+@hashintel/petrinaut-core:build: dist/typecheck-DJ4DWDrQ.js                  27.52 kB │ gzip:     6.80 kB │ map:  89.76 kB
+@hashintel/petrinaut-core:build: dist/index.d.ts                             27.54 kB │ gzip:     6.53 kB
+@hashintel/petrinaut-core:build: dist/hir-metric-D4uEpZOA.js                 29.72 kB │ gzip:     8.56 kB │ map: 106.23 kB
+@hashintel/petrinaut-core:build: dist/ai-CmUEIcuN.js                         31.97 kB │ gzip:    10.47 kB │ map:  60.41 kB
+@hashintel/petrinaut-core:build: dist/extensions-BznQh6CW.js                 50.95 kB │ gzip:    13.39 kB │ map: 177.21 kB
+@hashintel/petrinaut-core:build: dist/instance-dQJMEYM8.d.ts                 67.03 kB │ gzip:     6.48 kB │ map: 164.88 kB
+@hashintel/petrinaut-core:build: dist/webgpu.js                              78.09 kB │ gzip:    23.80 kB │ map: 323.21 kB
+@hashintel/petrinaut-core:build: dist/hir-DCpzVv-F.js                        84.05 kB │ gzip:    20.34 kB │ map: 259.97 kB
+@hashintel/petrinaut-core:build: dist/index.js                               88.73 kB │ gzip:    24.16 kB │ map: 311.35 kB
+@hashintel/petrinaut-core:build: dist/simulation.worker-C2Mxugw1.js         118.52 kB │ gzip:    33.64 kB │ map:   0.09 kB
+@hashintel/petrinaut-core:build: dist/ai-jgIk4czs.d.ts                      128.59 kB │ gzip:     8.50 kB │ map: 284.62 kB
+@hashintel/petrinaut-core:build: dist/monte-carlo.worker-WQ0YZbjg.js        131.60 kB │ gzip:    37.58 kB │ map:   0.09 kB
+@hashintel/petrinaut-core:build: dist/examples-ubXygPF4.js                  155.60 kB │ gzip:    32.28 kB │ map: 229.24 kB
+@hashintel/petrinaut-core:build: dist/hir-CWid-6fO.d.ts                     211.09 kB │ gzip:    45.69 kB │ map: 355.96 kB
+@hashintel/petrinaut-core:build: dist/language-server.worker-Diq9yLSu.js  3,960.93 kB │ gzip: 1,059.96 kB │ map:   0.09 kB
+@hashintel/petrinaut-core:build: 
+@hashintel/petrinaut-core:build: ✓ built in 1.63s
+@hashintel/petrinaut-core:build:   ok   index.js (external: zod, uuid, immer, elkjs, vscode-languageserver-types, js-yaml)
+@hashintel/petrinaut-core:build:   ok   webgpu.js (external: zod)
+@hashintel/petrinaut-core:build:   ok   hir-runtime.js (no external imports)
+@hashintel/petrinaut-core:build: 
+@hashintel/petrinaut-core:build: All browser-facing entries are free of Node-only imports.
+@hashintel/brunch-agent-plugin-sdcpn:build: cache miss, executing 701090bafdda2fc8
+@hashintel/brunch-agent:test:unit: 
+@hashintel/brunch-agent:test:unit:  Test Files  12 passed (12)
+@hashintel/brunch-agent:test:unit:       Tests  100 passed (100)
+@hashintel/brunch-agent:test:unit:    Start at  11:31:30
+@hashintel/brunch-agent:test:unit:    Duration  1.49s (transform 96ms, setup 0ms, import 531ms, tests 79ms, environment 0ms)
+@hashintel/brunch-agent:test:unit: 
+@hashintel/brunch-agent-plugin-sdcpn:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent-plugin-sdcpn:build: transforming...
+@hashintel/brunch-agent-plugin-sdcpn:build: ✓ 13 modules transformed.
+@hashintel/brunch-agent-plugin-sdcpn:build: rendering chunks...
+@hashintel/brunch-agent-plugin-sdcpn:build: computing gzip size...
+@hashintel/brunch-agent-plugin-sdcpn:build: dist/index.js   0.18 kB │ gzip:  0.17 kB │ map:  0.84 kB
+@hashintel/brunch-agent-plugin-sdcpn:build: dist/flue.js   53.70 kB │ gzip: 17.92 kB │ map: 17.32 kB
+@hashintel/brunch-agent-plugin-sdcpn:build: 
+@hashintel/brunch-agent-plugin-sdcpn:build: ✓ built in 12ms
+@apps/brunch-agent:build: cache miss, executing e8edee281cf79e8c
+@apps/brunch-agent:lint:eslint: cache miss, executing e1b1c180d885e937
+@apps/brunch-agent:lint:tsc: cache miss, executing b977a0d71fc0762e
+@apps/brunch-agent:build: vite v8.2.2 building ssr environment for production...
+@apps/brunch-agent:build: transforming...
+@apps/brunch-agent:build: ✓ 557 modules transformed.
+@apps/brunch-agent:build: rendering chunks...
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   x vitest(no-standalone-expect): `expect` must be inside of a test block.
+@apps/brunch-agent:lint:eslint:     ,-[test/workpiece-revisions.test.ts:17:3]
+@apps/brunch-agent:lint:eslint:  16 |   );
+@apps/brunch-agent:lint:eslint:  17 |   expect(exitCode, stderr || stdout).toBe(0);
+@apps/brunch-agent:lint:eslint:     :   ^^^^^^
+@apps/brunch-agent:lint:eslint:  18 |   const line = stdout
+@apps/brunch-agent:lint:eslint:     `----
+@apps/brunch-agent:lint:eslint:   help: Did you forget to wrap `expect` in a `test` or `it` block?
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   x vitest(no-standalone-expect): `expect` must be inside of a test block.
+@apps/brunch-agent:lint:eslint:     ,-[test/workpiece-revisions.test.ts:21:3]
+@apps/brunch-agent:lint:eslint:  20 |     .find((entry) => entry.startsWith("WORKPIECE_REVISIONS "));
+@apps/brunch-agent:lint:eslint:  21 |   expect(line, stdout).toBeDefined();
+@apps/brunch-agent:lint:eslint:     :   ^^^^^^
+@apps/brunch-agent:lint:eslint:  22 |   result = JSON.parse(
+@apps/brunch-agent:lint:eslint:     `----
+@apps/brunch-agent:lint:eslint:   help: Did you forget to wrap `expect` in a `test` or `it` block?
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/workpiece-revisions.integration.ts:166:7]
+@apps/brunch-agent:lint:eslint:  165 |       const mixedClient = clientFor(caseId);
+@apps/brunch-agent:lint:eslint:  166 |       await mixedClient.wait(
+@apps/brunch-agent:lint:eslint:      :       ^^^^^
+@apps/brunch-agent:lint:eslint:  167 |         await mixedClient.send({
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/workpiece-revisions.integration.ts:167:9]
+@apps/brunch-agent:lint:eslint:  166 |       await mixedClient.wait(
+@apps/brunch-agent:lint:eslint:  167 |         await mixedClient.send({
+@apps/brunch-agent:lint:eslint:      :         ^^^^^
+@apps/brunch-agent:lint:eslint:  168 |           initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/workpiece-revisions.integration.ts:175:23]
+@apps/brunch-agent:lint:eslint:  174 |       );
+@apps/brunch-agent:lint:eslint:  175 |       const history = await mixedClient.history();
+@apps/brunch-agent:lint:eslint:      :                       ^^^^^
+@apps/brunch-agent:lint:eslint:  176 |       save(`${caseId}-history.json`, history);
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/workpiece-revisions.integration.ts:191:13]
+@apps/brunch-agent:lint:eslint:  190 |           results.push(
+@apps/brunch-agent:lint:eslint:  191 |             await headless.execute({
+@apps/brunch-agent:lint:eslint:      :             ^^^^^
+@apps/brunch-agent:lint:eslint:  192 |               toolName: call.toolName,
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:     ,-[test/petrinaut-chat.integration.ts:71:20]
+@apps/brunch-agent:lint:eslint:  70 |   for (;;) {
+@apps/brunch-agent:lint:eslint:  71 |     const result = await reader.read();
+@apps/brunch-agent:lint:eslint:     :                    ^^^^^
+@apps/brunch-agent:lint:eslint:  72 |     if (result.done) return chunks;
+@apps/brunch-agent:lint:eslint:     `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[src/evaluations/persona/brunch-turn.ts:297:11]
+@apps/brunch-agent:lint:eslint:  296 |           submissionIds.push(currentAdmission.submissionId);
+@apps/brunch-agent:lint:eslint:  297 |           await onUpdate?.({
+@apps/brunch-agent:lint:eslint:      :           ^^^^^
+@apps/brunch-agent:lint:eslint:  298 |             content: [
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[src/evaluations/persona/brunch-turn.ts:311:25]
+@apps/brunch-agent:lint:eslint:  310 | 
+@apps/brunch-agent:lint:eslint:  311 |           const reply = await client.read(currentAdmission, { signal });
+@apps/brunch-agent:lint:eslint:      :                         ^^^^^
+@apps/brunch-agent:lint:eslint:  312 |           const snapshot = await client.history({ signal });
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[src/evaluations/persona/brunch-turn.ts:312:28]
+@apps/brunch-agent:lint:eslint:  311 |           const reply = await client.read(currentAdmission, { signal });
+@apps/brunch-agent:lint:eslint:  312 |           const snapshot = await client.history({ signal });
+@apps/brunch-agent:lint:eslint:      :                            ^^^^^
+@apps/brunch-agent:lint:eslint:  313 |           // Snapshot retention must finish before this canonical submission is advanced or returned.
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[src/evaluations/persona/brunch-turn.ts:400:30]
+@apps/brunch-agent:lint:eslint:  399 |               // Tool calls within one suspension are serviced in canonical order.
+@apps/brunch-agent:lint:eslint:  400 |               const output = await host.execute(call);
+@apps/brunch-agent:lint:eslint:      :                              ^^^^^
+@apps/brunch-agent:lint:eslint:  401 |               completedClientCallIds.add(call.toolCallId);
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[src/evaluations/persona/brunch-turn.ts:436:30]
+@apps/brunch-agent:lint:eslint:  435 | 
+@apps/brunch-agent:lint:eslint:  436 |           currentAdmission = await client.send({
+@apps/brunch-agent:lint:eslint:      :                              ^^^^^
+@apps/brunch-agent:lint:eslint:  437 |             message: {
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! react-perf(jsx-no-new-function-as-prop): JSX attribute values should not contain functions created in the same scope.
+@apps/brunch-agent:lint:eslint:      ,-[src/ui/chat.tsx:108:12]
+@apps/brunch-agent:lint:eslint:  107 | 
+@apps/brunch-agent:lint:eslint:  108 |   function submit(event: FormEvent<HTMLFormElement>): void {
+@apps/brunch-agent:lint:eslint:      :            ^^^|^^
+@apps/brunch-agent:lint:eslint:      :               `-- The prop was declared here
+@apps/brunch-agent:lint:eslint:  109 |     event.preventDefault();
+@apps/brunch-agent:lint:eslint:  110 |     const reply = input.trim();
+@apps/brunch-agent:lint:eslint:  111 |     if (!reply || busy) return;
+@apps/brunch-agent:lint:eslint:  112 |     setInput("");
+@apps/brunch-agent:lint:eslint:  113 |     void agent.sendMessage(reply);
+@apps/brunch-agent:lint:eslint:  114 |   }
+@apps/brunch-agent:lint:eslint:  115 | 
+@apps/brunch-agent:lint:eslint:  116 |   return (
+@apps/brunch-agent:lint:eslint:  117 |     <main className="shell">
+@apps/brunch-agent:lint:eslint:  118 |       <header className="masthead">
+@apps/brunch-agent:lint:eslint:  119 |         <div>
+@apps/brunch-agent:lint:eslint:  120 |           <p className="eyebrow">
+@apps/brunch-agent:lint:eslint:  121 |             {readOnly ? "Brunch / Flue observer" : "Brunch / Flue chat"}
+@apps/brunch-agent:lint:eslint:  122 |           </p>
+@apps/brunch-agent:lint:eslint:  123 |           <h1>
+@apps/brunch-agent:lint:eslint:  124 |             {readOnly ? "Canonical conversation" : "Plain Flue conversation"}
+@apps/brunch-agent:lint:eslint:  125 |           </h1>
+@apps/brunch-agent:lint:eslint:  126 |         </div>
+@apps/brunch-agent:lint:eslint:  127 |         <span className={`status status--${agent.status}`}>
+@apps/brunch-agent:lint:eslint:  128 |           {readOnly ? `read-only · ${agent.status}` : agent.status}
+@apps/brunch-agent:lint:eslint:  129 |         </span>
+@apps/brunch-agent:lint:eslint:  130 |       </header>
+@apps/brunch-agent:lint:eslint:  131 | 
+@apps/brunch-agent:lint:eslint:  132 |       <section className="transcript" aria-live="polite" aria-busy={busy}>
+@apps/brunch-agent:lint:eslint:  133 |         {agent.messages.map((message) => (
+@apps/brunch-agent:lint:eslint:  134 |           <VisibleMessage key={message.id} message={message} />
+@apps/brunch-agent:lint:eslint:  135 |         ))}
+@apps/brunch-agent:lint:eslint:  136 |         {agent.error ? <p className="error">{agent.error.message}</p> : null}
+@apps/brunch-agent:lint:eslint:  137 |       </section>
+@apps/brunch-agent:lint:eslint:  138 | 
+@apps/brunch-agent:lint:eslint:  139 |       {readOnly ? null : (
+@apps/brunch-agent:lint:eslint:  140 |         <form className="composer" onSubmit={submit}>
+@apps/brunch-agent:lint:eslint:      :                                              ^^^|^^
+@apps/brunch-agent:lint:eslint:      :                                                 `-- And used here
+@apps/brunch-agent:lint:eslint:  141 |           <label htmlFor="reply">Your message</label>
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: simplify props or memoize props in the parent component (https://react.dev/reference/react/memo#my-component-rerenders-when-a-prop-is-an-object-or-array).
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! react-perf(jsx-no-new-function-as-prop): JSX attribute values should not contain functions created in the same scope.
+@apps/brunch-agent:lint:eslint:      ,-[src/ui/chat.tsx:146:25]
+@apps/brunch-agent:lint:eslint:  145 |               value={input}
+@apps/brunch-agent:lint:eslint:  146 |               onChange={(event) => setInput(event.target.value)}
+@apps/brunch-agent:lint:eslint:      :                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+@apps/brunch-agent:lint:eslint:  147 |               placeholder="Ask something."
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: simplify props or memoize props in the parent component (https://react.dev/reference/react/memo#my-component-rerenders-when-a-prop-is-an-object-or-array).
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:     ,-[test/assets.test.ts:78:24]
+@apps/brunch-agent:lint:eslint:  77 |     ] as const) {
+@apps/brunch-agent:lint:eslint:  78 |       const response = await app.request(`/assets/${file}`);
+@apps/brunch-agent:lint:eslint:     :                        ^^^^^
+@apps/brunch-agent:lint:eslint:  79 |       expect({
+@apps/brunch-agent:lint:eslint:     `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/assets.test.ts:129:24]
+@apps/brunch-agent:lint:eslint:  128 |     for (const name of PRODUCER_PUNCTUATION) {
+@apps/brunch-agent:lint:eslint:  129 |       const response = await app.request(`/assets/${encodeURIComponent(name)}`);
+@apps/brunch-agent:lint:eslint:      :                        ^^^^^
+@apps/brunch-agent:lint:eslint:  130 |       expect({
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/assets.test.ts:133:15]
+@apps/brunch-agent:lint:eslint:  132 |         status: response.status,
+@apps/brunch-agent:lint:eslint:  133 |         body: await response.text(),
+@apps/brunch-agent:lint:eslint:      :               ^^^^^
+@apps/brunch-agent:lint:eslint:  134 |       }).toEqual({
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/assets.test.ts:159:24]
+@apps/brunch-agent:lint:eslint:  158 |     ]) {
+@apps/brunch-agent:lint:eslint:  159 |       const response = await app.request(path);
+@apps/brunch-agent:lint:eslint:      :                        ^^^^^
+@apps/brunch-agent:lint:eslint:  160 |       expect({
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/assets.test.ts:163:18]
+@apps/brunch-agent:lint:eslint:  162 |         status: response.status,
+@apps/brunch-agent:lint:eslint:  163 |         leaked: (await response.text()).includes("SECRET"),
+@apps/brunch-agent:lint:eslint:      :                  ^^^^^
+@apps/brunch-agent:lint:eslint:  164 |       }).toEqual({ path, status: 404, leaked: false });
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   ! eslint(no-await-in-loop): Unexpected `await` inside a loop.
+@apps/brunch-agent:lint:eslint:      ,-[test/assets.test.ts:178:24]
+@apps/brunch-agent:lint:eslint:  177 |     ] as const) {
+@apps/brunch-agent:lint:eslint:  178 |       const response = await app.request(path);
+@apps/brunch-agent:lint:eslint:      :                        ^^^^^
+@apps/brunch-agent:lint:eslint:  179 |       expect({ reason, status: response.status }).toEqual({
+@apps/brunch-agent:lint:eslint:      `----
+@apps/brunch-agent:lint:eslint:   help: Collect all promises into an array and use `Promise.all()` to run them in parallel, rather than awaiting each one sequentially inside the loop.
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint:   x typescript(no-unsafe-assignment): Unsafe assignment of an any value.
+@apps/brunch-agent:lint:eslint:     ,-[test/workpiece-revisions.test.ts:44:7]
+@apps/brunch-agent:lint:eslint:  43 |           toolName: "update_workpiece",
+@apps/brunch-agent:lint:eslint:  44 | ,->       output: expect.objectContaining({
+@apps/brunch-agent:lint:eslint:  45 | |           revisionId: "second-revision",
+@apps/brunch-agent:lint:eslint:  46 | |           ordinal: 2,
+@apps/brunch-agent:lint:eslint:  47 | `->       }),
+@apps/brunch-agent:lint:eslint:  48 |         }),
+@apps/brunch-agent:lint:eslint:     `----
+@apps/brunch-agent:lint:eslint: 
+@apps/brunch-agent:lint:eslint: Found 18 warnings and 3 errors.
+@apps/brunch-agent:lint:eslint: Finished in 553ms on 81 files with 239 rules using 16 threads.
+@apps/brunch-agent:build: computing gzip size...
+@apps/brunch-agent#lint:eslint:  WARNING  command finished with error, but continuing...
+@apps/brunch-agent:build: dist/app.mjs                                    0.15 kB │ gzip:   0.12 kB
+@apps/brunch-agent:build: dist/execAsync-D25bwo5l.mjs                     0.58 kB │ gzip:   0.37 kB │ map:     0.76 kB
+@apps/brunch-agent:build: dist/getMachineId-unsupported-QqRDr4II.mjs      0.72 kB │ gzip:   0.41 kB │ map:     0.90 kB
+@apps/brunch-agent:build: dist/getMachineId-linux-B5Iy_Sy7.mjs            0.89 kB │ gzip:   0.52 kB │ map:     1.36 kB
+@apps/brunch-agent:build: dist/server.mjs                                 0.90 kB │ gzip:   0.53 kB │ map:     1.45 kB
+@apps/brunch-agent:build: dist/getMachineId-bsd-ThF6nEVL.mjs              1.10 kB │ gzip:   0.57 kB │ map:     1.62 kB
+@apps/brunch-agent:build: dist/getMachineId-darwin-C6rMMlat.mjs           1.11 kB │ gzip:   0.62 kB │ map:     1.68 kB
+@apps/brunch-agent:build: dist/getMachineId-win-FwyaH7b-.mjs              1.27 kB │ gzip:   0.74 kB │ map:     1.83 kB
+@apps/brunch-agent:build: dist/rolldown-runtime-BMI-E3GI.mjs              1.92 kB │ gzip:   0.87 kB
+@apps/brunch-agent:build: dist/node-server-BoUuBQUL.mjs               2,722.26 kB │ gzip: 521.04 kB │ map: 4,824.65 kB
+@apps/brunch-agent:build: 
+@apps/brunch-agent:build: ✓ built in 185ms
+@apps/brunch-agent:build: vite v8.2.2 building client environment for production...
+@apps/brunch-agent:build: transforming...
+@apps/brunch-agent:build: ✓ 169 modules transformed.
+@apps/brunch-agent:build: rendering chunks...
+@apps/brunch-agent:build: computing gzip size...
+@apps/brunch-agent:build: dist/client/index.html          0.38 kB │ gzip:  0.24 kB
+@apps/brunch-agent:build: dist/client/assets/index.css    2.54 kB │ gzip:  1.16 kB
+@apps/brunch-agent:build: dist/client/assets/index.js   244.66 kB │ gzip: 75.89 kB
+@apps/brunch-agent:build: 
+@apps/brunch-agent:build: ✓ built in 65ms
+@apps/brunch-agent:test:unit: cache miss, executing 8a486329aaafc29e
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit:  RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/bravo/apps/brunch-agent
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit:  ❯ test/architecture/boundaries.test.ts (27 tests | 1 failed) 73ms
+@apps/brunch-agent:test:unit:      × the substrate is imported by exactly the reviewed entry points 5ms
+@apps/brunch-agent:test:unit:  ❯ test/workpiece-revisions.test.ts (3 tests | 3 skipped) 2460ms
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: ⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit:  FAIL  test/workpiece-revisions.test.ts [ test/workpiece-revisions.test.ts ]
+@apps/brunch-agent:test:unit: AssertionError: [flue:submission-processing] {
+@apps/brunch-agent:test:unit:   submissionId: 'sub_01M205QQ8XTK8SDRZWKXDK60EQ',
+@apps/brunch-agent:test:unit:   operation: 'process_submission',
+@apps/brunch-agent:test:unit:   outcome: 'failed'
+@apps/brunch-agent:test:unit: } OperationFailedError [FlueError]: direct(sub_01M205QQ8XTK8SDRZWKXDK60EQ) failed: async (toolCallId, params, signal) => {
+@apps/brunch-agent:test:unit: 				let prepared;
+@apps/brunch-agent:test:unit: 				try {
+@apps/brunch-agent:test:unit: 					if (signal?.aborted) throw abortErrorF...<omitted>...	} could not be cloned.
+@apps/brunch-agent:test:unit:     at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/bravo/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23)
+@apps/brunch-agent:test:unit:     at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/bravo/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10)
+@apps/brunch-agent:test:unit:     at async file:///Users/lunelson/.herdr/worktrees/hash/bravo/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+@apps/brunch-agent:test:unit:     at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/bravo/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11)
+@apps/brunch-agent:test:unit:     at async file:///Users/lunelson/.herdr/worktrees/hash/bravo/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+@apps/brunch-agent:test:unit:     at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/bravo/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3710:11) {
+@apps/brunch-agent:test:unit:   type: 'operation_failed',
+@apps/brunch-agent:test:unit:   details: '',
+@apps/brunch-agent:test:unit:   dev: '',
+@apps/brunch-agent:test:unit:   meta: {
+@apps/brunch-agent:test:unit:     operation: 'direct(sub_01M205QQ8XTK8SDRZWKXDK60EQ)',
+@apps/brunch-agent:test:unit:     reason: 'async (toolCallId, params, signal) => {\n' +
+@apps/brunch-agent:test:unit:       '\t\t\t\tlet prepared;\n' +
+@apps/brunch-agent:test:unit:       '\t\t\t\ttry {\n' +
+@apps/brunch-agent:test:unit:       '\t\t\t\t\tif (signal?.aborted) throw abortErrorF...<omitted>...\t} could not be cloned.'
+@apps/brunch-agent:test:unit:   },
+@apps/brunch-agent:test:unit:   cause: undefined
+@apps/brunch-agent:test:unit: }
+@apps/brunch-agent:test:unit: file:///Users/lunelson/.herdr/worktrees/hash/bravo/node_modules/@flue/sdk/dist/index.mjs:1028
+@apps/brunch-agent:test:unit: 				throw new FlueExecutionError({
+@apps/brunch-agent:test:unit: 				      ^
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: FlueExecutionError: Agent submission sub_01M205QQ8XTK8SDRZWKXDK60EQ failed: direct(sub_01M205QQ8XTK8SDRZWKXDK60EQ) failed: async (toolCallId, params, signal) => {
+@apps/brunch-agent:test:unit: 				let prepared;
+@apps/brunch-agent:test:unit: 				try {
+@apps/brunch-agent:test:unit: 					if (signal?.aborted) throw abortErrorF...<omitted>...	} could not be cloned.
+@apps/brunch-agent:test:unit:     at waitForAgentSubmission (file:///Users/lunelson/.herdr/worktrees/hash/bravo/node_modules/@flue/sdk/dist/index.mjs:1028:11)
+@apps/brunch-agent:test:unit:     at async probe (file:///Users/lunelson/.herdr/worktrees/hash/bravo/apps/brunch-agent/test/workpiece-revisions.integration.ts:95:5)
+@apps/brunch-agent:test:unit:     at async file:///Users/lunelson/.herdr/worktrees/hash/bravo/apps/brunch-agent/test/workpiece-revisions.integration.ts:227:18 {
+@apps/brunch-agent:test:unit:   target: 'agent_submission',
+@apps/brunch-agent:test:unit:   targetId: 'sub_01M205QQ8XTK8SDRZWKXDK60EQ',
+@apps/brunch-agent:test:unit:   failure: 'failed',
+@apps/brunch-agent:test:unit:   error: {
+@apps/brunch-agent:test:unit:     name: 'FlueError',
+@apps/brunch-agent:test:unit:     message: 'direct(sub_01M205QQ8XTK8SDRZWKXDK60EQ) failed: async (toolCallId, params, signal) => {\n' +
+@apps/brunch-agent:test:unit:       '\t\t\t\tlet prepared;\n' +
+@apps/brunch-agent:test:unit:       '\t\t\t\ttry {\n' +
+@apps/brunch-agent:test:unit:       '\t\t\t\t\tif (signal?.aborted) throw abortErrorF...<omitted>...\t} could not be cloned.',
+@apps/brunch-agent:test:unit:     type: 'operation_failed',
+@apps/brunch-agent:test:unit:     details: '',
+@apps/brunch-agent:test:unit:     meta: {
+@apps/brunch-agent:test:unit:       operation: 'direct(sub_01M205QQ8XTK8SDRZWKXDK60EQ)',
+@apps/brunch-agent:test:unit:       reason: 'async (toolCallId, params, signal) => {\n' +
+@apps/brunch-agent:test:unit:         '\t\t\t\tlet prepared;\n' +
+@apps/brunch-agent:test:unit:         '\t\t\t\ttry {\n' +
+@apps/brunch-agent:test:unit:         '\t\t\t\t\tif (signal?.aborted) throw abortErrorF...<omitted>...\t} could not be cloned.'
+@apps/brunch-agent:test:unit:     }
+@apps/brunch-agent:test:unit:   }
+@apps/brunch-agent:test:unit: }
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: Node.js v24.20.0
+@apps/brunch-agent:test:unit: : expected 1 to be +0 // Object.is equality
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: - Expected
+@apps/brunch-agent:test:unit: + Received
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: - 0
+@apps/brunch-agent:test:unit: + 1
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit:  ❯ Session.throwIfError ../../node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4177:23
+@apps/brunch-agent:test:unit:  ❯ Session.resumeConversationToCompletion ../../node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4377:10
+@apps/brunch-agent:test:unit:  ❯ ../../node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4463:5
+@apps/brunch-agent:test:unit:  ❯ Session.withCallOverrides ../../node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3482:11
+@apps/brunch-agent:test:unit:  ❯ ../../node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3659:70
+@apps/brunch-agent:test:unit:  ❯ waitForAgentSubmission ../../node_modules/@flue/sdk/dist/index.mjs:1028:11
+@apps/brunch-agent:test:unit:  ❯ probe test/workpiece-revisions.integration.ts:95:5
+@apps/brunch-agent:test:unit:  ❯ test/workpiece-revisions.test.ts:17:38
+@apps/brunch-agent:test:unit:      15|     {},
+@apps/brunch-agent:test:unit:      16|   );
+@apps/brunch-agent:test:unit:      17|   expect(exitCode, stderr || stdout).toBe(0);
+@apps/brunch-agent:test:unit:        |                                      ^
+@apps/brunch-agent:test:unit:      18|   const line = stdout
+@apps/brunch-agent:test:unit:      19|     .split("\n")
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit:  FAIL  test/architecture/boundaries.test.ts > the HASH smoke is runnable without a model key or a network (spec §12.5) > the substrate is imported by exactly the reviewed entry points
+@apps/brunch-agent:test:unit: AssertionError: expected [ …(16) ] to deeply equal [ …(14) ]
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: - Expected
+@apps/brunch-agent:test:unit: + Received
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: @@ -6,11 +6,13 @@
+@apps/brunch-agent:test:unit:     "apps/brunch-agent/test/proof-artifacts.test.ts",
+@apps/brunch-agent:test:unit:     "apps/brunch-agent/test/runbook-artifacts.test.ts",
+@apps/brunch-agent:test:unit:     "apps/brunch-agent/test/runbook-elicitation-faux-provider.ts",
+@apps/brunch-agent:test:unit:     "apps/brunch-agent/test/runbook-headless.integration.ts",
+@apps/brunch-agent:test:unit:     "apps/brunch-agent/test/telemetry.test.ts",
+@apps/brunch-agent:test:unit: +   "apps/brunch-agent/test/workpiece-revisions.integration.ts",
+@apps/brunch-agent:test:unit:     "apps/brunch-agent/test/workpiece.test.ts",
+@apps/brunch-agent:test:unit:     "libs/@hashintel/brunch-agent/packages/core/test/question-marker.test.ts",
+@apps/brunch-agent:test:unit: +   "libs/@hashintel/brunch-agent/packages/core/test/update-workpiece.test.ts",
+@apps/brunch-agent:test:unit:     "libs/@hashintel/brunch-agent/packages/transport-aisdk/test/chat-transport.test.ts",
+@apps/brunch-agent:test:unit:     "libs/@hashintel/brunch-agent/packages/transport-aisdk/test/transcript.test.ts",
+@apps/brunch-agent:test:unit:     "libs/@hashintel/brunch-agent/packages/transport-aisdk/test/ui-stream.test.ts",
+@apps/brunch-agent:test:unit:   ]
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit:  ❯ test/architecture/boundaries.integration.ts:488:23
+@apps/brunch-agent:test:unit:     486|       .map((file) => file.relPath)
+@apps/brunch-agent:test:unit:     487|       .sort();
+@apps/brunch-agent:test:unit:     488|     expect(importers).toEqual(
+@apps/brunch-agent:test:unit:        |                       ^
+@apps/brunch-agent:test:unit:     489|       Object.keys(SUBSTRATE_INTEGRATION_ENTRY_POINTS).sort(),
+@apps/brunch-agent:test:unit:     490|     );
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent:test:unit:  Test Files  2 failed | 24 passed (26)
+@apps/brunch-agent:test:unit:       Tests  1 failed | 151 passed | 3 skipped (155)
+@apps/brunch-agent:test:unit:    Start at  11:31:35
+@apps/brunch-agent:test:unit:    Duration  4.22s (transform 799ms, setup 0ms, import 2.08s, tests 12.67s, environment 1ms)
+@apps/brunch-agent:test:unit: 
+@apps/brunch-agent#test:unit:  WARNING  command finished with error, but continuing...
+@hashintel/brunch-agent#lint:eslint:  ERROR  command (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@hashintel/brunch-agent/packages/core) /private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/xfs-173d68c3/yarn run lint:eslint exited (1)
+@apps/brunch-agent#lint:eslint:  ERROR  command (/Users/lunelson/.herdr/worktrees/hash/bravo/apps/brunch-agent) /private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/xfs-173d68c3/yarn run lint:eslint exited (1)
+@apps/brunch-agent#test:unit:  ERROR  command (/Users/lunelson/.herdr/worktrees/hash/bravo/apps/brunch-agent) /private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/xfs-173d68c3/yarn run test:unit exited (1)
+
+ Tasks:    36 successful, 39 total
+Cached:    26 cached, 39 total
+  Time:    11.069s 
+Failed:    @apps/brunch-agent#lint:eslint, @apps/brunch-agent#test:unit, @hashintel/brunch-agent#lint:eslint
+
+ ERROR  run failed: command  exited (1)

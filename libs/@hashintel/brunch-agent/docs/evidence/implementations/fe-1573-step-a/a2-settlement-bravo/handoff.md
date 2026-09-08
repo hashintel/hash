@@ -6,7 +6,7 @@
 
 - Base/ancestry: `c4f5a54b355f25b2588a1a23659fdc996d14986a`, verified with `git merge-base --is-ancestor`; starting worktree was clean.
 - Worktree: `/Users/lunelson/.herdr/worktrees/hash/bravo`; branch: `ln/fe-1573-a2`.
-- Implementation/tests: **`02062b00ad89a86e0710b9add4c6ac25863b277e`**. The follow-on evidence commit contains this directory; obtain its exact identity with `git log -1 --format=%H -- <this-directory>` or the dispatch return.
+- Implementation/tests: **`02062b00ad89a86e0710b9add4c6ac25863b277e`**. Follow-on evidence commits contain this directory, including explicitly retained ignored log files; the dispatch return lists every commit ID. `changed-files.txt` lists the exact changed paths across the complete handoff.
 - Exactly six implementation/test files changed: `packages/core/src/flue.ts`, `packages/core/src/workpiece.ts`, `packages/core/src/update-workpiece.ts`, `packages/core/test/update-workpiece.test.ts`, repository-root `apps/brunch-agent/test/workpiece-revisions.integration.ts`, and `apps/brunch-agent/test/workpiece-revisions.test.ts`.
 - `MISSION.md`, app ChatAgent, plugin mounting, website, shared helpers/configuration, shared paid ledgers and all sibling worktrees were unchanged. No new dependency, issue, PR, push, restack, merge or history rewrite. `yarn install --immutable` restored already-declared dependencies missing in this fresh worktree; it changed no tracked dependency file.
 - **Zero paid calls / US$0.** All model steps used `fauxProvider`; a Sonnet model identifier in faux metadata is not real-provider evidence or a spending reservation.

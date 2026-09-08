@@ -1,0 +1,147 @@
+• turbo 2.10.12
+
+   • Packages in scope: @apps/brunch-agent, @hashintel/brunch-agent
+   • Running build, lint:tsc, lint:eslint, test:unit in 2 packages
+   • Remote caching disabled, using shared worktree cache
+
+@hashintel/petrinaut-core:build: cache bypass, force executing d9d4c5a5d59c1d6a
+@local/advanced-types:build: cache miss, executing 38f9eeeeb4176261
+@local/hash-isomorphic-utils:codegen: cache miss, executing 6a8cd05e7ded6141
+@hashintel/brunch-agent:build: cache miss, executing d44493d85fd42c84
+@hashintel/brunch-agent:test:unit: cache miss, executing 6dce7a8981d3dbcc
+@local/internal-api-client:build: cache miss, executing c10bcdc5687c7f04
+@local/eslint:build: cache miss, executing 8df70cf8a04e0e2e
+@local/status:build: cache miss, executing ac8382af007adb70
+@hashintel/brunch-agent-transport-aisdk:build: cache miss, executing 9cc8408e71e94749
+@local/harpc-client:build: cache miss, executing f73d5b310e7f5300
+@hashintel/petrinaut-core:build: TypeScript 7.0 does not yet have a stable API and is experimental. Some options will be unavailable.
+@hashintel/petrinaut-core:build: Emit types with @typescript/native-preview@7.0.0-dev.20260511.1
+@hashintel/petrinaut-core:build: vite v8.2.2 building client environment for production...
+@hashintel/petrinaut-core:build: transforming...
+@hashintel/brunch-agent:test:unit: 
+@hashintel/brunch-agent:test:unit:  RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/bravo/libs/@hashintel/brunch-agent/packages/core
+@hashintel/brunch-agent:test:unit: 
+@hashintel/brunch-agent-transport-aisdk:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent-transport-aisdk:build: transforming...
+@hashintel/brunch-agent-transport-aisdk:build: ✓ 9 modules transformed.
+@hashintel/brunch-agent-transport-aisdk:build: rendering chunks...
+@hashintel/brunch-agent-transport-aisdk:build: computing gzip size...
+@hashintel/brunch-agent-transport-aisdk:build: dist/headers.js   0.20 kB │ gzip: 0.17 kB │ map:  0.35 kB
+@hashintel/brunch-agent-transport-aisdk:build: dist/index.js    16.17 kB │ gzip: 5.09 kB │ map: 52.92 kB
+@hashintel/brunch-agent-transport-aisdk:build: 
+@hashintel/brunch-agent-transport-aisdk:build: ✓ built in 13ms
+@hashintel/brunch-agent:lint:tsc: cache miss, executing f311bab1e2577551
+@hashintel/petrinaut-core:build: ✓ 385 modules transformed.
+@hashintel/petrinaut-core:build: rendering chunks...
+@hashintel/brunch-agent:build: vite v8.2.2 building client environment for production...
+@hashintel/brunch-agent:build: transforming...
+@hashintel/brunch-agent:build: ✓ 20 modules transformed.
+@hashintel/brunch-agent:build: rendering chunks...
+@hashintel/brunch-agent:build: computing gzip size...
+@hashintel/brunch-agent:build: dist/storage.js                0.20 kB │ gzip: 0.15 kB
+@hashintel/brunch-agent:build: dist/client-tools.js           0.45 kB │ gzip: 0.30 kB │ map:  1.22 kB
+@hashintel/brunch-agent:build: dist/json-value-DfyVmP73.js    0.56 kB │ gzip: 0.35 kB │ map:  1.54 kB
+@hashintel/brunch-agent:build: dist/question-marker.js        0.59 kB │ gzip: 0.37 kB │ map:  1.27 kB
+@hashintel/brunch-agent:build: dist/naming-B-X_Ur_R.js        0.80 kB │ gzip: 0.49 kB │ map:  4.33 kB
+@hashintel/brunch-agent:build: dist/workpiece.js              2.97 kB │ gzip: 1.16 kB │ map:  9.97 kB
+@hashintel/brunch-agent:build: dist/session-log-g_FZuAXm.js   5.94 kB │ gzip: 2.12 kB │ map: 18.62 kB
+@hashintel/brunch-agent:build: dist/flue.js                  21.74 kB │ gzip: 8.34 kB │ map:  8.98 kB
+@hashintel/brunch-agent:build: dist/index.js                 24.89 kB │ gzip: 7.64 kB │ map: 76.56 kB
+@hashintel/brunch-agent:build: 
+@hashintel/brunch-agent:build: ✓ built in 19ms
+@hashintel/brunch-agent-plugin-dafny:build: cache miss, executing 5a6005c1a356bb99
+@hashintel/petrinaut-core:build: computing gzip size...
+@hashintel/petrinaut-core:build: dist/selection.js                            0.11 kB │ gzip:     0.11 kB
+@hashintel/petrinaut-core:build: dist/support-QFmoRTi4.js                     0.17 kB │ gzip:     0.16 kB │ map:   1.19 kB
+@hashintel/petrinaut-core:build: dist/workers/lsp.js                          0.25 kB │ gzip:     0.19 kB │ map:   0.76 kB
+@hashintel/petrinaut-core:build: dist/workers/simulation.js                   0.25 kB │ gzip:     0.19 kB │ map:   0.60 kB
+@hashintel/petrinaut-core:build: dist/hir-runtime.js                          0.29 kB │ gzip:     0.18 kB
+@hashintel/petrinaut-core:build: dist/selection.d.ts                          0.31 kB │ gzip:     0.16 kB
+@hashintel/petrinaut-core:build: dist/examples/index.js                       0.31 kB │ gzip:     0.22 kB
+@hashintel/petrinaut-core:build: dist/time-DeDKdkwN.js                        0.31 kB │ gzip:     0.23 kB │ map:   1.26 kB
+@hashintel/petrinaut-core:build: dist/compute-next-frame-C-jZtFBX.d.ts        0.57 kB │ gzip:     0.32 kB │ map:   9.03 kB
+@hashintel/petrinaut-core:build: dist/workers/lsp.d.ts                        0.72 kB │ gzip:     0.36 kB │ map:   0.54 kB
+@hashintel/petrinaut-core:build: dist/selection-RzC-zvk4.js                   0.79 kB │ gzip:     0.50 kB │ map:   4.68 kB
+@hashintel/petrinaut-core:build: dist/experiment-stores-DVh6E0s0.js           0.87 kB │ gzip:     0.46 kB │ map:   3.89 kB
+@hashintel/petrinaut-core:build: dist/hir-runtime.d.ts                        1.06 kB │ gzip:     0.34 kB
+@hashintel/petrinaut-core:build: dist/ai.js                                   1.07 kB │ gzip:     0.49 kB
+@hashintel/petrinaut-core:build: dist/capacity-Dj6JeNjt.js                    1.23 kB │ gzip:     0.65 kB │ map:   7.08 kB
+@hashintel/petrinaut-core:build: dist/hir.js                                  1.29 kB │ gzip:     0.59 kB
+@hashintel/petrinaut-core:build: dist/parameter-values-eu_sZKJb.js            1.32 kB │ gzip:     0.63 kB │ map:   5.68 kB
+@hashintel/petrinaut-core:build: dist/optimization.js                         1.54 kB │ gzip:     0.51 kB
+@hashintel/petrinaut-core:build: dist/instantiate-Cxld0cne.js                 1.64 kB │ gzip:     0.79 kB │ map:  12.54 kB
+@hashintel/petrinaut-core:build: dist/record-keys-1sJBaBt0.js                 1.73 kB │ gzip:     0.79 kB │ map:   7.26 kB
+@hashintel/petrinaut-core:build: dist/workers/monte-carlo.d.ts                1.78 kB │ gzip:     0.60 kB │ map:   1.38 kB
+@hashintel/petrinaut-core:build: dist/ai.d.ts                                 2.10 kB │ gzip:     0.58 kB
+@hashintel/petrinaut-core:build: dist/selection-D9ffUDiZ.d.ts                 2.37 kB │ gzip:     1.08 kB │ map:   2.99 kB
+@hashintel/petrinaut-core:build: dist/compiled-model.d.ts                     3.44 kB │ gzip:     1.23 kB │ map:   4.55 kB
+@hashintel/petrinaut-core:build: dist/type-policies-Bh5NEOvT.js               3.63 kB │ gzip:     1.31 kB │ map:  17.78 kB
+@hashintel/petrinaut-core:build: dist/optimization.d.ts                       3.67 kB │ gzip:     0.66 kB
+@hashintel/petrinaut-core:build: dist/surface-context-BCMn0Ywq.js             3.68 kB │ gzip:     1.32 kB │ map:  19.40 kB
+@hashintel/petrinaut-core:build: dist/extensions-C8I_9D-1.d.ts                4.00 kB │ gzip:     1.26 kB │ map:   5.83 kB
+@hashintel/petrinaut-core:build: dist/token-layout-BvitVYQC.js                4.07 kB │ gzip:     1.55 kB │ map:  21.47 kB
+@hashintel/petrinaut-core:build: dist/hir.d.ts                                4.44 kB │ gzip:     1.23 kB
+@hashintel/petrinaut-core:build: dist/experiments.d.ts                        4.47 kB │ gzip:     1.68 kB │ map:   6.93 kB
+@hashintel/petrinaut-core:build: dist/experiment-CN3O8DTt.d.ts                4.99 kB │ gzip:     1.85 kB │ map:   7.55 kB
+@hashintel/petrinaut-core:build: dist/workers/monte-carlo.js                  5.12 kB │ gzip:     1.90 kB │ map:  17.85 kB
+@hashintel/petrinaut-core:build: dist/workers/simulation.d.ts                 5.44 kB │ gzip:     1.99 kB │ map:  10.28 kB
+@hashintel/petrinaut-core:build: dist/webgpu.d.ts                             5.88 kB │ gzip:     2.39 kB │ map:  15.69 kB
+@hashintel/petrinaut-core:build: dist/experiments.js                          6.53 kB │ gzip:     2.38 kB │ map:  26.87 kB
+@hashintel/petrinaut-core:build: dist/examples/index.d.ts                     9.33 kB │ gzip:     3.77 kB │ map:  10.45 kB
+@hashintel/petrinaut-core:build: dist/api-L5t-x6dS.d.ts                       9.55 kB │ gzip:     3.54 kB │ map:  12.41 kB
+@hashintel/petrinaut-core:build: dist/experiment-backend--dHxenV2.d.ts       10.28 kB │ gzip:     3.95 kB │ map:  14.03 kB
+@hashintel/petrinaut-core:build: dist/sdcpn-CmLg1nPY.d.ts                    11.80 kB │ gzip:     4.00 kB │ map:  15.64 kB
+@hashintel/petrinaut-core:build: dist/experiment-Cw9P3MTS.js                 13.42 kB │ gzip:     4.35 kB │ map:  54.26 kB
+@hashintel/petrinaut-core:build: dist/compiled-model.js                      15.93 kB │ gzip:     5.15 kB │ map:  66.55 kB
+@hashintel/petrinaut-core:build: dist/optimization-DK5oBwQm.js               17.12 kB │ gzip:     4.86 kB │ map:  54.19 kB
+@hashintel/petrinaut-core:build: dist/hir-runtime-CaVQSVhv.d.ts              19.08 kB │ gzip:     6.46 kB │ map:  27.06 kB
+@hashintel/petrinaut-core:build: dist/messages-ChKNREKi.d.ts                 20.41 kB │ gzip:     5.56 kB │ map:  26.95 kB
+@hashintel/petrinaut-core:build: dist/user-defined-lYOWZg_0.js               22.75 kB │ gzip:     6.87 kB │ map:  84.32 kB
+@hashintel/petrinaut-core:build: dist/scenario-schema-CkXxxKxa.js            27.15 kB │ gzip:     8.34 kB │ map:  49.57 kB
+@hashintel/petrinaut-core:build: dist/typecheck-DJ4DWDrQ.js                  27.52 kB │ gzip:     6.80 kB │ map:  89.76 kB
+@hashintel/petrinaut-core:build: dist/index.d.ts                             27.54 kB │ gzip:     6.53 kB
+@hashintel/petrinaut-core:build: dist/hir-metric-D4uEpZOA.js                 29.72 kB │ gzip:     8.56 kB │ map: 106.23 kB
+@hashintel/petrinaut-core:build: dist/ai-CmUEIcuN.js                         31.97 kB │ gzip:    10.47 kB │ map:  60.41 kB
+@hashintel/petrinaut-core:build: dist/extensions-BznQh6CW.js                 50.95 kB │ gzip:    13.39 kB │ map: 177.21 kB
+@hashintel/petrinaut-core:build: dist/instance-dQJMEYM8.d.ts                 67.03 kB │ gzip:     6.48 kB │ map: 164.88 kB
+@hashintel/petrinaut-core:build: dist/webgpu.js                              78.09 kB │ gzip:    23.80 kB │ map: 323.21 kB
+@hashintel/petrinaut-core:build: dist/hir-DCpzVv-F.js                        84.05 kB │ gzip:    20.34 kB │ map: 259.97 kB
+@hashintel/petrinaut-core:build: dist/index.js                               88.73 kB │ gzip:    24.16 kB │ map: 311.35 kB
+@hashintel/petrinaut-core:build: dist/simulation.worker-C2Mxugw1.js         118.52 kB │ gzip:    33.64 kB │ map:   0.09 kB
+@hashintel/petrinaut-core:build: dist/ai-jgIk4czs.d.ts                      128.59 kB │ gzip:     8.50 kB │ map: 284.62 kB
+@hashintel/petrinaut-core:build: dist/monte-carlo.worker-WQ0YZbjg.js        131.60 kB │ gzip:    37.58 kB │ map:   0.09 kB
+@hashintel/petrinaut-core:build: dist/examples-ubXygPF4.js                  155.60 kB │ gzip:    32.28 kB │ map: 229.24 kB
+@hashintel/petrinaut-core:build: dist/hir-CWid-6fO.d.ts                     211.09 kB │ gzip:    45.69 kB │ map: 355.96 kB
+@hashintel/petrinaut-core:build: dist/language-server.worker-Diq9yLSu.js  3,960.93 kB │ gzip: 1,059.96 kB │ map:   0.09 kB
+@hashintel/petrinaut-core:build: 
+@hashintel/petrinaut-core:build: ✓ built in 1.72s
+@hashintel/brunch-agent:test:unit: 
+@hashintel/brunch-agent:test:unit: ⚠ 1 verification gaps are open (spec §14.5 and friends):
+@hashintel/brunch-agent:test:unit:    · compaction-vs-durable-history — FE-1386 (spec §9.7, §14.5)
+@hashintel/brunch-agent:test:unit:    Closing one means deleting its entry in the commit that lands its proof.
+@hashintel/brunch-agent:test:unit: 
+@hashintel/brunch-agent:test:unit:  Test Files  12 passed (12)
+@hashintel/brunch-agent:test:unit:       Tests  100 passed (100)
+@hashintel/brunch-agent:test:unit:    Start at  11:27:00
+@hashintel/brunch-agent:test:unit:    Duration  1.63s (transform 109ms, setup 0ms, import 825ms, tests 84ms, environment 0ms)
+@hashintel/brunch-agent:test:unit: 
+@hashintel/brunch-agent-plugin-gherkin:build: cache miss, executing 52d2c7c52529b04e
+@hashintel/brunch-agent-binding-flue:build: cache miss, executing f7786ddcfee6751b
+@rust/hash-codec:build:types: cache miss, executing 138ff0e08e0ce1a8
+@hashintel/petrinaut-core:build:   ok   index.js (external: zod, uuid, immer, elkjs, vscode-languageserver-types, js-yaml)
+@hashintel/petrinaut-core:build:   ok   webgpu.js (external: zod)
+@hashintel/petrinaut-core:build:   ok   hir-runtime.js (no external imports)
+@hashintel/petrinaut-core:build: 
+@hashintel/petrinaut-core:build: All browser-facing entries are free of Node-only imports.
+@hashintel/brunch-agent-plugin-sdcpn:build: cache miss, executing be7fa3361ebe06f5
+@hashintel/brunch-agent:lint:tsc: test/update-workpiece.test.ts(67,56): error TS2322: Type 'StateSetter<WorkpieceRevision | null>' is not assignable to type 'StateSetter<unknown>'.
+@hashintel/brunch-agent:lint:tsc:   Types of parameters 'value' and 'value' are incompatible.
+@hashintel/brunch-agent:lint:tsc:     Type 'unknown' is not assignable to type 'WorkpieceRevision | ((previous: WorkpieceRevision | null) => WorkpieceRevision | null) | null'.
+@hashintel/brunch-agent#lint:tsc:  ERROR  command (/Users/lunelson/.herdr/worktrees/hash/bravo/libs/@hashintel/brunch-agent/packages/core) /private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/xfs-e44bd26b/yarn run lint:tsc exited (2)
+
+ Tasks:    6 successful, 16 total
+Cached:    0 cached, 16 total
+  Time:    4.583s 
+Failed:    @hashintel/brunch-agent#lint:tsc
+
+ ERROR  run failed: command  exited (2)
