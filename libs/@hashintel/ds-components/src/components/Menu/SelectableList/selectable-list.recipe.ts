@@ -16,7 +16,7 @@ export const styles = sva({
   base: {
     content: {
       // A flex column so the header/footer can swap edges by placement when
-      // reverseHeadAndFootOnFlip is set. Children must not shrink, or long
+      // swapHeaderFooterOnFlip is set. Children must not shrink, or long
       // lists would compress rows to fit maxHeight instead of scrolling.
       display: "flex",
       flexDirection: "column",
@@ -26,6 +26,7 @@ export const styles = sva({
       "& > [data-selectable-list-scroll]": {
         flexShrink: "1",
       },
+      padding: "[var(--selectable-list-content-padding)]",
       backgroundColor: "white",
       border: "1px solid {colors.bd.subtle}",
       borderRadius: "lg",
@@ -89,30 +90,31 @@ export const styles = sva({
     header: {
       paddingX: "[var(--selectable-list-padding-x)]",
       paddingY: "[var(--selectable-list-padding-y)]",
-      borderBottom: "1px solid {colors.neutral.s30}",
       marginBottom: "1",
-      // With reverse-on-flip, an upward-opening dropdown puts the header on
-      // the bottom edge (nearest the trigger), swapping its divider side
+      // A search header brings its own full-bleed chrome (see searchRow)
+      "&:has([data-selectable-list-search])": {
+        marginBottom: "0",
+      },
+      // With swap-on-flip, an upward-opening dropdown puts the header on
+      // the bottom edge (nearest the trigger)
       "[data-placement^='top'] &": {
-        "&[data-selectable-list-reverse-on-flip]": {
+        "&[data-selectable-list-swap-on-flip]": {
           order: "[1]",
-          borderBottomWidth: "0",
-          borderTop: "1px solid {colors.neutral.s30}",
           marginBottom: "0",
           marginTop: "1",
+          "&:has([data-selectable-list-search])": {
+            marginTop: "0",
+          },
         },
       },
     },
     footer: {
       paddingX: "[var(--selectable-list-padding-x)]",
       paddingY: "[var(--selectable-list-padding-y)]",
-      borderTop: "1px solid {colors.neutral.s30}",
       marginTop: "1",
       "[data-placement^='top'] &": {
-        "&[data-selectable-list-reverse-on-flip]": {
+        "&[data-selectable-list-swap-on-flip]": {
           order: "[-1]",
-          borderTopWidth: "0",
-          borderBottom: "1px solid {colors.neutral.s30}",
           marginTop: "0",
           marginBottom: "1",
         },
@@ -123,7 +125,7 @@ export const styles = sva({
     size: {
       xxs: {
         content: {
-          padding: "0.5",
+          "--selectable-list-content-padding": "var(--spacing-0\\.5)",
           "--selectable-list-padding-x": "var(--spacing-1\\.5)",
           "--selectable-list-padding-y": "var(--spacing-0\\.5)",
         },
@@ -149,7 +151,7 @@ export const styles = sva({
       },
       xs: {
         content: {
-          padding: "0.5",
+          "--selectable-list-content-padding": "var(--spacing-0\\.5)",
           "--selectable-list-padding-x": "var(--spacing-2)",
           "--selectable-list-padding-y": "3px",
         },
@@ -173,7 +175,7 @@ export const styles = sva({
       },
       sm: {
         content: {
-          padding: "1",
+          "--selectable-list-content-padding": "var(--spacing-1)",
           "--selectable-list-padding-x": "var(--spacing-2)",
           "--selectable-list-padding-y": "3px",
         },
@@ -197,7 +199,7 @@ export const styles = sva({
       },
       md: {
         content: {
-          padding: "1",
+          "--selectable-list-content-padding": "var(--spacing-1)",
           "--selectable-list-padding-x": "var(--spacing-2\\.5)",
           "--selectable-list-padding-y": "4px",
         },
@@ -221,7 +223,7 @@ export const styles = sva({
       },
       lg: {
         content: {
-          padding: "1.5",
+          "--selectable-list-content-padding": "var(--spacing-1\\.5)",
           "--selectable-list-padding-x": "var(--spacing-2\\.5)",
           "--selectable-list-padding-y": "4px",
         },

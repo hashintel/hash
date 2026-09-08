@@ -49,6 +49,9 @@ export const Menu = ({
   trigger,
   position = "bottom-start",
   className,
+  header,
+  footer,
+  swapHeaderFooterOnFlip,
   onOpen,
   onKeyDown,
 }: {
@@ -56,6 +59,18 @@ export const Menu = ({
   trigger: React.ReactElement;
   position?: Position;
   className?: string;
+  /**
+   * Pinned above the items, outside the scrollable area. Undecorated —
+   * supply your own divider if needed.
+   */
+  header?: React.ReactNode;
+  /**
+   * Pinned below the items, outside the scrollable area. Undecorated —
+   * supply your own divider if needed.
+   */
+  footer?: React.ReactNode;
+  /** Swap the header/footer to the opposite edge when the menu opens upward. */
+  swapHeaderFooterOnFlip?: boolean;
   onOpen?: (open: boolean) => void;
   /** Key events from the open menu */
   onKeyDown?: (
@@ -100,6 +115,9 @@ export const Menu = ({
                   className={className}
                   selected={selected}
                   size="sm"
+                  header={header}
+                  footer={footer}
+                  swapHeaderFooterOnFlip={swapHeaderFooterOnFlip}
                 />
               </ArkMenu.Positioner>
             </Portal>

@@ -157,7 +157,7 @@ export const SortMenu = <SortKey extends string = string>({
   };
 
   // Left/right arrows flip the highlighted row's displayed direction
-  // Keys typed into the search row report its row id, which matches no sorter, so
+  // Keys typed into the search header report a null highlighted id, so
   // caret movement in the input is never intercepted.
   const handleContentKeyDown = (
     event: React.KeyboardEvent,
@@ -231,31 +231,15 @@ export const SortMenu = <SortKey extends string = string>({
     };
   });
 
-  const menuItems: MenuItem[] = searchable
-    ? [
-        {
-          id: "sort-menu-search",
-          custom: (
-            <SelectableListSearch
-              value={search}
-              onChange={setSearch}
-              aria-label="Search sort options"
-            />
-          ),
-        },
-        ...sorterItems,
-        ...(visibleSorters.length === 0
-          ? [
-              {
-                id: "sort-menu-search-empty",
-                custom: (
-                  <span className={searchEmpty()}>No matching sorts</span>
-                ),
-              },
-            ]
-          : []),
-      ]
-    : sorterItems;
+  const menuItems: MenuItem[] =
+    searchable && visibleSorters.length === 0
+      ? [
+          {
+            id: "sort-menu-search-empty",
+            custom: <span className={searchEmpty()}>No matching sorts</span>,
+          },
+        ]
+      : sorterItems;
 
   const selectedSorter = value
     ? items.find((sorter) => sorter.sortKey === value.sortKey)
@@ -351,6 +335,16 @@ export const SortMenu = <SortKey extends string = string>({
       trigger={trigger}
       items={menuItems}
       className={menuContent()}
+      header={
+        searchable ? (
+          <SelectableListSearch
+            value={search}
+            onChange={setSearch}
+            aria-label="Search sort options"
+          />
+        ) : undefined
+      }
+      swapHeaderFooterOnFlip
       onOpen={(open) => {
         if (!open) {
           setDraftDirections({});

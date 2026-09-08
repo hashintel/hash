@@ -75,6 +75,10 @@ export const isGroup = (
 /** Prefix of ids assigned internally to custom items declared without one. */
 const internalCustomIdPrefix = "__custom-";
 
+/** Internal row ids for a header/footer taking part in keyboard navigation. */
+export const headerRowId = `${internalCustomIdPrefix}header`;
+export const footerRowId = `${internalCustomIdPrefix}footer`;
+
 export const useItemsWithCustomIds = (
   items: Array<ItemOrGroup<Item>>,
 ): Array<ItemOrGroup<Item>> =>
@@ -194,9 +198,26 @@ type TabStop =
  * - Any other key pressed inside a custom row is stopped from reaching the
  *   menu machine, which would otherwise hijack Enter, Space, Home/End and
  *   typeahead from the focused child. Escape is let through for dismissal.
+ *
+ * A header/footer rendered by the list (marked with `headerRowId` /
+ * `footerRowId`) participates as a custom row at the corresponding edge.
  */
-export const useCustomRowNavigation = (items: Array<ItemOrGroup<Item>>) => {
-  const positions = useMemo(() => collectNavPositions(items), [items]);
+export const useCustomRowNavigation = (
+  items: Array<ItemOrGroup<Item>>,
+  edges?: { hasHeader?: boolean; hasFooter?: boolean },
+) => {
+  const hasHeader = edges?.hasHeader ?? false;
+  const hasFooter = edges?.hasFooter ?? false;
+  const positions = useMemo(() => {
+    const rows = collectNavPositions(items);
+    if (hasHeader) {
+      rows.unshift({ kind: "custom", id: headerRowId });
+    }
+    if (hasFooter) {
+      rows.push({ kind: "custom", id: footerRowId });
+    }
+    return rows;
+  }, [items, hasHeader, hasFooter]);
 
   return (event: React.KeyboardEvent, menu: UseMenuContext) => {
     const content = event.currentTarget;
