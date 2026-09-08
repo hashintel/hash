@@ -1,14 +1,19 @@
 mod consumer;
 mod epoch;
+mod history;
+mod layout;
 mod overlay;
 mod placement;
+mod topology;
 
 use rand::TryCryptoRng;
-use type_system::knowledge::entity::id::EntityEditionId;
 
+use self::{layout::LayoutDelta, overlay::IdentityProviderResidual, topology::TopologyDelta};
 use crate::{
-    identity::{EdgeRowId, NodeRowId},
+    dataset::auxiliary::{OwnedIcon, OwnedLegend},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::Vec2,
+    postgres::id::{ArchivedEntityUuid, ArchivedOntologyTypeUuid},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -45,17 +50,42 @@ pub(crate) struct Projected<T> {
     position: Vec2,
 }
 
-pub(crate) struct DeltaNode {
-    id: NodeRowId,
-    edition: EntityEditionId,
+pub(crate) struct Delta {
+    ontology: IdentityProviderResidual<ArchivedOntologyTypeUuid, OntologyRowId, OwnedIcon>,
+
+    node: IdentityProviderResidual<ArchivedEntityUuid, NodeRowId, OwnedLegend>,
+    edge: IdentityProviderResidual<EdgeRowId, EdgeRowId, OwnedLegend>,
+
+    topology: TopologyDelta,
+    layout: LayoutDelta,
 }
 
-pub(crate) struct DeltaEdge {
-    id: EdgeRowId,
-    edition: EntityEditionId,
+impl Clone for Delta {
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            ontology: self.ontology.clone(),
+            node: self.node.clone(),
+            edge: self.edge.clone(),
+            topology: self.topology.clone(),
+            layout: self.layout.clone(),
+        }
+    }
 
-    source: NodeRowId,
-    target: NodeRowId,
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self {
+            ontology,
+            node,
+            edge,
+            topology,
+            layout,
+        } = self;
+
+        ontology.clone_from(&source.ontology);
+        node.clone_from(&source.node);
+        edge.clone_from(&source.edge);
+        topology.clone_from(&source.topology);
+        layout.clone_from(&source.layout);
+    }
 }
-
-pub(crate) struct Delta {}
