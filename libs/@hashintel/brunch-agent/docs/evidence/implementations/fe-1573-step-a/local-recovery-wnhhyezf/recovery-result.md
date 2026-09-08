@@ -1,0 +1,51 @@
+# Local recovery safety result
+
+## Verdict and instrument
+
+**Pass for the two authorized local paths.** Final packet: `a4-safety-N6GqzEeW`, built production ChatAgent, actual original disposable SQLite stores, synthetic provider responses, unchanged real-browser entrypoint. Its read-only `audit.json.gz` reports **11/11 checks passing**. This is not genuine testimony, product why, broad crash safety, legacy-store repair or Mission acceptance.
+
+Implementation: `a5daa71373`; prospective safety milestone: `a521cfd109`. Exact instrument snapshots, source/build hashes, append traces, raw public histories, read-only SQLite batch observations and process outcomes are retained in the per-run packet. JSON/MJS/JSONL/log files are compressed losslessly; decompression for inspection is not an application import mechanism. Original DB/WAL/SHM files remain local and ignored, not committed or promoted into import artifacts.
+
+## Fix 1: current state with the recoverable outcome
+
+The installed Flue code previously committed a normal `tool_outcome` before draining the hook-state buffer at `turn_end`. Recovery correctly skipped that already-recorded outcome, but could not recover the missing state. Durable reexecution called the real setter yet appended its outcome and repaired result commitment before flushing state. Stable revision IDs were never reused; absent current-state settlement was the defect.
+
+The maintained Flue patch now drains pending hook state into the **same existing canonical append as the live outcome**. The normal ordered result commitment and publication still happen at `turn_end`; remaining hook writes still flush there. Durable repair drains its real reexecution writes and appends them with new outcomes **and** the repaired result commitment in one existing append. No new record type, store, ledger, memoized setter or historical-state reconstruction exists. Core's render-captured setter, raw input, pointer/hash/ordinal logic, durable declaration and nonterminating result are byte-unchanged.
+
+The existing `ConversationRecordWriter.appendBatch` serializes the batch under its producer/attempt identity, retries the same input idempotently and fails the writer on an unresolved append error. The existing local SQL store serializes the record array and performs batch insertion, producer-sequence advancement and any chunk spill within its transaction. The change uses that boundary, not a new atomicity mechanism. No external-effect rollback, parallel per-tool transaction isolation, arbitrary concurrent callback proof, machine/power-loss or remote-storage guarantee is claimed; the existing shared attempt buffer remains shared.
+
+| Final case | Create / intermediate / recovery exits | Original outcome/state | Distinct next revision |
+| --- | --- | --- | --- |
+| Plain uninterrupted | 0 / — / 0 | One successful outcome, one exact state write in the same canonical batch | Ordinal 2 |
+| Observe-only uninterrupted | 0 / — / 0 | Same invariant; observation does not suppress state | Ordinal 2 |
+| Kill before outcome | 137 / — / 0 | Real durable reexecution; state, outcome and repaired result share one batch | Ordinal 2 |
+| Kill after outcome | 137 / — / 0 | Before replacement boot, outcome already has its exact state in the same batch | Ordinal 2 |
+| Independent direct synchronous kill after original awaited outcome append | 137 / — / 0 | Same invariant with one synchronous instruction and no append-promise wrapper | Ordinal 2 |
+| Kill before outcome, then after repaired result append | 137 / 137 / 0 | Repaired state/outcome/result already durable together | Ordinal 2 |
+| Kill before outcome, then after recovered outcome append | 137 / 137 / 0 | Same atomic repair batch; separate named fault mode reaches the outcome boundary | Ordinal 2 |
+
+Every final recovery is uninstrumented. The direct hook makes only one replacement after the runtime's original awaited outcome append; its saved source and hash prove absence of the producer promise wrapper. The read-only audit checks both pre-boot original-store batches and post-recovery batches, exact fault markers, a single outcome/write, matching raw Markdown, successful pointer, two distinct tool IDs and next ordinal 2. The first tool ID is `a4-crash-revision`; the second is `a4-next-revision`. Original Markdown SHA-256: `4e5cb11efbe5edf8389866dec235df93ecba1e1f5abe7fe6f6f07dba1dc7c7e7`.
+
+**Current-state observation is a real render, not a historical signal read.** The plugin context signal is captured at submission-entry render; a completed submission's latest signal can correctly describe its earlier null state. The first probe draft incorrectly treated that signal as a live getter and failed even the normal control. The corrected probe retains that pre-render history, independently inspects the store immediately after recovery, then submits an explicitly read-only, prose-only real user turn so the unchanged plugin renders current state. It does the same after the next revision. Neither observation turn calls a setter or constructs state from saved JSON. Both exact Markdown/hash/pointer/state assertions now pass. The failed draft and interrupted first runner remain retained, not reclassified as product failures.
+
+**Forward consistency only.** Existing successful outcomes still remain first-write-wins and are not reexecuted just because a previous runtime omitted state. No retrospective repair of already-inconsistent stores is attempted or earned. Those stores require an owner-held disposition; this patch does not fabricate current state or silently revive historical JSON.
+
+## Fix 2: preserve a successful stop, continue on the next actual input
+
+Silent overflow can be inferred from usage on a **successful `stop` response without tool calls**. In the reproduced case, canonical compaction succeeds **20 → 3**, retaining `[user,user,assistant]`; the old caller then selected `continueRebuilt` without a restart callback and Pi correctly refused the assistant tail.
+
+After successful compaction the Flue caller now checks cancellation/deadline and returns the already-completed successful response. It does not retry a completed response. The next actual user submission drives a valid turn using the rebuilt canonical context. No Pi guard is disabled, no user message invented, no completed public record removed and no completed effect replayed. The safety probe requires exactly one agent request for that successful-stop submission, the actual overflow fold, exact original public-record equality, all five real user messages only, unchanged tool calls/correlated client results/question data, summary consumption on the next actual input and authorized original-store process reopen.
+
+The **explicit-error control** emits a synthetic `(request_too_large)` error instead of a successful stop. It retains the old retry path: one reached `continueRebuilt`, with a valid retained `user` tail and exactly one retry. Source records remain public, and follow-up/reopen pass. This tests one explicit error shape; max-token partials, other provider errors, real-provider behavior and universal overflow recovery are not repaired or claimed.
+
+The **active compaction Stop control** withholds the actual synthetic summarizer response, waits until compaction is running, then calls the real client's `abort()`. Cancellation reaches the summarizer, no summary is committed, no agent retry occurs and completed public sources/results stay equal. The successful assistant stop predates this cancellation, so the existing completed submission settlement is retained rather than inventing rollback. The first assertion incorrectly expected `client.read()` to reject here; its retained failure and follow-up observation establish the actual distinction. Ordinary unfinished-response cancellation and late-publication refusal remain independently covered by the unchanged accounting/admission/Voice/Stop regressions, not inferred from this post-response compaction control.
+
+## TDD and retained failures
+
+- `a4-safety-UWS7UurD`: first probe draft used the stale pre-update context signal as a live getter; the outer 200-second tool timeout also interrupted the matrix. This is a retained failed instrument, not the definitive red result.
+- `a4-safety-uL79Q3by`: definitive red run before the runtime change. Plain/observe/before-outcome controls pass public state/ordinal assertions but fail the stronger same-batch atomicity audit. After-outcome/direct/interrupted-repair controls fail successful-result/current-state safety, retaining next ordinal 1. Overflow fails the unchanged Pi guard before writing successful completion artifacts. Overall exit 1; all eight original safety checks fail for the asserted boundary, not because the diagnostic expected the defect.
+- `a4-safety-zAujZNLh`: first green recovery matrix under total IP denial, before adding explicit-error and active-compaction Stop controls; all eight checks pass.
+- `overflow-controls.log.gz`: added cancellation assertion initially expected read rejection after an already-successful stop; failed 1/4. `overflow-cancel-probe-6UTzUPJh` retains the real cancellation/settlement observation. Final discovery passes 4/4, preserving cancellation rather than changing runtime settlement policy.
+- `a4-safety-N6GqzEeW`: final extended matrix plus actual native browser/fold/reopen, **11/11 pass**. It uses the unchanged inherited loopback-only profile for the actual Chrome listener; the earlier recovery-only green matrix and final unit portfolio use total IP denial. The inherited profile permits localhost generally, not kernel-enforced per-port isolation; browser routing additionally blocks every non-origin request. This is an explicit enforcement limit, not an exact-port claim.
+
+Original A4/native/accounting packets and the initial missing-JAR evidence commit `b78a30c4be` remain unchanged. The rewritten diagnostic runner is now a safety runner: exits 137 are required only for deliberately reached kills; every final recovery, overflow continuation/reopen, browser check and read-only audit must exit 0. Its former expected-failure behavior remains reproducible at the reconciliation base rather than being passed off as repaired safety.
