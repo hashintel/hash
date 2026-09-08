@@ -26,6 +26,7 @@ use crate::{
     file::quad::Node,
     morton::MortonCell,
     salt::{
+        fit::prepare::IdentityProvider,
         postings::closure::IconSource,
         wire::{
             Mode,
@@ -219,14 +220,16 @@ impl Atlas {
                             // register's own precedence), so a revised fitted identity serves
                             // its freshest label.
                             let label = if overlaid {
-                                self.node_ids.id(row).and_then(|id| cohort.legend_of(id))
+                                self.node_ids
+                                    .key_of(row)
+                                    .and_then(|id| cohort.legend_of(id))
                             } else {
                                 None
                             }
                             .map_or_else(
                                 || {
                                     self.node_ids
-                                        .payload_of(row)
+                                        .payload_of_row(row)
                                         .map_or(Label::EMPTY, |legend| legend.label())
                                 },
                                 Legend::label,
@@ -243,7 +246,7 @@ impl Atlas {
                                             self.closure.icon_source(r#type)?;
 
                                         self.ontology_ids
-                                            .payload_of(source)
+                                            .payload_of_row(source)
                                             .map(|icon| (index, icon, depth))
                                     })
                                     .min_by_key(|&(index, _, depth)| (depth, index))
@@ -267,7 +270,7 @@ impl Atlas {
                                 self.closure
                                     .icon_source(representative)
                                     .and_then(|IconSource { source, .. }| {
-                                        self.ontology_ids.payload_of(source)
+                                        self.ontology_ids.payload_of_row(source)
                                     })
                                     .unwrap_or(Icon::empty())
                             } else {

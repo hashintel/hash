@@ -79,6 +79,15 @@ where
         Self(rows)
     }
 
+    /// Returns a universe with the given `length` as the exclusive row bound.
+    #[must_use]
+    pub(crate) const fn from_length(length: usize) -> Self
+    where
+        N: [const] Id,
+    {
+        Self(N::from_usize(length))
+    }
+
     /// Returns the exclusive row bound.
     #[must_use]
     pub(crate) const fn size(self) -> usize

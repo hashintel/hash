@@ -8,7 +8,7 @@
 
 pub(crate) mod adjacency;
 pub(crate) mod embedding;
-mod file;
+pub(crate) mod file;
 pub(crate) mod fit;
 pub(crate) mod importance;
 pub(crate) mod knn;

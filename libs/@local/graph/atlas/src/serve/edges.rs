@@ -28,9 +28,12 @@ use super::{
 use crate::{
     dataset::auxiliary::{Label, Legend},
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
-    salt::wire::{
-        edges::{EdgesResponse, EdgesTrailer},
-        tile::TileCoordinate,
+    salt::{
+        fit::prepare::IdentityProvider,
+        wire::{
+            edges::{EdgesResponse, EdgesTrailer},
+            tile::TileCoordinate,
+        },
     },
 };
 
@@ -196,7 +199,7 @@ impl<'atlas> EdgeDisplays<'atlas> {
             EdgeOrigin::Fitted(edge) => self
                 .atlas
                 .edge_ids
-                .payload_of(edge)
+                .payload_of_row(edge)
                 .expect("open validated the identity rows against the adjacency's edges"),
             EdgeOrigin::Delta => unreachable!(
                 "publication withholds a link until its legend captures, and the delivered set \
@@ -213,7 +216,7 @@ impl<'atlas> EdgeDisplays<'atlas> {
         let row = legend.representative_ontology();
         self.atlas
             .ontology_ids
-            .id(row)
+            .key_of(row)
             .or_else(|| self.cohort.ontology_id_of(row))
     }
 }

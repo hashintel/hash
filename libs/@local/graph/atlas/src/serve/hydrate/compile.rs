@@ -61,6 +61,7 @@ use crate::{
     bitset::CompressedBitSet,
     offload::OffloadError,
     postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
+    salt::fit::prepare::IdentityProvider as _,
     serve::{Atlas, VisibilityProof, delta::PlacementCohort},
 };
 

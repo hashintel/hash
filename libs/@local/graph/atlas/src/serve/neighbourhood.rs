@@ -37,7 +37,10 @@ use super::{
 use crate::{
     identity::{BasePosition, EdgeRowId, ImportanceRank, NodeRowId},
     postgres::id::ArchivedEntityId,
-    salt::{adjacency::AdjacencyArchive, fit::prepare::identity::IdentityTableArchive},
+    salt::{
+        adjacency::AdjacencyArchive,
+        fit::prepare::{IdentityProvider, identity::IdentityTableArchive},
+    },
 };
 
 /// The wire columns' row ids for one qualifying edge during assembly.
@@ -557,7 +560,7 @@ impl<'atlas> Neighbourhood<'atlas> {
     /// cross-artifact validation rules out.
     pub(super) fn edge_identity(&self, row: VisibleEdge) -> ArchivedEntityId {
         self.edge_ids
-            .id(row.get())
+            .key_of(row.get())
             .expect("open validated the identity rows against the adjacency's edges")
     }
 

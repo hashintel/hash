@@ -99,7 +99,7 @@ use crate::{
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     salt::{
         adjacency::AdjacencyArchive,
-        fit::prepare::identity::IdentityTableArchive,
+        fit::prepare::{IdentityProvider as _, identity::IdentityTableArchive},
         postings::{artifact::PostingsArchive, closure::ClosureMap},
     },
 };

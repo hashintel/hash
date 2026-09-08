@@ -55,7 +55,6 @@ use super::{DVec2x4T, NonNegative, dvec2::DVec2, scalar::DNonNegative};
     Debug,
     Copy,
     Clone,
-    PartialEq,
     zerocopy::ByteHash,
     zerocopy::FromBytes,
     zerocopy::IntoBytes,
@@ -277,6 +276,13 @@ impl Vec2 {
     #[must_use]
     pub const fn is_finite(self) -> bool {
         self.x().is_finite() && self.y().is_finite()
+    }
+}
+
+const impl PartialEq for Vec2 {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
     }
 }
 

@@ -96,7 +96,7 @@ pub(crate) async fn run<D: Dataset>(
             .map_err(QualityRunError::OpenIdentities)?,
     )
     .map_err(QualityRunError::InvalidIdentities)?;
-    let node_ids = identities.ids();
+    let node_ids = identities.keys();
 
     let view = knn.view();
     #[expect(

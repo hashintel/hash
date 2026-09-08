@@ -140,7 +140,7 @@ impl VerdictResolution {
         let table =
             IdentityTableArchive::<O, OntologyRowId>::new(IdentityFile::open(path.as_std_path())?)?;
 
-        let resolution = supplied.document().resolve(table.ids());
+        let resolution = supplied.document().resolve(table.keys());
         let unresolved = resolution.unresolved().len();
         tracing::info!(
             resolved = resolution.resolved().len(),

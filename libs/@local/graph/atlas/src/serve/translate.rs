@@ -48,7 +48,7 @@ use crate::{
     identity::{BasePosition, EdgeRowId, NodeRowId},
     math::Vec2,
     postgres::id::ArchivedEntityId,
-    salt::fit::prepare::identity::IdentityTableArchive,
+    salt::fit::prepare::{IdentityProvider as _, identity::IdentityTableArchive},
 };
 
 /// The translate endpoint's request cap.

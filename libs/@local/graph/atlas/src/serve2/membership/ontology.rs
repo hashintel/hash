@@ -1,6 +1,9 @@
 use crate::{
-    bitset::DenseBitSlice, identity::BasePosition, postgres::id::ArchivedOntologyTypeUuid,
-    salt::postings::artifact::Membership, serve2::world::Ontology,
+    bitset::DenseBitSlice,
+    identity::BasePosition,
+    postgres::id::ArchivedOntologyTypeUuid,
+    salt::{fit::prepare::IdentityProvider as _, postings::artifact::Membership},
+    serve2::world::Ontology,
 };
 
 pub(crate) enum OntologyMembership<'ontology> {

@@ -32,6 +32,7 @@ use crate::{
     morton::MortonKey,
     postgres::id::ArchivedEntityId,
     salt::{
+        fit::prepare::IdentityProvider as _,
         lod::stage::WIRE_FRAME,
         wire::{
             locate::{LocateResponse, LocateTrailer, PropertyMap, PropertyValue},
@@ -670,13 +671,13 @@ impl Atlas {
                         let row = row_ids[position];
                         let id = self
                             .node_ids
-                            .id(row)
+                            .key_of(row)
                             .expect("open validated the identity rows against the code column");
 
                         cohort.legend_of(id).map_or_else(
                             || {
                                 self.node_ids
-                                    .payload_of(row)
+                                    .payload_of_row(row)
                                     .expect(
                                         "open validated the identity rows against the code column",
                                     )
@@ -719,7 +720,7 @@ impl Atlas {
                 cohort
                     .legend_of(id)
                     .unwrap_or_else(|| match origin {
-                        EdgeOrigin::Fitted(row) => self.edge_ids.payload_of(row).expect(
+                        EdgeOrigin::Fitted(row) => self.edge_ids.payload_of_row(row).expect(
                             "open validated the identity rows against the adjacency's edges",
                         ),
                         EdgeOrigin::Delta => unreachable!(
@@ -819,7 +820,7 @@ impl Atlas {
         document: &'doc LocateDocument<'_>,
     ) -> DeliveredNodes<'doc> {
         DeliveredNodes::new(
-            self.node_ids.ids(),
+            self.node_ids.keys(),
             self.rows.view(),
             &document.delivered,
             document.arrivals,
@@ -862,7 +863,7 @@ impl Atlas {
         let entity_id = match document.source.subject {
             SourceSubject::Base { row, .. } => self
                 .node_ids
-                .id(row.get())
+                .key_of(row.get())
                 .expect("open validated the identity rows against the code column"),
             SourceSubject::Arrival(index) => document.arrivals[index].identity,
         };

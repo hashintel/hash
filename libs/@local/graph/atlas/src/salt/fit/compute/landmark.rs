@@ -21,7 +21,12 @@ use crate::{
     identity::NodeRowId,
     math::DPositive,
     salt::{
-        fit::{Stage, error::PriorError, prepare::identity::IdentityTableArchive, stage_rng},
+        fit::{
+            Stage,
+            error::PriorError,
+            prepare::{IdentityProvider as _, identity::IdentityTableArchive},
+            stage_rng,
+        },
         knn::hannoy::{HannoyIndex, HannoyIndexError},
         landmark::{
             artifact::{LandmarkSkeleton, LandmarkSkeletonArchive},
@@ -164,7 +169,7 @@ impl PriorMarks {
         );
         for &row in skeleton.selected_rows() {
             let id = prior_ids
-                .id(row)
+                .key_of(row)
                 .ok_or_else(|| PriorError::SkeletonBeyondIdentities { row: row.as_u64() })?;
 
             if let Some(current_row) = current.row_of(id) {

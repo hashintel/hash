@@ -29,6 +29,7 @@ use fst::Streamer as _;
 use hashql_core::id::{IdSlice, IdVec};
 use zerocopy::{FromBytes as _, TryFromBytes as _};
 
+use super::IdentityProvider;
 use crate::{
     file::{
         ArtifactFile,
@@ -279,7 +280,7 @@ where
             row: PhantomData,
         };
 
-        let ids = table.ids().as_raw();
+        let ids = table.keys().as_raw();
         let index = table.file.index();
         if index.len() as u64 != table.file.rows() {
             return Err(InvalidIdentityFile::IndexSize {
@@ -324,7 +325,7 @@ where
 
     /// Views the id column, in row order.
     #[must_use]
-    pub(crate) fn ids(&self) -> &IdSlice<R, K> {
+    pub(crate) fn keys(&self) -> &IdSlice<R, K> {
         IdSlice::from_raw(
             <[K]>::ref_from_bytes(self.file.keys())
                 .expect("open validated the key kind and `K` is unaligned"),
@@ -343,27 +344,50 @@ where
         self.file.rows()
     }
 
-    /// Returns the id of `row`, or [`None`] beyond the domain.
-    #[must_use]
-    pub(crate) fn id(&self, row: R) -> Option<K> {
-        self.ids().get(row).copied()
+    /// Iterates the rows carrying a non-empty display payload, in row order.
+    pub(crate) fn displayed_rows(&self) -> impl Iterator<Item = R> {
+        self.spans()
+            .iter_enumerated()
+            .filter(|&(_, span)| span.length() > 0)
+            .map(|(row, _)| row)
     }
+}
 
-    /// Returns the row carrying `id`, or [`None`] when no row does.
-    #[must_use]
-    pub(crate) fn row_of(&self, id: K) -> Option<R> {
-        self.file.index().get(id.as_bytes()).map(R::from_u64)
-    }
-
-    /// Returns the display payload of `row`, or [`None`] beyond the domain.
-    ///
-    /// A row without a display value returns its payload type's empty value.
+impl<K, R> IdentityProvider<K, R> for IdentityTableArchive<K, R>
+where
+    K: Key,
+    R: Row,
+{
     #[expect(
         clippy::cast_possible_truncation,
         reason = "`Self::new` bounded every span by the payload region, whose length is a `usize`"
     )]
-    #[must_use]
-    pub(crate) fn payload_of(&self, row: R) -> Option<&K::Payload> {
+    #[inline]
+    fn count(&self) -> usize {
+        self.len() as usize
+    }
+
+    #[inline]
+    fn key_of(&self, row: R) -> Option<K> {
+        self.keys().get(row).copied()
+    }
+
+    #[inline]
+    fn row_of(&self, key: K) -> Option<R> {
+        self.file.index().get(key.as_bytes()).map(R::from_u64)
+    }
+
+    #[inline]
+    fn payload_of_key(&self, key: K) -> Option<&<K as Key>::Payload> {
+        let key = self.row_of(key)?;
+        self.payload_of_row(key)
+    }
+
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "`Self::new` bounded every span by the payload region, whose length is a `usize`"
+    )]
+    fn payload_of_row(&self, row: R) -> Option<&<K as Key>::Payload> {
         let span = self.spans().get(row)?;
         let offset = span.offset() as usize;
         let length = span.length() as usize;
@@ -373,14 +397,6 @@ where
         // otherwise, and the mapped file is immutable under the `crate::file` publish contract,
         // so the bytes validated there are the bytes sliced here.
         Some(unsafe { <K::Payload>::try_ref_from_bytes(bytes).unwrap_unchecked() })
-    }
-
-    /// Iterates the rows carrying a non-empty display payload, in row order.
-    pub(crate) fn displayed_rows(&self) -> impl Iterator<Item = R> {
-        self.spans()
-            .iter_enumerated()
-            .filter(|&(_, span)| span.length() > 0)
-            .map(|(row, _)| row)
     }
 }
 
@@ -406,6 +422,7 @@ mod tests {
         identity::{NodeRowId, OntologyRowId},
         integrity::Sha256Digest,
         postgres::id::ArchivedOntologyTypeUuid,
+        salt::fit::prepare::IdentityProvider as _,
     };
 
     /// A per-test scratch file path under the system temp directory.
@@ -471,26 +488,26 @@ mod tests {
         // row → id → row round-trips for every row, and misses answer `None`.
         for (position, id) in IDS.iter().enumerate() {
             let row = NodeRowId::new(position as u64);
-            assert_eq!(table.id(row), Some(*id));
+            assert_eq!(table.key_of(row), Some(*id));
             assert_eq!(table.row_of(*id), Some(row));
         }
-        assert_eq!(table.id(NodeRowId::new(3)), None);
+        assert_eq!(table.key_of(NodeRowId::new(3)), None);
         assert_eq!(table.row_of(MemoryNodeId::new(0)), None);
 
         // row → payload slices the interned region, the empty label included.
         assert_eq!(
-            table.payload_of(NodeRowId::new(0)),
+            table.payload_of_row(NodeRowId::new(0)),
             Some(legend("beta").as_ref())
         );
         assert_eq!(
-            table.payload_of(NodeRowId::new(1)),
+            table.payload_of_row(NodeRowId::new(1)),
             Some(legend("alpha").as_ref())
         );
         assert_eq!(
-            table.payload_of(NodeRowId::new(2)),
+            table.payload_of_row(NodeRowId::new(2)),
             Some(legend("").as_ref())
         );
-        assert_eq!(table.payload_of(NodeRowId::new(3)), None);
+        assert_eq!(table.payload_of_row(NodeRowId::new(3)), None);
     }
 
     #[test]
@@ -551,7 +568,10 @@ mod tests {
                 Some(NodeRowId::new(row)),
                 "row {row}"
             );
-            assert_eq!(table.id(NodeRowId::new(row)), Some(MemoryNodeId::new(row)));
+            assert_eq!(
+                table.key_of(NodeRowId::new(row)),
+                Some(MemoryNodeId::new(row))
+            );
         }
         assert_eq!(table.row_of(MemoryNodeId::new(600)), None);
     }

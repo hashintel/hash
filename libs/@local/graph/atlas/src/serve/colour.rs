@@ -24,7 +24,7 @@ use crate::{
     identity::{BasePosition, OntologyRowId},
     postgres::id::ArchivedOntologyTypeUuid,
     salt::{
-        fit::prepare::identity::IdentityTableArchive,
+        fit::prepare::{IdentityProvider as _, identity::IdentityTableArchive},
         postings::{artifact::PostingsArchive, closure::ClosureMap},
     },
 };

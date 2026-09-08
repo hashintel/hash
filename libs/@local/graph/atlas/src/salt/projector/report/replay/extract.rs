@@ -176,7 +176,7 @@ impl GenerationArtifacts {
         GenerationColumns::new(
             id,
             generation.repository().metadata.snapshot.axes,
-            self.identities.ids(),
+            self.identities.keys(),
             IdSlice::from_raw(representations),
             wire_of_row,
         )
