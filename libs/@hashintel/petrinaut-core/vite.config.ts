@@ -22,7 +22,7 @@ export default defineConfig(({ command }) => ({
         hir: resolve(packageRoot, "src/hir.ts"),
         // Dependency-free instantiation of compiled HIR artifacts.
         "hir-runtime": resolve(packageRoot, "src/hir-runtime.ts"),
-        optimization: resolve(packageRoot, "src/optimization.ts"),
+        optimization: resolve(packageRoot, "src/optimization/index.ts"),
         // Runs the Optuna study in a Pyodide worker; inlines the Python sources.
         "browser-optimization": resolve(
           packageRoot,
@@ -45,7 +45,6 @@ export default defineConfig(({ command }) => ({
           packageRoot,
           "src/workers/monte-carlo.ts",
         ),
-        "workers/optimizer": resolve(packageRoot, "src/workers/optimizer.ts"),
         "workers/simulation": resolve(packageRoot, "src/workers/simulation.ts"),
       },
       fileName: (_format, entryName) => `${entryName}.js`,

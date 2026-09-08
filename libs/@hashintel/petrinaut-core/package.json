@@ -70,10 +70,6 @@
       "types": "./dist/workers/monte-carlo.d.ts",
       "import": "./dist/workers/monte-carlo.js"
     },
-    "./workers/optimizer": {
-      "types": "./dist/workers/optimizer.d.ts",
-      "import": "./dist/workers/optimizer.js"
-    },
     "./workers/simulation": {
       "types": "./dist/workers/simulation.d.ts",
       "import": "./dist/workers/simulation.js"

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { createAbortController } from "../environment";
+import { createAbortController } from "../../environment";
 import { createOptimizationRunLog } from "./run-log";
 
-import type { PetrinautOptimizationEvent } from "../optimization";
+import type { PetrinautOptimizationEvent } from "../index";
 
 const collect = async (
   iterable: AsyncIterable<PetrinautOptimizationEvent>,
@@ -41,9 +41,7 @@ describe("createOptimizationRunLog", () => {
 
     expect(log.append({ type: "started", requestedTrials: 2 }).seq).toBe(1);
     expect(log.append(trial(0)).seq).toBe(2);
-    expect(log.settled).toBe(false);
     expect(log.append(complete).seq).toBe(3);
-    expect(log.settled).toBe(true);
     expect(log.events.map((event) => event.seq)).toEqual([1, 2, 3]);
     expect(() => log.append(trial(1))).toThrow(
       "a settled optimization run log accepts only a started event",
@@ -56,7 +54,6 @@ describe("createOptimizationRunLog", () => {
     log.append(complete);
 
     expect(log.append({ type: "started", requestedTrials: 4 }).seq).toBe(3);
-    expect(log.settled).toBe(false);
     expect(log.append(trial(2)).seq).toBe(4);
   });
 
@@ -122,20 +119,6 @@ describe("createOptimizationRunLog", () => {
 
     expect(await collect(log.replay({ cursor: 2 }))).toEqual([]);
     expect(await collect(log.replay())).toHaveLength(2);
-  });
-
-  it("notifies subscribers of each appended event", () => {
-    const log = createOptimizationRunLog();
-    const seen: number[] = [];
-    const unsubscribe = log.subscribe((event) => {
-      seen.push(event.seq ?? -1);
-    });
-
-    log.append({ type: "started", requestedTrials: 2 });
-    unsubscribe();
-    log.append(trial(0));
-
-    expect(seen).toEqual([1]);
   });
 
   it("aborts a tailing replay with an AbortError", async () => {

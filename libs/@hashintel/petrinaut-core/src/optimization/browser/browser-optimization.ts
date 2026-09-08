@@ -1,24 +1,16 @@
-/**
- * @layerRoot core.optimization.browser
- * @role Runs the Optuna study in a Pyodide worker and evaluates trials through the host channel
- */
 import { v4 as generateUuid } from "uuid";
 
-import { createAbortController } from "../environment";
+import { createAbortController } from "../../environment";
 import {
   deriveOptimizationTrialSeeds,
   describeOptimization,
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   PETRINAUT_OPTIMIZATION_MAX_PARALLELISM,
   PETRINAUT_OPTIMIZATION_MAX_TRIALS,
-  petrinautOptimizationManifestSchema,
+  PETRINAUT_OPTIMIZATION_UNKNOWN_RUN_ERROR_CODE,
+  parseOptimizationManifest,
   resolveTrialScenarioParameterValues,
-} from "../optimization";
-import {
-  createOptimizerWorker,
-  type OptimizerWorkerErrorEvent,
-  type OptimizerWorkerLike,
-} from "./create-optimizer-worker";
+} from "../index";
 import {
   defaultOptimizerPyodideConfig,
   type OptimizerPyodideConfig,
@@ -29,18 +21,20 @@ import {
   type OptimizationRunLog,
   type OptimizationRunLogEvent,
 } from "./run-log";
+import {
+  createOptimizerWorker,
+  type OptimizerWorkerErrorEvent,
+  type OptimizerWorkerLike,
+} from "./worker/create-optimizer-worker";
 
-import type { AbortControllerLike, AbortSignalLike } from "../environment";
+import type { AbortControllerLike, AbortSignalLike } from "../../environment";
 import type {
   PetrinautConnectedOptimization,
   PetrinautConnectedOptimizationCapability,
   PetrinautOptimizationChannel,
-  PetrinautOptimizationDescribeResult,
   PetrinautOptimizationEvent,
   PetrinautOptimizationManifest,
-  PetrinautOptimizationTrialOutcome,
-  PetrinautOptimizationTrialRequest,
-} from "../optimization";
+} from "../index";
 import type {
   OptimizerEvaluateMessage,
   OptimizerExtendMessage,
@@ -55,21 +49,15 @@ export type CreateBrowserOptimizationOptions = {
 };
 
 /**
- * `queued` and `starting` wait for the worker to take the run's segment,
- * `running` has it posted, `finished-resumable` ended a segment with the
- * study kept in the worker, and `finished` has no study to return to.
+ * `queued` waits for the worker to take the run's segment, `running` has it
+ * posted, `finished-resumable` ended a segment with the study kept in the
+ * worker, and `finished` has no study to return to.
  */
-type RunStatus =
-  | "queued"
-  | "starting"
-  | "running"
-  | "finished-resumable"
-  | "finished";
+type RunStatus = "queued" | "running" | "finished-resumable" | "finished";
 
 type RunRecord = {
   readonly runId: string;
   readonly manifest: PetrinautOptimizationManifest;
-  readonly description: PetrinautOptimizationDescribeResult;
   readonly seeds: readonly number[];
   readonly log: OptimizationRunLog;
   status: RunStatus;
@@ -81,7 +69,9 @@ type RunRecord = {
 
 type WorkerSession = {
   readonly worker: OptimizerWorkerLike;
+  /** Settles on `ready`; a session that fails before or after is torn down instead. */
   readonly ready: Promise<void>;
+  readonly markReady: () => void;
 };
 
 const cancelledEvent: OptimizationRunLogEvent = {
@@ -97,7 +87,7 @@ const errorMessage = (error: unknown): string =>
 const workerLoadError = (event: OptimizerWorkerErrorEvent): Error =>
   new Error(
     event.message === undefined || event.message === ""
-      ? "The optimizer worker failed to load"
+      ? "The optimizer worker failed"
       : event.message,
   );
 
@@ -108,12 +98,6 @@ const unavailableEvent = (error: unknown): OptimizationRunLogEvent => ({
   retryable: true,
 });
 
-const isAbortError = (error: unknown): boolean =>
-  typeof error === "object" &&
-  error !== null &&
-  "name" in error &&
-  error.name === "AbortError";
-
 const isSettled = (run: RunRecord): boolean =>
   run.status === "finished" || run.status === "finished-resumable";
 
@@ -121,23 +105,9 @@ const isSettled = (run: RunRecord): boolean =>
 const toldTrials = (log: OptimizationRunLog): number =>
   log.events.filter((event) => event.type === "trial").length;
 
-const invalidManifestError = (
-  issues: readonly { path: PropertyKey[]; message: string }[],
-): Error =>
-  new Error(
-    `Invalid optimization manifest: ${issues
-      .map(
-        ({ path, message }) =>
-          `${path.length > 0 ? path.join(".") : "manifest"}: ${message}`,
-      )
-      .join("; ")}`,
-  );
-
-/** The shape the optimizations provider drops a stale stored run on. */
 const unknownRunError = (runId: string): Error =>
   Object.assign(new Error(`Unknown optimization run "${runId}"`), {
-    category: "http",
-    httpStatus: 404,
+    code: PETRINAUT_OPTIMIZATION_UNKNOWN_RUN_ERROR_CODE,
   });
 
 const disposedError = (): Error =>
@@ -207,6 +177,7 @@ const connectBrowserOptimization = (options: {
   const { channel } = options;
   const runs = new Map<string, RunRecord>();
   const queue: RunRecord[] = [];
+  /** The run waiting for the worker or running on it. */
   let active: RunRecord | null = null;
   let session: WorkerSession | null = null;
   let disposed = false;
@@ -218,13 +189,6 @@ const connectBrowserOptimization = (options: {
 
   const post = (message: OptimizerToWorkerMessage): void => {
     session?.worker.postMessage(message);
-  };
-
-  const resetSession = (stale: WorkerSession): void => {
-    if (session === stale) {
-      session = null;
-      stale.worker.terminate();
-    }
   };
 
   /** Ends the run's segment with `event` and lets the queue move on. */
@@ -250,11 +214,19 @@ const connectBrowserOptimization = (options: {
     }
   };
 
-  const reply = (
-    requestId: number,
-    outcome: PetrinautOptimizationTrialOutcome,
-  ): void => {
-    post({ type: "evaluated", requestId, outcome });
+  /**
+   * Drops a worker that failed to load or crashed. The run on it, if any,
+   * fails as retryable, and the queue moves on to a fresh worker.
+   */
+  const failSession = (stale: WorkerSession, error: unknown): void => {
+    if (session !== stale) {
+      return;
+    }
+    session = null;
+    stale.worker.terminate();
+    if (active) {
+      finish(active, unavailableEvent(error), "finished");
+    }
   };
 
   /** Stops the segment on the worker (when one is posted) and drops the study. */
@@ -280,21 +252,24 @@ const connectBrowserOptimization = (options: {
     );
   };
 
-  const handleEvaluate = (message: OptimizerEvaluateMessage): void => {
+  const handleEvaluate = async (
+    message: OptimizerEvaluateMessage,
+  ): Promise<void> => {
     const run = activeRunFor(message.runId);
     if (!run) {
       return;
     }
     const { controller } = run;
-    if (controller.signal.aborted) {
-      reply(message.requestId, { kind: "pruned", reason: "cancelled" });
+    // The worker answers the evaluations of a cancelled segment itself.
+    const segmentIsCurrent = (): boolean =>
+      run.controller === controller &&
+      run.status === "running" &&
+      !controller.signal.aborted;
+    if (!segmentIsCurrent()) {
       return;
     }
-    const segmentIsCurrent = (): boolean =>
-      run.controller === controller && run.status === "running";
-    let request: PetrinautOptimizationTrialRequest;
     try {
-      request = {
+      const outcome = await channel.evaluateTrial({
         runId: run.runId,
         trial: message.trial,
         manifest: run.manifest,
@@ -305,47 +280,30 @@ const connectBrowserOptimization = (options: {
         ),
         seeds: run.seeds,
         signal: controller.signal,
-      };
-    } catch (error) {
-      failTrialEvaluation(run, error);
-      return;
-    }
-    const evaluated = (outcome: PetrinautOptimizationTrialOutcome): void => {
+      });
       if (segmentIsCurrent()) {
-        reply(message.requestId, outcome);
+        post({ type: "evaluated", requestId: message.requestId, outcome });
       }
-    };
-    const evaluationFailed = (error: unknown): void => {
-      if (!segmentIsCurrent()) {
-        return;
-      }
-      if (isAbortError(error)) {
-        reply(message.requestId, { kind: "pruned", reason: "cancelled" });
-      } else {
+    } catch (error) {
+      if (segmentIsCurrent()) {
         failTrialEvaluation(run, error);
       }
-    };
-    let evaluation: Promise<PetrinautOptimizationTrialOutcome>;
-    try {
-      evaluation = channel.evaluateTrial(request);
-    } catch (error) {
-      evaluationFailed(error);
-      return;
     }
-    evaluation.then(evaluated, evaluationFailed);
   };
 
-  const handleWorkerMessage = (message: OptimizerToMainMessage): void => {
+  const handleWorkerMessage = (
+    current: WorkerSession,
+    message: OptimizerToMainMessage,
+  ): void => {
     switch (message.type) {
-      // The session promise settles on `ready` and `init-error`; `started` and
-      // `released` acknowledge segments the log and run status already record.
       case "ready":
+        current.markReady();
+        return;
       case "init-error":
-      case "started":
-      case "released":
+        failSession(current, new Error(message.message));
         return;
       case "evaluate":
-        handleEvaluate(message);
+        void handleEvaluate(message);
         return;
       case "trial": {
         const run = activeRunFor(message.runId);
@@ -409,27 +367,22 @@ const connectBrowserOptimization = (options: {
       return session;
     }
     const worker = options.createWorker();
-    const ready = new Promise<void>((resolve, reject) => {
-      worker.addEventListener("message", ({ data }) => {
-        if (data.type === "ready") {
-          resolve();
-        } else if (data.type === "init-error") {
-          reject(new Error(data.message));
-        } else {
-          handleWorkerMessage(data);
-        }
-      });
-      worker.addEventListener("error", (event) => {
-        reject(workerLoadError(event));
-      });
+    const { promise: ready, resolve: markReady } =
+      Promise.withResolvers<void>();
+    const current: WorkerSession = { worker, ready, markReady };
+    worker.addEventListener("message", ({ data }) => {
+      handleWorkerMessage(current, data);
+    });
+    worker.addEventListener("error", (event) => {
+      failSession(current, workerLoadError(event));
     });
     worker.postMessage({
       type: "init",
       pyodide: options.pyodide,
       pythonSources: optimizerPythonSources,
     });
-    session = { worker, ready };
-    return session;
+    session = current;
+    return current;
   };
 
   const startNext = (): void => {
@@ -441,7 +394,6 @@ const connectBrowserOptimization = (options: {
       return;
     }
     active = run;
-    run.status = "starting";
     let current: WorkerSession;
     try {
       current = ensureSession();
@@ -449,18 +401,12 @@ const connectBrowserOptimization = (options: {
       finish(run, unavailableEvent(error), "finished");
       return;
     }
-    current.ready.then(
-      () => {
-        if (run.status === "starting" && session === current) {
-          run.status = "running";
-          current.worker.postMessage(run.command);
-        }
-      },
-      (error: unknown) => {
-        resetSession(current);
-        finish(run, unavailableEvent(error), "finished");
-      },
-    );
+    void current.ready.then(() => {
+      if (active === run && run.status === "queued" && session === current) {
+        run.status = "running";
+        current.worker.postMessage(run.command);
+      }
+    });
   };
 
   const enqueue = (run: RunRecord, requestedTrials: number): void => {
@@ -478,31 +424,30 @@ const connectBrowserOptimization = (options: {
         throw creationAbortedError();
       }
       const parallelism = validParallelism(runOptions.parallelism);
-      const parsed = petrinautOptimizationManifestSchema.safeParse(input);
-      if (!parsed.success) {
-        throw invalidManifestError(parsed.error.issues);
-      }
-      const manifest = parsed.data;
+      const manifest = parseOptimizationManifest(input);
       const runId = generateUuid();
-      const description = describeOptimization(manifest);
       const run: RunRecord = {
         runId,
         manifest,
-        description,
         seeds: deriveOptimizationTrialSeeds(
           manifest.execution.seed,
           manifest.execution.seedsPerTrial ?? 1,
         ),
         log: createOptimizationRunLog(),
         status: "queued",
-        command: { type: "start", runId, description, parallelism },
+        command: {
+          type: "start",
+          runId,
+          description: describeOptimization(manifest),
+          parallelism,
+        },
         controller: createAbortController(),
       };
       runs.set(runId, run);
       enqueue(run, manifest.study.trials);
       return { runId };
     },
-    async extendOptimizationRun(runId, trials, extendOptions = {}) {
+    async extendOptimizationRun(runId, trials) {
       if (disposed) {
         throw disposedError();
       }
@@ -513,12 +458,8 @@ const connectBrowserOptimization = (options: {
       if (run.status !== "finished-resumable") {
         throw notResumableError(run);
       }
-      const parallelism =
-        extendOptions.parallelism === undefined
-          ? run.command.parallelism
-          : validParallelism(extendOptions.parallelism);
       const total = requestedTotal(toldTrials(run.log), trials);
-      run.command = { type: "extend", runId, trials, parallelism };
+      run.command = { type: "extend", runId, trials };
       run.controller = createAbortController();
       run.status = "queued";
       enqueue(run, total);

@@ -22,7 +22,7 @@
         "libs/@hashintel/petrinaut-core/src/compiled-model.ts"
       ],
       "@hashintel/petrinaut-core/optimization": [
-        "libs/@hashintel/petrinaut-core/src/optimization.ts"
+        "libs/@hashintel/petrinaut-core/src/optimization/index.ts"
       ],
       "@hashintel/petrinaut-core/workers/lsp": [
         "libs/@hashintel/petrinaut-core/src/workers/lsp.ts"

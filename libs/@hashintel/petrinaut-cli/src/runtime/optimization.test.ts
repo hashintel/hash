@@ -7,12 +7,14 @@ import { describe, expect, it } from "vitest";
 
 import { serializeDocument } from "@hashintel/petrinaut-core";
 import { compilePetrinautModel } from "@hashintel/petrinaut-core/compiled-model";
+import {
+  deriveOptimizationTrialSeeds,
+  parseOptimizationManifest,
+} from "@hashintel/petrinaut-core/optimization";
 
 import {
   createOptimizationProtocol,
-  deriveTrialSeeds,
   loadOptimizationManifest,
-  parseOptimizationManifest,
 } from "./optimization";
 
 import type {
@@ -451,7 +453,7 @@ describe("createOptimizationProtocol", () => {
 
   it("runs every trial seed and aggregates the objectives by mean", async () => {
     const manifest = await createSeededManifest(3);
-    const seeds = deriveTrialSeeds(42, 3);
+    const seeds = deriveOptimizationTrialSeeds(42, 3);
     // Objectives 1, 2 and 3 in seed order, so the mean and the per-seed
     // echoes are both observable.
     const { factory, calls } = createFakeExperimentFactory(
@@ -551,7 +553,7 @@ describe("createOptimizationProtocol", () => {
       parameterValues: { infected_ratio: 0.1 },
     });
     expect(first.replicates?.map((replicate) => replicate.seed)).toEqual(
-      deriveTrialSeeds(42, 2),
+      deriveOptimizationTrialSeeds(42, 2),
     );
     for (const replicate of first.replicates ?? []) {
       expect(Number.isFinite(replicate.objective)).toBe(true);
@@ -581,24 +583,5 @@ describe("createOptimizationProtocol", () => {
     await expect(
       protocol.evaluate({ parameterValues: { infected_ratio: 0.1 } }),
     ).rejects.toThrow("1 of 1 optimization replicates failed");
-  });
-});
-
-describe("deriveTrialSeeds", () => {
-  it("keeps the base seed first and derives a stable, in-range sequence", () => {
-    expect(deriveTrialSeeds(42, 1)).toEqual([42]);
-    // Pins the documented derivation |seed + (i + 1) x 2654435761| mod 2^31,
-    // which the other tests' expected seed sequences depend on.
-    expect(deriveTrialSeeds(42, 2)).toEqual([42, 1_013_904_268]);
-
-    const seeds = deriveTrialSeeds(42, 100);
-    expect(seeds[0]).toBe(42);
-    expect(seeds).toEqual(deriveTrialSeeds(42, 100));
-    expect(new Set(seeds).size).toBe(seeds.length);
-    for (const seed of seeds) {
-      expect(Number.isInteger(seed)).toBe(true);
-      expect(seed).toBeGreaterThanOrEqual(0);
-      expect(seed).toBeLessThanOrEqual(2_147_483_647);
-    }
   });
 });

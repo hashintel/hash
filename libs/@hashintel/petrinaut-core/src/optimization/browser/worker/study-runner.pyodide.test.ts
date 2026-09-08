@@ -10,8 +10,8 @@
 import { loadPyodide } from "pyodide";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
-import { defaultOptimizerPyodideConfig } from "./pyodide-config";
-import { optimizerPythonSources } from "./python-sources";
+import { defaultOptimizerPyodideConfig } from "../pyodide-config";
+import { optimizerPythonSources } from "../python-sources";
 import {
   createOptimizerStudyRunner,
   type OptimizerStudyCallbacks,
@@ -22,8 +22,8 @@ import type {
   OptimizationScalar,
   PetrinautOptimizationDescribeResult,
   PetrinautOptimizationTrialOutcome,
-} from "../optimization";
-import type { OptimizerTrialPayload } from "./messages";
+} from "../../index";
+import type { OptimizerTrialPayload } from "../messages";
 
 declare const process: {
   readonly env: Readonly<Record<string, string | undefined>>;
@@ -104,11 +104,7 @@ const recorder = (options?: {
   const evaluated: Record<string, OptimizationScalar>[] = [];
   const trialNumbers: number[] = [];
   const trials: OptimizerTrialPayload[] = [];
-  const started: number[] = [];
   const callbacks: OptimizerStudyCallbacks = {
-    onStarted: (requestedTrials) => {
-      started.push(requestedTrials);
-    },
     evaluate: async (trial, suggestedValues) => {
       trialNumbers.push(trial);
       evaluated.push(suggestedValues);
@@ -121,11 +117,20 @@ const recorder = (options?: {
     },
     isCancelled: options?.isCancelled ?? (() => false),
   };
-  return { evaluated, trialNumbers, trials, started, callbacks };
+  return { evaluated, trialNumbers, trials, callbacks };
 };
 
 let runner: OptimizerStudyRunner;
 let loadFailure: string | null = null;
+const startedStudies: string[] = [];
+
+/** Starts a study and remembers it, so the suite releases every study it kept. */
+const startStudy = (
+  input: Parameters<OptimizerStudyRunner["start"]>[0],
+): ReturnType<OptimizerStudyRunner["start"]> => {
+  startedStudies.push(input.runId);
+  return runner.start(input);
+};
 
 beforeAll(async () => {
   runner = createOptimizerStudyRunner({
@@ -146,7 +151,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (loadFailure === null) {
-    await runner.dispose();
+    await Promise.all(startedStudies.map((runId) => runner.release(runId)));
   }
 });
 
@@ -168,14 +173,13 @@ describe("createOptimizerStudyRunner", () => {
             : { kind: "objective", objective: objectiveOf(suggestedValues) },
       });
 
-      const summary = await runner.start({
+      const summary = await startStudy({
         runId: "seeded",
         description,
         parallelism: 1,
         callbacks: run.callbacks,
       });
 
-      expect(run.started).toEqual([30]);
       expect(run.trialNumbers).toEqual(
         Array.from({ length: 30 }, (_, index) => index),
       );
@@ -237,7 +241,7 @@ describe("createOptimizerStudyRunner", () => {
       skipWhenOffline(skip);
       const split = async (runId: string) => {
         const first = recorder();
-        await runner.start({
+        await startStudy({
           runId,
           description: withTrials(8),
           parallelism: 1,
@@ -247,7 +251,6 @@ describe("createOptimizerStudyRunner", () => {
         const summary = await runner.extend({
           runId,
           trials: 8,
-          parallelism: 1,
           callbacks: second.callbacks,
         });
         return { first, second, summary };
@@ -261,8 +264,6 @@ describe("createOptimizerStudyRunner", () => {
       expect(again.first.evaluated).toEqual(study.first.evaluated);
       expect(again.second.evaluated).toEqual(study.second.evaluated);
       expect(study.second.evaluated).not.toEqual(study.first.evaluated);
-      expect(study.first.started).toEqual([8]);
-      expect(study.second.started).toEqual([16]);
       expect(study.second.trialNumbers).toEqual([8, 9, 10, 11, 12, 13, 14, 15]);
       expect(study.second.trials.map((event) => event.trial)).toEqual(
         study.second.trialNumbers,
@@ -283,7 +284,7 @@ describe("createOptimizerStudyRunner", () => {
       skipWhenOffline(skip);
       const run = recorder({ isCancelled: () => run.trialNumbers.length >= 5 });
 
-      const stopped = await runner.start({
+      const stopped = await startStudy({
         runId: "stopped",
         description,
         parallelism: 1,
@@ -295,7 +296,6 @@ describe("createOptimizerStudyRunner", () => {
       // The trial in flight at the stop is told as failed so Optuna keeps no
       // running trial behind; the count carries into the resumed summary.
       expect(stopped).toMatchObject({
-        requestedTrials: 30,
         completedTrials: 4,
         failedTrials: 1,
         cancelled: true,
@@ -305,11 +305,9 @@ describe("createOptimizerStudyRunner", () => {
       const summary = await runner.extend({
         runId: "stopped",
         trials: 2,
-        parallelism: 1,
         callbacks: resumed.callbacks,
       });
 
-      expect(resumed.started).toEqual([6]);
       expect(resumed.trialNumbers).toEqual([5, 6]);
       expect(resumed.trials.map((event) => event.trial)).toEqual([5, 6]);
       expect(summary).toEqual({
@@ -341,7 +339,7 @@ describe("createOptimizerStudyRunner", () => {
         },
       });
 
-      const summary = await runner.start({
+      const summary = await startStudy({
         runId: "parallel",
         description: withTrials(6),
         parallelism: 2,
@@ -372,7 +370,7 @@ describe("createOptimizerStudyRunner", () => {
     "drops a released study, and one whose segment failed",
     async ({ skip }) => {
       skipWhenOffline(skip);
-      await runner.start({
+      await startStudy({
         runId: "released",
         description: withTrials(2),
         parallelism: 1,
@@ -385,13 +383,12 @@ describe("createOptimizerStudyRunner", () => {
         runner.extend({
           runId: "released",
           trials: 1,
-          parallelism: 1,
           callbacks: recorder().callbacks,
         }),
       ).rejects.toThrow('Optimization study "released" is not kept');
 
       await expect(
-        runner.start({
+        startStudy({
           runId: "failing",
           description,
           parallelism: 1,
@@ -407,30 +404,9 @@ describe("createOptimizerStudyRunner", () => {
         runner.extend({
           runId: "failing",
           trials: 1,
-          parallelism: 1,
           callbacks: recorder().callbacks,
         }),
       ).rejects.toThrow('Optimization study "failing" is not kept');
-    },
-    loadTimeout,
-  );
-
-  test(
-    "samples deterministically for a seed",
-    async ({ skip }) => {
-      skipWhenOffline(skip);
-      const sequences: Record<string, OptimizationScalar>[][] = [];
-      for (let repeat = 0; repeat < 2; repeat++) {
-        const run = recorder();
-        await runner.start({
-          runId: `repeat-${repeat}`,
-          description: withTrials(8),
-          parallelism: 1,
-          callbacks: run.callbacks,
-        });
-        sequences.push(run.evaluated);
-      }
-      expect(sequences[0]).toEqual(sequences[1]);
     },
     loadTimeout,
   );

@@ -1,25 +1,23 @@
 /**
- * @talksTo optimizer-core via Python sources loaded into Pyodide
+ * @talksTo optimizer-core via Python sources written into Pyodide's filesystem
  */
-import { micropipRequirements } from "./pyodide-config";
+import { micropipRequirements } from "../pyodide-config";
 import { isPyProxyLike } from "./pyodide-like";
 
 import type {
   OptimizationScalar,
   PetrinautOptimizationDescribeResult,
   PetrinautOptimizationTrialOutcome,
-} from "../optimization";
+} from "../../index";
 import type {
   OptimizerBestTrial,
   OptimizerStudySummary,
   OptimizerTrialPayload,
-} from "./messages";
-import type { OptimizerPyodideConfig } from "./pyodide-config";
+} from "../messages";
+import type { OptimizerPyodideConfig } from "../pyodide-config";
 import type { LoadPyodide, PyodideLike, PyProxyLike } from "./pyodide-like";
 
 export type OptimizerStudyCallbacks = {
-  /** The segment began; `requestedTrials` is the study's cumulative total. */
-  onStarted(requestedTrials: number): void;
   evaluate(
     trial: number,
     suggestedValues: Record<string, OptimizationScalar>,
@@ -39,7 +37,6 @@ export type OptimizerStudyStartInput = {
 export type OptimizerStudyExtendInput = {
   runId: string;
   trials: number;
-  parallelism: number;
   callbacks: OptimizerStudyCallbacks;
 };
 
@@ -51,19 +48,20 @@ export type OptimizerStudyRunner = {
    * trials. The segments of every study run one after another, in call order.
    */
   start(input: OptimizerStudyStartInput): Promise<OptimizerStudySummary>;
-  /** Runs `trials` more on the kept study; the trial numbers continue. */
+  /**
+   * Runs `trials` more on the kept study, at the parallelism it was created
+   * with; the trial numbers continue.
+   */
   extend(input: OptimizerStudyExtendInput): Promise<OptimizerStudySummary>;
   /** Drops the kept study once the segments queued before it have run. */
   release(runId: string): Promise<void>;
-  /** Drops every kept study. */
-  dispose(): Promise<void>;
 };
 
 /** The outcome shape `ask_tell.run_study` expects from its evaluate callback. */
 type PythonTrialOutcome = { objective: number } | { pruned: string };
 
-/** The Python `StudyHandle`; `requested` is the study's cumulative trial total. */
-type StudyHandleProxy = PyProxyLike & { readonly requested: number };
+/** The Python `StudyHandle`, opaque on this side. */
+type StudyHandleProxy = PyProxyLike;
 
 type PyodideEntryModule = {
   create_browser_study(
@@ -76,7 +74,6 @@ type PyodideEntryModule = {
     evaluate: (values: unknown) => Promise<PythonTrialOutcome>,
     onTrial: (payload: unknown) => void,
     isCancelled: () => boolean,
-    parallelism: number,
   ): Promise<unknown>;
   release_browser_study(handle: StudyHandleProxy): void;
 };
@@ -248,7 +245,6 @@ export const createOptimizerStudyRunner = (options: {
     module: PyodideEntryModule,
     runId: string,
     trials: number,
-    parallelism: number,
     callbacks: OptimizerStudyCallbacks,
   ): Promise<OptimizerStudySummary> => {
     const study = studies.get(runId);
@@ -269,16 +265,13 @@ export const createOptimizerStudyRunner = (options: {
       callbacks.onTrial(normalizeTrialPayload(toJsValue(payload)));
     };
     try {
-      const pending = module.run_browser_study(
+      const result = await module.run_browser_study(
         study.handle,
         trials,
         evaluate,
         onTrial,
         () => callbacks.isCancelled(),
-        parallelism,
       );
-      callbacks.onStarted(study.handle.requested);
-      const result = await pending;
       const summary = normalizeSummary(toJsValue(result));
       if (isPyProxyLike(result)) {
         result.destroy();
@@ -309,32 +302,18 @@ export const createOptimizerStudyRunner = (options: {
           module,
           input.runId,
           input.description.study.trials,
-          input.parallelism,
           input.callbacks,
         );
       });
     },
     extend(input) {
-      return enqueue(async (module) => {
-        return runSegment(
-          module,
-          input.runId,
-          input.trials,
-          input.parallelism,
-          input.callbacks,
-        );
-      });
+      return enqueue(async (module) =>
+        runSegment(module, input.runId, input.trials, input.callbacks),
+      );
     },
     release(runId) {
       return enqueue(async (module) => {
         dropStudy(module, runId);
-      });
-    },
-    dispose() {
-      return enqueue(async (module) => {
-        for (const runId of studies.keys()) {
-          dropStudy(module, runId);
-        }
       });
     },
   };

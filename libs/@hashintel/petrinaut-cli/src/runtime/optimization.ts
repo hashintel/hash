@@ -5,12 +5,12 @@ import {
   createMonteCarloExperiment,
   parseDocumentText,
   petrinautOptimizationEvaluateParamsSchema,
-  petrinautOptimizationManifestSchema,
 } from "@hashintel/petrinaut-core";
 import { lowerScenarioToHir } from "@hashintel/petrinaut-core/hir";
 import {
   deriveOptimizationTrialSeeds,
   describeOptimization,
+  parseOptimizationManifest,
   resolveTrialScenarioParameterValues,
 } from "@hashintel/petrinaut-core/optimization";
 import { createInProcessMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
@@ -24,32 +24,16 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
 
-export { deriveOptimizationTrialSeeds as deriveTrialSeeds } from "@hashintel/petrinaut-core/optimization";
-
-function formatManifestIssues(
-  prefix: string,
+function invalidParamsError(
   issues: readonly { path: PropertyKey[]; message: string }[],
 ): Error {
   const details = issues
     .map(
       ({ path, message }) =>
-        `${path.length > 0 ? path.join(".") : "manifest"}: ${message}`,
+        `${path.length > 0 ? path.join(".") : "params"}: ${message}`,
     )
     .join("; ");
-  return new Error(`${prefix}: ${details}`);
-}
-
-export function parseOptimizationManifest(
-  data: unknown,
-): PetrinautOptimizationManifest {
-  const parsed = petrinautOptimizationManifestSchema.safeParse(data);
-  if (!parsed.success) {
-    throw formatManifestIssues(
-      "Invalid optimization manifest",
-      parsed.error.issues,
-    );
-  }
-  return parsed.data;
+  return new Error(`Invalid optimization.evaluate params: ${details}`);
 }
 
 export async function loadOptimizationManifest(
@@ -147,10 +131,7 @@ export function createOptimizationProtocol(args: {
       const parsed =
         petrinautOptimizationEvaluateParamsSchema.safeParse(params);
       if (!parsed.success) {
-        throw formatManifestIssues(
-          "Invalid optimization.evaluate params",
-          parsed.error.issues,
-        );
+        throw invalidParamsError(parsed.error.issues);
       }
       const scenarioParameterValues = resolveTrialScenarioParameterValues(
         manifest,

@@ -1,17 +1,13 @@
-/**
- * @layerRoot core.optimization
- * @role Derives an Optuna study description, trial seeds and per-trial scenario parameter values from an optimization manifest, shared by the CLI and the browser runtime
- */
 import { deriveRunSeed } from "../simulation/monte-carlo/run-state";
 
+import type { Scenario } from "../types/sdcpn";
 import type {
   OptimizationScalar,
   PetrinautOptimizationDescribeParameter,
   PetrinautOptimizationDescribeResult,
   PetrinautOptimizationDomain,
   PetrinautOptimizationManifest,
-} from "../optimization";
-import type { Scenario } from "../types/sdcpn";
+} from "./index";
 
 type ScenarioParameter = Scenario["scenarioParameters"][number];
 
@@ -20,7 +16,7 @@ type OptimizedParameter = {
   domain: PetrinautOptimizationDomain;
 };
 
-export const describeOptimizationParameter = (
+const describeOptimizationParameter = (
   parameter: ScenarioParameter,
   domain: PetrinautOptimizationDomain,
 ): PetrinautOptimizationDescribeParameter => {
@@ -53,7 +49,7 @@ export const describeOptimizationParameter = (
   }
 };
 
-export const validateSuggestedOptimizationValue = (
+const validateSuggestedOptimizationValue = (
   parameter: ScenarioParameter,
   domain: PetrinautOptimizationDomain,
   value: OptimizationScalar,

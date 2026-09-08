@@ -1,26 +1,30 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createAbortController } from "../environment";
-import { PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE } from "../optimization";
-import { createOptimizationManifestInput } from "../shared/optimization-manifest.fixtures";
+import { createAbortController } from "../../environment";
+import { createOptimizationManifestInput } from "../../shared/optimization-manifest.fixtures";
+import {
+  isUnknownOptimizationRunError,
+  PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
+  PETRINAUT_OPTIMIZATION_UNKNOWN_RUN_ERROR_CODE,
+} from "../index";
 import { createBrowserOptimization } from "./browser-optimization";
 
-import type { WorkerMessageHandler } from "../environment";
+import type { WorkerMessageHandler } from "../../environment";
 import type {
   PetrinautOptimizationChannel,
   PetrinautOptimizationEvent,
   PetrinautOptimizationTrialRequest,
-} from "../optimization";
-import type {
-  OptimizerWorkerErrorEvent,
-  OptimizerWorkerLike,
-} from "./create-optimizer-worker";
+} from "../index";
 import type {
   OptimizerStudySummary,
   OptimizerToMainMessage,
   OptimizerToWorkerMessage,
   OptimizerTrialPayload,
 } from "./messages";
+import type {
+  OptimizerWorkerErrorEvent,
+  OptimizerWorkerLike,
+} from "./worker/create-optimizer-worker";
 
 type FakeWorkerErrorHandler = (event: OptimizerWorkerErrorEvent) => void;
 
@@ -334,17 +338,21 @@ describe("createBrowserOptimization", () => {
     await flush();
 
     await context.capability.cancelOptimizationRun(runId);
+    context.worker.emit({
+      type: "evaluate",
+      runId,
+      requestId: 2,
+      trial: 1,
+      suggestedValues: { rate: 0.5, count: 6, enabled: true },
+    });
     await flush();
     expect(context.worker.sentOfType("cancel")).toEqual([
       { type: "cancel", runId },
     ]);
-    expect(context.worker.sentOfType("evaluated")).toEqual([
-      {
-        type: "evaluated",
-        requestId: 1,
-        outcome: { kind: "pruned", reason: "cancelled" },
-      },
-    ]);
+    // The worker prunes the segment's pending evaluations itself, so the
+    // aborted trial gets no reply and the late evaluate is never run.
+    expect(context.worker.sentOfType("evaluated")).toHaveLength(0);
+    expect(context.evaluateTrial).toHaveBeenCalledTimes(1);
 
     context.worker.emit({ type: "cancelled", runId });
     await context.capability.cancelOptimizationRun(runId);
@@ -356,30 +364,6 @@ describe("createBrowserOptimization", () => {
       retryable: false,
       seq: 2,
     });
-  });
-
-  it("answers an evaluate posted after cancel with a cancelled outcome without running it", async () => {
-    const context = setUp();
-    const runId = await startRun(context);
-    await context.capability.cancelOptimizationRun(runId);
-
-    context.worker.emit({
-      type: "evaluate",
-      runId,
-      requestId: 1,
-      trial: 0,
-      suggestedValues: { rate: 0.5, count: 6, enabled: true },
-    });
-    await flush();
-
-    expect(context.evaluateTrial).not.toHaveBeenCalled();
-    expect(context.worker.sentOfType("evaluated")).toEqual([
-      {
-        type: "evaluated",
-        requestId: 1,
-        outcome: { kind: "pruned", reason: "cancelled" },
-      },
-    ]);
   });
 
   it("ignores an evaluation of a stopped segment that settles after the next segment started", async () => {
@@ -460,12 +444,20 @@ describe("createBrowserOptimization", () => {
     });
   });
 
-  it("rejects attaching to an unknown run with the not-found shape", () => {
+  it("rejects attaching to an unknown run with the unknown-run code", () => {
     const context = setUp();
 
-    expect(() => context.capability.attachOptimizationRun("missing")).toThrow(
-      expect.objectContaining({ category: "http", httpStatus: 404 }),
-    );
+    let thrown: unknown;
+    try {
+      context.capability.attachOptimizationRun("missing");
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toMatchObject({
+      code: PETRINAUT_OPTIMIZATION_UNKNOWN_RUN_ERROR_CODE,
+    });
+    expect(isUnknownOptimizationRunError(thrown)).toBe(true);
+    expect(isUnknownOptimizationRunError(new Error("other"))).toBe(false);
   });
 
   it("fails the run when the channel throws and stops the study", async () => {
@@ -603,97 +595,105 @@ describe("createBrowserOptimization", () => {
     ).toBe("complete");
   });
 
-  it("fails a run the runtime could not load and retries with a fresh worker", async () => {
-    const context = setUp();
-    const { runId } = await context.capability.createOptimizationRun(
-      createOptimizationManifestInput(),
-    );
-    const firstWorker = context.worker;
-
-    firstWorker.emit({ type: "init-error", message: "offline" });
-    await flush();
-
-    const events = await collectEvents(
-      context.capability.attachOptimizationRun(runId),
-    );
-    const last = events.at(-1);
-    expect(last).toMatchObject({
-      type: "error",
-      code: "optimizer_unavailable",
-      retryable: true,
-    });
-    expect(last?.type === "error" ? last.message : "").toContain("offline");
-    expect(firstWorker.terminated).toBe(true);
-
-    await context.capability.createOptimizationRun(
-      createOptimizationManifestInput(),
-    );
-    expect(context.workers).toHaveLength(2);
-    expect(context.worker.sentOfType("init")).toHaveLength(1);
-  });
-
-  it("fails a run whose worker script does not load and retries with a fresh worker", async () => {
-    const context = setUp();
-    const { runId } = await context.capability.createOptimizationRun(
-      createOptimizationManifestInput(),
-    );
-    const firstWorker = context.worker;
-
-    firstWorker.emitError({});
-    await flush();
-
-    const events = await collectEvents(
-      context.capability.attachOptimizationRun(runId),
-    );
-    expect(events.at(-1)).toEqual({
-      type: "error",
-      code: "optimizer_unavailable",
+  it.each([
+    {
+      failure: "the runtime does not load",
+      createWorker: undefined,
+      fail: (context: ReturnType<typeof setUp>) => {
+        context.worker.emit({ type: "init-error", message: "offline" });
+      },
+      message: "The in-browser optimizer could not start: offline",
+    },
+    {
+      failure: "the worker script does not load",
+      createWorker: undefined,
+      fail: (context: ReturnType<typeof setUp>) => {
+        context.worker.emitError({});
+      },
       message:
-        "The in-browser optimizer could not start: The optimizer worker failed to load",
-      retryable: true,
-      seq: 2,
-    });
-    expect(firstWorker.terminated).toBe(true);
-
-    await context.capability.createOptimizationRun(
-      createOptimizationManifestInput(),
-    );
-    expect(context.workers).toHaveLength(2);
-    expect(context.worker.sentOfType("init")).toHaveLength(1);
-  });
-
-  it("fails a run whose worker cannot be created and retries on the next run", async () => {
-    const context = setUp({
-      createWorker: (attempt) => {
+        "The in-browser optimizer could not start: The optimizer worker failed",
+    },
+    {
+      failure: "the worker cannot be created",
+      createWorker: (attempt: number) => {
         if (attempt === 1) {
           throw new Error("SecurityError: cross-origin worker script");
         }
         return createFakeWorker();
       },
-    });
+      fail: () => {},
+      message:
+        "The in-browser optimizer could not start: SecurityError: cross-origin worker script",
+    },
+  ])(
+    "fails a run as retryable when $failure and retries with a fresh worker",
+    async ({ createWorker, fail, message }) => {
+      const context = setUp({ createWorker });
+      const { runId } = await context.capability.createOptimizationRun(
+        createOptimizationManifestInput(),
+      );
+      const failedWorkers = [...context.workers];
 
-    const { runId } = await context.capability.createOptimizationRun(
+      fail(context);
+      await flush();
+
+      const events = await collectEvents(
+        context.capability.attachOptimizationRun(runId),
+      );
+      expect(events.at(-1)).toEqual({
+        type: "error",
+        code: "optimizer_unavailable",
+        message,
+        retryable: true,
+        seq: 2,
+      });
+      for (const worker of failedWorkers) {
+        expect(worker.terminated).toBe(true);
+      }
+
+      const second = await startRun(context);
+      expect(context.workers).toHaveLength(failedWorkers.length + 1);
+      expect(context.worker.sentOfType("init")).toHaveLength(1);
+      expect(
+        context.worker.sentOfType("start").map(({ runId: started }) => started),
+      ).toEqual([second]);
+    },
+  );
+
+  it("fails the running study as retryable when the worker crashes and respawns for the queued run", async () => {
+    const context = setUp();
+    const running = await startRun(context);
+    const { runId: queued } = await context.capability.createOptimizationRun(
       createOptimizationManifestInput(),
     );
+    const crashed = context.worker;
 
+    crashed.emitError({ message: "RangeError: out of memory" });
+    await flush();
+
+    expect(crashed.terminated).toBe(true);
     const events = await collectEvents(
-      context.capability.attachOptimizationRun(runId),
+      context.capability.attachOptimizationRun(running),
     );
     expect(events.at(-1)).toEqual({
       type: "error",
       code: "optimizer_unavailable",
       message:
-        "The in-browser optimizer could not start: SecurityError: cross-origin worker script",
+        "The in-browser optimizer could not start: RangeError: out of memory",
       retryable: true,
       seq: 2,
     });
-    expect(context.workers).toHaveLength(0);
+    await expect(
+      context.capability.extendOptimizationRun(running, 1),
+    ).rejects.toThrow("released or failed");
 
-    const second = await startRun(context);
-    expect(context.workers).toHaveLength(1);
+    expect(context.workers).toHaveLength(2);
+    expect(context.worker.sentOfType("init")).toHaveLength(1);
+    context.worker.emit({ type: "ready" });
+    await flush();
     expect(
-      context.worker.sentOfType("start").map(({ runId: started }) => started),
-    ).toEqual([second]);
+      context.worker.sentOfType("start").map(({ runId }) => runId),
+    ).toEqual([queued]);
   });
 
   it("replays past a cursor and aborts a tailing attachment", async () => {
@@ -780,9 +780,8 @@ describe("createBrowserOptimization", () => {
     await flush();
 
     expect(context.worker.sentOfType("extend")).toEqual([
-      { type: "extend", runId, trials: 5, parallelism: 1 },
+      { type: "extend", runId, trials: 5 },
     ]);
-    context.worker.emit({ type: "started", runId, requestedTrials: 6 });
     context.worker.emit({
       type: "evaluate",
       runId,
@@ -862,7 +861,7 @@ describe("createBrowserOptimization", () => {
     await flush();
 
     expect(context.worker.sentOfType("extend")).toEqual([
-      { type: "extend", runId, trials: 2, parallelism: 1 },
+      { type: "extend", runId, trials: 2 },
     ]);
     context.worker.emit({
       type: "evaluate",
@@ -898,7 +897,9 @@ describe("createBrowserOptimization", () => {
     await expect(
       context.capability.extendOptimizationRun("missing", 1),
     ).rejects.toThrow(
-      expect.objectContaining({ category: "http", httpStatus: 404 }),
+      expect.objectContaining({
+        code: PETRINAUT_OPTIMIZATION_UNKNOWN_RUN_ERROR_CODE,
+      }),
     );
 
     context.worker.emit({ type: "trial", runId, event: completedTrial });
@@ -909,15 +910,12 @@ describe("createBrowserOptimization", () => {
     await expect(
       context.capability.extendOptimizationRun(runId, 1000),
     ).rejects.toThrow(/at most .* trials in total; 1 already ran/);
-    await expect(
-      context.capability.extendOptimizationRun(runId, 2, { parallelism: 5 }),
-    ).rejects.toThrow("between 1 and 4");
     expect(context.worker.sentOfType("extend")).toHaveLength(0);
 
     await context.capability.extendOptimizationRun(runId, 999);
     await flush();
     expect(context.worker.sentOfType("extend")).toEqual([
-      { type: "extend", runId, trials: 999, parallelism: 1 },
+      { type: "extend", runId, trials: 999 },
     ]);
     context.worker.emit({ type: "complete", runId, summary });
     const events = await collectEvents(
@@ -1004,7 +1002,7 @@ describe("createBrowserOptimization", () => {
     await flush();
 
     expect(context.worker.sentOfType("extend")).toEqual([
-      { type: "extend", runId: first, trials: 2, parallelism: 1 },
+      { type: "extend", runId: first, trials: 2 },
     ]);
     context.worker.emit({ type: "complete", runId: first, summary });
     const events = await collectEvents(
@@ -1017,7 +1015,7 @@ describe("createBrowserOptimization", () => {
     expect(events[0]).toMatchObject({ requestedTrials: 3 });
   });
 
-  it("passes the parallelism to the worker and evaluates trials in flight together", async () => {
+  it("passes the parallelism to the worker once and evaluates trials in flight together", async () => {
     const context = setUp();
     const { runId } = await context.capability.createOptimizationRun(
       createOptimizationManifestInput(),
@@ -1048,20 +1046,9 @@ describe("createBrowserOptimization", () => {
     context.worker.emit({ type: "complete", runId, summary });
     await context.capability.extendOptimizationRun(runId, 2);
     await flush();
-    expect(context.worker.sentOfType("extend").at(-1)).toMatchObject({
-      trials: 2,
-      parallelism: 3,
-    });
-
-    context.worker.emit({ type: "complete", runId, summary });
-    await context.capability.extendOptimizationRun(runId, 1, {
-      parallelism: 1,
-    });
-    await flush();
-    expect(context.worker.sentOfType("extend").at(-1)).toMatchObject({
-      trials: 1,
-      parallelism: 1,
-    });
+    expect(context.worker.sentOfType("extend")).toEqual([
+      { type: "extend", runId, trials: 2 },
+    ]);
 
     await expect(
       context.capability.createOptimizationRun(

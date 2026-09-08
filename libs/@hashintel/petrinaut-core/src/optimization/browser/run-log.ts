@@ -1,5 +1,5 @@
-import type { AbortSignalLike } from "../environment";
-import type { PetrinautOptimizationEvent } from "../optimization";
+import type { AbortSignalLike } from "../../environment";
+import type { PetrinautOptimizationEvent } from "../index";
 
 type WithoutSeq<TEvent> = TEvent extends unknown ? Omit<TEvent, "seq"> : never;
 
@@ -13,14 +13,11 @@ export type OptimizationRunLogEvent = WithoutSeq<PetrinautOptimizationEvent>;
  */
 export type OptimizationRunLog = {
   readonly events: readonly PetrinautOptimizationEvent[];
-  /** True while the latest event is terminal, so a replay past it ends at once. */
-  readonly settled: boolean;
   /**
-   * Stamps the next dense `seq` (from 1) and stores the event. Once settled,
-   * only a `started` event may follow.
+   * Stamps the next dense `seq` (from 1) and stores the event. After a
+   * terminal event, only a `started` event may follow.
    */
   append(event: OptimizationRunLogEvent): PetrinautOptimizationEvent;
-  subscribe(listener: (event: PetrinautOptimizationEvent) => void): () => void;
   /**
    * Yields the stored events with `seq` greater than `cursor`, then tails live
    * events, and ends at the first terminal event after the cursor. Aborting
@@ -78,9 +75,6 @@ export const createOptimizationRunLog = (): OptimizationRunLog => {
     get events() {
       return events;
     },
-    get settled() {
-      return isSettled();
-    },
     append(event) {
       if (isSettled() && event.type !== "started") {
         throw new Error(
@@ -94,7 +88,6 @@ export const createOptimizationRunLog = (): OptimizationRunLog => {
       }
       return stamped;
     },
-    subscribe,
     async *replay(options) {
       const signal = options?.signal;
       // Sequence numbers are dense from 1, so the first event past the cursor

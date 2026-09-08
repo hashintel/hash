@@ -2,7 +2,7 @@ import type {
   OptimizationScalar,
   PetrinautOptimizationDescribeResult,
   PetrinautOptimizationTrialOutcome,
-} from "../optimization";
+} from "../index";
 import type { OptimizerPyodideConfig } from "./pyodide-config";
 
 export type OptimizerBestTrial = {
@@ -46,12 +46,11 @@ export type OptimizerStartMessage = {
   parallelism: number;
 };
 
-/** Runs `trials` more on the kept study; trial numbers continue. */
+/** Runs `trials` more on the kept study, at its parallelism; trial numbers continue. */
 export type OptimizerExtendMessage = {
   type: "extend";
   runId: string;
   trials: number;
-  parallelism: number;
 };
 
 export type OptimizerEvaluatedMessage = {
@@ -66,7 +65,7 @@ export type OptimizerCancelMessage = {
   runId: string;
 };
 
-/** Drops the kept study. */
+/** Drops the kept study; nothing is posted back. */
 export type OptimizerReleaseMessage = {
   type: "release";
   runId: string;
@@ -87,13 +86,6 @@ export type OptimizerReadyMessage = {
 export type OptimizerInitErrorMessage = {
   type: "init-error";
   message: string;
-};
-
-/** A segment began; `requestedTrials` is the study's cumulative total. */
-export type OptimizerStartedMessage = {
-  type: "started";
-  runId: string;
-  requestedTrials: number;
 };
 
 export type OptimizerEvaluateMessage = {
@@ -127,18 +119,11 @@ export type OptimizerErrorMessage = {
   message: string;
 };
 
-export type OptimizerReleasedMessage = {
-  type: "released";
-  runId: string;
-};
-
 export type OptimizerToMainMessage =
   | OptimizerReadyMessage
   | OptimizerInitErrorMessage
-  | OptimizerStartedMessage
   | OptimizerEvaluateMessage
   | OptimizerTrialMessage
   | OptimizerCompleteMessage
   | OptimizerCancelledMessage
-  | OptimizerErrorMessage
-  | OptimizerReleasedMessage;
+  | OptimizerErrorMessage;

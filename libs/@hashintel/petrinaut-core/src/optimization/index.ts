@@ -1,9 +1,13 @@
+/**
+ * @layerRoot core.optimization
+ * @role The optimization contract shared by the CLI, the service client and the browser runtime: manifest and event schemas, capability, channel and connected-source types, study description and seed derivation
+ */
 import { z } from "zod";
 
-import { parseSDCPNFile } from "./file-format/parse-sdcpn-file";
-import { sdcpnSchema } from "./file-format/types";
+import { parseSDCPNFile } from "../file-format/parse-sdcpn-file";
+import { sdcpnSchema } from "../file-format/types";
 
-import type { AbortSignalLike } from "./environment";
+import type { AbortSignalLike } from "../environment";
 
 export const PETRINAUT_OPTIMIZATION_MAX_SEED = 2_147_483_647;
 export const PETRINAUT_OPTIMIZATION_MAX_TRIALS = 1_000;
@@ -454,6 +458,23 @@ export const petrinautOptimizationManifestSchema = z
       "A versioned, self-contained study over a flat set of scenario parameters.",
   });
 
+/** Parses a manifest, naming every invalid field in the error it throws. */
+export const parseOptimizationManifest = (
+  data: unknown,
+): PetrinautOptimizationManifest => {
+  const parsed = petrinautOptimizationManifestSchema.safeParse(data);
+  if (!parsed.success) {
+    const details = parsed.error.issues
+      .map(
+        ({ path, message }) =>
+          `${path.length > 0 ? path.join(".") : "manifest"}: ${message}`,
+      )
+      .join("; ");
+    throw new Error(`Invalid optimization manifest: ${details}`);
+  }
+  return parsed.data;
+};
+
 /** The application optimization request is the immutable CLI manifest. */
 export const petrinautOptimizationInputSchema =
   petrinautOptimizationManifestSchema;
@@ -617,6 +638,19 @@ export const petrinautOptimizationCompleteEventSchema = z
 export const PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE =
   "optimization_cancelled";
 
+/**
+ * The `code` on the error a connected capability throws for a run id it does
+ * not hold: one it never created, or one it dropped when the tab reloaded.
+ * A stored run that meets it is stale and can be forgotten.
+ */
+export const PETRINAUT_OPTIMIZATION_UNKNOWN_RUN_ERROR_CODE =
+  "optimization_unknown_run";
+
+export const isUnknownOptimizationRunError = (error: unknown): boolean =>
+  error instanceof Error &&
+  "code" in error &&
+  error.code === PETRINAUT_OPTIMIZATION_UNKNOWN_RUN_ERROR_CODE;
+
 export const petrinautOptimizationErrorEventSchema = z
   .strictObject({
     type: z.literal("error"),
@@ -672,7 +706,9 @@ export type PetrinautOptimizationTrialEvent = z.infer<
 >;
 
 /**
- * Host-provided optimization capability for Petrinaut.
+ * Host-provided optimization capability for Petrinaut: the self-contained
+ * variant, backed by a remote service that owns its simulations. The
+ * in-tab variant is {@link PetrinautConnectedOptimization}.
  *
  * A run is detached from any one connection: it is created by id, its event
  * stream can be (re-)attached with a `seq` cursor, and it is cancelled
@@ -739,7 +775,6 @@ export type PetrinautOptimizationTrialOutcome =
       readonly kind: "objective";
       /** The mean of the per-seed objectives; finite. */
       readonly objective: number;
-      readonly replicates?: readonly { seed: number; objective: number }[];
     }
   | {
       /** The host could not run the trial; Optuna records it as pruned. */
@@ -772,8 +807,9 @@ export type PetrinautConnectedRunOptions = {
   signal?: AbortSignalLike;
   /**
    * How many trials the study keeps in flight, 1 to
-   * `PETRINAUT_OPTIMIZATION_MAX_PARALLELISM`. Defaults to 1, which samples
-   * exactly as a sequential study does.
+   * `PETRINAUT_OPTIMIZATION_MAX_PARALLELISM`, for the run and every
+   * extension of it. Defaults to 1, which samples exactly as a sequential
+   * study does.
    */
   parallelism?: number;
 };
@@ -799,11 +835,7 @@ export type PetrinautConnectedOptimizationCapability = Omit<
    * released or failed, and when the total would exceed
    * `PETRINAUT_OPTIMIZATION_MAX_TRIALS`.
    */
-  extendOptimizationRun(
-    runId: string,
-    trials: number,
-    options?: Pick<PetrinautConnectedRunOptions, "parallelism">,
-  ): Promise<void>;
+  extendOptimizationRun(runId: string, trials: number): Promise<void>;
   /** Drop the study behind a run, which can then no longer be extended. Idempotent. */
   releaseOptimizationRun(runId: string): Promise<void>;
   /** Cancel every run, drop every study and free the runtime. */
@@ -811,11 +843,9 @@ export type PetrinautConnectedOptimizationCapability = Omit<
 };
 
 /**
- * An optimization capability that runs where the host runs and needs the
- * host's compute: connect it to a channel to obtain the capability.
- *
- * The remote capability (`PetrinautOptimization`) is self-contained because
- * the service owns its simulations; this one is not, by design.
+ * An optimization capability that runs where the host runs, in the tab, and
+ * needs the host's compute: connect it to a channel to obtain the
+ * capability. The self-contained variant is {@link PetrinautOptimization}.
  */
 export type PetrinautConnectedOptimization = {
   readonly kind: "connected";
@@ -838,7 +868,5 @@ export const isConnectedOptimization = (
 export {
   deriveOptimizationTrialSeeds,
   describeOptimization,
-  describeOptimizationParameter,
   resolveTrialScenarioParameterValues,
-  validateSuggestedOptimizationValue,
-} from "./optimization/describe";
+} from "./describe";

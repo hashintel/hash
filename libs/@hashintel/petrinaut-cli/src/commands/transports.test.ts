@@ -8,7 +8,8 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { deriveTrialSeeds } from "../runtime/optimization";
+import { deriveOptimizationTrialSeeds } from "@hashintel/petrinaut-core/optimization";
+
 import { MAX_REQUEST_LINE_BYTES } from "../runtime/protocol";
 import { createOptimizationManifest } from "./optimization-manifest.fixtures";
 import { serve } from "./serve";
@@ -231,7 +232,7 @@ describe("CLI transports", () => {
     );
     await serving;
 
-    const seeds = deriveTrialSeeds(42, 3);
+    const seeds = deriveOptimizationTrialSeeds(42, 3);
     expect(seeds[0]).toBe(42);
     expect(parseResponses(stdout)).toEqual([
       {
