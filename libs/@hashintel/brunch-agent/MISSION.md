@@ -1,159 +1,151 @@
-# Brunch remote browser-origin policy
+# Realtime delivery over authoritative Brunch
 
 ## Status
 
-**Live as of 2026-09-08** for
-[SRE-1042](https://linear.app/hash/issue/SRE-1042/configure-petrinauts-deployment-variables-for-the-brunch-agent-chat)
-on `t/sre-1042-allow-wildcard-origins-for-brunch-previews`, cut from `main` after
-[FE-1626](https://github.com/hashintel/hash/pull/9583) established the exact-origin allow-list for
-`/agents/*`. This file is the branch's sole execution authority.
-
-Exact origins alone do not fit the deployment: every Petrinaut preview has its own
-`https://petrinaut-git-<branch>.stage.hash.ai` origin, so the allow-list additionally accepts a
-wildcard for exactly one leading host label. CORS governs whether a conforming browser exposes a cross-origin response
-to client code; it does not authenticate or restrict non-browser callers, authorize a
-conversation, or make public exposure safe by itself.
+**Live; design and local implementation authorized.** Sole execution authority on
+`voice/realtime-rephrasing`, a sibling of #9622 based on #9585 at
+[0902dddb](https://github.com/hashintel/hash/commit/0902dddbbfd53ac98499c44a7302339bca135563).
+The owner approved Approach A and its queue, interruption and Stop semantics in
+[this conversation](https://ampcode.com/threads/T-01a0872b-b4a7-7656-b707-800e3ad62816).
+Paid calls, external writes, pushing, PR/issue creation, deployment and mission acceptance
+are not authorized. The inherited CORS mission is preserved without acceptance in
+[its historical record](docs/mission-archive/sre-1042-browser-origin-policy.md).
 
 ## Imperative
 
-Let a deployed Petrinaut website use the Brunch `/agents/*` Flue routes from an explicitly trusted
-browser origin while causing browsers to withhold cross-origin access from unlisted origins. Do
-this now because the deployed website and Brunch service are separate origins and
-[SRE-1042](https://linear.app/hash/issue/SRE-1042/configure-petrinauts-deployment-variables-for-the-brunch-agent-chat)
-cannot point the browser at the deployed Brunch route until preflight and response headers work.
+Test whether Realtime can maintain conversational fluidity while Brunch remains the sole
+domain agent: acknowledge receipt promptly, retain additional user speech while Brunch works,
+and speak a concise faithful rephrasing of its complete answer. The complete Brunch response
+streams to the screen independently and stays authoritative. A reading notice is not the
+normal answer path. #9622 is the separate-Brunch-authored-speech control, not this branch's base.
+
+Visible advance: users can speak the next turn during work and hear a substantive short answer
+instead of only a reading offer. Demonstrate with `crew-reservation-v1`, asking “What does
+reserving a dispatch crew mean here?” and “Give me a detailed analysis of this model, including
+assumptions, possible bottlenecks, missing constraints, and what still needs validation. Do not
+change the model.” Add a follow-up during work, interrupt speech, Stop, and reopen.
 
 ## Throughline
 
-```text
-Petrinaut browser at one configured exact origin
-→ OPTIONS /agents/<agent>/<instance> with requested method and headers
-→ route-scoped Hono CORS middleware before ownership middleware
-→ 204 preflight carrying the matching origin, GET/POST/OPTIONS, and Flue request headers
-→ browser FlueClient GET/POST with x-brunch-principal + x-brunch-conversation
-→ existing agentOwnershipGuard and createAgentRouter
-→ response exposes the Flue/Durable Streams headers the browser SDK reads
-```
+Realtime transcription → existing panel FIFO → unchanged AI SDK/Flue admission → Brunch and
+browser-tool continuations → canonical screen stream → positively completed correlated reply
+snapshot → application-requested Realtime rephrasing → audio. No new endpoint or conversation store.
 
-`BRUNCH_CORS_ALLOWED_ORIGINS` is read once at startup as a comma-separated list of HTTP(S)
-origins, each either exact or with a wildcard as the whole leading host label in front of a domain
-with at least two labels (`https://*.stage.hash.ai`). A wildcard matches exactly one label, like a
-wildcard TLS certificate. Parsing trims whitespace, normalizes an optional trailing slash through
-`URL.origin`, and deduplicates values. Credentials, non-root paths, queries, fragments, wildcards in
-any other position, opaque origins, and non-HTTP(S) schemes are startup configuration errors. Missing or blank configuration means an
-empty allowlist: same-origin and non-browser callers continue through the existing route, but
-browser code at another origin receives no CORS grant. See the
-[Brunch application README](../../../apps/brunch-agent/README.md#production-container) for
-operator configuration details.
+### Accepted contracts
 
-The middleware applies only to `/agents/*` and runs before `agentOwnershipGuard`, so a valid
-preflight does not need conversation headers. It permits `GET`, `POST`, and `OPTIONS`; permits
-`Content-Type`, `x-brunch-principal`, and `x-brunch-conversation`; does not permit credentials; and
-uses a 600-second preflight cache. It exposes the non-safelisted response headers read by the
-installed Flue 2.0.3 and Durable Streams 0.2.6 clients:
+- Brunch owns domain claims, questions, conclusions, tools and workpieces. Realtime may only
+  re-express supplied completed content; it must never originate domain claims/questions or
+  invoke tools. A Brunch question is delivered in its exact marked wording.
+- VAD never automatically creates or interrupts a response. The application gates every request.
+  Fixed notices are tied to receipt (“Got that.”), actual queue retention (“I’ve queued that for
+  next.”), or admitted continuation (“Brunch is continuing the response.”). Deduplicate/coalesce
+  notices and drop obsolete ones. No timer-generated or inferred progress.
+- Rephrasing receives the complete ordered canonical response and valid question marker only,
+  with `conversation: "none"` and explicit input. No reasoning, partial output, raw tool results,
+  history, or queued user words. Preserve negation, quantities, uncertainty, consequential
+  qualifications, later corrections and proposed/attempted/completed/validated distinctions.
+  Prefer 2–4 sentences; fidelity wins over length. Source text is data, never instructions.
+- Every root and causally linked continuation must settle successfully, and automatic browser
+  work must be finished, before final speech. Track continuations at admission, including those
+  with no message. UI `ready` and individual message completion are not success authorities.
+- Extend the panel's existing one-entry queue to FIFO. Input ordering follows capture/commit
+  identity, not asynchronous transcription completion. Deduplicate identities, not equal text.
+  Freeze reply A before admitting B. Drain after Brunch completion without waiting for audio;
+  audio is serialized separately and correlated per turn. Show queued text as unsent.
+- Keep microphone capture available while working and speaking. User speech cancels Voice output
+  only, preserving input/transcription and Brunch work. Explicit Stop cancels active work and
+  withdraws unadmitted queued inputs. Failure/ambiguous admission pauses draining and retains
+  unsent text for explicit recovery. Disconnect does not abort Brunch; reload never autoplays
+  history or resends queue contents. Queue storage is session-local, not durable.
+- Failed, cancelled, stopped or unproven work cannot produce a final paraphrase. Invalidated
+  generations cannot be revived by late events. A successfully completed explanation of a
+  rejected/no-op domain tool result may speak; that is not a failed agent execution.
+- Audio failure, truncation, or oversized source leaves canonical text intact and reports failure;
+  never silently truncate source or automatically read the report. Exact Read full response and
+  Repeat question remain optional independent delivery modes.
 
-- `flue-error-ref`
-- `Stream-Next-Offset`
-- `Stream-Cursor`
-- `Stream-Up-To-Date`
-- `Stream-Closed`
-- `stream-sse-data-encoding`
+### Implementation sequence and owners
 
-Hono's maintained CORS middleware owns header emission, `Vary` handling, and the `OPTIONS` response.
-Non-browser callers can still send requests and receive ordinary HTTP responses because CORS is
-enforced by browsers, not by the service as caller authentication. A response to an unlisted
-browser origin carries no `Access-Control-Allow-Origin`, so the browser withholds that response
-from client code.
+1. Session/policy tests first: output-only cancellation preserves capture; input completion order;
+   explicit `acknowledgement`, `progress`, `paraphrase`, and exact-read requests; no domain tools.
+   Implement in website `openai-realtime-session.ts`, server policy and diagnostics.
+2. Panel/transport tests first: FIFO after full automatic continuation, withdrawal and error hold;
+   expose admitted and terminal submission identity through existing callbacks. Implement in
+   `ai-assistant-panel.tsx`, composer context, transport `index.ts`, panel tracker and Voice wiring.
+3. Bridge/controller tests first: full success gate, immutable snapshots before queue drain,
+   event-backed notices, overlap capture, cancelled/failed/textless continuation, replay/reopen.
+   Remove parent stepwise speech and long-answer-offer normal path, not canonical content.
+4. Preserve Brunch/core/SDCPN and typed contracts; only adjust app Voice presentation instructions.
+   Update Voice user guide and a Petrinaut patch changeset with the queue/interrupt behavior.
+5. Run affected unit/integration, type, lint and build checks; render real panel fixture and inspect
+   queued/failure/listening states. Record evidence and remaining provider/human gates separately.
 
 ## Proof
 
-This mission establishes the application-side CORS contract required by the deployed browser
-transport. It does **not** establish authentication, authorization, rate limiting, infrastructure
-configuration, a deployed endpoint, or end-to-end remote verification.
+- **Transport and turn safety:** `packages/transport-aisdk/test/chat-transport.test.ts`, website
+  `realtime-brunch-bridge.test.ts` and `voice-browser-tools.integration.test.tsx` exercise full
+  continuation completion, failure before text, ambiguous admission and Stop/late-event races.
+- **Queue and capture:** panel composer/Voice integration tests plus website
+  `openai-realtime-session.test.ts` and `voice-turn-controller.test.ts` distinguish reversed
+  transcript completion, identical words with different IDs, input during acknowledgement,
+  preserving input on output cancellation, FIFO, error hold, Stop withdrawal and no reload send.
+- **Prompt and payload isolation:** `apps/brunch-agent/test/voice-context.test.ts`, session and
+  policy tests assert unchanged typed behavior, no tools/autonomous response, completed-only
+  source selection, exact replay and no cross-turn input in paraphrase context.
+- **Product path:** actual local panel/browser-tool fixture with rendered-state inspection and
+  DOM assertions; affected workspace unit/type/lint/build checks. Mocked provider checks establish
+  wiring, not acoustic fidelity or naturalness. No deployment claim follows from local evidence.
+- **Provider and human experiment:** only after explicit paid budget approval, synchronized audio
+  and screen recording with pinned models/prompts/fixture/branches. Compare #9585, #9622 and this
+  variant, plus acknowledgement on/off on this variant to isolate bridging. Human inspection of
+  heard claims against canonical source, and canonical claims against tool evidence, separately.
 
-1. **Configuration is exact and fail-closed.** Missing and blank configuration produce no allowed
-   origins; whitespace, trailing slashes, duplicates, and multiple exact origins normalize
-   deterministically; malformed or broader-than-origin entries fail with the offending variable
-   named. Oracle: focused unit cases in `apps/brunch-agent/test/cors.test.ts`.
-2. **Allowed browser traffic receives the complete grant.** An allowed origin receives its exact
-   value on an `/agents/*` response. Its preflight receives 204 before ownership, the three allowed
-   methods, the three allowed request headers, the six exposed response headers, no credentials
-   grant, and the required `Vary` values. Oracle: in-process Hono requests in
-   `apps/brunch-agent/test/cors.test.ts`.
-3. **Rejected origins receive no grant.** An unlisted origin's preflight and ordinary response omit
-   `Access-Control-Allow-Origin`; an allowed origin does not make another origin pass. Oracle:
-   focused negative cases in `apps/brunch-agent/test/cors.test.ts`.
-4. **The policy cannot widen unrelated routes.** `/health`, `/`, and `/assets/*` carry no Brunch
-   CORS grant. Existing ownership checks still return 401/403 for actual agent requests with
-   missing or mismatched identity. Oracle: CORS route-scope tests plus the existing
-   `apps/brunch-agent/test/agent-ownership.test.ts`.
-5. **The shipped artifact and operator contract agree.** Brunch's README documents the variable,
-   exact-origin configuration, empty-list behavior, and the fact that CORS governs browser access
-   rather than authenticating or restricting non-browser callers. Oracle:
-   `yarn workspace @apps/brunch-agent test:unit`,
-   `yarn workspace @apps/brunch-agent lint:tsc`,
-   `yarn workspace @apps/brunch-agent lint:eslint`, and
-   `yarn workspace @apps/brunch-agent build`.
+### Measurements and oracles
+
+Record speech-end, transcription completion, receipt/queue/admission, all continuation settlements,
+whole-reply completion, request and playback events keyed by turn and speech request. Measure:
+first audible acknowledgement; longest/total silence during Brunch work (separate user speech);
+whole-reply completion to first substantive audible audio; fidelity/qualifications; unsupported
+claims/questions/progress; lost/duplicate/reordered/misattributed queued turns; human naturalness.
+Include queue wait and absence of an answer. Provider audio-buffer events are timing proxies only;
+synchronized recording/human listening is the first-audible oracle. Operational logs contain only
+scalar metadata, never source/transcript/audio. Consent-controlled artifacts may contain content.
+Pin model/config differences; #9622 changes Brunch generation too, so not every difference is
+caused by Realtime. No invented latency acceptance threshold or statistical claim from a few runs.
 
 ## Constraints
 
-- Use Hono's built-in CORS middleware; do not create a parallel HTTP server or hand-maintain generic
-  CORS response logic.
-- Keep one Flue product route and the existing ownership guard. CORS must not add, proxy, rename, or
-  reinterpret an agent route.
-- The origin list is explicit: exact origins or one-label wildcards, matched by scheme, host and
-  port. Do not hard-code Petrinaut domains, reflect arbitrary `Origin` values, or silently skip
-  malformed entries.
-- Keep credentials disabled. The current browser client uses explicit ownership headers, not
-  cookies, and those headers are not authentication.
-- Answer preflight before ownership while preserving ownership enforcement on every non-preflight
-  agent request.
-- Read configuration once at startup. Dynamic policy storage or hot reload is not earned by this
-  deployment.
-- Preserve local same-origin proxying when the variable is unset.
-- No implementation begins until this authority cut is committed separately. Material changes to
-  this contract require owner review and another focused authority commit.
-
-### Expected touched paths
-
-```text
-~ libs/@hashintel/brunch-agent/MISSION.md      branch authority
-~ apps/brunch-agent/src/http/cors.ts           exact and one-label wildcard origins, Hono middleware
-~ apps/brunch-agent/src/app.ts                 mount CORS before ownership on /agents/*
-+ apps/brunch-agent/test/cors.test.ts          parser, allowed, rejected, preflight, route-scope tests
-~ apps/brunch-agent/README.md                  deployment variable and security boundary
-~ apps/brunch-agent/turbo.json                 pass the variable into the local dev task
-```
+No Brunch-as-tool, delegation, independent Realtime domain reasoning, additional backend route,
+parallel conversation store, core/SDCPN prompt rewrite, Flue dependency upgrade or patch expansion.
+Retain the maintained local Flue 2.0.3 delivery-context exception from #9585 without representing
+it as upstream support. Preserve exact user text routing, correlation and idempotency. Work only
+in this sibling worktree; do not alter the current #9622 checkout or its uncommitted changes.
+This authority change is committed separately before product work. The accepted design is the
+semantic source; tests may falsify it, not silently redefine it.
 
 ## Fog-line
 
-- Infrastructure repository access is unavailable in this worktree, so this branch can prove only
-  the application contract. Runtime deployment configuration must supply the chosen origins before
-  remote verification.
-- A one-label wildcard admits every host directly under the configured domain, not only Petrinaut
-  previews. Narrow the deployed pattern or return to exact origins if that breadth becomes a
-  problem in practice.
-- The allowed and exposed headers are pinned to the installed Flue and Durable Streams clients.
-  Re-evaluate them from client source when either dependency changes.
+Prompting cannot guarantee faithful speech. Runtime gates prevent early/wrong-turn delivery and
+tool access, not semantic hallucinations. Full-duplex capture may admit echo; real microphone and
+speaker/headset witnesses remain necessary. Provider token budgets include audio and need measured
+headroom. The inherited stopped-after-settled browser-work durability limitation remains, but this
+session must never autoplay stopped work. Live Notion was inaccessible; the human-pasted transcript
+was read and supports bridging, not this newly approved rephrasing/queue design. Existing preview
+configuration and backend deployment remain unverified. Linear identity needs approval before
+external submission. `gh stack` is unavailable; the local sibling uses ordinary Git ancestry.
 
 ## Stop or reorient
 
-Stop if the real browser client emits a request method or non-safelisted request header outside the
-pinned contract, reads another non-safelisted response header, or needs cookie credentials. Bring
-that evidence back to the contract before broadening the grant.
-
-Stop if middleware ordering bypasses ownership for a non-`OPTIONS` request, if an invalid
-configuration widens access or is ignored, if an unlisted origin receives
-`Access-Control-Allow-Origin`, or if `/health`, `/`, or `/assets/*` inherit the policy.
-
-Do not represent a green CORS test as permission for unauthenticated public exposure. Authentication,
-per-conversation authorization, rate/spend controls, and the infrastructure ingress boundary remain
-separate release gates.
+Stop on speech before complete success, fabricated progress, qualification loss, capture loss,
+wrong-turn admission/playback, late autoplay after cancellation, or typed behavior leakage.
+Do not widen architecture to fix naturalness without owner review. Text-first paraphrase then
+validation/playback is a possible fallback if direct audio fails fidelity; persistent Realtime
+with Brunch as a tool is a larger alternative, not selected by failure here. Human naturalness,
+paid ceilings, external publication and mission acceptance remain owner decisions.
 
 ## Deferred
 
-- SRE-1013 owns injection of the allowlist into the Brunch runtime deployment. SRE-1042 owns
-  `VITE_BRUNCH_CHAT_ENDPOINT`, Voice deployment variables, and the deployed browser verification
-  after this application contract lands.
-- FE-1615 and FE-1616 retain authentication and rate-limit work. CORS does not discharge either.
-- A same-origin Petrinaut proxy stays deferred; the one-label wildcard covers the preview
-  deployments the exact list could not.
+[MISSION.next.md](MISSION.next.md) and its existing linked drafts remain unchanged future context.
+The inherited CORS mission and its SRE-1013/SRE-1042 deployment, FE-1615/FE-1616 authentication/rate
+owners survive in the historical contract above; this experiment does not adjudicate or discharge
+them. A future durable queue or text-first validation requires its own accepted scope and witness.
