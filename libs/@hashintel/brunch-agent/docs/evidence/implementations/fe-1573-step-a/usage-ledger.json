@@ -1,16 +1,24 @@
 {
-  "authority": "MISSION.md — isolated A1 clarification",
+  "authority": "MISSION.md — bounded Step A paid-work delegation",
   "limits": {
     "usd": 100,
     "calls": 200
   },
   "reservation": {
-    "owner": "A1",
-    "runId": "a1-paid-2026-09-08T08-44-14-222Z",
-    "usd": 8,
-    "calls": 8,
-    "status": "released",
-    "reason": "A1 run settled with complete accounting; no further A1 paid calls reserved"
+    "owner": "m7-provider-proving",
+    "runId": "a5-real-provider-20260909-r1",
+    "usd": 15,
+    "calls": 20,
+    "status": "active",
+    "perCall": {
+      "maxOutputTokens": 4096,
+      "reservedUsd": 7
+    },
+    "model": "anthropic/claude-sonnet-4-6",
+    "manifestSha256": "8a47d3335bf5cd032b5f25efab5a53973d185e2f2c81ce1e691dc61fd4937381",
+    "codeCommit": "3f86c1461c2654b80b5eca0e7b5e65580146a9e0",
+    "allocatedAt": "2026-09-09T02:24:25Z",
+    "reason": "Named synthetic-user current-A5 run only; independent final pins verified. Invocation awaits parent standalone-profile/TLS checks and explicit activation handoff. No other shared-ledger writer is authorized."
   },
   "totals": {
     "spentUsd": 0.09113535,
