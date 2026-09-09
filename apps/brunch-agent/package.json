@@ -26,6 +26,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:native-schema": "node --experimental-strip-types test/native-schema-carriage.integration.ts",
     "test:reopened-why": "M7_A5=1 node --experimental-strip-types test/transition-records.integration.ts",
+    "test:reopened-why-retention": "bash test/reopened-why-retention.sh",
     "test:unit": "vitest run --config vitest.config.ts",
     "test:workpiece-evidence": "node --experimental-strip-types test/workpiece-evidence.integration.ts",
     "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"
