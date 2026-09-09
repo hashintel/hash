@@ -86,9 +86,10 @@ const paneStyle = css({
     {
       opacity: "[0.45]",
     },
-  // A minimap shape outside the neighbourhood recedes the same way.
+  // A minimap shape outside the neighbourhood drops right back: the map is
+  // small enough that anything short of that competes with the neighbourhood.
   "&[data-focus-active] .minimap-shape:not(.canvas-focus-role)": {
-    opacity: "[0.3]",
+    opacity: "[0.12]",
   },
 });
 

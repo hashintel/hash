@@ -147,6 +147,7 @@ const TestProviders = ({
     setActiveBottomPanelTab: () => {},
     setTimelineChartType: () => {},
     setShowMinimap: () => {},
+    setHighlightOnHover: () => {},
     setSnapToGrid: () => {},
     setPartialSelection: () => {},
     setEnableNetComponents: () => {},

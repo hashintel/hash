@@ -26,7 +26,7 @@ export const useCanvasScene = (
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { draggingStateByNodeId, isSelected, selection, hoveredItem } =
     use(EditorContext);
-  const { compactNodes } = use(UserSettingsContext);
+  const { compactNodes, highlightOnHover } = use(UserSettingsContext);
 
   /*
    * The neighbourhood follows the pointer only once it stops. Sweeping across
@@ -34,7 +34,9 @@ export const useCanvasScene = (
    * settles is whatever the pointer came to rest on rather than everything it
    * crossed to get there.
    */
-  const hoveredId = hoveredItem?.id ?? null;
+  // Off, the canvas answers to the selection alone and the pointer changes
+  // nothing.
+  const hoveredId = highlightOnHover ? (hoveredItem?.id ?? null) : null;
   const pointerAtRest = usePointerAtRest(canvasRef);
   const [settledHoverId, setSettledHoverId] = useState(hoveredId);
   if (pointerAtRest && settledHoverId !== hoveredId) {

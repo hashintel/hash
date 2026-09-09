@@ -25,15 +25,17 @@ const SHAPE_SIZE = 90;
 const TRANSITION_WIDTH_RATIO = 1.5;
 const DEFAULT_TRANSITION_FILL = "#6b7280";
 const DEFAULT_COMPONENT_FILL = "#0f766e";
-const FOCUS_STROKE_WIDTH = 14;
+/** Thick and solid: at map scale a ring has to carry the whole signal. */
+const FOCUS_STROKE_WIDTH = 22;
 
 /**
  * Custom node renderer for the MiniMap.
  * Renders place nodes as circles and transition nodes as rectangles, carrying
- * the canvas's focus roles: a shape at the focused item is ringed in the
- * role's colour, and the rest of the net fades, so the map and the canvas
- * answer "what is this connected to" the same way. The map is too small for
- * the canvas's white band, so a ring and the fade carry it alone.
+ * the canvas's focus roles: a shape at the focused item is boxed in the
+ * role's colour and the rest of the net drops far back, so a glance at the
+ * map answers "where is this neighbourhood" on a net larger than the screen.
+ * The map is too small for the canvas's white band, so the box and the fade
+ * carry it alone.
  */
 const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
   // MiniMapNodeProps doesn't include node data, so we look it up from the store
@@ -65,7 +67,10 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
     fill,
     stroke: ringColor ?? "none",
     strokeWidth: ringColor === undefined ? 0 : FOCUS_STROKE_WIDTH,
-    strokeOpacity: 0.55,
+    // Solid, and painted outside the shape rather than straddling its edge,
+    // so the box reads as a box and the fill stays the token type's colour.
+    strokeOpacity: 1,
+    paintOrder: "stroke",
   };
 
   if (node.data.kind === "place") {

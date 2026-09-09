@@ -45,6 +45,11 @@ export type UserSettings = {
   timelineChartType: TimelineChartType;
   showMinimap: boolean;
   snapToGrid: boolean;
+  /**
+   * Whether resting the pointer on a node highlights its neighbourhood.
+   * Off, the canvas answers only to the selection.
+   */
+  highlightOnHover: boolean;
   partialSelection: boolean;
   enableNetComponents: boolean;
   enableNotebookView: boolean;
@@ -127,6 +132,7 @@ export type UserSettingsActions = {
   setTimelineChartType: (value: TimelineChartType) => void;
   setShowMinimap: (value: boolean) => void;
   setSnapToGrid: (value: boolean) => void;
+  setHighlightOnHover: (value: boolean) => void;
   setPartialSelection: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
   setEnableNotebookView: (value: boolean) => void;
@@ -163,6 +169,7 @@ export const defaultUserSettings: UserSettings = {
   timelineChartType: "run",
   showMinimap: true,
   snapToGrid: true,
+  highlightOnHover: true,
   partialSelection: true,
   enableNetComponents: false,
   enableNotebookView: false,
@@ -198,6 +205,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setTimelineChartType: () => {},
   setShowMinimap: () => {},
   setSnapToGrid: () => {},
+  setHighlightOnHover: () => {},
   setPartialSelection: () => {},
   setEnableNetComponents: () => {},
   setEnableNotebookView: () => {},
