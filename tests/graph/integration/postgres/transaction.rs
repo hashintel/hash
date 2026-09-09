@@ -1,13 +1,11 @@
-use hash_graph_postgres_store::store::{
-    AsClient as _, Context as _, IsolationLevel, Transaction as _, TransactionBuilder as _,
-};
+use hash_graph_postgres_store::store::{AsClient as _, IsolationLevel};
 
 use crate::DatabaseTestWrapper;
 
-/// The transaction builder composes all options into the single `BEGIN` statement, so the
-/// transaction's characteristics are in effect from the very first statement.
+/// The transaction builder composes all options into the single `START TRANSACTION` statement, so
+/// the transaction's characteristics are in effect from the very first statement.
 #[tokio::test]
-async fn transaction_builder_composes_options_into_begin() {
+async fn transaction_builder_composes_options_into_one_statement() {
     let mut database = DatabaseTestWrapper::new().await;
 
     let transaction = database

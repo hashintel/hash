@@ -37,7 +37,6 @@ use hash_graph_authorization::policies::{
         },
     },
 };
-pub use hash_graph_migrations::{Context, IsolationLevel, Transaction, TransactionBuilder};
 use hash_graph_store::{
     account::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
@@ -83,8 +82,8 @@ pub use self::{
         EntityDeletion, EntityEnd, EntityEvent, EntityEventStream, EntityUpdate,
     },
     pool::{
-        AsClient, GenericClientIter, InTransaction, NoTransaction, PostgresStorePool,
-        TransactionOptions, TransactionState,
+        AsClient, GenericClientIter, InTransaction, IsolationLevel, NoTransaction,
+        PostgresStorePool, TransactionOptions, TransactionState,
     },
     traversal_context::TraversalContext,
 };
@@ -2554,14 +2553,13 @@ where
 
     /// Begins an unconfigured database transaction.
     ///
-    /// On a store which is not inside a transaction this issues a plain `BEGIN` using the
-    /// database's default transaction characteristics. On a store which is already inside a
-    /// transaction it creates a savepoint instead. A savepoint has no characteristics of its own
-    /// and runs within the enclosing transaction.
+    /// On a client this issues `START TRANSACTION` with the database's default characteristics. On
+    /// a transaction it creates a savepoint, which has no characteristics of its own and runs
+    /// within the enclosing transaction.
     ///
     /// Transaction characteristics such as the isolation level can only be configured when
-    /// beginning a top-level transaction via [`Context::transaction`], which is only available on
-    /// stores in the [`NoTransaction`] state.
+    /// beginning a top-level transaction via [`PostgresStore::transaction`], which is only
+    /// available on stores in the [`NoTransaction`] state.
     ///
     /// # Errors
     ///
@@ -3263,13 +3261,13 @@ where
     }
 }
 
-/// A [`TransactionBuilder`] for a [`PostgresStore`].
+/// A configurable, in-progress request to begin a [`PostgresStore`]'s transaction.
 ///
-/// Created by [`Context::transaction`], this builder begins the transaction when awaited. The
-/// configured [`TransactionOptions`] are compiled into the single `BEGIN` statement issued to
-/// the database. Configurable transactions are only available on stores in the
-/// [`NoTransaction`] state, so the options always apply to a top-level transaction and are
-/// never silently discarded.
+/// Created by [`PostgresStore::transaction`], this builder begins the transaction when awaited.
+/// The configured [`TransactionOptions`] are compiled into the `START TRANSACTION` statement
+/// issued to the database. Configurable transactions are only available on stores in the
+/// [`NoTransaction`] state, so the options always apply to a top-level transaction and are never
+/// silently discarded.
 pub struct PostgresStoreTransactionBuilder<'t, C> {
     store: &'t mut PostgresStore<C, NoTransaction>,
     options: TransactionOptions,
@@ -3296,6 +3294,7 @@ where
             if self.options.deferrable {
                 builder = builder.deferrable(true);
             }
+
             Ok(PostgresStore::new(
                 builder.start().await.change_context(StoreError)?,
                 self.store.temporal_client.clone(),
@@ -3305,52 +3304,41 @@ where
     }
 }
 
-impl<'t, C> TransactionBuilder for PostgresStoreTransactionBuilder<'t, C>
-where
-    C: AsClient<Client = Client>,
-{
-    type Error = StoreError;
-    type Transaction = PostgresStore<tokio_postgres::Transaction<'t>, InTransaction>;
-
-    fn isolation_level(mut self, isolation_level: IsolationLevel) -> Self {
+impl<C> PostgresStoreTransactionBuilder<'_, C> {
+    /// Sets the isolation level of the transaction.
+    #[must_use]
+    pub const fn isolation_level(mut self, isolation_level: IsolationLevel) -> Self {
         self.options.isolation_level = Some(isolation_level);
         self
     }
 
-    fn read_only(mut self) -> Self {
+    /// Marks the transaction as read-only.
+    #[must_use]
+    pub const fn read_only(mut self) -> Self {
         self.options.read_only = true;
         self
     }
 
-    fn deferrable(mut self) -> Self {
+    /// Marks the transaction as deferrable.
+    ///
+    /// Takes effect only on a transaction that is also serializable and read-only. Beginning such
+    /// a transaction may block, but it then runs without the overhead of serialization checks and
+    /// cannot be aborted by a serialization failure.
+    #[must_use]
+    pub const fn deferrable(mut self) -> Self {
         self.options.deferrable = true;
         self
     }
 }
 
-impl<C> Context for PostgresStore<C, NoTransaction>
+impl<C> PostgresStore<C, NoTransaction>
 where
     C: AsClient<Client = Client>,
 {
-    type Error = StoreError;
-    type TransactionBuilder<'t>
-        = PostgresStoreTransactionBuilder<'t, C>
-    where
-        Self: 't;
-
     /// Returns a [`PostgresStoreTransactionBuilder`] which begins the transaction when awaited.
     ///
-    /// By default the transaction is begun with the database's default characteristics. Options
-    /// can be configured on the builder before awaiting it:
-    ///
-    /// ```ignore
-    /// let transaction = store
-    ///     .transaction()
-    ///     .isolation_level(IsolationLevel::RepeatableRead)
-    ///     .read_only()
-    ///     .await?;
-    /// ```
-    fn transaction(&mut self) -> Self::TransactionBuilder<'_> {
+    /// Without options the transaction is begun with the database's default characteristics.
+    pub fn transaction(&mut self) -> PostgresStoreTransactionBuilder<'_, C> {
         PostgresStoreTransactionBuilder {
             store: self,
             options: TransactionOptions::default(),
@@ -3358,14 +3346,22 @@ where
     }
 }
 
-impl Transaction for PostgresStore<tokio_postgres::Transaction<'_>, InTransaction> {
-    type Error = StoreError;
-
-    async fn commit(self) -> Result<(), Report<StoreError>> {
+impl PostgresStore<tokio_postgres::Transaction<'_>, InTransaction> {
+    /// Commits the transaction, making everything it did durable.
+    ///
+    /// # Errors
+    ///
+    /// - if the transaction could not be committed
+    pub async fn commit(self) -> Result<(), Report<StoreError>> {
         self.client.commit().await.change_context(StoreError)
     }
 
-    async fn rollback(self) -> Result<(), Report<StoreError>> {
+    /// Rolls the transaction back, discarding everything it did.
+    ///
+    /// # Errors
+    ///
+    /// - if the transaction could not be rolled back
+    pub async fn rollback(self) -> Result<(), Report<StoreError>> {
         self.client.rollback().await.change_context(StoreError)
     }
 }

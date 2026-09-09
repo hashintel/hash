@@ -30,7 +30,6 @@ use futures::{
     Sink, SinkExt as _, Stream, StreamExt as _, TryFutureExt as _, TryStreamExt as _,
     channel::mpsc, stream,
 };
-use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{error::InsertionError, filter::QueryRecord, pool::StorePool, query::Read};
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};

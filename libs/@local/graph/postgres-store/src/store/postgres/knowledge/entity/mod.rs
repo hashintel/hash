@@ -20,7 +20,6 @@ use hash_graph_authorization::policies::{
     store::PolicyCreationParams,
 };
 use hash_graph_embeddings::{Dimension, clustering::Clustering};
-use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{
     entity::{
         ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,

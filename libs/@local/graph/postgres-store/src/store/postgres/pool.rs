@@ -6,7 +6,6 @@ use deadpool_postgres::{
 };
 use error_stack::{Report, ResultExt as _};
 use futures::TryStreamExt as _;
-use hash_graph_migrations::IsolationLevel;
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use postgres_types::BorrowToSql;
@@ -112,11 +111,35 @@ impl StorePool for PostgresStorePool {
     }
 }
 
+/// The isolation level of a database transaction.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum IsolationLevel {
+    /// An individual statement in the transaction will see rows committed before it began.
+    ReadCommitted,
+    /// All statements in the transaction will see the same view of rows committed before the
+    /// first query in the transaction.
+    RepeatableRead,
+    /// The reads and writes in this transaction must be able to be committed as an atomic "unit"
+    /// with respect to reads and writes of all other concurrent serializable transactions
+    /// without interleaving.
+    Serializable,
+}
+
+impl From<IsolationLevel> for tokio_postgres::IsolationLevel {
+    fn from(isolation_level: IsolationLevel) -> Self {
+        match isolation_level {
+            IsolationLevel::ReadCommitted => Self::ReadCommitted,
+            IsolationLevel::RepeatableRead => Self::RepeatableRead,
+            IsolationLevel::Serializable => Self::Serializable,
+        }
+    }
+}
+
 /// Options used to begin a database transaction.
 ///
 /// The options are collected by a [`PostgresStoreTransactionBuilder`] and compiled into the
-/// single `BEGIN` statement issued to the database when the transaction is begun, e.g. `START
-/// TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY`.
+/// single `START TRANSACTION` statement issued to the database when the transaction is begun,
+/// e.g. `START TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY`.
 ///
 /// [`PostgresStoreTransactionBuilder`]: crate::store::PostgresStoreTransactionBuilder
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
@@ -135,11 +158,9 @@ mod sealed {
 ///
 /// The trait is sealed: the set of states is closed over [`NoTransaction`] and [`InTransaction`].
 /// The state determines which transaction APIs exist on the store: a *configurable* top-level
-/// transaction ([`Context::transaction`]) can only be begun in the [`NoTransaction`] state, while
-/// a store in the [`InTransaction`] state can only nest by creating savepoints, which have no
-/// configurable characteristics of their own.
-///
-/// [`Context::transaction`]: hash_graph_migrations::Context::transaction
+/// transaction ([`PostgresStore::transaction`]) can only be begun in the [`NoTransaction`] state,
+/// while a store in the [`InTransaction`] state can only nest by creating savepoints, which have
+/// no configurable characteristics of their own.
 pub trait TransactionState: sealed::Sealed + Send + Sync + 'static {}
 
 /// Marker for a [`PostgresStore`] which is not inside a database transaction.
