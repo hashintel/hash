@@ -164,26 +164,51 @@ const tooltipStyle = css({
  * this instead: one small round button, in the slot the panel will occupy, and
  * the panel is what clicking it produces.
  */
+/**
+ * The white surface belongs to this wrapper, not to the button inside it.
+ * Every button variant in the system paints its hover in translucent ink
+ * meant for the app's own background, and that ink beats a background set on
+ * the button itself: pointing at the button turned it transparent and the
+ * node showed straight through. Held out here, the ink lands on an opaque
+ * surface as designed.
+ *
+ * The button sits astride the node's edge rather than clear of it, so it
+ * needs none of the panel's padding either: the pointer reaches it off the
+ * node without crossing the canvas in between.
+ */
 const triggerStyle = css({
+  display: "flex",
   // Sized here rather than by the button's own scale, because half of it is
   // the offset that centres it on the node's edge.
   width: "[22px]",
-  minWidth: "[22px]",
   height: "[22px]",
-  padding: "[0]",
   borderRadius: "full",
   backgroundColor: "neutral.s00",
+  border: "[1px solid {colors.neutral.bd.subtle}]",
   boxShadow: "[0 1px 4px rgba(0, 0, 0, 0.18)]",
-  borderColor: "neutral.bd.subtle",
+  transition: "[background-color 120ms ease, box-shadow 120ms ease]",
+  // The response to being pointed at is the surface warming and lifting. The
+  // button's own hover ink is a fortieth of black, which over white is not a
+  // response at all.
+  _hover: {
+    backgroundColor: "neutral.s30",
+    boxShadow: "[0 2px 6px rgba(0, 0, 0, 0.22)]",
+  },
+  // As on the pin: the ring belongs out here, where nothing clips it and the
+  // button's own at no offset would be lost in the rim.
+  "&:has(:focus-visible)": {
+    outline: "[2px solid rgba(255, 255, 255, 0.95)]",
+    outlineOffset: "[1px]",
+    boxShadow: "[0 0 0 5px rgba(0, 0, 0, 0.45), 0 1px 4px rgba(0, 0, 0, 0.18)]",
+  },
 });
 
-/**
- * The button sits astride the node's edge rather than clear of it, so it
- * needs none of the box's padding: the pointer reaches it off the node
- * without crossing the canvas in between.
- */
-const triggerWrapperStyle = css({
-  display: "flex",
+/** Fills the surface, less its 1px rim. */
+const triggerButtonStyle = css({
+  width: "[20px]",
+  minWidth: "[20px]",
+  height: "[20px]",
+  padding: "[0]",
 });
 
 /** A further 1px inside the glass, for the glass's own border. */
@@ -362,11 +387,11 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
         // node's edge.
         offset={-TRIGGER_SIZE_PX / 2}
       >
-        <div className={triggerWrapperStyle} {...keepHovered}>
+        <div className={triggerStyle} {...keepHovered}>
           <Button
-            className={triggerStyle}
+            className={triggerButtonStyle}
             size="xs"
-            variant="subtle"
+            variant="ghost"
             shape="round"
             iconName="eye"
             aria-label="Show state visualizer"
