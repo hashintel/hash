@@ -152,11 +152,12 @@ pointer over it and it grows back. The line under the header is reserved for
 a note (the error when a study failed, the resume note while it is paused),
 so nothing moves when one appears.
 
-The body arranges its parts by its width. In the full view the **Parameters**
-band and the **Objective surface** sit on the left and the other chart cards
-on the right; in the drawer the chart cards come first, then **Parameters**,
-then the surface. The steps table follows at a fixed height and scrolls on
-its own. Every card keeps its height whatever it shows.
+The body arranges its parts by its width. In the drawer at its full width and
+in the full view the **Parameters** band and the **Objective surface** sit on
+the left and the other chart cards on the right, two to a row; in a narrower
+drawer the chart cards come first, then **Parameters**, then the surface. The
+steps table follows at a fixed height and scrolls on its own. Every card keeps
+its height whatever it shows.
 
 The **Objective by step** card draws every step's objective value as a dot
 over the step number, with the best so far as a line stepping up (or down,

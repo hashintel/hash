@@ -13,7 +13,12 @@ import {
   MetricViewMenu,
   type MetricViewSettings,
 } from "../experiments/experiment-metric-timeline";
-import { ChartCard, ChartCardGrid, chartCardHeight } from "./chart-card";
+import {
+  CHART_CARD_MIN_WIDTH,
+  ChartCard,
+  ChartCardGrid,
+  chartCardHeight,
+} from "./chart-card";
 
 import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
 
@@ -30,8 +35,6 @@ export const METRIC_PLOT_HEIGHT = 220;
 export const METRIC_CARD_HEIGHT = chartCardHeight({
   bodyHeight: METRIC_PLOT_HEIGHT,
 });
-/** Two cards per row in an extra-large drawer and in the frame's right column above 1100px; one when narrower. */
-const METRIC_CARD_MIN_WIDTH = 320;
 
 export const MetricTiles = ({
   tiles,
@@ -53,7 +56,7 @@ export const MetricTiles = ({
 
   return (
     <ChartCardGrid
-      minColumnWidth={METRIC_CARD_MIN_WIDTH}
+      minColumnWidth={CHART_CARD_MIN_WIDTH}
       rowHeight={METRIC_CARD_HEIGHT}
     >
       {tiles.map((tile) => {

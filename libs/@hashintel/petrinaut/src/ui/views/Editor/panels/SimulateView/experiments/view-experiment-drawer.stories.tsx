@@ -45,6 +45,33 @@ export const Sweep: Story = {
   ),
 };
 
+/** The two-axis sweep with four metrics: the common case the drawer must show without scrolling. */
+const fourMetricSweep = (): ExperimentRecord => {
+  const sweep = makeParameterSweepExperiment();
+  const infected = sweep.metricSpecs[0]!;
+  return {
+    ...sweep,
+    metricSpecs: [
+      infected,
+      { ...infected, id: "susceptible", label: "Susceptible" },
+      { ...infected, id: "recovered", label: "Recovered" },
+      { ...infected, id: "hospitalised", label: "Hospitalised" },
+    ],
+  };
+};
+
+export const FourMetrics: Story = {
+  name: "Sweep, four metrics",
+  render: () => (
+    <FakeExperimentsProvider
+      initialExperiments={[fourMetricSweep()]}
+      restreamOnSelectionChange
+    >
+      <DrawerFromContext />
+    </FakeExperimentsProvider>
+  ),
+};
+
 /** A plain experiment: no parameters, no surface, the metric cards alone under the header. */
 const plainExperiment = (
   status: ExperimentRecord["status"],

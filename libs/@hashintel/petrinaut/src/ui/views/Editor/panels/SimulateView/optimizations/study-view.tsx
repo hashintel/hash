@@ -22,6 +22,7 @@ import {
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import {
+  CHART_CARD_MIN_WIDTH,
   ChartCardGrid,
   chartCardHeight,
   ChartCardMenu,
@@ -66,8 +67,6 @@ export { describeStudyProgress } from "./study-view/study-header";
 const STUDY_CARD_HEIGHT = chartCardHeight({
   bodyHeight: OBJECTIVE_PLOT_HEIGHT,
 });
-/** Two cards per row in the frame's right column above 1100px and in the drawer; one when narrower. */
-const STUDY_CARD_MIN_WIDTH = 320;
 /** The steps table's fixed height in pixels; the steps scroll inside it. */
 const STEPS_TABLE_HEIGHT = 320;
 
@@ -262,7 +261,7 @@ const RemoteStudyBody = ({
       }
       secondary={
         <ChartCardGrid
-          minColumnWidth={STUDY_CARD_MIN_WIDTH}
+          minColumnWidth={CHART_CARD_MIN_WIDTH}
           rowHeight={STUDY_CARD_HEIGHT}
         >
           <ObjectiveHistoryCard
@@ -325,7 +324,7 @@ const ConnectedStudyBody = ({
       }
       secondary={
         <ChartCardGrid
-          minColumnWidth={STUDY_CARD_MIN_WIDTH}
+          minColumnWidth={CHART_CARD_MIN_WIDTH}
           rowHeight={STUDY_CARD_HEIGHT}
         >
           {/* Keyed so faded previous pictures never leak from one study into
