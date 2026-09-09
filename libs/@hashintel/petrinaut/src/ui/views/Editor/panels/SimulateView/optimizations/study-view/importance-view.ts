@@ -1,5 +1,5 @@
 /**
- * The Parameter importance card's data: one row per optimized parameter with
+ * The Sensitivity analysis card's data: one row per optimized parameter with
  * the PED-ANOVA share the optimizer last reported and a signed Pearson
  * correlation computed here from the completed steps, plus the floor under
  * which the estimate is only a hint. Pure, so the fade rule and the maths are
@@ -166,19 +166,19 @@ export const importanceRows = (
 };
 
 /**
- * The line under the card's title: the count first, so it survives a narrow
- * card's clipping. Before the first estimate the line says so rather than
- * claiming an estimate over the steps completed so far.
+ * The line under the card's title: the statistic and the count first, so
+ * they survive a narrow card's clipping. Before the first estimate the line
+ * says so rather than claiming an estimate over the steps completed so far.
  */
 export const describeImportance = (view: ImportanceView): string => {
   const steps = `${view.effectiveCount} completed ${view.effectiveCount === 1 ? "step" : "steps"}`;
   const count = view.estimated
-    ? `estimated from ${steps}`
-    : `no estimate yet · ${steps}`;
+    ? `PED-ANOVA importance estimated from ${steps}`
+    : `no PED-ANOVA importance yet · ${steps}`;
   const floor = view.belowFloor
     ? ` · below the ${view.floor}-step floor, treat as a hint`
     : "";
-  return `${count}${floor} · PED-ANOVA: how much of the objective's variance each parameter explains`;
+  return `${count}${floor} · how much of the objective's variance each parameter explains`;
 };
 
 /** A share as the bar prints it: a whole percentage. */
