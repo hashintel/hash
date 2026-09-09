@@ -71,6 +71,14 @@ const PIN_CLASS = "place-visualizer-pin";
 const wrapperStyle = css({
   display: "flex",
   position: "relative",
+  /*
+   * The box's corner radius, and the source every nested corner is measured
+   * from. A shape inset by `n` from the box curves at this radius minus `n`,
+   * which keeps the curves parallel instead of letting the tighter ones
+   * crowd inside the wider ones. Derived in CSS rather than restated, so
+   * changing this one number moves the whole set.
+   */
+  "--visualizer-radius": "[14px]",
   opacity: "[0]",
   transform: "[scale(0.96)]",
   pointerEvents: "none",
@@ -108,11 +116,17 @@ const tooltipStyle = css({
   // leave the pin hanging outside it.
   minWidth: "[38px]",
   minHeight: "[34px]",
+  /*
+   * The artwork reaches the border rather than sitting in a frame of padding.
+   * A visualizer draws its own background, square to its viewBox, and inside
+   * a padded box that square corner sat visibly within the box's rounded
+   * one. Scrolling clips to the padding box, which follows the radius, so
+   * with no padding the artwork's corners simply become the box's.
+   */
   overflow: "auto",
-  padding: "[4px]",
   backgroundColor: "neutral.s00",
   border: "[1px solid {colors.neutral.bd.subtle}]",
-  borderRadius: "md",
+  borderRadius: "[var(--visualizer-radius)]",
   boxShadow: "[0px 8px 24px rgba(0, 0, 0, 0.16)]",
 });
 
@@ -136,6 +150,11 @@ const tooltipStyle = css({
  * Anchored on the wrapper rather than inside the box, so it keeps its corner
  * while a tall visualizer scrolls underneath.
  */
+/** A further 1px inside the glass, for the glass's own border. */
+const pinButtonStyle = css({
+  borderRadius: "[calc(var(--visualizer-radius) - 9px)]",
+});
+
 const pinStyle = cva({
   base: {
     position: "absolute",
@@ -145,9 +164,8 @@ const pinStyle = cva({
     top: "[20px]",
     right: "[8px]",
     display: "flex",
-    // The button's own radius, so the disc and the ink it holds share a
-    // corner.
-    borderRadius: "md",
+    // Inset 8px from the box's corner, so it curves 8px tighter.
+    borderRadius: "[calc(var(--visualizer-radius) - 8px)]",
     // A rim of light rather than a drawn border: it reads against a dark
     // artwork and dissolves into a pale one.
     border: "[1px solid rgba(255, 255, 255, 0.5)]",
@@ -295,6 +313,7 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
         </div>
         <div className={cx(pinStyle({ pinned }), PIN_CLASS)}>
           <Button
+            className={pinButtonStyle}
             size="xxs"
             variant="ghost"
             prefix={<PinIcon />}
