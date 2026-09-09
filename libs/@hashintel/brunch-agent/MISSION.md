@@ -62,8 +62,7 @@ acknowledged **Your turn** handoff.
    **Your turn** is visible.
 6. **Durable origin and Stop continuity.**
    `local-storage-demo/voice-history-continuity.integration.test.tsx` runs one
-   typed submission plus a direct Voice submission whose client-tool result
-   carries Flue's supported durable Voice provenance, then exercises durable
+   typed-origin message plus a Voice-origin client-tool result through durable
    composer **Stop**, closes the conversation, and reopens it as a second
    mounted client. The reopened panel must preserve the typed history and every
    supported Voice tool-call origin, render the aborted assistant entry as
