@@ -158,7 +158,7 @@ vi.mock("./optimization-surface", () => ({
 }));
 
 // uPlot cannot mount in jsdom; the card around the objective history is real.
-vi.mock("./study-view/objective-history-chart", async () => {
+vi.mock("./study-results/objective-history-chart", async () => {
   const chartCard = await vi.importActual<
     typeof import("../shared/chart-card")
   >("../shared/chart-card");
