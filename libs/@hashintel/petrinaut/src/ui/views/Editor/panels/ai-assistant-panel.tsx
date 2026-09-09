@@ -942,6 +942,9 @@ const ConversationAiAssistantPanel = ({
       ) {
         return false;
       }
+      if (automaticToolTurnIsTerminated(submissionGenerationRef.current)) {
+        return false;
+      }
       if (!stopRequestedRef.current) {
         // Left pending until the follow-up's own status change lands, so hosts
         // never observe the `ready` between this check and that request.
@@ -966,10 +969,15 @@ const ConversationAiAssistantPanel = ({
     },
     onFinish: ({ messages: finishedMessages, isAbort, isError }) => {
       pendingSubmissionRecoveryRef.current = null;
+      const termination = automaticToolTerminationRef.current;
+      const failed =
+        termination?.generation === submissionGenerationRef.current &&
+        termination.kind === "failed";
       // A step that ended in client tool calls is followed automatically by
       // the SDK unless it was aborted or errored; that follow-up is still part
       // of this turn.
       const followUpPending =
+        !failed &&
         !isAbort &&
         !isError &&
         (lastAssistantMessageIsCompleteWithToolCalls({
@@ -1001,6 +1009,9 @@ const ConversationAiAssistantPanel = ({
       }
 
       aiAssistant.onMessages?.(finishedMessages);
+      // A rejected durable Stop remains an error even if the provider later
+      // completes. Neither completion nor deferred tools may report success.
+      if (failed) return;
       if (followUpPending) {
         // The turn is not over: a Stop pressed during this step must still be
         // able to withhold the follow-up, so its intent survives this step.
@@ -1535,7 +1546,10 @@ const ConversationAiAssistantPanel = ({
         if (submissionGenerationRef.current !== generation) {
           return;
         }
+        automaticToolTerminationRef.current = { generation, kind: "failed" };
         stopRequestedRef.current = false;
+        setContinuationPending(false);
+        setStopped(false);
         setStreamError(
           caught instanceof Error ? caught : new Error(String(caught)),
         );

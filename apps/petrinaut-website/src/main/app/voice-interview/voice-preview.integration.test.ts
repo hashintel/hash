@@ -564,7 +564,13 @@ describe("controlled voice preview", () => {
     dataChannel.receive({
       response: {
         id: "response-canonical-reply",
-        output: [],
+        output: [
+          {
+            content: [{ transcript: canonicalReply, type: "output_audio" }],
+            role: "assistant",
+            type: "message",
+          },
+        ],
         status: "completed",
       },
       type: "response.done",
