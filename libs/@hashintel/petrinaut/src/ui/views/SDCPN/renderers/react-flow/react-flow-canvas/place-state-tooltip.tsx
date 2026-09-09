@@ -8,7 +8,7 @@ import {
 import { lazy, Suspense, use, useRef } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import { EditorContext } from "../../../../../../react/state/editor-context";
@@ -31,16 +31,51 @@ const TOOLTIP_OFFSET_PX = 12;
 // disappear behind it when placing it above would intrude into this zone.
 const TOP_BAR_SAFE_ZONE_PX = 72;
 
-const wrapperStyle = css({
-  display: "flex",
+/**
+ * Marks the pin, so pointing at the box anywhere can raise it. Written out
+ * again in the wrapper's selector below: Panda reads these style objects
+ * statically, and an interpolated key would not reach the stylesheet.
+ */
+const PIN_CLASS = "place-visualizer-pin";
+
+const wrapperStyle = cva({
+  base: {
+    display: "flex",
+    position: "relative",
+    "&:hover .place-visualizer-pin": {
+      opacity: "[1]",
+    },
+    // Reaching the pin by keyboard has to bring it up too, or its focus ring
+    // arrives at a third of its strength.
+    "&:focus-within .place-visualizer-pin": {
+      opacity: "[1]",
+    },
+  },
+  variants: {
+    // Hidden until measured, so a tall box near the top never flashes behind
+    // the top bar before the above/below decision settles.
+    measured: {
+      true: {},
+      false: {
+        opacity: "[0]",
+        pointerEvents: "none",
+      },
+    },
+  },
 });
 
 const tooltipStyle = css({
   display: "flex",
+  // The visualizer keeps its own height rather than being stretched to the
+  // box, which is what lets a tall one scroll instead of squashing.
   alignItems: "flex-start",
-  gap: "[4px]",
   maxWidth: "[90vw]",
   maxHeight: "[80vh]",
+  // Enough to hold the pin, whatever the visualizer draws: one that renders
+  // nothing for an empty place would otherwise collapse to its padding and
+  // leave the pin hanging outside it.
+  minWidth: "[38px]",
+  minHeight: "[34px]",
   overflow: "auto",
   padding: "[4px]",
   backgroundColor: "neutral.s00",
@@ -50,11 +85,51 @@ const tooltipStyle = css({
 });
 
 /**
+ * The pin sits over the visualizer's top-right corner rather than beside it,
+ * so the box stays the size of the artwork. It holds back until the pointer
+ * arrives, and stays at full strength while pinned, which is when it has to
+ * be found again to release it.
+ *
+ * This is a surface of its own around the button, not the button's own: a
+ * visualizer draws whatever it likes underneath — black, in the satellites
+ * example — and every button variant in the system paints in translucent ink
+ * meant for the app's own background, so a bare glyph disappears into the
+ * artwork. An opaque chip with a border reads over anything, and leaves the
+ * button's hover and pressed ink to sit on top of it as designed.
+ *
+ * Anchored on the wrapper rather than inside the box, so it keeps its corner
+ * while a tall visualizer scrolls underneath.
+ */
+const pinStyle = cva({
+  base: {
+    position: "absolute",
+    // 5px inside the box's top-right corner. The 12px clears the wrapper's
+    // own top padding, which holds the gap to the node, so it has to stay in
+    // step with `TOOLTIP_OFFSET_PX`.
+    top: "[17px]",
+    right: "[5px]",
+    display: "flex",
+    borderRadius: "md",
+    border: "[1px solid {colors.neutral.bd.solid}]",
+    // Keeps the button's hover ink inside the rounded corners.
+    overflow: "hidden",
+    transition: "[opacity 120ms ease]",
+  },
+  variants: {
+    pinned: {
+      true: { opacity: "[1]", backgroundColor: "neutral.s20" },
+      false: { opacity: "[0.3]", backgroundColor: "neutral.s00" },
+    },
+  },
+});
+
+/**
  * Box surfacing a colored place's custom visualizer on the canvas.
  *
  * It follows the pointer by default and closes with the hover. Pinning holds
  * it open instead, so it can be watched while the timeline is scrubbed or the
- * place's initial state edited.
+ * place's initial state edited. Before a run it shows the initial marking,
+ * the same state the properties panel previews.
  */
 export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
   const presentation = usePetrinautPresentation();
@@ -110,7 +185,7 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
       offset={0}
     >
       <div
-        className={wrapperStyle}
+        className={wrapperStyle({ measured: boxSize !== null })}
         // The gap between node and box is the wrapper's own padding, so the
         // pointer crosses it without touching the canvas.
         style={{ padding: `${TOOLTIP_OFFSET_PX}px 0` }}
@@ -120,19 +195,15 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
         onPointerEnter={() => setHoveredItem({ type: "place", id: nodeId })}
         onPointerLeave={clearHoveredItem}
       >
-        <div
-          ref={contentRef}
-          className={tooltipStyle}
-          // Hide until measured so a tall box near the top never flashes behind
-          // the top bar before the above/below decision settles.
-          style={{ opacity: boxSize ? 1 : 0 }}
-        >
+        <div ref={contentRef} className={tooltipStyle}>
           <Suspense fallback={null}>
             <DeferredPlaceStateVisualization
               place={place}
               placeType={placeType}
             />
           </Suspense>
+        </div>
+        <div className={cx(pinStyle({ pinned }), PIN_CLASS)}>
           <Button
             size="xxs"
             variant="ghost"

@@ -4,10 +4,7 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { splitPascalCase } from "../../../../../lib/split-pascal-case";
-import {
-  useFramesAvailable,
-  usePlaceTokenCount,
-} from "../../../canvas-frame-store";
+import { usePlaceTokenCount } from "../../../canvas-frame-store";
 import { nodeFocusStyle } from "../../../styles/focus";
 import { handleStyling } from "../../../styles/styling";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
@@ -88,14 +85,16 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
 }: NodeProps<PlaceNodeType>) => {
   // A frame re-renders this place only when its own count moves.
   const tokenCount = usePlaceTokenCount(id);
-  const framesAvailable = useFramesAvailable();
 
-  // Show the visualizer on hover for places with a visualizer during
-  // simulation, and keep it up for as long as it is pinned.
+  // Show the visualizer on hover for places that define one, and keep it up
+  // for as long as it is pinned. Before a run it draws the initial marking,
+  // so a net still being built is worth pointing at too.
   const showStateTooltip =
     data.hasColorType &&
     data.hasVisualizer &&
-    framesAvailable &&
+    // Dragging the place would carry the box along over the canvas it is
+    // being dropped on, and redraw the visualizer every frame of the drag.
+    !data.dragging &&
     (data.hovered || data.visualizerPinned);
 
   // Add zero width space to labels between pascal case points as text-wrapping breakpoints
