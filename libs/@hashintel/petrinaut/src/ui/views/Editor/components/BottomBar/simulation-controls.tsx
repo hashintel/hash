@@ -15,23 +15,26 @@ import { ToolbarDivider } from "./toolbar-divider";
 
 import type { PlaybackSpeed } from "../../../../../react/playback/context";
 
-// One line, wide enough for the longest run either bar will show, so the
-// controls either side of it hold still while the numbers count up.
+// Elapsed over total, stacked, so the readout costs the bar a column of
+// digits rather than a row of them. Wide enough for the longest run either bar
+// will show, so the controls either side hold still while the numbers run.
 const timeReadoutStyle = cva({
   base: {
     display: "flex",
-    alignItems: "baseline",
+    flexDirection: "column",
+    alignItems: "center",
     justifyContent: "center",
-    gap: "[3px]",
-    width: "[104px]",
-    lineHeight: "[1]",
+    flexShrink: "0",
+    width: "[58px]",
+    lineHeight: "[1.15]",
     fontVariantNumeric: "tabular-nums",
+    letterSpacing: "[-0.2px]",
     overflow: "hidden",
     whiteSpace: "nowrap",
   },
   variants: {
     compact: {
-      true: { width: "[96px]" },
+      true: { width: "[54px]" },
     },
   },
 });
@@ -40,18 +43,24 @@ const elapsedTimeStyle = css({
   fontSize: "[11px]",
   fontWeight: "medium",
   color: "neutral.s110",
-  letterSpacing: "[-0.2px]",
 });
 
 const totalTimeStyle = css({
-  fontSize: "[11px]",
+  fontSize: "[9px]",
   color: "neutral.s95",
-  letterSpacing: "[-0.2px]",
 });
 
 const sliderStyle = cva({
   base: {
-    width: "[300px]",
+    // Sized to the space available rather than to a fixed 300px: `clamp`
+    // tracks the viewport continuously, so a window or iframe resize slides
+    // the scrubber's width with it instead of stepping at a breakpoint, and
+    // `flex` lets it take any slack the row has left over once the bar is
+    // wider than its content.
+    width: "[clamp(140px, 24vw, 420px)]",
+    flex: "[1 1 auto]",
+    minWidth: "[96px]",
+    maxWidth: "[100%]",
     height: "[4px]",
     appearance: "none",
     background: "neutral.s30",
@@ -82,9 +91,8 @@ const sliderStyle = cva({
   variants: {
     compact: {
       true: {
-        width: "[clamp(96px, 30vw, 220px)]",
-        flex: "[1 1 160px]",
-        minWidth: "[96px]",
+        width: "[clamp(96px, 34vw, 360px)]",
+        minWidth: "[72px]",
       },
     },
   },
