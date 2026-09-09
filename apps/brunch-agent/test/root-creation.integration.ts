@@ -417,7 +417,10 @@ try {
       return text("Native creation and canonical check completed.");
     }),
   ]);
-  await send(firstMarkdown, "Native creation and canonical check completed.");
+  await send(
+    "TEST synthetic account: waiting items have a limit of two and move one at a time to a completed state after an operation. For this test condition the operation is enabled. Timing and actual inventory are unknown.",
+    "Native creation and canonical check completed.",
+  );
   assert.equal(completed, 14);
   const stored = await page.evaluate(() => {
     const document = (
@@ -528,7 +531,7 @@ try {
     }),
   ]);
   await send(
-    correctedMarkdown,
+    "TEST synthetic correction: the waiting limit is three, not two, and the operation is paused for this test. Timing and actual inventory remain unknown.",
     "Native correction and ordinary-name why completed.",
   );
   assert.equal(completed, 24);
