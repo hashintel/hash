@@ -50,6 +50,26 @@ When an instrument ceases to be supported, archive a short record under
 `docs/archive/evaluations/`, retain its observed output, and remove its executable source rather
 than leaving a live-looking compatibility copy.
 
+## Execution safety
+
+These are standing evaluation rules, not a mission's run allocation. Ordinary development follows [AGENTS.md](../AGENTS.md#development-and-evaluation-execution); the live mission supplies the selected model, budget, participants, retry bounds, ledger location and experiment-specific controls. A future mission carries those concrete decisions, not a copied campaign's harness or network profile.
+
+### Isolation follows the claim
+
+When a proof claims no external access, verify actual OS process-tree denial, including relevant descendants; package-manager offline flags alone are insufficient. Browser/listener proofs may allow the loopback traffic they require. Keep synthetic provider responses explicitly synthetic. A failed hermetic run cannot be silently retried online as equivalent evidence. Frozen instruments retain their declared controls; a later development-policy change does not rewrite historical failures or incidents. Pin only the instrument needed to support the claim, rather than requiring every evaluation to inherit one mission's sibling-browser/TLS/freeze machinery.
+
+### Authentication is not inference or accounting
+
+Configuration readiness must be checked through the actual application's loading/resolution path, without revealing credentials. The [interactive-work procedure](../docs/agents/interactive-work.md#provision-local-configuration) covers checkout provisioning, placeholder detection and safe preflight reporting; these checks also apply to direct runs without subagents.
+
+An explicitly opted-in authentication check may send one fixed, non-sensitive message to Anthropic's `POST /v1/messages/count_tokens`, using the same resolved credential/model. Anthropic [documents token counting as free](https://platform.claude.com/docs/en/build-with-claude/token-counting). Confirm current endpoint pricing before use. Retain only safe status/request metadata; disable retries and do not send workpiece/case content. Distinguish authentication rejection, rate limiting, network failure and success. Success proves authentication for that operation, not generation credit, inference success or prior-request cost. Ordinary internet access and a free authentication check grant no paid inference and do not settle an unknown request.
+
+### Paid work
+
+Before invocation, require an owner-authorized bounded allocation, an explicit model with no silent fallback, a conservative per-request cost/token reservation, and accounting that covers all participants and underlying requests, including preparation, continuation, compaction, failures and retries. Task delegation does not multiply budgets. Keep one authoritative allocation/usage record with coordinated writer ownership; cloned worktree ledgers and synthetic fixture ledgers are not spend authority. Reuse the available accounting boundary rather than prescribing a new ledger service.
+
+Record actual request identity and usage once, independently of whether product admission accepts the response. Distinguish completed, rejected, not-started and partial/unknown outcomes. Unknown spend or unresolved journal state blocks further paid dispatch until explicit disposition; normalized zeros do not prove zero cost. Catalogue estimates are not invoices. No automatic replay, guessed settlement or top-up follows a failure. The mission owns numeric ceilings, operation-attempt limits and any delegated allocation permission. Preserve unresolved accounting material until disposition, regardless of later evidence retirement.
+
 ## Evidence identity across restacks
 
 A campaign's durable instrument identity is its manifest SHA-256 and ordered path/content hashes. Commit SHAs in manifests and run records are informational execution-time provenance, not primary keys or current-ancestry requirements. After a rebase or stack realignment, verify content against the accepted manifest and optionally record a patch-equivalent navigation map; do not refreeze solely because commit identities changed, and do not require historical Git objects to remain reachable. If permanent commit retention is genuinely required, name an explicit durable ref or archived bundle.

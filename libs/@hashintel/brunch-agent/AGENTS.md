@@ -116,6 +116,12 @@ These rules exist because Mission 4 lost its design between the owner conversati
   each fog-line question, and the flags that carry into the next mission. Archive the closed
   `MISSION.md` as above; the PR description remains the GitHub-facing close report.
 
+## Development and evaluation execution
+
+Ordinary dependency installation, builds and documentation research may use the network with repository tooling and pinned dependencies; a missing cache is not by itself an AFK blocker. This permits neither unrelated upgrades nor sending private material to external services. Synthetic tests must remain synthetic and must not fall through to live providers.
+
+Before hermetic proofs, provider authentication checks or paid evaluations, read [evaluation execution safety](evaluations/README.md#execution-safety). Isolation follows the proof claim, not all development. Missions specify exceptions and concrete run limits; they need not reauthorize this default, and these standing rules grant no paid allocation or waiver of an existing stop.
+
 ## Retained facts
 
 - **Toolchain:** format TS/JSON with root `oxfmt`; lint via `lint:eslint` (Oxlint) and
@@ -125,7 +131,7 @@ These rules exist because Mission 4 lost its design between the owner conversati
   branch mission remains the execution authority. Follow
   [`docs/agents/git-workflow.md`](docs/agents/git-workflow.md) when creating, rebasing, or
   submitting a branch or connecting it to an issue or PR.
-- **Interactive delegation:** before preparing, placing, reusing or closing Herdr-hosted subagents, read [`docs/agents/interactive-work.md`](docs/agents/interactive-work.md) for checkout/configuration readiness, readable layout, lifecycle and cleanup. `MISSION.md` retains network and paid authority.
+- **Interactive delegation:** before preparing, placing, reusing or closing Herdr-hosted subagents, read [`docs/agents/interactive-work.md`](docs/agents/interactive-work.md) for checkout/configuration readiness, readable layout, lifecycle and cleanup. `MISSION.md` supplies task scope and concrete execution exceptions/allocations.
 - **Linear project posture:** Brunch issues live on team `FE`, project `brunch-agent`, whose mixed
   inherited issue history is evidence and inbox rather than an authoritative plan. Follow
   [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) before creating, reusing, relating,

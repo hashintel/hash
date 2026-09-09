@@ -1,6 +1,6 @@
 # Interactive subagent and Herdr procedure
 
-Use this procedure when preparing, placing, reusing or closing interactive subagents for Brunch. `MISSION.md` owns the current question, scope, network policy and paid authority. This procedure coordinates execution; it creates no lane, budget or new planning surface.
+Use this procedure when preparing, placing, reusing or closing interactive subagents for Brunch. [AGENTS.md](../../AGENTS.md#development-and-evaluation-execution) owns standing execution defaults; `MISSION.md` owns the current question, scope, exceptions and concrete paid authority. This procedure coordinates execution; it creates no lane, budget or new planning surface.
 
 ## Choose work, then placement
 
@@ -46,7 +46,7 @@ A configuration checker must use the same resolver/loading path as the intended 
 
 **No reusable checker command is introduced by this document.** Until implemented against the real loader, perform the scoped inspection and do not invent a passing preflight command or claim mere file presence meets this check.
 
-An explicitly opted-in authentication check may send one fixed, non-sensitive message to Anthropic's `POST /v1/messages/count_tokens`, using the same resolved credential/model. Anthropic [documents token counting as free](https://platform.claude.com/docs/en/build-with-claude/token-counting). Retain only safe status/request metadata; disable retries and do not send workpiece/case content. Distinguish authentication rejection, rate limiting, network failure and success. Success proves authentication for that operation, not generation credit, inference success or prior-request cost. It does not settle an unknown paid request or authorize inference. Confirm current endpoint pricing before use; provider policy can change.
+For an optional authenticated check, follow [evaluation authentication rules](../../evaluations/README.md#authentication-is-not-inference-or-accounting). Local configuration inspection alone must continue to report validity untested.
 
 ## Dispatch and network scope
 
@@ -54,7 +54,7 @@ Read the current trusted builder profile rather than hard-coding a provider/thin
 
 The brief names the current question, owned change/probe and shared seams, required actual boundary/discriminator, permitted network mode, paid prohibition or exact allocation, and return/stop condition. Include only relevant current source/evidence pointers; do not make every historical packet a cold-start requirement.
 
-Separate ordinary development networking from hermetic proof and provider access. When ordinary networking is authorized, dependency downloads and documentation access are not reasons to block AFK work. A proof claiming no external access must verify actual process-tree denial; package-manager flags are not an OS guard. Explicitly synthetic model work must remain synthetic. Neither ordinary internet access nor a free authentication check grants paid inference. Preserve named frozen-run controls and one authoritative paid ledger/writer; a cloned ledger is never spend authority.
+Apply [standing evaluation execution safety](../../evaluations/README.md#execution-safety) when dispatching a proof or provider-dependent task. Include the mission's concrete exceptions/allocation in its brief; do not copy an old lane's blanket network prohibition or paid permission into the next one.
 
 ## Supervise and resume
 
