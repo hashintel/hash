@@ -42,7 +42,12 @@ const ResultsStats = ({ header }: { header: ResultsHeader }) => (
       </FrameStatusPill>
     </FrameStat>
     {header.stats.map((stat) => (
-      <FrameStat key={stat.id} label={stat.label} widest={stat.widest}>
+      <FrameStat
+        key={stat.id}
+        label={stat.label}
+        widest={stat.widest}
+        short={stat.short}
+      >
         <StatValue value={stat.value} />
       </FrameStat>
     ))}

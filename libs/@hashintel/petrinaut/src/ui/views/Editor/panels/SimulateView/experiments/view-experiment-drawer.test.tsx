@@ -148,9 +148,7 @@ describe("ViewExperimentDrawer in the frame", () => {
     renderDrawer(sweep);
 
     expect(
-      screen.getByText(
-        /^SIR transmission sweep · Seasonal Flu · 100 runs · dt 1$/u,
-      ),
+      screen.getByText(/^SIR transmission sweep · Seasonal Flu · 100 runs$/u),
     ).toBeTruthy();
     expect(screen.getByText("Running")).toBeTruthy();
     expect(

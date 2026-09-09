@@ -122,6 +122,9 @@ describe("studyResultsModel for a running connected study", () => {
       "Best step so far": trials[2]!.best!.objective.toPrecision(6),
     });
     expect(
+      result.header.stats.find((stat) => stat.id === "steps")?.short,
+    ).toEqual({ text: "3 / 30", widest: "30 / 30" });
+    expect(
       result.header.stats.find((stat) => stat.id === "best")?.value.tooltip,
     ).toContain("production_rate=");
     expect(result.header.activity).toHaveLength(1);

@@ -53,7 +53,7 @@ describe("experimentResultsModel for a running sweep", () => {
 
   it("titles the experiment in one line with no headline", () => {
     expect(result.header.title).toBe(
-      "SIR transmission sweep · Seasonal Flu · 100 runs · dt 1",
+      "SIR transmission sweep · Seasonal Flu · 100 runs",
     );
     expect(result.header.headline).toBeNull();
   });
@@ -80,6 +80,19 @@ describe("experimentResultsModel for a running sweep", () => {
     expect(result.header.stats.every((stat) => stat.widest.length > 0)).toBe(
       true,
     );
+    // Runs and Selection carry a short form for a narrow header.
+    expect(
+      result.header.stats.find((stat) => stat.id === "runs")?.short,
+    ).toEqual({
+      text: `${sweep.progress!.completedRuns} complete`,
+      widest: "100 complete",
+    });
+    expect(
+      result.header.stats.find((stat) => stat.id === "selection")?.short,
+    ).toEqual({
+      text: `${sweep.sweep!.runsSampled} / 100`,
+      widest: "100 / 100",
+    });
   });
 
   it("lays the Parameters card, the surface and one tile per metric out, with no steps", () => {

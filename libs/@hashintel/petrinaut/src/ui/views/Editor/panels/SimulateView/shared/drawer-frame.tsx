@@ -4,9 +4,10 @@
  *
  * The header sits outside the body's scroll container, so condensing it
  * changes the body's available height and never its scroll offset. The body
- * is a size container: a `note` row always mounted, empty when there is
- * nothing to say, so an error or a resume note appearing moves nothing; then
- * the adopter's parameter card across the width, then `FrameColumns`, which
+ * is a size container: a `note` row always mounted in the body's top
+ * padding, empty when there is nothing to say, so an error or a resume note
+ * appearing moves nothing; then the adopter's parameter card across the
+ * width, then `FrameColumns`, which
  * arranges the surface and the cards by the body's width. In a drawer the
  * body takes the opening focus, so wheel and arrow keys scroll it at once and
  * no control in the header holds the header open.
@@ -24,9 +25,12 @@ import { useHeaderEngaged } from "./drawer-frame/use-header-engaged";
 import { usePrefersReducedMotion } from "./drawer-frame/use-prefers-reduced-motion";
 
 export {
+  FRAME_HEADER_CHIPS_MAX_WIDTH,
   FRAME_HEADER_CONDENSED_HEIGHT,
   FRAME_HEADER_HEIGHT,
+  FRAME_HEADER_SHORT_MAX_WIDTH,
   FrameStat,
+  type FrameStatShort,
   FrameStatusPill,
   type FrameStatusTone,
 } from "./drawer-frame/frame-header";
@@ -52,7 +56,7 @@ export type FrameNote = {
   tone: "muted" | "error";
 };
 
-/** The height of the note row in pixels; reserved whether or not a note shows. */
+/** The height of the note row in pixels: the body's top padding, which the row sits in. */
 export const FRAME_NOTE_HEIGHT = 20;
 
 // The ds close button is 28px wide with a 20px right gutter.
@@ -109,8 +113,10 @@ const drawerBodyStyle = css({
   overflow: "hidden",
 });
 
-// The body is a tinted ground the white cards sit on.
+// The body is a tinted ground the white cards sit on. Its top padding is
+// the note row's home, so the first card sits one gap under the header.
 const bodyStyle = css({
+  position: "relative",
   display: "flex",
   flexDirection: "column",
   gap: "4",
@@ -123,16 +129,21 @@ const bodyStyle = css({
   scrollbarWidth: "[thin]",
   scrollbarGutter: "stable",
   paddingX: "5",
+  paddingTop: "5",
   paddingBottom: "4",
   backgroundColor: "neutral.s05",
   containerType: "inline-size",
   containerName: "drawer-frame-body",
 });
 
+// In the body's top padding, scrolling with the content.
 const noteRowStyle = css({
+  position: "absolute",
+  top: "[0]",
+  left: "5",
+  right: "5",
   display: "flex",
   alignItems: "center",
-  flexShrink: "0",
   minWidth: "[0]",
   fontSize: "xs",
   lineHeight: "[16px]",
@@ -144,7 +155,7 @@ const noteRowStyle = css({
 });
 
 export type DrawerFrameProps = {
-  /** One line: `SIR transmission sweep · Seasonal Flu · 100 runs · dt 1`. */
+  /** One line: `SIR transmission sweep · Seasonal Flu · 100 runs`. */
   title: string;
   /** Before the title: a Back button in the full view. */
   leading?: ReactNode;
@@ -156,7 +167,7 @@ export type DrawerFrameProps = {
   badge?: ReactNode;
   /** The bar along the header's bottom edge, 0 to 100. */
   progress: number;
-  /** The reserved row at the top of the body; null keeps the row empty. */
+  /** The row in the body's top padding; null keeps the row empty. */
   note?: FrameNote | null;
   /** The footer's actions. */
   footer: ReactNode;
