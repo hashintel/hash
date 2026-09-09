@@ -88,6 +88,7 @@ const ConstraintDraftRow = ({
           hasError={errorMessage !== undefined}
           value={draft.code}
           height={multiline ? "96px" : undefined}
+          options={{ ariaLabel: label }}
           onChange={(code) => onChange(code ?? "")}
         />
         {errorMessage !== undefined ? (
