@@ -30,6 +30,7 @@
     "test:reopened-why": "M7_A5=1 node --experimental-strip-types test/transition-records.integration.ts",
     "test:reopened-why-retention": "bash test/reopened-why-retention.sh",
     "test:root-creation": "node --experimental-strip-types test/root-creation.integration.ts",
+    "test:typed-state": "node --experimental-strip-types test/typed-state.integration.ts",
     "test:unit": "vitest run --config vitest.config.ts",
     "test:workpiece-evidence": "node --experimental-strip-types test/workpiece-evidence.integration.ts",
     "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"
