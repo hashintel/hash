@@ -1,0 +1,14 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "fix:eslint": {
+      "dependsOn": []
+    },
+    "lint:eslint": {
+      "dependsOn": []
+    },
+    "lint:tsc": {
+      "dependsOn": []
+    }
+  }
+}

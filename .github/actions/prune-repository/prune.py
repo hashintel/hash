@@ -44,39 +44,22 @@ EXTRA_DEPENDENCIES: dict[str, list[str]] = {
 REQUESTED_DEPENDENCIES: dict[str, list[str]] = {
     # The frontend's wire-conformance suite decodes the atlas crate's checked-in fixtures
     "@apps/hash-frontend": ["@rust/hash-graph-atlas"],
-    # Brunch core's architecture and contract tests inspect the app and shipped
-    # plugins, but a job whose requested scope is only a sibling or a consumer
-    # of core must not pull those fixtures.
-    "@hashintel/brunch-agent": [
-        "@apps/brunch-agent",
-        "@hashintel/brunch-agent-plugin-gherkin",
-        "@hashintel/brunch-agent-plugin-sdcpn",
-    ],
 }
 
 # Non-workspace paths required by packages in the *requested* scope.
 # `turbo prune` copies workspace directories and root manifests only.
 REQUESTED_PATHS: dict[str, list[str]] = {
-    # Core's shipped-definition and baseline tests read the non-workspace
-    # context root alongside their plugin task dependencies.
+    # Core's Linear graph tests exercise the context-root script.
     "@hashintel/brunch-agent": [
         ".config/oxlint/brunch",
-        "libs/@hashintel/brunch-agent/AGENTS.md",
-        "libs/@hashintel/brunch-agent/CONTEXT.md",
-        "libs/@hashintel/brunch-agent/docs",
-        "libs/@hashintel/brunch-agent/evaluations",
-        "libs/@hashintel/brunch-agent/scripts",
+        "libs/@hashintel/brunch-agent/scripts/linear-project-graph.ts",
     ],
-    # The app's tests execute evaluation runners and govern the complete Brunch
-    # composition. Its context root is not a workspace, so copy the docs,
-    # scripts, and agent contract files explicitly.
+    # The app's product tests execute evaluation runners and inspect committed
+    # evidence. Those non-workspace inputs are copied explicitly.
     "@apps/brunch-agent": [
         ".config/oxlint/brunch",
-        "libs/@hashintel/brunch-agent/AGENTS.md",
-        "libs/@hashintel/brunch-agent/CONTEXT.md",
         "libs/@hashintel/brunch-agent/docs",
         "libs/@hashintel/brunch-agent/evaluations",
-        "libs/@hashintel/brunch-agent/scripts",
         "libs/@hashintel/petrinaut/docs",
     ],
 }

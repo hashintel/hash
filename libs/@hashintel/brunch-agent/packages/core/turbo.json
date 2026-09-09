@@ -11,8 +11,7 @@
     "test:unit": {
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/**",
-        "!$TURBO_ROOT$/libs/@hashintel/brunch-agent/**/{.flue,.turbo,dist,node_modules}/**"
+        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/scripts/linear-project-graph.ts"
       ]
     }
   }

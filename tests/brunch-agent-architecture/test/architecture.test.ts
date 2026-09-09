@@ -4,33 +4,34 @@
  * Spec §4 and §12.2 state the dependency direction as invariants; an invariant
  * nobody can run is a wish. These are the mechanical checks — they read the
  * real tree, so a package added later is governed without opting in.
- *
- * Two of them are load-bearing beyond tidiness, because the Flue build is
- * silent about the failure: a `'use agent'` directive that is not the file's
- * first statement builds green and simply never registers the agent.
  */
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { describe, expect, test } from "vitest";
 
 import {
-  AGENT_DIRECTIVE_STATEMENT,
-  agentModules,
   allDependencies,
   importedPackages,
   MODEL_KEY_NAME,
   packageOf,
-  pinnedIdentities,
   runtimeDependencies,
   sourceFiles,
   testFiles,
   workspacePackages,
+  type PackageManifest,
   type WorkspacePackage,
-} from "./workspace";
+} from "./architecture-workspace";
 
 const PACKAGES = workspacePackages();
+const CHECKER_MANIFEST = JSON.parse(
+  readFileSync(
+    fileURLToPath(new URL("../package.json", import.meta.url)),
+    "utf8",
+  ),
+) as PackageManifest;
 
 const CORE = "@hashintel/brunch-agent";
 /** Flue is the selected agent runtime; lower-level Pi packages remain binding/test concerns. */
@@ -53,6 +54,19 @@ test("every package is actually scanned", () => {
       scanned: true,
     });
   }
+});
+
+test("the checker depends on every governed workspace", () => {
+  const governedDependencies = Object.keys(
+    CHECKER_MANIFEST.devDependencies ?? {},
+  )
+    .filter(
+      (dependency) =>
+        dependency === "@apps/brunch-agent" ||
+        dependency.startsWith("@hashintel/brunch-agent"),
+    )
+    .sort();
+  expect(governedDependencies).toEqual(PACKAGES.map(({ name }) => name).sort());
 });
 
 describe("role prefixes name what a package is architecturally (spec §12.2)", () => {
@@ -264,92 +278,6 @@ describe("Valibot is the schema library at every boundary (spec §12.4)", () => 
 });
 
 describe("recorded Flue constraints hold by construction (spec §10)", () => {
-  const dev = PACKAGES.find((pkg) => pkg.relPath === "apps/brunch-agent")!;
-  // Statement-anchored detection (see workspace.ts): a comment mentioning the
-  // directive is not an agent module, but a *misplaced* directive still is —
-  // so the first-statement test below sees it and goes red.
-  const devAgentModules = agentModules(dev);
-
-  test("the dev app has at least one agent module", () => {
-    expect(devAgentModules.length).toBeGreaterThan(0);
-  });
-
-  test("'use agent' is the module's first statement", () => {
-    // The build does NOT catch this: a misplaced directive builds green and
-    // the module simply stops being an agent. Nothing else would notice until
-    // a conversation failed to start.
-    for (const file of devAgentModules) {
-      // Comments are not statements, so a leading doc block is legal and must
-      // not read as a violation.
-      const withoutLeadingComments = file.text
-        .replace(/^﻿/, "")
-        .replace(/^(?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*/, "");
-      // Judged by the same pattern that detects the directive at all
-      // (workspace.ts), so every form the lexicon declares legal — either
-      // quote style, optional semicolon, trailing comment — passes and only
-      // placement can fail. The old literal comparison spuriously failed
-      // forms this suite's own fixtures assert are legal.
-      const firstStatement = withoutLeadingComments.split("\n")[0] ?? "";
-      expect({
-        file: file.relPath,
-        firstStatementIsDirective:
-          AGENT_DIRECTIVE_STATEMENT.test(firstStatement),
-      }).toEqual({ file: file.relPath, firstStatementIsDirective: true });
-    }
-  });
-
-  test("agentName is a pinned string literal", () => {
-    // Conversation storage keys on it, so a computed value is unsupportable
-    // and a changed value orphans every existing conversation. Extraction
-    // goes through the shared pinnedIdentities pattern — a third hand-copied
-    // regex here could silently disagree with the other suites on what
-    // counts as an identity — and this test adds the shape constraint.
-    for (const file of devAgentModules) {
-      const identities = pinnedIdentities(file);
-      expect({ file: file.relPath, pinned: identities.length > 0 }).toEqual({
-        file: file.relPath,
-        pinned: true,
-      });
-      for (const identity of identities) {
-        expect(identity).toMatch(/^[a-z][a-z0-9-]*$/);
-      }
-    }
-  });
-
-  test("a pinned identity appears only in its own agent module", () => {
-    // The mount path (and anything else naming the agent) must derive from
-    // `agentName`, not copy it: a duplicated literal is the seam the FE-1361
-    // review verified — a copy-pasted second agent shadows the mount while
-    // every test stays green, because nothing ties the copies together.
-    const identities = devAgentModules.flatMap((file) =>
-      pinnedIdentities(file).map((identity) => ({
-        identity,
-        pinnedIn: file.relPath,
-      })),
-    );
-    expect(identities.length).toBeGreaterThan(0);
-    // Quoted occurrences only: prose in a comment may *name* the agent without
-    // duplicating its identity into anything the runtime reads — flagging that
-    // would be the cry-wolf failure this ticket removed from the directive
-    // check. A string literal carrying the identity anywhere else is real
-    // duplication, including inside a longer path like '/agents/…'.
-    const STRING_LITERAL = /(['"`])(?:\\.|(?!\1)[^\\\n])*\1/g;
-    for (const { identity, pinnedIn } of identities) {
-      const duplicatedIn = sourceFiles(dev)
-        .filter((file) => file.relPath !== pinnedIn)
-        .filter((file) =>
-          (file.text.match(STRING_LITERAL) ?? []).some((literal) =>
-            literal.includes(identity),
-          ),
-        )
-        .map((file) => file.relPath);
-      expect({ identity, duplicatedIn }).toEqual({
-        identity,
-        duplicatedIn: [],
-      });
-    }
-  });
-
   test("vite is pinned to 8, which @flue/vite requires", () => {
     const pinned = PACKAGES.flatMap((pkg) => {
       const range =
@@ -358,15 +286,6 @@ describe("recorded Flue constraints hold by construction (spec §10)", () => {
     });
     expect(pinned.length).toBeGreaterThan(0);
     for (const range of pinned) expect(range).toMatch(/^\^?8(\.|$)/);
-  });
-
-  test("the dev app owns the agent module, the mount, and the conversation store", () => {
-    // Every host authors its own thin `'use agent'` module, `app.ts` and
-    // `db.ts` — Flue's build-time scan makes shipping a pre-registered agent
-    // from a library structurally unavailable (spec §12.1).
-    for (const file of ["src/app.ts", "src/db.ts"]) {
-      expect(() => readFileSync(join(dev.path, file), "utf8")).not.toThrow();
-    }
   });
 
   test("runtime entrypoints never select Flue's Bun adapter", () => {
@@ -460,8 +379,8 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
     // is deliberately not part of this run, and this is what stops it drifting
     // in unnoticed.
     expect(suite.length).toBeGreaterThan(0);
-    // Composed in workspace.ts rather than written literally, so this check
-    // does not flag its own source or the pattern's.
+    // Composed in architecture-workspace.ts rather than written literally, so
+    // this check does not flag its own source or the pattern's.
     const modelKey = new RegExp(MODEL_KEY_NAME, "g");
     for (const file of suite) {
       expect({

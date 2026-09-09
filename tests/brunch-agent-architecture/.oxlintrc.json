@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.config/oxlint/brunch/base.json"],
+  "categories": {
+    "correctness": "error",
+    "perf": "warn"
+  },
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  },
+  "env": {
+    "builtin": true,
+    "es2026": true,
+    "node": true
+  },
+  "ignorePatterns": ["coverage/**", "*.tsbuildinfo", ".turbo/**"]
+}

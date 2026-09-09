@@ -15,6 +15,9 @@ from prune import (
 CORE = "@hashintel/brunch-agent"
 TRANSPORT = "@hashintel/brunch-agent-transport-aisdk"
 APP = "@apps/brunch-agent"
+ARCHITECTURE = "@tests/brunch-agent-architecture"
+BINDING_FLUE = "@hashintel/brunch-agent-binding-flue"
+PLUGIN_DAFNY = "@hashintel/brunch-agent-plugin-dafny"
 PLUGIN_GHERKIN = "@hashintel/brunch-agent-plugin-gherkin"
 PLUGIN_SDCPN = "@hashintel/brunch-agent-plugin-sdcpn"
 WEBSITE = "@apps/petrinaut-website"
@@ -45,57 +48,51 @@ class FrontendRequestedExtras(unittest.TestCase):
 
 
 class BrunchRequestedExtras(unittest.TestCase):
-    def test_core_adds_the_app_and_plugins(self) -> None:
-        expected_workspaces = frozenset({APP, PLUGIN_GHERKIN, PLUGIN_SDCPN})
-        self.assertEqual(extras_for_requested({CORE}), expected_workspaces)
-        self.assertTrue(
-            expected_workspaces.issubset(
-                fixpoint_expand(
-                    {CORE} | extras_for_requested({CORE}),
-                    {
-                        CORE: frozenset(),
-                        APP: frozenset({CORE}),
-                        PLUGIN_GHERKIN: frozenset({CORE}),
-                        PLUGIN_SDCPN: frozenset({CORE}),
-                    },
-                )
-            )
-        )
-
-    def test_app_task_adds_the_core_plugins_and_context_paths(self) -> None:
-        expected_workspaces = frozenset({CORE, PLUGIN_GHERKIN, PLUGIN_SDCPN})
-        expanded = fixpoint_expand(
-            {APP},
+    def test_architecture_workspace_owns_the_complete_brunch_family(self) -> None:
+        expected_workspaces = frozenset(
             {
-                APP: expected_workspaces,
+                APP,
+                CORE,
+                BINDING_FLUE,
+                PLUGIN_DAFNY,
+                PLUGIN_GHERKIN,
+                PLUGIN_SDCPN,
+                TRANSPORT,
+            }
+        )
+        expanded = fixpoint_expand(
+            {ARCHITECTURE},
+            {
+                ARCHITECTURE: expected_workspaces,
+                APP: frozenset({CORE, PLUGIN_SDCPN, TRANSPORT, BINDING_FLUE}),
+                BINDING_FLUE: frozenset({CORE}),
+                PLUGIN_DAFNY: frozenset({CORE}),
                 PLUGIN_GHERKIN: frozenset({CORE}),
                 PLUGIN_SDCPN: frozenset({CORE}),
+                TRANSPORT: frozenset(),
             },
         )
         self.assertTrue(expected_workspaces.issubset(expanded))
+        self.assertEqual(extras_for_requested({ARCHITECTURE}), frozenset())
+
+    def test_app_keeps_only_its_non_workspace_product_inputs(self) -> None:
         self.assertEqual(
             extra_paths_for_requested({APP}),
             [
                 ".config/oxlint/brunch",
-                "libs/@hashintel/brunch-agent/AGENTS.md",
-                "libs/@hashintel/brunch-agent/CONTEXT.md",
                 "libs/@hashintel/brunch-agent/docs",
                 "libs/@hashintel/brunch-agent/evaluations",
-                "libs/@hashintel/brunch-agent/scripts",
                 "libs/@hashintel/petrinaut/docs",
             ],
         )
 
-    def test_core_adds_its_non_workspace_test_fixtures(self) -> None:
+    def test_core_adds_only_its_context_root_script(self) -> None:
+        self.assertEqual(extras_for_requested({CORE}), frozenset())
         self.assertEqual(
             extra_paths_for_requested({CORE}),
             [
                 ".config/oxlint/brunch",
-                "libs/@hashintel/brunch-agent/AGENTS.md",
-                "libs/@hashintel/brunch-agent/CONTEXT.md",
-                "libs/@hashintel/brunch-agent/docs",
-                "libs/@hashintel/brunch-agent/evaluations",
-                "libs/@hashintel/brunch-agent/scripts",
+                "libs/@hashintel/brunch-agent/scripts/linear-project-graph.ts",
             ],
         )
 

@@ -17,22 +17,9 @@ import { fileURLToPath } from "node:url";
 
 /** Resolved through `fileURLToPath` — a raw `URL.pathname` is percent-encoded. */
 export const HASH_ROOT = fileURLToPath(
-  new URL("../../../..", import.meta.url),
+  new URL("../../..", import.meta.url),
 ).replace(/[/\\]$/, "");
 export const CONTEXT_ROOT = join(HASH_ROOT, "libs/@hashintel/brunch-agent");
-export const REPO_ROOT = CONTEXT_ROOT;
-
-/**
- * The context root's `docs/` and `scripts/` belong to no workspace, so
- * `turbo prune` never copies them; CI's prune-repository action copies them
- * into its pruned checkout via a requested-scope extra-path rule. This guard is the
- * fallback for a pruned tree where that rule is absent or has drifted: the
- * context-root tests skip there instead of failing on missing files, and run
- * in every full checkout, where this is always true.
- */
-export const contextRootPresent =
-  existsSync(join(CONTEXT_ROOT, "docs")) &&
-  existsSync(join(CONTEXT_ROOT, "scripts"));
 const PACKAGES_ROOT = join(CONTEXT_ROOT, "packages");
 const APP_ROOT = join(HASH_ROOT, "apps/brunch-agent");
 
@@ -189,48 +176,11 @@ export function testFiles(pkg: WorkspacePackage): SourceFile[] {
 }
 
 /**
- * The `'use agent'` directive as a statement: alone on its line, terminated,
- * quotes matching. Anchoring to a statement rather than matching raw text
- * keeps a comment that merely *mentions* the directive from turning a file
- * into an agent module (the FE-1361 review's verified failure: CI red on a
- * comment-only change).
- *
- * Deliberately not anchored to the *first* statement: a misplaced directive
- * must still be detected, so the first-statement invariant in
- * `test/boundaries.test.ts` can fail it loudly instead of never seeing it.
- */
-export const AGENT_DIRECTIVE_STATEMENT =
-  /^\s*(["'])use agent\1;?\s*(?:$|\/\/|\/\*)/mu;
-
-/** Whether a file declares itself an agent module (well-placed or not). */
-export function isAgentModule(file: SourceFile): boolean {
-  return AGENT_DIRECTIVE_STATEMENT.test(file.text);
-}
-
-/**
- * The pinned identities a file assigns, extracted by the one pattern both
- * suites share: `test/boundaries.test.ts` checks each identity is never
- * duplicated in source, `test/build-artifact.test.ts` checks each is bound in
- * the emitted bundle. Two hand-copies of the regex would let the two checks
- * silently diverge on what counts as an identity.
- */
-export function pinnedIdentities(file: SourceFile): string[] {
-  return [...file.text.matchAll(/\w+\.agentName\s*=\s*(["'])([^"']+)\1/gu)].map(
-    (match) => match[2]!,
-  );
-}
-
-/**
  * A model-key environment variable name, as a pattern source for callers to
  * anchor or extend. Composed rather than written literally, so the hermeticity
  * check that reuses it does not flag this file's own source.
  */
 export const MODEL_KEY_NAME = `[A-Z_]*${"API"}_${"KEY"}`;
-
-/** Every agent module a package ships. */
-export function agentModules(pkg: WorkspacePackage): SourceFile[] {
-  return sourceFiles(pkg).filter(isAgentModule);
-}
 
 /**
  * The module specifiers a source file imports or re-exports.
