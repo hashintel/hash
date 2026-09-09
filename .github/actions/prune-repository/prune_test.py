@@ -54,14 +54,11 @@ class BrunchRequestedExtras(unittest.TestCase):
             ],
         )
 
-    def test_core_adds_only_its_context_root_script(self) -> None:
+    def test_core_adds_only_its_shared_lint_config(self) -> None:
         self.assertEqual(extras_for_requested({CORE}), frozenset())
         self.assertEqual(
             extra_paths_for_requested({CORE}),
-            [
-                ".config/oxlint/brunch",
-                "libs/@hashintel/brunch-agent/scripts/linear-project-graph.ts",
-            ],
+            [".config/oxlint/brunch"],
         )
 
     def test_sibling_or_website_job_does_not_add_context_paths(self) -> None:

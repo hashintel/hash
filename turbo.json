@@ -110,7 +110,6 @@
       "env": ["GITHUB_EVENT_NAME"],
       "dependsOn": ["^manifest"]
     },
-    "lint:brunch-architecture": {},
     // Type-aware linting resolves workspace imports from the dependencies' dist.
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],

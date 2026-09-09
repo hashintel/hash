@@ -49,11 +49,7 @@ REQUESTED_DEPENDENCIES: dict[str, list[str]] = {
 # Non-workspace paths required by packages in the *requested* scope.
 # `turbo prune` copies workspace directories and root manifests only.
 REQUESTED_PATHS: dict[str, list[str]] = {
-    # Core's Linear graph tests exercise the context-root script.
-    "@hashintel/brunch-agent": [
-        ".config/oxlint/brunch",
-        "libs/@hashintel/brunch-agent/scripts/linear-project-graph.ts",
-    ],
+    "@hashintel/brunch-agent": [".config/oxlint/brunch"],
     # The app's product tests execute evaluation runners and inspect committed
     # evidence. Those non-workspace inputs are copied explicitly.
     "@apps/brunch-agent": [

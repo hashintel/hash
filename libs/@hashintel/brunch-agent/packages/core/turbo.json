@@ -7,12 +7,6 @@
     },
     "linear:graph": {
       "cache": false
-    },
-    "test:unit": {
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/scripts/linear-project-graph.ts"
-      ]
     }
   }
 }

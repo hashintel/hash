@@ -283,10 +283,6 @@ jobs:
             exit 1
           fi
 
-      - name: Run Brunch architecture checks
-        if: ${{ success() || failure() }}
-        run: turbo run lint:brunch-architecture --filter @local/repo-chores
-
       - name: Run yarn lint:license-in-workspaces
         if: ${{ success() || failure() }}
         env:

@@ -12,7 +12,6 @@
       "@local/hash-backend-utils#build",
       "@local/hash-isomorphic-utils#build"
     ],
-    "lint:brunch-architecture": [],
     "lint:eslint": [
       "@local/eslint#build",
       "@local/hash-backend-utils#build",

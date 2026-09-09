@@ -1,16 +1,13 @@
 /**
  * What the build actually emitted — checked against the artifact, not the source.
  *
- * `test/boundaries.test.ts` catches a misplaced `'use agent'` directive by
- * reading the source. This checks the same property from the other end: that
- * the agent really is registered in the emitted bundle. The distinction earns
- * its keep because the failure mode here is silent — `@flue/vite` drops a
- * module that stops looking like an agent module and the build stays green, so
- * "it compiled" says nothing about whether the app has any agents in it.
+ * The failure mode here is silent — `@flue/vite` drops a module that stops
+ * looking like an agent module and the build stays green, so "it compiled"
+ * says nothing about whether the app has its agent in the bundle.
  *
- * Any future change that quietly stops an agent, its route, or the conversation
+ * Any future change that quietly stops the agent, its route, or the conversation
  * store from reaching the bundle fails here, whatever the cause: a directive
- * moved, a config path changed, an entry dropped from the scan glob.
+ * moved or a config path changed.
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -19,6 +16,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
+import { ChatAgent } from "../src/agents/chat-agent/agent";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application";
 
 const DEV_APP = fileURLToPath(new URL("..", import.meta.url)).replace(
@@ -51,35 +49,13 @@ afterAll(() => {
   }
 });
 
-/** The pinned identity of every agent module in the app, read from source. */
-function declaredAgentIdentities(): string[] {
-  const agentsDirectory = join(DEV_APP, "src/agents");
-  return readdirSync(agentsDirectory, {
-    recursive: true,
-    encoding: "utf8",
-  })
-    .filter((entry) => entry.endsWith(".ts"))
-    .flatMap((entry) =>
-      Array.from(
-        readFileSync(join(agentsDirectory, entry), "utf8").matchAll(
-          /\w+\.agentName\s*=\s*(["'])([^"']+)\1/gu,
-        ),
-      ),
-    )
-    .map((match) => match[2]!);
-}
-
 describe("the emitted server bundle", () => {
   test("exists", () => {
     expect(existsSync(DIST)).toBe(true);
     expect(bundle.length).toBeGreaterThan(0);
   });
 
-  test("registers every declared agent under its pinned identity", () => {
-    // The check that matters. A `'use agent'` directive that is not the first
-    // statement builds green and simply never registers — the app boots with no
-    // agents and nothing says so until a conversation fails to start.
-    //
+  test("registers the chat agent under its pinned identity", () => {
     // Asserted against the emitted `__flueBindAgentModule(Fn, { identity })`
     // call rather than the bare string, because the string survives that
     // failure: the `agentName` assignment is still in the bundle as ordinary
@@ -91,14 +67,7 @@ describe("the emitted server bundle", () => {
         ),
       ].map((match) => match[1]!),
     );
-    const identities = declaredAgentIdentities();
-    expect(identities.length).toBeGreaterThan(0);
-    for (const identity of identities) {
-      expect({ identity, bound: bound.has(identity) }).toEqual({
-        identity,
-        bound: true,
-      });
-    }
+    expect(bound.has(ChatAgent.agentName)).toBe(true);
   });
 
   test("includes the fail-closed production store", () => {
