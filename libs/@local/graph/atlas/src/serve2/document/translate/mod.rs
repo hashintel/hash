@@ -2,12 +2,13 @@
 //!
 //! Hidden, unknown and draft identities produce absent keys.
 
-use alloc::collections::BTreeMap;
+use alloc::{alloc::Allocator, collections::BTreeMap};
 use core::{error::Error, fmt};
 
 use error_stack::Report;
 use type_system::knowledge::entity::EntityId;
 
+use super::{Document, codec::Envelope};
 use crate::{
     identity::NodeRowId,
     math::Vec2,
@@ -15,6 +16,7 @@ use crate::{
     serve2::{codec::EncodedRowId, neighbourhood::NeighbourhoodProvider as _, scene::Scene},
 };
 
+mod codec;
 #[cfg(test)]
 mod tests;
 
@@ -49,7 +51,7 @@ pub(crate) struct TranslatedNode {
     position: Vec2,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
 pub(crate) struct TranslatedEdge {
     source: EncodedRowId<NodeRowId>,
     target: EncodedRowId<NodeRowId>,
@@ -140,5 +142,12 @@ impl TranslateDocument {
         }
 
         Ok(this)
+    }
+}
+
+impl Document for TranslateDocument {
+    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Envelope {
+        Envelope::encode_json(&self::codec::TranslateResponse::new(self), buffer)
+            .expect("entity-id keys and geometry should serialize as JSON")
     }
 }

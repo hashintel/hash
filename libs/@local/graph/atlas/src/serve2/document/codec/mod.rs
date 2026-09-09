@@ -12,8 +12,8 @@ pub(crate) use self::{
 
 /// The envelope wire version, prefix field and media-type suffix.
 ///
-/// The media type `application/vnd.hash.saltile-v1` must agree with this value; kind discriminates
-/// the grammar variant, the version tracks evolution of the whole family.
+/// The media type `application/vnd.hash.saltile-v1` must agree with this value. The version applies
+/// to every [`Kind`].
 pub(crate) const WIRE_VERSION: u16 = 1;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, zerocopy::IntoBytes, zerocopy::Immutable)]
@@ -28,8 +28,7 @@ impl Kind {
 
 /// A tile delivery mode, `HEAD` key 3.
 ///
-/// Requests carry the mode as the JSON strings `"delta"` and `"total"`; delta is the default when a
-/// request names none.
+/// Requests carry the mode as the JSON strings `"delta"` and `"total"`. Delta is the default.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Mode {

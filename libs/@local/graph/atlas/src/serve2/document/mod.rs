@@ -1,4 +1,5 @@
 mod codec;
+mod current;
 mod edges;
 mod locate;
 mod masks;
@@ -9,6 +10,8 @@ use alloc::alloc::Allocator;
 
 use self::codec::Envelope;
 pub(crate) use self::{
+    codec::Mode,
+    current::CurrentDocument,
     edges::{
         EdgeSlot, EdgesDocument, EdgesDocumentDetailLevel, EdgesDocumentError,
         EdgesDocumentOptions, EdgesLimits, EdgesTrailer,

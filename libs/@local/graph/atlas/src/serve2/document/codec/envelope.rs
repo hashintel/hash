@@ -1,5 +1,6 @@
 use alloc::alloc::Allocator;
 
+use error_stack::Report;
 use zerocopy::{IntoBytes as _, LE, U16, U32};
 
 use super::{Kind, WIRE_VERSION};
@@ -29,6 +30,23 @@ const ENTRY: usize = size_of::<Entry>();
 #[derive(Debug)]
 pub(crate) struct Envelope {
     _marker: (),
+}
+
+impl Envelope {
+    /// Replaces `bytes` with JSON and returns completion after serialization succeeds.
+    ///
+    /// # Errors
+    ///
+    /// Returns the serializer's error if `value` cannot be represented as JSON. The buffer may
+    /// contain a partial document on failure.
+    pub(crate) fn encode_json<A: Allocator>(
+        value: &impl serde::Serialize,
+        bytes: &mut Vec<u8, A>,
+    ) -> Result<Self, Report<serde_json::Error>> {
+        bytes.clear();
+        serde_json::to_writer(bytes, value).map_err(Report::new)?;
+        Ok(Self { _marker: () })
+    }
 }
 
 #[derive(Debug)]
@@ -133,7 +151,12 @@ impl<'bytes, A: Allocator> EnvelopeWriter<'bytes, A> {
 mod tests {
     use alloc::alloc::Global;
 
-    use super::EnvelopeWriter;
+    use serde::{
+        Serialize, Serializer,
+        ser::{Error as _, SerializeSeq as _},
+    };
+
+    use super::{Envelope, EnvelopeWriter};
     use crate::serve2::document::codec::Kind;
 
     #[expect(
@@ -176,6 +199,42 @@ mod tests {
         assert_eq!(
             &bytes[48..],
             &[0xA0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 0, 0, 0, 0xF6]
+        );
+    }
+
+    #[test]
+    fn json_buffer_reuse() {
+        let mut bytes = Vec::new_in(&Global);
+        bytes.extend_from_slice(b"previous document");
+        let _completed =
+            Envelope::encode_json(&serde_json::json!({"nodes": {}, "edges": {}}), &mut bytes)
+                .expect("should complete JSON serialization");
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&bytes)
+                .expect("should parse one complete document"),
+            serde_json::json!({"nodes": {}, "edges": {}}),
+        );
+    }
+
+    struct PartialValue;
+
+    impl Serialize for PartialValue {
+        fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            let mut sequence = serializer.serialize_seq(Some(2))?;
+            sequence.serialize_element(&1)?;
+            Err(S::Error::custom("incomplete sequence"))
+        }
+    }
+
+    #[test]
+    fn json_partial_value() {
+        let mut bytes = Vec::from(b"previous document".as_slice());
+        let error = Envelope::encode_json(&PartialValue, &mut bytes)
+            .expect_err("should return a serialization error rather than completion");
+        assert_eq!(error.current_context().to_string(), "incomplete sequence");
+        assert_eq!(
+            bytes, b"[1",
+            "should retain the serializer's partial output"
         );
     }
 

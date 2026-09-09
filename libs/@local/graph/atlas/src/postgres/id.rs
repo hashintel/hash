@@ -206,6 +206,12 @@ impl From<ArchivedEntityId> for EntityId {
     }
 }
 
+impl serde::Serialize for ArchivedEntityId {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(&EntityId::from(*self))
+    }
+}
+
 impl Key for ArchivedEntityId {
     type Payload = Legend;
 
