@@ -89,15 +89,15 @@ acknowledged **Your turn** handoff.
 5. **User control.** Shared Petrinaut tests prove the preference is default-on,
    browser-saved, exposed in the existing playback menu, and controls whether
    **Your turn** is visible.
-6. **Durable origin and Stop continuity.**
-   `local-storage-demo/voice-history-continuity.integration.test.tsx` runs one
-   typed-origin message plus a Voice-origin client-tool result through durable
-   composer **Stop**, closes the conversation, and reopens it as a second
-   mounted client. The reopened panel must preserve the typed history and every
-   supported Voice tool-call origin, render the aborted assistant entry as
-   stopped rather than ordinary truncated content, and prove local **Exit voice
-   mode** does not issue durable **Stop**. This oracle does not claim
-   direct-user Voice source reconstruction after reopen.
+6. **Continuity projection guard.**
+   `local-storage-demo/voice-history-continuity.integration.test.tsx` mounts the
+   real history projector and Petrinaut panel against prepared before/after
+   observations, then remounts the observer. It proves typed history, supported
+   Voice client-tool attribution, aborted-settlement rendering, and the local
+   **Exit voice mode** versus injected **Stop** port remain distinct at those
+   component boundaries. It does not prove production Voice provenance
+   creation, `requestFlueStop`/Flue abort persistence, a fresh Flue client or
+   second browser tab, or direct-user Voice source reconstruction after reopen.
 7. **Package integrity.** Focused Voice unit tests, Petrinaut unit tests,
    TypeScript checks, ESLint, the website and library builds, architecture-doc
    lint, repository formatting, and `git diff --check` distinguish a working
@@ -111,7 +111,7 @@ classifier accuracy.
 
 ```text
 ~ apps/petrinaut-website/src/main/app/voice-interview/  session, bridge, controller, preference, tests
-~ apps/petrinaut-website/src/main/app/local-storage-demo/ durable history reopen integration proof
+~ apps/petrinaut-website/src/main/app/local-storage-demo/ history projection and remount guard
 ~ apps/petrinaut-website/src/server/voice/              Realtime VAD and transcription policy
 ~ apps/petrinaut-website/src/shared/                    shared transcription vocabulary
 ~ apps/petrinaut-website/README.md                      website behavior
@@ -171,10 +171,12 @@ preference no longer restores the acknowledged half-duplex handoff.
 - A human browser/microphone witness owns claims about speaker feedback,
   acoustic false interruption, and audible interruption latency.
 - Preventing a false VAD event from stopping playback is outside FE-1604.
-- On 2026-09-09 the owner explicitly deferred direct-user Voice source
-  reconstruction after reopen: Flue 2.0.3 projects neither caller metadata nor
-  idempotency keys on canonical user messages, and browser-side correlation or
-  visible text encoding remain prohibited. The supported client-tool origin in
-  Proof 6 discharges FE-1604's combined continuity witness without claiming
-  that blocked marker; re-entry remains governed by
+- The projection guard in Proof 6 does not discharge the combined durable
+  continuity witness required by `MISSION.next.md`. That witness still needs a
+  production Voice input, production **Stop**/Flue abort, destroyed browser
+  client, independently created second-tab client, and persisted-history
+  hydration. Direct-user Voice source reconstruction remains blocked because
+  Flue 2.0.3 projects neither caller metadata nor idempotency keys on canonical
+  user messages, while browser-side correlation and visible text encoding
+  remain prohibited. Re-entry remains governed by
   `docs/evidence/implementations/mission-5-voice-safety-parity/provenance-blocker.md`.
