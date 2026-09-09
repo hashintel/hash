@@ -6,7 +6,7 @@ The editor is organized around a central canvas where you build your net:
 
 - **Top bar** -- net management menu, optional title field, **Edit / Simulate / Actual** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
 - **Canvas** (center) -- the main workspace where places and transitions are displayed and connected.
-- **Left sidebar** -- lists of entities organized into tabs: Nodes, Types, Differential Equations, Parameters.
+- **Left sidebar** -- the Entities tree: every node, token type, differential equation and parameter in the net, in one hierarchy. See [Left sidebar](#left-sidebar).
 - **Properties panel** (right) -- opens when you select an entity, showing its configurable properties.
 - **Bottom panel** -- tabs for Diagnostics (code errors), Simulation Settings, and Timeline (during simulation).
 - **Bottom toolbar** -- editing mode buttons, simulation controls, the AI assistant toggle, and a show/hide button for the bottom panel.
