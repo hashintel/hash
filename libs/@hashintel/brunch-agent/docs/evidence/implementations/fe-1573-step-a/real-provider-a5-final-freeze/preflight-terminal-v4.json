@@ -1,0 +1,63 @@
+{
+  "instrument": "terminal-v4: final owner inventory admission; implementation/tests frozen",
+  "implementationCommit": "9cef6310816e9e630851c7df2c188039df2f6077",
+  "manifestSha256": "1de43141dfbe68902af2bf1d62f52bbdaf72c2f10e6277abc6c0fa759b62b243",
+  "modelBounds": {
+    "model": {
+      "id": "claude-sonnet-4-6",
+      "name": "Claude Sonnet 4.6",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://api.anthropic.com",
+      "reasoning": true,
+      "input": ["text", "image"],
+      "cost": {
+        "input": 3,
+        "output": 15,
+        "cacheRead": 0.3,
+        "cacheWrite": 3.75
+      },
+      "contextWindow": 1000000,
+      "maxTokens": 128000,
+      "thinkingLevelMap": {
+        "max": "max"
+      },
+      "compat": {
+        "forceAdaptiveThinking": true,
+        "supportsStrictTools": true
+      }
+    },
+    "inputRate": 6,
+    "worstUsd": 6.06144,
+    "maxOutputTokens": 4096,
+    "reservedUsd": 7
+  },
+  "credentialAvailability": {
+    "status": "Not rechecked during correction; prior boolean-only availability observation retained in original preflight.json",
+    "validity": "Never probed"
+  },
+  "paidActivation": "NOT ACTIVE; no allocation or single-writer delegation",
+  "parentReportedSharedTotals": {
+    "calls": 5,
+    "usd": 0.09113535
+  },
+  "tests": {
+    "focused": {
+      "passed": 65
+    },
+    "builtTerminal": {
+      "controls": 13,
+      "syntheticDispatches": 15,
+      "paidCalls": 0
+    },
+    "appSuite": {
+      "passed": 313,
+      "failed": 0,
+      "files": 39
+    },
+    "typecheck": "pass",
+    "lint": "zero errors; 18 existing warnings"
+  },
+  "networkDecision": "Unchanged candidate; parent explicit activation/egress decision remains required",
+  "ownerInventoryCommit": "9cef6310816e9e630851c7df2c188039df2f6077"
+}

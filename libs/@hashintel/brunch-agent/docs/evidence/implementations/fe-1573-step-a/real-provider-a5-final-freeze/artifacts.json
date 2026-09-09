@@ -1,0 +1,15 @@
+{
+  "authority": "Read-only refreeze evidence; no allocation",
+  "files": {
+    "format.log.gz": "db8134c14f91cc44683dd196006ee3d363bdc71acdce8b1c63f132dd1ed21001",
+    "freeze.md": "9d4e36ef0ff3fb9480cc2f7e0e5b65a51f1d21964015f31c69448b1db859e5b7",
+    "lint.log.gz": "d1b9ce1445ece82ba6625172781f7ec338cb41e07f7fed27b995490feb3c2a2b",
+    "manifest-terminal-v4.json": "1de43141dfbe68902af2bf1d62f52bbdaf72c2f10e6277abc6c0fa759b62b243",
+    "manifest-verification.log.gz": "e4893c7de704693b70a8bc295f3e8518135ff4fcf47ddface73c5417720dee60",
+    "pin-delta.json": "b20f101ab07026791b00a8694c1f832282a67046234e1d8b230773a28a704f82",
+    "pin-delta.log.gz": "1de7f64e26d0d091cfb46a2da47eac7a42a76ec20f58cda8bd25825bed10c93c",
+    "preflight-terminal-v4.json": "a377a88182d2c77b750ad6fa9a39e173439b7d2642427cfe59feac2ed4363e94",
+    "suite.log.gz": "3e1d1807f96bf1ee296a93987ab406e17fdb1c3ea6ae7f041ce636c564c53a1f",
+    "tsc.log.gz": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "previousCommit": "2610b4d3f321a60c0497c6d74bf28ee4b57d6ab2",
+  "currentCommit": "9cef6310816e9e630851c7df2c188039df2f6077",
+  "files": 3312,
+  "changed": ["apps/brunch-agent/test/architecture/boundaries.integration.ts"],
+  "implementationAndTestsFrozen": true,
+  "modelBoundsUnchanged": true
+}
