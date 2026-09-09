@@ -1071,7 +1071,7 @@ describe("ViewOptimizationDrawer holds every box still across states", () => {
     expect(signatures[0]!.cards.map(([title]) => title)).toEqual([
       "Objective at the step in flight",
       "Objective by step",
-      "Parameter importance",
+      "Sensitivity analysis",
     ]);
     for (const signature of signatures.slice(1)) {
       // A settled study titles the objective card for the point it shows;

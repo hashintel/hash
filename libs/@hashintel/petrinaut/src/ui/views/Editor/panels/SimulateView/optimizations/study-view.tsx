@@ -4,7 +4,7 @@
  * badge, the steps bar; the Parameters band across the body; then, arranged
  * by the frame's width, the surface, the chart cards (the objective at the
  * point, the objective by step, Constraints when the study declares any,
- * Parameter importance) and the steps table; and the actions in the footer.
+ * Sensitivity analysis) and the steps table; and the actions in the footer.
  */
 import { use, type ReactNode } from "react";
 
