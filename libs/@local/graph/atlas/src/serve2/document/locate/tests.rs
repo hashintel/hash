@@ -166,6 +166,38 @@ impl FakeResolver {
         response.links[EdgeSlot::from_usize(slot)] = None;
     }
 
+    fn shared_urls() -> Details {
+        let alpha = Self::url("alpha");
+        let mut response = Self::resolved(3, 2);
+        response.nodes[NodeSlot::MIN] = Some(LocateNode {
+            type_urls: vec![alpha.clone(), Self::url("gamma")],
+        });
+        response.nodes[NodeSlot::from_usize(1)] = Some(LocateNode {
+            type_urls: vec![alpha.clone()],
+        });
+        response.source_properties = Some(LocateProperties {
+            values: Self::scalars(json!({
+                "https://example.com/property/name/": "Ada",
+                "https://example.com/property/age/": 36,
+            })),
+            complete: true,
+        });
+        response.links[EdgeSlot::MIN] = Some(LocateLink {
+            type_urls: vec![alpha, Self::url("beta")],
+            type_urls_complete: true,
+            properties: LocateProperties {
+                values: Self::scalars(json!({
+                    "https://example.com/property/name/": true,
+                    "https://example.com/property/weight/": 0.5,
+                    "https://example.com/property/note/": null,
+                })),
+                complete: true,
+            },
+        });
+        Self::unresolve_link(&mut response, 1);
+        response
+    }
+
     #[track_caller]
     fn assert_request(&self, expected: &RecordedRequest) {
         let requests = self.requests.borrow();
@@ -186,6 +218,10 @@ impl FakeResolver {
 }
 
 impl LocateResolver for FakeResolver {
+    #[expect(
+        clippy::panic_in_result_fn,
+        reason = "the fake asserts the constructor's request before answering"
+    )]
     fn resolve(
         &self,
         request: LocateRequest<'_>,
@@ -1104,16 +1140,16 @@ fn labels_links_partial() {
         "",
         "should leave the unresolved link's label empty"
     );
-    let resolved = edges[1];
+    let delivered_edge = edges[1];
     assert_eq!(
         labels[EdgeSlot::from_usize(1)].as_ref(),
-        format!("edge-{}", resolved.as_u64()),
+        format!("edge-{}", delivered_edge.as_u64()),
         "should carry the resolved link's own text"
     );
     assert!(
         core::ptr::eq(
             labels[EdgeSlot::from_usize(1)],
-            fixture.link_label_of(resolved)
+            fixture.link_label_of(delivered_edge)
         ),
         "should borrow the resolved link's label from the captured scene"
     );
@@ -1129,34 +1165,7 @@ fn trailer_url_interning() {
     let beta = FakeResolver::url("beta");
     let gamma = FakeResolver::url("gamma");
 
-    let mut response = FakeResolver::resolved(3, 2);
-    response.nodes[NodeSlot::from_usize(0)] = Some(LocateNode {
-        type_urls: vec![alpha.clone(), gamma.clone()],
-    });
-    response.nodes[NodeSlot::from_usize(1)] = Some(LocateNode {
-        type_urls: vec![alpha.clone()],
-    });
-    response.source_properties = Some(LocateProperties {
-        values: FakeResolver::scalars(json!({
-            "https://example.com/property/name/": "Ada",
-            "https://example.com/property/age/": 36,
-        })),
-        complete: true,
-    });
-    response.links[EdgeSlot::from_usize(0)] = Some(LocateLink {
-        type_urls: vec![alpha.clone(), beta.clone()],
-        type_urls_complete: true,
-        properties: LocateProperties {
-            values: FakeResolver::scalars(json!({
-                "https://example.com/property/name/": true,
-                "https://example.com/property/weight/": 0.5,
-                "https://example.com/property/note/": null,
-            })),
-            complete: true,
-        },
-    });
-    FakeResolver::unresolve_link(&mut response, 1);
-    let resolver = FakeResolver::answering(response);
+    let resolver = FakeResolver::answering(FakeResolver::shared_urls());
     let document = LocateDocument::new(
         fixture.scene(),
         fixture.entity_source(source),
@@ -1187,7 +1196,7 @@ fn trailer_url_interning() {
                 .iter()
                 .copied()
         ),
-        [alpha.clone(), beta.clone()],
+        [alpha, beta],
         "should preserve the resolver's link type order"
     );
     assert!(
@@ -1242,6 +1251,14 @@ fn trailer_url_interning() {
     );
 }
 
+struct CompletenessCase<'selection> {
+    name: &'static str,
+    source_types: Vec<VersionedUrl>,
+    selection: &'selection [ArchivedOntologyTypeUuid],
+    expected_types_complete: bool,
+    properties_complete: bool,
+}
+
 /// Complete type coverage requires a resolved source with nonempty, fully selected direct types.
 #[test]
 fn trailer_completeness() {
@@ -1255,31 +1272,44 @@ fn trailer_completeness() {
     let both = [alpha_id, beta_id];
     let alpha_only = [alpha_id];
 
-    let cases: [(
-        &str,
-        Vec<VersionedUrl>,
-        &[ArchivedOntologyTypeUuid],
-        bool,
-        bool,
-    ); 4] = [
-        (
-            "partial",
-            vec![alpha.clone(), beta.clone()],
-            &alpha_only,
-            false,
-            false,
-        ),
-        ("empty", Vec::new(), &alpha_only, false, true),
-        (
-            "complete",
-            vec![alpha.clone(), beta.clone()],
-            &both,
-            true,
-            true,
-        ),
-        ("unresolved", Vec::new(), &alpha_only, false, false),
+    let cases = [
+        CompletenessCase {
+            name: "partial",
+            source_types: vec![alpha.clone(), beta.clone()],
+            selection: &alpha_only,
+            expected_types_complete: false,
+            properties_complete: false,
+        },
+        CompletenessCase {
+            name: "empty",
+            source_types: Vec::new(),
+            selection: &alpha_only,
+            expected_types_complete: false,
+            properties_complete: true,
+        },
+        CompletenessCase {
+            name: "complete",
+            source_types: vec![alpha, beta],
+            selection: &both,
+            expected_types_complete: true,
+            properties_complete: true,
+        },
+        CompletenessCase {
+            name: "unresolved",
+            source_types: Vec::new(),
+            selection: &alpha_only,
+            expected_types_complete: false,
+            properties_complete: false,
+        },
     ];
-    for (case, source_types, selection, expected_types_complete, properties_complete) in cases {
+    for CompletenessCase {
+        name: case,
+        source_types,
+        selection,
+        expected_types_complete,
+        properties_complete,
+    } in cases
+    {
         let mut response = FakeResolver::resolved(3, 2);
         response.nodes[NodeSlot::MIN] = Some(LocateNode {
             type_urls: source_types,
