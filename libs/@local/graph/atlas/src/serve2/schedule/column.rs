@@ -13,7 +13,7 @@ use hashql_core::{
 use crate::{
     allocator::{HeapMemoryUsage, MemoryUsage, MemoryUsageAllocator},
     identity::NodeRowId,
-    math::{Log2, Vec2},
+    math::{Bounds2, Log2, Vec2},
     morton::{Depth, MortonCell, MortonKey},
     salt::lod::{cascade, stage::WIRE_FRAME},
     serve2::{
@@ -41,12 +41,12 @@ impl ScheduleNode {
         }
     }
 
-    pub(super) fn visible(
+    fn visible(
         layout: &Layout,
         epoch: &Epoch,
         mask: &VisibilityMask,
         node: NodeRowId,
-    ) -> Option<Self> {
+    ) -> Option<(Self, Vec2)> {
         mask.visible_node(node)?;
 
         let position = layout.position(epoch, node)?;
@@ -54,7 +54,26 @@ impl ScheduleNode {
             .priority(epoch, node)
             .expect("a placed node should have an allocated priority");
 
-        Some(Self::new(node, position, priority))
+        Some((Self::new(node, position, priority), position))
+    }
+
+    pub(super) fn collect(
+        layout: &Layout,
+        epoch: &Epoch,
+        mask: &VisibilityMask,
+        nodes: impl IntoIterator<Item = NodeRowId>,
+    ) -> (Vec<Self>, Option<Bounds2>) {
+        let mut rows = Vec::new();
+        let bounds = Bounds2::from_points(nodes.into_iter().filter_map(|node| {
+            let (row, position) = Self::visible(layout, epoch, mask, node)?;
+            rows.push(row);
+            Some(position)
+        }));
+        assert!(
+            rows.is_empty() || bounds.is_some(),
+            "visible placements must have finite coordinates"
+        );
+        (rows, bounds)
     }
 }
 
@@ -140,6 +159,10 @@ impl BucketColumn {
             by_node: by_node.into_boxed_slice(),
             memory_usage,
         }
+    }
+
+    pub(super) fn keys(&self) -> impl Iterator<Item = MortonKey> {
+        self.slots.iter().map(|slot| slot.row.key)
     }
 
     pub(super) fn bucket_of(&self, node: NodeRowId) -> Option<Depth> {

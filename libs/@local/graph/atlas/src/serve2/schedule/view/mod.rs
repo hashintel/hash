@@ -14,10 +14,13 @@ use super::{
     scope::ScopeSchedule,
 };
 use crate::{
+    allocator::HeapMemoryUsage,
     identity::NodeRowId,
+    math::Bounds2,
     morton::Zoom,
     serve2::{
         delta::epoch::Epoch,
+        density::ViewOccupancy,
         visibility::{VisibilityKind, VisibilityMask},
         world::World,
     },
@@ -47,6 +50,7 @@ enum ScheduleData {
 pub(crate) struct ViewSchedule {
     world: Arc<World>,
     data: ScheduleData,
+    bounds: Option<Bounds2>,
 }
 
 impl ViewSchedule {
@@ -54,7 +58,7 @@ impl ViewSchedule {
     ///
     /// # Panics
     ///
-    /// Panics if `world` does not belong to `epoch`.
+    /// Panics if `world` does not belong to `epoch` or a gathered placement is non-finite.
     pub(crate) fn of(world: Arc<World>, epoch: &Epoch, mask: &VisibilityMask) -> Self {
         let count = world.layout.node_count(epoch);
 
@@ -64,30 +68,76 @@ impl ViewSchedule {
             })
         };
 
-        let extension = || {
-            (world.layout.index.base_node_bound()..NodeRowId::from_usize(count))
-                .filter_map(|node| ScheduleNode::visible(&world.layout, epoch, mask, node))
-                .collect()
+        let (data, bounds) = match mask.kind() {
+            VisibilityKind::Scope if !saturated() => {
+                let (schedule, bounds) = ScopeSchedule::of(&world.layout, epoch, mask);
+                (ScheduleData::Scoped(schedule), bounds)
+            }
+            kind @ (VisibilityKind::Corpus | VisibilityKind::Scope) => {
+                let (rows, bounds) = ScheduleNode::collect(
+                    &world.layout,
+                    epoch,
+                    mask,
+                    world.layout.index.base_node_bound()..NodeRowId::from_usize(count),
+                );
+                let bounds = world
+                    .layout
+                    .base_bounds()
+                    .into_iter()
+                    .chain(bounds)
+                    .reduce(Bounds2::union);
+                let data = match kind {
+                    VisibilityKind::Corpus => ScheduleData::Corpus {
+                        extension: BucketColumn::new(rows, |key| {
+                            world.layout.base_shared_depth(key)
+                        }),
+                    },
+                    VisibilityKind::Scope => {
+                        let base = Arc::clone(world.base_scope_schedule());
+                        let extension =
+                            BucketColumn::new(rows, |key| base.column().shared_depth(key));
+                        ScheduleData::Saturated { base, extension }
+                    }
+                };
+                (data, bounds)
+            }
         };
 
-        let data = match mask.kind() {
-            VisibilityKind::Corpus => ScheduleData::Corpus {
-                extension: BucketColumn::new(extension(), |key| {
-                    world.layout.base_shared_depth(key)
-                }),
-            },
-            VisibilityKind::Scope if saturated() => {
-                let base = Arc::clone(world.base_scope_schedule());
-                let extension =
-                    BucketColumn::new(extension(), |key| base.column().shared_depth(key));
-                ScheduleData::Saturated { base, extension }
-            }
-            VisibilityKind::Scope => {
-                ScheduleData::Scoped(ScopeSchedule::of(&world.layout, epoch, mask))
-            }
-        };
+        Self {
+            world,
+            data,
+            bounds,
+        }
+    }
 
-        Self { world, data }
+    /// Returns the scheduled rows' tight wire-frame extent, or `None` for an empty schedule.
+    ///
+    /// Corpus bounds retain the recorded base extent through withdrawals.
+    pub(crate) const fn bounds(&self) -> Option<Bounds2> {
+        self.bounds
+    }
+
+    /// Builds the occupied-cell profile of the captured scope.
+    ///
+    /// Corpus schedules return `None`. Every scoped schedule returns `Some`, including an empty
+    /// scope's zero profile. All captured keys contribute, independently of delivery cut.
+    ///
+    /// # Complexity
+    ///
+    /// O(n log n) time and O(n) temporary storage for n scheduled rows.
+    #[must_use]
+    #[tracing::instrument(skip_all, fields(generation = %self.world.generation().id()))]
+    pub(crate) fn occupancy(&self) -> Option<ViewOccupancy> {
+        let (base, extension) = match &self.data {
+            ScheduleData::Corpus { .. } => return None,
+            ScheduleData::Saturated { base, extension } => (base.column(), Some(extension)),
+            ScheduleData::Scoped(schedule) => (schedule.column(), None),
+        };
+        let mut keys: Vec<_> = base
+            .keys()
+            .chain(extension.into_iter().flat_map(BucketColumn::keys))
+            .collect();
+        Some(ViewOccupancy::of(&mut keys))
     }
 
     /// Binds the scoped density offset or reads the corpus's recorded cuts.
@@ -106,6 +156,17 @@ impl ViewSchedule {
                 .cut(self.world.schedule(), offset)
                 .map(|cut| cut.with_extension(extension)),
             ScheduleData::Scoped(schedule) => schedule.cut(self.world.schedule(), offset),
+        }
+    }
+}
+
+impl HeapMemoryUsage for ViewSchedule {
+    fn heap_memory_usage(&self) -> u64 {
+        match &self.data {
+            ScheduleData::Corpus { extension } => extension.heap_memory_usage(),
+            // base is not accounted for because it's shared
+            ScheduleData::Saturated { base: _, extension } => extension.heap_memory_usage(),
+            ScheduleData::Scoped(scoped) => scoped.heap_memory_usage(),
         }
     }
 }

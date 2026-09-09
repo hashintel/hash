@@ -231,6 +231,24 @@ impl Bounds2 {
         }
     }
 
+    /// Folds one more point into an extent accumulated so far.
+    ///
+    /// The incremental form of [`from_points`](Self::from_points) for callers that visit their
+    /// points one at a time. `None` seeds the extent with the point. A non-finite point yields
+    /// [`None`], as [`from_points`](Self::from_points) does, and a later finite point re-seeds.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn extend(extent: Option<Self>, point: Vec2) -> Option<Self> {
+        match extent {
+            Some(bounds) if point.is_finite() => Some(Self {
+                min: bounds.min.min(point),
+                max: bounds.max.max(point),
+            }),
+            Some(_) => None,
+            None => Self::new(point, point),
+        }
+    }
+
     /// Widens any axis narrower than `minimum` to exactly `minimum`.
     ///
     /// Symmetrically around its centre.

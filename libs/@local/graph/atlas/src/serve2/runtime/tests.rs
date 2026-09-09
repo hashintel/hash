@@ -1,5 +1,8 @@
 use alloc::sync::{Arc, Weak};
-use core::{future::Future, time::Duration};
+use core::{
+    future::{self, Future},
+    time::Duration,
+};
 use std::io;
 
 use error_stack::{Report, ReportSink};
@@ -12,6 +15,7 @@ use hashql_core::id::Id as _;
 use rand::{SeedableRng as _, TryCryptoRng, TryRng, rngs::StdRng};
 use tokio::{sync::oneshot, task::JoinHandle};
 use tokio_postgres::NoTls;
+use tokio_util::sync::CancellationToken;
 
 use super::{Feed, FeedOptions, Runtime, RuntimeError};
 use crate::{
@@ -76,12 +80,32 @@ async fn unconnected_pool() -> (Arc<PostgresStorePool>, Weak<PostgresStorePool>)
     (pool, weak)
 }
 
-async fn complete<T>(future: impl Future<Output = T>) -> T {
-    tokio::time::timeout(Duration::from_secs(5), future)
-        .await
-        .expect("the controlled worker should finish")
+#[track_caller]
+fn run_controlled(test: impl Future<Output = ()>) {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_time()
+        .start_paused(true)
+        .build()
+        .expect("should build the runtime");
+
+    let result =
+        runtime.block_on(async { tokio::time::timeout(Duration::from_secs(1), test).await });
+    result.expect("the controlled test should finish without a stalled task");
 }
 
+#[test]
+#[should_panic(expected = "the controlled test should finish without a stalled task")]
+fn controlled_stall() {
+    run_controlled(async {
+        tokio::time::advance(Duration::ZERO).await;
+        future::pending::<()>().await;
+    });
+}
+
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "sealing consumes the staging guard"
+)]
 fn axes_fixture(name: &str) -> (TamperFixture, Generation) {
     let fixture = TamperFixture::publish(name);
     let generation = fixture.generation();
@@ -134,7 +158,7 @@ impl TryRng for UnavailableEntropy {
     }
 
     fn try_fill_bytes(&mut self, dst: &mut [u8]) -> Result<(), Self::Error> {
-        let _ = dst;
+        let _: &mut [u8] = dst;
         Err(io::Error::other("entropy unavailable"))
     }
 }
@@ -194,11 +218,9 @@ async fn open_temporal() {
     let world = Arc::clone(runtime.world());
     let reader = runtime.reader().clone();
     let captured = reader.load();
-    tokio::task::yield_now().await;
-    assert!(runtime.join().now_or_never().is_none());
-    complete(runtime.shutdown())
-        .await
-        .expect("the feed should join");
+    assert!(runtime.feed.is_some());
+
+    runtime.shutdown().await.expect("the feed should join");
     drop(runtime);
 
     assert!(weak_pool.upgrade().is_none());
@@ -242,155 +264,182 @@ async fn start_entropy_failure() {
     assert!(weak_pool.upgrade().is_none());
 }
 
-#[tokio::test]
-async fn shutdown_cancelled() {
-    let (shutdown, requested) = oneshot::channel::<()>();
-    let (observed, observation) = oneshot::channel::<()>();
-    let (release, released) = oneshot::channel::<()>();
-    let task = tokio::spawn(async move {
-        let _ = requested.await;
-        observed
+#[test]
+fn shutdown_cancelled() {
+    run_controlled(async {
+        let (observed, observation) = oneshot::channel::<()>();
+        let (release, released) = oneshot::channel::<()>();
+
+        let cancel = CancellationToken::new();
+        let cancelled = cancel.clone().cancelled_owned();
+
+        let task = tokio::spawn(async move {
+            cancelled.await;
+            observed
+                .send(())
+                .expect("the observation should remain open");
+            released.await.expect("the worker should be released");
+            Ok(())
+        });
+
+        let (_fixture, mut runtime) = controlled(
+            "runtime-shutdown-cancelled",
+            Feed {
+                shutdown: cancel,
+                task,
+            },
+        );
+
+        assert!(runtime.shutdown().now_or_never().is_none());
+        observation
+            .await
+            .expect("the worker should observe shutdown");
+        assert!(runtime.feed.is_some());
+        release
             .send(())
-            .expect("the observation should remain open");
-        let _ = released.await;
-        Ok(())
+            .expect("the worker should still await release");
+        runtime
+            .join()
+            .await
+            .expect("the join handle should remain owned")
+            .expect("the worker should join");
+        assert!(runtime.join().await.is_none());
     });
-    let (_fixture, mut runtime) = controlled(
-        "runtime-shutdown-cancelled",
-        Feed {
-            shutdown: Some(shutdown),
-            task,
-        },
-    );
-
-    assert!(runtime.shutdown().now_or_never().is_none());
-    complete(observation)
-        .await
-        .expect("the worker should observe shutdown");
-    assert!(runtime.feed.is_some());
-    release
-        .send(())
-        .expect("the worker should still await release");
-    complete(runtime.join())
-        .await
-        .expect("the join handle should remain owned")
-        .expect("the worker should join");
-    assert!(runtime.join().await.is_none());
 }
 
-#[tokio::test]
-async fn shutdown_repeated() {
-    let (shutdown, requested) = oneshot::channel::<()>();
-    let task = tokio::spawn(async move {
-        let _ = requested.await;
-        Ok(())
+#[test]
+fn shutdown_repeated() {
+    run_controlled(async {
+        let cancel = CancellationToken::new();
+        let cancelled = cancel.clone().cancelled_owned();
+
+        let task = tokio::spawn(async move {
+            cancelled.await;
+            Ok(())
+        });
+
+        let (_fixture, mut runtime) = controlled(
+            "runtime-shutdown-repeated",
+            Feed {
+                shutdown: cancel,
+                task,
+            },
+        );
+
+        runtime.shutdown().await.expect("the worker should join");
+        runtime
+            .shutdown()
+            .await
+            .expect("repeated shutdown should succeed");
+        assert!(runtime.join().await.is_none());
     });
-    let (_fixture, mut runtime) = controlled(
-        "runtime-shutdown-repeated",
-        Feed {
-            shutdown: Some(shutdown),
-            task,
-        },
-    );
-
-    complete(runtime.shutdown())
-        .await
-        .expect("the worker should join");
-    runtime
-        .shutdown()
-        .await
-        .expect("repeated shutdown should succeed");
-    assert!(runtime.join().await.is_none());
 }
 
-#[tokio::test]
-async fn join_feed_error() {
-    let task = tokio::spawn(async {
-        let mut sink = ReportSink::new();
-        sink.attempt(Err::<(), _>(Report::new(DeltaTaskError::Feed)));
-        sink.finish()
+#[test]
+fn join_feed_error() {
+    run_controlled(async {
+        let cancel = CancellationToken::new();
+
+        let task = tokio::spawn(async {
+            let mut sink = ReportSink::new();
+            sink.attempt(Err::<(), _>(Report::new(DeltaTaskError::Feed)));
+            sink.finish()
+        });
+
+        let (_fixture, mut runtime) = controlled(
+            "runtime-join-feed-error",
+            Feed {
+                shutdown: cancel,
+                task,
+            },
+        );
+
+        let error = runtime
+            .join()
+            .await
+            .expect("the runner should have a result")
+            .expect_err("the runner should report its failure");
+        assert!(matches!(error.current_context(), RuntimeError::Feed));
+        assert!(runtime.join().await.is_none());
     });
-    let (_fixture, mut runtime) = controlled(
-        "runtime-join-feed-error",
-        Feed {
-            shutdown: None,
-            task,
-        },
-    );
-
-    let error = complete(runtime.join())
-        .await
-        .expect("the runner should have a result")
-        .expect_err("the runner should report its failure");
-    assert!(matches!(error.current_context(), RuntimeError::Feed));
-    assert!(runtime.join().await.is_none());
 }
 
-#[tokio::test]
-async fn join_panic() {
-    let task: JoinHandle<Result<(), Report<[DeltaTaskError]>>> =
-        tokio::spawn(async { panic!("controlled worker panic") });
-    let (_fixture, mut runtime) = controlled(
-        "runtime-join-panic",
-        Feed {
-            shutdown: None,
-            task,
-        },
-    );
+#[test]
+fn join_panic() {
+    run_controlled(async {
+        let cancel = CancellationToken::new();
+        let task: JoinHandle<Result<(), Report<[DeltaTaskError]>>> =
+            tokio::spawn(async { panic!("controlled worker panic") });
 
-    let error = complete(runtime.join())
-        .await
-        .expect("the runner should have a result")
-        .expect_err("the runner should report its panic");
-    assert!(matches!(error.current_context(), RuntimeError::Join));
-    assert!(runtime.join().await.is_none());
+        let (_fixture, mut runtime) = controlled(
+            "runtime-join-panic",
+            Feed {
+                shutdown: cancel,
+                task,
+            },
+        );
+
+        let error = runtime
+            .join()
+            .await
+            .expect("the runner should have a result")
+            .expect_err("the runner should report its panic");
+        assert!(matches!(error.current_context(), RuntimeError::Join));
+        assert!(runtime.join().await.is_none());
+    });
 }
 
-#[tokio::test]
-async fn drop_graceful() {
-    let resource = Arc::new(());
-    let weak = Arc::downgrade(&resource);
-    let (started, startup) = oneshot::channel::<()>();
-    let (shutdown, requested) = oneshot::channel::<()>();
-    let (observed, observation) = oneshot::channel::<()>();
-    let (release, released) = oneshot::channel::<()>();
-    let (done, finished) = oneshot::channel::<()>();
-    let task = tokio::spawn(async move {
-        started
+#[test]
+fn drop_graceful() {
+    run_controlled(async {
+        let resource = Arc::new(());
+        let weak = Arc::downgrade(&resource);
+        let (started, startup) = oneshot::channel::<()>();
+        let (observed, observation) = oneshot::channel::<()>();
+        let (release, released) = oneshot::channel::<()>();
+        let (done, finished) = oneshot::channel::<()>();
+
+        let cancel = CancellationToken::new();
+        let cancelled = cancel.clone().cancelled_owned();
+
+        let task = tokio::spawn(async move {
+            started
+                .send(())
+                .expect("the startup observation should remain open");
+            cancelled.await;
+            observed
+                .send(())
+                .expect("the observation should remain open");
+            released.await.expect("the worker should be released");
+            drop(resource);
+            done.send(()).expect("the completion should remain open");
+            Ok(())
+        });
+
+        let (_fixture, runtime) = controlled(
+            "runtime-drop-graceful",
+            Feed {
+                shutdown: cancel,
+                task,
+            },
+        );
+        let reader = runtime.reader().clone();
+        startup
+            .await
+            .expect("the worker should start before its owner drops");
+        drop(runtime);
+
+        observation
+            .await
+            .expect("the worker should observe shutdown");
+        assert!(weak.upgrade().is_some());
+        release
             .send(())
-            .expect("the startup observation should remain open");
-        let _ = requested.await;
-        observed
-            .send(())
-            .expect("the observation should remain open");
-        let _ = released.await;
-        drop(resource);
-        done.send(()).expect("the completion should remain open");
-        Ok(())
+            .expect("the worker should still await release");
+        finished
+            .await
+            .expect("the worker should finish without an abort");
+        assert!(weak.upgrade().is_none());
+        assert!(reader.load().contains_node(NodeRowId::MIN));
     });
-    let (_fixture, runtime) = controlled(
-        "runtime-drop-graceful",
-        Feed {
-            shutdown: Some(shutdown),
-            task,
-        },
-    );
-    let reader = runtime.reader().clone();
-    complete(startup)
-        .await
-        .expect("the worker should start before its owner drops");
-    drop(runtime);
-
-    complete(observation)
-        .await
-        .expect("the worker should observe shutdown");
-    assert!(weak.upgrade().is_some());
-    release
-        .send(())
-        .expect("the worker should still await release");
-    complete(finished)
-        .await
-        .expect("the worker should finish without an abort");
-    assert!(weak.upgrade().is_none());
-    assert!(reader.load().contains_node(NodeRowId::MIN));
 }

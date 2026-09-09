@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::ptr;
+use core::{ops::Deref, ptr};
 
 use arc_swap::Guard;
 
@@ -16,18 +16,40 @@ use crate::{
     identity::{EdgeRowId, NodeRowId},
     postgres::id::ArchivedEntityId,
     serve2::world::{
-        Geometry, NodeIndex,
-        layout::{Layout, LayoutProvider as _},
-        node_importance::ImportanceProvider,
-        topology::Topology,
+        NodeIndex, layout::Layout, node_importance::ImportanceProvider, topology::Topology,
     },
 };
+
+enum InternalEpoch {
+    Full(Arc<Delta>),
+    Shared(Guard<Arc<Delta>>),
+}
+
+impl InternalEpoch {
+    fn load_full(&self) -> Self {
+        match self {
+            Self::Full(arc) => Self::Full(Arc::clone(arc)),
+            Self::Shared(guard) => Self::Full(Arc::clone(guard)),
+        }
+    }
+}
+
+impl Deref for InternalEpoch {
+    type Target = Delta;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Full(arc) => &arc,
+            Self::Shared(guard) => &guard,
+        }
+    }
+}
 
 /// A guard retaining one immutable delta publication for a request.
 ///
 /// All component queries through this guard use the same captured revision.
 pub(crate) struct Epoch {
-    delta: Guard<Arc<Delta>>,
+    delta: InternalEpoch,
 }
 
 impl Epoch {
@@ -44,6 +66,12 @@ impl Epoch {
 
     pub(crate) fn revision(&self) -> DeltaRevision {
         self.delta.revision
+    }
+
+    pub(crate) fn fork(&self) -> Self {
+        Self {
+            delta: self.delta.load_full(),
+        }
     }
 
     /// Returns whether a node has a visible placement at the captured revision.
@@ -124,6 +152,8 @@ impl Epoch {
 
 impl From<Guard<Arc<Delta>>> for Epoch {
     fn from(delta: Guard<Arc<Delta>>) -> Self {
-        Self { delta }
+        Self {
+            delta: InternalEpoch::Shared(delta),
+        }
     }
 }

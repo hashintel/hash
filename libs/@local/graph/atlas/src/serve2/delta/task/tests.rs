@@ -19,7 +19,7 @@ use crate::{
     math::nz,
     serve2::{
         delta::{
-            Delta,
+            Delta, DeltaRevision,
             epoch::Epoch,
             feed::{DeltaFeedTask, DeltaFeedTaskOptions},
             placement::DeltaPlacementTaskOptions,
@@ -102,10 +102,11 @@ async fn reader_initial() {
     let reader = fixture.task.reader();
     let world = Arc::clone(&fixture.task.previous.world);
     let epoch = reader.load();
-    assert_eq!(epoch.revision(), fixture.task.previous.revision);
+    assert_eq!(epoch.revision(), DeltaRevision::MIN);
     assert!(world.layout.position(&epoch, NodeRowId::MIN).is_some());
     drop(fixture.task);
     assert!(fixture.pool.upgrade().is_none());
+    assert_eq!(reader.load().reference(), epoch.reference());
     assert!(
         world
             .layout

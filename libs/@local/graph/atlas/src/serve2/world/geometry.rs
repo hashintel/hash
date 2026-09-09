@@ -97,6 +97,11 @@ impl Geometry {
         &self.spatial_index
     }
 
+    /// Returns the tight wire-frame extent of the fitted points, [`None`] when there is none.
+    pub(super) const fn bounds(&self) -> Option<Bounds2> {
+        self.bounds
+    }
+
     pub(super) fn position(&self, position: BasePosition) -> Option<Vec2> {
         self.positions.view().get(position).copied()
     }

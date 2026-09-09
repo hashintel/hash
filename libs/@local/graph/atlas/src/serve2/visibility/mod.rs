@@ -4,11 +4,14 @@ use hash_graph_store::filter::protection::{
 use hashql_core::id::Id;
 use type_system::principal::actor::ActorId;
 
+use super::delta::{DeltaReference, epoch::Epoch};
 use crate::{
     allocator::HeapMemoryUsage,
     bitset::CompressedBitSet,
     identity::{EdgeRowId, NodeRowId},
 };
+
+pub(crate) mod cache;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Rows<T> {
@@ -76,28 +79,33 @@ pub(crate) enum VisibilityKind {
     Scope,
 }
 
+#[derive(Debug)]
 pub(crate) struct VisibilityMask {
     actor: VisibilityActor,
+    delta: DeltaReference,
     nodes: Rows<NodeRowId>,
     edges: Rows<EdgeRowId>,
 }
 
 impl VisibilityMask {
-    pub(crate) const fn full(actor: VisibilityActor) -> Self {
+    pub(crate) fn full(epoch: &Epoch, actor: VisibilityActor) -> Self {
         Self {
             actor,
+            delta: epoch.reference(),
             nodes: Rows::Full,
             edges: Rows::Full,
         }
     }
 
-    pub(crate) const fn partial(
+    pub(crate) fn partial(
+        epoch: &Epoch,
         actor: VisibilityActor,
         nodes: CompressedBitSet<NodeRowId>,
         edges: CompressedBitSet<EdgeRowId>,
     ) -> Self {
         Self {
             actor,
+            delta: epoch.reference(),
             nodes: Rows::Mask(nodes),
             edges: Rows::Mask(edges),
         }

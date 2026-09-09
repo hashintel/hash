@@ -15,6 +15,7 @@ use super::{
 use crate::{
     allocator::HeapMemoryUsage,
     identity::NodeRowId,
+    math::Bounds2,
     morton::Zoom,
     serve2::{
         delta::epoch::Epoch,
@@ -37,19 +38,25 @@ pub(crate) struct ScopeSchedule {
 }
 
 impl ScopeSchedule {
-    /// Builds the cascade over the mask's visible placements at the captured revision.
+    /// Builds the captured visible cascade and its tight wire-frame extent.
     ///
     /// # Panics
     ///
-    /// Panics if `layout` does not belong to the epoch's world.
-    pub(crate) fn of(layout: &Layout, epoch: &Epoch, mask: &VisibilityMask) -> Self {
-        let rows = (0..layout.node_count(epoch))
-            .filter_map(|index| {
-                ScheduleNode::visible(layout, epoch, mask, NodeRowId::from_usize(index))
-            })
-            .collect();
+    /// Panics if `layout` does not belong to the epoch's world or a visible placement is
+    /// non-finite.
+    pub(crate) fn of(
+        layout: &Layout,
+        epoch: &Epoch,
+        mask: &VisibilityMask,
+    ) -> (Self, Option<Bounds2>) {
+        let (rows, bounds) = ScheduleNode::collect(
+            layout,
+            epoch,
+            mask,
+            (0..layout.node_count(epoch)).map(NodeRowId::from_usize),
+        );
 
-        Self::over(rows)
+        (Self::over(rows), bounds)
     }
 
     /// Builds the complete base cascade for sharing across saturated scopes.
@@ -63,9 +70,11 @@ impl ScopeSchedule {
                 let priority = layout
                     .provide_priority(node)
                     .expect("should resolve the base node's priority");
+
                 ScheduleNode::new(node, position, priority)
             })
             .collect();
+
         Self::over(rows)
     }
 

@@ -125,7 +125,7 @@ where
     );
 
     if admits_every_row(filter, &policy_filter) {
-        return Ok(VisibilityMask::full(actor));
+        return Ok(VisibilityMask::full(epoch, actor));
     }
 
     let converted;
@@ -214,7 +214,7 @@ where
         "resolved the actor's visible rows"
     );
 
-    Ok(VisibilityMask::partial(actor, nodes, edges))
+    Ok(VisibilityMask::partial(epoch, actor, nodes, edges))
 }
 
 #[cfg(test)]

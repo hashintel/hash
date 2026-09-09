@@ -18,7 +18,7 @@ use super::{
 use crate::{
     file::quad,
     identity::{BasePosition, ImportanceRank, NodeRowId},
-    math::Vec2,
+    math::{Bounds2, Vec2},
     morton::{Depth, MortonCell, MortonKey},
     serve2::delta::{
         epoch::Epoch,
@@ -242,7 +242,10 @@ impl Layout {
             .as_usize()
     }
 
-    /// Returns the deepest occupied recorded bucket.
+    pub(crate) const fn base_bounds(&self) -> Option<Bounds2> {
+        self.geometry.bounds()
+    }
+
     pub(crate) fn base_deepest_occupied(&self) -> Option<Depth> {
         self.geometry
             .morton_order()

@@ -115,7 +115,8 @@
     unwrap_infallible,
     integer_widen_truncate,
     slice_shift,
-    option_into_flat_iter
+    option_into_flat_iter,
+    unboxed_closures
 )]
 #![cfg_attr(feature = "cli", feature(exitcode_exit_method))]
 #![cfg_attr(test, feature(iter_intersperse))]

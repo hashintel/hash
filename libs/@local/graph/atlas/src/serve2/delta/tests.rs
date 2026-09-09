@@ -16,7 +16,7 @@ use crate::{
     bitset::CompressedBitSet,
     dataset::auxiliary::{Label, OwnedIcon, OwnedLegend},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{Log2, Vec2},
+    math::{Bounds2, Log2, Vec2},
     morton::{Depth, MortonCell, Zoom},
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     salt::{
@@ -479,7 +479,9 @@ fn schedule_captured_visibility() {
     for row in [fitted, higher_row, lower_row] {
         nodes.insert(row);
     }
+    let captured = epoch(&delta);
     let mask = VisibilityMask::partial(
+        &captured,
         VisibilityActor {
             id: ActorId::new(Uuid::nil(), ActorType::Machine),
             instance_admin: false,
@@ -494,8 +496,7 @@ fn schedule_captured_visibility() {
     .expect("should fit the key width");
     let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
     let leaf_zoom = Zoom::new(1).expect("should fit the zoom domain");
-    let captured = epoch(&delta);
-    let before = ScopeSchedule::of(&delta.world.layout, &captured, &mask);
+    let (before, _) = ScopeSchedule::of(&delta.world.layout, &captured, &mask);
     let before_cut = before.cut(buckets, Zoom::MIN).expect("should bind the cut");
     assert_eq!(before_cut.total(Zoom::MIN, root).rows, [fitted]);
     assert_eq!(
@@ -510,7 +511,7 @@ fn schedule_captured_visibility() {
         "should withdraw the better added priority"
     );
     let hidden = epoch(&delta);
-    let after = ScopeSchedule::of(&delta.world.layout, &hidden, &mask);
+    let (after, _) = ScopeSchedule::of(&delta.world.layout, &hidden, &mask);
     let after_cut = after.cut(buckets, Zoom::MIN).expect("should bind the cut");
     assert_eq!(after_cut.total(Zoom::MIN, root).rows, [higher_row]);
     assert_eq!(after_cut.root_delivered(), 1);
@@ -518,7 +519,7 @@ fn schedule_captured_visibility() {
     assert_eq!(after_cut.children(Zoom::MIN, root), 0);
     assert_eq!(after_cut.first_zoom(fitted), None);
     assert_eq!(after_cut.first_zoom(lower_row), None);
-    let rebuilt = ScopeSchedule::of(&delta.world.layout, &captured, &mask);
+    let (rebuilt, _) = ScopeSchedule::of(&delta.world.layout, &captured, &mask);
     assert_eq!(
         rebuilt
             .cut(buckets, Zoom::MIN)
@@ -532,7 +533,7 @@ fn schedule_captured_visibility() {
         delta.update_node(fitted_id, legend("revived"), Vec2::ZERO),
         Some(true)
     );
-    let revived = ScopeSchedule::of(&delta.world.layout, &epoch(&delta), &mask);
+    let (revived, _) = ScopeSchedule::of(&delta.world.layout, &epoch(&delta), &mask);
     assert_eq!(
         revived
             .cut(buckets, Zoom::MIN)
@@ -577,6 +578,7 @@ fn schedule_corpus_withdrawal() {
         nodes.insert(NodeRowId::new(row));
     }
     let mask = VisibilityMask::partial(
+        &withdrawn,
         VisibilityActor {
             id: ActorId::new(Uuid::nil(), ActorType::Machine),
             instance_admin: false,
@@ -584,7 +586,7 @@ fn schedule_corpus_withdrawal() {
         nodes,
         CompressedBitSet::default(),
     );
-    let scope = ScopeSchedule::of(&world.layout, &withdrawn, &mask);
+    let (scope, _) = ScopeSchedule::of(&world.layout, &withdrawn, &mask);
     let cut = scope
         .cut(world.schedule(), Zoom::MIN)
         .expect("should bind the scoped schedule");
@@ -592,12 +594,13 @@ fn schedule_corpus_withdrawal() {
     assert_eq!(cut.total(zoom, root).rows.len() + 1, baseline.rows.len());
 }
 
-fn schedule_mask(nodes: impl IntoIterator<Item = NodeRowId>) -> VisibilityMask {
+fn schedule_mask(epoch: &Epoch, nodes: impl IntoIterator<Item = NodeRowId>) -> VisibilityMask {
     let mut mask = CompressedBitSet::default();
     for node in nodes {
         mask.insert(node);
     }
     VisibilityMask::partial(
+        epoch,
         VisibilityActor {
             id: ActorId::new(Uuid::nil(), ActorType::Machine),
             instance_admin: false,
@@ -607,10 +610,152 @@ fn schedule_mask(nodes: impl IntoIterator<Item = NodeRowId>) -> VisibilityMask {
     )
 }
 
+#[test]
+fn bounds_extension() {
+    let (_fixture, mut delta) = fixture("view-bounds-extension");
+    let world = Arc::clone(&delta.world);
+    let visible = entity(100);
+    let hidden = entity(200);
+    let position = Vec2::new(-2.0, 3.0);
+    assert_eq!(
+        delta.update_node(visible, legend("visible"), position),
+        Some(true)
+    );
+    assert_eq!(
+        delta.update_node(hidden, legend("hidden"), Vec2::new(4.0, -5.0)),
+        Some(true)
+    );
+    let row = delta
+        .node_row(visible)
+        .expect("should allocate the visible row");
+    let captured = epoch(&delta);
+    let admitted = schedule_mask(&captured, (0..NODES).map(NodeRowId::new).chain([row]));
+    let saturated = ViewSchedule::of(Arc::clone(&world), &captured, &admitted);
+    let point = Bounds2::new(position, position).expect("should bound the finite point");
+    let base = world.layout.base_bounds().expect("should have base points");
+    assert_eq!(saturated.bounds(), Some(base.union(point)));
+
+    let narrow = ViewSchedule::of(
+        Arc::clone(&world),
+        &captured,
+        &schedule_mask(&captured, [row]),
+    );
+    assert_eq!(narrow.bounds(), Some(point));
+    let occupancy = narrow
+        .occupancy()
+        .expect("a scope should have an occupancy profile");
+    assert_eq!(occupancy.distinct_keys(), 1);
+    let full = VisibilityMask::full(
+        &captured,
+        VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        },
+    );
+    let corpus = ViewSchedule::of(Arc::clone(&world), &captured, &full);
+    assert_eq!(
+        corpus.bounds(),
+        Bounds2::new(Vec2::new(-2.0, -5.0), Vec2::new(4.0, 3.0))
+    );
+
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(visible));
+    let withdrawn = epoch(&delta);
+    let current = ViewSchedule::of(
+        Arc::clone(&world),
+        &withdrawn,
+        &schedule_mask(&withdrawn, [row]),
+    );
+    assert_eq!(current.bounds(), None);
+    assert!(
+        current
+            .occupancy()
+            .expect("an empty scope should have a profile")
+            .is_empty()
+    );
+    assert_eq!(narrow.occupancy(), Some(occupancy));
+    let current = ViewSchedule::of(Arc::clone(&world), &withdrawn, &admitted);
+    assert_eq!(current.bounds(), Some(base));
+    assert_eq!(narrow.bounds(), Some(point));
+    assert_eq!(saturated.bounds(), Some(base.union(point)));
+
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_node(visible, legend("revived"), Vec2::ZERO),
+        Some(true)
+    );
+    let revived = epoch(&delta);
+    let current = ViewSchedule::of(
+        Arc::clone(&world),
+        &revived,
+        &schedule_mask(&revived, [row]),
+    );
+    assert_eq!(current.bounds(), Some(point));
+}
+
+#[test]
+fn bounds_base_withdrawal() {
+    let (_fixture, mut delta) = fixture("view-bounds-base-withdrawal");
+    let world = Arc::clone(&delta.world);
+    let recorded = world.layout.base_bounds();
+    let initial = epoch(&delta);
+    let mask = schedule_mask(&initial, (0..NODES).map(NodeRowId::new));
+    let captured = ViewSchedule::of(Arc::clone(&world), &initial, &mask);
+
+    delta.revision.increment_by(1);
+    for index in 0..NODES {
+        let identity = world
+            .layout
+            .index
+            .identity
+            .key_of(NodeRowId::new(index))
+            .expect("should resolve the base identity");
+        assert!(delta.withdraw(identity));
+    }
+    let withdrawn = epoch(&delta);
+    let scoped = ViewSchedule::of(Arc::clone(&world), &withdrawn, &mask);
+    assert_eq!(scoped.bounds(), None);
+    assert_eq!(captured.bounds(), recorded);
+    let full = VisibilityMask::full(
+        &withdrawn,
+        VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        },
+    );
+    let corpus = ViewSchedule::of(Arc::clone(&world), &withdrawn, &full);
+    assert_eq!(corpus.bounds(), recorded);
+}
+
+#[test]
+#[should_panic(expected = "visible placements must have finite coordinates")]
+fn bounds_nonfinite_placement() {
+    let (_fixture, mut delta) = fixture("view-bounds-nonfinite");
+    let identity = entity(100);
+    assert_eq!(
+        delta.update_node(identity, legend("nonfinite"), Vec2::new(f32::NAN, 0.0)),
+        Some(true)
+    );
+    let row = delta.node_row(identity).expect("should allocate the row");
+    let captured = epoch(&delta);
+    let base = ViewSchedule::of(
+        Arc::clone(&delta.world),
+        &captured,
+        &schedule_mask(&captured, (0..NODES).map(NodeRowId::new)),
+    );
+    assert_eq!(base.bounds(), delta.world.layout.base_bounds());
+    ViewSchedule::of(
+        Arc::clone(&delta.world),
+        &captured,
+        &schedule_mask(&captured, [row]),
+    );
+}
+
 #[track_caller]
 fn assert_scoped_delivery(world: &Arc<World>, epoch: &Epoch, mask: &VisibilityMask) {
     let view = ViewSchedule::of(Arc::clone(world), epoch, mask);
-    let combined = ScopeSchedule::of(&world.layout, epoch, mask);
+    let (combined, bounds) = ScopeSchedule::of(&world.layout, epoch, mask);
+    assert_eq!(view.bounds(), bounds);
     let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
     for offset in [0, 1, 5] {
         let offset = Zoom::new(offset).expect("should fit the offset");
@@ -664,12 +809,13 @@ fn schedule_extension_visibility() {
     let hidden_row = delta
         .node_row(hidden)
         .expect("should allocate the hidden row");
+    let captured = epoch(&delta);
     let mask = schedule_mask(
+        &captured,
         (0..NODES)
             .map(NodeRowId::new)
             .chain([higher_row, lower_row]),
     );
-    let captured = epoch(&delta);
     assert_scoped_delivery(&world, &captured, &mask);
     let before = ViewSchedule::of(Arc::clone(&world), &captured, &mask);
     let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
@@ -690,6 +836,12 @@ fn schedule_extension_visibility() {
     };
     assert!(at(base) < at(lower_row));
     assert!(at(lower_row) < at(higher_row));
+    let base_only = ViewSchedule::of(
+        Arc::clone(&world),
+        &captured,
+        &schedule_mask(&captured, (0..NODES).map(NodeRowId::new)),
+    );
+    assert_eq!(before.occupancy(), base_only.occupancy());
 
     delta.revision.increment_by(1);
     assert!(delta.withdraw(lower), "should withdraw the extension row");
@@ -750,12 +902,15 @@ fn schedule_base_withdrawal_dispatch() {
     let extension_row = delta
         .node_row(extension)
         .expect("should allocate the extension row");
-    let partial = schedule_mask((0..=NODES).map(NodeRowId::new));
-    let full = VisibilityMask::full(VisibilityActor {
-        id: ActorId::new(Uuid::nil(), ActorType::Machine),
-        instance_admin: false,
-    });
     let captured = epoch(&delta);
+    let partial = schedule_mask(&captured, (0..=NODES).map(NodeRowId::new));
+    let full = VisibilityMask::full(
+        &captured,
+        VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        },
+    );
     let corpus = ViewSchedule::of(Arc::clone(&world), &captured, &full);
     let baseline = corpus.cut(Zoom::MIN).expect("should bind the corpus");
     let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
@@ -905,8 +1060,8 @@ fn walk_scope_withdrawal() {
         .key_of(node)
         .expect("should resolve the fitted identity");
 
-    let mask = schedule_mask((0..NODES).map(NodeRowId::new));
     let captured = epoch(&delta);
+    let mask = schedule_mask(&captured, (0..NODES).map(NodeRowId::new));
     let view = ViewSchedule::of(Arc::clone(&world), &captured, &mask);
     let walk = Walk {
         schedule: view.cut(Zoom::MIN).expect("should bind the view"),

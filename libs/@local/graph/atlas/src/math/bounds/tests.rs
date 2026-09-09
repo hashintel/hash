@@ -51,6 +51,27 @@ fn from_points_rejects_empty_and_non_finite() {
 }
 
 #[test]
+fn extend_matches_from_points() {
+    let folded = POINTS
+        .iter()
+        .fold(None, |extent, &point| Bounds2::extend(extent, point));
+    assert_eq!(folded, Bounds2::from_points(POINTS));
+
+    assert_eq!(
+        Bounds2::extend(None, Vec2::splat(1.0)),
+        Bounds2::new(Vec2::splat(1.0), Vec2::splat(1.0))
+    );
+    assert!(Bounds2::extend(None, Vec2::new(f32::NAN, 0.0)).is_none());
+    assert!(
+        Bounds2::extend(
+            Bounds2::new(Vec2::ZERO, Vec2::ZERO),
+            Vec2::new(1.0, f32::NAN)
+        )
+        .is_none()
+    );
+}
+
+#[test]
 fn contains_is_boundary_inclusive() {
     let bounds =
         Bounds2::new(Vec2::ZERO, Vec2::splat(2.0)).expect("corners are finite and ordered");

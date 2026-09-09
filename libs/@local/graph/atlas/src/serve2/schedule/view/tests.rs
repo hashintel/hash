@@ -10,9 +10,12 @@ use super::{ScheduleData, ViewSchedule};
 use crate::{
     bitset::CompressedBitSet,
     identity::NodeRowId,
+    math::Bounds2,
     morton::{Depth, MortonCell, MortonKey, Zoom},
+    salt::lod::stage::WIRE_FRAME,
     serve2::{
         delta::{Delta, epoch::Epoch},
+        density::ViewOccupancy,
         tests::fixture::{NODES, TamperFixture, secret},
         visibility::{VisibilityActor, VisibilityKind, VisibilityMask},
         world::World,
@@ -26,12 +29,12 @@ fn actor() -> VisibilityActor {
     }
 }
 
-fn mask(first: u64) -> VisibilityMask {
+fn mask(epoch: &Epoch, first: u64) -> VisibilityMask {
     let mut nodes = CompressedBitSet::default();
     for index in first..NODES {
         nodes.insert(NodeRowId::new(index));
     }
-    VisibilityMask::partial(actor(), nodes, CompressedBitSet::default())
+    VisibilityMask::partial(epoch, actor(), nodes, CompressedBitSet::default())
 }
 
 fn world(name: &str) -> (TamperFixture, Arc<World>, Epoch) {
@@ -48,14 +51,16 @@ fn world(name: &str) -> (TamperFixture, Arc<World>, Epoch) {
 #[test]
 fn dispatch_saturated_partial() {
     let (_fixture, world, epoch) = world("schedule-dispatch-saturated");
-    let full = VisibilityMask::full(actor());
-    let partial = mask(0);
+    let full = VisibilityMask::full(&epoch, actor());
+    let partial = mask(&epoch, 0);
     assert_eq!(full.kind(), VisibilityKind::Corpus);
     assert_eq!(partial.kind(), VisibilityKind::Scope);
     let corpus = ViewSchedule::of(Arc::clone(&world), &epoch, &full);
     let first = ViewSchedule::of(Arc::clone(&world), &epoch, &partial);
     let second = ViewSchedule::of(Arc::clone(&world), &epoch, &partial);
     assert!(matches!(corpus.data, ScheduleData::Corpus { .. }));
+    assert_eq!(corpus.occupancy(), None);
+    assert!(first.occupancy().is_some());
     let (ScheduleData::Saturated { base: first, .. }, ScheduleData::Saturated { base: second, .. }) =
         (&first.data, &second.data)
     else {
@@ -80,7 +85,7 @@ fn dispatch_saturated_partial() {
 #[test]
 fn dispatch_missing_row() {
     let (_fixture, world, epoch) = world("schedule-dispatch-missing-row");
-    let view = ViewSchedule::of(Arc::clone(&world), &epoch, &mask(1));
+    let view = ViewSchedule::of(Arc::clone(&world), &epoch, &mask(&epoch, 1));
     assert!(matches!(view.data, ScheduleData::Scoped(_)));
     let cut = view.cut(Zoom::MIN).expect("should bind the scope");
     let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
@@ -93,12 +98,62 @@ fn dispatch_missing_row() {
     );
 }
 
+fn extent(world: &World, epoch: &Epoch, first: u64) -> Option<Bounds2> {
+    Bounds2::from_points(
+        (first..NODES).filter_map(|index| world.layout.position(epoch, NodeRowId::new(index))),
+    )
+}
+
+#[test]
+fn bounds_admission() {
+    let (_fixture, world, epoch) = world("schedule-bounds");
+
+    let corpus = ViewSchedule::of(
+        Arc::clone(&world),
+        &epoch,
+        &VisibilityMask::full(&epoch, actor()),
+    );
+    assert_eq!(corpus.bounds(), world.layout.base_bounds());
+    assert!(corpus.bounds().is_some());
+
+    let saturated = ViewSchedule::of(Arc::clone(&world), &epoch, &mask(&epoch, 0));
+    assert!(matches!(saturated.data, ScheduleData::Saturated { .. }));
+    assert_eq!(saturated.bounds(), extent(&world, &epoch, 0));
+
+    let scoped = ViewSchedule::of(Arc::clone(&world), &epoch, &mask(&epoch, NODES - 2));
+    assert!(matches!(scoped.data, ScheduleData::Scoped(_)));
+    assert_eq!(scoped.bounds(), extent(&world, &epoch, NODES - 2));
+    assert_ne!(scoped.bounds(), saturated.bounds());
+
+    let empty = ViewSchedule::of(Arc::clone(&world), &epoch, &mask(&epoch, NODES));
+    assert_eq!(empty.bounds(), None);
+}
+
+#[test]
+fn occupancy_admission() {
+    let (_fixture, world, epoch) = world("schedule-occupancy");
+    for first in [0, 1, NODES] {
+        let view = ViewSchedule::of(Arc::clone(&world), &epoch, &mask(&epoch, first));
+        let occupancy = view
+            .occupancy()
+            .expect("a scope should have an occupancy profile");
+        let mut keys: Vec<_> = (first..NODES)
+            .filter_map(|index| world.layout.position(&epoch, NodeRowId::new(index)))
+            .map(|position| {
+                let [x, y] = WIRE_FRAME.quantize(position);
+                MortonKey::new(x, y)
+            })
+            .collect();
+        assert_eq!(occupancy, ViewOccupancy::of(&mut keys));
+    }
+}
+
 #[test]
 #[should_panic(expected = "layout must belong to the epoch's world")]
 fn dispatch_foreign_world() {
     let (_first_fixture, _first, epoch) = world("schedule-first-world");
     let (_second_fixture, second, _second_epoch) = world("schedule-second-world");
-    ViewSchedule::of(second, &epoch, &mask(NODES));
+    ViewSchedule::of(second, &epoch, &mask(&epoch, NODES));
 }
 
 #[test]

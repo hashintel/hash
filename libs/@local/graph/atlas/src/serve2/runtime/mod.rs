@@ -85,6 +85,7 @@ impl Runtime {
     /// # Panics
     ///
     /// Panics outside a Tokio runtime when a feed needs to start.
+    #[tracing::instrument(skip_all, err, fields(generation = %generation.id()))]
     pub(crate) fn open(
         generation: Generation,
         secret: &ServeSecret,
@@ -107,6 +108,7 @@ impl Runtime {
     /// # Panics
     ///
     /// Panics outside a Tokio runtime when a feed needs to start.
+    #[tracing::instrument(skip_all, err, fields(generation = %world.generation().id()))]
     pub(crate) fn start(
         world: Arc<World>,
         pool: Arc<PostgresStorePool>,
@@ -150,8 +152,8 @@ impl Runtime {
     }
 
     /// Requests graceful shutdown without waiting for in-flight work.
-    fn stop(&mut self) {
-        if let Some(feed) = &mut self.feed {
+    fn stop(&self) {
+        if let Some(feed) = &self.feed {
             feed.shutdown.cancel();
         }
     }
@@ -183,6 +185,7 @@ impl Runtime {
     /// # Errors
     ///
     /// Returns [`RuntimeError`] for a feed failure or a failed join.
+    #[tracing::instrument(skip_all, err, fields(generation = %self.world.generation().id()))]
     pub(crate) async fn shutdown(&mut self) -> Result<(), Report<RuntimeError>> {
         self.stop();
         self.join().await.unwrap_or(Ok(()))
@@ -191,13 +194,10 @@ impl Runtime {
 
 impl Drop for Runtime {
     fn drop(&mut self) {
-        if self
-            .feed
-            .as_ref()
-            .is_some_and(|feed| !feed.shutdown.is_cancelled())
-        {
+        if self.feed.is_some() {
             tracing::warn!(
-                "Runtime has been dropped before shutdown, unable to recover runtime errors"
+                generation = %self.world.generation().id(),
+                "Drop generation runtime without joining the feed"
             );
 
             self.stop();
