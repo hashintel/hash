@@ -53,6 +53,12 @@ const TOOLTIP_OFFSET_PX = 12;
 const TOP_BAR_SAFE_ZONE_PX = 72;
 
 /**
+ * The button's diameter. Half of it is the toolbar offset that lands its
+ * centre on the node's edge, so the two have to be stated together.
+ */
+const TRIGGER_SIZE_PX = 22;
+
+/**
  * Marks the pin, so pointing at the box anywhere can raise it. Written out
  * again in the wrapper's selector below: Panda reads these style objects
  * statically, and an interpolated key would not reach the stylesheet.
@@ -159,10 +165,25 @@ const tooltipStyle = css({
  * the panel is what clicking it produces.
  */
 const triggerStyle = css({
+  // Sized here rather than by the button's own scale, because half of it is
+  // the offset that centres it on the node's edge.
+  width: "[22px]",
+  minWidth: "[22px]",
+  height: "[22px]",
+  padding: "[0]",
   borderRadius: "full",
   backgroundColor: "neutral.s00",
   boxShadow: "[0 1px 4px rgba(0, 0, 0, 0.18)]",
   borderColor: "neutral.bd.subtle",
+});
+
+/**
+ * The button sits astride the node's edge rather than clear of it, so it
+ * needs none of the box's padding: the pointer reaches it off the node
+ * without crossing the canvas in between.
+ */
+const triggerWrapperStyle = css({
+  display: "flex",
 });
 
 /** A further 1px inside the glass, for the glass's own border. */
@@ -311,7 +332,24 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
     // Both surfaces count as part of the place while the pointer is on them:
     // without this, reaching for either would end the hover and take it away.
     onPointerEnter: () => setHoveredItem({ type: "place", id: nodeId }),
-    onPointerLeave: clearHoveredItem,
+    /*
+     * Leaving onto a node is not leaving. React routes enter and leave
+     * through its own tree, and the toolbar is a portal inside the node's
+     * subtree there, so coming back to the node fires this leave and no enter
+     * at all: clearing here dropped the hover, and the highlight with it, on
+     * the node the pointer had just returned to. Landing on another node is
+     * that node's business, and its own enter arrives.
+     */
+    onPointerLeave: (event: React.PointerEvent) => {
+      const landedOn = event.relatedTarget;
+      if (
+        landedOn instanceof Element &&
+        landedOn.closest(".react-flow__node") !== null
+      ) {
+        return;
+      }
+      clearHoveredItem();
+    },
   };
 
   if (!showVisualizer) {
@@ -320,17 +358,11 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
         nodeId={nodeId}
         isVisible
         position={placeBelow ? Position.Bottom : Position.Top}
-        offset={0}
+        // Half the button back towards the node, which puts its centre on the
+        // node's edge.
+        offset={-TRIGGER_SIZE_PX / 2}
       >
-        <div
-          className={wrapperStyle}
-          data-animated={showAnimations}
-          data-open
-          // The gap to the node is this wrapper's own padding, so the pointer
-          // crosses it without touching the canvas.
-          style={{ padding: `${TOOLTIP_OFFSET_PX}px 0` }}
-          {...keepHovered}
-        >
+        <div className={triggerWrapperStyle} {...keepHovered}>
           <Button
             className={triggerStyle}
             size="xs"
