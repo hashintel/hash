@@ -14,8 +14,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   ComputeBatchesChip,
   DrawerFrame,
-  FRAME_HEADER_CONDENSED_HEIGHT,
-  FRAME_HEADER_HEIGHT,
   FrameBand,
   FrameCard,
   FrameColumns,
@@ -86,7 +84,6 @@ describe("DrawerFrame", () => {
   it("renders the title, the stat columns sized by their widest value, the badge column, the bar and the footer at rest", () => {
     renderFrame();
 
-    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
     expect(header().dataset.condensed).toBe("false");
     expect(
       screen.getByText(
@@ -103,7 +100,7 @@ describe("DrawerFrame", () => {
     );
     // The stats are labelled columns; the badge is the last of them.
     const columns = [
-      ...document.querySelectorAll("[data-frame-stats] > [data-frame-stat]"),
+      ...document.querySelectorAll("[data-frame-stats] [data-frame-stat]"),
     ];
     expect(
       columns.map((column) => column.querySelector("span")?.textContent),
@@ -121,7 +118,6 @@ describe("DrawerFrame", () => {
     renderFrame();
 
     scrollBodyTo(48);
-    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
     expect(header().dataset.condensed).toBe("true");
     // The compact copy sits in the title line; the stats line is folded away.
     const compact = document.querySelector("[data-frame-compact-stats]")!;
@@ -137,14 +133,14 @@ describe("DrawerFrame", () => {
     ).toBe("true");
 
     fireEvent.pointerEnter(header());
-    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("false");
     expect(document.querySelector("[data-frame-compact-stats]")).toBeNull();
 
     fireEvent.pointerLeave(header());
-    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("true");
 
     scrollBodyTo(0);
-    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("false");
   });
 
   it("holds its height while a control inside it has the focus, and condenses once that control lost it without a blur", () => {
@@ -154,12 +150,11 @@ describe("DrawerFrame", () => {
 
     // Keyboard focus on a header control holds the header open.
     scrollBodyTo(48);
-    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("false");
 
     // The chip goes idle under the focus: disabled, so it fires no blur.
     view.rerender(frame({ stats: computingChip(false) }));
     scrollBodyTo(60);
-    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
     expect(header().dataset.condensed).toBe("true");
     view.unmount();
 
@@ -168,7 +163,7 @@ describe("DrawerFrame", () => {
     act(() => screen.getByRole("button", { name: "1 computing" }).focus());
     removed.rerender(frame());
     scrollBodyTo(60);
-    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("true");
   });
 
   it("keeps the note row mounted at one height whether or not there is a note", () => {

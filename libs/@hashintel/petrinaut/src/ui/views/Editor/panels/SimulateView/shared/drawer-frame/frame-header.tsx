@@ -1,10 +1,12 @@
 /**
- * The frame's header: one title line, one strip of labelled stat columns
+ * The frame's header: one title line, a strip of labelled stat columns
  * divided by hairlines with the compute badge as its last column, and the
  * progress bar along the bottom edge. It sits outside the body's scroll
- * container. Once the body has scrolled it condenses: the strip folds into
- * the title line as compact chips, and the header grows back while the
- * pointer or focus is on it.
+ * container. The strip wraps onto further rows when the header is too
+ * narrow for its columns, and the header takes the height its rows need.
+ * Once the body has scrolled it condenses: the strip folds away, its
+ * columns reappear as compact chips on the title line, and the header
+ * grows back while the pointer or focus is on it.
  *
  * Every column is exactly as wide as its widest value: the value cell lays
  * an invisible copy of that widest text under the live one, so a number
@@ -17,9 +19,9 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import type { FrameHeaderEngagement } from "./use-header-engaged";
 
-/** The header's height in pixels at rest: the title line, the stat strip and the bar. */
-export const FRAME_HEADER_HEIGHT = 68;
-/** The header's height in pixels once the body has scrolled: one line and the bar. */
+/** The header's height in pixels at rest with the strip on one row: the title line, the gap, the strip and the padding. */
+export const FRAME_HEADER_HEIGHT = 74;
+/** The header's height in pixels once the body has scrolled: the title line and the padding. */
 export const FRAME_HEADER_CONDENSED_HEIGHT = 36;
 
 /** How the stats render: as labelled columns on their own line, or as compact chips beside the title. */
@@ -36,12 +38,10 @@ const rootStyle = css({
   minWidth: "[0]",
   overflow: "hidden",
   paddingTop: "1.5",
+  paddingBottom: "1.5",
   paddingLeft: "5",
   paddingRight: "5",
   backgroundColor: "neutral.s00",
-  "&[data-animate=true]": {
-    transition: "[height 160ms ease-out]",
-  },
 });
 
 const titleRowStyle = css({
@@ -78,12 +78,19 @@ const headlineStyle = css({
   "[data-condensed=true] &": { display: "none" },
 });
 
+// When the header is too narrow for every chip, the chips that do not fit
+// wrap onto a second line the row's height hides, so the line shows whole
+// chips and nothing runs under the close button.
 const compactRowStyle = css({
   display: "flex",
+  flexWrap: "wrap",
   alignItems: "center",
+  alignContent: "flex-start",
   gap: "2",
+  height: "[24px]",
   marginLeft: "auto",
-  flexShrink: "0",
+  minWidth: "[0]",
+  overflow: "hidden",
   whiteSpace: "nowrap",
   "[data-animate=true] &": {
     animationName: "[dialogBackdropIn]",
@@ -92,26 +99,44 @@ const compactRowStyle = css({
   },
 });
 
-// The strip's height is the label line, its gap and the value line; it
-// folds to nothing while condensed.
-const statsRowStyle = css({
-  display: "flex",
-  alignItems: "stretch",
-  height: "[32px]",
+// The strip folds behind a one-row grid whose row goes from `1fr` to `0fr`,
+// so whatever height the strip takes (one row of columns, more when the
+// header is narrow) is what animates, and the header's height follows it.
+const statsFoldStyle = css({
+  display: "grid",
+  gridTemplateRows: "[1fr]",
+  minWidth: "[0]",
+  "&[data-animate=true]": {
+    transition: "[grid-template-rows 160ms ease-out, visibility 0s]",
+  },
+  "&[data-condensed=true]": {
+    gridTemplateRows: "[0fr]",
+    visibility: "hidden",
+  },
+  "&[data-animate=true][data-condensed=true]": {
+    transition: "[grid-template-rows 160ms ease-out, visibility 0s 160ms]",
+  },
+});
+
+const statsClipStyle = css({
+  minHeight: "[0]",
   minWidth: "[0]",
   overflow: "hidden",
-  whiteSpace: "nowrap",
   opacity: "[1]",
-  "[data-animate=true] &": {
-    transition:
-      "[height 160ms ease-out, opacity 120ms ease-out, visibility 0s]",
-  },
-  "[data-condensed=true] &": {
-    height: "[0]",
-    opacity: "[0]",
-    visibility: "hidden",
-    transitionDelay: "[0s, 0s, 160ms]",
-  },
+  "[data-animate=true] > &": { transition: "[opacity 120ms ease-out]" },
+  "[data-condensed=true] > &": { opacity: "[0]" },
+});
+
+// The columns, on as many rows as the width needs, a gap under the title
+// line and between the rows.
+const statsRowStyle = css({
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "stretch",
+  rowGap: "1.5",
+  paddingTop: "1.5",
+  minWidth: "[0]",
+  whiteSpace: "nowrap",
 });
 
 const progressTrackStyle = css({
@@ -144,6 +169,8 @@ const statStyle = css({
   fontSize: "xs",
   lineHeight: "[18px]",
   color: "neutral.s120",
+  // One row of the strip: the label line, its gap and the value line.
+  "&[data-density=full]": { height: "[32px]" },
   "&[data-density=full]:first-child": { paddingLeft: "[0]" },
   "&[data-density=full] + &[data-density=full]": {
     borderLeftWidth: "[1px]",
@@ -343,10 +370,7 @@ export const FrameHeader = ({
     data-frame-header
     data-condensed={condensed}
     data-animate={animate}
-    style={{
-      height: condensed ? FRAME_HEADER_CONDENSED_HEIGHT : FRAME_HEADER_HEIGHT,
-      paddingRight: closeGutter > 0 ? closeGutter : undefined,
-    }}
+    style={{ paddingRight: closeGutter > 0 ? closeGutter : undefined }}
     {...engagement}
   >
     <div className={titleRowStyle}>
@@ -367,12 +391,20 @@ export const FrameHeader = ({
       )}
     </div>
     <div
-      className={statsRowStyle}
-      data-frame-stats
-      aria-hidden={condensed ? true : undefined}
+      className={statsFoldStyle}
+      data-condensed={condensed}
+      data-animate={animate}
     >
-      {stats}
-      {badge === undefined ? null : <BadgeColumn badge={badge} />}
+      <div
+        className={statsClipStyle}
+        data-frame-stats
+        aria-hidden={condensed ? true : undefined}
+      >
+        <div className={statsRowStyle}>
+          {stats}
+          {badge === undefined ? null : <BadgeColumn badge={badge} />}
+        </div>
+      </div>
     </div>
     <div className={progressTrackStyle} data-frame-progress>
       <div
