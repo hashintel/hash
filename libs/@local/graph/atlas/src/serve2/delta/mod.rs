@@ -23,6 +23,7 @@ use alloc::sync::Arc;
 
 use hashql_core::id::Id as _;
 use rand::TryCryptoRng;
+use zerocopy::{NativeEndian, U64};
 
 use self::{
     layout::{LayoutDelta, provider::NaiveLayoutProvider},
@@ -41,11 +42,24 @@ use crate::{
 };
 
 hashql_core::id::newtype! {
+    #[id(unaligned)]
     pub(crate) struct DeltaRevision(u64)
 }
 
-#[derive(Debug, Copy, Clone)]
-struct DeltaId(u64);
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::FromBytes,
+)]
+#[repr(transparent)]
+pub(crate) struct DeltaId(U64<NativeEndian>);
 
 impl DeltaId {
     fn new<R>(mut rng: R) -> Result<Self, R::Error>
@@ -53,8 +67,26 @@ impl DeltaId {
         R: TryCryptoRng,
     {
         let bytes = rng.try_next_u64()?;
-        Ok(Self(bytes))
+        Ok(Self(U64::new(bytes)))
     }
+}
+
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::FromBytes,
+)]
+#[repr(C)]
+pub(crate) struct DeltaReference {
+    pub id: DeltaId,
+    pub revision: DeltaRevision,
 }
 
 pub(crate) struct Delta {

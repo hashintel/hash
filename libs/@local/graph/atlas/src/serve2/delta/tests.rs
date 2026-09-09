@@ -806,13 +806,6 @@ fn schedule_base_withdrawal_dispatch() {
     assert_scoped_delivery(&world, &epoch(&delta), &partial);
 }
 
-fn full_mask() -> VisibilityMask {
-    VisibilityMask::full(VisibilityActor {
-        id: ActorId::new(Uuid::nil(), ActorType::Machine),
-        instance_admin: false,
-    })
-}
-
 #[track_caller]
 fn assert_partitioned(delivered: &DeliveredNodes) {
     assert_eq!(
@@ -828,11 +821,9 @@ fn assert_partitioned(delivered: &DeliveredNodes) {
 fn walk_corpus_withdrawal() {
     let (_fixture, mut delta) = fixture("walk-corpus-withdrawal");
     let world = Arc::clone(&delta.world);
-    let mask = full_mask();
     let walk = Walk {
         schedule: DeliverySchedule::corpus(&world),
         index: &world.layout.index,
-        mask: &mask,
     };
     let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
     let zoom = world.schedule().max_tile_depth();
@@ -870,6 +861,11 @@ fn walk_corpus_withdrawal() {
     assert_eq!(subtracted.first_bucket, recorded.first_bucket);
     assert_eq!(subtracted.runs.len(), recorded.runs.len());
     assert_partitioned(&subtracted);
+    assert_eq!(
+        walk.total(&captured, zoom, root),
+        recorded,
+        "the earlier epoch should preserve its delivery"
+    );
 
     let bucket = walk
         .schedule
@@ -915,7 +911,6 @@ fn walk_scope_withdrawal() {
     let walk = Walk {
         schedule: view.cut(Zoom::MIN).expect("should bind the view"),
         index: &world.layout.index,
-        mask: &mask,
     };
     let recorded = walk.schedule.total(zoom, root);
     assert!(

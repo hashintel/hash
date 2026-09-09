@@ -4,14 +4,15 @@ use core::ptr;
 use arc_swap::Guard;
 
 use super::{
-    Delta, DeltaRevision,
+    Delta, DeltaReference, DeltaRevision,
     importance::DeltaImportanceProvider,
-    layout::{LayoutDelta, provider::NaiveLayoutProvider},
+    layout::LayoutDelta,
     overlay::{DeltaIdentityProvider, IdentityProviderResidual, NaiveIdentityProvider},
     topology::TopologyDelta,
 };
 use crate::{
     dataset::auxiliary::OwnedLegend,
+    file::generation::GenerationId,
     identity::{EdgeRowId, NodeRowId},
     postgres::id::ArchivedEntityId,
     serve2::world::{
@@ -30,6 +31,17 @@ pub(crate) struct Epoch {
 }
 
 impl Epoch {
+    pub(crate) fn generation(&self) -> GenerationId {
+        self.delta.world.generation().id()
+    }
+
+    pub(crate) fn reference(&self) -> DeltaReference {
+        DeltaReference {
+            id: self.delta.id,
+            revision: self.delta.revision,
+        }
+    }
+
     pub(crate) fn revision(&self) -> DeltaRevision {
         self.delta.revision
     }

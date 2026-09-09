@@ -1,0 +1,396 @@
+use alloc::sync::{Arc, Weak};
+use core::{future::Future, time::Duration};
+use std::io;
+
+use error_stack::{Report, ReportSink};
+use futures::FutureExt as _;
+use hash_graph_postgres_store::store::{
+    DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
+    PostgresStoreSettings,
+};
+use hashql_core::id::Id as _;
+use rand::{SeedableRng as _, TryCryptoRng, TryRng, rngs::StdRng};
+use tokio::{sync::oneshot, task::JoinHandle};
+use tokio_postgres::NoTls;
+
+use super::{Feed, FeedOptions, Runtime, RuntimeError};
+use crate::{
+    dataset::TemporalAxes,
+    device::Device,
+    file::generation::{Generation, GenerationRoot},
+    identity::NodeRowId,
+    math::nz,
+    serve2::{
+        delta::{
+            Delta, DeltaFeedTaskOptions, DeltaPlacementTaskOptions, DeltaReader, DeltaTaskError,
+            DeltaTaskOptions,
+        },
+        tests::fixture::{TamperFixture, secret},
+        world::World,
+    },
+};
+
+const SEED: u64 = 0xC0FF_EE11;
+
+fn options() -> FeedOptions {
+    FeedOptions {
+        task: DeltaTaskOptions {
+            feed: DeltaFeedTaskOptions {
+                tick_rate: Duration::from_secs(5),
+                safety_lag: Duration::from_secs(60),
+            },
+            placement: DeltaPlacementTaskOptions {
+                tick_rate: Duration::from_secs(5),
+                tries_workflow: 1,
+                tries_database: 1,
+                minimum_projection_interval: 1,
+                max_pending: nz!(1),
+            },
+        },
+        device: Device::Cpu.pin(0).resolve(),
+        workflow: None,
+    }
+}
+
+async fn unconnected_pool() -> (Arc<PostgresStorePool>, Weak<PostgresStorePool>) {
+    let pool = Arc::new(
+        PostgresStorePool::new(
+            &DatabaseConnectionInfo::new(
+                DatabaseType::Postgres,
+                "runtime-test".to_owned(),
+                String::new(),
+                "/no-runtime-test-postgres".to_owned(),
+                5432,
+                "runtime-test".to_owned(),
+            ),
+            &DatabasePoolConfig {
+                max_connections: nz!(1),
+            },
+            NoTls,
+            PostgresStoreSettings::default(),
+        )
+        .await
+        .expect("should construct an unconnected pool"),
+    );
+    let weak = Arc::downgrade(&pool);
+    (pool, weak)
+}
+
+async fn complete<T>(future: impl Future<Output = T>) -> T {
+    tokio::time::timeout(Duration::from_secs(5), future)
+        .await
+        .expect("the controlled worker should finish")
+}
+
+fn axes_fixture(name: &str) -> (TamperFixture, Generation) {
+    let fixture = TamperFixture::publish(name);
+    let generation = fixture.generation();
+    let root = GenerationRoot::new(generation.path().parent().expect("the fixture has a root"))
+        .expect("the fixture root should open");
+    let staging = root.stage().expect("the staging should open");
+
+    for file in generation.repository().files.files() {
+        std::fs::copy(generation.path_of(&file.name), staging.path_of(&file.name))
+            .expect("the fixture artifact should copy");
+    }
+
+    let mut repository = generation.repository().clone();
+    repository.metadata.snapshot.axes = Some(TemporalAxes::now());
+    let published = staging
+        .seal(&repository)
+        .expect("the generation should seal");
+    let generation = root
+        .open(published.id())
+        .expect("the generation should open");
+    (fixture, generation)
+}
+
+fn controlled(name: &str, feed: Feed) -> (TamperFixture, Runtime) {
+    let fixture = TamperFixture::publish(name);
+    let world = Arc::new(
+        World::open(fixture.generation().clone(), &secret()).expect("the world should open"),
+    );
+    let delta = Delta::new(Arc::clone(&world), StdRng::seed_from_u64(SEED))
+        .expect("the delta should initialize");
+    let runtime = Runtime {
+        world,
+        reader: DeltaReader::from(delta),
+        feed: Some(feed),
+    };
+    (fixture, runtime)
+}
+
+struct UnavailableEntropy;
+
+impl TryRng for UnavailableEntropy {
+    type Error = io::Error;
+
+    fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+        Err(io::Error::other("entropy unavailable"))
+    }
+
+    fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+        Err(io::Error::other("entropy unavailable"))
+    }
+
+    fn try_fill_bytes(&mut self, dst: &mut [u8]) -> Result<(), Self::Error> {
+        let _ = dst;
+        Err(io::Error::other("entropy unavailable"))
+    }
+}
+
+impl TryCryptoRng for UnavailableEntropy {}
+
+#[tokio::test]
+async fn open_disabled() {
+    let (_fixture, generation) = axes_fixture("runtime-open-disabled");
+    let (pool, weak_pool) = unconnected_pool().await;
+    let mut runtime = Runtime::open(
+        generation,
+        &secret(),
+        pool,
+        StdRng::seed_from_u64(SEED),
+        None,
+    )
+    .expect("the disabled feed should open");
+
+    assert!(runtime.reader().load().contains_node(NodeRowId::MIN));
+    assert!(weak_pool.upgrade().is_none());
+    assert!(runtime.join().await.is_none());
+}
+
+#[tokio::test]
+async fn open_without_axes() {
+    let fixture = TamperFixture::publish("runtime-open-without-axes");
+    let (pool, weak_pool) = unconnected_pool().await;
+    let mut runtime = Runtime::open(
+        fixture.generation().clone(),
+        &secret(),
+        pool,
+        StdRng::seed_from_u64(SEED),
+        Some(options()),
+    )
+    .expect("the generation without axes should open");
+
+    assert!(runtime.reader().load().contains_node(NodeRowId::MIN));
+    assert!(weak_pool.upgrade().is_none());
+    assert!(runtime.join().await.is_none());
+}
+
+#[tokio::test]
+async fn open_temporal() {
+    let (_fixture, generation) = axes_fixture("runtime-open-temporal");
+    assert!(generation.repository().files.projector.is_none());
+    let (pool, weak_pool) = unconnected_pool().await;
+    let mut runtime = Runtime::open(
+        generation,
+        &secret(),
+        pool,
+        StdRng::seed_from_u64(SEED),
+        Some(options()),
+    )
+    .expect("the temporal generation should open");
+
+    let world = Arc::clone(runtime.world());
+    let reader = runtime.reader().clone();
+    let captured = reader.load();
+    tokio::task::yield_now().await;
+    assert!(runtime.join().now_or_never().is_none());
+    complete(runtime.shutdown())
+        .await
+        .expect("the feed should join");
+    drop(runtime);
+
+    assert!(weak_pool.upgrade().is_none());
+    assert!(reader.load().contains_node(NodeRowId::MIN));
+    assert!(captured.contains_node(NodeRowId::MIN));
+    assert!(world.generation().path().is_dir());
+}
+
+#[tokio::test]
+async fn open_invalid_interval() {
+    let (_fixture, generation) = axes_fixture("runtime-open-invalid-interval");
+    let (pool, weak_pool) = unconnected_pool().await;
+    let mut options = options();
+    options.task.feed.tick_rate = Duration::ZERO;
+    let error = Runtime::open(
+        generation,
+        &secret(),
+        pool,
+        StdRng::seed_from_u64(SEED),
+        Some(options),
+    )
+    .err()
+    .expect("a zero interval should fail");
+
+    assert!(matches!(error.current_context(), RuntimeError::Feed));
+    assert!(weak_pool.upgrade().is_none());
+}
+
+#[tokio::test]
+async fn start_entropy_failure() {
+    let fixture = TamperFixture::publish("runtime-start-entropy-failure");
+    let world = Arc::new(
+        World::open(fixture.generation().clone(), &secret()).expect("the world should open"),
+    );
+    let (pool, weak_pool) = unconnected_pool().await;
+    let error = Runtime::start(world, pool, UnavailableEntropy, None)
+        .err()
+        .expect("unavailable entropy should fail");
+
+    assert!(matches!(error.current_context(), RuntimeError::Entropy));
+    assert!(weak_pool.upgrade().is_none());
+}
+
+#[tokio::test]
+async fn shutdown_cancelled() {
+    let (shutdown, requested) = oneshot::channel::<()>();
+    let (observed, observation) = oneshot::channel::<()>();
+    let (release, released) = oneshot::channel::<()>();
+    let task = tokio::spawn(async move {
+        let _ = requested.await;
+        observed
+            .send(())
+            .expect("the observation should remain open");
+        let _ = released.await;
+        Ok(())
+    });
+    let (_fixture, mut runtime) = controlled(
+        "runtime-shutdown-cancelled",
+        Feed {
+            shutdown: Some(shutdown),
+            task,
+        },
+    );
+
+    assert!(runtime.shutdown().now_or_never().is_none());
+    complete(observation)
+        .await
+        .expect("the worker should observe shutdown");
+    assert!(runtime.feed.is_some());
+    release
+        .send(())
+        .expect("the worker should still await release");
+    complete(runtime.join())
+        .await
+        .expect("the join handle should remain owned")
+        .expect("the worker should join");
+    assert!(runtime.join().await.is_none());
+}
+
+#[tokio::test]
+async fn shutdown_repeated() {
+    let (shutdown, requested) = oneshot::channel::<()>();
+    let task = tokio::spawn(async move {
+        let _ = requested.await;
+        Ok(())
+    });
+    let (_fixture, mut runtime) = controlled(
+        "runtime-shutdown-repeated",
+        Feed {
+            shutdown: Some(shutdown),
+            task,
+        },
+    );
+
+    complete(runtime.shutdown())
+        .await
+        .expect("the worker should join");
+    runtime
+        .shutdown()
+        .await
+        .expect("repeated shutdown should succeed");
+    assert!(runtime.join().await.is_none());
+}
+
+#[tokio::test]
+async fn join_feed_error() {
+    let task = tokio::spawn(async {
+        let mut sink = ReportSink::new();
+        sink.attempt(Err::<(), _>(Report::new(DeltaTaskError::Feed)));
+        sink.finish()
+    });
+    let (_fixture, mut runtime) = controlled(
+        "runtime-join-feed-error",
+        Feed {
+            shutdown: None,
+            task,
+        },
+    );
+
+    let error = complete(runtime.join())
+        .await
+        .expect("the runner should have a result")
+        .expect_err("the runner should report its failure");
+    assert!(matches!(error.current_context(), RuntimeError::Feed));
+    assert!(runtime.join().await.is_none());
+}
+
+#[tokio::test]
+async fn join_panic() {
+    let task: JoinHandle<Result<(), Report<[DeltaTaskError]>>> =
+        tokio::spawn(async { panic!("controlled worker panic") });
+    let (_fixture, mut runtime) = controlled(
+        "runtime-join-panic",
+        Feed {
+            shutdown: None,
+            task,
+        },
+    );
+
+    let error = complete(runtime.join())
+        .await
+        .expect("the runner should have a result")
+        .expect_err("the runner should report its panic");
+    assert!(matches!(error.current_context(), RuntimeError::Join));
+    assert!(runtime.join().await.is_none());
+}
+
+#[tokio::test]
+async fn drop_graceful() {
+    let resource = Arc::new(());
+    let weak = Arc::downgrade(&resource);
+    let (started, startup) = oneshot::channel::<()>();
+    let (shutdown, requested) = oneshot::channel::<()>();
+    let (observed, observation) = oneshot::channel::<()>();
+    let (release, released) = oneshot::channel::<()>();
+    let (done, finished) = oneshot::channel::<()>();
+    let task = tokio::spawn(async move {
+        started
+            .send(())
+            .expect("the startup observation should remain open");
+        let _ = requested.await;
+        observed
+            .send(())
+            .expect("the observation should remain open");
+        let _ = released.await;
+        drop(resource);
+        done.send(()).expect("the completion should remain open");
+        Ok(())
+    });
+    let (_fixture, runtime) = controlled(
+        "runtime-drop-graceful",
+        Feed {
+            shutdown: Some(shutdown),
+            task,
+        },
+    );
+    let reader = runtime.reader().clone();
+    complete(startup)
+        .await
+        .expect("the worker should start before its owner drops");
+    drop(runtime);
+
+    complete(observation)
+        .await
+        .expect("the worker should observe shutdown");
+    assert!(weak.upgrade().is_some());
+    release
+        .send(())
+        .expect("the worker should still await release");
+    complete(finished)
+        .await
+        .expect("the worker should finish without an abort");
+    assert!(weak.upgrade().is_none());
+    assert!(reader.load().contains_node(NodeRowId::MIN));
+}

@@ -159,9 +159,9 @@ pub(crate) struct Zoom(u8);
 
 impl Zoom {
     /// The maximum zoom level, [`Depth::MAX`].
-    pub const MAX: Self = Self(Depth::MAX.get());
+    pub(crate) const MAX: Self = Self(Depth::MAX.get());
     /// The minimum zoom level, [`Depth::MIN`].
-    pub const MIN: Self = Self(0);
+    pub(crate) const MIN: Self = Self(0);
 
     /// Validates a tile zoom level.
     ///

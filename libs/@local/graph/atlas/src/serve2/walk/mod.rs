@@ -1,7 +1,6 @@
 use super::{
     delta::{epoch::Epoch, overlay::NaiveIdentityProvider},
     schedule::{DeliveredNodes, DeliverySchedule},
-    visibility::VisibilityMask,
     world::NodeIndex,
 };
 use crate::{
@@ -45,12 +44,15 @@ fn subtract(
     rows.truncate(kept);
 }
 
+/// Subtracts the supplied epoch's withdrawals from a captured delivery schedule.
+///
+/// Scoped schedules contain only their admitted placements. Corpus schedules retain recorded base
+/// rows through withdrawals. Both modes apply the epoch check without another visibility mask.
 #[derive(Copy, Clone)]
 pub(crate) struct Walk<'context> {
     pub schedule: DeliverySchedule<'context>,
 
     pub index: &'context NodeIndex,
-    pub mask: &'context VisibilityMask,
 }
 
 impl<'context> Walk<'context> {

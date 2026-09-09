@@ -180,9 +180,15 @@ impl Error for ActivateError {
     serde::Serialize,
     serde::Deserialize,
     schemars::JsonSchema,
+    zerocopy::FromBytes,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
 )]
 #[serde(transparent)]
 #[schemars(transparent)]
+#[repr(transparent)]
 pub struct GenerationId(Sha256Digest);
 
 impl GenerationId {

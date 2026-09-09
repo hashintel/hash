@@ -211,6 +211,7 @@ impl DeltaTask {
     /// Collects feed, publication and placement failures under the corresponding
     /// [`DeltaTaskError`] variants, including failures concurrent with shutdown. A child panic
     /// reports [`DeltaTaskError::Panic`]. Requested shutdown does not itself produce an error.
+    #[tracing::instrument(skip_all, err)]
     pub(crate) async fn run(
         self,
         shutdown: impl Future<Output = ()> + Send + 'static,
