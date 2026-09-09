@@ -39,24 +39,27 @@ Preserve known precision whenever it changes builder behavior, scope, proof, ris
 
 Every final proof leaf in a live mission or side quest must name a credible oracle: an exact test or command, fixture, artifact inspection, human witness, or adjudication that can distinguish the claimed result from mere presence. A provisional mission draft may instead mark `ORACLE GAP` and state what must resolve it, but that gap must close before the draft is cut with that leaf as a claim.
 
-### Throughline proof, readiness gate, and stratum closure
+### Mission, current throughline, and delegated work
 
-- **Throughline proof** is the smallest deployed end-to-end path showing that a capability crosses the real product boundary.
-- **Readiness gate** is the decision after that path works: enumerate the lateral obligations now exposed, decide which are required to trust the current visible capability, and identify which first become load-bearing for the next visible product advance.
-- **Stratum closure** completes breadth, fidelity, invalid-state, durability, identity, failure, and oracle obligations across one named contract layer and accepted scenario or peer set.
+**Decompose the territory broadly; authorize execution narrowly. A responsibility map is not a completion schedule.**
 
-A vertical tracer does not automatically require horizontal completion. Close an obligation now when the current visible claim would otherwise be false or unsafe. Carry it only when the next visible product mission is its first real consumer, and name that owner, re-entry gate, and oracle; “later” is not a disposition.
+- **Mission** holds the imperative, accepted meaning and final acceptance bar across many tasks. Acceptance obligations remain visible; they are not automatically prerequisites to the first informative use.
+- **Current throughline** names the next real product observation that can change a consequential decision. Use the existing system to obtain it before building more capability.
+- **Delegated work** discharges concrete dependencies of that observation. Each task names its consumer or observed failure, bounded change/probe, discriminator and return condition—not independent subsystem completion. Parallelize independent dependencies of that same observation, not empty cells in a responsibility matrix.
 
-Use the recursive operating model:
+Before dispatch, answer: **What next observation becomes possible through this task, and why can't the current system produce it?** Integration returns to that question; it is a decision point, not a successor-task launch trigger.
 
 ```text
 survey the real territory, not only its maps
-→ establish a working line of communication, transport, and evidence
-→ stage a dependable camp/base by closing the contract stratum the line has made load-bearing
-→ launch the next survey and throughline from that stronger departure point
+→ attempt the next informative use through the actual product
+→ inspect what worked, failed or remained unknown
+→ repair a blocking or false/unsafe boundary, or advance with explicit limits
+→ re-decide the route from that evidence
 ```
 
-Terrain claims require inspection or probes at the real production or deployed boundary. A working line crosses entry to visible exit with the least mechanism that carries product data, control, evidence, and failure. A dependable base closes only the earned coverage, identity, durability, recovery, observability, and oracle obligations required by accepted consumers. Never silently treat a provisional line as a hardened departure base, and do not fortify every adjacent contract merely because one route exposed it.
+Terrain claims require inspection or probes at the real production or deployed boundary. A working line crosses entry to visible exit with the least mechanism that carries product data, control, evidence and failure. Close an obligation now when it blocks the next observation or makes the current visible claim false or unsafe. Otherwise carry its limitation, named consumer, re-entry trigger and discriminator. That consumer may be later in the same mission; it need not become another mission.
+
+Stratum closure is a deliberate breadth decision for an identified current consumer, not an obligatory stage after every tracer. Never silently treat a provisional line as a hardened departure base, and do not fortify every adjacent contract merely because one route exposed it.
 
 This is an expeditionary posture, not a defensive one. Survey only until the next consequential and reversible move is warranted. Once downside is bounded or explicitly accepted, advance; uncertainty is terrain to reduce through action, not a reason to hold position. Stage only the base the next operation needs, not the safest or most complete base imaginable.
 
