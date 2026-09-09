@@ -93,7 +93,9 @@ const nativeBody = () => {
     type: "message_delta",
     delta: { stop_reason: "end_turn" },
   };
-  if (scenario !== "missing-terminal-usage")
+  if (
+    !["missing-terminal-usage", "created-missing-terminal"].includes(scenario)
+  )
     terminal.usage =
       scenario === "missing-output"
         ? {}
@@ -170,7 +172,7 @@ https.request = ((
     end: () =>
       queueMicrotask(() => {
         const incoming = Object.assign(new EventEmitter(), {
-          statusCode: 200,
+          statusCode: scenario === "created-missing-terminal" ? 201 : 200,
           headers: { "content-type": "text/event-stream" },
         });
         callback(incoming);
@@ -235,6 +237,7 @@ const outcomes: unknown[] = [];
 try {
   for (const control of [
     "missing-terminal-usage",
+    "created-missing-terminal",
     "missing-output",
     "null-output",
     "string-output",

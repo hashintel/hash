@@ -94,7 +94,9 @@ export const pinnedNativeRequest = async (
               status < 300 || status >= 400,
               "Provider redirect refused; no follow-up request",
             );
-            if (status === 200) attestNativeResponse(Buffer.concat(chunks));
+            // The SDK treats all 2xx statuses as successful, not only 200.
+            if (status >= 200 && status < 300)
+              attestNativeResponse(Buffer.concat(chunks));
             resolve(
               new Response(Buffer.concat(chunks), {
                 status,
