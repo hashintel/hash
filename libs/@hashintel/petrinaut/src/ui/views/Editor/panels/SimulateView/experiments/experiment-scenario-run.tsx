@@ -27,6 +27,7 @@ import {
 import { Section } from "../../../../../components/section";
 import { scenarioRunInputs } from "./experiment-scenario-inputs";
 
+import type { ExperimentParameterInput } from "../../../../../../react/experiments/parameter-grid";
 import type { ScenarioRunInput } from "./experiment-scenario-inputs";
 import type {
   AdHocScenarioState,
@@ -88,12 +89,45 @@ const noticeStyle = css({
   paddingY: "1.5",
 });
 
+/**
+ * The Variables a run form starts from: one per scenario parameter, seeded
+ * from the experiment's input for it — a fixed value as the expression, a
+ * range as a Sweep selection — so a reseed keeps every sweep.
+ */
+const seedRunVariables = (
+  scenario: Scenario,
+  inputs: Readonly<Record<string, ExperimentParameterInput>>,
+): AdHocVariable[] => {
+  const fixed = createUserKeyedRecord<string>();
+  for (const [identifier, input] of Object.entries(inputs)) {
+    if (input.mode === "fixed") {
+      fixed[identifier] = input.value;
+    }
+  }
+  return classicRunVariables(scenario, fixed).map((variable): AdHocVariable => {
+    const input = inputs[variable.name];
+    return input?.mode === "range"
+      ? {
+          ...variable,
+          optimize: {
+            min: String(input.min),
+            max: String(input.max),
+            scale: "linear",
+          },
+        }
+      : variable;
+  });
+};
+
 export interface ExperimentScenarioRunProps {
   scenario: Scenario;
   /** The net the scenario compiles and renders against. */
   context: AdHocSynthesisContext;
-  /** The experiment's fixed scenario parameter values, keyed by identifier. */
-  values: Readonly<Record<string, string>>;
+  /**
+   * The experiment's scenario parameter inputs, keyed by identifier: a fixed
+   * value, or the range of a swept parameter.
+   */
+  inputs: Readonly<Record<string, ExperimentParameterInput>>;
   /**
    * Whether numeric scenario parameters carry a Sweep toggle: a swept one
    * reports a range instead of a fixed value.
@@ -105,7 +139,7 @@ export interface ExperimentScenarioRunProps {
 export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
   scenario,
   context,
-  values,
+  inputs,
   sweepable,
   onInputsChange,
 }) => {
@@ -130,7 +164,7 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
       scenarioId: scenario.id,
       seededFrom: scenarioContent,
       seed: (run?.seed ?? 0) + 1,
-      variables: classicRunVariables(scenario, values),
+      variables: seedRunVariables(scenario, inputs),
     });
   }
 
@@ -159,8 +193,22 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
     if (hirState.hir === null) {
       return { ready: false as const, notice: "Computing the state preview…" };
     }
+    // A fixed input previews as given. A swept one previews at the start of
+    // its range — the first combination the sweep runs — and the notice
+    // says so, since the panel promises the exact state each run starts
+    // with and a swept parameter has one per combination.
+    const previewValues = createUserKeyedRecord<string>();
+    const sweptAtStart: string[] = [];
+    for (const [identifier, input] of Object.entries(inputs)) {
+      if (input.mode === "fixed") {
+        previewValues[identifier] = input.value;
+      } else {
+        previewValues[identifier] = String(input.min);
+        sweptAtStart.push(`${identifier} = ${input.min}`);
+      }
+    }
     const numericValues = createUserKeyedRecord<number>();
-    for (const [identifier, value] of Object.entries(values)) {
+    for (const [identifier, value] of Object.entries(previewValues)) {
       const parsed = Number(value);
       if (Number.isFinite(parsed)) {
         numericValues[identifier] = parsed;
@@ -186,19 +234,24 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
       scenario,
       outcome.result.initialState,
       { places: context.places, types: context.types },
-      values,
+      previewValues,
     );
+    const notices = [
+      sweptAtStart.length > 0
+        ? `Swept parameters shown at the start of their ranges: ${sweptAtStart.join(", ")}`
+        : null,
+      materialized.truncated.length > 0
+        ? `Preview truncated: ${materialized.truncated
+            .map(
+              (cut) =>
+                `${cut.placeName} shows ${cut.shown} of ${cut.total} rows`,
+            )
+            .join(" · ")}`
+        : null,
+    ].filter((notice) => notice !== null);
     return {
       ready: true as const,
-      notice:
-        materialized.truncated.length > 0
-          ? `Preview truncated: ${materialized.truncated
-              .map(
-                (cut) =>
-                  `${cut.placeName} shows ${cut.shown} of ${cut.total} rows`,
-              )
-              .join(" · ")}`
-          : null,
+      notice: notices.length > 0 ? notices.join(" · ") : null,
       places: materialized.state.places,
       netParameters: context.netParameters.flatMap((parameter) => {
         const resolved = outcome.result.parameterValues[parameter.variableName];
@@ -238,7 +291,7 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
           )}
           <Section
             title="Computed state"
-            tooltip="The exact parameter values and initial tokens each run starts with, computed from the scenario with the values above."
+            tooltip="The exact parameter values and initial tokens each run starts with, computed from the scenario with the values above. A swept parameter shows at the start of its range."
             collapsible
             defaultOpen={false}
             onOpenChange={setComputedOpen}

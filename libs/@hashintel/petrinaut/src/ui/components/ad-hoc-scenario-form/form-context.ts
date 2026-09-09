@@ -80,9 +80,10 @@ export interface AdHocFormServices {
   formState: AdHocScenarioState;
   /**
    * The one write path: every edit is a serializable action applied by the
-   * pure reducer in petrinaut-core and recorded as an undo step.
+   * pure reducer in petrinaut-core and recorded as an undo step. A batch of
+   * actions applies in order and records one step.
    */
-  dispatch: (action: AdHocAction) => void;
+  dispatch: (action: AdHocAction | AdHocAction[]) => void;
   /** The net the form resolves names and types against. */
   synthesisContext: AdHocSynthesisContext;
   /** What selecting a value means here; "none" hides the toggles. */

@@ -414,14 +414,29 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                   size="sm"
                   aria-label={`Type of ${variable.name}`}
                   value={variable.type}
-                  onChange={(type) =>
-                    dispatch({
-                      type: "setVariableType",
+                  onChange={(type) => {
+                    const setType = {
+                      type: "setVariableType" as const,
                       placeId,
                       index,
                       variableType: type,
-                    })
-                  }
+                    };
+                    // A selection the new type cannot carry (a swept
+                    // Variable turned boolean) would linger with nothing to
+                    // clear it and refuse the run, so it turns off with the
+                    // type, as one undo step.
+                    dispatch(
+                      toggleColumn !== null &&
+                        toggleColumn !== "expose" &&
+                        variable.optimize !== null &&
+                        !adHocSelectionApplies(toggleColumn, type)
+                        ? [
+                            setType,
+                            { type: "toggleSelection", target, on: false },
+                          ]
+                        : setType,
+                    );
+                  }}
                   items={[
                     { value: "real", text: "Real" },
                     { value: "integer", text: "Integer" },
@@ -450,8 +465,11 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                   onFocus={() => setFocusedValue(target)}
                   onBlur={() => setFocusedValue(null)}
                 >
+                  {/* A selection already on the Variable keeps its toggle
+                      whatever the type, so it can always be turned off. */}
                   {toggleColumn === "expose" ||
-                  adHocSelectionApplies(toggleColumn, variable.type) ? (
+                  adHocSelectionApplies(toggleColumn, variable.type) ||
+                  variable.optimize !== null ? (
                     <OptimizeToggle
                       text={adHocSelectionText(toggleColumn)}
                       label={`${adHocSelectionText(toggleColumn)} ${variable.name}`}

@@ -948,19 +948,6 @@ export const CreateExperimentDrawer = ({
     metricDrafts.length === 0
       ? "Define at least one metric"
       : metricDiagnosticError;
-  /**
-   * The sweep the current interval inputs define. `error` carries the first
-   * invalid interval; `null` summary means no parameter sweeps, i.e. a plain
-   * single-combination experiment.
-   */
-  // The ad-hoc worksheet edits fixed values only; a swept parameter keeps its
-  // range and shows as blank there.
-  const fixedParamValues: Record<string, string> = {};
-  for (const [identifier, input] of Object.entries(paramInputs)) {
-    if (input.mode === "fixed") {
-      fixedParamValues[identifier] = input.value;
-    }
-  }
 
   // The net the ad-hoc form resolves names and types against, shared by the
   // form and by the sweep summary that reads its selections.
@@ -974,6 +961,11 @@ export const CreateExperimentDrawer = ({
     enableParameterSweeps &&
     effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
 
+  /**
+   * The sweep the current interval inputs define. `error` carries the first
+   * invalid interval; `null` summary means no parameter sweeps, i.e. a plain
+   * single-combination experiment.
+   */
   const sweepSummary = ((): {
     text: string;
     tone: "neutral" | "warning" | "error";
@@ -1309,7 +1301,7 @@ export const CreateExperimentDrawer = ({
                   <ExperimentScenarioRun
                     scenario={selectedScenario}
                     context={adHocFormContext}
-                    values={fixedParamValues}
+                    inputs={paramInputs}
                     sweepable={enableParameterSweeps}
                     onInputsChange={(updates) =>
                       setParamInputs((prev) => {
