@@ -6,6 +6,8 @@ import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 import {
   joinedRootArcInputSchema,
   parseJoinedRootArcInput,
+  observedArcInputSchema,
+  parseObservedArcInput,
 } from "../src/root-arc";
 import {
   createJoinedRootArcTool,
@@ -25,6 +27,45 @@ const input = {
 };
 
 describe("native canonical input ownership", () => {
+  test.each(["addArc", "updateArcWeight"] as const)(
+    "carries exact native %s inputs with a separately required earlier-read envelope",
+    (name) => {
+      const generated = observedArcInputSchema(name).toJSONSchema({
+        io: "input",
+      });
+      const { brunch: _brunch, ...properties } = generated.properties ?? {};
+      expect({
+        ...generated,
+        properties,
+        required: generated.required?.filter((key) => key !== "brunch"),
+      }).toEqual(
+        petrinautAiTools[name].inputSchema.toJSONSchema({ io: "input" }),
+      );
+      const { type: _type, ...weightInput } = input;
+      const raw = {
+        ...(name === "addArc" ? input : weightInput),
+        brunch: { ...input.brunch, observationToolCallId: "earlier-read" },
+      };
+      expect(parseObservedArcInput(name, raw)).toEqual(raw);
+      expect(() =>
+        parseObservedArcInput(name, { ...raw, brunch: input.brunch }),
+      ).toThrow(z.ZodError);
+      expect(() =>
+        parseObservedArcInput(name, { ...raw, weight: true }),
+      ).toThrow(z.ZodError);
+    },
+  );
+  test("does not invent numeric-string normalization for canonical weight corrections", () => {
+    const { type: _type, ...canonical } = input;
+    expect(() =>
+      parseObservedArcInput("updateArcWeight", {
+        ...canonical,
+        weight: "2",
+        brunch: { ...input.brunch, observationToolCallId: "earlier" },
+      }),
+    ).toThrow(z.ZodError);
+  });
+
   test("composes only Brunch's envelope and preserves the native root description", () => {
     const generated = z.toJSONSchema(joinedRootArcInputSchema, { io: "input" });
     const { brunch: _brunch, ...properties } = generated.properties ?? {};

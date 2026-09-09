@@ -7,6 +7,7 @@ import {
   deriveArcEffects,
   observedArcOutcome,
   parseJoinedRootArcInput,
+  parseObservedArcInput,
   reconcileArcTransitionAttempts,
   verifyArcTransitionAttempt,
   type ArcMutationRequest,
@@ -69,7 +70,7 @@ export const createBrowserTransitionRecorder = ({
   const executeMutation: MutationExecutor = (call) => {
     const request = structuredClone(requestFor(call.toolCallId));
     if (
-      call.toolName !== "addArc" ||
+      call.toolName !== request.toolName ||
       request.toolCallId !== call.toolCallId ||
       canonicalContent(request.input) !== canonicalContent(call.input)
     ) {
@@ -203,11 +204,15 @@ export const createBrowserTransitionRecorder = ({
 export const createJoinedBrowserTransitionRecorder = (input: {
   handle: PetrinautDocHandle;
   binding: ArcMutationRequest["binding"];
-  requestedBaseHash: string;
+  requestedBaseHash?: string;
+  construction?: true;
 }) => {
+  if (!input.construction && !input.requestedBaseHash)
+    throw new Error("Legacy recorder requires its immutable original base.");
   const binding = structuredClone(input.binding);
   const requestedBaseHash = input.requestedBaseHash;
   const issuedReads = new Set<string>();
+  const observedReads = new Map<string, string>();
   const issued = new Map<
     string,
     { request: ArcMutationRequest; envelope: unknown }
@@ -218,6 +223,14 @@ export const createJoinedBrowserTransitionRecorder = (input: {
     requestFor: (toolCallId) => {
       const request = issued.get(toolCallId);
       if (!request) throw new Error("Unknown issued root arc request.");
+      if (
+        input.construction &&
+        observedReads.get(request.request.observationToolCallId ?? "") !==
+          request.request.requestedBaseHash
+      )
+        throw new Error(
+          "Construction requires the cited earlier verified browser read; after reopen obtain a fresh read.",
+        );
       return structuredClone(request.request);
     },
   });
@@ -228,14 +241,24 @@ export const createJoinedBrowserTransitionRecorder = (input: {
       issuedReads.add(call.toolCallId);
       return call.input;
     }
-    if (call.toolName !== "addArc") return call.input;
-    const { brunch, ...canonicalInput } = parseJoinedRootArcInput(call.input);
-    if (brunch.requestedBaseHash !== requestedBaseHash)
+    if (
+      call.toolName !== "addArc" &&
+      !(input.construction && call.toolName === "updateArcWeight")
+    )
+      return call.input;
+    const name = call.toolName as "addArc" | "updateArcWeight";
+    const { brunch, ...canonicalInput } = input.construction
+      ? parseObservedArcInput(name, call.input)
+      : parseJoinedRootArcInput(call.input);
+    if (!input.construction && brunch.requestedBaseHash !== requestedBaseHash)
       throw new Error("Root arc cites another issued base.");
     const request: ArcMutationRequest = {
       toolCallId: call.toolCallId,
-      toolName: "addArc",
+      toolName: name,
       input: canonicalInput,
+      ...("observationToolCallId" in brunch
+        ? { observationToolCallId: String(brunch.observationToolCallId) }
+        : {}),
       binding,
       requestedBaseHash: brunch.requestedBaseHash,
     };
@@ -264,11 +287,16 @@ export const createJoinedBrowserTransitionRecorder = (input: {
         throw new Error(
           "Browser read output differs from the independently observed live handle.",
         );
+      observedReads.set(result.toolCallId, observed.sha256);
       return {
         observation: { toolCallId: result.toolCallId, binding, observed },
       };
     }
-    if (result.toolName !== "addArc") return undefined;
+    if (
+      result.toolName !== "addArc" &&
+      !(input.construction && result.toolName === "updateArcWeight")
+    )
+      return undefined;
     const transitionRecord = recorder
       .records()
       .find(
@@ -285,6 +313,8 @@ export const createJoinedBrowserTransitionRecorder = (input: {
     ...recorder,
     mapClientToolInput,
     clientToolResultMetadata,
-    validatedClientToolNames: new Set(["addArc"]),
+    validatedClientToolNames: new Set(
+      input.construction ? ["addArc", "updateArcWeight"] : ["addArc"],
+    ),
   };
 };

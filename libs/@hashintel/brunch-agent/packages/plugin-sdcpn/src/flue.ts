@@ -16,13 +16,16 @@ import {
 
 import { sha256Pattern } from "./declared-basis";
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
-import { browserBindingSchema } from "./root-arc";
+import { browserBindingSchema, conversationConstructionMode } from "./root-arc";
 import {
   SDCPN_MODELLING_SKILL_NAME,
   sdcpnModellingSkill,
 } from "./skills/sdcpn-modelling/skill";
 import {
   createJoinedRootArcTool,
+  createObservedArcTool,
+  observedDefinitionReadTool,
+  observedConstructionBrowserToolNames,
   petrinautConstructionTools,
   petrinautFixtureTools,
 } from "./tools/petrinaut-construction";
@@ -31,6 +34,7 @@ import {
   readPetrinautDoc,
 } from "./tools/read-petrinaut-doc";
 
+export { conversationConstructionMode } from "./root-arc";
 export const VALIDATED_CONSTRUCTION_MODE = "validated-construction";
 export const validatedFixtureMutationMode = preparedWorkpieceInitialDataMode;
 
@@ -40,7 +44,11 @@ export const sdcpnInitialDataSchema = v.optional(
       mode: v.picklist([
         VALIDATED_CONSTRUCTION_MODE,
         validatedFixtureMutationMode,
+        conversationConstructionMode,
       ]),
+      construction: v.optional(
+        v.strictObject({ binding: browserBindingSchema }),
+      ),
       browser: v.optional(
         v.strictObject({
           binding: browserBindingSchema,
@@ -54,6 +62,13 @@ export const sdcpnInitialDataSchema = v.optional(
         data.mode === validatedFixtureMutationMode,
       "Browser binding is admitted only for the prepared root-arc tracer.",
     ),
+    v.check(
+      (data) =>
+        data.mode === conversationConstructionMode
+          ? data.construction !== undefined && data.browser === undefined
+          : data.construction === undefined,
+      "Construction requires a distinct immutable binding and mode.",
+    ),
   ),
 );
 
@@ -62,6 +77,10 @@ export type SdcpnInitialData = v.InferOutput<typeof sdcpnInitialDataSchema>;
 /** Mount the prompt material, skill, and conditional tools owned by the SDCPN plugin. */
 export function useSdcpnPlugin(options?: {
   currentRevision: WorkpieceRevision | null;
+  observationFor?: (
+    id: string,
+    creation?: import("./transition-record").ArcMutationRequest["input"],
+  ) => Promise<import("./transition-record").DefinitionObservation>;
   retainedRevisionFor: (
     revisionId: string,
   ) => Promise<WorkpieceRevision | undefined>;
@@ -73,7 +92,32 @@ export function useSdcpnPlugin(options?: {
   useSkill(sdcpnModellingSkill);
   useTool(readPetrinautDoc);
 
-  if (initialData?.mode === VALIDATED_CONSTRUCTION_MODE) {
+  if (initialData?.mode === conversationConstructionMode) {
+    if (!initialData.construction || !options?.observationFor)
+      throw new Error(
+        "Conversation construction requires authorized observations.",
+      );
+    useAgentStart(({ append }) =>
+      append({
+        kind: "signal",
+        type: "brunch.construction-binding",
+        tagName: "brunch.construction-binding",
+        body: JSON.stringify(initialData.construction),
+      }),
+    );
+    useInstruction(
+      "This is a synthetic candidate conversation-bound construction path, not provider-class or genuine construction admission. No prepared workpiece is supplied. Elicit and settle the actual workpiece via update_workpiece. Use brunch_workpiece to obtain source IDs and settled passage locators. Before each mutation obtain getLatestNetDefinition and cite its result metadata.observation.toolCallId and metadata.observation.observed.sha256 as brunch.observationToolCallId and brunch.requestedBaseHash, alongside explicit settled basis. Never infer a latest/sibling base or reconstruct one at execution. Only root addArc and updateArcWeight are currently available; other required operations must be disclosed as unavailable, never silently replaced. Submit one browser call per proposal and wait for its result; stale, unknown, conflicting, failed and no-op attempts are not causes and must not be reapplied.",
+    );
+    for (const name of observedConstructionBrowserToolNames)
+      useTool(
+        name === "getLatestNetDefinition"
+          ? observedDefinitionReadTool
+          : createObservedArcTool(name, {
+              ...options,
+              observationFor: options.observationFor,
+            }),
+      );
+  } else if (initialData?.mode === VALIDATED_CONSTRUCTION_MODE) {
     useInstruction(
       `
 This is a construct-only headless conversation. Use only the supplied runbook IR as modelling input, do not interview, and build the net through the mounted Petrinaut tools instead of emitting net JSON.
@@ -129,6 +173,7 @@ export { READ_PETRINAUT_DOC_TOOL_NAME, readPetrinautDoc };
 export { SDCPN_MODELLING_SKILL_NAME };
 export {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+  observedConstructionBrowserToolNames,
   petrinautFixtureToolNames,
   petrinautConstructionTools,
   petrinautFixtureTools,

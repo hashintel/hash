@@ -16,6 +16,10 @@ import {
 import { createPortal } from "react-dom";
 
 import {
+  conversationConstructionMode,
+  observedConstructionBrowserToolNames,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
@@ -67,6 +71,7 @@ import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import {
   isCrewReservationFixtureSelected,
   isRootArcTracerSelected,
+  isConstructionSelected,
 } from "./local-storage-demo-search";
 import {
   crewReservationDocumentId,
@@ -116,6 +121,10 @@ const preparedCrewReservationStoredSDCPN: SDCPNInLocalStorage = {
   lastUpdated: new Date(0).toISOString(),
 };
 
+const constructionDocumentId = "synthetic-construction-substrate-v1";
+const constructionClientToolNames = new Set(
+  observedConstructionBrowserToolNames,
+);
 const rootArcTracerDocumentId = `${crewReservationDocumentId}:root-arc`;
 const createRootArcTracerDocument = (): SDCPNInLocalStorage => ({
   ...preparedCrewReservationStoredSDCPN,
@@ -365,14 +374,26 @@ export const LocalStorageDemoApp = ({
    * endpoint there is no Flue client to prepare the conversation, so the URL
    * falls back to the ordinary demo rather than a banner stuck on preparing.
    */
+  const constructionSelected =
+    brunchPreviewConfig.isBrunchConfigured && isConstructionSelected(search);
+  const tracerDocumentId = constructionSelected
+    ? constructionDocumentId
+    : rootArcTracerDocumentId;
   const crewReservationFixtureSelected =
     brunchPreviewConfig.isBrunchConfigured &&
-    isCrewReservationFixtureSelected(search);
+    (isCrewReservationFixtureSelected(search) || constructionSelected);
   const rootArcTracerSelected =
-    crewReservationFixtureSelected && isRootArcTracerSelected(search);
-  const [initialTracerDocument] = useState(createRootArcTracerDocument);
+    crewReservationFixtureSelected &&
+    (isRootArcTracerSelected(search) || constructionSelected);
+  const [initialTracerDocument] = useState(() => ({
+    ...createRootArcTracerDocument(),
+    id: tracerDocumentId,
+    ...(constructionSelected
+      ? { title: "Synthetic construction substrate — no prepared workpiece" }
+      : {}),
+  }));
   const fixtureDocumentId = rootArcTracerSelected
-    ? rootArcTracerDocumentId
+    ? tracerDocumentId
     : crewReservationDocumentId;
   const crewReservationBundle =
     crewReservationFixtureSelected && !rootArcTracerSelected
@@ -385,7 +406,7 @@ export const LocalStorageDemoApp = ({
   const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(
     storedSDCPNs,
     rootArcTracerSelected
-      ? (storedSDCPNs[rootArcTracerDocumentId] ?? initialTracerDocument)
+      ? (storedSDCPNs[tracerDocumentId] ?? initialTracerDocument)
       : crewReservationBundle?.selectedDocument,
   );
 
@@ -479,7 +500,7 @@ export const LocalStorageDemoApp = ({
     }
 
     const { fallbackNet, handle, netId } = activeHandle;
-    if (netId === rootArcTracerDocumentId) {
+    if (netId === rootArcTracerDocumentId || netId === constructionDocumentId) {
       setStoredSDCPNs((previous) => ({
         ...previous,
         [netId]: {
@@ -615,7 +636,7 @@ export const LocalStorageDemoApp = ({
     currentNetId === null
       ? null
       : tracerIsCurrent && activeHandle?.fallbackNet.incarnationId
-        ? `prepared-root-arc:${activeHandle.fallbackNet.incarnationId}`
+        ? `${constructionSelected ? "construction-candidate-v1" : "prepared-root-arc"}:${activeHandle.fallbackNet.incarnationId}`
         : (fixtureConfiguration?.conversationId ??
           getOrCreateBrunchConversationId(currentNetId));
   const flueClientPromise = useMemo(
@@ -637,7 +658,7 @@ export const LocalStorageDemoApp = ({
       !activeHandle ||
       !conversationId ||
       !net?.incarnationId ||
-      !net.rootArcRequestedBaseHash
+      (!constructionSelected && !net.rootArcRequestedBaseHash)
     )
       return undefined;
     return {
@@ -646,9 +667,11 @@ export const LocalStorageDemoApp = ({
         documentId: activeHandle.netId,
         incarnationId: net.incarnationId,
       },
-      requestedBaseHash: net.rootArcRequestedBaseHash,
+      ...(constructionSelected
+        ? { construction: true as const }
+        : { requestedBaseHash: net.rootArcRequestedBaseHash! }),
     };
-  }, [tracerIsCurrent, activeHandle, conversationId]);
+  }, [tracerIsCurrent, activeHandle, conversationId, constructionSelected]);
   // The handle mutates behind a stable identity. Subscribe to its real snapshot;
   // a render-time read alone can be memoized by React Compiler across hand edits.
   const observedLiveHash = useSyncExternalStore(
@@ -674,13 +697,20 @@ export const LocalStorageDemoApp = ({
   );
   const tracerPreparation = usePrepareCrewReservationConversation(
     flueClientPromise,
-    rootArcBrowser !== undefined,
-    rootArcBrowser,
+    rootArcBrowser !== undefined && !constructionSelected,
+    rootArcBrowser && "requestedBaseHash" in rootArcBrowser
+      ? {
+          binding: rootArcBrowser.binding,
+          requestedBaseHash: rootArcBrowser.requestedBaseHash,
+        }
+      : undefined,
   );
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
-    fixtureConfiguration?.clientToolNames,
+    constructionSelected
+      ? constructionClientToolNames
+      : fixtureConfiguration?.clientToolNames,
     transitionRecorder?.mapClientToolInput ??
       fixtureConfiguration?.mapClientToolInput,
     transitionRecorder?.validatedClientToolNames,
@@ -706,21 +736,33 @@ export const LocalStorageDemoApp = ({
     settledManifest,
     snapshotMissing: crewReservationBundle?.snapshotMissing ?? false,
   });
-  const transportClientPromise = tracerIsCurrent
-    ? tracerPreparation.clientPromise
-    : fixtureConfiguration === undefined
-      ? flueClientPromise
-      : crewReservationSession.transportClientPromise;
+  const transportClientPromise = constructionSelected
+    ? flueClientPromise
+    : tracerIsCurrent
+      ? tracerPreparation.clientPromise
+      : fixtureConfiguration === undefined
+        ? flueClientPromise
+        : crewReservationSession.transportClientPromise;
   const petrinautAiChatTransport = useMemo(() => {
     if (transportClientPromise !== null) {
       return createBrunchPanelTransport(
         transportClientPromise,
         conversationTracker,
         {
+          ...(constructionSelected && rootArcBrowser
+            ? {
+                initialData: {
+                  mode: conversationConstructionMode,
+                  construction: { binding: rootArcBrowser.binding },
+                },
+              }
+            : {}),
           ...(fixtureConfiguration === undefined
             ? {}
             : {
-                clientToolNames: fixtureConfiguration.clientToolNames,
+                clientToolNames: constructionSelected
+                  ? constructionClientToolNames
+                  : fixtureConfiguration.clientToolNames,
                 mapClientToolInput:
                   transitionRecorder?.mapClientToolInput ??
                   fixtureConfiguration.mapClientToolInput,
@@ -740,6 +782,8 @@ export const LocalStorageDemoApp = ({
       : stockChatTransport;
   }, [
     conversationTracker,
+    constructionSelected,
+    rootArcBrowser,
     crewReservationSession.transportUnavailableReason,
     fixtureConfiguration,
     flueHistory.refresh,
@@ -825,7 +869,24 @@ export const LocalStorageDemoApp = ({
         width: "100vw",
       }}
     >
+      {constructionSelected && (
+        <div
+          style={{
+            position: "fixed",
+            top: 8,
+            left: 80,
+            zIndex: 10000,
+            background: "white",
+            padding: 8,
+          }}
+        >
+          Synthetic construction candidate · prepared net substrate only · no
+          prepared workpiece · root arc/weight mechanics, not genuine or
+          provider admission
+        </div>
+      )}
       {tracerIsCurrent &&
+        !constructionSelected &&
         createPortal(
           <RootArcTracerBanner status={tracerPreparation.status} />,
           document.body,
@@ -833,6 +894,7 @@ export const LocalStorageDemoApp = ({
       {tracerIsCurrent && rootArcBrowser && (
         <BrunchWorkpiecePane
           messages={flueHistory.snapshot?.messages ?? []}
+          construction={constructionSelected}
           binding={rootArcBrowser.binding}
           liveHash={observedLiveHash}
         />

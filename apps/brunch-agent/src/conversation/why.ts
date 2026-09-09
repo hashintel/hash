@@ -5,6 +5,7 @@ import {
   canonicalContent,
   locateRootArc,
   parseJoinedRootArcInput,
+  parseObservedArcInput,
   reconcileArcTransitionAttempts,
   reconcileDefinitionObservations,
   rootArcWhyInputSchema,
@@ -32,7 +33,8 @@ import type {
 
 type Browser = {
   binding: ArcMutationRequest["binding"];
-  requestedBaseHash: string;
+  requestedBaseHash?: string;
+  construction?: true;
 };
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -149,6 +151,12 @@ export interface RootArcExplanation {
       }[];
     }[];
   };
+  originToolCallId?: string;
+  appliedChanges?: {
+    toolCallId: string;
+    operation: string;
+    basis: ReturnType<typeof parseJoinedRootArcInput>["brunch"]["basis"];
+  }[];
   recordedChange?: {
     toolCallId: string;
     preHash: string;
@@ -206,7 +214,11 @@ export const explainRootArc = async (input: {
       if (message.role !== "assistant" || message.purpose !== "assistant")
         continue;
       for (const [partIndex, call] of message.parts.entries()) {
-        if (call.type !== "dynamic-tool" || call.toolName !== "addArc")
+        if (
+          call.type !== "dynamic-tool" ||
+          (call.toolName !== "addArc" &&
+            !(browser.construction && call.toolName === "updateArcWeight"))
+        )
           continue;
         if (
           call.state !== "output-available" ||
@@ -218,9 +230,25 @@ export const explainRootArc = async (input: {
           });
           continue;
         }
-        const { brunch, ...canonicalInput } = parseJoinedRootArcInput(
-          call.input,
-        );
+        const name = call.toolName as "addArc" | "updateArcWeight";
+        const { brunch, ...canonicalInput } = browser.construction
+          ? parseObservedArcInput(name, call.input)
+          : parseJoinedRootArcInput(call.input);
+        const observationToolCallId =
+          "observationToolCallId" in brunch
+            ? String(brunch.observationToolCallId)
+            : undefined;
+        if (browser.construction) {
+          const observedBase = await recordedBrowserObservation(
+            { ...snapshot, messages: snapshot.messages.slice(0, callIndex) },
+            browser,
+            observationToolCallId ?? "",
+          );
+          if (observedBase.sha256 !== brunch.requestedBaseHash)
+            throw new Error(
+              "Mutation did not cite an earlier verified raw base.",
+            );
+        }
         const deliveries = results.filter(
           (result) => result.toolCallId === call.toolCallId,
         );
@@ -242,7 +270,7 @@ export const explainRootArc = async (input: {
             "Conflicting browser deliveries are unknown attempts, not causes.",
           );
         if (
-          first.toolName !== "addArc" ||
+          first.toolName !== name ||
           !record(first.metadata) ||
           !record(first.metadata.transitionRecord) ||
           !Array.isArray(first.metadata.transitionRecord.attempts)
@@ -250,12 +278,18 @@ export const explainRootArc = async (input: {
           throw new Error("Missing verified browser transition record.");
         const expected: ArcMutationRequest = {
           toolCallId: call.toolCallId,
-          toolName: "addArc",
+          toolName: name,
           input: canonicalInput,
           binding: browser.binding,
-          requestedBaseHash: browser.requestedBaseHash,
+          requestedBaseHash: brunch.requestedBaseHash,
+          ...(observationToolCallId === undefined
+            ? {}
+            : { observationToolCallId }),
         };
-        if (brunch.requestedBaseHash !== browser.requestedBaseHash)
+        if (
+          !browser.construction &&
+          brunch.requestedBaseHash !== browser.requestedBaseHash
+        )
           throw new Error("Issued base differs from the bound conversation.");
         const attempts = await Promise.all(
           first.metadata.transitionRecord.attempts.map(async (raw: unknown) => {
@@ -291,6 +325,15 @@ export const explainRootArc = async (input: {
         });
         const attempt = attempts[0];
         if (!attempt) throw new Error("Browser outcome has no observation.");
+        if (
+          browser.construction &&
+          lastRecorded &&
+          canonicalContent(lastRecorded.definition) !==
+            canonicalContent(attempt.pre.definition)
+        )
+          throw new Error(
+            "Unrecorded intervening content changes prevent construction attribution; field reconciliation is unavailable.",
+          );
         lastRecorded ??= attempt.pre;
         lastRecordedCallId ??= call.toolCallId;
         if (reconciled.outcome === "unknown")
@@ -364,11 +407,24 @@ export const explainRootArc = async (input: {
     }
     const target = locateRootArc((observed ?? lastRecorded).definition, query);
     answer.target = target;
-    const governing = changes.findLast(
+    const targetChanges = changes.filter(
       (change) =>
         change.attempt.request.input.transitionId === target.transitionId &&
         change.attempt.request.input.placeId === target.placeId &&
         change.attempt.request.input.arcDirection === target.arcDirection,
+    );
+    answer.originToolCallId = targetChanges.find(
+      (change) => change.attempt.request.toolName === "addArc",
+    )?.callId;
+    answer.appliedChanges = targetChanges.map((change) => ({
+      toolCallId: change.callId,
+      operation: change.attempt.request.toolName,
+      basis: change.basis,
+    }));
+    const governing = targetChanges.findLast(
+      (change) =>
+        query.field === "weight" ||
+        change.attempt.request.toolName === "addArc",
     );
     if (!governing) {
       answer.disposition = "external";
@@ -379,7 +435,13 @@ export const explainRootArc = async (input: {
     const { attempt, basis, callId, callIndex, partIndex } = governing;
     if (
       !attempt.post ||
-      !attempt.effects.created.some((effect) => effect.path === target.arcPath)
+      !(
+        attempt.effects.created.some(
+          (effect) => effect.path === target.arcPath,
+        ) ||
+        (query.field === "weight" &&
+          attempt.effects.updated.some((effect) => effect.path === target.path))
+      )
     )
       throw new Error("The queried item is not a mapped recorded effect.");
     answer.recordedChange = {

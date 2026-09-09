@@ -33,6 +33,7 @@ import { CLIENT_TOOL_RESULT_SIGNAL } from "../../conversation/client-tools.ts";
 import {
   retainedSettledRevision,
   verifyRootArcResults,
+  assertArcNotRetired,
 } from "../../conversation/root-arc.ts";
 import {
   createRootArcWhyTool,
@@ -56,6 +57,9 @@ const testCompactionConfig = loadTestCompactionConfig();
 export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
   const delivery = useDelivery();
+  const browserContext = initialData?.construction
+    ? { ...initialData.construction, construction: true as const }
+    : initialData?.browser;
   // Agent-local acquisition of this already-authorized instance's public history.
   // Reuse the existing router and storage; no listener, companion log or private records.
   const history = () => {
@@ -107,20 +111,38 @@ export function ChatAgent({ id }: AgentProps) {
         currentRevision,
         retainedRevisionFor: async (revisionId) =>
           retainedSettledRevision(await history(), revisionId),
+        ...(initialData?.construction
+          ? {
+              observationFor: async (
+                callId: string,
+                creation?: import("@hashintel/brunch-agent-plugin-sdcpn").ArcMutationRequest["input"],
+              ) => {
+                const snapshot = await history();
+                const observed = await recordedBrowserObservation(
+                  snapshot,
+                  initialData.construction!,
+                  callId,
+                );
+                if (creation)
+                  await assertArcNotRetired(snapshot, observed, creation);
+                return observed;
+              },
+            }
+          : {}),
       });
-      if (initialData?.browser) {
+      if (browserContext) {
         useTool(createWorkpieceReadTool({ currentRevision, readSources }));
         useTool(
           createRootArcWhyTool({
             current: currentRevision,
-            browser: initialData.browser,
+            browser: browserContext,
             history,
             activeObservationCallIds,
           }),
         );
       }
     },
-    ...(initialData?.browser
+    ...(browserContext
       ? ([
           async (current: WorkpieceRevision | null) =>
             workpieceEvidenceSources(await history(), current),
@@ -129,7 +151,7 @@ export function ChatAgent({ id }: AgentProps) {
   );
   useAgentStart(async () => {
     if (
-      initialData?.browser &&
+      browserContext &&
       delivery.kind === "signal" &&
       (delivery.type === CLIENT_TOOL_RESULT_SIGNAL ||
         delivery.tagName === CLIENT_TOOL_RESULT_SIGNAL)
@@ -137,7 +159,7 @@ export function ChatAgent({ id }: AgentProps) {
       // Legacy recorded reads lack this optional sidecar. Only a why lookup that
       // actually cites an observation requires it; legacy continuation is unchanged.
       const snapshot = await history();
-      const browser = initialData.browser;
+      const browser = browserContext;
       await Promise.all(
         suppliedObservationCallIds.map((callId) =>
           recordedBrowserObservation(snapshot, browser, callId),
@@ -146,7 +168,27 @@ export function ChatAgent({ id }: AgentProps) {
       await verifyRootArcResults({
         body: delivery.body,
         snapshot,
-        ...initialData.browser,
+        ...browserContext,
+        ...(initialData?.construction
+          ? {
+              observationFor: async (callId: string, beforeCallId: string) => {
+                const index = snapshot.messages.findIndex((message) =>
+                  message.parts.some(
+                    (part) =>
+                      part.type === "dynamic-tool" &&
+                      part.toolCallId === beforeCallId,
+                  ),
+                );
+                if (index < 0)
+                  throw new Error("Unknown issued construction call.");
+                return recordedBrowserObservation(
+                  { ...snapshot, messages: snapshot.messages.slice(0, index) },
+                  browserContext,
+                  callId,
+                );
+              },
+            }
+          : {}),
       });
     }
   });

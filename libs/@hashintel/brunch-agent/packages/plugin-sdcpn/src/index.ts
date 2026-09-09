@@ -27,7 +27,11 @@ export {
 } from "./transition-record";
 
 export {
+  conversationConstructionMode,
+  observedConstructionBrowserToolNames,
   joinedRootArcInputSchema,
+  observedArcInputSchema,
+  parseObservedArcInput,
   parseJoinedRootArcInput,
   browserBindingSchema,
   rootArcEnvelopeSchema,

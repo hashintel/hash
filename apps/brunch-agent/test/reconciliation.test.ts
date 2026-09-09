@@ -6,7 +6,10 @@ import { expect, test } from "vitest";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { retainedSettledRevision } from "../src/conversation/root-arc.ts";
+import {
+  retainedSettledRevision,
+  assertArcNotRetired,
+} from "../src/conversation/root-arc.ts";
 import {
   explainRootArc,
   recordedBrowserObservation,
@@ -63,6 +66,33 @@ const query = {
   arcDirection: "input" as const,
   field: "entity" as const,
 };
+
+test("refuses recreation of a recorded arc identity after it disappears from a fresh observation", async () => {
+  const result = clientToolHistoryFrom(snapshot.messages).results.find(
+    (entry) => entry.toolName === "addArc",
+  );
+  if (!result) throw new Error("Missing original browser result");
+  const actual = (
+    result.metadata as {
+      transitionRecord: { attempts: ArcTransitionAttempt[] };
+    }
+  ).transitionRecord.attempts[0];
+  expect(actual?.post).toBeDefined();
+  if (!actual?.post) throw new Error("Missing original browser effect");
+  await expect(
+    assertArcNotRetired(snapshot, actual.pre, actual.request.input),
+  ).rejects.toThrow(/Retired/u);
+  await expect(
+    assertArcNotRetired(snapshot, actual.post, actual.request.input),
+  ).resolves.toBeUndefined();
+  await expect(
+    assertArcNotRetired(
+      { ...snapshot, messages: [] },
+      actual.pre,
+      actual.request.input,
+    ),
+  ).resolves.toBeUndefined();
+});
 
 test("labels an answer as of the last reconciled state when the live hash is unavailable", async () => {
   const answer = await explainRootArc({ snapshot, current, browser, query });

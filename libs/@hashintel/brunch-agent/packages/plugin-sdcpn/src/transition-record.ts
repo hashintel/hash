@@ -9,7 +9,7 @@ import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 /** First observation contract: the already-mounted, root-net addArc operation only. */
 export type ArcMutationRequest = {
   toolCallId: string;
-  toolName: "addArc";
+  toolName: "addArc" | "updateArcWeight";
   input: PetrinautAiToolInput<"addArc">;
   binding: {
     conversationId: string;
@@ -17,6 +17,8 @@ export type ArcMutationRequest = {
     incarnationId: string;
   };
   requestedBaseHash: string;
+  /** Required only in the distinct conversation-bound mode; legacy history is unchanged. */
+  observationToolCallId?: string;
 };
 
 export type DefinitionObservation = { definition: SDCPN; sha256: string };
@@ -105,7 +107,9 @@ export const deriveArcEffects = (
   pre: SDCPN,
   post: SDCPN,
 ): ArcEffects => {
-  const input = mutationActionInputSchemas.addArc.parse(request.input);
+  const input = mutationActionInputSchemas[request.toolName].parse(
+    request.input,
+  );
   if (input.targetSubnetId || typeof input.placeId !== "string") {
     throw new Error("Transition observation supports root place arcs only.");
   }
@@ -174,6 +178,21 @@ export const observedArcOutcome = (
     return unchanged ? "stale" : "unknown";
   if (unchanged) return "no-op";
   const effects = attempt.effects;
+  if (attempt.request.toolName === "updateArcWeight") {
+    const change = effects.updated[0];
+    const input = mutationActionInputSchemas.updateArcWeight.parse(
+      attempt.request.input,
+    );
+    return effects.derived.length === 0 &&
+      effects.created.length === 0 &&
+      effects.deleted.length === 0 &&
+      effects.updated.length === 1 &&
+      change?.kind === "updated" &&
+      change.path.endsWith("/weight") &&
+      change.after === input.weight
+      ? "applied"
+      : "unknown";
+  }
   if (
     effects.derived.length ||
     effects.updated.length ||
@@ -259,7 +278,7 @@ export const verifyArcTransitionAttempt = async (
   // Validate a detached delivery: callers cannot change the content while hashes settle.
   const attempt = structuredClone(delivery);
   if (
-    (attempt.request.toolName as string) !== "addArc" ||
+    !["addArc", "updateArcWeight"].includes(attempt.request.toolName) ||
     !/^[a-f0-9]{64}$/u.test(attempt.request.requestedBaseHash) ||
     [
       attempt.request.toolCallId,

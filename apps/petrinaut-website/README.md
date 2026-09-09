@@ -44,6 +44,12 @@ Ask why the input arc exists by its endpoint names or IDs. Brunch can read the l
 
 The ordinary configured host still uses its configured model. The explicit `test:browser-tracer` and `test:reopened-why` Brunch workspace scripts use synthetic native SDK responses, isolated storage and the existing ephemeral loopback-only listener, not external model requests. Before builds or probes, verify the process-tree guard in `libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/native-local-delivery/verify-network-guard.mjs`; use that directory's deny-network profile for builds and loopback-only profile for Chrome. Build the website with `VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat`. `M7_CHROME_PATH` selects an installed Chrome executable, and `M7_BROWSER_OUTPUT` selects a fresh evidence directory. The A5 witness restarts the application runtime and reloads Chrome against the original retained stores; it does not claim a second OS-process reopen, genuine testimony or utility acceptance.
 
+## Conversation-bound construction candidate
+
+With Brunch configured, `/?brunchTracer=construction` opens a separately identified, labelled synthetic net substrate. Its first ordinary user message initializes a new mode/incarnation-scoped conversation; there is no prepared workpiece dispatch or history import. Settle the workpiece, then read the document before each root `addArc` or `updateArcWeight`. Each mutation cites the earlier browser result ID and its exact observed raw hash, plus the settled workpiece basis. Reopening requires a fresh browser read before new mutation work. The original prepared and ordinary conversation modes are unchanged.
+
+This candidate proves only root arc/weight progression. Other root classes, deletion/recreation, arc connectivity changes, layout/title, components and subnets are unavailable, not silently approximated. The why result keeps origin separate from subsequent recorded changes and attempts; weight corrections resolve their own governing revision. Basis remains operation-level and semantic utility unassessed. Unrecorded intervening content prevents attribution; failed, stale, no-op and conflicting results are not causes. `test:construction-progression` uses actual Chrome with synthetic native SDK responses, not paid or genuine/provider-class admission.
+
 ## Example embeds and oEmbed
 
 Canonical example pages live below `/examples`. The JSON oEmbed endpoint at

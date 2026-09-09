@@ -10,6 +10,14 @@ import { declaredBasisSchema, sha256Schema } from "./declared-basis";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
+export const conversationConstructionMode =
+  "conversation-construction-candidate";
+export const observedConstructionBrowserToolNames = [
+  "getLatestNetDefinition",
+  "addArc",
+  "updateArcWeight",
+] as const;
+
 /** Names are conveniences; ambiguous names refuse rather than choosing an occurrence. */
 export const rootArcWhyInputSchema = v.strictObject({
   transition: v.string(),
@@ -88,6 +96,33 @@ export const joinedRootArcInputSchema = canonical
     },
   )
   .describe(petrinautAiTools.addArc.description);
+
+export const observedArcEnvelopeSchema = rootArcEnvelopeSchema.extend({
+  observationToolCallId: z.string().min(1),
+});
+const rootPlaceArc = (input: {
+  targetSubnetId?: string | null;
+  placeId?: string;
+}) => !input.targetSubnetId && typeof input.placeId === "string";
+const observedArcSchemas = {
+  addArc: petrinautAiTools.addArc.inputSchema
+    .safeExtend({ brunch: observedArcEnvelopeSchema })
+    .refine(rootPlaceArc, { message: "Only root place arcs are admitted." })
+    .describe(petrinautAiTools.addArc.description),
+  updateArcWeight: petrinautAiTools.updateArcWeight.inputSchema
+    .safeExtend({ brunch: observedArcEnvelopeSchema })
+    .refine(rootPlaceArc, { message: "Only root place arcs are admitted." })
+    .describe(petrinautAiTools.updateArcWeight.description),
+};
+export const observedArcInputSchema = (name: "addArc" | "updateArcWeight") =>
+  observedArcSchemas[name];
+export const parseObservedArcInput = (
+  name: "addArc" | "updateArcWeight",
+  input: unknown,
+) =>
+  observedArcInputSchema(name).parse(
+    normalizePetrinautAiToolInput(name, input),
+  );
 
 /** Shared explicit compatibility boundary for retained raw calls and browser execution. */
 export const parseJoinedRootArcInput = (input: unknown) =>

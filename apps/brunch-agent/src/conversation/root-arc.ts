@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import {
   canonicalContent,
   parseJoinedRootArcInput,
+  parseObservedArcInput,
+  type DefinitionObservation,
   reconcileArcTransitionAttempts,
   verifyArcTransitionAttempt,
   type ArcMutationRequest,
@@ -66,12 +68,77 @@ export const retainedSettledRevision = (
   return undefined;
 };
 
+/** Root arc identity is endpoint/direction scoped. A recorded deletion/recreation lifecycle is not admitted. */
+export const assertArcNotRetired = async (
+  snapshot: FlueConversationSnapshot,
+  observed: DefinitionObservation,
+  input: ArcMutationRequest["input"],
+): Promise<void> => {
+  const transition = observed.definition.transitions.find(
+    (entry) => entry.id === input.transitionId,
+  );
+  const direction = input.arcDirection === "input" ? "inputArcs" : "outputArcs";
+  if (
+    transition?.[direction].some(
+      (arc) => "placeId" in arc && arc.placeId === input.placeId,
+    )
+  )
+    return;
+  const results = clientToolHistoryFrom(snapshot.messages).results;
+  for (const result of results) {
+    if (
+      result.toolName !== "addArc" ||
+      !record(result.metadata) ||
+      !record(result.metadata.transitionRecord) ||
+      !Array.isArray(result.metadata.transitionRecord.attempts)
+    )
+      continue;
+    const verified = await Promise.all(
+      result.metadata.transitionRecord.attempts.map((raw: unknown) =>
+        verifyArcTransitionAttempt(raw as ArcTransitionAttempt),
+      ),
+    );
+    const reconciled = reconcileArcTransitionAttempts(verified);
+    for (const attempt of verified) {
+      const sameTarget =
+        attempt.request.input.transitionId === input.transitionId &&
+        attempt.request.input.placeId === input.placeId &&
+        attempt.request.input.arcDirection === input.arcDirection;
+      if (
+        sameTarget &&
+        (reconciled.outcome === "unknown" ||
+          results.some(
+            (other) =>
+              other.toolCallId === result.toolCallId &&
+              canonicalContent(other) !== canonicalContent(result),
+          ))
+      )
+        throw new Error(
+          "Unknown or conflicting arc attempts cannot establish an identity lifecycle; creation is unavailable.",
+        );
+      if (
+        reconciled.outcome === "applied" &&
+        attempt.request.input.transitionId === input.transitionId &&
+        attempt.request.input.placeId === input.placeId &&
+        attempt.request.input.arcDirection === input.arcDirection
+      )
+        throw new Error(
+          "Retired root arc identity cannot be reused; deletion/recreation is unavailable.",
+        );
+    }
+  }
+};
+
 /** Verify the incoming sidecar against this instance's issued canonical call before model continuation. */
 export const verifyRootArcResults = async (input: {
   body: string;
   snapshot: FlueConversationSnapshot;
   binding: ArcMutationRequest["binding"];
-  requestedBaseHash: string;
+  requestedBaseHash?: string;
+  observationFor?: (
+    id: string,
+    beforeCallId: string,
+  ) => Promise<DefinitionObservation>;
 }): Promise<void> => {
   const deliveries: unknown = JSON.parse(input.body);
   if (!Array.isArray(deliveries)) throw new Error("Malformed browser results.");
@@ -102,16 +169,43 @@ export const verifyRootArcResults = async (input: {
         throw new Error(
           "The browser result has no matching admitted canonical call.",
         );
-      if (call.toolName !== "addArc") return;
-      const { brunch, ...canonicalInput } = parseJoinedRootArcInput(call.input);
+      if (
+        call.toolName !== "addArc" &&
+        !(input.observationFor && call.toolName === "updateArcWeight")
+      )
+        return;
+      const name = call.toolName as "addArc" | "updateArcWeight";
+      const { brunch, ...canonicalInput } = input.observationFor
+        ? parseObservedArcInput(name, call.input)
+        : parseJoinedRootArcInput(call.input);
+      const observationToolCallId =
+        "observationToolCallId" in brunch
+          ? String(brunch.observationToolCallId)
+          : undefined;
+      if (input.observationFor) {
+        const observed = await input.observationFor(
+          observationToolCallId ?? "",
+          call.toolCallId,
+        );
+        if (observed.sha256 !== brunch.requestedBaseHash)
+          throw new Error(
+            "Mutation does not cite its earlier verified raw browser base.",
+          );
+      }
       const expected: ArcMutationRequest = {
         toolCallId: call.toolCallId,
-        toolName: "addArc",
+        toolName: name,
         input: canonicalInput,
+        ...(observationToolCallId === undefined
+          ? {}
+          : { observationToolCallId }),
         binding: input.binding,
         requestedBaseHash: brunch.requestedBaseHash,
       };
-      if (expected.requestedBaseHash !== input.requestedBaseHash)
+      if (
+        !input.observationFor &&
+        expected.requestedBaseHash !== input.requestedBaseHash
+      )
         throw new Error(
           "The issued browser base does not match the bound conversation.",
         );

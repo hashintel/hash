@@ -8,9 +8,12 @@ import {
 } from "@hashintel/petrinaut-core/ai";
 
 import { validateDeclaredBasis } from "../declared-basis";
-import { joinedRootArcInputSchema } from "../root-arc";
+import { joinedRootArcInputSchema, observedArcInputSchema } from "../root-arc";
 
-import type { ArcMutationRequest } from "../transition-record";
+import type {
+  DefinitionObservation,
+  ArcMutationRequest,
+} from "../transition-record";
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
 export { joinedRootArcInputSchema } from "../root-arc";
@@ -38,6 +41,56 @@ export const createJoinedRootArcTool = (options: {
         options.currentRevision,
         options.retainedRevisionFor,
       );
+      return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+    },
+  });
+
+export { observedConstructionBrowserToolNames } from "../root-arc";
+
+export const observedDefinitionReadTool = defineTool({
+  name: "getLatestNetDefinition",
+  description: petrinautAiTools.getLatestNetDefinition.description,
+  input: petrinautAiTools.getLatestNetDefinition.inputSchema,
+  output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+  run() {
+    return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+  },
+});
+
+export const createObservedArcTool = (
+  name: "addArc" | "updateArcWeight",
+  options: {
+    currentRevision: WorkpieceRevision | null;
+    retainedRevisionFor: (id: string) => Promise<WorkpieceRevision | undefined>;
+    observationFor: (
+      id: string,
+      creation?: ArcMutationRequest["input"],
+    ) => Promise<DefinitionObservation>;
+  },
+) =>
+  defineTool({
+    name,
+    description: `${petrinautAiTools[name].description}\nRoot place arcs only. Cite an earlier verified browser result's observationToolCallId and exact raw requestedBaseHash, and explicit settled brunch.basis.`,
+    input: observedArcInputSchema(name),
+    prepareArguments: (input) => normalizePetrinautAiToolInput(name, input),
+    output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+    async run({ data }) {
+      if (!options.currentRevision)
+        throw new Error("Settle the workpiece before construction.");
+      await validateDeclaredBasis(
+        data.brunch.basis,
+        options.currentRevision,
+        options.retainedRevisionFor,
+      );
+      const { brunch, ...input } = data;
+      const observed = await options.observationFor(
+        brunch.observationToolCallId,
+        name === "addArc" ? input : undefined,
+      );
+      if (observed.sha256 !== data.brunch.requestedBaseHash)
+        throw new Error(
+          "Mutation base differs from the earlier verified browser observation.",
+        );
       return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
     },
   });

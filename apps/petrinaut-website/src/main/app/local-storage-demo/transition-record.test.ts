@@ -11,6 +11,7 @@ import {
   createJsonDocHandle,
   createPetrinaut,
 } from "@hashintel/petrinaut-core";
+import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {
   preparedCrewReservationNet,
@@ -62,6 +63,87 @@ const setup = () => {
 };
 
 describe("browser transition adapter (canonical handle, not a real browser witness)", () => {
+  test("advances only by an explicitly cited earlier read for a distinct native weight correction", () => {
+    const fixture = setup();
+    const recorder = createJoinedBrowserTransitionRecorder({
+      handle: fixture.handle,
+      binding: fixture.request.binding,
+      construction: true,
+    });
+    const read = (toolCallId: string) => {
+      recorder.mapClientToolInput({
+        toolCallId,
+        toolName: "getLatestNetDefinition",
+        input: {},
+      });
+      recorder.clientToolResultMetadata({
+        toolCallId,
+        toolName: "getLatestNetDefinition",
+        output: { definition: structuredClone(fixture.handle.doc()) },
+      });
+      return observeBrowserDefinition(fixture.handle).sha256;
+    };
+    const base = read("before-add");
+    const first = {
+      ...fixture.request.input,
+      brunch: {
+        basis: { kind: "absent", reason: "Synthetic mechanics" },
+        observationToolCallId: "before-add",
+        requestedBaseHash: base,
+      },
+    };
+    const input = recorder.mapClientToolInput({
+      toolCallId: "add",
+      toolName: "addArc",
+      input: first,
+    });
+    recorder.executeMutation({
+      toolCallId: "add",
+      toolName: "addArc",
+      input: petrinautAiTools.addArc.inputSchema.parse(input),
+      execute: fixture.execute,
+    });
+    const nextBase = read("before-correction");
+    const correction = {
+      transitionId: startFinalInspectionTransitionId,
+      arcDirection: "input",
+      placeId: dispatchCrewPlaceId,
+      weight: 2,
+      brunch: {
+        basis: first.brunch.basis,
+        observationToolCallId: "before-correction",
+        requestedBaseHash: nextBase,
+      },
+    };
+    const next = recorder.mapClientToolInput({
+      toolCallId: "correct",
+      toolName: "updateArcWeight",
+      input: correction,
+    });
+    const execute = vi.fn(() => {
+      fixture.instance.mutations.updateArcWeight(
+        petrinautAiTools.updateArcWeight.inputSchema.parse(next),
+      );
+      return { applied: true as const, title: "Corrected weight" };
+    });
+    const call = {
+      toolCallId: "correct",
+      toolName: "updateArcWeight" as const,
+      input: petrinautAiTools.updateArcWeight.inputSchema.parse(next),
+      execute,
+    };
+    expect(recorder.executeMutation(call).applied).toBe(true);
+    expect(recorder.executeMutation(call).applied).toBe(true);
+    expect(execute).toHaveBeenCalledOnce();
+    expect(recorder.records().map((record) => record.outcome)).toEqual([
+      "applied",
+      "applied",
+    ]);
+    expect(recorder.records()[1]?.attempts[0]?.effects.updated).toMatchObject([
+      { kind: "updated", before: 1, after: 2 },
+    ]);
+    fixture.instance.dispose();
+  });
   test("keeps mutation raw-base refusal even for object-key-order-equivalent definitions", () => {
     const fixture = setup();
     const observed = observeBrowserDefinition(fixture.handle);

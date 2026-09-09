@@ -8,7 +8,9 @@ export const BrunchWorkpiecePane = ({
   messages,
   binding,
   liveHash,
+  construction = false,
 }: {
+  construction?: boolean;
   messages: readonly {
     readonly role: string;
     readonly purpose: string;
@@ -87,8 +89,10 @@ export const BrunchWorkpiecePane = ({
     >
       <h2>Current workpiece · recorded why</h2>
       <p>
-        TEST-authored prepared tracer. Not expert testimony or utility
-        acceptance.
+        {construction
+          ? "Synthetic conversation-bound candidate; no prepared workpiece."
+          : "TEST-authored prepared tracer."}{" "}
+        Not expert testimony or utility acceptance.
       </p>
       {!read ? (
         <p>

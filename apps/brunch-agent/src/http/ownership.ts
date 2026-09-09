@@ -42,8 +42,17 @@ export const agentOwnershipGuard = (mountPrefix: string): MiddlewareHandler => {
         .catch(() => undefined);
       if (typeof body === "object" && body !== null && "initialData" in body) {
         const data = body.initialData;
-        if (typeof data === "object" && data !== null && "browser" in data) {
-          const browser = data.browser;
+        if (
+          typeof data === "object" &&
+          data !== null &&
+          ("browser" in data || "construction" in data)
+        ) {
+          const browser =
+            "construction" in data
+              ? data.construction
+              : "browser" in data
+                ? data.browser
+                : undefined;
           if (
             typeof browser === "object" &&
             browser !== null &&
