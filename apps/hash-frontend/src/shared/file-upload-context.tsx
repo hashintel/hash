@@ -8,7 +8,6 @@ import {
 } from "react";
 import { v4 as uuid } from "uuid";
 
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
   HashEntity,
   HashLinkEntity,
@@ -494,9 +493,6 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
               ? mergePropertyObjectAndMetadata(linkProperties, undefined)
               : { value: {} },
             makePublic,
-            webId: extractWebIdFromEntityId(
-              fileEntity.metadata.recordId.entityId,
-            ),
           },
         });
 
