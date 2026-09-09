@@ -84,6 +84,24 @@ describe("lowerConstraint", () => {
     expect(result.diagnostics[0]?.message).toContain("boolean");
   });
 
+  it("rejects a condition whose branches disagree on the type", () => {
+    // `?:` over a boolean and a number types as unknown; a constraint must
+    // still refuse it rather than read `unknown` as boolean.
+    const result = lowerConstraint(
+      {
+        space: "parameters",
+        id: "c",
+        code: "scenario.min_load > 1 ? true : 1",
+      },
+      context,
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.diagnostics[0]?.message).toContain("boolean");
+  });
+
   it("rejects a reference to an unknown scenario parameter", () => {
     const result = lowerConstraint(
       { space: "parameters", id: "c", code: "scenario.missing > 0" },
