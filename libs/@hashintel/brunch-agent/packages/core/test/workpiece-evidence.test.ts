@@ -4,13 +4,14 @@ import { settleWorkpieceEvidence } from "../src/update-workpiece";
 
 import type {
   WorkpieceEvidenceRelation,
+  WorkpieceEvidenceSource,
   WorkpieceRevision,
 } from "../src/workpiece";
 
 const markdown = "# Account\nReserve one crew.\n\nTiming unknown.";
 const locator = { start: 10, end: 27 };
 const relation = { locator, messageIds: ["user-1"], kind: "elicited" as const };
-const source = {
+const source: WorkpieceEvidenceSource = {
   id: "user-1",
   role: "user",
   purpose: "user",
@@ -33,13 +34,15 @@ test("validates actual true-user sources before settling evidence", async () => 
       async () => [source],
     ),
   ).resolves.toEqual([relation]);
-  for (const invalid of [
+  const invalidSources: readonly (readonly WorkpieceEvidenceSource[])[] = [
     [],
     [{ ...source, role: "assistant", purpose: "assistant" }],
     [{ ...source, role: "system", purpose: "dispatch" }],
-    [{ ...source, purpose: "prepared" }],
+    // Out-of-contract purpose: the runtime check must refuse it regardless of typing.
+    [{ ...source, purpose: "prepared" } as unknown as WorkpieceEvidenceSource],
     [{ ...source, id: "other-conversation" }],
-  ]) {
+  ];
+  for (const invalid of invalidSources) {
     await expect(
       settleWorkpieceEvidence(
         { markdown, evidence: [relation] },

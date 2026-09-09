@@ -3,35 +3,20 @@ import { createHash } from "node:crypto";
 import * as v from "valibot";
 
 import { isJsonValue } from "./json-value";
+import { evidenceRelationSchema } from "./workpiece";
 
-import type {
-  WorkpieceEvidenceRelation,
-  WorkpieceEvidenceSource,
-  WorkpieceRevision,
-} from "./workpiece";
+import type { WorkpieceEvidenceSource, WorkpieceRevision } from "./workpiece";
 
-const evidenceRelationSchema = v.strictObject({
-  locator: v.strictObject({
-    start: v.pipe(v.number(), v.integer(), v.minValue(0)),
-    end: v.pipe(v.number(), v.integer(), v.minValue(1)),
-  }),
-  messageIds: v.array(v.pipe(v.string(), v.minLength(1))),
-  kind: v.picklist([
-    "elicited",
-    "inference",
-    "default",
-    "formalism-constraint",
-    "external",
-    "correction",
-  ]),
-});
-
-/** Validation earns structural linkage and authorship only, never relevance or template quality. */
+/**
+ * Validation earns structural linkage and authorship only, never relevance or
+ * template quality. Returns the parsed (mutable) relations so they can be
+ * reported through a tool output; consumers read them as `WorkpieceEvidenceRelation`.
+ */
 export const settleWorkpieceEvidence = async (
   input: { markdown: string; evidence?: unknown },
   previous: WorkpieceRevision | null,
   readSources: () => Promise<readonly WorkpieceEvidenceSource[]>,
-): Promise<WorkpieceEvidenceRelation[] | undefined> => {
+): Promise<v.InferOutput<typeof evidenceRelationSchema>[] | undefined> => {
   const declaredRelations =
     input.evidence === undefined
       ? []
@@ -118,11 +103,26 @@ export const workpieceLocatorTextsSchema = v.pipe(
   v.maxLength(16),
 );
 
+/** Candidate identity is hash and length only; no revision, state or evidence. */
+export const workpieceLocatorLookupSchema = v.object({
+  sha256: v.string(),
+  utf16Length: v.number(),
+  utf8Bytes: v.number(),
+  queries: v.array(
+    v.object({
+      text: v.string(),
+      occurrences: v.array(v.object({ start: v.number(), end: v.number() })),
+      matchedCount: v.number(),
+      omittedCount: v.number(),
+    }),
+  ),
+});
+
 /** Literal revision-local locators only: no settlement, evidence or continuity is inferred. */
 export const lookupWorkpieceLocators = (
   markdown: string,
   texts: readonly string[],
-) => {
+): v.InferOutput<typeof workpieceLocatorLookupSchema> => {
   const content = v.parse(
     updateWorkpieceInputSchema.entries.markdown,
     markdown,

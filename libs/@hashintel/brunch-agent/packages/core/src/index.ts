@@ -86,7 +86,8 @@ export {
   type IssueStatus,
   type IssueOrigin,
   type IssueType,
-  type JsonValue,
+  type ReadonlyJsonValue,
+  type UserCaptureInputProposal,
 } from "./evidence/capture-store";
 export {
   EvidenceQuoteSchema,

@@ -4,6 +4,7 @@ import { usePersistentState, useTool, type StateSetter } from "@flue/runtime";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import {
+  UPDATE_WORKPIECE_TOOL_NAME,
   useBrunchAgent,
   createUpdateWorkpieceTool,
   elicitationSkill,
@@ -123,7 +124,7 @@ test("captures the persistent-state setter at render and writes from run", async
     "brunch_mark_question",
   );
   const revisionTool = mounted.find(
-    (definition) => definition.name === "update_workpiece",
+    (definition) => definition.name === UPDATE_WORKPIECE_TOOL_NAME,
   );
   expect(revisionTool).toBeDefined();
   expect(prompt).toContain(
