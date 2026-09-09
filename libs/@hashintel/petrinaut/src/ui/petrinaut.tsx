@@ -66,6 +66,15 @@ export type PetrinautAiAssistant = {
   /** Host-owned dynamic tools that render inline in the AI conversation. */
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   messages?: PetrinautAiMessage[];
+  /**
+   * Opt into following host history while locally idle. The predicate must
+   * describe the exact snapshot supplied in `messages`, including settlement
+   * of every local admission; message IDs alone cannot prove catch-up.
+   * Observed tools are display-only, including after reload. Only tools from
+   * this panel's own response stream may execute in this mode.
+   * Omitted: messages retain their initial-hydration/recovery behavior.
+   */
+  followMessages?: { canReplace: () => boolean };
   onClearMessages?: () => void;
   onMessages?: (messages: PetrinautAiMessage[]) => void;
   /**

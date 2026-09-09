@@ -815,6 +815,12 @@ export const LocalStorageDemoApp = ({
         : {
             requestStop: () =>
               requestFlueStop(flueClientPromise, conversationTracker),
+            followMessages: {
+              // This closure and `messages` below describe the same observed
+              // snapshot, never a later mutable settlement cache.
+              canReplace: () =>
+                conversationTracker.canReplaceMessages(flueHistory.snapshot),
+            },
           }),
       messages:
         flueClientPromise === null
@@ -857,6 +863,7 @@ export const LocalStorageDemoApp = ({
       currentNetId,
       flueClientPromise,
       flueHistory.messages,
+      flueHistory.snapshot,
       petrinautAiChatTransport,
       transitionRecorder,
       setAiMessagesByNetId,

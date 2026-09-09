@@ -7,7 +7,138 @@ import {
   createUnavailableBrunchPanelTransport,
 } from "./brunch-panel-transport";
 
-import type { AgentSendResult, FlueClient } from "@flue/sdk";
+import type {
+  AgentSendResult,
+  FlueClient,
+  FlueConversationState,
+} from "@flue/sdk";
+
+test("host following uses exact local admission settlement and response association, not message size", async () => {
+  const tracker = new BrunchPanelConversationTracker();
+  const empty: FlueConversationState = {
+    conversationId: "canonical-conversation",
+    messages: [],
+    settlements: [],
+  };
+  expect(tracker.canReplaceMessages(undefined)).toBe(false);
+  expect(tracker.canReplaceMessages(empty)).toBe(true);
+  let release: (() => void) | undefined;
+  const pending = tracker.trackSubmission(
+    new Promise<void>((resolve) => {
+      release = resolve;
+    }),
+  );
+  expect(tracker.canReplaceMessages(empty)).toBe(false);
+  tracker.recordAdmission({
+    kind: "user",
+    messageId: "ui-user",
+    admission: {
+      streamUrl: "http://local/stream",
+      offset: "opaque",
+      submissionId: "local-submission",
+      uid: "one",
+    },
+  });
+  release?.();
+  await pending;
+  expect(tracker.canReplaceMessages(empty)).toBe(false); // admitted, no assistant yet
+  const partial: FlueConversationState = {
+    ...empty,
+    messages: [
+      {
+        id: "same-assistant",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        submissionId: "local-submission",
+        parts: [{ type: "text", state: "streaming", text: "partial" }],
+      },
+    ],
+  };
+  expect(tracker.canReplaceMessages(partial)).toBe(false); // same ID is not completion
+  const missingResponse: FlueConversationState = {
+    ...empty,
+    settlements: [{ submissionId: "local-submission", outcome: "completed" }],
+  };
+  expect(tracker.canReplaceMessages(missingResponse)).toBe(false);
+  const completed: FlueConversationState = {
+    ...partial,
+    messages: [
+      {
+        ...partial.messages[0]!,
+        parts: [{ type: "text", state: "done", text: "complete" }],
+      },
+    ],
+    settlements: missingResponse.settlements,
+  };
+  expect(tracker.canReplaceMessages(completed)).toBe(true);
+  expect(tracker.canReplaceMessages(partial)).toBe(false); // decision belongs to this snapshot
+  tracker.recordAdmission({
+    kind: "client-tool-result",
+    messageId: "same-assistant",
+    admission: {
+      streamUrl: "http://local/stream",
+      offset: "opaque",
+      submissionId: "continuation",
+      uid: "one",
+    },
+  });
+  expect(tracker.canReplaceMessages(completed)).toBe(false);
+  const coalesced = {
+    ...completed,
+    settlements: [
+      ...completed.settlements,
+      {
+        submissionId: "continuation",
+        outcome: "completed" as const,
+        answeredBySubmissionId: "coalesced-response",
+      },
+    ],
+  };
+  expect(tracker.canReplaceMessages(coalesced)).toBe(false);
+  expect(
+    tracker.canReplaceMessages({
+      ...coalesced,
+      messages: [
+        ...completed.messages,
+        {
+          ...completed.messages[0]!,
+          id: "continuation-message",
+          submissionId: "coalesced-response",
+        },
+      ],
+    }),
+  ).toBe(true);
+  // Neither retention loss nor a fresh unrelated tracker grants old admissions.
+  expect(tracker.canReplaceMessages(empty)).toBe(false);
+  expect(new BrunchPanelConversationTracker().canReplaceMessages(empty)).toBe(
+    true,
+  );
+});
+
+test.each(["failed", "aborted"] as const)(
+  "host following accepts canonical %s without fabricating an assistant",
+  (outcome) => {
+    const tracker = new BrunchPanelConversationTracker();
+    tracker.recordAdmission({
+      kind: "user",
+      messageId: "ui-user",
+      admission: {
+        streamUrl: "http://local/stream",
+        offset: "opaque",
+        submissionId: "terminal",
+        uid: "one",
+      },
+    });
+    expect(
+      tracker.canReplaceMessages({
+        conversationId: "canonical",
+        messages: [],
+        settlements: [{ submissionId: "terminal", outcome }],
+      }),
+    ).toBe(true);
+  },
+);
 
 test.each([undefined, { mode: "synthetic-bound", incarnation: "one" }])(
   "delegates a typed message and optional opaque initialization: %j",

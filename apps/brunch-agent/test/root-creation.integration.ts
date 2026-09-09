@@ -1,17 +1,9 @@
 /** Unpaid synthetic construction through the built ChatAgent, real Chrome and canonical browser callbacks. */
 /* eslint-disable no-await-in-loop -- Browser calls and observations must be causally serial. */
 import assert from "node:assert/strict";
-import { once } from "node:events";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
-import { createServer } from "node:http";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { extname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 import {
   fauxAssistantMessage,
@@ -25,7 +17,6 @@ import {
   FlueExecutionError,
   type DeliveredMessage,
 } from "@flue/sdk";
-import { chromium } from "@playwright/test";
 
 import {
   canonicalContent,
@@ -43,6 +34,7 @@ import {
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import { openBrowserFixture } from "./browser-fixture.ts";
 import {
   nativeSchemaProvider,
   type NativeRequestCapture,
@@ -82,97 +74,9 @@ const captures: NativeRequestCapture[] = [];
 const contexts: Context[] = [];
 installFauxProvider(nativeSchemaProvider(faux.provider, captures, contexts));
 const app = await loadBuiltBrunchApplication();
-const deliveries: { path: string; body: string }[] = [];
-const errors: string[] = [];
+const { server, browser, page, origin, deliveries, errors, blocked } =
+  await openBrowserFixture(app, website);
 const callbackErrors: string[] = [];
-const server = createServer((incoming, outgoing) => {
-  const abort = new AbortController();
-  outgoing.on("close", () => abort.abort());
-  void (async () => {
-    const url = new URL(incoming.url ?? "/", `http://${incoming.headers.host}`);
-    let response: Response;
-    if (url.pathname.startsWith("/agents/")) {
-      const chunks: Buffer[] = [];
-      for await (const chunk of incoming) {
-        const bytes: unknown = chunk;
-        assert(bytes instanceof Uint8Array);
-        chunks.push(Buffer.from(bytes));
-      }
-      const body = Buffer.concat(chunks).toString("utf8");
-      if (body) deliveries.push({ path: url.pathname, body });
-      const headers = new Headers();
-      for (const [name, value] of Object.entries(incoming.headers))
-        if (value !== undefined)
-          headers.set(name, Array.isArray(value) ? value.join(",") : value);
-      response = await app.fetch(
-        new Request(url, {
-          method: incoming.method,
-          headers,
-          signal: abort.signal,
-          ...(body ? { body } : {}),
-        }),
-      );
-    } else if (url.pathname.includes("voice"))
-      response = Response.json({ available: false });
-    else {
-      const file = resolve(
-        website,
-        `.${url.pathname === "/" ? "/index.html" : url.pathname}`,
-      );
-      assert(file.startsWith(`${website}/`));
-      const mime: Record<string, string> = {
-        ".html": "text/html",
-        ".js": "text/javascript",
-        ".css": "text/css",
-        ".svg": "image/svg+xml",
-        ".wasm": "application/wasm",
-        ".json": "application/json",
-      };
-      response = new Response(readFileSync(file), {
-        headers: {
-          "content-type": mime[extname(file)] ?? "application/octet-stream",
-        },
-      });
-    }
-    outgoing.writeHead(response.status, Object.fromEntries(response.headers));
-    if (response.body) {
-      const reader = response.body.getReader();
-      try {
-        for (;;) {
-          const next = await reader.read();
-          if (next.done) break;
-          if (!outgoing.write(next.value)) await once(outgoing, "drain");
-        }
-      } finally {
-        await reader.cancel();
-      }
-    }
-    outgoing.end();
-  })().catch((error: unknown) => {
-    if (!abort.signal.aborted) {
-      errors.push(String(error));
-      outgoing.writeHead(500).end(String(error));
-    }
-  });
-});
-server.listen(0, "127.0.0.1");
-await once(server, "listening");
-const address = server.address();
-assert(address && typeof address !== "string");
-const origin = `http://127.0.0.1:${address.port}`;
-const browser = await chromium.launch({
-  executablePath:
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  headless: true,
-});
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-page.on("pageerror", (error) => errors.push(String(error)));
-const blocked: string[] = [];
-await page.route("**/*", (route) => {
-  if (new URL(route.request().url()).origin === origin) return route.continue();
-  blocked.push(route.request().url());
-  return route.abort();
-});
 const tool = (name: string, args: Record<string, unknown>, id: string) =>
   fauxAssistantMessage([fauxToolCall(name, args, { id })], {
     stopReason: "toolUse",

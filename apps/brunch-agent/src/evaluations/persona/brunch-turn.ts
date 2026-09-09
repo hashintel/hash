@@ -128,6 +128,10 @@ export interface BrunchTurnExtensionApi {
 export interface RegisterBrunchTurnOptions {
   readonly conversationId?: string;
   readonly client?: BrunchFlueClient;
+  /** Operator-owned SDK bootstrap data, never persona input or client-result data. */
+  readonly initialData?: Parameters<FlueClient["send"]>[0]["initialData"];
+  /** A captured admission UID attaches to that exact existing runtime incarnation. */
+  readonly uid?: string;
   readonly resolveClientToolHost?: () => BrunchClientToolHost | undefined;
   readonly retainSnapshot?: (
     snapshot: FlueConversationSnapshot,
@@ -237,6 +241,8 @@ const toolActivityMarkdown = (
 export const createBrunchTurnTool = ({
   conversationId: suppliedConversationId,
   client: suppliedClient,
+  initialData,
+  uid,
   resolveClientToolHost = () => undefined,
   retainSnapshot,
 }: RegisterBrunchTurnOptions = {}): BrunchTurnTool => {
@@ -245,7 +251,15 @@ export const createBrunchTurnTool = ({
   );
   const client = suppliedClient ?? createClient(conversationId);
   let active = false;
-  let incarnationUid: string | undefined;
+  if (
+    uid !== undefined &&
+    (uid.trim().length === 0 || initialData !== undefined)
+  ) {
+    throw new Error(
+      "Existing incarnation requires a non-empty uid and no initialData",
+    );
+  }
+  let incarnationUid = uid;
   let unsafeAfterAdmission = false;
 
   return {
@@ -281,6 +295,9 @@ export const createBrunchTurnTool = ({
       try {
         let currentAdmission = await client.send({
           message: { kind: "user", body: parameters.message },
+          ...(incarnationUid === undefined && initialData !== undefined
+            ? { initialData }
+            : {}),
           uid: incarnationUid ?? null,
           signal,
         });

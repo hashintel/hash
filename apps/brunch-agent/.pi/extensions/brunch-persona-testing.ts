@@ -1,3 +1,4 @@
+import { readBrowserSessionOptions } from "../../src/evaluations/persona/browser-session.ts";
 /**
  * Pi extension entry for the Brunch persona harness.
  *
@@ -43,6 +44,7 @@ interface BrunchPersonaExtensionApi extends BrunchTurnExtensionApi {
 const TOOL_MOCKS_FLAG = "brunch-tool-mocks";
 const HEADLESS_TITLE_FLAG = "brunch-headless-title";
 const EVIDENCE_DIRECTORY_FLAG = "brunch-evidence-dir";
+const BROWSER_SESSION_FLAG = "brunch-browser-session";
 
 const stringFlag = (
   pi: BrunchPersonaExtensionApi,
@@ -83,9 +85,9 @@ const createConfiguredClientToolHost = (
 };
 
 // Pi loads an extension through its default export.
-export default function brunchPersonaTestingExtension(
+export default async function brunchPersonaTestingExtension(
   pi: BrunchPersonaExtensionApi,
-): void {
+): Promise<void> {
   pi.registerFlag(TOOL_HOST_FLAG, {
     type: "string",
     default: "none",
@@ -105,6 +107,25 @@ export default function brunchPersonaTestingExtension(
       "Directory for canonical snapshot, transcript, and trace files",
   });
 
+  pi.registerFlag(BROWSER_SESSION_FLAG, {
+    type: "string",
+    description:
+      "Private operator JSON captured from an initialized Petrinaut browser session",
+  });
+  const browserSessionPath = stringFlag(pi, BROWSER_SESSION_FLAG);
+  if (
+    browserSessionPath !== undefined &&
+    (stringFlag(pi, TOOL_HOST_FLAG) ?? "none") !== "none"
+  ) {
+    throw new Error(
+      "Browser attachment requires --brunch-tool-host=none; browser mutation hosting is not implemented",
+    );
+  }
+  const browserOptions =
+    browserSessionPath === undefined
+      ? undefined
+      : await readBrowserSessionOptions(browserSessionPath);
+
   let clientToolHost: BrunchClientToolHost | undefined;
   pi.on("session_start", async () => {
     await clientToolHost?.dispose?.();
@@ -116,6 +137,7 @@ export default function brunchPersonaTestingExtension(
   });
 
   registerBrunchTurn(pi, {
+    ...browserOptions,
     resolveClientToolHost: () => clientToolHost,
     retainSnapshot: async (snapshot) => {
       const directory = stringFlag(pi, EVIDENCE_DIRECTORY_FLAG);

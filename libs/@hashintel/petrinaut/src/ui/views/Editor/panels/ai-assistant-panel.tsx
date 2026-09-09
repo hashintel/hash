@@ -737,6 +737,12 @@ const ConversationAiAssistantPanel = ({
   const toolHostIdentityRef = useRef<string | null>(null);
   const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
   const hydratedConversationIdRef = useRef<string | null>(null);
+  const followedMessagesRef = useRef<PetrinautAiMessage[] | undefined>(
+    undefined,
+  );
+  // Authority is distinct from execution deduplication. Hydration/setMessages
+  // never invokes SDK onToolCall, so external/reloaded calls cannot enter here.
+  const locallyStreamedToolCallsRef = useRef(new Map<string, number>());
   const automaticToolCallExecutionsRef = useRef(new Set<string>());
   const pendingAutomaticToolCallExecutionsRef = useRef(new Set<string>());
   const automaticToolTerminationRef = useRef<{
@@ -1120,8 +1126,13 @@ const ConversationAiAssistantPanel = ({
     },
     // AI SDK does not auto-submit outputs added while a response is still
     // streaming. The ready-state effect below owns static tool execution.
-    onToolCall: ({ toolCall }) =>
-      toolCall.dynamic ? executeToolCall({ toolCall }) : undefined,
+    onToolCall: ({ toolCall }) => {
+      locallyStreamedToolCallsRef.current.set(
+        `${toolHostIdentityRef.current}:${toolCall.toolCallId}`,
+        submissionGenerationRef.current,
+      );
+      return toolCall.dynamic ? executeToolCall({ toolCall }) : undefined;
+    },
   });
   useLayoutEffect(() => {
     toolHostIdentityRef.current = conversationId;
@@ -1201,6 +1212,8 @@ const ConversationAiAssistantPanel = ({
   useLayoutEffect(() => {
     if (submissionConversationIdRef.current === conversationId) return;
     submissionConversationIdRef.current = conversationId;
+    followedMessagesRef.current = undefined;
+    locallyStreamedToolCallsRef.current.clear();
     submissionGenerationRef.current += 1;
     stopRequestedRef.current = false;
     setContinuationPending(false);
@@ -1215,6 +1228,19 @@ const ConversationAiAssistantPanel = ({
         : chatStatus;
 
   useEffect(() => {
+    if (aiAssistant.followMessages !== undefined) {
+      if (
+        aiAssistant.messages === undefined ||
+        (chatStatus !== "ready" && chatStatus !== "error") ||
+        continuationPending ||
+        followedMessagesRef.current === aiAssistant.messages ||
+        !aiAssistant.followMessages.canReplace()
+      )
+        return;
+      followedMessagesRef.current = aiAssistant.messages;
+      setMessages(aiAssistant.messages);
+      return;
+    }
     if (
       aiAssistant.messages === undefined ||
       status !== "ready" ||
@@ -1241,7 +1267,16 @@ const ConversationAiAssistantPanel = ({
     }
     hydratedConversationIdRef.current = conversationId;
     setMessages(aiAssistant.messages);
-  }, [aiAssistant.messages, conversationId, messages, setMessages, status]);
+  }, [
+    aiAssistant.followMessages,
+    aiAssistant.messages,
+    chatStatus,
+    continuationPending,
+    conversationId,
+    messages,
+    setMessages,
+    status,
+  ]);
 
   useEffect(() => {
     // Keyed on the SDK's own status: the derived composer status stays busy
@@ -1264,6 +1299,12 @@ const ConversationAiAssistantPanel = ({
           toolName: getStaticToolName(part),
         } as Extract<PetrinautAiToolCall, { dynamic?: false }>;
         const executionKey = `${conversationId}:${toolCall.toolCallId}`;
+        if (
+          aiAssistant.followMessages !== undefined &&
+          locallyStreamedToolCallsRef.current.get(executionKey) !==
+            submissionGenerationRef.current
+        )
+          continue;
         if (automaticToolCallExecutionsRef.current.has(executionKey)) continue;
         automaticToolCallExecutionsRef.current.add(executionKey);
         pendingAutomaticToolCallExecutionsRef.current.add(executionKey);
@@ -1328,6 +1369,7 @@ const ConversationAiAssistantPanel = ({
       }
     }
   }, [
+    aiAssistant.followMessages,
     automaticToolTurnIsTerminatedRef,
     chatStatus,
     conversationId,
@@ -1339,6 +1381,7 @@ const ConversationAiAssistantPanel = ({
   const composerSubmissionStateRef = useLatest({
     addToolOutput,
     interactiveTools: aiAssistant.interactiveTools,
+    followMessages: aiAssistant.followMessages,
     messages,
     sendMessage,
     setMessages,
@@ -1390,6 +1433,7 @@ const ConversationAiAssistantPanel = ({
       const {
         addToolOutput: submitToolOutput,
         interactiveTools,
+        followMessages,
         messages: currentMessages,
         sendMessage: submitMessage,
         setMessages: updateMessages,
@@ -1413,7 +1457,11 @@ const ConversationAiAssistantPanel = ({
         for (const part of message.parts) {
           if (
             part.type !== "dynamic-tool" ||
-            part.state !== "input-available"
+            part.state !== "input-available" ||
+            (followMessages !== undefined &&
+              locallyStreamedToolCallsRef.current.get(
+                `${toolHostIdentityRef.current}:${part.toolCallId}`,
+              ) !== submissionGenerationRef.current)
           ) {
             continue;
           }
@@ -1891,6 +1939,18 @@ const ConversationAiAssistantPanel = ({
       onInputChange={setInput}
       onInputModeChange={selectInteractionMode}
       onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {
+        // Widgets (including built-in layout consent) can outlive their stream.
+        // Observed/reloaded calls must not gain authority through completion.
+        if (
+          aiAssistant.followMessages !== undefined &&
+          locallyStreamedToolCallsRef.current.get(
+            `${toolHostIdentityRef.current}:${toolCallId}`,
+          ) !== submissionGenerationRef.current
+        ) {
+          return Promise.reject(
+            new Error("This observed AI tool is display-only."),
+          );
+        }
         if (!isPetrinautAiCommandToolName(toolName)) {
           if (
             !aiAssistant.interactiveTools?.some(
