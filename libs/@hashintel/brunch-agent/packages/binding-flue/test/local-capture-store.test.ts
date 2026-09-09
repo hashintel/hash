@@ -5,7 +5,10 @@ import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 
 import { archiveThroughBinding } from "../src/archive-capability";
-import { createLocalCaptureStore as createLocalCaptureStoreAdapter } from "../src/local-capture-store";
+import {
+  createLocalCaptureStore as createLocalCaptureStoreAdapter,
+  type TargetDocumentRecord,
+} from "../src/local-capture-store";
 
 import type {
   CaptureInputProposal,
@@ -202,9 +205,10 @@ describe("local capture store", () => {
     });
     expect(opened.ok).toBe(true);
 
-    const before = JSON.parse(await readFile(path, "utf8")) as {
-      captureStore: unknown;
-    };
+    const before = JSON.parse(await readFile(path, "utf8")) as Pick<
+      TargetDocumentRecord,
+      "captureStore"
+    >;
     for (const command of [
       {
         type: "apply-sweep",
@@ -225,9 +229,10 @@ describe("local capture store", () => {
 
     // Reading the later cited quotes legitimately grows the co-located archive,
     // but neither refused command may change the capture-store half.
-    const after = JSON.parse(await readFile(path, "utf8")) as {
-      captureStore: unknown;
-    };
+    const after = JSON.parse(await readFile(path, "utf8")) as Pick<
+      TargetDocumentRecord,
+      "captureStore"
+    >;
     expect(after.captureStore).toEqual(before.captureStore);
     // And still readable through the parser, which is what makes it a snapshot
     // rather than surviving bytes.

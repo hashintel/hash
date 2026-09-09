@@ -9,7 +9,12 @@ import {
   createFlueHistoryReader,
   projectFlueHistoryForSweep,
 } from "../src/history-reader";
-import { createLocalCaptureStore } from "../src/local-capture-store";
+import {
+  createLocalCaptureStore,
+  type TargetDocumentRecord,
+} from "../src/local-capture-store";
+
+import type { FlueConversationSnapshot } from "@flue/sdk";
 
 const directories: string[] = [];
 
@@ -28,35 +33,35 @@ const storePath = async (): Promise<string> => {
 };
 
 const snapshot = {
-  v: 1 as const,
+  v: 1,
   conversationId: "flue-conversation-internal",
   offset: "4",
   incarnation: "incarnation-1",
   messages: [
     {
       id: "kickoff",
-      role: "user" as const,
-      purpose: "user" as const,
-      display: "visible" as const,
+      role: "user",
+      purpose: "user",
+      display: "visible",
       parts: [
         {
-          type: "text" as const,
+          type: "text",
           text: "Begin the interview.",
-          state: "done" as const,
+          state: "done",
         },
       ],
     },
     {
       id: "ask",
-      role: "assistant" as const,
-      purpose: "assistant" as const,
-      display: "visible" as const,
+      role: "assistant",
+      purpose: "assistant",
+      display: "visible",
       parts: [
         {
-          type: "dynamic-tool" as const,
+          type: "dynamic-tool",
           toolName: "brunch_ask",
           toolCallId: "tool-1",
-          state: "output-available" as const,
+          state: "output-available",
           input: { question: "When?" },
           output: { id: "affordance-1", form: "free-text", markdown: "When?" },
         },
@@ -64,35 +69,31 @@ const snapshot = {
     },
     {
       id: "reply",
-      role: "user" as const,
-      purpose: "user" as const,
-      display: "visible" as const,
-      parts: [
-        { type: "text" as const, text: "June works.", state: "done" as const },
-      ],
+      role: "user",
+      purpose: "user",
+      display: "visible",
+      parts: [{ type: "text", text: "June works.", state: "done" }],
     },
     {
       id: "reply-binding",
-      role: "system" as const,
-      purpose: "dispatch" as const,
-      display: "hidden" as const,
+      role: "system",
+      purpose: "dispatch",
+      display: "hidden",
       signal: {
         tagName: "affordance-reply-bound",
         attributes: { affordanceId: "affordance-1" },
       },
       parts: [
         {
-          type: "text" as const,
+          type: "text",
           text: "Reply binding.",
-          state: "done" as const,
+          state: "done",
         },
       ],
     },
   ],
-  settlements: [
-    { submissionId: "submission-1", outcome: "completed" as const },
-  ],
-};
+  settlements: [{ submissionId: "submission-1", outcome: "completed" }],
+} satisfies FlueConversationSnapshot;
 
 describe("Flue materialized-history reader", () => {
   test("projects Flue ask and reply-binding parts into substrate-neutral sweep facts", () => {
@@ -296,13 +297,10 @@ describe("Flue materialized-history reader", () => {
       ),
     ).toMatchObject({ ok: false, refusal: { code: "non-user-evidence" } });
 
-    const persisted = JSON.parse(await readFile(path, "utf8")) as {
-      formatVersion: number;
-      ownerKey: string | null;
-      sessionLogArchive: {
-        sessions: { reads: { substrateConversationId?: string }[] }[];
-      };
-    };
+    const persisted = JSON.parse(await readFile(path, "utf8")) as Pick<
+      TargetDocumentRecord,
+      "formatVersion" | "ownerKey" | "sessionLogArchive"
+    >;
     expect(persisted.formatVersion).toBe(2);
     expect(persisted.ownerKey).toBeNull();
     expect(persisted.sessionLogArchive.sessions).toHaveLength(1);
