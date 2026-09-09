@@ -451,6 +451,7 @@ export type {
 export {
   CONSTRAINT_SPACES,
   CONSTRAINT_SURFACES,
+  constraintLabel,
   constraintListSchema,
   constraintSchema,
   constraintSpaceSchema,

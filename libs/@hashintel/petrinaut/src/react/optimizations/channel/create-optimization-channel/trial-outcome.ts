@@ -6,11 +6,19 @@ import type {
   DetachedObjectiveRunOutcome,
   DetachedObjectiveRunResult,
 } from "../../../experiments/context";
-import type { PetrinautOptimizationTrialOutcome } from "@hashintel/petrinaut-core/optimization";
+import type {
+  PetrinautOptimizationTrialConstraints,
+  PetrinautOptimizationTrialOutcome,
+} from "@hashintel/petrinaut-core/optimization";
 
 export const prunedTrialOutcome = (
   reason: string,
-): PetrinautOptimizationTrialOutcome => ({ kind: "pruned", reason });
+  constraints?: PetrinautOptimizationTrialConstraints,
+): PetrinautOptimizationTrialOutcome => ({
+  kind: "pruned",
+  reason,
+  ...(constraints ? { constraints } : {}),
+});
 
 /**
  * The mean of the per-run finals the CPU backend reports. Null when the
@@ -37,24 +45,35 @@ const runResultsMean = (
 /**
  * A settled trial batch as Optuna receives it. A batch that did not complete
  * prunes the trial with the batch's own reason. The objective is the mean of
- * the per-run objectives, as the optimizer service reports it; where the
- * backend reports no run axis it is the metric's last sampled frame, which
- * a distribution frame reduces to the mean of its bins.
+ * the per-run objectives over every run, whatever the constraints reported,
+ * as the optimizer service reports it; where the backend reports no run axis
+ * it is the metric's last sampled frame, which a distribution frame reduces
+ * to the mean of its bins. `constraintsOf` reads the batch's constraint
+ * results, which ride along on the outcome.
  */
 export const trialOutcome = (
   outcome: DetachedObjectiveRunOutcome,
   metricId: string,
+  constraintsOf?: (
+    result: DetachedObjectiveRunResult,
+  ) => PetrinautOptimizationTrialConstraints | undefined,
 ): PetrinautOptimizationTrialOutcome => {
   if (!outcome.ok) {
     return prunedTrialOutcome(outcome.reason);
   }
+  const constraints = constraintsOf?.(outcome);
   const objective =
     runResultsMean(outcome, metricId) ??
     sweepCellObjective(outcome.metricFrames, metricId);
   if (objective === null || !Number.isFinite(objective)) {
     return prunedTrialOutcome(
       `The objective metric "${metricId}" did not produce a finite value`,
+      constraints,
     );
   }
-  return { kind: "objective", objective };
+  return {
+    kind: "objective",
+    objective,
+    ...(constraints ? { constraints } : {}),
+  };
 };

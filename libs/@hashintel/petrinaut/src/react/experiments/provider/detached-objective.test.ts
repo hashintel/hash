@@ -316,6 +316,39 @@ describe("createDetachedObjectiveSampler().run", () => {
     expect(fake.handle.dispose).toHaveBeenCalled();
   });
 
+  it("appends one scalar spec per auxiliary metric, precompiled, with its time aggregation", async () => {
+    const cpu = createFakeBackend(WORKER_POOL_BACKEND_ID);
+    const { sampler } = createSampler({ cpu });
+    const artifact = { source: "() => 1", placeNames: [] };
+
+    const run = sampler.run(
+      runRequest({
+        auxiliaryMetrics: [
+          {
+            id: "queue-cap",
+            label: "Queue cap",
+            artifact,
+            aggregateTime: "min",
+          },
+        ],
+      }),
+    );
+    await vi.waitFor(() => expect(cpu.handles).toHaveLength(1));
+    expect(cpu.requests[0]?.metricSpecs).toHaveLength(2);
+    expect(cpu.requests[0]?.metricSpecs[1]).toEqual({
+      kind: "expression",
+      id: "queue-cap",
+      label: "Queue cap",
+      code: "",
+      sampleRuns: "all",
+      runOutput: { type: "scalar", aggregateRuns: "mean" },
+      aggregateTime: "min",
+      artifact,
+    });
+    completeWith(cpu.handles[0]!, 0.25);
+    await run.completion;
+  });
+
   it("names why a batch failed: errored runs, a terminal error, every backend refusing, a study that does not compile", async () => {
     const cpu = createFakeBackend(WORKER_POOL_BACKEND_ID);
     const { sampler } = createSampler({ cpu });

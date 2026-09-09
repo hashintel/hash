@@ -12,6 +12,7 @@ import {
   failedRunOutcome,
 } from "../fake-detached-objective-runs.fixtures";
 import {
+  sirConstrainedOptimizationInput,
   sirOptimizationInput,
   sirOptimizationMetric,
 } from "../sir-optimization-input.fixtures";
@@ -177,6 +178,100 @@ describe("createOptimizationChannel", () => {
       objective: 0.3,
     });
     expect(study.trialStarted).not.toHaveBeenCalled();
+  });
+
+  it("prunes an infeasible draw before any simulation, naming the constraint it broke", async () => {
+    const { fake, study, channel } = setup();
+    const suggestedValues = { infected_ratio: 0.15 };
+
+    const outcome = await channel.evaluateTrial(
+      trialRequest({
+        manifest: sirConstrainedOptimizationInput,
+        suggestedValues,
+        scenarioParameterValues: resolveTrialScenarioParameterValues(
+          sirConstrainedOptimizationInput,
+          suggestedValues,
+        ),
+      }),
+    );
+    expect(outcome).toMatchObject({
+      kind: "pruned",
+      reason: "Infeasible: Ratio under a tenth",
+      constraints: {
+        parameters: [{ constraintId: "ratio-cap" }],
+        state: [],
+        infeasible: "ratio-cap",
+      },
+    });
+    expect(outcome.constraints?.parameters[0]?.margin).toBeCloseTo(-0.05);
+    expect(fake.runs).toHaveLength(0);
+    expect(study.trialStarted).not.toHaveBeenCalled();
+  });
+
+  it("runs the state constraints as auxiliary metrics and reports their per-run verdicts with the plain mean objective", async () => {
+    const { fake, channel } = setup();
+    const outcome = channel.evaluateTrial(
+      trialRequest({ manifest: sirConstrainedOptimizationInput }),
+    );
+    const request = fake.runs[0]?.request;
+    expect(request?.auxiliaryMetrics).toHaveLength(1);
+    expect(request?.auxiliaryMetrics?.[0]).toMatchObject({
+      id: "infected-cap",
+      aggregateTime: "min",
+    });
+
+    fake.runs[0]!.settle({
+      ...completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.25, 3]])],
+        runValues: [0.5, 0.25, 0],
+      }),
+      runResults: new Map([
+        [0, { [metricId]: 0.5, "infected-cap": 1 }],
+        [1, { [metricId]: 0.25, "infected-cap": 0 }],
+        [2, { [metricId]: 0, "infected-cap": 1 }],
+      ]),
+    });
+    const settled = await outcome;
+    expect(settled).toMatchObject({
+      kind: "objective",
+      objective: 0.25,
+      constraints: {
+        parameters: [{ constraintId: "ratio-cap" }],
+        state: [{ constraintId: "infected-cap", runsPassed: 2, runsTotal: 3 }],
+      },
+    });
+    expect(settled.constraints?.parameters[0]?.margin).toBeCloseTo(0.05);
+
+    // The indicators are emitted once per run id.
+    const second = channel.evaluateTrial(
+      trialRequest({ manifest: sirConstrainedOptimizationInput, trial: 1 }),
+    );
+    expect(fake.runs[1]?.request.auxiliaryMetrics?.[0]?.artifact).toBe(
+      request?.auxiliaryMetrics?.[0]?.artifact,
+    );
+    fake.runs[1]!.settle(failedRunOutcome("2 of 3 runs failed"));
+    await expect(second).resolves.toEqual({
+      kind: "pruned",
+      reason: "2 of 3 runs failed",
+    });
+  });
+
+  it("attaches no constraints and runs no auxiliary metrics for a study without any", async () => {
+    const { fake, channel } = setup();
+    const outcome = channel.evaluateTrial(trialRequest());
+    expect(fake.runs[0]?.request.auxiliaryMetrics).toBeUndefined();
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.3, 1]])],
+        runValues: [0.3],
+      }),
+    );
+    await expect(outcome).resolves.toEqual({
+      kind: "objective",
+      objective: 0.3,
+    });
   });
 
   it("never throws: a failing run request becomes a pruned trial, and dispose cancels runs in flight", async () => {
