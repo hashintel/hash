@@ -16,29 +16,78 @@ const count = (value: unknown): number => {
   );
   return value;
 };
-const optionalCounts = (usage: Record<string, unknown>) => {
-  // Native message_delta permits omitted/null input/cache fields: the initial
-  // input usage remains authoritative. Output usage is NOT nullable/optional.
-  for (const key of [
-    "input_tokens",
-    "cache_read_input_tokens",
-    "cache_creation_input_tokens",
-  ]) {
-    if (usage[key] !== undefined && usage[key] !== null) count(usage[key]);
+type InputEvidence = {
+  input: number;
+  read: number;
+  write: number;
+  oneHour: number;
+  total: number;
+};
+
+/** Comparison registers only, never replacement SDK/ledger counters. Mirror the
+ * pinned parser's omitted/null carry and initial cache defaults so every explicit
+ * raw cache-tier claim can be checked against what that parser actually retains. */
+const inputEvidence = (
+  usage: Record<string, unknown>,
+  previous?: InputEvidence,
+): InputEvidence => {
+  const input =
+    previous && usage.input_tokens == null
+      ? previous.input
+      : count(usage.input_tokens);
+  const read =
+    usage.cache_read_input_tokens == null
+      ? (previous?.read ?? 0)
+      : count(usage.cache_read_input_tokens);
+  const write =
+    usage.cache_creation_input_tokens == null
+      ? (previous?.write ?? 0)
+      : count(usage.cache_creation_input_tokens);
+  const partition =
+    usage.cache_creation == null ? undefined : object(usage.cache_creation);
+  // Pi assigns cacheWrite1h only at message_start. A later total-cache update is
+  // supported; a later change of the one-hour share is not representable.
+  const oneHour =
+    previous?.oneHour ??
+    (partition ? count(partition.ephemeral_1h_input_tokens) : 0);
+  if (partition) {
+    const reportedOneHour = count(partition.ephemeral_1h_input_tokens);
+    const reportedFiveMinute = count(partition.ephemeral_5m_input_tokens);
+    assert.equal(
+      reportedOneHour,
+      oneHour,
+      "Late one-hour cache change is unsupported by the pinned native parser",
+    );
+    assert.equal(
+      reportedOneHour + reportedFiveMinute,
+      write,
+      "Raw cache partition contradicts the reported cache-write total",
+    );
   }
-  for (const [key, counters] of [
-    [
-      "cache_creation",
-      ["ephemeral_1h_input_tokens", "ephemeral_5m_input_tokens"],
-    ],
-    ["output_tokens_details", ["thinking_tokens"]],
-  ] as const) {
-    if (usage[key] !== undefined && usage[key] !== null) {
-      const details = object(usage[key]);
-      for (const counter of counters)
-        if (details[counter] !== undefined && details[counter] !== null)
-          count(details[counter]);
-    }
+  assert(
+    oneHour <= write,
+    "Cache-write total cannot preserve the initial one-hour share",
+  );
+  const total = input + read + write;
+  assert(
+    Number.isSafeInteger(total),
+    "Native input total is not a safe integer",
+  );
+  // These are cumulative used-input counts in the pinned protocol's disjoint
+  // categories. Do not impose scalar monotonicity: supported reclassification
+  // may lower input/read/write separately. Uncompensated aggregate loss remains
+  // ambiguous and must not release a hold as though earlier used input vanished.
+  if (previous)
+    assert(
+      total >= previous.total,
+      "Unexplained loss of accounted native input tokens",
+    );
+  return { input, read, write, oneHour, total };
+};
+const optionalReasoningCount = (usage: Record<string, unknown>) => {
+  if (usage.output_tokens_details != null) {
+    const details = object(usage.output_tokens_details);
+    if (details.thinking_tokens != null) count(details.thinking_tokens);
   }
 };
 
@@ -61,6 +110,7 @@ export const attestNativeResponse = (body: Buffer) => {
   let terminal = false;
   let stopped = false;
   let outputTokens = 0;
+  let inputs: InputEvidence | undefined;
   let messageId = "";
   let reportedModel = "";
   let stopReason = "";
@@ -92,9 +142,9 @@ export const attestNativeResponse = (body: Buffer) => {
         "Native response identity missing",
       );
       const usage = object(message.usage);
-      count(usage.input_tokens);
+      inputs = inputEvidence(usage);
       outputTokens = count(usage.output_tokens);
-      optionalCounts(usage);
+      optionalReasoningCount(usage);
       messageId = message.id;
       reportedModel = modelId;
       started = true;
@@ -112,7 +162,9 @@ export const attestNativeResponse = (body: Buffer) => {
             nextOutput >= outputTokens,
             "Native cumulative output usage regressed",
           );
-          optionalCounts(usage);
+          assert(inputs, "Native input evidence is unavailable");
+          inputs = inputEvidence(usage, inputs);
+          optionalReasoningCount(usage);
           outputTokens = nextOutput;
           const delta = object(frame.delta);
           if (delta.stop_reason !== undefined && delta.stop_reason !== null) {

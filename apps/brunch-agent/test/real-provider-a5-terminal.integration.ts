@@ -75,7 +75,13 @@ const ledger = () =>
       actualUsd?: number;
       terminal?: {
         stopReason: string;
-        usage: { input: number; output: number };
+        usage: {
+          input: number;
+          output: number;
+          cacheRead: number;
+          cacheWrite: number;
+          cacheWrite1h: number;
+        };
       };
     }[];
     totals: {
@@ -119,6 +125,79 @@ const nativeBody = () => {
       cache_read_input_tokens: null,
       cache_creation_input_tokens: null,
     });
+  const initial: Record<string, unknown> = {
+    input_tokens: 100,
+    output_tokens: 1,
+  };
+  const partition = (oneHour: number, fiveMinute: number) => ({
+    ephemeral_1h_input_tokens: oneHour,
+    ephemeral_5m_input_tokens: fiveMinute,
+  });
+  const deltaUsage = terminal.usage as object;
+  if (
+    ["complete-initial-one-hour", "late-one-hour-decrease"].includes(scenario)
+  )
+    Object.assign(initial, {
+      cache_creation_input_tokens: 100,
+      cache_creation: partition(100, 0),
+    });
+  if (scenario === "complete-initial-five-minute")
+    Object.assign(initial, {
+      cache_creation_input_tokens: 100,
+      cache_creation: partition(0, 100),
+    });
+  if (
+    [
+      "complete-initial-mixed",
+      "complete-mixed-nullable",
+      "complete-supported-update",
+      "late-partition-mismatch",
+    ].includes(scenario)
+  )
+    Object.assign(initial, {
+      cache_read_input_tokens: 20,
+      cache_creation_input_tokens: 100,
+      cache_creation: partition(40, 60),
+    });
+  if (scenario === "initial-partition-mismatch")
+    Object.assign(initial, {
+      cache_creation_input_tokens: 100,
+      cache_creation: partition(40, 100),
+    });
+  if (scenario === "late-one-hour")
+    Object.assign(deltaUsage, {
+      cache_creation_input_tokens: 100,
+      cache_creation: partition(100, 0),
+    });
+  if (scenario === "late-one-hour-decrease")
+    Object.assign(deltaUsage, { cache_creation: partition(0, 100) });
+  if (scenario === "late-partition-mismatch")
+    Object.assign(deltaUsage, { cache_creation: partition(40, 100) });
+  if (scenario === "input-loss") Object.assign(deltaUsage, { input_tokens: 0 });
+  if (scenario === "complete-late-five-minute")
+    Object.assign(deltaUsage, {
+      cache_creation_input_tokens: 100,
+      cache_creation: partition(0, 100),
+    });
+  if (scenario === "complete-supported-update")
+    Object.assign(deltaUsage, {
+      input_tokens: 80,
+      cache_read_input_tokens: 50,
+      cache_creation_input_tokens: 150,
+      cache_creation: partition(40, 110),
+    });
+  if (scenario === "complete-input-reclassification")
+    Object.assign(deltaUsage, {
+      input_tokens: 0,
+      cache_read_input_tokens: 100,
+    });
+  if (scenario === "complete-mixed-nullable")
+    Object.assign(deltaUsage, {
+      input_tokens: null,
+      cache_read_input_tokens: null,
+      cache_creation_input_tokens: null,
+      cache_creation: null,
+    });
   return [
     {
       type: "message_start",
@@ -128,7 +207,7 @@ const nativeBody = () => {
         role: "assistant",
         model: "claude-sonnet-4-6",
         content: [],
-        usage: { input_tokens: 100, output_tokens: 1 },
+        usage: initial,
       },
     },
     {
@@ -236,6 +315,18 @@ const submit = async () => {
 const outcomes: unknown[] = [];
 try {
   for (const control of [
+    "late-one-hour",
+    "late-one-hour-decrease",
+    "initial-partition-mismatch",
+    "late-partition-mismatch",
+    "input-loss",
+    "complete-initial-one-hour",
+    "complete-initial-five-minute",
+    "complete-initial-mixed",
+    "complete-late-five-minute",
+    "complete-supported-update",
+    "complete-input-reclassification",
+    "complete-mixed-nullable",
     "missing-terminal-usage",
     "created-missing-terminal",
     "missing-output",
@@ -264,16 +355,101 @@ try {
     if (control.startsWith("complete")) {
       assert.equal(first.failed, false);
       assert.equal(state.calls[0]?.status, "complete");
-      assert.equal(state.calls[0].terminal?.usage.output, 20);
-      assert(Math.abs(state.totals.spentUsd - 0.0006) < 1e-12);
+      const positives: Record<
+        string,
+        {
+          input: number;
+          cacheRead: number;
+          cacheWrite: number;
+          cacheWrite1h: number;
+          usd: number;
+        }
+      > = {
+        "complete-initial-one-hour": {
+          input: 100,
+          cacheRead: 0,
+          cacheWrite: 100,
+          cacheWrite1h: 100,
+          usd: 0.0012,
+        },
+        "complete-initial-five-minute": {
+          input: 100,
+          cacheRead: 0,
+          cacheWrite: 100,
+          cacheWrite1h: 0,
+          usd: 0.000975,
+        },
+        "complete-initial-mixed": {
+          input: 100,
+          cacheRead: 20,
+          cacheWrite: 100,
+          cacheWrite1h: 40,
+          usd: 0.001071,
+        },
+        "complete-mixed-nullable": {
+          input: 100,
+          cacheRead: 20,
+          cacheWrite: 100,
+          cacheWrite1h: 40,
+          usd: 0.001071,
+        },
+        "complete-late-five-minute": {
+          input: 100,
+          cacheRead: 0,
+          cacheWrite: 100,
+          cacheWrite1h: 0,
+          usd: 0.000975,
+        },
+        "complete-supported-update": {
+          input: 80,
+          cacheRead: 50,
+          cacheWrite: 150,
+          cacheWrite1h: 40,
+          usd: 0.0012075,
+        },
+        "complete-input-reclassification": {
+          input: 0,
+          cacheRead: 100,
+          cacheWrite: 0,
+          cacheWrite1h: 0,
+          usd: 0.00033,
+        },
+      };
+      const expected = positives[control] ?? {
+        input: 100,
+        cacheRead: 0,
+        cacheWrite: 0,
+        cacheWrite1h: 0,
+        usd: 0.0006,
+      };
+      const usage = state.calls[0].terminal?.usage;
+      assert.deepEqual(
+        {
+          input: usage?.input,
+          output: usage?.output,
+          cacheRead: usage?.cacheRead,
+          cacheWrite: usage?.cacheWrite,
+          cacheWrite1h: usage?.cacheWrite1h,
+        },
+        {
+          input: expected.input,
+          output: 20,
+          cacheRead: expected.cacheRead,
+          cacheWrite: expected.cacheWrite,
+          cacheWrite1h: expected.cacheWrite1h,
+        },
+      );
+      assert(Math.abs(state.totals.spentUsd - expected.usd) < 1e-12);
       assert.equal(state.totals.outstandingReservedUsd, 0);
       assert.equal((await submit()).failed, false);
       assert.equal(dispatches - before, 2);
+      assert.equal(ledger().calls.at(-1)?.status, "complete");
+      assert(Math.abs(ledger().totals.spentUsd - 2 * expected.usd) < 1e-12);
     } else {
       assert.equal(
         state.calls[0]?.status,
         "unknown",
-        "Missing/invalid terminal evidence must never settle from initial output usage",
+        "Unsupported raw billing evidence must remain unknown",
       );
       assert.equal(state.calls[0].actualUsd, undefined);
       assert.equal(state.totals.outstandingReservedUsd, 7);
