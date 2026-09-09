@@ -6,7 +6,7 @@ Implemented as a bounded experiment under the separately committed [historical b
 
 **Recommendation: the relay still fails for short local follow-ups; use this evidence to reconsider #9571.** The final clarification remained 151 words and required the Brunch round trip before even a non-substantive notice (7.437 seconds after completed transcription). Bounded delivery fixed automatic report reading and the observed Realtime preamble, not conversational responsiveness. This recommendation does not authorize or establish the correctness of split ownership; the long-report/tool-stall findings alone do not select it.
 
-- Issue: [FE-1630 — Optimize and measure the Brunch Voice relay](https://linear.app/hash/issue/FE-1630/optimize-and-measure-the-brunch-voice-relay) _(internal)_, created in FE / brunch-agent and assigned to Kostandin Angjellari.
+- Tracking: Frontend / brunch-agent, assigned to Kostandin Angjellari.
 - Branch: `kostandin/fe-1630-improved-voice-relay`.
 - Dedicated worktree: `/Users/kostandin/Projects/hashdev/worktrees/fe-improved-voice-relay`. It already existed, clean, on a placeholder branch; only that branch was renamed. CORS, donor, and ownership worktrees were not modified.
 - Foundation: [#9564](https://github.com/hashintel/hash/pull/9564), pinned at [bfd99d38fe53baa2ec15045dadf585f4c7890ffc](https://github.com/hashintel/hash/commit/bfd99d38fe53baa2ec15045dadf585f4c7890ffc).
