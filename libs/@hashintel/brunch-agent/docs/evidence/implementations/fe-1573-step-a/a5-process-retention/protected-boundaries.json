@@ -1,0 +1,13 @@
+{
+  "base": "c41aeb54ca83d3aeb6f6678c9e2d318d120b5e33",
+  "testCommit": "c6c3d3fb6324f3958e1a2e569911503f5820e2a6",
+  "trackedChangesSinceBase": [
+    "apps/brunch-agent/test/reopened-why-retention-audit.py",
+    "apps/brunch-agent/test/reopened-why-retention-browser.ts",
+    "apps/brunch-agent/test/reopened-why-retention.integration.ts",
+    "apps/brunch-agent/test/reopened-why-retention.sh"
+  ],
+  "instrumentUnchangedAfterCommit": true,
+  "pinnedFilesVerified": 1377,
+  "protectedProductionPatchesDependenciesMissionLedgersSharedTests": "No tracked change from exact base; only the four named new test/runner/audit files are committed before this evidence packet"
+}
