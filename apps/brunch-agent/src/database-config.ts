@@ -1,9 +1,9 @@
 /**
  * The deployed conversation-store contract.
  *
- * Production accepts only dedicated Postgres fields. Local development and
- * hermetic tests keep the existing SQLite path, but production can never
- * silently select it.
+ * Production requires Postgres. Local development and tests default to SQLite
+ * unless BRUNCH_DB_KIND explicitly selects Postgres with the same dedicated
+ * fields and TLS/authentication requirements.
  */
 
 export const POSTGRES_ENV = {
@@ -46,16 +46,14 @@ type Environment = Readonly<Record<string, string | undefined>>;
 const valueOf = (environment: Environment, name: string): string => {
   const value = environment[name]?.trim();
   if (value === undefined || value.length === 0) {
-    throw new Error(`Production database configuration requires ${name}.`);
+    throw new Error(`Postgres database configuration requires ${name}.`);
   }
   return value;
 };
 
 const absent = (environment: Environment, name: string): void => {
   if (environment[name] !== undefined) {
-    throw new Error(
-      `Production database configuration does not accept ${name}.`,
-    );
+    throw new Error(`Database configuration does not accept ${name}.`);
   }
 };
 
@@ -72,20 +70,32 @@ const portOf = (environment: Environment): number => {
   return port;
 };
 
-const rejectLegacyProductionInputs = (environment: Environment): void => {
+const rejectLegacyPostgresInputs = (environment: Environment): void => {
   absent(environment, "DATABASE_URL");
   absent(environment, "BRUNCH_DEV_DB_PATH");
   absent(environment, "BRUNCH_CHAT_DB_PATH");
 };
 
-export function loadDatabaseConfig(
+export const loadDatabaseConfig = (
   environment: Environment = process.env,
-): DatabaseConfig {
-  if (environment.NODE_ENV !== "production") {
-    return { kind: "sqlite" };
+): DatabaseConfig => {
+  const production = environment.NODE_ENV === "production";
+  const kind =
+    environment.BRUNCH_DB_KIND ?? (production ? "postgres" : "sqlite");
+  if (kind !== "sqlite" && kind !== "postgres") {
+    throw new Error('BRUNCH_DB_KIND must be either "sqlite" or "postgres".');
+  }
+  if (kind === "sqlite") {
+    if (production) {
+      throw new Error('BRUNCH_DB_KIND must be "postgres" in production.');
+    }
+    for (const name of Object.values(POSTGRES_ENV)) {
+      absent(environment, name);
+    }
+    return { kind };
   }
 
-  rejectLegacyProductionInputs(environment);
+  rejectLegacyPostgresInputs(environment);
 
   const authMode = valueOf(environment, POSTGRES_ENV.authMode);
   const common = {
@@ -122,4 +132,4 @@ export function loadDatabaseConfig(
   throw new Error(
     `${POSTGRES_ENV.authMode} must be either "iam" or "password".`,
   );
-}
+};

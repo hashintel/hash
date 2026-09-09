@@ -18,7 +18,7 @@ yarn workspace @apps/brunch-agent runbook:headless
 
 `ANTHROPIC_API_KEY` is required. `BRUNCH_CHAT_MODEL` selects the interviewer (default `claude-sonnet-4-5` for this script only). Artifacts write under `libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/` unless `BRUNCH_RUNBOOK_OUTPUT_DIR` is set.
 
-Conversations persist in `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. Capture envelopes for one Flue conversation sit beside that sqlite file, named by the hashed instance id (`<instanceId>.json`). The hermetic browser-transport test uses `BRUNCH_CHAT_DB_PATH` and writes the capture file in that same directory. Flue history is the conversation log; the capture store is not a second transcript. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
+By default outside production, conversations persist in SQLite at `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. Capture envelopes for one Flue conversation sit beside that sqlite file, named by the hashed instance id (`<instanceId>.json`). The hermetic browser-transport test uses `BRUNCH_CHAT_DB_PATH` and writes the capture file in that same directory. Flue history is the conversation log; the capture store is not a second transcript. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
 
 The mounted Flue URL `/agents/chat/:instanceId` requires the principal and logical conversation identity in `x-brunch-principal` and `x-brunch-conversation`. The path id is the hash of those values, not a bearer token or trusted authentication.
 
@@ -27,6 +27,30 @@ Print a human-readable transcript of one conversation from that same Flue histor
 ```sh
 yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversationId>
 ```
+
+## Local Postgres for fixture-producing development
+
+Set `BRUNCH_DB_KIND=postgres` explicitly to use the existing Postgres adapter and migrations locally. An unset selector defaults to SQLite outside production; `BRUNCH_DB_KIND=sqlite` also selects that lightweight path. Production always requires Postgres (selector unset or `postgres`), and rejects `sqlite`. Selector values are exact and case-sensitive; blank or unknown values fail.
+
+For an already provisioned isolated local Postgres with TLS, export the following in the shell that starts development (substitute your actual endpoint, port, database, role and trusted CA path):
+
+```sh
+export NODE_ENV=development
+export BRUNCH_DB_KIND=postgres
+export BRUNCH_POSTGRES_AUTH_MODE=password
+export BRUNCH_POSTGRES_HOST=localhost
+export BRUNCH_POSTGRES_PORT=5432
+export BRUNCH_POSTGRES_DATABASE=brunch_fixture
+export BRUNCH_POSTGRES_USER=brunch_fixture
+export BRUNCH_POSTGRES_TLS_CA_PATH=/absolute/path/to/local-postgres-ca.pem
+# Inject BRUNCH_POSTGRES_PASSWORD securely into this shell; do not commit it.
+unset BRUNCH_POSTGRES_AWS_REGION DATABASE_URL BRUNCH_DEV_DB_PATH BRUNCH_CHAT_DB_PATH
+yarn dev:brunch
+```
+
+Local Postgres uses the same required fields and authentication validation as production (see below). TLS verification remains mandatory: the certificate must match `BRUNCH_POSTGRES_HOST` and chain to the supplied CA. IAM remains available with `BRUNCH_POSTGRES_AUTH_MODE=iam` and `BRUNCH_POSTGRES_AWS_REGION`, with the password unset. Missing or invalid required fields fail; there is no fallback to SQLite. Postgres rejects `DATABASE_URL` and both SQLite path overrides. SQLite rejects any supplied `BRUNCH_POSTGRES_*` field listed below, including empty values, rather than silently ignoring a missing or contradictory selector. To return to SQLite, unset those Postgres fields and unset `BRUNCH_DB_KIND` (or set it to `sqlite`).
+
+This selects the Flue conversation store only; it does not export/seed fixtures or make the separate filesystem capture/accounting stores portable. The usual provider configuration is independent; selecting Postgres grants no provider-call or target-write permission.
 
 ## Production container
 
