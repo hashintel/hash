@@ -11,12 +11,13 @@ use super::{
     topology::TopologyDelta,
 };
 use crate::{
-    dataset::auxiliary::OwnedLegend,
+    dataset::auxiliary::{OwnedIcon, OwnedLegend},
     file::generation::GenerationId,
-    identity::{EdgeRowId, NodeRowId},
-    postgres::id::ArchivedEntityId,
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
+    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     serve2::world::{
-        NodeIndex, layout::Layout, node_importance::ImportanceProvider, topology::Topology,
+        NodeIndex, Ontology, layout::Layout, node_importance::ImportanceProvider,
+        topology::Topology,
     },
 };
 
@@ -115,6 +116,23 @@ impl Epoch {
         );
 
         &self.delta.edge
+    }
+
+    /// Borrows captured ontology identities after checking their world association.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `ontology` does not belong to the epoch's world.
+    pub(crate) fn ontology(
+        &self,
+        ontology: &Ontology,
+    ) -> &IdentityProviderResidual<ArchivedOntologyTypeUuid, OntologyRowId, OwnedIcon> {
+        assert!(
+            ptr::eq(ontology, ptr::from_ref(&self.delta.world.ontology)),
+            "ontology must belong to the epoch's world",
+        );
+
+        &self.delta.ontology
     }
 
     /// Returns priorities over this publication's allocated nodes.

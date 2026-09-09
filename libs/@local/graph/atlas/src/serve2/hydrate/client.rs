@@ -7,10 +7,7 @@ use hash_graph_postgres_store::store::{
     AsClient, PostgresStorePool, postgres::query::SelectCompiler,
 };
 use hash_graph_store::{
-    filter::{
-        Filter,
-        protection::{PropertyProtectionFilter, PropertyProtectionFilterConfig},
-    },
+    filter::{Filter, protection::PropertyProtectionFilter},
     pool::StorePool as _,
     subgraph::temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
 };
@@ -18,7 +15,7 @@ use hashql_core::{
     collections::FastHashMap,
     id::{Id as _, IdSlice, IdVec, bit_vec::DenseBitSet},
 };
-use tokio::try_join;
+use tokio::{runtime::Handle, try_join};
 use tokio_postgres::GenericClient;
 use type_system::{
     knowledge::entity::id::EntityId,
@@ -26,15 +23,14 @@ use type_system::{
         entity_type::EntityTypeUuid,
         id::{OntologyTypeUuid, VersionedUrl},
     },
-    principal::actor::ActorId,
 };
 
 use super::{
     columns::{EdgeSlot, NodeSlot, TypeSlot},
-    edges::OntologyResolver,
     locate::{
         LocateLinkResponse, LocateNodeResponse, LocateRequest, LocateResolver, LocateResponse,
     },
+    ontology::OntologyResolver,
     scalar::ScalarProperties,
     statements::{DetailColumns, TypeColumns, TypeUrlColumns, identity_filter},
     type_urls::TypeUrlResolver,
@@ -52,15 +48,8 @@ pub(crate) enum HydrateError {
     Connect,
     /// The store rejected the query.
     Query,
-    /// The channel carrying the answer closed before it arrived.
-    ///
-    /// The party holding the store side of the order dropped it, which happens when its request
-    /// ends early, so no answer can reach the response either way.
-    Disconnected,
     /// The query returned too many rows.
     TooManyRows,
-    /// The dataset-layer read behind a delta display failed.
-    Dataset,
 }
 
 impl core::fmt::Display for HydrateError {
@@ -70,11 +59,7 @@ impl core::fmt::Display for HydrateError {
                 write!(fmt, "the detail hydration reached no store connection")
             }
             Self::Query => write!(fmt, "the detail hydration failed"),
-            Self::Disconnected => {
-                fmt.write_str("the hydration channel closed before an answer arrived")
-            }
             Self::TooManyRows => fmt.write_str("the detail hydration returned too many rows"),
-            Self::Dataset => fmt.write_str("the link-display read failed"),
         }
     }
 }
@@ -167,18 +152,18 @@ async fn read_detail(
 
 /// Live detail reads over the serving store pool.
 ///
-/// The pool's settings carry the deployment's property protection, so a serving process masks
-/// exactly the properties that process's store protects.
+/// The pool's settings determine property protection. Call the resolvers from a blocking worker
+/// while the supplied runtime drives I/O.
 #[derive(Debug)]
 pub(crate) struct GraphDatabaseClient {
     pool: Arc<PostgresStorePool>,
+    runtime: Handle,
 }
 
 impl GraphDatabaseClient {
-    /// Opens the detail path over the serving store pool.
     #[must_use]
-    pub(crate) const fn new(pool: Arc<PostgresStorePool>) -> Self {
-        Self { pool }
+    pub(crate) const fn new(pool: Arc<PostgresStorePool>, runtime: Handle) -> Self {
+        Self { pool, runtime }
     }
 
     /// Holds one connection for the duration of one hydration.
@@ -198,7 +183,7 @@ impl GraphDatabaseClient {
     ///
     /// # Errors
     ///
-    /// Returns [`DetailError`] when the store rejects a query.
+    /// Returns [`HydrateError`] when the store rejects a query.
     ///
     /// # Panics
     ///
@@ -206,7 +191,7 @@ impl GraphDatabaseClient {
     /// not decode at its assigned position, or when a stored URL does not parse as its domain
     /// type.
     #[tracing::instrument(skip_all, fields(points = ids.len()))]
-    pub(crate) async fn resolve_locate_node_request(
+    async fn read_locate_nodes(
         &self,
         ids: &IdSlice<NodeSlot, ArchivedEntityId>,
         properties: u32,
@@ -249,7 +234,7 @@ impl GraphDatabaseClient {
     ///
     /// # Errors
     ///
-    /// Returns [`DetailError`] when the store rejects the query.
+    /// Returns [`HydrateError`] when the store rejects the query.
     ///
     /// # Panics
     ///
@@ -257,7 +242,7 @@ impl GraphDatabaseClient {
     /// not decode at its assigned position, or when a stored URL does not parse as its domain
     /// type.
     #[tracing::instrument(skip_all, fields(edges = ids.len()))]
-    pub(crate) async fn resolve_locate_link_request(
+    async fn read_locate_links(
         &self,
         ids: &IdSlice<EdgeSlot, ArchivedEntityId>,
         type_ids: u32,
@@ -324,10 +309,11 @@ impl GraphDatabaseClient {
     }
 
     #[tracing::instrument(skip_all, fields(types))]
-    async fn resolve_type_urls(
+    async fn read_type_urls(
         &self,
-        types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator> + Send,
-    ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>> {
+        types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator>,
+    ) -> Result<impl IntoIterator<Item = (OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>>
+    {
         let types = types.into_iter();
         tracing::Span::current().record("types", types.len());
 
@@ -364,44 +350,44 @@ impl GraphDatabaseClient {
     }
 }
 
-impl LocateResolver for GraphDatabaseClient {
-    /// Answers both halves of one locate request over one borrowed connection each.
-    async fn resolve(
+impl TypeUrlResolver for GraphDatabaseClient {
+    fn resolve(
         &self,
-        request: LocateRequest<'_>,
-    ) -> Result<LocateResponse, Report<HydrateError>> {
-        let nodes: Vec<ArchivedEntityId> = request.nodes.iter().collect();
+        types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator>,
+    ) -> Result<impl IntoIterator<Item = (OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>>
+    {
+        self.runtime.block_on(self.read_type_urls(types))
+    }
+}
 
-        let (nodes, links) = try_join!(
-            self.resolve_locate_node_request(
-                IdSlice::from_raw(&nodes),
-                request.properties,
-                request.actor,
-            ),
-            self.resolve_locate_link_request(
-                request.links,
-                request.link_type_ids,
-                request.link_properties,
-                request.actor,
-            ),
-        )?;
+impl LocateResolver for GraphDatabaseClient {
+    fn resolve(&self, request: LocateRequest<'_>) -> Result<LocateResponse, Report<HydrateError>> {
+        let nodes: IdVec<NodeSlot, ArchivedEntityId> = request.nodes.iter().collect();
 
-        Ok(LocateResponse { nodes, links })
+        self.runtime.block_on(async {
+            let (nodes, links) = try_join!(
+                self.read_locate_nodes(&nodes, request.properties, request.actor),
+                self.read_locate_links(
+                    request.links,
+                    request.link_type_ids,
+                    request.link_properties,
+                    request.actor,
+                ),
+            )?;
+
+            Ok(LocateResponse { nodes, links })
+        })
     }
 }
 
 impl OntologyResolver for GraphDatabaseClient {
-    /// Answers each required type uuid's versioned URL through the type-URL read.
-    ///
-    /// A uuid the store no longer serves reads [`None`] at its slot.
-    async fn resolve(
+    fn resolve(
         &self,
         types: &IdSlice<TypeSlot, ArchivedOntologyTypeUuid>,
     ) -> Result<IdVec<TypeSlot, Option<VersionedUrl>>, Report<HydrateError>> {
         let uuids = ArchivedOntologyTypeUuid::into_slice(types.as_raw());
 
-        let resolved: FastHashMap<_, _> = TypeUrlResolver::resolve(self, uuids.iter().copied())
-            .await?
+        let resolved: FastHashMap<_, _> = TypeUrlResolver::resolve(self, uuids.iter().copied())?
             .into_iter()
             .collect();
 

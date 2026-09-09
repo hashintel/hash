@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::iter;
+use core::{iter, ptr};
 
 use arc_swap::Guard;
 use hashql_core::id::Id as _;
@@ -415,6 +415,146 @@ fn ontology_icon_replacement() {
         "changed"
     );
     assert_eq!(identities.count(), TYPES as usize + 1);
+}
+
+/// Base payload queries borrow the mapped legend without copying it.
+#[test]
+fn payload_base() {
+    let (_fixture, delta) = fixture("delta-payload-base");
+    let world = Arc::clone(&delta.world);
+    let captured = epoch(&delta);
+    let mapped = world
+        .topology
+        .identity
+        .payload_of_row(EdgeRowId::MIN)
+        .expect("should read the base legend");
+    let payload = world
+        .topology
+        .payload(&captured, EdgeRowId::MIN)
+        .expect("should borrow the base legend");
+
+    assert!(
+        ptr::eq(mapped, payload),
+        "should borrow the same mapped legend"
+    );
+    assert!(world.topology.payload(&captured, EdgeRowId::MAX).is_none());
+    drop(delta);
+    assert_eq!(payload.label(), mapped.label());
+}
+
+/// Captures retain base overrides and added legends through withdrawal and revival.
+#[test]
+fn payload_captures() {
+    let (_fixture, mut delta) = fixture("delta-payload-captures");
+    let world = Arc::clone(&delta.world);
+    let rows = [EdgeRowId::MIN, EdgeRowId::new(EDGES)];
+    let keys = [
+        world
+            .topology
+            .identity
+            .key_of(rows[0])
+            .expect("should resolve the base edge"),
+        entity(903),
+    ];
+    let before = epoch(&delta);
+    assert!(world.topology.payload(&before, rows[1]).is_none());
+
+    delta.revision.increment_by(1);
+    for key in keys {
+        assert_eq!(
+            delta.update_edge(key, legend("first"), Some(ENDPOINTS[0])),
+            Some(true)
+        );
+    }
+    let captured = epoch(&delta);
+    let held = rows.map(|row| {
+        world
+            .topology
+            .payload(&captured, row)
+            .expect("should borrow the captured legend")
+    });
+
+    delta.revision.increment_by(1);
+    for key in keys {
+        assert!(delta.withdraw(key), "should withdraw the edge");
+    }
+    let withdrawn = epoch(&delta);
+    for row in rows {
+        assert!(world.topology.payload(&withdrawn, row).is_none());
+    }
+
+    delta.revision.increment_by(1);
+    for key in keys {
+        assert_eq!(
+            delta.update_edge(key, legend("revived"), Some(ENDPOINTS[0])),
+            Some(true)
+        );
+    }
+    let revived = epoch(&delta);
+    drop(delta);
+    for (row, payload) in rows.into_iter().zip(held) {
+        assert_eq!(payload.label(), "first");
+        assert_eq!(
+            world
+                .topology
+                .payload(&revived, row)
+                .expect("should borrow the revived legend")
+                .label(),
+            "revived"
+        );
+        assert!(world.topology.payload(&withdrawn, row).is_none());
+    }
+    assert!(world.topology.payload(&before, rows[1]).is_none());
+}
+
+/// Captured ontology keys exclude later registrations and unknown rows.
+#[test]
+fn ontology_keys_captured() {
+    let (_fixture, mut delta) = fixture("delta-ontology-keys-captured");
+    let world = Arc::clone(&delta.world);
+    let base = OntologyRowId::MIN;
+    let base_key = world
+        .ontology
+        .identity
+        .key_of(base)
+        .expect("should resolve the base type");
+    let before = epoch(&delta);
+    assert_eq!(world.ontology.key_of(&before, base), Some(base_key));
+    assert_eq!(world.ontology.key_of(&before, OntologyRowId::MAX), None);
+
+    let added: ArchivedOntologyTypeUuid = Uuid::from_u128(904).into();
+    let row = OntologyRowId::new(TYPES);
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.register_ontology(added, OwnedIcon::from("added")),
+        Some((row, true))
+    );
+    let captured = epoch(&delta);
+    drop(delta);
+
+    assert_eq!(world.ontology.key_of(&captured, base), Some(base_key));
+    assert_eq!(world.ontology.key_of(&captured, row), Some(added));
+    assert_eq!(world.ontology.key_of(&before, row), None);
+    assert_eq!(world.ontology.key_of(&captured, OntologyRowId::MAX), None);
+}
+
+#[test]
+#[should_panic(expected = "topology must belong to the epoch's world")]
+fn payload_foreign_world() {
+    let (_left_files, left) = fixture("delta-payload-foreign-left");
+    let (_right_files, right) = fixture("delta-payload-foreign-right");
+    let _payload = left.world.topology.payload(&epoch(&right), EdgeRowId::MIN);
+}
+
+#[test]
+#[should_panic(expected = "ontology must belong to the epoch's world")]
+fn ontology_keys_foreign_world() {
+    let (_left_files, left) = fixture("delta-ontology-foreign-left");
+    let (_right_files, right) = fixture("delta-ontology-foreign-right");
+    let _key = left
+        .world
+        .ontology
+        .key_of(&epoch(&right), OntologyRowId::MIN);
 }
 
 /// Reusing a delta allocation copies component state without mutating a held publication.

@@ -191,11 +191,15 @@ impl Topology {
             .provide_key_of_at(edge, epoch.revision())
     }
 
-    pub(crate) fn payload(&self, epoch: &Epoch, edge: EdgeRowId) -> Option<&Legend> {
+    pub(crate) fn payload<'scene>(
+        &'scene self,
+        epoch: &'scene Epoch,
+        edge: EdgeRowId,
+    ) -> Option<&'scene Legend> {
         epoch
             .edges(self)
             .bind(NaiveIdentityProvider::from_ref(&self.identity))
-            .provide_payload_of_row_at(edge, epoch.revision())
+            .into_payload_of_row_at(edge, epoch.revision())
     }
 
     /// Returns the allocated edge count, including withdrawn and unbound rows.

@@ -1,7 +1,7 @@
 mod client;
 mod columns;
-mod edges;
 mod locate;
+mod ontology;
 pub(crate) mod scalar;
 mod statements;
 mod type_urls;
@@ -17,7 +17,7 @@ pub(crate) use self::{
         EdgeLinkColumns, EdgeSlot, LocateLinkColumns, LocateNodeColumns, NodeRequestColumns,
         NodeSlot, NodeTrailerColumns, TypeSlot,
     },
-    edges::OntologyResolver,
     locate::{LocateRequest, LocateResolver, LocateResponse},
+    ontology::OntologyResolver,
     type_urls::{CachedTypeUrlResolver, TypeUrlResolver},
 };

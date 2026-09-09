@@ -64,4 +64,12 @@ where
     pub(super) const fn entries(&self) -> &IdSlice<TableIndex<T>, T> {
         &self.table
     }
+
+    pub(super) const fn len(&self) -> usize {
+        self.table.len()
+    }
+
+    pub(super) const fn is_empty(&self) -> bool {
+        self.table.is_empty()
+    }
 }

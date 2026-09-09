@@ -8,6 +8,10 @@ use crate::{
         fit::prepare::identity::IdentityTableArchive,
         postings::{artifact::PostingsArchive, closure::ClosureMap},
     },
+    serve2::delta::{
+        epoch::Epoch,
+        overlay::{NaiveIdentityProvider, VersionedIdentityProvider as _},
+    },
 };
 
 #[derive(Debug)]
@@ -91,6 +95,22 @@ impl Ontology {
     )]
     pub(crate) fn ontology_count(&self) -> usize {
         self.identity.len() as usize
+    }
+
+    /// Resolves a visible ontology key in the captured publication.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this ontology does not belong to the epoch's world.
+    pub(crate) fn key_of(
+        &self,
+        epoch: &Epoch,
+        row: OntologyRowId,
+    ) -> Option<ArchivedOntologyTypeUuid> {
+        epoch
+            .ontology(self)
+            .bind(NaiveIdentityProvider::from_ref(&self.identity))
+            .provide_key_of_at(row, epoch.revision())
     }
 
     pub(crate) const fn identity(

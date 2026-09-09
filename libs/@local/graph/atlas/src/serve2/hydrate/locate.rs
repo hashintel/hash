@@ -1,32 +1,18 @@
-//! The detail routes' store orders and the capabilities that answer them.
+//! Live properties and type URLs for locate documents.
 //!
-//! A detail route assembles, hydrates, and encodes inside one synchronous call, and the store is
-//! the one stage of that pipeline living on the other side of an executor. An assembled document
-//! places one order naming the delivered identities and the caps, and one answer carries every
-//! store-derived column back, so the boundary crosses as data rather than as control flow. Labels
-//! stay out of every order on purpose. A label is a generation payload or a captured display,
-//! either resolved in process, so an answer carries at most the resolution flags a label lookup
-//! keys on rather than the labels themselves.
-//!
-//! [`LocateResolver`] and [`OntologyResolver`](super::edges::OntologyResolver) are the
-//! capability shapes. [`GraphDatabaseClient`](super::GraphDatabaseClient) implements each one
-//! directly, and delegating implementations over `&T` and `Arc<T>` let a caller hand out the
-//! shared client wherever a resolver is due.
+//! Responses preserve request slots even for entities the store no longer serves.
 
 use alloc::sync::Arc;
 
 use error_stack::Report;
 use hashql_core::id::{IdSlice, IdVec, bit_vec::DenseBitSet};
-use type_system::ontology::id::{BaseUrl, VersionedUrl};
+use type_system::ontology::VersionedUrl;
 
 use super::{
-    EdgeSlot, NodeRequestColumns, NodeSlot, TypeSlot, client::HydrateError,
-    scalar::ScalarProperties,
+    EdgeSlot, NodeRequestColumns, NodeSlot, client::HydrateError, scalar::ScalarProperties,
 };
 use crate::{
-    bitset::DenseBitSlice,
-    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
-    serve2::visibility::VisibilityActor,
+    bitset::DenseBitSlice, postgres::id::ArchivedEntityId, serve2::visibility::VisibilityActor,
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -45,7 +31,7 @@ pub(crate) struct LocateRequest<'doc> {
     pub link_properties: u32,
 }
 
-/// The store's answer to one [`LocateOrder`], every column in delivered order.
+/// The store's answer to one [`LocateRequest`], every column in delivered order.
 #[derive(Debug, PartialEq)]
 pub(crate) struct LocateResponse {
     /// The node half of the answer.
@@ -89,9 +75,8 @@ impl LocateNodeResponse {
 
 /// The store-answered link columns of one locate hydration.
 ///
-/// The properties column doubles as the resolution flag. An entry is `Some` exactly when the store
-/// resolved the link, so an unresolved link reads `None` there, empty types, and a slot outside
-/// both completeness sets.
+/// Properties are `Some` exactly when the store resolves the link. An unresolved link has `None`
+/// properties and empty types, and belongs to neither completeness set.
 #[derive(Debug, PartialEq)]
 pub(crate) struct LocateLinkResponse {
     /// The link's direct-type versioned URLs per delivered edge, canonical order, capped.
@@ -119,21 +104,15 @@ impl LocateLinkResponse {
 
 /// The capability to answer one locate request with every store-derived column.
 pub(crate) trait LocateResolver {
-    async fn resolve(
-        &self,
-        request: LocateRequest<'_>,
-    ) -> Result<LocateResponse, Report<HydrateError>>;
+    fn resolve(&self, request: LocateRequest<'_>) -> Result<LocateResponse, Report<HydrateError>>;
 }
 
 impl<T> LocateResolver for &T
 where
     T: LocateResolver,
 {
-    async fn resolve(
-        &self,
-        request: LocateRequest<'_>,
-    ) -> Result<LocateResponse, Report<HydrateError>> {
-        T::resolve(self, request).await
+    fn resolve(&self, request: LocateRequest<'_>) -> Result<LocateResponse, Report<HydrateError>> {
+        T::resolve(self, request)
     }
 }
 
@@ -141,10 +120,7 @@ impl<T> LocateResolver for Arc<T>
 where
     T: LocateResolver,
 {
-    async fn resolve(
-        &self,
-        request: LocateRequest<'_>,
-    ) -> Result<LocateResponse, Report<HydrateError>> {
-        T::resolve(self, request).await
+    fn resolve(&self, request: LocateRequest<'_>) -> Result<LocateResponse, Report<HydrateError>> {
+        T::resolve(self, request)
     }
 }

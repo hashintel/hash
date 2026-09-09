@@ -385,6 +385,23 @@ where
         row: R,
         revision: Option<DeltaRevision>,
     ) -> Option<&K::Payload> {
+        DeltaIdentityProvider::from_parts(self.data, &self.base)
+            .into_lookup_payload_of_row(row, revision)
+    }
+}
+
+impl<'payload, K, R, B>
+    DeltaIdentityProvider<'payload, &'payload B, K, R, <K::Payload as ToOwned>::Owned>
+where
+    R: Row,
+    K: Key + Hash + Eq,
+    B: VersionedIdentityProvider<K, R> + ?Sized,
+{
+    fn into_lookup_payload_of_row(
+        self,
+        row: R,
+        revision: Option<DeltaRevision>,
+    ) -> Option<&'payload K::Payload> {
         let key = self.lookup_key(row, revision)?;
         self.data.payload.get(&key).map(Borrow::borrow).or_else(|| {
             revision.map_or_else(
@@ -392,6 +409,15 @@ where
                 |revision| self.base.provide_payload_of_row_at(row, revision),
             )
         })
+    }
+
+    /// Borrows the visible row's current payload beyond this provider's lifetime.
+    pub(crate) fn into_payload_of_row_at(
+        self,
+        row: R,
+        revision: DeltaRevision,
+    ) -> Option<&'payload K::Payload> {
+        self.into_lookup_payload_of_row(row, Some(revision))
     }
 }
 
