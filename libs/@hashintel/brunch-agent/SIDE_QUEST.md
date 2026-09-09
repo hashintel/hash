@@ -29,8 +29,7 @@ file. Do not invent a separate evidence document.
 Make brunch's git/Linear/PR standing docs state only what would be **wrong
 elsewhere**, and cite HASH globals for the rest, without lifting brunch
 identity rules into the repo and without touching shipped product skills.
-Standing stack guidance names `gh stack`, not Graphite. Do not prescribe
-`git town` as team or agent law.
+Standing repository stack guidance is tool-neutral. Lu's 2026-09-09 decision selects Git Town for his local agents, superseding this quest's earlier `gh stack` default and owner-only Git Town restriction. This is not a HASH-wide adoption claim.
 
 ## Throughline
 
@@ -66,16 +65,7 @@ evaluation-instrument copy) are Flue product assets.
 
 ## Stack-tool posture
 
-HASH is moving off Graphite. Tim's quotes were leftovers from that rewrite:
-`docs/agents/git-workflow.md` already says plain Git plus `gh stack`. Do not
-put Graphite, `gt`, or a Graphite skill back into standing agent docs.
-
-Replacement, for standing guidance:
-
-- **Team / agent default:** `gh stack` for stack-aware operations on a branch
-  based on another unmerged branch.
-- **Owner-optional local:** `git town` is allowed for Lu's own machine. It is
-  not brunch law and must not appear as a required agent command.
+HASH has stopped using Graphite. Shared repository guidance preserves parent/child ordering and safe synchronization without prescribing a replacement tool. Lu's local agent guidance owns Git Town commands and side-effect cautions. Do not put Graphite, `gt`, or a Graphite skill back into active workflow instructions or claim Git Town is the HASH team default.
 
 Historical evidence that a restack was done with Graphite (`gt move`,
 "Graphite ancestry", dated restack notes) stays as provenance. Do not rewrite
@@ -97,9 +87,9 @@ Keep only brunch deltas:
 | --- | --- |
 | One Linear issue = one Git branch = one GitHub PR | Brunch identity and visibility rule, not HASH contributing law. Tim has seen multi-PR stacks on one issue; do not lift this. |
 | Mission lifecycle (state `MISSION.md`, then issue, then branch/PR) | Execution authority is the mission, not the ticket. |
-| `gh stack` parent/child ordering; a stacked child does not inherit the parent's issue | Wrong as a repo-wide law. |
+| Parent/child ordering; a stacked child does not inherit the parent's issue | Wrong as a repo-wide law. |
 | Shared-worktree tenancy: never stash, reset, clean, or relocate another tenant's changes | Brunch worktree sharing; wrong as general HASH policy. |
-| Open as draft (`gh pr create --draft` / `gh stack submit --auto`) | Brunch habit, not HASH law. |
+| Open as draft (`gh pr create --draft`) | Brunch habit, not HASH law. |
 | Pointer to [`issue-writing.md`](docs/agents/issue-writing.md) for the visible-summary / `🏗️ Agent notes` split | No global twin. |
 
 PR-title extra, if kept, is one line: when a HASH Linear issue exists, use
@@ -112,10 +102,7 @@ already lives in the global skill.
 "the non-interactive flags from the `gh-stack` skill." That skill is not in
 this repository.
 
-Inline the `gh stack` flags brunch actually uses, or drop the skill name and
-point at `gh stack --help` / observed invocations. Do not cite an out-of-repo
-plugin as if it were in-tree. Do not replace the dead cite with Graphite, `gt`,
-or `git town`.
+Drop the dead skill cite and tool-specific stack commands from shared guidance. Local tooling procedures own installed commands and flags. Do not cite an out-of-repo plugin as if it were in-tree or replace the dead cite with a new repository-wide tool mandate.
 
 The one live standing leftover in this context root is
 [`evaluations/README.md`](evaluations/README.md) ("After a rebase or Graphite
@@ -210,8 +197,7 @@ construction, explanation, or readiness.
   into HASH globals.
 - Do not create a brunch developer skill or a `skill-rules.json` entry.
 - Do not perform the out-of-scope HASH skills sweep.
-- Do not reintroduce Graphite or `gt` into standing guidance. Do not make
-  `git town` an agent requirement.
+- Do not reintroduce Graphite or `gt` into active workflow instructions. Git Town is Lu's local agent default, not a shared repository requirement.
 - Do not rewrite historical Graphite restack evidence as if it had been
   `gh stack`.
 - Linear writes still require explicit approval; this quest needs none.
@@ -222,8 +208,7 @@ construction, explanation, or readiness.
 Stop and report the smallest blocker if:
 
 - collapsing a sentence would drop a brunch delta from the R1 table;
-- fixing the `gh-stack` cite seems to require inventing flags not observed in
-  brunch usage or `gh stack --help`;
+- tool-neutral guidance seems to require inventing commands or overriding an owner's local workflow;
 - an edit to `managing-git-workflow` or root `AGENTS.md` looks necessary to
   keep brunch coherent and the owner has not accepted that HASH-wide change;
 - a product `SKILL.md` appears to need a guidance edit;
