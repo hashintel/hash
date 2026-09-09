@@ -231,6 +231,12 @@ const { trials, best } = makeTrials(input, 5);
 const formatObjective = (value: number): string =>
   Number.isInteger(value) ? String(value) : value.toPrecision(6);
 
+/** The Steps column's whole value; its short form beside it reads the same when the study runs one run per step. */
+const stepsValue = (): string | undefined =>
+  document.querySelector(
+    '[data-frame-stats] [data-frame-stat][title="Steps"] [data-frame-stat-value]',
+  )?.textContent;
+
 describe("ViewOptimizationDrawer for a remote study", () => {
   const remote = makeOptimizationRecord({
     input,
@@ -243,7 +249,7 @@ describe("ViewOptimizationDrawer for a remote study", () => {
     renderDrawer(remote);
 
     expect(screen.getByText("Complete")).toBeTruthy();
-    expect(screen.getByText("5 / 30")).toBeTruthy();
+    expect(stepsValue()).toBe("5 / 30");
     expect(
       screen
         .getByText("Best step so far")
@@ -381,7 +387,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
 
     expect(screen.queryByText("Best parameters")).toBeNull();
     expect(screen.getByText("Running")).toBeTruthy();
-    expect(screen.getByText("3 / 30")).toBeTruthy();
+    expect(stepsValue()).toBe("3 / 30");
     expect(
       screen
         .getByText("Best step so far")
@@ -624,7 +630,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
       },
     });
 
-    expect(screen.getByText("3 / 30")).toBeTruthy();
+    expect(stepsValue()).toBe("3 / 30");
     fireEvent.click(screen.getByRole("button", { name: /2 computing/ }));
     expect(screen.getByText("Step 3")).toBeTruthy();
     expect(screen.getByText("0 / 1 runs")).toBeTruthy();

@@ -53,7 +53,7 @@ const frame = ({
   stats?: ReactNode;
 } = {}) => (
   <DrawerFrame
-    title="SIR transmission sweep · Seasonal Flu · 100 runs · dt 1"
+    title="SIR transmission sweep · Seasonal Flu · 100 runs"
     headline={<span>Step 3 of 30</span>}
     stats={
       <>
@@ -86,9 +86,7 @@ describe("DrawerFrame", () => {
 
     expect(header().dataset.condensed).toBe("false");
     expect(
-      screen.getByText(
-        "SIR transmission sweep · Seasonal Flu · 100 runs · dt 1",
-      ),
+      screen.getByText("SIR transmission sweep · Seasonal Flu · 100 runs"),
     ).toBeTruthy();
     expect(screen.getByText("Step 3 of 30")).toBeTruthy();
     const runs = screen.getByText("Runs").nextElementSibling!;
@@ -164,6 +162,33 @@ describe("DrawerFrame", () => {
     removed.rerender(frame());
     scrollBodyTo(60);
     expect(header().dataset.condensed).toBe("true");
+  });
+
+  it("lays a stat's short form beside the whole one, so the header's width picks which shows", () => {
+    render(
+      <FrameStat
+        label="Steps"
+        widest="30 / 30 · 3 runs each"
+        short={{ text: "4 / 30", widest: "30 / 30" }}
+      >
+        4 / 30 · 3 runs each
+      </FrameStat>,
+    );
+
+    const stat = document.querySelector<HTMLElement>("[data-frame-stat]")!;
+    expect(stat.dataset.short).toBe("true");
+    expect(stat.getAttribute("title")).toBe("Steps");
+    expect(stat.querySelector("[data-frame-stat-value]")?.textContent).toBe(
+      "4 / 30 · 3 runs each",
+    );
+    expect(stat.querySelector("[data-frame-stat-short]")?.textContent).toBe(
+      "4 / 30",
+    );
+    expect(
+      [...stat.querySelectorAll("[aria-hidden]")].map(
+        (sizer) => sizer.textContent,
+      ),
+    ).toEqual(["30 / 30 · 3 runs each", "30 / 30"]);
   });
 
   it("keeps the note row mounted at one height whether or not there is a note", () => {
