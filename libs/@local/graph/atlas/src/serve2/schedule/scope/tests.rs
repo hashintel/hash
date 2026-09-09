@@ -1,3 +1,5 @@
+use core::iter;
+
 use hashql_core::id::Id as _;
 use proptest::{
     arbitrary::any, collection, prop_assert_eq, prop_oneof, property_test, strategy::Just,
@@ -12,7 +14,7 @@ use crate::{
     postgres::id::ArchivedEntityId,
     salt::lod::stage::LodConfig,
     serve2::{
-        schedule::{BucketSchedule, DeliveredNodes},
+        schedule::{BucketSchedule, DeliveredNodes, column::BucketColumn},
         world::node_importance::NodePriority,
     },
 };
@@ -25,11 +27,15 @@ fn grid(span: u8, zoom: u8) -> BucketSchedule {
     .expect("should fit the key width")
 }
 
+#[expect(
+    clippy::integer_division_remainder_used,
+    reason = "fixture identities partition into three webs by index residue"
+)]
 fn rows(keys: &[u64]) -> Vec<ScheduleNode> {
     keys.iter()
         .enumerate()
         .map(|(index, &key)| {
-            let priority = if index % 2 == 0 {
+            let priority = if index.is_multiple_of(2) {
                 NodePriority::Rank(ImportanceRank::from_usize(keys.len() - index))
             } else {
                 NodePriority::Identity(ArchivedEntityId {
@@ -138,9 +144,9 @@ fn buckets_hidden_priority() {
     let rows = rows(&[0, 0, 0]);
     let full = ScopeSchedule::over(rows.clone());
     let narrow = ScopeSchedule::over(rows[..2].to_vec());
-    assert_eq!(full.bucket_of(rows[0].node), Some(Depth::MAX));
-    assert_eq!(narrow.bucket_of(rows[0].node), Some(Depth::MIN));
-    assert_eq!(narrow.bucket_of(rows[2].node), None);
+    assert_eq!(full.column.bucket_of(rows[0].node), Some(Depth::MAX));
+    assert_eq!(narrow.column.bucket_of(rows[0].node), Some(Depth::MIN));
+    assert_eq!(narrow.column.bucket_of(rows[2].node), None);
 }
 
 /// A root-only schedule delivers every row through its catch-all, at every valid offset.
@@ -222,6 +228,96 @@ fn cut_zoom_outside_schedule() {
         .cut(grid(0, 0), Zoom::MIN)
         .expect("should bind the cut");
     cut.cut_of(Zoom::MAX);
+}
+
+/// A separate extension column agrees with a cascade over the combined key set.
+#[property_test]
+fn delivery_extension_column(
+    #[strategy = collection::vec(prop_oneof![Just(0), Just(u64::MAX), any::<u64>()], 0..30)]
+    keys: Vec<u64>,
+    #[strategy = 0_u8..4] max_zoom: u8,
+    #[strategy = 0_u8..4] offset: u8,
+) {
+    let rows = rows(&keys);
+    let natural = natural(&rows);
+    let (base, extension): (Vec<_>, Vec<_>) = rows
+        .iter()
+        .copied()
+        .partition(|row| matches!(row.priority, NodePriority::Rank(_)));
+    let base = ScopeSchedule::over(base);
+    for row in &rows {
+        let expected = rows
+            .iter()
+            .filter(|row| matches!(row.priority, NodePriority::Rank(_)))
+            .map(|held| row.key.shared_depth(held.key))
+            .max();
+        prop_assert_eq!(base.column.shared_depth(row.key), expected);
+    }
+    let extension = BucketColumn::new(extension, |key| base.column.shared_depth(key));
+    let cut = base
+        .cut(
+            grid(0, max_zoom),
+            Zoom::new(offset).expect("should fit the offset"),
+        )
+        .expect("should bind the cut")
+        .with_extension(&extension);
+    let deepest = max_zoom + offset;
+    prop_assert_eq!(
+        cut.root_delivered(),
+        natural
+            .iter()
+            .filter(|&&bucket| bucket.min(deepest) <= offset)
+            .count()
+    );
+    prop_assert_eq!(
+        cut.min_resolution().get(),
+        natural.iter().copied().max().unwrap_or(0).min(deepest)
+    );
+    for (row, &bucket) in rows.iter().zip(&natural) {
+        prop_assert_eq!(
+            cut.bucket_of(row.node),
+            Some(Depth::new(bucket.min(deepest)))
+        );
+        prop_assert_eq!(
+            cut.first_zoom(row.node).map(Zoom::get),
+            Some(bucket.min(deepest).saturating_sub(offset))
+        );
+    }
+    for zoom in 0..=max_zoom {
+        let typed_zoom = Zoom::new(zoom).expect("should fit the zoom");
+        let cut_depth = zoom + offset;
+        let cells = iter::once(
+            MortonCell::new(Depth::new(zoom), 0, 0).expect("should construct the origin cell"),
+        )
+        .chain(rows.iter().map(|row| row.key.cell(Depth::new(zoom))));
+        for cell in cells {
+            prop_assert_eq!(
+                cut.total(typed_zoom, cell),
+                delivery(&rows, &natural, deepest, 0..=cut_depth, cell)
+            );
+            let first = if zoom == 0 { 0 } else { cut_depth };
+            prop_assert_eq!(
+                cut.delta(typed_zoom, cell),
+                delivery(&rows, &natural, deepest, first..=cut_depth, cell)
+            );
+            let mut children = 0;
+            if cut_depth < deepest {
+                for (index, child) in cell
+                    .children()
+                    .expect("should have children below the key width")
+                    .into_iter()
+                    .enumerate()
+                {
+                    if rows.iter().zip(&natural).any(|(row, &bucket)| {
+                        bucket.min(deepest) > cut_depth && child.contains(row.key)
+                    }) {
+                        children |= 1 << index;
+                    }
+                }
+            }
+            prop_assert_eq!(cut.children(typed_zoom, cell), children);
+        }
+    }
 }
 
 /// Each delivery query agrees with direct first-occupant assignment over mixed priorities.

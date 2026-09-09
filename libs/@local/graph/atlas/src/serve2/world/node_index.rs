@@ -121,6 +121,10 @@ impl NodeIndex {
     pub(crate) fn len(&self) -> usize {
         self.lookup.len()
     }
+
+    pub(crate) fn base_node_bound(&self) -> NodeRowId {
+        self.reverse.view().bound()
+    }
 }
 
 impl Index<BasePosition> for NodeIndex {

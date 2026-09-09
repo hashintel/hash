@@ -4,14 +4,18 @@
 //! delivery combines every remaining natural bucket into the deepest cut, ordered by key and
 //! priority.
 
-use core::{cmp::Ordering, error::Error, fmt};
+use core::{error::Error, fmt};
 
 use hashql_core::id::Id as _;
 
-use super::{BucketSchedule, scope::ScopeSchedule};
+use super::{
+    BucketSchedule,
+    column::{BucketColumn, ScheduleNode},
+    scope::ScopeSchedule,
+};
 use crate::{
     identity::NodeRowId,
-    morton::{Depth, MortonCell, Zoom},
+    morton::{Depth, MortonCell, MortonKey, Zoom},
     serve2::world::{Layout, World},
 };
 
@@ -56,23 +60,25 @@ enum ScheduleSource<'schedule> {
     Scope(&'schedule ScopeSchedule),
 }
 
-/// Recorded fitted buckets or a visible cascade at one validated delivery cut.
+/// Recorded base buckets or a visible cascade at one validated delivery cut.
 ///
-/// Corpus delivery preserves the fitted assignments. Scoped delivery clamps natural buckets into
+/// Corpus delivery preserves the base assignments. Scoped delivery clamps natural buckets into
 /// its deepest cut.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct DeliverySchedule<'schedule> {
     source: ScheduleSource<'schedule>,
+    extension: Option<&'schedule BucketColumn>,
     buckets: BucketSchedule,
 }
 
 impl<'schedule> DeliverySchedule<'schedule> {
     /// Reads the generation's recorded buckets without a density offset.
     ///
-    /// Fitted withdrawals leave the recorded delivery and aggregates unchanged.
+    /// Base withdrawals leave the recorded delivery and aggregates unchanged.
     pub(crate) const fn corpus(world: &'schedule World) -> Self {
         Self {
             source: ScheduleSource::Corpus(&world.layout),
+            extension: None,
             buckets: world.schedule(),
         }
     }
@@ -84,8 +90,14 @@ impl<'schedule> DeliverySchedule<'schedule> {
     ) -> Result<Self, ScheduleWidthError> {
         Ok(Self {
             source: ScheduleSource::Scope(schedule),
+            extension: None,
             buckets: buckets.offset(offset)?,
         })
+    }
+
+    pub(super) const fn with_extension(mut self, extension: &'schedule BucketColumn) -> Self {
+        self.extension = Some(extension);
+        self
     }
 
     pub(crate) const fn deepest(&self) -> Depth {
@@ -103,58 +115,78 @@ impl<'schedule> DeliverySchedule<'schedule> {
 
     fn run(&self, bucket: Depth, cell: MortonCell, rows: &mut Vec<NodeRowId>) -> usize {
         let start = rows.len();
-        let schedule = match self.source {
-            ScheduleSource::Corpus(layout) => {
-                rows.extend(layout.run(bucket, cell).map(|(_, node)| node));
-                return rows.len() - start;
-            }
-            ScheduleSource::Scope(schedule) => schedule,
-        };
+        let extension = self
+            .extension
+            .into_iter()
+            .flat_map(|column| column.run(bucket, cell, self.deepest()));
 
-        match bucket.cmp(&self.deepest()) {
-            Ordering::Less => rows.extend(
-                schedule
-                    .cell_slots(bucket, cell)
-                    .iter()
-                    .map(|slot| slot.row.node),
-            ),
-            Ordering::Equal => {
-                let mut gathered = Vec::new();
-                for natural in bucket..=Depth::MAX {
-                    gathered.extend(
-                        schedule
-                            .cell_slots(natural, cell)
-                            .iter()
-                            .map(|slot| slot.row),
-                    );
-                }
-                gathered.sort_unstable_by_key(|row| (row.key, row.priority));
-                rows.extend(gathered.into_iter().map(|row| row.node));
+        match self.source {
+            ScheduleSource::Corpus(layout) => {
+                Self::merge(layout.base_run(bucket, cell), extension, rows);
             }
-            Ordering::Greater => {}
+            ScheduleSource::Scope(schedule) => Self::merge(
+                schedule
+                    .column()
+                    .run(bucket, cell, self.deepest())
+                    .map(|row| (row.key, row.node)),
+                extension,
+                rows,
+            ),
         }
 
         rows.len() - start
     }
 
+    fn merge(
+        scheduled: impl IntoIterator<Item = (MortonKey, NodeRowId)>,
+        extension: impl IntoIterator<Item = ScheduleNode>,
+        rows: &mut Vec<NodeRowId>,
+    ) {
+        let mut extension = extension.into_iter().peekable();
+
+        for (key, node) in scheduled {
+            // An extension accompanies only a base schedule, whose priorities precede it.
+            while let Some(row) = extension.next_if(|row| row.key < key) {
+                rows.push(row.node);
+            }
+
+            rows.push(node);
+        }
+
+        rows.extend(extension.map(|row| row.node));
+    }
+
     /// Counts rows delivered by the root's cumulative schedule.
     pub(crate) fn root_delivered(&self) -> usize {
         let cut = self.cut_of(Zoom::MIN);
-        match self.source {
-            ScheduleSource::Corpus(layout) => layout.count_through(cut),
-            ScheduleSource::Scope(schedule) if cut == self.deepest() => schedule.len(),
-            ScheduleSource::Scope(schedule) => schedule.delivered_through(cut),
-        }
+        let count = match self.source {
+            ScheduleSource::Corpus(layout) => layout.base_count_through(cut),
+            ScheduleSource::Scope(schedule) => {
+                schedule.column().delivered_through(cut, self.deepest())
+            }
+        };
+
+        count
+            + self
+                .extension
+                .map_or(0, |column| column.delivered_through(cut, self.deepest()))
     }
 
     /// Returns the deepest occupied delivery bucket, zero for an empty view.
     pub(crate) fn min_resolution(&self) -> Depth {
-        match self.source {
-            ScheduleSource::Corpus(layout) => layout.deepest_occupied().unwrap_or(Depth::MIN),
+        let depth = match self.source {
+            ScheduleSource::Corpus(layout) => layout.base_deepest_occupied().unwrap_or(Depth::MIN),
             ScheduleSource::Scope(schedule) => schedule
+                .column()
                 .deepest_occupied()
                 .map_or(Depth::MIN, |bucket| bucket.min(self.deepest())),
-        }
+        };
+
+        let extension = self
+            .extension
+            .and_then(BucketColumn::deepest_occupied)
+            .map_or(Depth::MIN, |bucket| bucket.min(self.deepest()));
+        depth.max(extension)
     }
 
     /// Returns the Morton-child mask for rows beyond this zoom's cumulative cut.
@@ -178,11 +210,12 @@ impl<'schedule> DeliverySchedule<'schedule> {
         for (index, child) in children.into_iter().enumerate() {
             let occupied = match self.source {
                 ScheduleSource::Corpus(layout) => {
-                    (cut.plus(1)..=self.deepest()).any(|bucket| layout.occupied(bucket, child))
+                    (cut.plus(1)..=self.deepest()).any(|bucket| layout.base_occupied(bucket, child))
                 }
-                ScheduleSource::Scope(schedule) => (cut.plus(1)..=Depth::MAX)
-                    .any(|bucket| !schedule.cell_slots(bucket, child).is_empty()),
-            };
+                ScheduleSource::Scope(schedule) => schedule.column().occupied_past(cut, child),
+            } || self
+                .extension
+                .is_some_and(|column| column.occupied_past(cut, child));
 
             if occupied {
                 bits |= 1 << index;
@@ -195,11 +228,17 @@ impl<'schedule> DeliverySchedule<'schedule> {
     /// Returns a row's delivery bucket, absent when the schedule does not contain it.
     pub(crate) fn bucket_of(&self, node: NodeRowId) -> Option<Depth> {
         match self.source {
-            ScheduleSource::Corpus(layout) => layout.bucket_of(node),
+            ScheduleSource::Corpus(layout) => layout.base_bucket_of(node),
             ScheduleSource::Scope(schedule) => schedule
+                .column()
                 .bucket_of(node)
                 .map(|bucket| bucket.min(self.deepest())),
         }
+        .or_else(|| {
+            self.extension
+                .and_then(|column| column.bucket_of(node))
+                .map(|bucket| bucket.min(self.deepest()))
+        })
     }
 
     /// Returns the first served zoom delivering a visible row.

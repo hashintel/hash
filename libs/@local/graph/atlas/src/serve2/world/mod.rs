@@ -3,11 +3,16 @@
 //! [`World`] checks that its components share a node domain. Its layout and topology accessors use
 //! an [`Epoch`](super::delta::epoch::Epoch) to include revision-dependent changes.
 
+use alloc::sync::Arc;
 use std::io;
 
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 
-use super::{schedule::BucketSchedule, secret::ServeSecret};
+use self::cache::Cache;
+use super::{
+    schedule::{BucketSchedule, ScopeSchedule},
+    secret::ServeSecret,
+};
 use crate::{file::generation::Generation, math::Bounds2};
 
 mod cache;
@@ -21,7 +26,7 @@ mod ontology;
 pub(crate) mod topology;
 
 pub(crate) use self::{
-    cache::Cache, encoding::Encoding, error::WorldError, geometry::Geometry, layout::Layout,
+    encoding::Encoding, error::WorldError, geometry::Geometry, layout::Layout,
     node_importance::NodeImportance, node_index::NodeIndex, ontology::Ontology, topology::Topology,
 };
 
@@ -95,6 +100,10 @@ impl World {
         }
 
         sink.finish_ok(this)
+    }
+
+    pub(crate) fn base_scope_schedule(&self) -> &Arc<ScopeSchedule> {
+        self.cache.base_scope_schedule(&self.layout)
     }
 
     pub(crate) const fn schedule(&self) -> BucketSchedule {

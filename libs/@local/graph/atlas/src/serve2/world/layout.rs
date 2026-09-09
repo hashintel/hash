@@ -213,8 +213,8 @@ impl Layout {
         Ok(())
     }
 
-    /// Reads one recorded bucket's rows and keys inside a cell, in fitted delivery order.
-    pub(crate) fn run(
+    /// Reads one recorded bucket's rows and keys inside a cell, in base delivery order.
+    pub(crate) fn base_run(
         &self,
         bucket: Depth,
         cell: MortonCell,
@@ -225,14 +225,14 @@ impl Layout {
             .map(move |position| (morton.code(position), self.index[position]))
     }
 
-    /// Returns a fitted row's recorded bucket, independent of visibility.
-    pub(crate) fn bucket_of(&self, node: NodeRowId) -> Option<Depth> {
+    /// Returns a base row's recorded bucket, independent of visibility.
+    pub(crate) fn base_bucket_of(&self, node: NodeRowId) -> Option<Depth> {
         let position = self.index.reverse(node)?;
         Some(self.geometry.morton().bucket_of(position))
     }
 
-    /// Counts fitted rows in the recorded buckets through `cut`.
-    pub(crate) fn count_through(&self, cut: Depth) -> usize {
+    /// Counts base rows in the recorded buckets through `cut`.
+    pub(crate) fn base_count_through(&self, cut: Depth) -> usize {
         self.geometry
             .morton()
             .fenceposts()
@@ -242,7 +242,7 @@ impl Layout {
     }
 
     /// Returns the deepest occupied recorded bucket.
-    pub(crate) fn deepest_occupied(&self) -> Option<Depth> {
+    pub(crate) fn base_deepest_occupied(&self) -> Option<Depth> {
         self.geometry
             .morton()
             .fenceposts()
@@ -254,9 +254,31 @@ impl Layout {
             .map(|(bucket, _)| Depth::from_usize(bucket))
     }
 
-    /// Returns whether a recorded bucket contains a fitted row inside `cell`.
-    pub(crate) fn occupied(&self, bucket: Depth, cell: MortonCell) -> bool {
+    /// Returns whether a recorded bucket contains a base row inside `cell`.
+    pub(crate) fn base_occupied(&self, bucket: Depth, cell: MortonCell) -> bool {
         !self.geometry.morton().run(bucket, cell).is_empty()
+    }
+
+    /// Returns the deepest prefix shared with any recorded base key.
+    pub(crate) fn base_shared_depth(&self, key: MortonKey) -> Option<Depth> {
+        let morton = self.geometry.morton();
+        let codes = morton.codes();
+
+        morton
+            .fenceposts()
+            .segments()
+            .into_iter()
+            .filter_map(|segment| {
+                let codes = &codes[segment];
+                let at = codes.partition_point(|code| code.get() < key.to_bits());
+                // A sorted key set's nearest neighbours attain its longest shared prefix.
+                [at.checked_sub(1), (at < codes.len()).then_some(at)]
+                    .into_iter()
+                    .flatten()
+                    .map(|index| key.shared_depth(MortonKey::from_bits(codes[index].get())))
+                    .max()
+            })
+            .max()
     }
 
     /// Returns an allocated row's priority, independent of visibility.

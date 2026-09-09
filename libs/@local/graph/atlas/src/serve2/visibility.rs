@@ -4,7 +4,6 @@ use hash_graph_store::filter::protection::{
 use hashql_core::id::Id;
 use type_system::principal::actor::ActorId;
 
-use super::delta::Delta;
 use crate::{
     allocator::HeapMemoryUsage,
     bitset::CompressedBitSet,
@@ -20,11 +19,7 @@ enum Rows<T> {
 }
 
 impl<T> Rows<T> {
-    /// Returns whether `row` is visible.
-    ///
-    /// The answer is fail-closed at every edge. A row the mask does not admit stays hidden,
-    /// including one above the mask's representable domain, so a mask evaluated against a narrower
-    /// universe hides the excess.
+    /// Tests admission, rejecting masked rows outside the represented domain.
     fn contains(&self, row: T) -> bool
     where
         T: Id,
@@ -32,22 +27,6 @@ impl<T> Rows<T> {
         match self {
             Self::Full => true,
             Self::Mask(mask) => mask.contains(row),
-        }
-    }
-
-    /// Returns whether this set is the unmasked one.
-    fn is_full(&self) -> bool {
-        match self {
-            Rows::Full => true,
-            Rows::Mask(bitset) => bitset.is_full(),
-        }
-    }
-
-    /// Returns the axis's retained mask bytes, zero for the unmasked one.
-    fn heap_bytes(&self) -> u64 {
-        match self {
-            Self::Full => 0,
-            Self::Mask(mask) => mask.heap_bytes(),
         }
     }
 }
@@ -90,6 +69,13 @@ hashql_core::id::newtype! {
     pub(crate) struct Visible<T>(u64)
 }
 
+/// The declared delivery policy, independent of a mask's cardinality.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum VisibilityKind {
+    Corpus,
+    Scope,
+}
+
 pub(crate) struct VisibilityMask {
     actor: VisibilityActor,
     nodes: Rows<NodeRowId>,
@@ -114,6 +100,13 @@ impl VisibilityMask {
             actor,
             nodes: Rows::Mask(nodes),
             edges: Rows::Mask(edges),
+        }
+    }
+
+    pub(crate) const fn kind(&self) -> VisibilityKind {
+        match self.nodes {
+            Rows::Full => VisibilityKind::Corpus,
+            Rows::Mask(_) => VisibilityKind::Scope,
         }
     }
 

@@ -1,17 +1,23 @@
 use alloc::sync::Arc;
 use std::sync::OnceLock;
 
-use crate::serve::schedule::ScopeSchedule;
+use super::Layout;
+use crate::serve2::schedule::ScopeSchedule;
 
 #[derive(Debug)]
-pub struct Cache {
-    saturated_scope_schedule: OnceLock<Arc<ScopeSchedule>>,
+pub(super) struct Cache {
+    base_scope_schedule: OnceLock<Arc<ScopeSchedule>>,
 }
 
 impl Cache {
-    pub(crate) const fn new() -> Self {
+    pub(super) const fn new() -> Self {
         Self {
-            saturated_scope_schedule: OnceLock::new(),
+            base_scope_schedule: OnceLock::new(),
         }
+    }
+
+    pub(super) fn base_scope_schedule(&self, layout: &Layout) -> &Arc<ScopeSchedule> {
+        self.base_scope_schedule
+            .get_or_init(|| Arc::new(ScopeSchedule::from_base(layout)))
     }
 }

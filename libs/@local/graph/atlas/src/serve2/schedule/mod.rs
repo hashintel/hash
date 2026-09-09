@@ -10,13 +10,16 @@ use core::{error::Error, fmt};
 use crate::{math::Log2, morton::Zoom};
 
 mod bucket;
+mod column;
 mod cut;
 mod scope;
+mod view;
 
 pub(crate) use self::{
     bucket::BucketSchedule,
     cut::{DeliveredNodes, DeliverySchedule, ScheduleWidthError},
     scope::ScopeSchedule,
+    view::ViewSchedule,
 };
 
 /// The bit width of one Morton key axis.

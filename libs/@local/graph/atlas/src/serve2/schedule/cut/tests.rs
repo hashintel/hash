@@ -110,7 +110,7 @@ fn corpus_recorded_delivery() {
             .iter()
             .map(|&(bucket, _, _)| bucket)
             .max()
-            .expect("should contain fitted rows")
+            .expect("should contain base rows")
     );
     assert_eq!(schedule.bucket_of(NodeRowId::MAX), None);
     assert_eq!(schedule.first_zoom(NodeRowId::MAX), None);

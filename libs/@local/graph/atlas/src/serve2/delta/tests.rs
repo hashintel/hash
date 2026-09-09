@@ -1,4 +1,5 @@
 use alloc::sync::Arc;
+use core::iter;
 
 use arc_swap::Guard;
 use hashql_core::id::Id as _;
@@ -23,7 +24,7 @@ use crate::{
         lod::stage::{LodConfig, WIRE_FRAME},
     },
     serve2::{
-        schedule::{BucketSchedule, DeliverySchedule, ScopeSchedule},
+        schedule::{BucketSchedule, DeliverySchedule, ScopeSchedule, ViewSchedule},
         tests::fixture::{EDGES, ENDPOINTS, NODES, TYPES, TamperFixture, secret},
         visibility::{VisibilityActor, VisibilityMask},
         world::World,
@@ -588,6 +589,220 @@ fn schedule_corpus_withdrawal() {
         .expect("should bind the scoped schedule");
     assert_eq!(cut.bucket_of(node), None);
     assert_eq!(cut.total(zoom, root).rows.len() + 1, baseline.rows.len());
+}
+
+fn schedule_mask(nodes: impl IntoIterator<Item = NodeRowId>) -> VisibilityMask {
+    let mut mask = CompressedBitSet::default();
+    for node in nodes {
+        mask.insert(node);
+    }
+    VisibilityMask::partial(
+        VisibilityActor {
+            id: ActorId::new(Uuid::nil(), ActorType::Machine),
+            instance_admin: false,
+        },
+        mask,
+        CompressedBitSet::default(),
+    )
+}
+
+#[track_caller]
+fn assert_scoped_delivery(world: &Arc<World>, epoch: &Epoch, mask: &VisibilityMask) {
+    let view = ViewSchedule::of(Arc::clone(world), epoch, mask);
+    let combined = ScopeSchedule::of(&world.layout, epoch, mask);
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    for offset in [0, 1, 5] {
+        let offset = Zoom::new(offset).expect("should fit the offset");
+        let actual = view.cut(offset).expect("should bind the view");
+        let expected = combined
+            .cut(world.schedule(), offset)
+            .expect("should bind the combined cascade");
+        assert_eq!(actual.root_delivered(), expected.root_delivered());
+        assert_eq!(actual.min_resolution(), expected.min_resolution());
+        for index in 0..=world.layout.node_count(epoch) {
+            let node = NodeRowId::from_usize(index);
+            assert_eq!(actual.bucket_of(node), expected.bucket_of(node));
+            assert_eq!(actual.first_zoom(node), expected.first_zoom(node));
+        }
+        for zoom in 0..=world.schedule().max_tile_depth().get() {
+            let zoom = Zoom::new(zoom).expect("should fit the served zoom");
+            for cell in iter::once(root).chain(root.children().expect("should have root children"))
+            {
+                assert_eq!(actual.total(zoom, cell), expected.total(zoom, cell));
+                assert_eq!(actual.delta(zoom, cell), expected.delta(zoom, cell));
+                assert_eq!(actual.children(zoom, cell), expected.children(zoom, cell));
+            }
+        }
+    }
+}
+
+#[test]
+fn schedule_extension_visibility() {
+    let (_fixture, mut delta) = fixture("schedule-extension-visibility");
+    let world = Arc::clone(&delta.world);
+    let base = NodeRowId::MIN;
+    let position = world
+        .layout
+        .position(&epoch(&delta), base)
+        .expect("should resolve the base position");
+    let higher = entity(300);
+    let lower = entity(200);
+    let hidden = entity(100);
+    for identity in [higher, lower, hidden] {
+        assert_eq!(
+            delta.update_node(identity, legend("extension"), position),
+            Some(true)
+        );
+    }
+    let higher_row = delta
+        .node_row(higher)
+        .expect("should allocate the higher row");
+    let lower_row = delta
+        .node_row(lower)
+        .expect("should allocate the lower row");
+    let hidden_row = delta
+        .node_row(hidden)
+        .expect("should allocate the hidden row");
+    let mask = schedule_mask(
+        (0..NODES)
+            .map(NodeRowId::new)
+            .chain([higher_row, lower_row]),
+    );
+    let captured = epoch(&delta);
+    assert_scoped_delivery(&world, &captured, &mask);
+    let before = ViewSchedule::of(Arc::clone(&world), &captured, &mask);
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    let zoom = world.schedule().max_tile_depth();
+    let cut = before.cut(Zoom::MIN).expect("should bind the view");
+    let baseline = cut.total(zoom, root);
+    assert_eq!(cut.bucket_of(hidden_row), None);
+    assert_eq!(
+        baseline.rows.len(),
+        usize::try_from(NODES).expect("should fit the fixture count") + 2
+    );
+    let at = |node| {
+        baseline
+            .rows
+            .iter()
+            .position(|&row| row == node)
+            .expect("should deliver the row")
+    };
+    assert!(at(base) < at(lower_row));
+    assert!(at(lower_row) < at(higher_row));
+
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(lower), "should withdraw the extension row");
+    let withdrawn = epoch(&delta);
+    assert_scoped_delivery(&world, &withdrawn, &mask);
+    let after = ViewSchedule::of(Arc::clone(&world), &withdrawn, &mask);
+    assert_eq!(
+        after
+            .cut(Zoom::MIN)
+            .expect("should bind the view")
+            .bucket_of(lower_row),
+        None
+    );
+    assert_eq!(
+        before
+            .cut(Zoom::MIN)
+            .expect("should bind the captured view")
+            .total(zoom, root),
+        baseline
+    );
+    assert_scoped_delivery(&world, &captured, &mask);
+
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_node(lower, legend("revived"), Vec2::ZERO),
+        Some(true)
+    );
+    let revived = ViewSchedule::of(Arc::clone(&world), &epoch(&delta), &mask);
+    assert_eq!(
+        revived
+            .cut(Zoom::MIN)
+            .expect("should bind the revived view")
+            .total(zoom, root),
+        baseline
+    );
+}
+
+#[test]
+fn schedule_base_withdrawal_dispatch() {
+    let (_fixture, mut delta) = fixture("schedule-base-withdrawal-dispatch");
+    let world = Arc::clone(&delta.world);
+    let base = NodeRowId::MIN;
+    let base_identity = world
+        .layout
+        .index
+        .identity
+        .key_of(base)
+        .expect("should resolve the base identity");
+    let position = world
+        .layout
+        .position(&epoch(&delta), base)
+        .expect("should resolve the base position");
+    let extension = entity(100);
+    assert_eq!(
+        delta.update_node(extension, legend("extension"), position),
+        Some(true)
+    );
+    let extension_row = delta
+        .node_row(extension)
+        .expect("should allocate the extension row");
+    let partial = schedule_mask((0..=NODES).map(NodeRowId::new));
+    let full = VisibilityMask::full(VisibilityActor {
+        id: ActorId::new(Uuid::nil(), ActorType::Machine),
+        instance_admin: false,
+    });
+    let captured = epoch(&delta);
+    let corpus = ViewSchedule::of(Arc::clone(&world), &captured, &full);
+    let baseline = corpus.cut(Zoom::MIN).expect("should bind the corpus");
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    let zoom = world.schedule().max_tile_depth();
+    assert_eq!(baseline.bucket_of(extension_row), Some(baseline.deepest()));
+    assert_eq!(
+        baseline.total(zoom, root).rows.len(),
+        usize::try_from(NODES).expect("should fit the fixture count") + 1
+    );
+    assert_scoped_delivery(&world, &captured, &partial);
+
+    delta.revision.increment_by(1);
+    assert!(
+        delta.withdraw(base_identity),
+        "should withdraw the base row"
+    );
+    let withdrawn = epoch(&delta);
+    assert_scoped_delivery(&world, &withdrawn, &partial);
+    let scoped = ViewSchedule::of(Arc::clone(&world), &withdrawn, &partial);
+    assert_eq!(
+        scoped
+            .cut(Zoom::MIN)
+            .expect("should bind the scoped view")
+            .bucket_of(base),
+        None
+    );
+    let corpus_after = ViewSchedule::of(Arc::clone(&world), &withdrawn, &full);
+    let recorded = corpus_after
+        .cut(Zoom::MIN)
+        .expect("should bind the recorded view");
+    assert_eq!(recorded.total(zoom, root), baseline.total(zoom, root));
+    assert_eq!(recorded.root_delivered(), baseline.root_delivered());
+    assert_eq!(recorded.min_resolution(), baseline.min_resolution());
+    assert_eq!(
+        recorded.first_zoom(extension_row),
+        baseline.first_zoom(extension_row)
+    );
+    assert_eq!(
+        recorded.children(Zoom::MIN, root),
+        baseline.children(Zoom::MIN, root)
+    );
+
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_node(base_identity, legend("revived"), Vec2::ZERO),
+        Some(true)
+    );
+    assert_scoped_delivery(&world, &epoch(&delta), &partial);
 }
 
 /// Normalization uses the fitted bounds rather than the already-normalized geometry bounds.

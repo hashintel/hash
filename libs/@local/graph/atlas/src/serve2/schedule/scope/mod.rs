@@ -1,46 +1,30 @@
 //! Natural delivery buckets over a captured visible node set.
 //!
 //! [`ScopeSchedule`] applies the [first-occupant cascade](crate::salt::lod::cascade) to the visible
-//! rows under their [`NodePriority`] order. Hidden rows contribute to neither bucket assignment nor
-//! delivery counts. Natural buckets use the complete key width, allowing every admissible density
-//! offset to share one schedule.
+//! rows under their [`NodePriority`](crate::serve2::world::node_importance::NodePriority) order.
+//! Hidden rows contribute to neither bucket assignment nor delivery counts. Natural buckets use the
+//! complete key width, allowing every admissible density offset to share one schedule.
 
-use hashql_core::{
-    heap::CollectIn as _,
-    id::{Id as _, IdArray},
-};
+use hashql_core::id::Id as _;
 
 use super::{
     BucketSchedule,
+    column::{BucketColumn, ScheduleNode},
     cut::{DeliverySchedule, ScheduleWidthError},
 };
 use crate::{
-    allocator::{HeapMemoryUsage, MemoryUsage, MemoryUsageAllocator},
+    allocator::HeapMemoryUsage,
     identity::NodeRowId,
-    morton::{Depth, MortonCell, MortonKey, Zoom},
-    salt::lod::{cascade, stage::WIRE_FRAME},
+    morton::Zoom,
     serve2::{
         delta::epoch::Epoch,
         visibility::VisibilityMask,
-        world::{Layout, node_importance::NodePriority},
+        world::{Layout, layout::LayoutProvider, node_importance::ImportanceProvider as _},
     },
 };
 
 #[cfg(test)]
 mod tests;
-
-#[derive(Debug, Copy, Clone)]
-pub(super) struct ScheduleNode {
-    pub node: NodeRowId,
-    pub key: MortonKey,
-    pub priority: NodePriority,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub(super) struct BucketedNode {
-    pub bucket: Depth,
-    pub row: ScheduleNode,
-}
 
 /// A first-occupant cascade over one visible node set.
 ///
@@ -49,10 +33,7 @@ pub(super) struct BucketedNode {
 /// layout and identity providers.
 #[derive(Debug)]
 pub(crate) struct ScopeSchedule {
-    slots: Box<[BucketedNode], MemoryUsageAllocator>,
-    buckets: IdArray<Depth, core::range::Range<usize>, { Depth::MAX.as_usize() + 1 }>,
-    by_node: Box<[(NodeRowId, Depth)], MemoryUsageAllocator>,
-    memory_usage: MemoryUsage,
+    column: BucketColumn,
 }
 
 impl ScopeSchedule {
@@ -64,64 +45,37 @@ impl ScopeSchedule {
     pub(crate) fn of(layout: &Layout, epoch: &Epoch, mask: &VisibilityMask) -> Self {
         let rows = (0..layout.node_count(epoch))
             .filter_map(|index| {
-                let node = NodeRowId::from_usize(index);
-
-                mask.visible_node(node)?;
-
-                let position = layout.position(epoch, node)?;
-                let priority = layout
-                    .priority(epoch, node)
-                    .expect("a placed node should have an allocated priority");
-
-                let [x, y] = WIRE_FRAME.quantize(position);
-                Some(ScheduleNode {
-                    node,
-                    key: MortonKey::new(x, y),
-                    priority,
-                })
+                ScheduleNode::visible(layout, epoch, mask, NodeRowId::from_usize(index))
             })
             .collect();
 
         Self::over(rows)
     }
 
-    fn over(mut rows: Vec<ScheduleNode>) -> Self {
-        rows.sort_unstable_by_key(|row| (row.key, row.priority));
-        let buckets = cascade::separation_buckets(&rows, |row| row.key, |row| row.priority);
+    /// Builds the complete base cascade for sharing across saturated scopes.
+    pub(crate) fn from_base(layout: &Layout) -> Self {
+        let rows = (0..LayoutProvider::provide_node_count(layout))
+            .map(|index| {
+                let node = NodeRowId::from_usize(index);
+                let position = layout
+                    .provide_position(node)
+                    .expect("should resolve the base node's position");
+                let priority = layout
+                    .provide_priority(node)
+                    .expect("should resolve the base node's priority");
+                ScheduleNode::new(node, position, priority)
+            })
+            .collect();
+        Self::over(rows)
+    }
 
-        let alloc = MemoryUsageAllocator::global();
-        let memory_usage = alloc.memory_usage();
-        let mut slots: Vec<_, _> = rows
-            .into_iter()
-            .zip(buckets.iter().copied())
-            .map(|(row, bucket)| BucketedNode { bucket, row })
-            .collect_in(alloc.clone());
-        slots.sort_unstable_by_key(|slot| (slot.bucket, slot.row.key, slot.row.priority));
+    pub(super) const fn column(&self) -> &BucketColumn {
+        &self.column
+    }
 
-        let mut counts = IdArray::<Depth, usize, { Depth::MAX.as_usize() + 1 }>::from_elem(0);
-        for slot in &slots {
-            counts[slot.bucket] += 1;
-        }
-
-        let mut start = 0;
-        let buckets = counts.map(|count| {
-            let range = start..start + count;
-            start = range.end;
-
-            core::range::Range::from(range)
-        });
-
-        let mut by_node: Vec<_, _> = slots
-            .iter()
-            .map(|slot| (slot.row.node, slot.bucket))
-            .collect_in(alloc);
-        by_node.sort_unstable_by_key(|&(node, _)| node);
-
+    fn over(rows: Vec<ScheduleNode>) -> Self {
         Self {
-            slots: slots.into_boxed_slice(),
-            buckets,
-            by_node: by_node.into_boxed_slice(),
-            memory_usage,
+            column: BucketColumn::new(rows, |_| None),
         }
     }
 
@@ -137,42 +91,10 @@ impl ScopeSchedule {
     ) -> Result<DeliverySchedule<'_>, ScheduleWidthError> {
         DeliverySchedule::bind(self, buckets, offset)
     }
-
-    pub(super) fn bucket_of(&self, node: NodeRowId) -> Option<Depth> {
-        let index = self
-            .by_node
-            .binary_search_by_key(&node, |&(node, _)| node)
-            .ok()?;
-
-        Some(self.by_node[index].1)
-    }
-
-    pub(super) fn bucket_slots(&self, bucket: Depth) -> &[BucketedNode] {
-        &self.slots[self.buckets[bucket]]
-    }
-
-    pub(super) fn cell_slots(&self, bucket: Depth, cell: MortonCell) -> &[BucketedNode] {
-        let slots = self.bucket_slots(bucket);
-        let start = slots.partition_point(|slot| slot.row.key < cell.min_key());
-        let count = slots[start..].partition_point(|slot| slot.row.key <= cell.max_key());
-        &slots[start..start + count]
-    }
-
-    pub(super) fn delivered_through(&self, bucket: Depth) -> usize {
-        self.buckets[bucket].end
-    }
-
-    pub(super) const fn len(&self) -> usize {
-        self.slots.len()
-    }
-
-    pub(super) fn deepest_occupied(&self) -> Option<Depth> {
-        self.slots.last().map(|slot| slot.bucket)
-    }
 }
 
 impl HeapMemoryUsage for ScopeSchedule {
     fn heap_memory_usage(&self) -> u64 {
-        self.memory_usage.get() as u64
+        self.column.heap_memory_usage()
     }
 }
