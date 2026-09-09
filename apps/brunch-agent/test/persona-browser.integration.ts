@@ -12,21 +12,18 @@ import {
   fauxToolCall,
   type Context,
 } from "@earendil-works/pi-ai";
-import { createFlueClient, type AgentSendResult } from "@flue/sdk";
+import { createFlueClient } from "@flue/sdk";
 import { expect } from "@playwright/test";
 
 import brunchPersonaTestingExtension from "../.pi/extensions/brunch-persona-testing.ts";
-import {
-  BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_PRINCIPAL_HEADER,
-  agentOwnershipHeaders,
-} from "../src/conversation/identity.ts";
+import { agentOwnershipHeaders } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { browserSessionOptions } from "../src/evaluations/persona/browser-session.ts";
 import {
   createBrunchTurnTool,
   type BrunchTurnTool,
 } from "../src/evaluations/persona/brunch-turn.ts";
+import { openPersonaConversation } from "../src/evaluations/persona/launch.ts";
 import { assertExternalDenied } from "../src/evaluations/real-provider-a5/network-guard.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
@@ -162,38 +159,15 @@ try {
       timeout: 30_000,
     });
   };
-  await page.goto(`${origin}/?brunchTracer=root-creation`);
-  await page.getByRole("button", { name: "Skip tour" }).click();
-  await page
-    .getByRole("button", { name: "Show AI assistant", exact: true })
-    .click();
   faux.setResponses([text("TEST ready for your account.")]);
-  // The same data an operator obtains from Chrome Network: allowlisted request
-  // fields and the returned admission UID, not a HAR/cookies/auth headers.
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === "POST" &&
-      response.url().includes("/agents/chat/"),
-  );
-  await uiSend(
+  const { session: config } = await openPersonaConversation(
+    page,
+    origin,
     "Hello, I would like to describe our process.",
-    "TEST ready for your account.",
   );
-  const response = await responsePromise;
-  assert.equal(response.status(), 202);
-  const request = response.request();
-  const headers = await request.allHeaders();
-  const admission = (await response.json()) as AgentSendResult;
-  assert(admission.uid);
-  const requestBody = request.postDataJSON() as { initialData: unknown };
-  const config = {
-    url: request.url(),
-    principalKey: headers[BRUNCH_PRINCIPAL_HEADER],
-    conversationId: headers[BRUNCH_CONVERSATION_HEADER],
-    initialData: requestBody.initialData,
-    uid: admission.uid,
-  };
-  assert(config.principalKey && config.conversationId);
+  await expect(
+    page.getByText("TEST ready for your account.", { exact: true }),
+  ).toBeVisible({ timeout: 30_000 });
   save("operator-session", config);
   const client = createFlueClient({
     url: config.url,
@@ -372,7 +346,7 @@ try {
     .filter((body) => body.kind === "user");
   assert(sends.length >= 4);
   for (const send of sends.slice(1, 3)) {
-    assert.equal(send.uid, admission.uid);
+    assert.equal(send.uid, config.uid);
     assert(!("initialData" in send));
   }
   assert.deepEqual(errors, []);
