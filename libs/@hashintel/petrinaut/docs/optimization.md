@@ -111,10 +111,13 @@ no verdicts yet.
 
 Open an optimization row to follow it while it runs. The drawer updates as
 steps arrive, and closing it leaves the optimization running. Use **Cancel**
-to abort an active run on the optimization service, or **Stop** to end a study
-running in the browser, which can then be continued (see [Running in the
+to abort an active run on the optimization service. A study running in the
+browser offers **Pause**, which lets the steps in flight finish and then
+waits, and **Stop**, which ends the study at once; both keep the study's
+sampler so it can be continued (see [Running in the
 browser](#running-in-the-browser)). Completed, cancelled, stopped, and failed
-records can be removed from their result drawer.
+records can be removed from their result drawer; a paused record's **Remove**
+sits in the **More actions** menu at the left of its footer.
 
 The drawer's footer offers **Open full view**, which gives the whole
 Optimizations section to the study: the same summary, controls, charts and
@@ -314,14 +317,26 @@ experiments.
   running when it picks the next values, so the proposals differ from a
   one-at-a-time study. The Parameters band follows the most recently started
   step, and the Surface rings every step in flight with its running value.
-- Once the study is finished, or you press **Stop**, the controls move to the
-  best step's point (if a step completed) and that point refines up to 100
-  runs; a point you had already moved to stays where it is. Every point you
-  visit is kept for the record's lifetime, so returning to one is instant. A
-  point that cannot beat the best stops refining after a rung (8 or 25 runs)
-  once its mean sits more than 2.5 standard errors on the wrong side of the
-  best value, and the Parameters band says so, e.g. **8 runs · cannot beat the
-  best**. The best step's own point always refines to 100 runs.
+- Once the study is finished, the controls move to the best step's point (if
+  a step completed) and that point refines up to 100 runs; a point you had
+  already moved to stays where it is. Every point you visit is kept for the
+  record's lifetime, so returning to one is instant. A point that cannot beat
+  the best stops refining after a rung (8 or 25 runs) once its mean sits more
+  than 2.5 standard errors on the wrong side of the best value, and the
+  Parameters band says so, e.g. **8 runs · cannot beat the best**. The best
+  step's own point always refines to 100 runs.
+- **Pause** asks the optimizer for no more steps. The steps already running
+  finish, land in the steps table and count like any other, and the study
+  keeps its sampler. The header gains a **Paused** chip and reads **Paused at
+  12 of 30 steps**, with **· 1 step finishing** while a step is still landing;
+  the cards keep their places with a frozen look, and the controls park at the
+  best step without computing anything there. The footer offers **Resume**,
+  which runs the steps the study still owes (30 requested, 12 landed: 18 more)
+  on the same sampler, and **Run at the best configuration**. Resume unlocks
+  once the steps in flight have landed. Resuming continues the study's
+  history; it does not reproduce the draws an uninterrupted run would have
+  made, because the optimizer's random draws restart from the pause. Reloading
+  the page still ends a paused study.
 - **Stop** ends the steps in flight and leaves them uncounted: they appear in
   neither the steps table nor the step counts. The study keeps its sampler:
   the status reads **Stopped**, and the footer offers **Continue** with a
@@ -330,6 +345,11 @@ experiments.
   the strip's **Steps** counts them into the total. A completed study can be
   continued the same way, as often as the 1,000-step cap allows. Removing the
   study drops its sampler.
+- Pausing, stopping or failing never starts the best point's refinement on
+  its own: the controls park at the best step and the objective's chart waits.
+  **Run at the best configuration**, offered on every paused, stopped, failed
+  or complete study in the browser, moves the controls to the best step's
+  point and refines it up to 100 runs, as finishing does.
 - Closing or reloading the page ends the study, and while one runs the browser
   asks you to confirm first. The record is gone on the next load.
 - With **Parallel steps** at 1 and the same settings, each step of an
