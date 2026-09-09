@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { request } from "node:https";
 import { isIP } from "node:net";
 
+import { attestNativeResponse } from "./native-response.ts";
 import { endpoint, maxOutputTokens, modelId } from "./preflight.ts";
 
 /** Native HTTPS only: exact host/path, TLS verification/SNI, owner-pinned IP,
@@ -44,6 +45,22 @@ export const pinnedNativeRequest = async (
         });
       }
     };
+    let failed = false;
+    const fail = (error: unknown) => {
+      if (failed) return;
+      failed = true;
+      let failure = error;
+      try {
+        save();
+      } catch (retentionError) {
+        failure = retentionError;
+      }
+      // Retention is fallible too. Reject instead of throwing from an EventEmitter
+      // callback, and close the owned request/deadline on every failure path.
+      clearTimeout(deadline);
+      reject(failure);
+      outgoing.destroy();
+    };
     const outgoing = request(
       endpoint,
       {
@@ -69,10 +86,7 @@ export const pinnedNativeRequest = async (
             );
           else chunks.push(chunk);
         });
-        incoming.on("error", (error) => {
-          save();
-          reject(error);
-        });
+        incoming.on("error", fail);
         incoming.on("end", () => {
           try {
             save();
@@ -80,6 +94,7 @@ export const pinnedNativeRequest = async (
               status < 300 || status >= 400,
               "Provider redirect refused; no follow-up request",
             );
+            if (status === 200) attestNativeResponse(Buffer.concat(chunks));
             resolve(
               new Response(Buffer.concat(chunks), {
                 status,
@@ -92,7 +107,7 @@ export const pinnedNativeRequest = async (
               }),
             );
           } catch (error) {
-            reject(error);
+            fail(error);
           }
         });
       },
@@ -103,10 +118,7 @@ export const pinnedNativeRequest = async (
       90_000,
     );
     outgoing.on("close", () => clearTimeout(deadline));
-    outgoing.on("error", (error) => {
-      save();
-      reject(error);
-    });
+    outgoing.on("error", fail);
     outgoing.end(init.body);
   });
 };

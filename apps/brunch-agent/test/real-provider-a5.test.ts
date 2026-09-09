@@ -1,5 +1,6 @@
 /* eslint-disable no-await-in-loop -- Serial synthetic transport fault controls share one mock. */
 import { AssertionError } from "node:assert";
+import { spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { request } from "node:https";
@@ -10,6 +11,7 @@ import { describe, expect, test, vi } from "vitest";
 
 vi.mock("node:https", () => ({ request: vi.fn<typeof request>() }));
 
+import { attestNativeResponse } from "../src/evaluations/real-provider-a5/native-response.ts";
 import {
   acquireWriter,
   repairBudget,
@@ -17,6 +19,30 @@ import {
   selectedModel,
 } from "../src/evaluations/real-provider-a5/preflight.ts";
 import { pinnedNativeRequest } from "../src/evaluations/real-provider-a5/transport.ts";
+
+const completeNativeBody = () =>
+  Buffer.from(
+    [
+      {
+        type: "message_start",
+        message: {
+          id: "msg_TEST",
+          model: "claude-sonnet-4-6",
+          usage: { input_tokens: 100, output_tokens: 1 },
+        },
+      },
+      {
+        type: "message_delta",
+        delta: { stop_reason: "end_turn" },
+        usage: { output_tokens: 20 },
+      },
+      { type: "message_stop" },
+    ]
+      .map(
+        (frame) => `event: ${frame.type}\ndata: ${JSON.stringify(frame)}\n\n`,
+      )
+      .join(""),
+  );
 
 const fixture = () => ({
   authority: "TEST ONLY",
@@ -161,9 +187,122 @@ describe("explicit A5 preflight (no provider invocation)", () => {
       }),
     ).toThrow(/Unattributed tool rejection/);
   });
+  test.each(["incoming", "outgoing"])(
+    "retention failure on %s socket error rejects without escaping the event handler",
+    async (side) => {
+      let escaped: unknown;
+      let closed = false;
+      vi.mocked(request).mockImplementation(((
+        _url: unknown,
+        _options: unknown,
+        callback: (
+          incoming: EventEmitter & { statusCode: number; headers: object },
+        ) => void,
+      ) => {
+        const outgoing = Object.assign(new EventEmitter(), {
+          end: () =>
+            queueMicrotask(() => {
+              const incoming = Object.assign(new EventEmitter(), {
+                statusCode: 200,
+                headers: {},
+              });
+              callback(incoming);
+              try {
+                (side === "incoming" ? incoming : outgoing).emit(
+                  "error",
+                  new Error("TEST socket failed"),
+                );
+              } catch (error) {
+                escaped = error;
+              }
+              outgoing.emit("close");
+              closed = true;
+            }),
+          destroy: () => {
+            outgoing.emit("close");
+            closed = true;
+          },
+        });
+        return outgoing;
+      }) as unknown as typeof request);
+      const outcome = pinnedNativeRequest(
+        "https://api.anthropic.com/v1/messages",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            model: "claude-sonnet-4-6",
+            max_tokens: 4096,
+          }),
+        },
+        "127.0.0.1",
+        () => {
+          throw new Error("TEST retention failed");
+        },
+      ).then(
+        () => "resolved",
+        (error: Error) => error.message,
+      );
+      const result = await Promise.race([
+        outcome,
+        new Promise<string>((resolve) =>
+          setTimeout(() => resolve("pending"), 25),
+        ),
+      ]);
+      expect(escaped).toBeUndefined();
+      expect(result).toBe("TEST retention failed");
+      expect(closed).toBe(true);
+    },
+  );
+  test("requires terminal evidence in SDK-recognized SSE events, not initial usage or a ping payload", () => {
+    const body = completeNativeBody();
+    expect(attestNativeResponse(body).terminalOutputTokens).toBe(20);
+    expect(
+      attestNativeResponse(
+        Buffer.from(body.toString().replaceAll("\n", "\r\n")),
+      ).reportedModel,
+    ).toBe("claude-sonnet-4-6");
+    expect(() =>
+      attestNativeResponse(
+        Buffer.from(
+          body.toString().replace("event: message_delta", "event: ping"),
+        ),
+      ),
+    ).toThrow(/lacks terminal usage/);
+    expect(() =>
+      attestNativeResponse(
+        Buffer.from(
+          body.toString().replace('"output_tokens":20', '"output_tokens":null'),
+        ),
+      ),
+    ).toThrow(/explicit non-negative/);
+    expect(() =>
+      attestNativeResponse(
+        Buffer.from(
+          body.toString().replace("claude-sonnet-4-6", "claude-haiku-4-5"),
+        ),
+      ),
+    ).toThrow(/reported model differs/);
+  });
+  test("built native registration preserves unknown terminal/retention failures and blocks the next dispatch", () => {
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--experimental-strip-types",
+        join(import.meta.dirname, "real-provider-a5-terminal.integration.ts"),
+      ],
+      { encoding: "utf8", timeout: 30_000, maxBuffer: 8 * 1024 * 1024 },
+    );
+    expect({
+      status: result.status,
+      error: result.error,
+      stderr: result.status === 0 ? undefined : result.stderr,
+    }).toEqual({ status: 0, error: undefined, stderr: undefined });
+    expect(result.stdout).toContain('"passed":true');
+    expect(result.stdout).toContain('"paidCalls":0');
+  }, 35_000);
   test("pins TLS/address, preserves native bytes and refuses redirects with one dispatch", async () => {
     for (const status of [200, 302, 429]) {
-      const nativeBytes = Buffer.from('data: {"native":true}\n\n');
+      const nativeBytes = completeNativeBody();
       const retained: unknown[] = [];
       vi.mocked(request).mockImplementation(((
         _url: unknown,

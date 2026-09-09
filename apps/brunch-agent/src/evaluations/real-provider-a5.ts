@@ -19,6 +19,7 @@ import {
   instrumentManifest,
   verifyManifest,
 } from "./real-provider-a5/manifest.ts";
+import { attestNativeResponse } from "./real-provider-a5/native-response.ts";
 import { assertExternalDenied } from "./real-provider-a5/network-guard.ts";
 import {
   acquireWriter,
@@ -233,7 +234,11 @@ if (mode === "preflight") {
       mode: 0o600,
     });
     try {
-      if (dryTransport) return dryTransport(input, init);
+      if (dryTransport) {
+        const response = dryTransport(input, init);
+        attestNativeResponse(Buffer.from(await response.clone().arrayBuffer()));
+        return response;
+      }
       return await pinnedNativeRequest(
         input,
         init,
@@ -244,39 +249,29 @@ if (mode === "preflight") {
             responseBody,
             { flag: "wx", mode: 0o600 },
           );
-          const reportedModels: string[] = [];
-          for (const line of responseBody.toString().split("\n")) {
-            if (!line.startsWith("data: ")) continue;
-            let frame: { type: string; message?: { model?: string } };
+          let attestation: ReturnType<typeof attestNativeResponse> | undefined;
+          if (status === 200) {
             try {
-              frame = JSON.parse(line.slice(6)) as typeof frame;
+              attestation = attestNativeResponse(responseBody);
             } catch {
               stopped = true;
-              continue;
             }
-            if (frame.type === "message_start" && frame.message?.model)
-              reportedModels.push(frame.message.model);
-          }
-          if (
-            status !== 200 ||
-            reportedModels.length !== 1 ||
-            reportedModels[0] !== modelId
-          )
-            stopped = true;
+          } else stopped = true;
           save(`native-${row.sequence}-transport.json`, {
             status,
             latencyMs,
             requestedModel: modelId,
-            reportedModels,
+            reportedModels: attestation ? [attestation.reportedModel] : [],
+            nativeAttestation: attestation,
             stopped,
             responseBytes: responseBody.length,
           });
-          // Pi's normalized message.model is the REQUESTED id, not native message_start.model.
-          // Do not let a mismatched/malformed successful response settle as that model.
+          // Normalized Pi identity/usage do not attest native identity or final
+          // usage presence. Retain the raw evidence, then refuse ambiguous settlement.
           if (status === 200)
             assert(
               !stopped,
-              "Native reported model/response identity failed; keep unknown accounting",
+              "Native identity/terminal usage evidence failed; keep unknown accounting",
             );
         },
       );
