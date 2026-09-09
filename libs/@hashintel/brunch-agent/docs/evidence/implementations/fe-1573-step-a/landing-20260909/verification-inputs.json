@@ -1,0 +1,660 @@
+{
+  "sourceCommit": "b522c0d73b",
+  "source": [
+    {
+      "path": "apps/brunch-agent/package.json",
+      "bytes": 3853,
+      "sha256": "2d9b56f6d9ee5cee984a418586a2ba03ba59f5158fc3706003bcac981a7c7e35"
+    },
+    {
+      "path": "apps/brunch-agent/src/conversation/root-arc.ts",
+      "bytes": 12463,
+      "sha256": "f35dfe0e251656ccbf7861508bbf1df03cb476167de1f1327c760bf63f10c5b3"
+    },
+    {
+      "path": "apps/brunch-agent/src/conversation/why.ts",
+      "bytes": 25450,
+      "sha256": "71ebac43658b72599af7b2ad2d31ebdb8b8d35197ab50dce3adcb0c354e2d1c8"
+    },
+    {
+      "path": "apps/brunch-agent/test/aggregate-why.test.ts",
+      "bytes": 7118,
+      "sha256": "23596339e5d9068232cda1b89e1798ddf4760375b317c20ed81d0d338979b228"
+    },
+    {
+      "path": "apps/brunch-agent/test/architecture/boundaries.integration.ts",
+      "bytes": 34005,
+      "sha256": "4fb6e86222fe2c91e30987306363b591199e3b2cf7b9d95a858bac9ac1144f23"
+    },
+    {
+      "path": "apps/brunch-agent/test/provider-accounting.test.ts",
+      "bytes": 16998,
+      "sha256": "c74c09a6802f82d47228607f83342678f8087b5644d00537fab86b6c31b39b55"
+    },
+    {
+      "path": "apps/brunch-agent/test/root-creation.integration.ts",
+      "bytes": 38504,
+      "sha256": "f0e5db3952838930e72d8843e99856ababf97435365e2203423ae215b9cd28d9"
+    },
+    {
+      "path": "apps/brunch-agent/test/typed-state.integration.ts",
+      "bytes": 39517,
+      "sha256": "885e95eeedf1e42bb3b802390733c9b48fe248e7ff59c7482aa4bfbff8f36ada"
+    },
+    {
+      "path": "apps/petrinaut-website/src/main/app/local-storage-demo/transition-record.ts",
+      "bytes": 14355,
+      "sha256": "50e0938be035ea484b4afeb041cba8e458cde7d3cfda1da5a433a01d4305f247"
+    },
+    {
+      "path": "apps/petrinaut-website/src/main/app/local-storage-demo/typed-state.test.ts",
+      "bytes": 5662,
+      "sha256": "e36c63c51fdaf3af5d8890e9cd39dfa24a0f600f98de9f5c1c0e31bc6b0ee8fb"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/flue.ts",
+      "bytes": 9796,
+      "sha256": "43b407da52bb665a41139c0625c7418f3c7004638e608cd999ecd81b70efaffd"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/index.ts",
+      "bytes": 2187,
+      "sha256": "0a198e121f3d2b54b2c6752b9d621dbb512e7a704a172655aeaa131f0615948a"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/root-arc.ts",
+      "bytes": 5167,
+      "sha256": "d977d4f109ec014f5e6d68e10227caa8562c534b3ba2a2167184c5d532a54221"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/root-node.ts",
+      "bytes": 7606,
+      "sha256": "3390acb86a224ce394a5e8fc4dae5c82e106f94f4b2d02bb78ff41e64218241f"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/root-state.ts",
+      "bytes": 12060,
+      "sha256": "62dfa8f8464ff803ec2637646c82065314178a9b8530d7edca9ca0c3268b10fe"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/petrinaut-construction.ts",
+      "bytes": 8572,
+      "sha256": "38ce71ab792306a73eebb0e973e3cfe435de7f96bd563e9140b816541c9b26c1"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/transition-record.ts",
+      "bytes": 19286,
+      "sha256": "6fd91f84d909252cedbbf546ee1008f7aa72722d3265beb60509e66b0c3a3266"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/test/root-state.test.ts",
+      "bytes": 12420,
+      "sha256": "d5e9999140c24b03ce2ccf12275ff964cddbcf98fbba69e692f2e12d43160b6f"
+    }
+  ],
+  "build": [
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-darwin-C6rMMlat.mjs",
+      "bytes": 1115,
+      "sha256": "35ea46fdbfb21cbbfdd7609a6305a067f1ecc8af7d307c515de940ddd5e14183"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-win-FwyaH7b-.mjs.map",
+      "bytes": 1832,
+      "sha256": "0b71b5580380d956471c3f153d313fe132edd2deea6816677c9ff25d97c9a780"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-win-FwyaH7b-.mjs",
+      "bytes": 1271,
+      "sha256": "fa859f727a5adeece86355bcf5b5cb5cf83b286f3662dd98e4d7869e511fbceb"
+    },
+    {
+      "path": "apps/brunch-agent/dist/rolldown-runtime-BMI-E3GI.mjs",
+      "bytes": 1928,
+      "sha256": "efc57dcff870d1e3f2f361b3ba80eb84330c649bef8f1529736019ea7e961346"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-unsupported-QqRDr4II.mjs.map",
+      "bytes": 904,
+      "sha256": "43b5c2cf0d1aae3fbe0cdcafb6a9b3b6428467fefbb5df4a6eedc06e9fbd2d9d"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-linux-B5Iy_Sy7.mjs",
+      "bytes": 890,
+      "sha256": "2b320cd8b585786fe74d9bc0950666896d481620b50712947d4fd914ca4f1cff"
+    },
+    {
+      "path": "apps/brunch-agent/dist/execAsync-D25bwo5l.mjs.map",
+      "bytes": 763,
+      "sha256": "5e381f4e18a353dafefac2971b2ab2a593b230920e05fca9639a695c2fb9f55a"
+    },
+    {
+      "path": "apps/brunch-agent/dist/node-server-BX3pOgpA.mjs",
+      "bytes": 2802192,
+      "sha256": "25e37bf9cca5c13a060bd8caa4e3b1f6d6a1832651231a81089968831c5850cf"
+    },
+    {
+      "path": "apps/brunch-agent/dist/execAsync-D25bwo5l.mjs",
+      "bytes": 581,
+      "sha256": "2aa3218ffa6e86ced8194f6f089522154c7ee24eb9aa2e839b1ce04cc2286965"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-unsupported-QqRDr4II.mjs",
+      "bytes": 728,
+      "sha256": "e31d1f882207eaaf5c81cbc80cec1fe13a4bc3a3706050519c68515954249d5d"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-bsd-ThF6nEVL.mjs.map",
+      "bytes": 1620,
+      "sha256": "8427bcf68f4765b130ef689958ca9684ed05952e44fea16f96f5b4d31954ae4b"
+    },
+    {
+      "path": "apps/brunch-agent/dist/server.mjs.map",
+      "bytes": 1450,
+      "sha256": "383860dfb293450d31adb1753b56e4c10a8e8f6b061a4a904af42d8449f0ca1c"
+    },
+    {
+      "path": "apps/brunch-agent/dist/node-server-BX3pOgpA.mjs.map",
+      "bytes": 4991153,
+      "sha256": "a6448865ad6d04ae3da070f7347e74f06f0dfa0e81b7665e72c85ef32e0dc1d0"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-bsd-ThF6nEVL.mjs",
+      "bytes": 1103,
+      "sha256": "1f347955329d7a66f491559c8d11e0a722c20bf01bcc578a7fcbd0fc09210268"
+    },
+    {
+      "path": "apps/brunch-agent/dist/app.mjs",
+      "bytes": 158,
+      "sha256": "74033d30e7b7f24aa22745f598508560f9475e5915420ad565c2ac0f84dd41c6"
+    },
+    {
+      "path": "apps/brunch-agent/dist/server.mjs",
+      "bytes": 905,
+      "sha256": "82fd7aa35f7ab0a894d3010dbb5e968a06e4cc49746509f90afe5293527802ef"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-darwin-C6rMMlat.mjs.map",
+      "bytes": 1683,
+      "sha256": "49511a6d3eb20411051b2692c0d11d1cd8106624db496aa18749900dfeacf675"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-linux-B5Iy_Sy7.mjs.map",
+      "bytes": 1367,
+      "sha256": "f94bbae72789f890a358dbaf54455dbb0f95f4780d6b194aeaf2948c6c84bbba"
+    },
+    {
+      "path": "apps/brunch-agent/dist/client/index.html",
+      "bytes": 381,
+      "sha256": "626163ab520ec02e5768256d5d8eeefe5690016a7dbdc87a4153743e073982f5"
+    },
+    {
+      "path": "apps/brunch-agent/dist/client/assets/index.js",
+      "bytes": 244667,
+      "sha256": "ce920d90f61236fe745e67b45a9cc5687e9a9ebdc1bd6d7fcc6470a20c3e7889"
+    },
+    {
+      "path": "apps/brunch-agent/dist/client/assets/index.css",
+      "bytes": 2543,
+      "sha256": "a3aae2c9f488b052c6f96dd29eb88af15f907a3f9d36e2081990e26ea3c9d543"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/favicon-16x16.png",
+      "bytes": 1030,
+      "sha256": "918d975b6cab7e4545d9e30e3993a4dd0e964900e8d5160f2366997209485c62"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/favicon.ico",
+      "bytes": 11553,
+      "sha256": "f8a78f9032692475d34c786b83ae046f35e7da1048d901cc0e2bc39212aef35e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/index.html",
+      "bytes": 1680,
+      "sha256": "e6eabf1bfaf11a7c8b4f2df6bc2d39e677ead2c8b02657cfe38b6de36fb1751f"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/apple-touch-icon.png",
+      "bytes": 79442,
+      "sha256": "94d51d043850ef88b8d42ffd92fe83760ab74c357e1c3df9b96531169dfaf095"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/icon-192.png",
+      "bytes": 92784,
+      "sha256": "1e200ab84697b822882785793886d2713cda049dbcb3a3afdd19ef1f6690e4fe"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/site.webmanifest",
+      "bytes": 383,
+      "sha256": "b0f336460d8594c791cefe1c5d6245a7563e8e44a99825fa294a23ffcded2c06"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/icon-512.png",
+      "bytes": 581942,
+      "sha256": "0caec50d00c087edb0c5c616d6adbce598581e9d5c3981073550523c8546c548"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/favicon-32x32.png",
+      "bytes": 3373,
+      "sha256": "7b21e9194a62b6f682b247d542b9b7a6238087264c9a8de6e5ad334c9996e3d0"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/editor.api2-DEyDXwkV-CDCMs7Sd.js",
+      "bytes": 600595,
+      "sha256": "637a701ef9ab3fc72d3c4e3808538d8c74dc2267faddbcf44c6e61a914f14fab"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/workspace-BY1e83aM-Dg_uHlIS.js",
+      "bytes": 8596,
+      "sha256": "f9602327f0a8df86c486770f70249174735d1f50b22ad5a1c133923ffe496506"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/index-D5398y7j.js",
+      "bytes": 464254,
+      "sha256": "e1381db965b9e14c0290cf7b9762443c4a9e5eaa917eca9538d3af69e17227f1"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-1-pn-consumption-trigger-BXUmCY1F.js",
+      "bytes": 7040,
+      "sha256": "6a3090e37a5945a9c989eb7665a99c85a70f7d2ec9f56ccf4e3f8fb8d5402c71"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/label-Cduwf5xB-Cyu6DHZV.js",
+      "bytes": 951685,
+      "sha256": "11fd0da40e2e6906a1923fa178f2593e82840de98ac61c0e64558f9bfe695fe9"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-3-cpn-CYtxG_FX.js",
+      "bytes": 35032,
+      "sha256": "fabdbdb6747919610144ed96ed58420cff2f8a639021af4d98fb873bd4784080"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/typescript.contribution-CIScJ813-CJbRMp69.js",
+      "bytes": 597390,
+      "sha256": "853f191ed8aa0dd32e7114e5850b54c965b52e615e70bd167164829ddc6fa751"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/subview-DvfuqL4I-k0TkSJX5.js",
+      "bytes": 3553,
+      "sha256": "2d47538aaf7b493826f3b9b46fad5d57fcb682800b0a7a14798ab38a3652cc3b"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/routes-DsZBx6ke.js",
+      "bytes": 713,
+      "sha256": "f2f559f5f4e74f18d04d7e8e5409f5140de1f396bffba654416e4bde166b8dda"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/embed.examples._slug-hs5HjrHo.js",
+      "bytes": 340,
+      "sha256": "4e5ee53d773c7d6b85602ee3b4f330344ec1b15cac7e1af3122f43da826a3c03"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/webgpu-XQRnL8EN.js",
+      "bytes": 62127,
+      "sha256": "da8b32bb49493c453ca37a69736b6df52e901c561718598a34cef0d0f9afa504"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/parameterHints-BN73WYxJ-CtOXKnUy.js",
+      "bytes": 13990,
+      "sha256": "2cc837468c18eb55ff2d238f4e2782dddaab9ed113d701ab16f35524e7b1ab79"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/truck-fleet-predictive-maintenance-BveJ7Rj3.js",
+      "bytes": 81661,
+      "sha256": "1c78caab8607f8e72307cfd8f6dbbe2c53a6542f7db3c3e7065488f9a9bc563b"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/with-selector-BzJ7J7_l.js",
+      "bytes": 1615,
+      "sha256": "874d652b6a8b1bf6881125e19edc16ae5fa526f4982b047bf21e9f16c19da011"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/languageFeatureDebounce-BQBNL_sV-BJ-cZJh0.js",
+      "bytes": 2158,
+      "sha256": "590271e09ae9447a1577ad677e89af85faca80f3036caf134bdb28a34feb73c9"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/supply-chain-profit-model-CLQtD07j.js",
+      "bytes": 7932,
+      "sha256": "f8cac8728e4112f0827399782a985d5833b2b8a45c1ac55f81ee506de1ce3d99"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-1-pn-BlqHDm2P.js",
+      "bytes": 12802,
+      "sha256": "7b329006f78d5a03067ba3cec5e611d3de2b389c8b1892d6ce2661d03b0abc67"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/react-C4rju6ZK-BPAvGRzV.js",
+      "bytes": 2080665,
+      "sha256": "e3fa49ad144ca41b73c99e0bb8ed5e922b2a84c6e4ec298888e5948fde5508fd"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/selected-item-properties-Bo7Klph9-D5Rk8Ziy.js",
+      "bytes": 801552,
+      "sha256": "e461a9b3c98eedc72f115dc0a70352ac4f2139435661acd02105f09755bf66b0"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-2-spn-BRaSGEYh.js",
+      "bytes": 27879,
+      "sha256": "b75249a569596a14974f57398937b82bca7a4ae5b8ad14e44f5f0cb24edfe34e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/iconRegistry-CwmEmEbe-1aW3AHNZ.js",
+      "bytes": 376722,
+      "sha256": "3bddf8898cc508bae7b9652d1f825b88910ca6409ab1eb3605926e8908877749"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/monte-carlo.worker-WQ0YZbjg-QypGOLDr.js",
+      "bytes": 131271,
+      "sha256": "03aff1a1be78df89d282365b59eaf06c566a79084767c23251e0f2a3c15e95d7"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/petrinaut-BDmYj1Ui-CeX6YMMm.js",
+      "bytes": 1195300,
+      "sha256": "7a83a6e6042cdc981829e564af9a25fb572c81586029b1de3829caf874d120f6"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/truck-fleet-predictive-maintenance-zJ0XAy8Z.js",
+      "bytes": 150662,
+      "sha256": "72db69cb85c71f1056d68e4debf33e057f4f65424a86c17688921cd44361ed73"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/subview-D7jObsuO-1KZfV3KV.js",
+      "bytes": 4108,
+      "sha256": "c6d36026d2589482c4b6c6b20f852589fb2b0ba3860cb8360ea25b0bb50b2028"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/examples-DGDLQ1tV.js",
+      "bytes": 357,
+      "sha256": "c845aa379d543556a50c23fe23a38c2c8a73753f2b5f56409e443d32c2381f34"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/typescript-CKCsFwpQ-ZOwQLO8h.js",
+      "bytes": 4685,
+      "sha256": "a67f350f36898244c0a75364936d2556a64439de85e374da1885a954890a5caa"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/03-ai-example-e3UskQf0.mp4",
+      "bytes": 567646,
+      "sha256": "717d0920492c41cc01551ca8370113419fb360e146d8b4336448a8b5d135e945"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/support-QFmoRTi4-BOzIlFV0.js",
+      "bytes": 73,
+      "sha256": "c4eeec5421f896c65ac9aa287e36c57de6a85459e07531d490ef69ea8b741710"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/production-with-machine-failure-CFdeKj8V.js",
+      "bytes": 7147,
+      "sha256": "60b993d1b96282f1e0647c6ae0527844fb78287d192e6551dd020d0eb13cd792"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/markdownRenderer-B52Lb47K-Bs8IaznG.js",
+      "bytes": 131198,
+      "sha256": "a2180585b17bbd77656f1a3d59bc57ed8aed15d6aca803a0fd5d459c725bae00"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/language-server.worker-Diq9yLSu-DE23iacg.js",
+      "bytes": 3960716,
+      "sha256": "34f2678bfc3a5be16f5ac0f211b3e8bc8bb2ecc4074fbdd36c5aca1aab506393"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-3-cpn-CSTwn4Yf.js",
+      "bytes": 38840,
+      "sha256": "0e42e1c938fff33899045d31ad2f326cf941a7f1288a0396c1d23e5e0d602be7"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-4-dcpn-CA1GnJkG.js",
+      "bytes": 90672,
+      "sha256": "d993009afd56f59f3ba9721045c85d792e1868980f539d25e4e0fefcea36e488"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/examples._slug-XyigrNZY.js",
+      "bytes": 2678,
+      "sha256": "6007834e8f89037c900b7f3db21bd721df0400a2ece7e1aa28a1274b922f9e27"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/surface-context-BCMn0Ywq-DrQxqlbm.js",
+      "bytes": 119917,
+      "sha256": "d2fcbc902da5c6041c85883941dc3d1621ad2473c0561eb2a4e0568cdb4284be"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/probabilistic-satellite-launcher-DfadoGKp.js",
+      "bytes": 12938,
+      "sha256": "c80bb3cef634e8e07fb283888905c9315411eb33639b8c7a69f978fc617d56dd"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/deployment-pipeline-Dac5kVTW.js",
+      "bytes": 10236,
+      "sha256": "67bac157b0e310f9d8d47f17940ca3d3f6e23ab4110dd7a9ec4d95c168993bcd"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/react-CxeQWaMg.js",
+      "bytes": 8760,
+      "sha256": "9611a5059a5d98425c7e75979ab2ccd5d8dfcc70732aba9982b248125d26555e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/01-intro-example-BPzJPkMI.mp4",
+      "bytes": 122120,
+      "sha256": "83537a1c12af0b3f37c23e38e9231cd49494fe75371f283f9a97c227eb733d5d"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/examples-ubXygPF4-De2TPTQ3.js",
+      "bytes": 133128,
+      "sha256": "095a39a256e39c1ff51e8a653ee78f9c4318af29c438a00cb9d2e5a030688702"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/code-field-nUSo9YgC-ClFpG0uJ.js",
+      "bytes": 1131,
+      "sha256": "d26a45cdc4f65d57f3f96909863858873ff71e8012334de691c99ec66142de5b"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/brunch-Dyv2F2kp.js",
+      "bytes": 10737,
+      "sha256": "1205fdbc63604467e353c58b855111b6dce2e070d81420373e56d2a0cc22a25d"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/semiconductor-fab-drift-BdAM2Y4l.js",
+      "bytes": 439322,
+      "sha256": "ac325b4bc86e932d3973df2187b2049b5cee7675d17ad619395154e9413d3dfb"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/subview-CsdpicIc-B7AcT9Ji.js",
+      "bytes": 5035,
+      "sha256": "212b1eb62b6af256847a40f6a308a6ac60af29dd2247a03e11c4e8cd3af18480"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/environment-BS97pmcA-BcWVwYPd.js",
+      "bytes": 298684,
+      "sha256": "02cfa4fd1026ea7b57403eab9564e47f1e57d4c5b1657d9316f9bbd8edfa2c40"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/simulation.worker-C2Mxugw1-hyRN_4F3.js",
+      "bytes": 118220,
+      "sha256": "4e93e5ce6f1dec968f668a1373bd2c9ea33c8f49b4da66b0c7e75acd488863f9"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-2-spn-B1zmmkCg.js",
+      "bytes": 23732,
+      "sha256": "0622162e09433707f05b0ec684ca1a5e0ed4df5d9faf5579e60197ddce05c0d3"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/hoverContribution-Bxu5NfPa-CSC1Aw11.js",
+      "bytes": 290448,
+      "sha256": "aedf8eabe00fc4a6486f32394087682269446e0f8040c72224e1044950923721"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/dist-CJz1qC8o-qWH2nz1X.js",
+      "bytes": 14211,
+      "sha256": "eea58107d00d8b1d0c894e068b558580c621b051e2f6d44430d8412e25962dcb"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/css-BTQ2OjM1.js",
+      "bytes": 14879,
+      "sha256": "5df0f1b5f69f6af28931f09190fdd23e09873c3025cbe5676680a31aee8db040"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/suggestController-D_4ueSMN-DE8E3Jxh.js",
+      "bytes": 122776,
+      "sha256": "df3802d693379154e17c405acada1ac56b659246df4e73e57b7e24122eaaa61b"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/countBadge-B-pYtnum-DCxkYUmA.js",
+      "bytes": 198584,
+      "sha256": "0a4f5d1d5625109abb68e200287620f514a75ea3691ca1566e3a9cc76e1876ad"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/semiconductor-fab-drift-CvBycVD_.js",
+      "bytes": 103584,
+      "sha256": "6b8b4a3827bbe3177954b01230cd4aa1da73b65764c80ab980d423d758697e5f"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/navigation-search-BYDBj9zZ.js",
+      "bytes": 915,
+      "sha256": "6a6efbf7fba2a96e16cecc27f18341d3edd04ead157b8c60ca1448b2c9d60cdf"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/embed.examples._slug-CEh7KHjM.js",
+      "bytes": 2769,
+      "sha256": "2eebda84798b9f00645a4766a30b0ad808479d1d081c7e52b8583f95267a1490"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/place-state-visualization-WTmgQfki-Basi6FJO.js",
+      "bytes": 2955220,
+      "sha256": "10d88294b928d2e9530549735ff97ac2c5d7c51a8dc476cbff8ec8493963aab2"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/preview-Crvc0Gwj.js",
+      "bytes": 19741,
+      "sha256": "b779213594d1104f1c011a1bfcc0e0cb5c1a71e9d1247b9861c4fe10a9c86cac"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/code-editor-DLjJW5IM-CVsuo0Xx.js",
+      "bytes": 5771,
+      "sha256": "b88855da62c005881c3880463cc23b33c0d12bf5c31a57149e02ffd138a44961"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-1-pn-consumption-trigger-DKUpnlg6.js",
+      "bytes": 13310,
+      "sha256": "65f7fa5efd7cd93e58a998b3ec18ebe459a9930c66c2dcbc3fc99b7db884ffec"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/embed.examples._slug-BzFr9tgw.js",
+      "bytes": 336,
+      "sha256": "512e8d7776249aa7e69355c9411680dbc8a6152e66a725885a657892d865a35d"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/editor.api-DqR9U5xd-LOPe4g4N.js",
+      "bytes": 358,
+      "sha256": "e6253be1d99d86f7bff5ed4682b13a368cac8585d7fac952fb8aaf3a87a3f5a6"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/sir-epidemic-model-DaMFzdUw.js",
+      "bytes": 6385,
+      "sha256": "5b46fcbd5922fdeb3f042479418f9865b673886f568fd308efcdd4f032a024b5"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/supply-chain-with-disruption-CypyWLVA.js",
+      "bytes": 36099,
+      "sha256": "4e1d718d8a3effc428b674dac6d471b78509b60e8bb41e8985d6a5b92ea19eee"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-1-pn-Bjno91vq.js",
+      "bytes": 6748,
+      "sha256": "b6e9d73193805d5de744d2bc5bb0180b6887e4b781d22a0841f6d2c2bfa02e6e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/folding-BRhFCn9G-fdM279Jd.js",
+      "bytes": 43308,
+      "sha256": "b9e5ee6b0cf7a7a00ea85b967114e7f78f049b1604e94c9b1c46ed4476a9fda6"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/02-experiments-example-DS2Vemgo.mp4",
+      "bytes": 210875,
+      "sha256": "2e2869b0a3d331d1a16c4c1b7cb07149e7298388aca70d05d8b2b78e7c92866e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-4-dcpn-Zdmx2TlZ.js",
+      "bytes": 58925,
+      "sha256": "8d36469c8f60681fcf703fa5675b7d71c60ee79f2fc302478eded6dd5b688e2c"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/index-BR5hRG0R.css",
+      "bytes": 1542091,
+      "sha256": "8c806308c3456d8d231e08c4716ddbf01390b0869b5ebee33f50d67f6e1dcdd3"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/example-search-BtCT3Bpx.js",
+      "bytes": 5294,
+      "sha256": "164013d2ba16b196345ce3ea55b2b892a6c850ee24ade17b00d5d7d896ae8b79"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/embeddedCodeEditorWidget-BTb8ukYq-0GbuyN-J.js",
+      "bytes": 16468,
+      "sha256": "4faf7839629308bdec1c6593a3bd7194021db9b0244110c2985d7c9724773389"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/optimization-BAYm4x6u.js",
+      "bytes": 16936,
+      "sha256": "5dc55281f3f97a65f14f50396ae1adc20fdcab16abc8cee25942a147b0a4daa5"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/sentry-feedback-button-B4ygm-HU.js",
+      "bytes": 3977,
+      "sha256": "857ad07552b59bb63e26a39dcb9198d73eae5f553973f64c89cb464456b9b31e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/chunk-IXD63N2S-x28Lc-38.js",
+      "bytes": 20951,
+      "sha256": "44aece0c35bf76b73b2da7791ed5176d3109874d650a65cecd90d948f057fc55"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/-embed-status-panel-DdI0-Cs2.js",
+      "bytes": 746,
+      "sha256": "d9efed88b0ff18f2e54508feb18cd072c6e571529a717d555ff3c2be942539dd"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/local-storage-demo-app-BcgsA_av.js",
+      "bytes": 274039,
+      "sha256": "195c1758834c47ff33cc6efeed8e59cff202d6cb0d5f4f8d3270bd5d60f76432"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/logo-mark-BEnJfXfl.png",
+      "bytes": 11393,
+      "sha256": "042e05828aca1481cf578876b1b72ed5488bf96e8664d319b2ba3fcc639a1c5e"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/dist/root-node-Ce8mwOa_.js.map",
+      "bytes": 40221,
+      "sha256": "b4be565a40c356c2c05f1bcc6873db1aab1310f675d3904adb0bff697dfe34a4"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/dist/index.js",
+      "bytes": 9763,
+      "sha256": "06656f98a6af1c846dcb1b4a6978da9e1fb3e1072203b6d82dfbe7dcda8f45ae"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/dist/flue.js",
+      "bytes": 62533,
+      "sha256": "b9ea1f920eb6df31850f5a516eacf9810c96eea370b042a2bb7c2930ee402138"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/dist/flue.js.map",
+      "bytes": 25465,
+      "sha256": "1c81b36959b6f8327b8f30437033caf512b90cf1cf6dc7f2b2f5f65dba5daaba"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/dist/index.js.map",
+      "bytes": 30337,
+      "sha256": "671a4604725c6b1d42e32aee539b791642b5393a372e82c4a2d125ae9730fada"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/dist/root-node-Ce8mwOa_.js",
+      "bytes": 15336,
+      "sha256": "4d0d624ce980eef4c9137e3da0d4dcfad7dea436defbf58dbccc99423eb8b4e0"
+    }
+  ],
+  "websiteConfiguration": {
+    "VITE_BRUNCH_CHAT_ENDPOINT": "/agents/chat"
+  }
+}

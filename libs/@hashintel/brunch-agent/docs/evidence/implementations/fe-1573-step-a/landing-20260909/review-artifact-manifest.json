@@ -1,0 +1,93 @@
+[
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/review.md",
+    "archive": "typed-original-review/review.md.gz",
+    "bytes": 16072,
+    "sha256": "890ea369d28aa73ffa16bacb630845de8820eee8afa5589d277d542963d56382",
+    "archiveSha256": "57329d468c2a86f2e01e6a52eab2fb82eb0ae227558bc9060d95c5b699acf18a"
+  },
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/aggregate-why.mjs",
+    "archive": "typed-original-review/aggregate-why.mjs.gz",
+    "bytes": 1794,
+    "sha256": "f2034c74679091b64f2da0cf90576080c96296d6992a6adc0dbc957b5b0594f3",
+    "archiveSha256": "1d5bd32a8d77ad8497f1e14d45c7aca0bb50e0d13e5b6ac7415fe9fa5f4b95fc"
+  },
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/aggregate-why.json",
+    "archive": "typed-original-review/aggregate-why.json.gz",
+    "bytes": 42908,
+    "sha256": "95334dc07d1697d7714deff196c291a01bad4b646798c436242ef9dfd6b4e9eb",
+    "archiveSha256": "d0086a5d0be2905dfd196440b4a65a58510a4fe8c10ffec81c5684db8bc8c0a7"
+  },
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/aggregate-why.log",
+    "archive": "typed-original-review/aggregate-why.log.gz",
+    "bytes": 3714,
+    "sha256": "7ae2492934a44c29dbba0e724ad59fe65545968df508c4ba0db4404efe9fdd3c",
+    "archiveSha256": "22ebf394d6600484ef8daa2707218cc2e87c9b836ccd28ee7ff4f75097952b46"
+  },
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/aggregate-why.exit",
+    "archive": "typed-original-review/aggregate-why.exit.gz",
+    "bytes": 2,
+    "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "archiveSha256": "c28cc69d141393e44a931229323624ef7b8c5bde3ee047ca9b87332daef23c82"
+  },
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/primary/history.json",
+    "archive": "typed-original-review/primary/history.json.gz",
+    "bytes": 245592,
+    "sha256": "254d83610b0df45c2eeb5be66db05a811c56a56d1975324bb2bb6e0c9de1f8d5",
+    "archiveSha256": "18314acb005b10f4035bebb5187ca72eacff3e6f12103582ed78657b2f331d19"
+  },
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/primary/why.json",
+    "archive": "typed-original-review/primary/why.json.gz",
+    "bytes": 56312,
+    "sha256": "d7df7dc99b48d5a47a7c552aaabd00080f88c8c7a74d37f002d0a4ff60eae3a4",
+    "archiveSha256": "50a03dc273738c67e0c89a3139a13dc305b97476d85b72f3c12fdb9861490c8d"
+  },
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/primary/summary.json",
+    "archive": "typed-original-review/primary/summary.json.gz",
+    "bytes": 233,
+    "sha256": "810cddc73256fb3014af2b51d7847ed6beb90bc2944ab6a255c90603cfa99dbf",
+    "archiveSha256": "fdfb42ed6f6966196a1293145e5c1336c22c8a93e1434ed9e5a3ea67b9116a52"
+  },
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/audit.json",
+    "archive": "typed-original-review/audit.json.gz",
+    "bytes": 5254,
+    "sha256": "0358ca217de59077a0b264e205c85e615790e83d9d86d16b215961ad33611ba6",
+    "archiveSha256": "1a6a42c5166666657dfaf08ba20315aeb5085af9a7064d0bcd0f85f1df141707"
+  },
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/independent-raw-check.json",
+    "archive": "typed-original-review/independent-raw-check.json.gz",
+    "bytes": 1639,
+    "sha256": "f75cb71b7b7a26b993f28161ffaa63c162f84c7f34ee5b015f6b7f7c4585cf5d",
+    "archiveSha256": "99dd0b662d6bc27a85af799d8c4ea985afdbce4ecb24575d091bca0d46234117"
+  },
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/pin-check.json",
+    "archive": "typed-original-review/pin-check.json.gz",
+    "bytes": 270,
+    "sha256": "9ce7c1189c1bfcb37f904088c239b0c162b2474ea4b8bddd086bf12587bb293c",
+    "archiveSha256": "400383bacbf74ced03548bc16cccbdccb2f62c8213439ab94d0fc8ef81102fc5"
+  },
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/final-head.txt",
+    "archive": "typed-original-review/final-head.txt.gz",
+    "bytes": 41,
+    "sha256": "369e2a2dbfd99b1ba079d0fa5e7910138699ec119e90b1a6e0ffb664e142f5ae",
+    "archiveSha256": "84de3b2666303832ec0395c79ac4b6a60f4b71255da0378cb08986df62a00644"
+  },
+  {
+    "source": "/tmp/m7-typed-review.WjrqZt/final-status.txt",
+    "archive": "typed-original-review/final-status.txt.gz",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "archiveSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  }
+]
