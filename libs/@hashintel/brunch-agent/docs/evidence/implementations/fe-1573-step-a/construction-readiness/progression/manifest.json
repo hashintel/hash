@@ -1363,8 +1363,13 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-green/mixed-weight-revision-verdict.json",
-      "bytes": 41,
-      "sha256": "669e18e563f06f76d2ca2ac375101523a3570829927f45a375df15d23233b2ba"
+      "bytes": 42,
+      "sha256": "b98159ca94d41221d12f1d55486c61b5df915714b4ab6c37aaed7b9e117c94dc"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-green/mixed-weight-revision-verdict.raw.json.gz",
+      "bytes": 57,
+      "sha256": "e709dd22d0d2034b4026d195eded8cac9b7ddecafc137322a434ced77290998c"
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-green/native-captures.json.gz",
@@ -1373,8 +1378,13 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-green/observations.json",
-      "bytes": 229,
-      "sha256": "eda54ab92666d6120e5882344602a8a32ae69a9a32175bc5d160f31f88d0bf06"
+      "bytes": 230,
+      "sha256": "2e76a53ddd3fa030c9fe951a26d632ecd19d677b8045c8aa49f80ec713335ee8"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-green/observations.raw.json.gz",
+      "bytes": 177,
+      "sha256": "8428736d557610967249ac186dd3c496ea92e68b9865803acc5298041cc0cfa7"
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-green/raw-calls.json.gz",
@@ -1423,8 +1433,13 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-red/mixed-weight-revision-verdict.json",
-      "bytes": 42,
-      "sha256": "7722cfc493cbf9db5c5ea8ecc06dc8977330438764b971246852204924f6b381"
+      "bytes": 43,
+      "sha256": "b189c59a024834670ea1893843d2cd462a1490740d0c71e4d781bc21e3b474a9"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-red/mixed-weight-revision-verdict.raw.json.gz",
+      "bytes": 58,
+      "sha256": "8054388789747910ae85e8578338d56c840aa3a28814041739a89e02e4cd228b"
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-red/native-captures.json.gz",
@@ -1483,8 +1498,13 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/browser-final/mixed-weight-revision-verdict.json",
-      "bytes": 41,
-      "sha256": "669e18e563f06f76d2ca2ac375101523a3570829927f45a375df15d23233b2ba"
+      "bytes": 42,
+      "sha256": "b98159ca94d41221d12f1d55486c61b5df915714b4ab6c37aaed7b9e117c94dc"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/browser-final/mixed-weight-revision-verdict.raw.json.gz",
+      "bytes": 57,
+      "sha256": "e709dd22d0d2034b4026d195eded8cac9b7ddecafc137322a434ced77290998c"
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/browser-final/native-captures.json.gz",
@@ -1493,8 +1513,13 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/browser-final/observations.json",
-      "bytes": 229,
-      "sha256": "2c0bfbb8a061e1276ff0eee27532537aed673926b4a8b7daee5251cedc5c95b0"
+      "bytes": 230,
+      "sha256": "752baf4853c681a7e49960b09e7fb9cd0080adf328f251b53aba3ee4db998a34"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/browser-final/observations.raw.json.gz",
+      "bytes": 177,
+      "sha256": "edaa5348141970306e9d64858e46020525ceaa0c0ac830092c2842e877bd91f2"
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/browser-final/raw-calls.json.gz",
@@ -1643,8 +1668,13 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/first-progression/observations.json",
-      "bytes": 229,
-      "sha256": "fac5c20a57eae78e8e72fc71cc9713078c8c2ba97c4f568845cfe7faebd8eb96"
+      "bytes": 230,
+      "sha256": "c8f7c2ef20c0eeb74300796550282079577b15014daf777dc7bce7e15853258d"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/first-progression/observations.raw.json.gz",
+      "bytes": 178,
+      "sha256": "beaa84dfe26b938fd761f89e7a8ce9eab093a3ccff6c92ad0a499606772087be"
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/first-progression/raw-calls.json.gz",
@@ -1883,8 +1913,13 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/legacy-before-renderer/a5-observations.json",
-      "bytes": 2679,
-      "sha256": "11b91f610c27b5e68ea236129e1d4c22bc1f4aebca4dcc40952111989a5f0aba"
+      "bytes": 2680,
+      "sha256": "d67e36f3414f36af322029da43411cc504a7303d7da3ec79c28bddb7106e0631"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/legacy-before-renderer/a5-observations.raw.json.gz",
+      "bytes": 872,
+      "sha256": "8087e4fe3ff68a54eca9b1d6eb002a56468b53d5e7facba1625cfd5aace5b1cc"
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/legacy-before-renderer/a5-temporal-canonical-post.json.gz",
@@ -2238,8 +2273,13 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/legacy-final/a5-observations.json",
-      "bytes": 2679,
-      "sha256": "1225a796d0ceabf3cff2e3bb2c86d0e64372bd127fe7eec02364f15d5ffc05ff"
+      "bytes": 2680,
+      "sha256": "dd44adf56f74d13ea09d93b72d0ad7ef2cc30cca6d26602d638277cd6581eec4"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/legacy-final/a5-observations.raw.json.gz",
+      "bytes": 871,
+      "sha256": "b7a2e08ad1dfecda12a5aae6736a05861f2b7174977ef35a00078d8d8da798a3"
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/legacy-final/a5-temporal-canonical-post.json.gz",
@@ -2607,6 +2647,11 @@
       "sha256": "26c59f4250d4689bdbb65f70cfcb65029ae1fe2e5b6a8d703f90463d432ed31a"
     },
     {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/packaging-note.md",
+      "bytes": 1106,
+      "sha256": "0fe4ac851779907ebf8c344a4d8f60a18613d8e886e883e3406edc20bfc1af6b"
+    },
+    {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/pre-admission-fix/browser.png",
       "bytes": 223120,
       "sha256": "715bbc9272cdd0141f7a3c457b60f35acbc3f51fddd8121c55ea5803318ec619"
@@ -2638,8 +2683,13 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/pre-admission-fix/observations.json",
-      "bytes": 229,
-      "sha256": "030f970e3a0b559262d234e5fdaa0b2808252770dfd89fa8a14c3c2729618363"
+      "bytes": 230,
+      "sha256": "f8e687a19ad202e319563feb72952fd58399414fec01a37964d6e1bac18ab886"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/pre-admission-fix/observations.raw.json.gz",
+      "bytes": 179,
+      "sha256": "c5ac82f31ea00f445578f896a05edd9525e68ce2978eaa1f886454aaa2a12307"
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/pre-admission-fix/raw-calls.json.gz",
@@ -2698,8 +2748,13 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/renderer-red/mixed-weight-revision-verdict.json",
-      "bytes": 41,
-      "sha256": "669e18e563f06f76d2ca2ac375101523a3570829927f45a375df15d23233b2ba"
+      "bytes": 42,
+      "sha256": "b98159ca94d41221d12f1d55486c61b5df915714b4ab6c37aaed7b9e117c94dc"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/renderer-red/mixed-weight-revision-verdict.raw.json.gz",
+      "bytes": 57,
+      "sha256": "e709dd22d0d2034b4026d195eded8cac9b7ddecafc137322a434ced77290998c"
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/renderer-red/native-captures.json.gz",
@@ -2708,8 +2763,13 @@
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/renderer-red/observations.json",
-      "bytes": 229,
-      "sha256": "2c0bfbb8a061e1276ff0eee27532537aed673926b4a8b7daee5251cedc5c95b0"
+      "bytes": 230,
+      "sha256": "752baf4853c681a7e49960b09e7fb9cd0080adf328f251b53aba3ee4db998a34"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/renderer-red/observations.raw.json.gz",
+      "bytes": 177,
+      "sha256": "edaa5348141970306e9d64858e46020525ceaa0c0ac830092c2842e877bd91f2"
     },
     {
       "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/renderer-red/raw-calls.json.gz",
@@ -2742,5 +2802,84 @@
     "Required root-class breadth incomplete",
     "No provider/genuine/utility or Step A/B acceptance",
     "SQLite files remain at original temporary paths; JSON observations are not import authority"
+  ],
+  "formattedSummaryPairs": [
+    {
+      "formatted": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-green/mixed-weight-revision-verdict.json",
+      "rawGzip": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-green/mixed-weight-revision-verdict.raw.json.gz",
+      "rawBytes": 41,
+      "rawSha256": "669e18e563f06f76d2ca2ac375101523a3570829927f45a375df15d23233b2ba",
+      "parsedJsonEqual": true
+    },
+    {
+      "formatted": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-green/observations.json",
+      "rawGzip": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-green/observations.raw.json.gz",
+      "rawBytes": 229,
+      "rawSha256": "eda54ab92666d6120e5882344602a8a32ae69a9a32175bc5d160f31f88d0bf06",
+      "parsedJsonEqual": true
+    },
+    {
+      "formatted": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-red/mixed-weight-revision-verdict.json",
+      "rawGzip": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/admission-red/mixed-weight-revision-verdict.raw.json.gz",
+      "rawBytes": 42,
+      "rawSha256": "7722cfc493cbf9db5c5ea8ecc06dc8977330438764b971246852204924f6b381",
+      "parsedJsonEqual": true
+    },
+    {
+      "formatted": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/browser-final/mixed-weight-revision-verdict.json",
+      "rawGzip": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/browser-final/mixed-weight-revision-verdict.raw.json.gz",
+      "rawBytes": 41,
+      "rawSha256": "669e18e563f06f76d2ca2ac375101523a3570829927f45a375df15d23233b2ba",
+      "parsedJsonEqual": true
+    },
+    {
+      "formatted": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/browser-final/observations.json",
+      "rawGzip": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/browser-final/observations.raw.json.gz",
+      "rawBytes": 229,
+      "rawSha256": "2c0bfbb8a061e1276ff0eee27532537aed673926b4a8b7daee5251cedc5c95b0",
+      "parsedJsonEqual": true
+    },
+    {
+      "formatted": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/first-progression/observations.json",
+      "rawGzip": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/first-progression/observations.raw.json.gz",
+      "rawBytes": 229,
+      "rawSha256": "fac5c20a57eae78e8e72fc71cc9713078c8c2ba97c4f568845cfe7faebd8eb96",
+      "parsedJsonEqual": true
+    },
+    {
+      "formatted": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/legacy-before-renderer/a5-observations.json",
+      "rawGzip": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/legacy-before-renderer/a5-observations.raw.json.gz",
+      "rawBytes": 2679,
+      "rawSha256": "11b91f610c27b5e68ea236129e1d4c22bc1f4aebca4dcc40952111989a5f0aba",
+      "parsedJsonEqual": true
+    },
+    {
+      "formatted": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/legacy-final/a5-observations.json",
+      "rawGzip": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/legacy-final/a5-observations.raw.json.gz",
+      "rawBytes": 2679,
+      "rawSha256": "1225a796d0ceabf3cff2e3bb2c86d0e64372bd127fe7eec02364f15d5ffc05ff",
+      "parsedJsonEqual": true
+    },
+    {
+      "formatted": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/pre-admission-fix/observations.json",
+      "rawGzip": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/pre-admission-fix/observations.raw.json.gz",
+      "rawBytes": 229,
+      "rawSha256": "030f970e3a0b559262d234e5fdaa0b2808252770dfd89fa8a14c3c2729618363",
+      "parsedJsonEqual": true
+    },
+    {
+      "formatted": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/renderer-red/mixed-weight-revision-verdict.json",
+      "rawGzip": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/renderer-red/mixed-weight-revision-verdict.raw.json.gz",
+      "rawBytes": 41,
+      "rawSha256": "669e18e563f06f76d2ca2ac375101523a3570829927f45a375df15d23233b2ba",
+      "parsedJsonEqual": true
+    },
+    {
+      "formatted": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/renderer-red/observations.json",
+      "rawGzip": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/construction-readiness/progression/renderer-red/observations.raw.json.gz",
+      "rawBytes": 229,
+      "rawSha256": "2c0bfbb8a061e1276ff0eee27532537aed673926b4a8b7daee5251cedc5c95b0",
+      "parsedJsonEqual": true
+    }
   ]
 }
