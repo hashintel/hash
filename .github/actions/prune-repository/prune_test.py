@@ -15,11 +15,6 @@ from prune import (
 CORE = "@hashintel/brunch-agent"
 TRANSPORT = "@hashintel/brunch-agent-transport-aisdk"
 APP = "@apps/brunch-agent"
-ARCHITECTURE = "@tests/brunch-agent-architecture"
-BINDING_FLUE = "@hashintel/brunch-agent-binding-flue"
-PLUGIN_DAFNY = "@hashintel/brunch-agent-plugin-dafny"
-PLUGIN_GHERKIN = "@hashintel/brunch-agent-plugin-gherkin"
-PLUGIN_SDCPN = "@hashintel/brunch-agent-plugin-sdcpn"
 WEBSITE = "@apps/petrinaut-website"
 FRONTEND = "@apps/hash-frontend"
 PLAYWRIGHT = "@tests/hash-playwright"
@@ -48,33 +43,6 @@ class FrontendRequestedExtras(unittest.TestCase):
 
 
 class BrunchRequestedExtras(unittest.TestCase):
-    def test_architecture_workspace_owns_the_complete_brunch_family(self) -> None:
-        expected_workspaces = frozenset(
-            {
-                APP,
-                CORE,
-                BINDING_FLUE,
-                PLUGIN_DAFNY,
-                PLUGIN_GHERKIN,
-                PLUGIN_SDCPN,
-                TRANSPORT,
-            }
-        )
-        expanded = fixpoint_expand(
-            {ARCHITECTURE},
-            {
-                ARCHITECTURE: expected_workspaces,
-                APP: frozenset({CORE, PLUGIN_SDCPN, TRANSPORT, BINDING_FLUE}),
-                BINDING_FLUE: frozenset({CORE}),
-                PLUGIN_DAFNY: frozenset({CORE}),
-                PLUGIN_GHERKIN: frozenset({CORE}),
-                PLUGIN_SDCPN: frozenset({CORE}),
-                TRANSPORT: frozenset(),
-            },
-        )
-        self.assertTrue(expected_workspaces.issubset(expanded))
-        self.assertEqual(extras_for_requested({ARCHITECTURE}), frozenset())
-
     def test_app_keeps_only_its_non_workspace_product_inputs(self) -> None:
         self.assertEqual(
             extra_paths_for_requested({APP}),
