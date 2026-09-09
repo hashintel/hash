@@ -1,9 +1,10 @@
 /**
- * The study frame's stats line: the status pill, the steps finished over the
- * steps requested (with the runs per step and the steps at once when above
- * one), the steps clear for a study with constraints, the best value so far
- * (hover it for the best step's parameters), and the chip listing what
- * computes for a study evaluated here. Every value reserves its width.
+ * The study frame's stat columns: the status pill, the steps finished over
+ * the steps requested (with the runs per step and the steps at once when
+ * above one), the steps clear for a study with constraints, the best value so
+ * far (hover it for the best step's parameters), and the chip listing what
+ * computes for a study evaluated here. Every column is as wide as its widest
+ * value.
  */
 import { Tooltip } from "@hashintel/ds-components";
 
@@ -33,8 +34,11 @@ const STATUS_TONE: Record<OptimizationRecord["status"], FrameStatusTone> = {
   cancelled: "neutral",
 };
 
-/** Longest status word plus the dot, so the pill never reflows as it changes. */
-const STATUS_CHARS = "Reconnecting".length + 2;
+/** The longest status word, so the pill never reflows as it changes. */
+const WIDEST_STATUS = "Reconnecting";
+
+/** The widest objective `formatNumber` prints: a sign, six significant digits and an exponent. */
+const WIDEST_OBJECTIVE = "-0.00000e+00";
 
 /** "4 / 30 · 3 runs each · 2 at once", with the parts that are 1 left out. */
 export const describeStepProgress = (
@@ -84,39 +88,37 @@ export const StudyStats = ({
 
   return (
     <>
-      <FrameStatusPill
-        tone={STATUS_TONE[optimization.status]}
-        minChars={STATUS_CHARS}
-      >
-        {describeStudyStatus(optimization)}
-      </FrameStatusPill>
+      <FrameStat label="Status" widest="" align="start">
+        <FrameStatusPill
+          tone={STATUS_TONE[optimization.status]}
+          widest={WIDEST_STATUS}
+        >
+          {describeStudyStatus(optimization)}
+        </FrameStatusPill>
+      </FrameStat>
       <FrameStat
         label="Steps"
-        minChars={
-          describeStepProgress({
-            ...optimization,
-            completedTrials: optimization.requestedTrials,
-            prunedTrials: 0,
-            failedTrials: 0,
-          }).length
-        }
+        widest={describeStepProgress({
+          ...optimization,
+          completedTrials: optimization.requestedTrials,
+          prunedTrials: 0,
+          failedTrials: 0,
+        })}
       >
         {describeStepProgress(optimization)}
       </FrameStat>
       {rates === null ? null : (
         <FrameStat
           label="Steps clear"
-          minChars={
-            formatRate(
-              optimization.requestedTrials,
-              optimization.requestedTrials,
-            ).length
-          }
+          widest={formatRate(
+            optimization.requestedTrials,
+            optimization.requestedTrials,
+          )}
         >
           {formatRate(rates.stepsClear, rates.stepsSimulated)}
         </FrameStat>
       )}
-      <FrameStat label="Best step so far" minChars={8}>
+      <FrameStat label="Best step so far" widest={WIDEST_OBJECTIVE}>
         {optimization.best ? (
           <Tooltip
             content={formatParameters(optimization.best.parameters)}
@@ -129,7 +131,9 @@ export const StudyStats = ({
         )}
       </FrameStat>
       {connected ? (
-        <ComputeBatchesChip batches={activityBatches(connected)} />
+        <FrameStat label="Activity" widest="" align="start">
+          <ComputeBatchesChip batches={activityBatches(connected)} />
+        </FrameStat>
       ) : null}
     </>
   );
