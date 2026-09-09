@@ -167,6 +167,7 @@ describe("importanceRows", () => {
     expect(view.effectiveCount).toBe(
       trials.filter((trial) => trial.state === "complete").length,
     );
+    expect(view.estimated).toBe(false);
     expect(view.belowFloor).toBe(true);
   });
 
@@ -189,6 +190,7 @@ describe("the card's copy", () => {
     expect(
       describeImportance({
         rows,
+        estimated: true,
         effectiveCount: 54,
         floor: 50,
         belowFloor: false,
@@ -200,6 +202,7 @@ describe("the card's copy", () => {
     expect(
       describeImportance({
         rows,
+        estimated: true,
         effectiveCount: 27,
         floor: 50,
         belowFloor: true,
@@ -211,12 +214,25 @@ describe("the card's copy", () => {
     expect(
       describeImportance({
         rows,
+        estimated: true,
         effectiveCount: 1,
         floor: 50,
         belowFloor: true,
         barScale: 1,
       }),
     ).toContain("estimated from 1 completed step ·");
+    expect(
+      describeImportance({
+        rows,
+        estimated: false,
+        effectiveCount: 12,
+        floor: 50,
+        belowFloor: true,
+        barScale: 1,
+      }),
+    ).toMatch(
+      /^no estimate yet · 12 completed steps · below the 50-step floor/u,
+    );
   });
 
   it("prints a share as a whole percentage and a correlation with its sign", () => {

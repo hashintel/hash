@@ -90,6 +90,20 @@ prunes an infeasible draw before any simulation and runs state constraints as
 `auxiliaryMetrics` on the detached objective request, 0/1 indicators
 aggregated with `min` over each run's frames.
 
+Parameter importance travels the other way. The optimizer core's
+`importance.py` estimates PED-ANOVA importances (the one Optuna evaluator that
+needs numpy alone) and `pyodide_entry.py` attaches them to the summary and, at
+`importance_cadence` past `importance_floor`, to trial events; the worker's
+`asImportances` drops a malformed block rather than failing the study, and the
+browser capability copies the block onto the `trial` and `complete` log events
+as `importances`. `OptimizationsProvider` keeps the latest on
+`record.importance`. `ParameterImportancePanel`
+(`study-view/parameter-importance-panel.tsx`) renders it from the pure
+`importance-view.ts`: rows sorted by share, a signed Pearson correlation per
+parameter computed from `record.trials`, and the fade rule (`tone="muted"`,
+bars at a quarter opacity that no longer set the scale) below
+`importanceFloor(requestedTrials)`. A remote study has no panel.
+
 The remote body continues with a collapsible **Best parameters** grid, the
 objective by step, the experimental **Surface** section when the
 **Optimization surface** setting is on and the study has two or more numeric
@@ -116,7 +130,9 @@ in view while the study streams:
   `objectiveAtPointTitle`: **Objective at the step in flight** while a live
   study is followed, **Objective at the selected point** otherwise. The
   drawer's grid wraps to two rows and gives a lone last card the whole row;
-  the full view's grid holds all three in one row.
+  the full view's grid holds three in one row. `ConstraintSummaryCard` follows
+  when the study declares constraints, and `ParameterImportancePanel` is
+  always last.
 - `StepsTable` filling the remaining height, the best step starred and tinted
   (`bestTrial`); the remote body passes `bestTrial={null}`.
 
