@@ -1,5 +1,10 @@
-import { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  parseClientToolResults,
+  type ClientToolResult,
+} from "./client-tool-result";
 
+import type { ClientToolProjectionOptions } from "./ui-stream";
 import type {
   FlueConversationMessage,
   FlueConversationPart,
@@ -10,30 +15,20 @@ import type { UIMessage } from "ai";
 type UiMessagePart = UIMessage["parts"][number];
 
 export interface UiHistoryMessageMetadata {
-  readonly source?: "voice";
+  readonly source?: ClientToolResult["source"];
   readonly voiceToolCallIds?: readonly string[];
   readonly stopped?: true;
 }
 
+/** A reopened transcript never carries `system` messages. */
 export type UiHistoryMessage = Omit<
   UIMessage<UiHistoryMessageMetadata>,
-  "metadata" | "parts" | "role"
+  "role"
 > & {
-  metadata?: UiHistoryMessageMetadata;
   role: Extract<UIMessage["role"], "assistant" | "user">;
-  parts: UiMessagePart[];
 };
 
-export interface SnapshotToUiMessagesOptions {
-  readonly clientToolNames: ReadonlySet<string>;
-  readonly validatedClientToolNames?: ReadonlySet<string>;
-  readonly mapClientToolInput?: (input: {
-    readonly input: unknown;
-    readonly toolName: string;
-    readonly toolCallId: string;
-  }) => unknown;
-  readonly hiddenToolNames?: ReadonlySet<string>;
-}
+export type SnapshotToUiMessagesOptions = ClientToolProjectionOptions;
 
 const unhandledConversationPart = (part: never): never => {
   throw new Error(`Unhandled Flue conversation part: ${JSON.stringify(part)}`);
@@ -44,21 +39,17 @@ const isFlueDataPart = (
 ): part is Extract<FlueConversationPart, { type: `data-${string}` }> =>
   part.type.startsWith("data-");
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-interface ClientToolResult {
-  readonly output: unknown;
-  readonly source?: "voice";
-  readonly metadata?: unknown;
-  readonly conflict?: true;
-}
+/** The delivered result as history sees it, plus whether later deliveries disagreed. */
+type ReconciledClientToolResult = Pick<
+  ClientToolResult,
+  "output" | "source" | "metadata"
+> & { readonly conflict?: true };
 
 const clientToolResultsFrom = (
   snapshot: Pick<FlueConversationState, "messages">,
   signalName: string,
-): ReadonlyMap<string, ClientToolResult> => {
-  const resultsByCallId = new Map<string, ClientToolResult>();
+): ReadonlyMap<string, ReconciledClientToolResult> => {
+  const resultsByCallId = new Map<string, ReconciledClientToolResult>();
   for (const message of snapshot.messages) {
     if (message.purpose !== "dispatch") continue;
     if (message.signal?.tagName !== signalName) continue;
@@ -69,21 +60,7 @@ const clientToolResultsFrom = (
       )
       .map((part) => part.text)
       .join("");
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(text) as unknown;
-    } catch {
-      continue;
-    }
-    if (!Array.isArray(parsed)) continue;
-    for (const result of parsed) {
-      if (
-        !isRecord(result) ||
-        typeof result.toolCallId !== "string" ||
-        !("output" in result)
-      ) {
-        continue;
-      }
+    for (const result of parseClientToolResults(text)) {
       const previous = resultsByCallId.get(result.toolCallId);
       const conflict =
         previous?.conflict === true ||
@@ -107,7 +84,7 @@ const clientToolResultsFrom = (
 const toolPartFrom = (
   part: Extract<FlueConversationPart, { type: "dynamic-tool" }>,
   options: SnapshotToUiMessagesOptions,
-  clientResults: ReadonlyMap<string, ClientToolResult>,
+  clientResults: ReadonlyMap<string, ReconciledClientToolResult>,
 ): UiMessagePart => {
   const isClientTool = options.clientToolNames.has(part.toolName);
   const hasClientOutput = clientResults.has(part.toolCallId);
@@ -190,7 +167,7 @@ const toolPartFrom = (
 const partsFrom = (
   message: FlueConversationMessage,
   options: SnapshotToUiMessagesOptions,
-  clientResults: ReadonlyMap<string, ClientToolResult>,
+  clientResults: ReadonlyMap<string, ReconciledClientToolResult>,
 ): UiMessagePart[] => {
   const parts: UiMessagePart[] = [];
   for (const part of message.parts) {

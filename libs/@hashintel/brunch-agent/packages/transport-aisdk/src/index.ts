@@ -1,9 +1,15 @@
 import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { getToolName, isToolUIPart } from "ai";
 
-import { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
+import {
+  clientToolResultSignal,
+  type ClientToolResult,
+} from "./client-tool-result";
 import { serializeErrorText } from "./error-text";
-import { createFlueUiStream } from "./ui-stream";
+import {
+  createFlueUiStream,
+  type ClientToolProjectionOptions,
+} from "./ui-stream";
 
 import type {
   AgentPromptOptions,
@@ -22,7 +28,13 @@ export {
   type ClientToolHistoryResult,
 } from "./client-tool-history";
 export { BRUNCH_CONVERSATION_HEADER, BRUNCH_PRINCIPAL_HEADER } from "./headers";
-export { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
+export {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  clientToolResultSignal,
+  isClientToolResult,
+  parseClientToolResults,
+  type ClientToolResult,
+} from "./client-tool-result";
 export {
   agentOwnershipHeaders,
   flueConversationIdWeb,
@@ -33,17 +45,13 @@ export {
   snapshotToUiMessages,
   type SnapshotToUiMessagesOptions,
   type UiHistoryMessage,
+  type UiHistoryMessageMetadata,
 } from "./transcript";
-export { createFlueUiStream, type FlueUiStreamOptions } from "./ui-stream";
-
-export interface ClientToolResult {
-  readonly toolCallId: string;
-  readonly toolName: string;
-  readonly output: unknown;
-  readonly source?: "voice";
-  /** Host-owned verified sidecar; canonical output remains unchanged. */
-  readonly metadata?: unknown;
-}
+export {
+  createFlueUiStream,
+  type ClientToolProjectionOptions,
+  type FlueUiStreamOptions,
+} from "./ui-stream";
 
 export interface FlueChatResponseMessageEvent {
   readonly messageId: string;
@@ -64,19 +72,13 @@ export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseM
   >["position"];
 }
 
-export interface FlueChatTransportOptions {
+export interface FlueChatTransportOptions extends ClientToolProjectionOptions {
   readonly client: FlueClient;
   /** Opaque host-owned initialization, sent on user submissions only. */
   readonly initialData?: AgentPromptOptions["initialData"];
-  readonly clientToolNames: ReadonlySet<string>;
-  readonly validatedClientToolNames?: ReadonlySet<string>;
-  readonly clientToolResultMetadata?: (result: ClientToolResult) => unknown;
-  readonly mapClientToolInput?: (input: {
-    readonly input: unknown;
-    readonly toolName: string;
-    readonly toolCallId: string;
-  }) => unknown;
-  readonly hiddenToolNames?: ReadonlySet<string>;
+  readonly clientToolResultMetadata?: (
+    result: ClientToolResult,
+  ) => ClientToolResult["metadata"];
   readonly onAdmission?: (event: {
     readonly admission: AgentSendResult;
     readonly kind: "client-tool-result" | "user";
@@ -446,25 +448,7 @@ export const createFlueChatTransport = <
                 "The client-tool follow-up has no completed result.",
               );
             }
-            return {
-              kind: "signal",
-              type: CLIENT_TOOL_RESULT_SIGNAL,
-              tagName: CLIENT_TOOL_RESULT_SIGNAL,
-              body: JSON.stringify(toolResults),
-              attributes: {
-                toolCallIds: toolResults
-                  .map((result) => result.toolCallId)
-                  .join(","),
-                ...(toolResults.some(({ source }) => source === "voice")
-                  ? {
-                      voiceToolCallIds: toolResults
-                        .filter(({ source }) => source === "voice")
-                        .map(({ toolCallId }) => toolCallId)
-                        .join(","),
-                    }
-                  : {}),
-              },
-            };
+            return clientToolResultSignal(toolResults);
           })();
     const idempotencyKey =
       messageId === undefined

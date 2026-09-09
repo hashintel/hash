@@ -3,22 +3,30 @@ import { serializeErrorText } from "./error-text";
 import type { AgentSendResult, ConversationStreamChunk } from "@flue/sdk";
 import type { UIMessageChunk } from "ai";
 
-export interface FlueUiStreamOptions {
-  readonly submissionId: AgentSendResult["submissionId"];
+/** How client-executed and hidden tools project into the AI SDK UI, live or from history. */
+export interface ClientToolProjectionOptions {
   readonly clientToolNames: ReadonlySet<string>;
   /** These client calls are not executable until their server tool has succeeded. */
   readonly validatedClientToolNames?: ReadonlySet<string>;
-  readonly mapClientToolInput?: (input: {
-    readonly input: unknown;
-    readonly toolName: string;
-    readonly toolCallId: string;
-  }) => unknown;
+  readonly mapClientToolInput?: (
+    call: Pick<
+      Extract<ConversationStreamChunk, { type: "tool-input" }>,
+      "input" | "toolName" | "toolCallId"
+    >,
+  ) => unknown;
   readonly hiddenToolNames?: ReadonlySet<string>;
+}
+
+export interface FlueUiStreamOptions extends ClientToolProjectionOptions {
+  readonly submissionId: AgentSendResult["submissionId"];
   readonly write: (chunk: UIMessageChunk) => void;
 }
 
 type StreamingPart = {
-  readonly kind: "text" | "reasoning";
+  readonly kind: Extract<
+    ConversationStreamChunk,
+    { type: "message-delta" }
+  >["kind"];
   readonly partId: string;
 };
 

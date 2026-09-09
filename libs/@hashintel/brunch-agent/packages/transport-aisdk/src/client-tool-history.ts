@@ -1,30 +1,33 @@
-import { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  parseClientToolResults,
+  type ClientToolResult,
+} from "./client-tool-result";
 
-export interface ClientToolHistoryCall {
-  readonly input: Readonly<Record<string, unknown>>;
-  readonly toolCallId: string;
-  readonly toolName: string;
-}
+import type { FlueConversationMessage, FlueConversationPart } from "@flue/sdk";
 
-export interface ClientToolHistoryResult {
-  readonly output: unknown;
-  readonly metadata?: unknown;
-  readonly toolCallId: string;
-  readonly toolName: string;
-}
+type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
+
+export type ClientToolHistoryCall = Pick<
+  DynamicToolPart,
+  "toolCallId" | "toolName"
+> & { readonly input: Readonly<Record<string, unknown>> };
+
+/** Provenance is not part of history correlation; only identity, output and sidecar are. */
+export type ClientToolHistoryResult = Pick<
+  ClientToolResult,
+  "output" | "metadata" | "toolCallId" | "toolName"
+>;
 
 export interface ClientToolHistory {
   readonly calls: readonly ClientToolHistoryCall[];
   readonly results: readonly ClientToolHistoryResult[];
 }
 
-export interface ClientToolHistoryMessage {
-  readonly parts: readonly unknown[];
-  readonly signal?: {
-    readonly tagName?: string;
-    readonly type?: string;
-  };
-}
+export type ClientToolHistoryMessage = Pick<
+  FlueConversationMessage,
+  "parts" | "signal"
+>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -34,13 +37,7 @@ const callsFrom = (
 ): readonly ClientToolHistoryCall[] =>
   messages.flatMap((message) =>
     message.parts.flatMap((part) => {
-      if (
-        !isRecord(part) ||
-        part.type !== "dynamic-tool" ||
-        typeof part.toolName !== "string" ||
-        typeof part.toolCallId !== "string" ||
-        !isRecord(part.input)
-      ) {
+      if (part.type !== "dynamic-tool" || !isRecord(part.input)) {
         return [];
       }
       return [
@@ -57,47 +54,20 @@ const resultsFrom = (
   messages: readonly ClientToolHistoryMessage[],
 ): readonly ClientToolHistoryResult[] =>
   messages.flatMap((message) => {
-    if (
-      message.signal?.tagName !== CLIENT_TOOL_RESULT_SIGNAL &&
-      message.signal?.type !== CLIENT_TOOL_RESULT_SIGNAL
-    ) {
+    if (message.signal?.tagName !== CLIENT_TOOL_RESULT_SIGNAL) {
       return [];
     }
-
     const body = message.parts
-      .flatMap((part) =>
-        isRecord(part) && part.type === "text" && typeof part.text === "string"
-          ? [part.text]
-          : [],
-      )
+      .flatMap((part) => (part.type === "text" ? [part.text] : []))
       .join("");
-
-    try {
-      const parsed: unknown = JSON.parse(body);
-      if (!Array.isArray(parsed)) return [];
-      return parsed.flatMap((result) => {
-        if (
-          !isRecord(result) ||
-          typeof result.toolName !== "string" ||
-          typeof result.toolCallId !== "string" ||
-          !("output" in result)
-        ) {
-          return [];
-        }
-        return [
-          {
-            output: result.output,
-            ...(result.metadata === undefined
-              ? {}
-              : { metadata: result.metadata }),
-            toolCallId: result.toolCallId,
-            toolName: result.toolName,
-          },
-        ];
-      });
-    } catch {
-      return [];
-    }
+    return parseClientToolResults(body).map(
+      ({ output, metadata, toolCallId, toolName }) => ({
+        output,
+        ...(metadata === undefined ? {} : { metadata }),
+        toolCallId,
+        toolName,
+      }),
+    );
   });
 
 export const clientToolHistoryFrom = (

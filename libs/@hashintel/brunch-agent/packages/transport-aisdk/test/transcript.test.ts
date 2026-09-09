@@ -1,6 +1,10 @@
 import { expect, test } from "vitest";
 
-import { CLIENT_TOOL_RESULT_SIGNAL, snapshotToUiMessages } from "../src";
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  snapshotToUiMessages,
+  type ClientToolResult,
+} from "../src";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
@@ -67,9 +71,10 @@ test("retains Voice origins from folded continuation messages", () => {
             text: JSON.stringify([
               {
                 toolCallId: `tool-${ordinal}`,
+                toolName: "readPetrinautDoc",
                 output: "A spoken answer",
                 source: "voice",
-              },
+              } satisfies ClientToolResult,
             ]),
           },
         ],
