@@ -5,7 +5,7 @@
  * step so far), the computing chip and the compute badge of a study
  * evaluated here, the Parameters band, the surface, the chart cards (the
  * objective at the point, the objective by step, Constraints when the study
- * declares any, Parameter importance), the steps table, and the actions.
+ * declares any, Sensitivity analysis), the steps table, and the actions.
  * A study run elsewhere shows its best parameters, the objective by step,
  * the experimental surface and its steps.
  */
