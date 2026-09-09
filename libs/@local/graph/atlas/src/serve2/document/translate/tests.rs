@@ -4,7 +4,10 @@ use core::assert_matches;
 use arc_swap::Guard;
 use rand::{SeedableRng as _, rngs::StdRng};
 use type_system::{
-    knowledge::entity::EntityId,
+    knowledge::entity::{
+        EntityId,
+        id::{DraftId, EntityUuid},
+    },
     principal::actor::{ActorId, ActorType},
 };
 use uuid::Uuid;
@@ -16,6 +19,7 @@ use crate::{
     bitset::CompressedBitSet,
     identity::{EdgeRowId, NodeRowId},
     morton::Zoom,
+    postgres::id::ArchivedEntityId,
     serve2::{
         delta::{Delta, epoch::Epoch},
         scene::Scene,
@@ -88,7 +92,7 @@ impl Fixture {
         }
     }
 
-    fn node_id(&self, row: u64) -> String {
+    fn node_id(&self, row: u64) -> EntityId {
         EntityId::from(
             self.world
                 .layout
@@ -96,17 +100,15 @@ impl Fixture {
                 .key_of(&self.epoch, NodeRowId::new(row))
                 .expect("should resolve the fixture node"),
         )
-        .to_string()
     }
 
-    fn edge_id(&self, row: u64) -> String {
+    fn edge_id(&self, row: u64) -> EntityId {
         EntityId::from(
             self.world
                 .topology
                 .key_of(&self.epoch, EdgeRowId::new(row))
                 .expect("should resolve the fixture edge"),
         )
-        .to_string()
     }
 }
 
@@ -114,26 +116,22 @@ impl Fixture {
 fn identities_mixed_input() {
     let fixture = Fixture::new("translate-mixed-input");
     let node_id = fixture.node_id(0);
-    let uppercase = node_id.to_uppercase();
-    assert_ne!(
-        uppercase, node_id,
-        "should exercise distinct identity spellings"
-    );
     let edge_id = fixture.edge_id(0);
+    let draft_node = EntityId {
+        draft_id: Some(DraftId::new(Uuid::from_u128(3))),
+        ..fixture.node_id(1)
+    };
+    let draft_edge = EntityId {
+        draft_id: Some(DraftId::new(Uuid::from_u128(4))),
+        ..fixture.edge_id(1)
+    };
+    let unknown = EntityId {
+        entity_uuid: EntityUuid::new(Uuid::nil()),
+        ..node_id
+    };
     let document = TranslateDocument::new(
         fixture.scene(),
-        [
-            node_id.clone(),
-            node_id.clone(),
-            uppercase.clone(),
-            edge_id.clone(),
-            format!("{node_id}~{}", Uuid::from_u128(3)),
-            format!("{node_id}~invalid"),
-            "not-an-entity".to_owned(),
-            format!("{}~{}", Uuid::nil(), Uuid::nil()),
-            format!("{}~invalid", Uuid::nil()),
-            format!("invalid~{}", Uuid::nil()),
-        ],
+        [node_id, node_id, edge_id, draft_node, draft_edge, unknown],
         TranslateLimits { .. },
     )
     .expect("should construct within the identity limit");
@@ -149,9 +147,9 @@ fn identities_mixed_input() {
     assert_eq!(
         document,
         TranslateDocument {
-            nodes: BTreeMap::from([(node_id, node), (uppercase, node)]),
+            nodes: BTreeMap::from([(ArchivedEntityId::from(node_id), node)]),
             edges: BTreeMap::from([(
-                edge_id,
+                ArchivedEntityId::from(edge_id),
                 TranslatedEdge {
                     source: fixture.world.layout.index.encode(source),
                     target: fixture.world.layout.index.encode(target),
@@ -165,25 +163,19 @@ fn identities_mixed_input() {
 fn identities_count_limit() {
     let fixture = Fixture::new("translate-count-limit");
     let id = fixture.node_id(0);
-    let report = TranslateDocument::new(
-        fixture.scene(),
-        [id.clone(), id.clone()],
-        TranslateLimits { entity_ids: 1 },
-    )
-    .expect_err("should count duplicates toward the limit");
+    let report =
+        TranslateDocument::new(fixture.scene(), [id, id], TranslateLimits { entity_ids: 1 })
+            .expect_err("should count duplicates toward the limit");
     assert_matches!(
-        report.current_contexts().collect::<Vec<_>>().as_slice(),
-        [TranslateDocumentError::Ids {
+        report.current_context(),
+        TranslateDocumentError::Ids {
             count: 2,
             maximum: 1
-        }]
+        }
     );
-    let boundary = TranslateDocument::new(
-        fixture.scene(),
-        [id.clone(), id],
-        TranslateLimits { entity_ids: 2 },
-    )
-    .expect("should admit the exact limit");
+    let boundary =
+        TranslateDocument::new(fixture.scene(), [id, id], TranslateLimits { entity_ids: 2 })
+            .expect("should admit the exact limit");
     assert_eq!(boundary.nodes.len(), 1, "should collapse the repeated key");
     assert!(boundary.edges.is_empty());
     let empty = TranslateDocument::new(fixture.scene(), [], TranslateLimits { entity_ids: 0 })
@@ -201,7 +193,8 @@ fn identities_masked_domains() {
         fixture.node_id(2),
         fixture.edge_id(2),
     ];
-    let baseline = TranslateDocument::new(fixture.scene(), ids.clone(), TranslateLimits { .. })
+    let keys = ids.map(ArchivedEntityId::from);
+    let baseline = TranslateDocument::new(fixture.scene(), ids, TranslateLimits { .. })
         .expect("should construct the full scene");
     assert_eq!(baseline.nodes.len(), 2);
     assert_eq!(baseline.edges.len(), 2);
@@ -216,14 +209,14 @@ fn identities_masked_domains() {
             (0..NODES).filter(|row| Some(*row) != hidden_node),
             (0..EDGES).filter(|row| Some(*row) != hidden_edge),
         );
-        let document = TranslateDocument::new(fixture.scene(), ids.clone(), TranslateLimits { .. })
+        let document = TranslateDocument::new(fixture.scene(), ids, TranslateLimits { .. })
             .expect("should construct the restricted scene");
-        assert_eq!(document.nodes.contains_key(&ids[0]), source_visible);
+        assert_eq!(document.nodes.contains_key(&keys[0]), source_visible);
         assert!(
-            !document.edges.contains_key(&ids[1]),
+            !document.edges.contains_key(&keys[1]),
             "should omit the hidden link or endpoint"
         );
-        assert_eq!(document.nodes.get(&ids[2]), baseline.nodes.get(&ids[2]));
-        assert_eq!(document.edges.get(&ids[3]), baseline.edges.get(&ids[3]));
+        assert_eq!(document.nodes.get(&keys[2]), baseline.nodes.get(&keys[2]));
+        assert_eq!(document.edges.get(&keys[3]), baseline.edges.get(&keys[3]));
     }
 }

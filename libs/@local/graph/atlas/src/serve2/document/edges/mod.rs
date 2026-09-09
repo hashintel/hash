@@ -47,7 +47,11 @@ impl fmt::Display for EdgesDocumentError {
                 fmt,
                 "tile zoom {zoom} exceeds the maximum served zoom {maximum}"
             ),
-            Self::Coordinate { tile } => write!(fmt, "tile {tile:?} lies outside its zoom's grid"),
+            Self::Coordinate {
+                tile: MortonTile { z, x, y },
+            } => {
+                write!(fmt, "tile {}/{x}/{y} lies outside its zoom's grid", z.get())
+            }
             Self::Display => fmt.write_str("an admitted edge has no display payload"),
             Self::Hydrate => fmt.write_str("edge type URL resolution failed"),
         }
@@ -125,7 +129,7 @@ impl<'details> EdgesTrailer<'details> {
 
         let representative_type_urls = dispatch
             .into_iter()
-            .map(|slot| slot.and_then(|slot| mapping.lookup(slot).copied()))
+            .map(|slot| mapping.lookup(slot?).copied())
             .collect();
 
         Ok(Self {

@@ -1,14 +1,12 @@
 //! Entity identities for correlating graph results with map geometry.
 //!
-//! Response keys preserve each requested string. Hidden, unknown and draft identities all produce
-//! absent keys.
+//! Hidden, unknown and draft identities produce absent keys.
 
 use alloc::collections::BTreeMap;
 use core::{error::Error, fmt};
 
 use error_stack::Report;
-use type_system::knowledge::entity::{EntityId, id::ENTITY_ID_DELIMITER};
-use uuid::Uuid;
+use type_system::knowledge::entity::EntityId;
 
 use crate::{
     identity::NodeRowId,
@@ -57,7 +55,7 @@ pub(crate) struct TranslatedEdge {
     target: EncodedRowId<NodeRowId>,
 }
 
-/// Resolved map geometry keyed by the requested identity spelling.
+/// Resolved map geometry keyed by entity identity.
 #[derive(Debug, PartialEq)]
 pub(crate) struct TranslateDocument {
     nodes: BTreeMap<ArchivedEntityId, TranslatedNode>,
@@ -68,7 +66,7 @@ impl TranslateDocument {
     /// Resolves identities against the captured scene.
     ///
     /// Nodes include their wire-frame position. Links require admission of their own row and both
-    /// endpoint rows. Duplicate input strings collapse to one entry.
+    /// endpoint rows. Duplicate identities collapse to one entry.
     ///
     /// # Errors
     ///
@@ -135,8 +133,6 @@ impl TranslateDocument {
                         target: world.layout.index.encode(target),
                     },
                 );
-            } else {
-                // the entity is not visible or not an edge
             }
         }
 

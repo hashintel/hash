@@ -75,11 +75,17 @@ impl FakeResolver {
     fn assert_query(&self, expected: &[OntologyTypeUuid]) {
         let asked = self.asked.borrow();
         assert_eq!(asked.len(), 1, "should call the resolver exactly once");
-        let mut actual = asked[0].clone();
-        let mut expected = expected.to_vec();
-        actual.sort_unstable();
-        expected.sort_unstable();
-        assert_eq!(actual, expected, "should query exactly the requested types");
+        assert_eq!(
+            asked[0].len(),
+            expected.len(),
+            "should query each distinct type once"
+        );
+        for uuid in expected {
+            assert!(
+                asked[0].contains(uuid),
+                "should query the expected type {uuid:?}"
+            );
+        }
     }
 }
 
@@ -313,11 +319,11 @@ fn tiles_count_over_limit() {
         panic!("should refuse a tile list past the limit");
     };
     assert_matches!(
-        report.current_contexts().collect::<Vec<_>>().as_slice(),
-        [EdgesDocumentError::Tiles {
+        report.current_context(),
+        EdgesDocumentError::Tiles {
             count: 2,
             maximum: 1
-        }],
+        },
     );
 }
 
@@ -338,8 +344,8 @@ fn tiles_zoom_over_maximum() {
         panic!("should refuse a tile zoom past the schedule maximum");
     };
     assert_matches!(
-        report.current_contexts().collect::<Vec<_>>().as_slice(),
-        [EdgesDocumentError::Zoom { maximum: actual, .. }] if *actual == maximum,
+        report.current_context(),
+        EdgesDocumentError::Zoom { maximum: actual, .. } if *actual == maximum,
     );
 }
 
@@ -359,8 +365,8 @@ fn tiles_coordinate_outside_grid() {
             panic!("should refuse a coordinate outside its zoom's grid");
         };
         assert_matches!(
-            report.current_contexts().collect::<Vec<_>>().as_slice(),
-            [EdgesDocumentError::Coordinate { tile: refused }] if *refused == tile,
+            report.current_context(),
+            EdgesDocumentError::Coordinate { tile: refused } if *refused == tile,
         );
     }
 }
@@ -649,10 +655,7 @@ fn resolver_failure() {
     ) else {
         panic!("should propagate the resolver's failure");
     };
-    assert_matches!(
-        report.current_contexts().collect::<Vec<_>>().as_slice(),
-        [EdgesDocumentError::Hydrate],
-    );
+    assert_matches!(report.current_context(), EdgesDocumentError::Hydrate,);
     assert_matches!(
         report.downcast_ref::<HydrateError>(),
         Some(HydrateError::Query)
