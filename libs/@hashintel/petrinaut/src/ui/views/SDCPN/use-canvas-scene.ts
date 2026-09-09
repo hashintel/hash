@@ -9,7 +9,7 @@ import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
-import { buildCanvasFocus } from "./canvas-focus";
+import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 
@@ -40,6 +40,10 @@ export const useCanvasScene = (
     setSettledHoverId(hoveredId);
   }
 
+  // Indexed on the net alone, so the compiler holds it across the renders a
+  // hover causes and only rebuilds it when the net itself changes.
+  const adjacency = buildNetAdjacency(activeNet);
+
   return buildCanvasScene({
     net: activeNet,
     sdcpn: petriNetDefinition,
@@ -50,8 +54,8 @@ export const useCanvasScene = (
     hoveredId: settledHoverId,
     // With the highlight off, the neighbourhood answers to the selection
     // alone; the hover still reaches the node it rests on.
-    focus: buildCanvasFocus({
-      net: activeNet,
+    focus: resolveCanvasFocus({
+      adjacency,
       hoveredId: highlightOnHover ? settledHoverId : null,
       selectedIds: new Set(selection.keys()),
     }),

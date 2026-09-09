@@ -17,7 +17,6 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
-import type { Transition } from "@hashintel/petrinaut-core";
 
 /**
  * Where a node sits relative to the focused item. An unrelated node has no
@@ -53,10 +52,131 @@ export type CanvasFocus = {
   arcFocus: (id: string) => CanvasArcFocus;
 };
 
-type CanvasFocusInput = {
-  net: ActiveNetDefinition;
+/** What one node is joined to, in token-flow direction. */
+type NodeAdjacency = {
+  /** Nodes feeding this one. */
+  upstream: string[];
+  /** Nodes this one feeds. */
+  downstream: string[];
+  /** Arcs carrying tokens into this one. */
+  incoming: string[];
+  /** Arcs carrying tokens out of it. */
+  outgoing: string[];
+};
+
+/**
+ * The net's shape, indexed for lookup.
+ *
+ * Built once per net and reused across renders, so resolving a focus costs
+ * the size of the neighbourhood rather than a walk over every transition and
+ * arc in the net.
+ */
+export type NetAdjacency = {
+  /** Every id the canvas draws: nodes and arcs. */
+  canvasIds: ReadonlySet<string>;
+  byNode: ReadonlyMap<string, NodeAdjacency>;
+  /** The nodes an arc joins, for a focus that lands on the arc itself. */
+  arcEnds: ReadonlyMap<string, { sourceId: string; targetId: string }>;
+};
+
+const emptyAdjacency = (): NodeAdjacency => ({
+  upstream: [],
+  downstream: [],
+  incoming: [],
+  outgoing: [],
+});
+
+/**
+ * Index one net. Walks its transitions once; every later question about a
+ * neighbourhood is a map lookup.
+ */
+export const buildNetAdjacency = (net: ActiveNetDefinition): NetAdjacency => {
+  const byNode = new Map<string, NodeAdjacency>();
+  const arcEnds = new Map<string, { sourceId: string; targetId: string }>();
+  const canvasIds = new Set<string>();
+
+  const entryFor = (id: string): NodeAdjacency => {
+    const existing = byNode.get(id);
+    if (existing) {
+      return existing;
+    }
+    const created = emptyAdjacency();
+    byNode.set(id, created);
+    return created;
+  };
+
+  for (const place of net.places) {
+    canvasIds.add(place.id);
+    entryFor(place.id);
+  }
+  for (const transition of net.transitions) {
+    canvasIds.add(transition.id);
+    entryFor(transition.id);
+  }
+  for (const instance of net.componentInstances) {
+    canvasIds.add(instance.id);
+    entryFor(instance.id);
+  }
+
+  const join = (arcId: string, sourceId: string, targetId: string) => {
+    canvasIds.add(arcId);
+    arcEnds.set(arcId, { sourceId, targetId });
+    const source = entryFor(sourceId);
+    const target = entryFor(targetId);
+    source.downstream.push(targetId);
+    source.outgoing.push(arcId);
+    target.upstream.push(sourceId);
+    target.incoming.push(arcId);
+  };
+
+  for (const transition of net.transitions) {
+    for (const inputArc of transition.inputArcs) {
+      const endpoint = getArcEndpoint(inputArc);
+      join(
+        generateArcId({
+          inputId: getArcEndpointKey(endpoint),
+          outputId: transition.id,
+        }),
+        getArcEndpointNodeId(endpoint),
+        transition.id,
+      );
+    }
+
+    for (const outputArc of transition.outputArcs) {
+      const endpoint = getArcEndpoint(outputArc);
+      join(
+        generateArcId({
+          inputId: transition.id,
+          outputId: getArcEndpointKey(endpoint),
+        }),
+        transition.id,
+        getArcEndpointNodeId(endpoint),
+      );
+    }
+  }
+
+  return { canvasIds, byNode, arcEnds };
+};
+
+const NOTHING_FOCUSED: CanvasFocus = {
+  active: false,
+  nodeFocus: () => "none",
+  arcFocus: () => "none",
+};
+
+/**
+ * The focus roles for one net, read off its index. Ids that name something
+ * off the canvas — a type or a parameter selected in the sidebar, say — focus
+ * nothing, so selecting one leaves the net drawn plainly.
+ */
+export const resolveCanvasFocus = ({
+  adjacency,
+  hoveredId,
+  selectedIds,
+}: {
+  adjacency: NetAdjacency;
   /**
-   * The hovered item, after the hover delay. Takes precedence over the
+   * The hovered item, once the pointer has settled. Takes precedence over the
    * selection, so pointing at a node previews its neighbourhood without
    * disturbing what is selected.
    */
@@ -67,74 +187,16 @@ type CanvasFocusInput = {
    * the user lose sight of what they have selected.
    */
   selectedIds: ReadonlySet<string>;
-};
-
-type DirectedArc = { id: string; sourceId: string; targetId: string };
-
-/** Every arc in token-flow direction: place → transition → place. */
-const directedArcs = (transitions: readonly Transition[]): DirectedArc[] => {
-  const arcs: DirectedArc[] = [];
-
-  for (const transition of transitions) {
-    for (const inputArc of transition.inputArcs) {
-      const endpoint = getArcEndpoint(inputArc);
-      arcs.push({
-        id: generateArcId({
-          inputId: getArcEndpointKey(endpoint),
-          outputId: transition.id,
-        }),
-        sourceId: getArcEndpointNodeId(endpoint),
-        targetId: transition.id,
-      });
-    }
-
-    for (const outputArc of transition.outputArcs) {
-      const endpoint = getArcEndpoint(outputArc);
-      arcs.push({
-        id: generateArcId({
-          inputId: transition.id,
-          outputId: getArcEndpointKey(endpoint),
-        }),
-        sourceId: transition.id,
-        targetId: getArcEndpointNodeId(endpoint),
-      });
+}): CanvasFocus => {
+  const selectedCanvasIds = new Set<string>();
+  for (const id of selectedIds) {
+    if (adjacency.canvasIds.has(id)) {
+      selectedCanvasIds.add(id);
     }
   }
 
-  return arcs;
-};
-
-const NOTHING_FOCUSED: CanvasFocus = {
-  active: false,
-  nodeFocus: () => "none",
-  arcFocus: () => "none",
-};
-
-/**
- * The focus roles for one net. Ids that name something off the canvas — a
- * type or a parameter selected in the sidebar, say — focus nothing, so
- * selecting one leaves the net drawn plainly.
- */
-export const buildCanvasFocus = ({
-  net,
-  hoveredId,
-  selectedIds,
-}: CanvasFocusInput): CanvasFocus => {
-  const arcs = directedArcs(net.transitions);
-
-  const canvasIds = new Set<string>([
-    ...net.places.map(({ id }) => id),
-    ...net.transitions.map(({ id }) => id),
-    ...net.componentInstances.map(({ id }) => id),
-    ...arcs.map(({ id }) => id),
-  ]);
-
-  const selectedCanvasIds = new Set(
-    [...selectedIds].filter((id) => canvasIds.has(id)),
-  );
-
   const focusIds =
-    hoveredId !== null && canvasIds.has(hoveredId)
+    hoveredId !== null && adjacency.canvasIds.has(hoveredId)
       ? new Set([hoveredId])
       : selectedCanvasIds;
 
@@ -142,29 +204,32 @@ export const buildCanvasFocus = ({
     return NOTHING_FOCUSED;
   }
 
-  const isFocused = (id: string) =>
-    focusIds.has(id) || selectedCanvasIds.has(id);
-
+  // Only the focused items are visited, so this costs the neighbourhood
+  // rather than the net.
   const upstream = new Set<string>();
   const downstream = new Set<string>();
   const incoming = new Set<string>();
   const outgoing = new Set<string>();
 
-  for (const arc of arcs) {
-    if (focusIds.has(arc.targetId)) {
-      upstream.add(arc.sourceId);
-      incoming.add(arc.id);
-    }
-    if (focusIds.has(arc.sourceId)) {
-      downstream.add(arc.targetId);
-      outgoing.add(arc.id);
+  for (const id of focusIds) {
+    const node = adjacency.byNode.get(id);
+    if (node) {
+      for (const other of node.upstream) upstream.add(other);
+      for (const other of node.downstream) downstream.add(other);
+      for (const arc of node.incoming) incoming.add(arc);
+      for (const arc of node.outgoing) outgoing.add(arc);
+      continue;
     }
     // A focused arc puts the nodes it joins either side of the focus.
-    if (focusIds.has(arc.id)) {
-      upstream.add(arc.sourceId);
-      downstream.add(arc.targetId);
+    const ends = adjacency.arcEnds.get(id);
+    if (ends) {
+      upstream.add(ends.sourceId);
+      downstream.add(ends.targetId);
     }
   }
+
+  const isFocused = (id: string) =>
+    focusIds.has(id) || selectedCanvasIds.has(id);
 
   return {
     active: true,
