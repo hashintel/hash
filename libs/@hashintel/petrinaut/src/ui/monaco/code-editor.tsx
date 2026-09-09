@@ -88,24 +88,35 @@ const singleLineContainerStyle = cva({
   },
 });
 
+// The wait for Monaco, shown twice: as the Suspense fallback while the
+// module loads and as Monaco's own `loading` while the editor mounts.
+// Dimmed, so it reads as a wait and not as content; it fills its box
+// because Monaco centres whatever it is given.
 const loadingStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   gap: "2",
   height: "full",
+  width: "full",
   color: "fg.muted",
   bg: "bg.subtle",
   fontSize: "base",
+  opacity: "[0.5]",
 });
 
+// Inline editors left-align the label where the text will land, so it does
+// not jump from the centre when the editor mounts.
 const singleLineLoadingStyle = css({
   display: "flex",
   alignItems: "center",
+  justifyContent: "flex-start",
   height: "full",
-  paddingX: "2",
+  width: "full",
+  paddingLeft: "[12px]",
   color: "neutral.s80",
   fontSize: "sm",
+  opacity: "[0.5]",
 });
 
 const placeholderStyle = css({
@@ -348,6 +359,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           options={options}
           height={height}
           singleLine={singleLine}
+          loading={fallback}
           {...props}
         />
       </Suspense>
