@@ -147,3 +147,8 @@ export function constraintsInSpace<S extends ConstraintSpace>(
       constraint.space === space,
   );
 }
+
+/** How a constraint is named wherever it is reported: its display name, else its id. */
+export const constraintLabel = (
+  constraint: Pick<Constraint, "id" | "name">,
+): string => constraint.name ?? constraint.id;

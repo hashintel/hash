@@ -1,5 +1,10 @@
-import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core";
+import {
+  type Constraint,
+  type ConstraintSource,
+  petrinautOptimizationInputSchema,
+} from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
+import { lowerConstraint } from "@hashintel/petrinaut-core/hir";
 
 const scenario = sirModel.petriNetDefinition.scenarios?.find(
   (candidate) => candidate.id === "scenario__seasonal_flu",
@@ -49,3 +54,38 @@ export const sirOptimizationInput = petrinautOptimizationInputSchema.parse({
   execution: { seed: 1, dt: 1, maxTime: 180 },
   study: { trials: 2, sampler: "tpe" },
 });
+
+const lowerSirConstraint = (source: ConstraintSource): Constraint => {
+  const lowered = lowerConstraint(source, {
+    netParameters: sirModel.petriNetDefinition.parameters,
+    scenarioParameters: scenario.scenarioParameters,
+    sdcpn: sirModel.petriNetDefinition,
+  });
+  if (!lowered.ok) {
+    throw new Error(lowered.diagnostics[0]?.message ?? "constraint");
+  }
+  return lowered.constraint;
+};
+
+/** One parameter constraint and one state constraint over the SIR study. */
+export const sirOptimizationConstraints: Constraint[] = [
+  lowerSirConstraint({
+    space: "parameters",
+    id: "ratio-cap",
+    name: "Ratio under a tenth",
+    code: "scenario.infected_ratio <= 0.1",
+  }),
+  lowerSirConstraint({
+    space: "state",
+    id: "infected-cap",
+    name: "Infected under 900",
+    code: "return state.places.Infected.count <= 900;",
+  }),
+];
+
+/** The SIR study with both constraints declared and the default policy. */
+export const sirConstrainedOptimizationInput =
+  petrinautOptimizationInputSchema.parse({
+    ...sirOptimizationInput,
+    constraints: sirOptimizationConstraints,
+  });

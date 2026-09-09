@@ -241,6 +241,19 @@ export const createDetachedObjectiveSampler = ({
           runOutput: { type: "distribution" },
           artifact: metricArtifact,
         },
+        // `code` is display-only on a spec; execution uses the artifact.
+        ...(request.auxiliaryMetrics ?? []).map(
+          (auxiliary): ExperimentRequest["metricSpecs"][number] => ({
+            kind: "expression",
+            id: auxiliary.id,
+            label: auxiliary.label,
+            code: "",
+            sampleRuns: "all",
+            runOutput: { type: "scalar", aggregateRuns: "mean" },
+            aggregateTime: auxiliary.aggregateTime,
+            artifact: auxiliary.artifact,
+          }),
+        ),
       ],
       hirArtifacts: artifacts,
       ...(options.runSeeds === undefined
