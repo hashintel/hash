@@ -17,11 +17,6 @@
       "cache": false,
       "dependsOn": ["^build", "codegen"]
     },
-    // The image copies the repository and generates and builds inside it, so the host
-    // only contributes sources.
-    "build:docker": {
-      "dependsOn": ["^manifest"]
-    },
     "dev": {
       "dependsOn": ["codegen", "^build"]
     },
