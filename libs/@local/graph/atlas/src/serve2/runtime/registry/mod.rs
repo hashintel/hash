@@ -45,7 +45,7 @@ impl Universe {
     }
 }
 
-/// The active and selected [`Universe`]s for one request.
+/// The present and requested [`Universe`]s for one request.
 ///
 /// Matching generations share one observed [`Epoch`]. An observation remains valid after
 /// promotion, expiry or registry closure.
