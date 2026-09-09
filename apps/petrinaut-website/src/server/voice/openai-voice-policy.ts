@@ -1,4 +1,4 @@
-import { voiceTranscriptionPrompt } from "../../shared/voice-transcription";
+import { voiceTranscriptionPrompt } from "../../shared/voice-transcription.js";
 
 export const OPENAI_REALTIME_CONNECTION_TIMEOUT_MS = 15_000;
 export const OPENAI_REALTIME_POLICY_VERSION = "brunch-control-plane-v3";
