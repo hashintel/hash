@@ -15,10 +15,7 @@ import {
   crewReservationDocumentId,
   crewReservationFixtureId,
 } from "./prepared-crew-reservation-fixture";
-import {
-  PreparedFixtureBanner,
-  PreparedFixtureSelector,
-} from "./prepared-fixture-banner";
+import { PreparedFixtureBanner } from "./prepared-fixture-banner";
 
 const settledManifest = {
   version: 1 as const,
@@ -47,14 +44,6 @@ const settledManifest = {
 } satisfies CrewReservationSettledManifest;
 
 describe("PreparedFixtureBanner", () => {
-  test("offers a stable labelled fixture selector", () => {
-    const markup = renderToStaticMarkup(<PreparedFixtureSelector />);
-
-    expect(markup).toContain("Prepared fixture selector");
-    expect(markup).toContain("Open the labelled crew-reservation fixture");
-    expect(markup).toContain("?brunch-fixture=crew-reservation-v1");
-  });
-
   test("visibly states authorship, non-claims, and automatic settlement", () => {
     const markup = renderToStaticMarkup(
       <PreparedFixtureBanner settledManifest={null} />,

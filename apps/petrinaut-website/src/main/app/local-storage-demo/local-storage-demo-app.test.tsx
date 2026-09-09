@@ -584,9 +584,6 @@ describe("local storage demo prepared fixture", () => {
     );
 
     expect(
-      document.querySelector('[aria-label="Prepared fixture selector"]'),
-    ).toBeNull();
-    expect(
       document.querySelector('[aria-label="Prepared fixture status"]'),
     ).toBeNull();
     const aiAssistant = editorProps.current?.aiAssistant as

@@ -59,10 +59,7 @@ import {
   crewReservationDocumentId,
   preparedCrewReservationNet,
 } from "./prepared-crew-reservation-fixture";
-import {
-  PreparedFixtureBanner,
-  PreparedFixtureSelector,
-} from "./prepared-fixture-banner";
+import { PreparedFixtureBanner } from "./prepared-fixture-banner";
 import { resolveCrewReservationBundle } from "./resolve-crew-reservation-bundle";
 import {
   crewReservationFixtureConfiguration,
@@ -687,9 +684,6 @@ export const LocalStorageDemoApp = ({
           />,
           document.body,
         )}
-      {brunchPreviewConfig.isBrunchConfigured && !preparedFixtureIsCurrent && (
-        <PreparedFixtureSelector />
-      )}
       <CommandRegistryProvider>
         <WalkthroughProvider steps={walkthroughSteps}>
           <Petrinaut
