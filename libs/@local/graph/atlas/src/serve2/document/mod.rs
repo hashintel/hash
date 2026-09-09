@@ -1,7 +1,9 @@
 mod codec;
 mod current;
 mod edges;
+mod limits;
 mod locate;
+mod manifest;
 mod masks;
 mod tile;
 mod translate;
@@ -16,9 +18,11 @@ pub(crate) use self::{
         EdgeSlot, EdgesDocument, EdgesDocumentDetailLevel, EdgesDocumentError,
         EdgesDocumentOptions, EdgesLimits, EdgesTrailer,
     },
+    limits::DocumentLimits,
     locate::{
         LocateDocument, LocateDocumentError, LocateDocumentOptions, LocateLimits, LocateSource,
     },
+    manifest::ManifestDocument,
     tile::{
         TileDocument, TileDocumentDetailLevel, TileDocumentError, TileDocumentOptions, TileLimits,
         TileSlot, TileTrailer,

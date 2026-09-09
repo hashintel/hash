@@ -209,6 +209,8 @@ fn cut_width_boundaries() {
         match schedule.cut(buckets, offset) {
             Ok(cut) => {
                 assert!(valid, "should accept only cuts within the key width");
+                assert_eq!(cut.offset(), offset);
+                assert_eq!(cut.buckets(), grid(span + offset.get(), zoom));
                 assert_eq!(cut.deepest().get(), span + zoom + offset.get());
             }
             Err(error) => {
@@ -262,6 +264,8 @@ fn delivery_extension_column(
         .expect("should bind the cut")
         .with_extension(&extension);
     let deepest = max_zoom + offset;
+    prop_assert_eq!(cut.offset().get(), offset);
+    prop_assert_eq!(cut.buckets(), grid(offset, max_zoom));
     prop_assert_eq!(
         cut.root_delivered(),
         natural
@@ -340,6 +344,8 @@ fn delivery_laws(
         .expect("should bind the cut");
     let deepest = span + max_zoom + offset;
     let root_cut = span + offset;
+    prop_assert_eq!(cut.offset().get(), offset);
+    prop_assert_eq!(cut.buckets(), grid(root_cut, max_zoom));
     prop_assert_eq!(
         cut.root_delivered(),
         natural

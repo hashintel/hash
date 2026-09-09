@@ -69,6 +69,7 @@ pub(crate) struct DeliverySchedule<'schedule> {
     source: ScheduleSource<'schedule>,
     extension: Option<&'schedule BucketColumn>,
     buckets: BucketSchedule,
+    offset: Zoom,
 }
 
 impl<'schedule> DeliverySchedule<'schedule> {
@@ -80,6 +81,7 @@ impl<'schedule> DeliverySchedule<'schedule> {
             source: ScheduleSource::Corpus(&world.layout),
             extension: None,
             buckets: world.schedule(),
+            offset: Zoom::MIN,
         }
     }
 
@@ -92,12 +94,23 @@ impl<'schedule> DeliverySchedule<'schedule> {
             source: ScheduleSource::Scope(schedule),
             extension: None,
             buckets: buckets.offset(offset)?,
+            offset,
         })
     }
 
     pub(super) const fn with_extension(mut self, extension: &'schedule BucketColumn) -> Self {
         self.extension = Some(extension);
         self
+    }
+
+    /// Returns the bucket cuts after applying the density offset.
+    pub(crate) const fn buckets(&self) -> BucketSchedule {
+        self.buckets
+    }
+
+    /// Returns the applied density offset, zero for corpus delivery.
+    pub(crate) const fn offset(&self) -> Zoom {
+        self.offset
     }
 
     pub(crate) const fn deepest(&self) -> Depth {

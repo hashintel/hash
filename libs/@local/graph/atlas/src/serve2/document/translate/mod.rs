@@ -20,7 +20,8 @@ mod codec;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct TranslateLimits {
     /// Most input identities, including duplicates. The default is 1024.
     pub entity_ids: u32 = 1024,

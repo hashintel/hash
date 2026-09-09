@@ -46,7 +46,8 @@ pub(crate) enum LocateSource {
     Row(EncodedRowId<NodeRowId>),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct LocateLimits {
     /// Most requested types, including duplicates. The default is 32.
     pub colored_type_ids: u32 = 32,

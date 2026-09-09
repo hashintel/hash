@@ -68,13 +68,10 @@ fn dispatch_saturated_partial() {
     };
     assert!(Arc::ptr_eq(first, second));
     assert!(Arc::ptr_eq(first, world.base_scope_schedule()));
-    assert_eq!(
-        corpus
-            .cut(Zoom::MAX)
-            .expect("should keep recorded cuts")
-            .deepest(),
-        world.schedule().deepest()
-    );
+    let cut = corpus.cut(Zoom::MAX).expect("should keep recorded cuts");
+    assert_eq!(cut.offset(), Zoom::MIN);
+    assert_eq!(cut.buckets(), world.schedule());
+    assert_eq!(cut.deepest(), world.schedule().deepest());
     let error = first
         .cut(world.schedule(), Zoom::MAX)
         .expect_err("should refuse a scoped offset beyond the key width");
