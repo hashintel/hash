@@ -1,0 +1,117 @@
+/**
+ * @layerRoot ui.views.editor.results
+ * @role The one results surface an experiment drawer, an optimization drawer and the full study view render from a common view-model: the header stats, the bands, the surface, the metric cards and the footer in the shared frame
+ *
+ * The view renders a `ResultsModel` and nothing else: it reads no record and
+ * no provider. The adapters that build the model live beside the records
+ * they read; the panels only one kind has (a study's headline, its objective
+ * by step, constraints, importance, steps, Pause and Resume) arrive filled in
+ * as slots.
+ */
+import { Tooltip } from "@hashintel/ds-components";
+
+import { ComputeBackendBadge } from "../compute-backend-badge";
+import {
+  ComputeBatchesChip,
+  DrawerFrame,
+  FrameBand,
+  FrameColumns,
+  FrameStat,
+  FrameStatusPill,
+} from "../drawer-frame";
+import { MetricTiles } from "../metric-tiles";
+
+import type { ResultsHeader, ResultsModel, ResultsStat } from "./results-model";
+import type { ReactNode } from "react";
+
+const StatValue = ({ value }: { value: ResultsStat["value"] }) =>
+  value.tooltip === undefined ? (
+    value.text
+  ) : (
+    <Tooltip content={value.tooltip} position="bottom-start">
+      <span>{value.text}</span>
+    </Tooltip>
+  );
+
+/** The strip: the status pill, the columns in order, the computing chip. */
+const ResultsStats = ({ header }: { header: ResultsHeader }) => (
+  <>
+    <FrameStat label="Status" widest="" align="start">
+      <FrameStatusPill tone={header.status.tone} widest={header.status.widest}>
+        {header.status.label}
+      </FrameStatusPill>
+    </FrameStat>
+    {header.stats.map((stat) => (
+      <FrameStat key={stat.id} label={stat.label} widest={stat.widest}>
+        <StatValue value={stat.value} />
+      </FrameStat>
+    ))}
+    {header.activity === null ? null : (
+      <FrameStat label="Activity" widest="" align="start">
+        <ComputeBatchesChip batches={header.activity} />
+      </FrameStat>
+    )}
+  </>
+);
+
+export const ResultsView = ({
+  model,
+  drawer,
+  leading,
+}: {
+  model: ResultsModel;
+  /** Given, the view renders inside a ds `Drawer`; otherwise it fills its section. */
+  drawer?: { onClose: () => void; swapKey: string };
+  /** Before the title: a Back button in the full view. */
+  leading?: ReactNode;
+}) => {
+  const { header, bands, surface, metrics, after, footer } = model;
+
+  return (
+    <DrawerFrame
+      drawer={drawer}
+      leading={leading}
+      title={header.title}
+      headline={header.headline ?? undefined}
+      stats={<ResultsStats header={header} />}
+      badge={
+        header.compute === null ? undefined : (
+          <ComputeBackendBadge backend={header.compute} />
+        )
+      }
+      progress={header.progress}
+      note={header.note}
+      footer={footer}
+    >
+      {bands.map((band) => (
+        <FrameBand
+          key={band.id}
+          title={band.title}
+          help={band.help}
+          collapsible={band.collapsible}
+          trailing={band.trailing ?? undefined}
+        >
+          {band.content}
+        </FrameBand>
+      ))}
+      <FrameColumns
+        primary={surface ?? undefined}
+        secondary={
+          metrics === null ? undefined : (
+            <MetricTiles
+              key={metrics.key}
+              tiles={metrics.tiles}
+              timeDomain={metrics.timeDomain}
+              contentEpoch={metrics.contentEpoch}
+              plotHeight={metrics.plotHeight}
+              tone={metrics.tone}
+            >
+              {metrics.cards}
+            </MetricTiles>
+          )
+        }
+        after={after ?? undefined}
+      />
+    </DrawerFrame>
+  );
+};
