@@ -123,6 +123,7 @@ const editorContextValue: EditorContextValue = {
   setHoveredItem: () => {},
   clearHoveredItem: () => {},
   toggleVisualizerPin: () => {},
+  openPlaceVisualizer: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},

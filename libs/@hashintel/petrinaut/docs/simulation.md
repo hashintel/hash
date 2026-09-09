@@ -149,7 +149,7 @@ Select a place during simulation to see its current token values in the properti
 
 If the place has a [visualizer](petri-net-extensions.md#visualizer) defined, it renders live in the properties panel, updating as the simulation progresses.
 
-The same visualizer also appears on the canvas when you point at the place, and its [pin](petri-net-extensions.md#visualizer) holds it open while you scrub the timeline or change the initial state.
+The same visualizer is reachable on the canvas: point at the place, click the button that appears above it, and its [pin](petri-net-extensions.md#visualizer) holds it open while you scrub the timeline or change the initial state.
 
 ![visualiser](https://github.com/user-attachments/assets/9324bb5b-4912-499e-8a5d-f2bc6a7754c2)
 

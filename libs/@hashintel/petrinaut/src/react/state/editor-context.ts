@@ -100,6 +100,13 @@ export type EditorState = {
    * watched while the timeline is scrubbed or the initial state edited.
    */
   pinnedVisualizerPlaceIds: Set<string>;
+  /**
+   * The place whose state visualizer has been opened from the button that
+   * pointing at a place offers. It belongs to that hover: moving the pointer
+   * to another place, or off the canvas, closes it again. Pinning is what
+   * outlasts a hover.
+   */
+  openVisualizerPlaceId: string | null;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   /**
@@ -158,6 +165,8 @@ export type EditorActions = {
   clearHoveredItem: () => void;
   /** Pin a place's state visualizer open, or release it. */
   toggleVisualizerPin: (placeId: string) => void;
+  /** Open a place's state visualizer for the hover it is part of. */
+  openPlaceVisualizer: (placeId: string) => void;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
@@ -197,6 +206,7 @@ export const initialEditorState: EditorState = {
   hasSelection: false,
   hoveredItem: null,
   pinnedVisualizerPlaceIds: new Set<string>(),
+  openVisualizerPlaceId: null,
   draggingStateByNodeId: {},
   timelineChartType: "run",
   timelineView: { kind: "per-place" },
@@ -233,6 +243,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setHoveredItem: () => {},
   clearHoveredItem: () => {},
   toggleVisualizerPin: () => {},
+  openPlaceVisualizer: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},

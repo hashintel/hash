@@ -150,6 +150,21 @@ const tooltipStyle = css({
  * Anchored on the wrapper rather than inside the box, so it keeps its corner
  * while a tall visualizer scrolls underneath.
  */
+/**
+ * The button that pointing at a place offers, before the visualizer itself.
+ *
+ * A place's picture is worth a panel, and a panel that opens on hover alone
+ * covers the net while somebody is only passing over it. So the hover offers
+ * this instead: one small round button, in the slot the panel will occupy, and
+ * the panel is what clicking it produces.
+ */
+const triggerStyle = css({
+  borderRadius: "full",
+  backgroundColor: "neutral.s00",
+  boxShadow: "[0 1px 4px rgba(0, 0, 0, 0.18)]",
+  borderColor: "neutral.bd.subtle",
+});
+
 /** A further 1px inside the glass, for the glass's own border. */
 const pinButtonStyle = css({
   borderRadius: "[calc(var(--visualizer-radius) - 9px)]",
@@ -217,7 +232,9 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
   const { showAnimations } = use(UserSettingsContext);
   const {
     pinnedVisualizerPlaceIds,
+    openVisualizerPlaceId,
     toggleVisualizerPin,
+    openPlaceVisualizer,
     setHoveredItem,
     clearHoveredItem,
   } = use(EditorContext);
@@ -265,13 +282,19 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
     !placeType ||
     placeType.elements.length === 0 ||
     !place.visualizerCode ||
-    !node ||
-    !PlaceStateVisualization
+    !node
   ) {
     return null;
   }
 
   const pinned = pinnedVisualizerPlaceIds.has(nodeId);
+  // Pinning outlasts the hover; opening belongs to it. Either shows the
+  // panel, and until one of them does, the hover shows the button that opens
+  // it. The module that draws a visualizer is only needed for the panel, so
+  // the button is offered while it is still loading.
+  const showVisualizer =
+    (pinned || openVisualizerPlaceId === nodeId) &&
+    PlaceStateVisualization !== null;
 
   const nodeTopY = flowToScreenPosition({
     x: node.internals.positionAbsolute.x,
@@ -283,6 +306,52 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
   const boxHeight = boxSize?.height ?? 0;
   const placeBelow =
     nodeTopY - TOOLTIP_OFFSET_PX - boxHeight < TOP_BAR_SAFE_ZONE_PX;
+
+  const keepHovered = {
+    // Both surfaces count as part of the place while the pointer is on them:
+    // without this, reaching for either would end the hover and take it away.
+    onPointerEnter: () => setHoveredItem({ type: "place", id: nodeId }),
+    onPointerLeave: clearHoveredItem,
+  };
+
+  if (!showVisualizer) {
+    return (
+      <NodeToolbar
+        nodeId={nodeId}
+        isVisible
+        position={placeBelow ? Position.Bottom : Position.Top}
+        offset={0}
+      >
+        <div
+          className={wrapperStyle}
+          data-animated={showAnimations}
+          data-open
+          // The gap to the node is this wrapper's own padding, so the pointer
+          // crosses it without touching the canvas.
+          style={{ padding: `${TOOLTIP_OFFSET_PX}px 0` }}
+          {...keepHovered}
+        >
+          <Button
+            className={triggerStyle}
+            size="xs"
+            variant="subtle"
+            shape="round"
+            iconName="eye"
+            aria-label="Show state visualizer"
+            tooltip="Show state visualizer"
+            // The button is a portal but still a child of the node in the
+            // React tree, so without this a click on it also selects the
+            // place and opens its properties.
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              openPlaceVisualizer(nodeId);
+            }}
+          />
+        </div>
+      </NodeToolbar>
+    );
+  }
 
   return (
     <NodeToolbar
@@ -302,11 +371,7 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
           // Grows from whichever edge faces the node.
           transformOrigin: placeBelow ? "top center" : "bottom center",
         }}
-        // The box counts as part of the place while the pointer is on it:
-        // without this, reaching for the pin would end the hover and take the
-        // box with it.
-        onPointerEnter={() => setHoveredItem({ type: "place", id: nodeId })}
-        onPointerLeave={clearHoveredItem}
+        {...keepHovered}
       >
         <div ref={contentRef} className={tooltipStyle}>
           <PlaceStateVisualization place={place} placeType={placeType} />
