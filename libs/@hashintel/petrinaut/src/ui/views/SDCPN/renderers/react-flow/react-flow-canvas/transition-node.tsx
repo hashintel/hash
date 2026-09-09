@@ -1,11 +1,14 @@
+import { useStoreApi } from "@xyflow/react";
 import { useEffect, useRef } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useLatest } from "../../../../../../react/hooks/use-latest";
 import { useTransitionFrame } from "../../../canvas-frame-store";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { nodeFocusStyle } from "../../../styles/focus";
+import { nodeFiringIsVisible } from "./firing-animation-visibility";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
@@ -52,7 +55,13 @@ function useFiringAnimation(
   boxRef: React.RefObject<HTMLDivElement | null>,
   boltRef: React.RefObject<HTMLDivElement | null>,
   firingDelta: number | null,
+  position: { x: number; y: number },
 ): void {
+  const store = useStoreApi();
+  // Read in the effect rather than subscribed to, so panning and zooming do
+  // not re-render every transition on the canvas.
+  const positionRef = useLatest(position);
+
   useEffect(() => {
     // Only animate when there's an actual firing (delta > 0)
     if (firingDelta === null || firingDelta <= 0) {
@@ -63,6 +72,11 @@ function useFiringAnimation(
     const bolt = boltRef.current;
 
     if (!box || !bolt) {
+      return;
+    }
+
+    const { x, y } = positionRef.current;
+    if (!nodeFiringIsVisible(store.getState(), x, y)) {
       return;
     }
 
@@ -96,13 +110,15 @@ function useFiringAnimation(
         fill: "forwards",
       },
     );
-  }, [firingDelta, boxRef, boltRef]);
+  }, [firingDelta, boxRef, boltRef, positionRef, store]);
 }
 
 export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   id,
   data,
   isConnectable,
+  positionAbsoluteX,
+  positionAbsoluteY,
   selected,
 }: NodeProps<TransitionNodeType>) => {
   const { label } = data;
@@ -116,7 +132,10 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   const firingDelta = useFiringDelta(frame?.firingCount ?? null);
 
   // Animate when firing occurs
-  useFiringAnimation(boxRef, boltRef, firingDelta);
+  useFiringAnimation(boxRef, boltRef, firingDelta, {
+    x: positionAbsoluteX,
+    y: positionAbsoluteY,
+  });
 
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.

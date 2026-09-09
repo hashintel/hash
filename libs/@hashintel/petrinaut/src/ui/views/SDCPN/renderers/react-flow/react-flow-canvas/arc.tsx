@@ -4,11 +4,13 @@ import {
   getBezierPath,
   getSmoothStepPath,
   type Position,
+  useStoreApi,
 } from "@xyflow/react";
 import { type CSSProperties, use, useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useLatest } from "../../../../../../react/hooks/use-latest";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { useTransitionFrame } from "../../../canvas-frame-store";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
@@ -17,6 +19,7 @@ import {
   ARC_WHITE_OVERHANG,
   arcHaloColor,
 } from "../../../styles/focus";
+import { arcFiringIsVisible } from "./firing-animation-visibility";
 
 import type { ArcData, ArcEdgeType } from "./react-flow-types";
 
@@ -50,12 +53,29 @@ function useFiringAnimation(
   pathRef: React.RefObject<SVGPathElement | null>,
   firingDelta: number | null,
   weight: number,
+  endpoints: {
+    sourceX: number;
+    sourceY: number;
+    targetX: number;
+    targetY: number;
+  },
 ): void {
   const animationStateRef = useRef<AnimationState | null>(null);
+  const store = useStoreApi();
+  // Read in the effect rather than subscribed to, so a pan or a zoom does not
+  // re-render every arc on the canvas.
+  const endpointsRef = useLatest(endpoints);
 
   useEffect(() => {
     // Only start a new animation when there's an actual firing (delta > 0)
     if (firingDelta === null || firingDelta <= 0 || pathRef.current === null) {
+      return;
+    }
+
+    const { sourceX, sourceY, targetX, targetY } = endpointsRef.current;
+    if (
+      !arcFiringIsVisible(store.getState(), sourceX, sourceY, targetX, targetY)
+    ) {
       return;
     }
 
@@ -110,7 +130,7 @@ function useFiringAnimation(
         animationStateRef.current = null;
       }
     };
-  }, [firingDelta, pathRef, weight]);
+  }, [firingDelta, pathRef, weight, endpointsRef, store]);
 
   // Cancel animation on unmount
   useEffect(() => {
@@ -297,7 +317,12 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   const arcPathRef = useRef<SVGPathElement | null>(null);
 
   // Animate stroke width when firing delta changes (scaled by arc weight)
-  useFiringAnimation(arcPathRef, firingDelta, data?.weight ?? 1);
+  useFiringAnimation(arcPathRef, firingDelta, data?.weight ?? 1, {
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+  });
 
   // Compute path based on arc rendering setting.
   const [arcPath, labelX, labelY] =

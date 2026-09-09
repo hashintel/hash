@@ -76,6 +76,12 @@ Each simulation step proceeds in two phases:
 
 Simulation time advances by `dt` each frame.
 
+## What a firing looks like
+
+A transition that fires flashes yellow, shows a lightning bolt, and thickens the arcs it moved tokens along, by an amount that grows with how many fired at once.
+
+Firings you cannot see are not animated: a node off the side of the canvas, or a net zoomed out far enough that a node is only a few pixels across. Token counts, arcs and the timeline are unaffected -- only the flash is skipped, which is what keeps a large net moving at speed. Zoom in and the firings you are looking at animate as usual.
+
 ## Deadlock
 
 If no transition fires in a step **and** no transition is structurally enabled (regardless of lambda values), the simulation reports **deadlock** and stops (a "Simulation Complete" message is shown).
