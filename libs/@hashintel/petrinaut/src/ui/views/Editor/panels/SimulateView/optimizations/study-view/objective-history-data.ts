@@ -14,10 +14,25 @@ export type ObjectiveDirection =
 
 /**
  * Whether the step's parameters satisfied the study's constraints. `unknown`
- * until a trial event carries constraint results; the chart then draws an
+ * for a trial event carrying no constraint results; the chart draws an
  * infeasible step in its muted colour.
  */
 export type ObjectiveFeasibility = "feasible" | "infeasible" | "unknown";
+
+/**
+ * A step's feasibility from its constraint results: infeasible when its draw
+ * broke a parameter constraint. A step whose state constraints fell short is
+ * limited, not infeasible: its objective counts like any other, so it keeps
+ * its colour and can be the best so far.
+ */
+export const trialFeasibility = (
+  trial: Pick<PetrinautOptimizationTrialEvent, "constraints">,
+): ObjectiveFeasibility => {
+  if (!trial.constraints) {
+    return "unknown";
+  }
+  return trial.constraints.infeasible === undefined ? "feasible" : "infeasible";
+};
 
 export type ObjectiveHistoryPoint = {
   /** The step number as the table shows it: the trial index plus one. */
@@ -36,18 +51,17 @@ const isBetter = (
 ): boolean => (direction === "maximize" ? candidate > best : candidate < best);
 
 /**
- * `feasibilityOf` reads a trial's constraint verdict; until trial events
- * carry one, every step is of unknown feasibility. An infeasible step never
- * becomes the best so far, the way Optuna's history substitutes infinity
- * for it before accumulating, so the word "best" never sits on a
- * configuration that broke a constraint.
+ * `feasibilityOf` reads a trial's constraint verdict, `trialFeasibility` by
+ * default. An infeasible step never becomes the best so far, the way
+ * Optuna's history substitutes infinity for it before accumulating, so the
+ * word "best" never sits on a configuration that broke a constraint.
  */
 export const buildObjectiveHistory = (
   trials: readonly PetrinautOptimizationTrialEvent[],
   direction: ObjectiveDirection,
   feasibilityOf: (
     trial: PetrinautOptimizationTrialEvent,
-  ) => ObjectiveFeasibility = () => "unknown",
+  ) => ObjectiveFeasibility = trialFeasibility,
 ): ObjectiveHistoryPoint[] => {
   // Parallel steps report out of order; the history reads in step order.
   const ordered = trials.toSorted((left, right) => left.trial - right.trial);
