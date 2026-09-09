@@ -12,7 +12,7 @@ use crate::{
     identity::OntologyRowId,
     postgres::id::ArchivedOntologyTypeUuid,
     salt::fit::prepare::IdentityProvider,
-    serve2::{codec::Universe, delta::history::CAPACITY as HISTORY_SIZE},
+    serve2::{codec::RowDomain, delta::history::CAPACITY as HISTORY_SIZE},
 };
 
 struct Base {
@@ -62,8 +62,8 @@ fn add_arrival(
     birth: DeltaRevision,
 ) -> (ArchivedOntologyTypeUuid, OntologyRowId) {
     let key = ArchivedOntologyTypeUuid::from(Uuid::from_u128(2));
-    let (universe, row) = data.universe.grow().expect("should have a free row");
-    data.universe = universe;
+    let (universe, row) = data.domain.grow().expect("should have a free row");
+    data.domain = universe;
     data.forward.insert(key, row);
     data.inverse.push(Versioned::new(key, birth));
     data.payload.insert(key, OwnedIcon::from("arrival"));
@@ -190,7 +190,7 @@ fn insert_fitted() {
         ),
         Some((row, true))
     );
-    assert_eq!(data.universe.size(), 1);
+    assert_eq!(data.domain.size(), 1);
     assert!(data.inverse.is_empty());
     let provider = DeltaIdentityProvider::from_parts(&data, origin);
     assert_current(&provider, base.key, row, Some("updated"));
@@ -220,7 +220,7 @@ fn insert_arrival() {
         ),
         Some((row, false))
     );
-    assert_eq!(data.universe.size(), 2);
+    assert_eq!(data.domain.size(), 2);
     assert_eq!(data.inverse.len(), 1);
     let provider = DeltaIdentityProvider::from_parts(&data, &base);
     assert_current(&provider, key, row, Some("arrival"));
@@ -247,7 +247,7 @@ fn insert_revival() {
         data.insert(&base, DeltaRevision::new(9), key, OwnedIcon::from("latest")),
         Some((row, true))
     );
-    assert_eq!(data.universe.size(), 2);
+    assert_eq!(data.domain.size(), 2);
     let provider = DeltaIdentityProvider::from_parts(&data, &base);
     assert_current(&provider, key, row, Some("latest"));
     assert_at(&provider, key, row, DeltaRevision::new(3), None);
@@ -273,7 +273,7 @@ fn withdraw_fitted() {
         ),
         Some((row, true))
     );
-    assert_eq!(data.universe.size(), 1);
+    assert_eq!(data.domain.size(), 1);
     let provider = DeltaIdentityProvider::from_parts(&data, origin);
     assert_at(&provider, base.key, row, DeltaRevision::new(2), None);
     assert_at(
@@ -290,7 +290,7 @@ fn insert_exhausted() {
     let base = Base::new();
     let origin = NaiveIdentityProvider::from_ref(&base);
     let mut data = IdentityProviderResidual::new(origin);
-    data.universe = Universe::new(OntologyRowId::MAX);
+    data.domain = RowDomain::new(OntologyRowId::MAX);
     let key = ArchivedOntologyTypeUuid::from(Uuid::from_u128(2));
     assert_eq!(
         data.insert(
@@ -301,7 +301,7 @@ fn insert_exhausted() {
         ),
         None
     );
-    assert_eq!(data.universe, Universe::new(OntologyRowId::MAX));
+    assert_eq!(data.domain, RowDomain::new(OntologyRowId::MAX));
     assert!(data.forward.is_empty());
     assert!(data.inverse.is_empty());
     assert!(data.payload.is_empty());
@@ -341,7 +341,7 @@ fn insert_hidden_origin() {
         ),
         Some((row, true))
     );
-    assert_eq!(upper_data.universe.size(), 2);
+    assert_eq!(upper_data.domain.size(), 2);
     assert!(upper_data.forward.is_empty());
     assert!(upper_data.inverse.is_empty());
     let upper = DeltaIdentityProvider::from_parts(&upper_data, &lower);
@@ -378,8 +378,8 @@ fn payload_replacements() {
     let origin = NaiveIdentityProvider::from_ref(&base);
     let mut data = IdentityProviderResidual::new(origin);
     let arrival = ArchivedOntologyTypeUuid::from(Uuid::from_u128(2));
-    let (universe, row) = data.universe.grow().expect("should have a free row");
-    data.universe = universe;
+    let (domain, row) = data.domain.grow().expect("should have a free row");
+    data.domain = domain;
     data.inverse
         .push(Versioned::new(arrival, DeltaRevision::new(4)));
     data.forward.insert(arrival, row);
@@ -554,7 +554,7 @@ fn nested_origin_revision() {
     let mut upper_data = IdentityProviderResidual::new(&lower);
     {
         let upper = DeltaIdentityProvider::from_parts(&upper_data, &lower);
-        assert_eq!(upper.provide_universe().size(), 2);
+        assert_eq!(upper.provide_domain().size(), 2);
         assert_current(&upper, key, row, None);
         assert_at(&upper, key, row, DeltaRevision::new(3), None);
         assert_at(

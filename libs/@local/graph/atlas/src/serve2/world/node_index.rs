@@ -14,7 +14,7 @@ use crate::{
     postgres::id::ArchivedEntityId,
     salt::fit::prepare::identity::IdentityTableArchive,
     serve2::{
-        codec::{EncodedRowId, Universe},
+        codec::{EncodedRowId, RowDomain},
         delta::{
             epoch::Epoch,
             overlay::{NaiveIdentityProvider, VersionedIdentityProvider as _},
@@ -69,7 +69,7 @@ impl NodeIndex {
 
         let encoding = lookup.map(|column: Column<BasePosition, NodeRowId>| {
             (
-                Encoding::open(options, Universe::from_length(column.len())),
+                Encoding::open(options, RowDomain::from_length(column.len())),
                 column,
             )
         });
@@ -157,7 +157,7 @@ impl NodeIndex {
         let provider = epoch
             .nodes(self)
             .bind(NaiveIdentityProvider::from_ref(&self.identity));
-        let row = self.encoding.decode(wire, provider.provide_universe())?;
+        let row = self.encoding.decode(wire, provider.provide_domain())?;
 
         provider
             .provide_key_of_at(row, epoch.revision())

@@ -18,7 +18,7 @@
 //! `F_i` (SipHash-2-4 truncated to 16 bits). The permutation does not depend on the universe, and
 //! appending rows to a generation leaves every existing wire id unchanged. Encoding applies the
 //! network to a row id. Decoding applies the inverse network and bounds-checks the result against
-//! the accepted [`Universe`]: exactly the `N` wire values in the image of `[0, N)` decode, and
+//! the accepted [`RowDomain`]: exactly the `N` wire values in the image of `[0, N)` decode, and
 //! every other value answers [`None`].
 //!
 //! Taking the universe per call lets one codec, derived when the generation opens, serve an
@@ -67,9 +67,9 @@ pub(crate) const NODE_LABEL: &[u8] = b"atlas.wire.node.v1";
 /// the fitted rows set the base bound, and delta slot allocation widens it. An answer reads one
 /// value at every encode and decode, and the accepted set cannot shift inside it.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct Universe<N>(N);
+pub(crate) struct RowDomain<N>(N);
 
-impl<N> Universe<N>
+impl<N> RowDomain<N>
 where
     N: Id,
 {
@@ -181,7 +181,7 @@ impl EncodableId for NodeRowId {}
 /// The keyed mapping between one dense row domain and its wire ids.
 ///
 /// One codec serves one row domain of one generation. The underlying permutation bijects the `u32`
-/// range for every key. Encoding restricts it to the caller's [`Universe`] and decoding inverts
+/// range for every key. Encoding restricts it to the caller's [`RowDomain`] and decoding inverts
 /// exactly the image of that universe, answering [`None`] elsewhere. Both are pure: the mapping
 /// never changes while the generation serves, and only the accepted bound moves as slots allocate.
 pub(crate) struct RowCodec<I> {
@@ -222,9 +222,9 @@ where
     }
 
     /// Decodes a wire value back to its internal row id, [`None`] outside the image of `universe`.
-    pub(crate) fn decode(&self, wire: EncodedRowId<I>, universe: Universe<I>) -> Option<I> {
+    pub(crate) fn decode(&self, wire: EncodedRowId<I>, domain: RowDomain<I>) -> Option<I> {
         let row = I::from_u32(self.unpermute(wire.get()));
-        universe.contains(row).then_some(row)
+        domain.contains(row).then_some(row)
     }
 
     /// Applies the Feistel network once over the `u32` range.

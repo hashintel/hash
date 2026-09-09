@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use alloc::alloc::Allocator;
 
 use hashql_core::id::{Id, IdSlice, bit_vec::BitMatrix};

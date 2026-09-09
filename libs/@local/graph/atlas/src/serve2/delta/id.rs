@@ -1,13 +1,13 @@
 use hashql_core::id::Id;
 
-use crate::serve2::codec::Universe;
+use crate::serve2::codec::RowDomain;
 
 hashql_core::id::newtype! {
     pub(crate) struct DeltaRowId<I>(u64)
 }
 
 impl<I> DeltaRowId<I> {
-    pub(crate) const fn derive(origin: Universe<I>, index: I) -> Option<Self>
+    pub(crate) const fn derive(origin: RowDomain<I>, index: I) -> Option<Self>
     where
         I: [const] Id,
     {

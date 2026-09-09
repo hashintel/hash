@@ -1,7 +1,7 @@
 use crate::{
     file::identity::{Key, Row},
     salt::fit::prepare::IdentityProvider,
-    serve2::{codec::Universe, delta::DeltaRevision},
+    serve2::{codec::RowDomain, delta::DeltaRevision},
 };
 
 /// Identity lookups with revision-dependent visibility and current payload values.
@@ -17,7 +17,7 @@ where
     R: Row,
     K: Key,
 {
-    fn provide_universe(&self) -> Universe<R>;
+    fn provide_domain(&self) -> RowDomain<R>;
 
     /// Resolves an allocated row regardless of visibility.
     fn provide_allocated_row_of(&self, key: K) -> Option<R>;
@@ -39,8 +39,8 @@ where
     R: Row,
     K: Key,
 {
-    fn provide_universe(&self) -> Universe<R> {
-        T::provide_universe(self)
+    fn provide_domain(&self) -> RowDomain<R> {
+        T::provide_domain(self)
     }
 
     fn provide_allocated_row_of(&self, key: K) -> Option<R> {

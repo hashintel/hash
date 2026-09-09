@@ -10,7 +10,7 @@ use super::{
 use crate::{
     file::identity::{Key, Row},
     salt::fit::prepare::IdentityProvider,
-    serve2::codec::Universe,
+    serve2::codec::RowDomain,
 };
 
 #[cfg(test)]
@@ -88,8 +88,8 @@ where
     K: Key,
 {
     #[inline]
-    fn provide_universe(&self) -> Universe<R> {
-        Universe::from_length(self.count())
+    fn provide_domain(&self) -> RowDomain<R> {
+        RowDomain::from_length(self.count())
     }
 
     #[inline]
@@ -125,7 +125,7 @@ where
 
 #[derive(Debug)]
 pub(crate) struct IdentityProviderResidual<K, R, P> {
-    universe: Universe<R>,
+    domain: RowDomain<R>,
 
     forward: FastHashMap<K, R>,
     inverse: IdVec<DeltaRowId<R>, Versioned<K>>,
@@ -142,7 +142,7 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
         R: Row,
     {
         Self {
-            universe: base.provide_universe(),
+            domain: base.provide_domain(),
 
             forward: FastHashMap::default(),
             inverse: IdVec::default(),
@@ -164,7 +164,7 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
         K: Key<Payload: ToOwned<Owned = P>>,
         R: Row,
     {
-        let base = base.provide_universe();
+        let base = base.provide_domain();
 
         self.history
             .iter()
@@ -201,7 +201,7 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
         P: Borrow<K::Payload>,
     {
         let (row, mut changed) = if let Some(&row) = self.forward.get(&key) {
-            let delta = DeltaRowId::derive(base.provide_universe(), row)
+            let delta = DeltaRowId::derive(base.provide_domain(), row)
                 .expect("an added identity row must follow the fitted rows");
             (row, self.inverse[delta].push(EntryKind::Live, revision))
         } else if let Some(row) = base.provide_allocated_row_of(key) {
@@ -211,8 +211,8 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
                 .is_some_and(|history| history.push(EntryKind::Live, revision));
             (row, changed)
         } else {
-            let (universe, row) = self.universe.grow()?;
-            self.universe = universe;
+            let (universe, row) = self.domain.grow()?;
+            self.domain = universe;
             self.forward.insert(key, row);
             self.inverse.push(Versioned::new(key, revision));
             (row, true)
@@ -249,7 +249,7 @@ impl<K, R, P> IdentityProviderResidual<K, R, P> {
         R: Row,
     {
         if let Some(&row) = self.forward.get(&key) {
-            let Some(delta) = DeltaRowId::derive(base.provide_universe(), row) else {
+            let Some(delta) = DeltaRowId::derive(base.provide_domain(), row) else {
                 tracing::warn!("todo");
                 return false;
             };
@@ -275,7 +275,7 @@ impl<K: Clone, R: Clone, P: Clone> Clone for IdentityProviderResidual<K, R, P> {
     #[inline]
     fn clone(&self) -> Self {
         Self {
-            universe: self.universe.clone(),
+            domain: self.domain.clone(),
             forward: self.forward.clone(),
             inverse: self.inverse.clone(),
             payload: self.payload.clone(),
@@ -286,14 +286,14 @@ impl<K: Clone, R: Clone, P: Clone> Clone for IdentityProviderResidual<K, R, P> {
     #[inline]
     fn clone_from(&mut self, source: &Self) {
         let Self {
-            universe,
+            domain,
             forward,
             inverse,
             payload,
             history,
         } = self;
 
-        universe.clone_from(&source.universe);
+        domain.clone_from(&source.domain);
         forward.clone_from(&source.forward);
         inverse.clone_from(&source.inverse);
         payload.clone_from(&source.payload);
@@ -319,7 +319,7 @@ where
     B: VersionedIdentityProvider<K, R>,
 {
     pub(crate) fn permits_row(&self, row: R, revision: Option<DeltaRevision>) -> bool {
-        DeltaRowId::derive(self.base.provide_universe(), row).map_or_else(
+        DeltaRowId::derive(self.base.provide_domain(), row).map_or_else(
             || {
                 self.data
                     .history
@@ -344,7 +344,7 @@ where
             return None;
         }
 
-        DeltaRowId::derive(self.base.provide_universe(), row).map_or_else(
+        DeltaRowId::derive(self.base.provide_domain(), row).map_or_else(
             || {
                 revision.map_or_else(
                     || self.base.key_of(row),
@@ -430,7 +430,7 @@ where
 {
     #[inline]
     fn count(&self) -> usize {
-        self.data.universe.size()
+        self.data.domain.size()
     }
 
     #[inline]
@@ -461,8 +461,8 @@ where
     K: Key + Hash + Eq,
     B: VersionedIdentityProvider<K, R>,
 {
-    fn provide_universe(&self) -> Universe<R> {
-        self.data.universe
+    fn provide_domain(&self) -> RowDomain<R> {
+        self.data.domain
     }
 
     fn provide_allocated_row_of(&self, key: K) -> Option<R> {
@@ -474,7 +474,7 @@ where
     }
 
     fn provide_allocated_key_of(&self, row: R) -> Option<K> {
-        DeltaRowId::derive(self.base.provide_universe(), row).map_or_else(
+        DeltaRowId::derive(self.base.provide_domain(), row).map_or_else(
             || self.base.provide_allocated_key_of(row),
             |delta| self.data.inverse.get(delta).map(|entry| *entry.data()),
         )

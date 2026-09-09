@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use alloc::alloc::Allocator;
 
 use zerocopy::IntoBytes as _;

@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use alloc::alloc::Allocator;
 
 use hashql_core::id::Id as _;
@@ -68,12 +71,16 @@ impl EdgesResponse<'_> {
 
         cbor.uint(0);
         cbor.bytes(self.generation.as_bytes());
+
         cbor.uint(1);
         cbor.uint(self.variant);
+
         cbor.uint(2);
         cbor.uint(count);
+
         cbor.uint(3);
         cbor.boolean(self.document.complete);
+
         cbor.uint(4);
         cbor.boolean(self.document.trailer.is_some());
     }

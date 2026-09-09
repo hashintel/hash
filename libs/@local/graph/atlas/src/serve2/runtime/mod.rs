@@ -19,6 +19,7 @@ use super::{
 };
 use crate::{device::PhysicalDevice, file::generation::Generation};
 
+pub(crate) mod registry;
 #[cfg(test)]
 mod tests;
 

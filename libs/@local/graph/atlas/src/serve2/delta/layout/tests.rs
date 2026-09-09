@@ -43,7 +43,7 @@ fn position_origin() {
     let base = NaiveLayoutProvider::new(&origin);
     let data = LayoutDelta::default();
     let provider = data.bind(&base);
-    assert_eq!(provider.provide_node_universe().size(), 2);
+    assert_eq!(provider.provide_node_domain().size(), 2);
     for node in [NodeRowId::new(0), NodeRowId::new(1), NodeRowId::new(99)] {
         assert_eq!(
             provider.provide_position(node),
@@ -217,7 +217,7 @@ fn nested_visibility() {
         DeltaRevision::new(6),
     );
     let provider = upper.bind(&lower);
-    assert_eq!(provider.provide_node_universe().size(), 4);
+    assert_eq!(provider.provide_node_domain().size(), 4);
     assert_eq!(
         provider.provide_position_at(inherited, DeltaRevision::new(2)),
         base.provide_position(inherited)

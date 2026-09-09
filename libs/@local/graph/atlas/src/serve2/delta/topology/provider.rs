@@ -5,7 +5,7 @@
 use super::TopologyDelta;
 use crate::{
     identity::{EdgeRowId, NodeRowId},
-    serve2::{codec::Universe, delta::DeltaRevision, world::topology::TopologyProvider},
+    serve2::{codec::RowDomain, delta::DeltaRevision, world::topology::TopologyProvider},
 };
 
 /// Endpoint and adjacency lookup at a retained revision.
@@ -13,8 +13,8 @@ use crate::{
 /// The row domains include withdrawn and unbound rows. Historical lookups apply the provider's
 /// retention policy, including its fallback after eviction.
 pub(crate) trait VersionedTopologyProvider: TopologyProvider {
-    fn provide_node_universe(&self) -> Universe<NodeRowId>;
-    fn provide_edge_universe(&self) -> Universe<EdgeRowId>;
+    fn provide_node_domain(&self) -> RowDomain<NodeRowId>;
+    fn provide_edge_domain(&self) -> RowDomain<EdgeRowId>;
     fn provide_endpoints_at(
         &self,
         edge: EdgeRowId,
@@ -33,12 +33,12 @@ pub(crate) trait VersionedTopologyProvider: TopologyProvider {
 }
 
 impl<T: VersionedTopologyProvider + ?Sized> VersionedTopologyProvider for &T {
-    fn provide_node_universe(&self) -> Universe<NodeRowId> {
-        T::provide_node_universe(self)
+    fn provide_node_domain(&self) -> RowDomain<NodeRowId> {
+        T::provide_node_domain(self)
     }
 
-    fn provide_edge_universe(&self) -> Universe<EdgeRowId> {
-        T::provide_edge_universe(self)
+    fn provide_edge_domain(&self) -> RowDomain<EdgeRowId> {
+        T::provide_edge_domain(self)
     }
 
     fn provide_endpoints_at(
@@ -109,12 +109,12 @@ impl<T: TopologyProvider + ?Sized> TopologyProvider for NaiveTopologyProvider<T>
 }
 
 impl<T: TopologyProvider + ?Sized> VersionedTopologyProvider for NaiveTopologyProvider<T> {
-    fn provide_node_universe(&self) -> Universe<NodeRowId> {
-        Universe::from_length(self.provide_node_count())
+    fn provide_node_domain(&self) -> RowDomain<NodeRowId> {
+        RowDomain::from_length(self.provide_node_count())
     }
 
-    fn provide_edge_universe(&self) -> Universe<EdgeRowId> {
-        Universe::from_length(self.provide_edge_count())
+    fn provide_edge_domain(&self) -> RowDomain<EdgeRowId> {
+        RowDomain::from_length(self.provide_edge_count())
     }
 
     fn provide_endpoints_at(&self, edge: EdgeRowId, _: DeltaRevision) -> Option<[NodeRowId; 2]> {
@@ -173,7 +173,7 @@ impl<'delta, B: VersionedTopologyProvider + ?Sized> DeltaTopologyProvider<'delta
             .chain(
                 data.adjacency
                     .incoming
-                    .get(base.provide_node_universe(), node),
+                    .get(base.provide_node_domain(), node),
             )
             .filter(move |&edge| data.endpoint.get(&base, edge, revision).is_some())
     }
@@ -197,7 +197,7 @@ impl<'delta, B: VersionedTopologyProvider + ?Sized> DeltaTopologyProvider<'delta
             .chain(
                 data.adjacency
                     .outgoing
-                    .get(base.provide_node_universe(), node),
+                    .get(base.provide_node_domain(), node),
             )
             .filter(move |&edge| data.endpoint.get(&base, edge, revision).is_some())
     }
@@ -254,12 +254,12 @@ impl<B: VersionedTopologyProvider + ?Sized> TopologyProvider for DeltaTopologyPr
 impl<B: VersionedTopologyProvider + ?Sized> VersionedTopologyProvider
     for DeltaTopologyProvider<'_, B>
 {
-    fn provide_node_universe(&self) -> Universe<NodeRowId> {
-        Universe::from_length(self.provide_node_count())
+    fn provide_node_domain(&self) -> RowDomain<NodeRowId> {
+        RowDomain::from_length(self.provide_node_count())
     }
 
-    fn provide_edge_universe(&self) -> Universe<EdgeRowId> {
-        Universe::from_length(self.provide_edge_count())
+    fn provide_edge_domain(&self) -> RowDomain<EdgeRowId> {
+        RowDomain::from_length(self.provide_edge_count())
     }
 
     fn provide_endpoints_at(

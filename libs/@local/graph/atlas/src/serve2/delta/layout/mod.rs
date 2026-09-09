@@ -36,7 +36,7 @@ impl LayoutDelta {
         base: &(impl VersionedLayoutProvider + ?Sized),
         node: NodeRowId,
     ) -> Option<Vec2> {
-        if let Some(delta) = DeltaRowId::derive(base.provide_node_universe(), node) {
+        if let Some(delta) = DeltaRowId::derive(base.provide_node_domain(), node) {
             return self
                 .positions
                 .get(delta)?
@@ -52,7 +52,7 @@ impl LayoutDelta {
         node: NodeRowId,
         revision: Option<DeltaRevision>,
     ) -> Option<Vec2> {
-        if let Some(delta) = DeltaRowId::derive(base.provide_node_universe(), node) {
+        if let Some(delta) = DeltaRowId::derive(base.provide_node_domain(), node) {
             let entry = self.positions.get(delta)?.as_ref()?;
             return entry.is_live(revision).then(|| *entry.data());
         }
@@ -76,7 +76,7 @@ impl LayoutDelta {
         base: &(impl VersionedLayoutProvider + ?Sized),
         node: NodeRowId,
     ) {
-        if let Some(delta) = DeltaRowId::derive(base.provide_node_universe(), node) {
+        if let Some(delta) = DeltaRowId::derive(base.provide_node_domain(), node) {
             self.positions.fill_until(delta, || None);
         }
     }
@@ -96,7 +96,7 @@ impl LayoutDelta {
         position: Vec2,
         revision: DeltaRevision,
     ) -> bool {
-        let Some(delta) = DeltaRowId::derive(base.provide_node_universe(), node) else {
+        let Some(delta) = DeltaRowId::derive(base.provide_node_domain(), node) else {
             return self
                 .history
                 .get_mut(&node)
@@ -126,7 +126,7 @@ impl LayoutDelta {
         node: NodeRowId,
         revision: DeltaRevision,
     ) -> bool {
-        if let Some(delta) = DeltaRowId::derive(base.provide_node_universe(), node) {
+        if let Some(delta) = DeltaRowId::derive(base.provide_node_domain(), node) {
             let Some(entry) = self.positions.lookup_mut(delta) else {
                 return false;
             };

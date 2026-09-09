@@ -6,7 +6,7 @@ use super::LayoutDelta;
 use crate::{
     identity::NodeRowId,
     math::Vec2,
-    serve2::{codec::Universe, delta::DeltaRevision, world::layout::LayoutProvider},
+    serve2::{codec::RowDomain, delta::DeltaRevision, world::layout::LayoutProvider},
 };
 
 /// Position lookup at a retained revision, over the allocated row domain.
@@ -14,13 +14,13 @@ use crate::{
 /// The domain includes withdrawn and unplaced rows. Historical lookups apply the provider's
 /// retention policy, including its fallback after eviction.
 pub(crate) trait VersionedLayoutProvider: LayoutProvider {
-    fn provide_node_universe(&self) -> Universe<NodeRowId>;
+    fn provide_node_domain(&self) -> RowDomain<NodeRowId>;
     fn provide_position_at(&self, node: NodeRowId, revision: DeltaRevision) -> Option<Vec2>;
 }
 
 impl<T: VersionedLayoutProvider + ?Sized> VersionedLayoutProvider for &T {
-    fn provide_node_universe(&self) -> Universe<NodeRowId> {
-        T::provide_node_universe(self)
+    fn provide_node_domain(&self) -> RowDomain<NodeRowId> {
+        T::provide_node_domain(self)
     }
 
     fn provide_position_at(&self, node: NodeRowId, revision: DeltaRevision) -> Option<Vec2> {
@@ -48,8 +48,8 @@ impl<T: LayoutProvider> LayoutProvider for NaiveLayoutProvider<T> {
 }
 
 impl<T: LayoutProvider> VersionedLayoutProvider for NaiveLayoutProvider<T> {
-    fn provide_node_universe(&self) -> Universe<NodeRowId> {
-        Universe::from_length(self.provide_node_count())
+    fn provide_node_domain(&self) -> RowDomain<NodeRowId> {
+        RowDomain::from_length(self.provide_node_count())
     }
 
     fn provide_position_at(&self, node: NodeRowId, _: DeltaRevision) -> Option<Vec2> {
@@ -83,8 +83,8 @@ impl<B: VersionedLayoutProvider> LayoutProvider for DeltaLayoutProvider<'_, B> {
 }
 
 impl<B: VersionedLayoutProvider> VersionedLayoutProvider for DeltaLayoutProvider<'_, B> {
-    fn provide_node_universe(&self) -> Universe<NodeRowId> {
-        Universe::from_length(self.provide_node_count())
+    fn provide_node_domain(&self) -> RowDomain<NodeRowId> {
+        RowDomain::from_length(self.provide_node_count())
     }
 
     fn provide_position_at(&self, node: NodeRowId, revision: DeltaRevision) -> Option<Vec2> {

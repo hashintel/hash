@@ -12,7 +12,7 @@ use super::{
 };
 use crate::{
     identity::{EdgeRowId, NodeRowId},
-    serve2::codec::Universe,
+    serve2::codec::RowDomain,
 };
 
 #[cfg(test)]
@@ -30,7 +30,7 @@ struct AdjacencyRows {
 }
 
 impl AdjacencyRows {
-    fn insert(&mut self, origin: Universe<NodeRowId>, node: NodeRowId, edge: EdgeRowId) {
+    fn insert(&mut self, origin: RowDomain<NodeRowId>, node: NodeRowId, edge: EdgeRowId) {
         let edges = if let Some(delta) = DeltaRowId::derive(origin, node) {
             self.extension.fill_until(delta, Vec::new)
         } else {
@@ -42,7 +42,11 @@ impl AdjacencyRows {
         }
     }
 
-    fn get(&self, origin: Universe<NodeRowId>, node: NodeRowId) -> impl Iterator<Item = EdgeRowId> {
+    fn get(
+        &self,
+        origin: RowDomain<NodeRowId>,
+        node: NodeRowId,
+    ) -> impl Iterator<Item = EdgeRowId> {
         let edges = DeltaRowId::derive(origin, node).map_or_else(
             || self.patches.get(&node),
             |delta| self.extension.get(delta),
@@ -103,7 +107,7 @@ impl EndpointDelta {
         edge: EdgeRowId,
         revision: Option<DeltaRevision>,
     ) -> Option<[NodeRowId; 2]> {
-        let origin = base.provide_edge_universe();
+        let origin = base.provide_edge_domain();
         if let Some(delta) = DeltaRowId::derive(origin, edge) {
             let entry = self.endpoints.get(delta)?.as_ref()?;
             return entry.is_live(revision).then(|| *entry.data());
@@ -154,7 +158,7 @@ pub(crate) struct TopologyDelta {
 impl TopologyDelta {
     /// Reserves an allocated node row, including nodes without incident edges.
     pub(crate) fn reserve_node(&mut self, base: &impl VersionedTopologyProvider, node: NodeRowId) {
-        if let Some(delta) = DeltaRowId::derive(base.provide_node_universe(), node) {
+        if let Some(delta) = DeltaRowId::derive(base.provide_node_domain(), node) {
             self.adjacency
                 .incoming
                 .extension
@@ -169,7 +173,7 @@ impl TopologyDelta {
 
     /// Reserves an allocated edge row before its endpoint pair is available.
     pub(crate) fn reserve_edge(&mut self, base: &impl VersionedTopologyProvider, edge: EdgeRowId) {
-        if let Some(delta) = DeltaRowId::derive(base.provide_edge_universe(), edge) {
+        if let Some(delta) = DeltaRowId::derive(base.provide_edge_domain(), edge) {
             self.endpoint.endpoints.fill_until(delta, || None);
         }
     }
@@ -189,7 +193,7 @@ impl TopologyDelta {
         endpoints: [NodeRowId; 2],
         revision: DeltaRevision,
     ) -> bool {
-        let origin = base.provide_edge_universe();
+        let origin = base.provide_edge_domain();
         let Some(delta) = DeltaRowId::derive(origin, edge) else {
             return self
                 .endpoint
@@ -207,7 +211,7 @@ impl TopologyDelta {
             .insert(delta, Versioned::new(endpoints, revision));
 
         let [source, target] = endpoints;
-        let nodes = base.provide_node_universe();
+        let nodes = base.provide_node_domain();
         self.adjacency.outgoing.insert(nodes, source, edge);
         self.adjacency.incoming.insert(nodes, target, edge);
 
@@ -225,7 +229,7 @@ impl TopologyDelta {
         edge: EdgeRowId,
         revision: DeltaRevision,
     ) -> bool {
-        let origin = base.provide_edge_universe();
+        let origin = base.provide_edge_domain();
         if let Some(delta) = DeltaRowId::derive(origin, edge) {
             let Some(Some(entry)) = self.endpoint.endpoints.get_mut(delta) else {
                 return false;

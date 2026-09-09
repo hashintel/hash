@@ -1,7 +1,7 @@
 use hashql_core::id::{Id, IdVec};
 
 use super::{
-    super::codec::{RowCodec, Universe},
+    super::codec::{RowCodec, RowDomain},
     OpenOptions,
 };
 use crate::serve2::codec::{EncodableId, EncodedRowId};
@@ -15,13 +15,13 @@ pub(crate) struct Encoding<I> {
 impl<I> Encoding<I> {
     pub(crate) fn open(
         OpenOptions { generation, secret }: OpenOptions<'_>,
-        universe: Universe<I>,
+        domain: RowDomain<I>,
     ) -> Self
     where
         I: EncodableId,
     {
         let codec = RowCodec::derive(secret.as_ref(), generation.id());
-        let lookup = IdVec::from_fn(universe.size(), |id| codec.encode(id));
+        let lookup = IdVec::from_fn(domain.size(), |id| codec.encode(id));
 
         Self { codec, lookup }
     }
@@ -37,10 +37,10 @@ impl<I> Encoding<I> {
         self.codec.encode(row)
     }
 
-    pub(super) fn decode(&self, wire: EncodedRowId<I>, universe: Universe<I>) -> Option<I>
+    pub(super) fn decode(&self, wire: EncodedRowId<I>, domain: RowDomain<I>) -> Option<I>
     where
         I: Id,
     {
-        self.codec.decode(wire, universe)
+        self.codec.decode(wire, domain)
     }
 }
