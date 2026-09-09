@@ -74,19 +74,35 @@ describe("buildObjectiveHistory", () => {
   });
 });
 
+describe("buildObjectiveHistory with feasibility", () => {
+  it("never lets an infeasible step become the best so far", () => {
+    const points = buildObjectiveHistory(
+      [trial(0, 3), trial(1, 9), trial(2, 5)],
+      "maximize",
+      (candidate) => (candidate.trial === 1 ? "infeasible" : "feasible"),
+    );
+    expect(points.map((point) => point.bestSoFar)).toEqual([3, 3, 5]);
+    expect(points.map((point) => point.feasibility)).toEqual([
+      "feasible",
+      "infeasible",
+      "feasible",
+    ]);
+    // The infeasible step keeps its own objective for the chart to draw.
+    expect(points[1]?.objective).toBe(9);
+  });
+});
+
 describe("toObjectiveHistoryData", () => {
   it("aligns steps, objectives and the best so far, with infeasible steps in their own series", () => {
     const points = buildObjectiveHistory(
       [trial(0, 3), trial(1, null, "pruned"), trial(2, 5)],
       "maximize",
+      (candidate) => (candidate.trial === 2 ? "infeasible" : "unknown"),
     );
-    const infeasible = points.map((point, index) =>
-      index === 2 ? { ...point, feasibility: "infeasible" as const } : point,
-    );
-    expect(toObjectiveHistoryData(infeasible)).toEqual([
+    expect(toObjectiveHistoryData(points)).toEqual([
       [1, 2, 3],
       [3, null, null],
-      [3, 3, 5],
+      [3, 3, 3],
       [null, null, 5],
     ]);
   });
