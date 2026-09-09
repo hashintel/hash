@@ -97,6 +97,20 @@ vi.mock("./optimization-surface", () => ({
   ),
 }));
 
+// uPlot cannot mount in jsdom; the card around the objective history is real.
+vi.mock("./study-view/objective-history-chart", async () => {
+  const chartCard = await vi.importActual<
+    typeof import("../shared/chart-card")
+  >("../shared/chart-card");
+  return {
+    ObjectiveHistoryCard: ({ plotHeight }: { plotHeight: number }) => (
+      <chartCard.ChartCard title="Objective by step" bodyHeight={plotHeight}>
+        <div data-testid="objective-history" />
+      </chartCard.ChartCard>
+    ),
+  };
+});
+
 // The timeline module pulls in uPlot, which jsdom cannot host; the card
 // chrome around the chart is real, so the menu and the subtitle are too.
 vi.mock("../experiments/experiment-metric-timeline", async () => {
@@ -201,9 +215,9 @@ describe("ViewOptimizationDrawer for a remote study", () => {
 
     expect(screen.getByText("Complete")).toBeTruthy();
     expect(screen.getByText("5 / 30")).toBeTruthy();
-    expect(screen.getByText("Best").nextElementSibling?.textContent).toBe(
-      formatObjective(best!.objective),
-    );
+    expect(
+      screen.getByText("Best step so far").nextElementSibling?.textContent,
+    ).toBe(formatObjective(best!.objective));
     expect(screen.getByText("Best parameters")).toBeTruthy();
     expect(screen.getByRole("table")).toBeTruthy();
     expect(screen.queryAllByRole("slider")).toHaveLength(0);
@@ -221,7 +235,9 @@ describe("ViewOptimizationDrawer for a remote study", () => {
       (candidate) => candidate.id === input.scenario.id,
     )!;
     expect(
-      screen.getByText(`${scenario.name} · Maximize ${metric.name}`),
+      screen.getByText(
+        `${input.name} · ${scenario.name} · Maximize ${metric.name}`,
+      ),
     ).toBeTruthy();
   });
 
@@ -301,13 +317,21 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     const timeline = screen.getByTestId("metric-timeline");
     expect(timeline.dataset.epoch).toBe("trial:2");
     expect(timeline.textContent).toContain("5 frames");
-    // The chart sits in a card titled after the metric, its view menu in the
-    // card header rather than a footer under the plot.
+    // The chart sits in a card that says which point it describes, the
+    // metric named in the subtitle and the view menu in the card header.
     const card = timeline.closest<HTMLElement>("[data-chart-card]")!;
+    expect(card.textContent).toContain("Objective at the step in flight");
     expect(card.textContent).toContain(
       input.model.definition.metrics![0]!.name,
     );
     expect(screen.getByRole("button", { name: "Chart options" })).toBeTruthy();
+    // The objective by step sits in its own card, and the header line names
+    // the best step so far.
+    expect(screen.getByText("Objective by step")).toBeTruthy();
+    expect(screen.getByText(/^Step 4 of 30 · best step so far/u)).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Open full view/u }),
+    ).toBeTruthy();
   });
 
   it("summarizes the study in one strip and stars the best step in the table", () => {
@@ -316,9 +340,9 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     expect(screen.queryByText("Best parameters")).toBeNull();
     expect(screen.getByText("Running")).toBeTruthy();
     expect(screen.getByText("3 / 30")).toBeTruthy();
-    expect(screen.getByText("Best").nextElementSibling?.textContent).toBe(
-      formatObjective(trials[2]!.best!.objective),
-    );
+    expect(
+      screen.getByText("Best step so far").nextElementSibling?.textContent,
+    ).toBe(formatObjective(trials[2]!.best!.objective));
     // The table lists the newest step first; the header row is row 1.
     const bestTrial = trials[2]!.best!.trial;
     const rows = trials.slice(0, 3).toReversed();
