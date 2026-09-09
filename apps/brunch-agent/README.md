@@ -16,7 +16,7 @@ A headless Mission 3 drive (simulated expert, same `ChatAgent` door):
 yarn workspace @apps/brunch-agent runbook:headless
 ```
 
-`ANTHROPIC_API_KEY` is required. `BRUNCH_CHAT_MODEL` selects the interviewer (default `claude-sonnet-4-5` for this script only). Artifacts write under `libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/` unless `BRUNCH_RUNBOOK_OUTPUT_DIR` is set.
+`ANTHROPIC_API_KEY` is required. `BRUNCH_CHAT_MODEL` selects the interviewer (default `claude-sonnet-4-5` for this script only). Artifacts write under `apps/brunch-agent/.data-wipe-me/evaluations/vestera-runbook-headless/` unless `BRUNCH_RUNBOOK_OUTPUT_DIR` is set. The command prints the resulting path. Do not promote that directory into the repository.
 
 By default outside production, conversations persist in SQLite at `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. Capture envelopes for one Flue conversation sit beside that sqlite file, named by the hashed instance id (`<instanceId>.json`). The hermetic browser-transport test uses `BRUNCH_CHAT_DB_PATH` and writes the capture file in that same directory. Flue history is the conversation log; the capture store is not a second transcript. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
 

@@ -49,7 +49,7 @@ Outside this stratum: unchanged repeat, changed input, deletion/retirement beyon
 
 ## Proposed Step B proof floor
 
-Run one or more genuine persona conversations on Vestera through the production agent using the operation classes admitted by Step A. Retain each under `docs/evidence/implementations/fe-1573-step-b/<run-id>`, reopen it through the fixture route selected by the materialization probe, and run the demo on one retained conversation.
+Run one or more genuine persona conversations on Vestera through the production agent using the operation classes admitted by Step A. Write each local run under `apps/brunch-agent/.data-wipe-me/evaluations/fe-1573-step-b/<run-id>`, reopen it through the fixture route selected by the materialization probe, and run the demo on one retained conversation. Promote only a fixture or one final adjudication if a named consumer requires it.
 
 The construction must represent multi-line eligibility, shared crew contention, asymmetric family changeovers, product/line restrictions, and unknowns without answer-key leakage. Every ordinary behaviour-affecting element and field in the final canonical document must resolve through the reopened authorized why operation to a useful current-state explanation. Correct refusal establishes safety only, not ordinary utility. The safety gate, behavioural discriminator, semantic review, blinded utility review, product review, migration/lifecycle checks, and typed/Voice/stopped-entry resume witness must pass.
 
@@ -101,7 +101,7 @@ B1, B2, and B3 may proceed in parallel only after the Step B amendment is commit
 
 ## Candidate evidence and exact oracles
 
-All run artefacts below live under `docs/evidence/implementations/fe-1573-step-b/<run-id>` unless an exact repository path is stated.
+All run artefacts below live under `apps/brunch-agent/.data-wipe-me/evaluations/fe-1573-step-b/<run-id>` unless an exact repository path is stated. Do not write complete run bundles into `docs/evidence/`.
 
 | Claim leaf | Candidate oracle |
 | --- | --- |
@@ -168,7 +168,7 @@ Tentative and subordinate to the observed Step A joins:
 ```text
 libs/@hashintel/brunch-agent/
 ├── MISSION.md                                                        ~ separate Step B authority amendment
-├── docs/evidence/implementations/fe-1573-step-b/                     + integrated runs and gates
+├── apps/brunch-agent/.data-wipe-me/evaluations/                      + ephemeral integrated runs
 ├── packages/core/src/                                                ~ B1 lineage/query/epoch closure
 ├── packages/core/src/client-tools.ts, src/_suspended/                - ask/sweep contract after gate
 ├── packages/plugin-sdcpn/src/tools/                                  ~ B1/B2 admitted classes, basis, locators

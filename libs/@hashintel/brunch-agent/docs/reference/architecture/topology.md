@@ -107,7 +107,7 @@ YAML repertoire, plugin-assurance-for-symmetry) are history in [ADR-0002](../../
   binding. Suspended code stays under `src/_suspended/` and is never mounted.
 - **Experiments.** Runners live under the consuming app, use the JS-API `observe()` pattern, and
   never enter `packages/`. Cases, oracles, and protocols stay in context-root `evaluations/`;
-  observed output stays under `docs/evidence/evaluations/`.
+  observed output stays under `apps/brunch-agent/.data-wipe-me/evaluations/`.
 - **Durable state.** Workpiece revisions settle in per-conversation state; Flue `history()` is
   the conversation log. Binding-owned storage ports may implement the session-log archive lane
   per deploy target; they must not revive capture envelopes as the document of record. File-path

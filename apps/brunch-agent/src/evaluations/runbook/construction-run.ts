@@ -50,15 +50,14 @@ const MAX_CLIENT_ROUNDS = Number(
 
 const irPath = fileURLToPath(
   new URL(
-    "../../../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/runbook-headless-2026-08-28T11-03-53-683Z.ir.md",
+    "../../../../../libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/filled-runbook.ir.md",
     import.meta.url,
   ),
 );
-const defaultOutputDirectory = fileURLToPath(
-  new URL(
-    "../../../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/",
-    import.meta.url,
-  ),
+const appRoot = fileURLToPath(new URL("../../..", import.meta.url));
+const defaultOutputDirectory = join(
+  appRoot,
+  ".data-wipe-me/evaluations/vestera-runbook-headless",
 );
 const outputDirectory =
   process.env.BRUNCH_RUNBOOK_OUTPUT_DIR ?? defaultOutputDirectory;
