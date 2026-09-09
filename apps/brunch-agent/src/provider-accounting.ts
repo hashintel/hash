@@ -3,7 +3,10 @@ import { dirname, isAbsolute, join } from "node:path";
 
 import * as v from "valibot";
 
-import { RequestLedger } from "./provider-accounting/request-ledger.ts";
+import {
+  RequestLedger,
+  type RequestIdentity,
+} from "./provider-accounting/request-ledger.ts";
 
 import type {
   Api,
@@ -24,6 +27,7 @@ const configSchema = v.strictObject({
 /** Explicit evidence configuration only. No configuration means no filesystem access. */
 export const createStepARequestAccounting = (
   configuration: string | undefined,
+  resolveIdentity?: () => RequestIdentity,
 ) => {
   if (configuration === undefined) return undefined;
   // Do not print an invalid configuration: it is an untrusted environment boundary.
@@ -55,15 +59,27 @@ export const createStepARequestAccounting = (
       next,
     );
 
-  const wrap = (provider: Provider, isActive: () => boolean): Provider => {
+  const wrap = (
+    provider: Provider,
+    isActive: () => boolean,
+    beforeRequest?: (
+      model: Parameters<Provider["streamSimple"]>[0],
+      options: StreamOptions | undefined,
+    ) => void,
+  ): Provider => {
     const start = (
       model: Parameters<Provider["streamSimple"]>[0],
       options: StreamOptions | undefined,
       invoke: (options: StreamOptions) => AssistantMessageEventStream,
     ) => {
+      beforeRequest?.(model, options);
       const execution = scope.getStore();
       const attempt = ledger.prepare(
-        execution?.modelOperation ? execution.context : undefined,
+        resolveIdentity
+          ? resolveIdentity()
+          : execution?.modelOperation
+            ? execution.context
+            : undefined,
         model,
       );
       if (options?.signal?.aborted) {
@@ -110,6 +126,7 @@ export const createStepARequestAccounting = (
             return replacement;
           },
           fetch: (input, init) => {
+            beforeRequest?.(model, options);
             if (options?.signal?.aborted)
               throw new Error(
                 "Step A accounting: cancelled before SDK dispatch.",

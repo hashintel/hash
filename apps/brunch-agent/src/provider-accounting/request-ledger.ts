@@ -5,6 +5,7 @@ import {
   openSync,
   readFileSync,
   renameSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
@@ -24,13 +25,23 @@ const id = v.pipe(
   v.maxLength(512),
   v.regex(/^[\w.:-]+$/),
 );
-const identitySchema = v.object({
+const flueIdentitySchema = v.object({
   instanceId: id,
   conversationId: id,
   submissionId: id,
   operationId: id,
   turnId: id,
 });
+const identitySchema = v.union([
+  flueIdentitySchema,
+  v.strictObject({ kind: v.literal("pi"), sessionId: id, requestId: id }),
+]);
+export type RequestIdentity = v.InferOutput<typeof identitySchema>;
+const identityKey = (identity: RequestIdentity) =>
+  "kind" in identity
+    ? `pi:${identity.sessionId}:${identity.requestId}`
+    : `flue:${identity.turnId}`;
+
 const usageSchema = v.object({
   input: count,
   output: count,
@@ -88,6 +99,7 @@ const ledgerSchema = v.looseObject({
     status: v.string(),
     calls: positiveCount,
     usd: amount,
+    acceptedUnknownSequences: v.optional(v.array(positiveCount)),
     perCall: v.optional(
       v.object({ maxOutputTokens: positiveCount, reservedUsd: amount }),
     ),
@@ -128,6 +140,12 @@ const validateUsage = (usage: AssistantMessage["usage"]) => {
     fail();
   return parsed;
 };
+const holdUsd = (call: Call) =>
+  Math.max(
+    call.reservedUsd,
+    call.usage?.cost.total ?? 0,
+    call.partialUsage?.cost.total ?? 0,
+  );
 const totalsFrom = (ledger: Ledger) => {
   const spentCalls = ledger.calls.filter(
     (call) => call.status !== "not-started",
@@ -145,20 +163,15 @@ const totalsFrom = (ledger: Ledger) => {
     remainingUsd: ledger.limits.usd - spentUsd,
     outstandingReservedCalls: unresolved.length,
     outstandingReservedUsd: unresolved.reduce(
-      (sum, call) =>
-        sum +
-        Math.max(
-          call.reservedUsd,
-          call.usage?.cost.total ?? 0,
-          call.partialUsage?.cost.total ?? 0,
-        ),
+      (sum, call) => sum + holdUsd(call),
       0,
     ),
   };
 };
 
-/** Single-process, single-writer evidence ledger. JSON is authority; Markdown is its attempt journal.
- * No lock/concurrency service, invoice claim, content telemetry or second production store.
+/** One evidence authority shared by the app and persona processes. Each synchronous
+ * transaction owns an exclusive file guard; contention/stale guards stop, never retry or steal.
+ * JSON is authority; Markdown is its attempt journal, not a second production store.
  */
 export class RequestLedger {
   #poisoned = false;
@@ -170,6 +183,27 @@ export class RequestLedger {
 
   poison() {
     this.#poisoned = true;
+  }
+
+  #transaction<T>(operation: () => T): T {
+    if (this.#poisoned) fail();
+    const lockPath = `${this.path}.lock`;
+    let descriptor: number;
+    try {
+      descriptor = openSync(lockPath, "wx", 0o600);
+    } catch {
+      this.poison();
+      return fail();
+    }
+    try {
+      return operation();
+    } catch (error) {
+      this.poison();
+      throw error;
+    } finally {
+      closeSync(descriptor);
+      unlinkSync(lockPath);
+    }
   }
 
   #read() {
@@ -208,6 +242,17 @@ export class RequestLedger {
               !call.inputTokenCeiling ||
               (call.status === "complete" && !call.terminal) ||
               (call.status === "not-started" && call.transport === "started")),
+      )
+    )
+      fail();
+    const accepted = ledger.reservation.acceptedUnknownSequences ?? [];
+    if (
+      new Set(accepted).size !== accepted.length ||
+      accepted.some(
+        (sequence) =>
+          !ledger.calls.some(
+            (call) => call.sequence === sequence && call.status === "unknown",
+          ),
       )
     )
       fail();
@@ -253,7 +298,7 @@ export class RequestLedger {
     try {
       writeFileSync(
         journal,
-        `\n- Request accounting v1: run ${call.runId}, sequence ${call.sequence}, turn ${call.identity?.turnId}, ${call.status}, invocation ${call.invocation}, reserved USD ${call.reservedUsd}, catalogue estimate USD ${call.actualUsd ?? "unknown"}. JSON usage-ledger.json is authoritative.\n`,
+        `\n- Request accounting v1: run ${call.runId}, sequence ${call.sequence}, request ${call.identity ? identityKey(call.identity) : "missing"}, ${call.status}, invocation ${call.invocation}, reserved USD ${call.reservedUsd}, catalogue estimate USD ${call.actualUsd ?? "unknown"}. JSON usage-ledger.json is authoritative.\n`,
       );
       fsyncSync(journal);
     } finally {
@@ -263,7 +308,17 @@ export class RequestLedger {
     replace();
   }
 
-  prepare(context: FlueExecutionContext | undefined, model: Model<Api>) {
+  prepare(
+    context: FlueExecutionContext | RequestIdentity | undefined,
+    model: Model<Api>,
+  ) {
+    return this.#transaction(() => this.#prepare(context, model));
+  }
+
+  #prepare(
+    context: FlueExecutionContext | RequestIdentity | undefined,
+    model: Model<Api>,
+  ) {
     let identity: v.InferOutput<typeof identitySchema>;
     try {
       identity = v.parse(identitySchema, context);
@@ -283,8 +338,15 @@ export class RequestLedger {
       !Number.isSafeInteger(model.contextWindow) ||
       model.contextWindow <= 0 ||
       bounds.maxOutputTokens > model.maxTokens ||
-      ledger.calls.some((call) => call.status === "unknown") ||
-      ledger.calls.some((call) => call.identity?.turnId === identity.turnId)
+      ledger.calls.some(
+        (call) =>
+          call.status === "unknown" &&
+          !(reservation.acceptedUnknownSequences ?? []).includes(call.sequence),
+      ) ||
+      ledger.calls.some(
+        (call) =>
+          call.identity && identityKey(call.identity) === identityKey(identity),
+      )
     )
       fail();
     // Before tokenization there is no exact input count. Reserve the model's
@@ -301,19 +363,35 @@ export class RequestLedger {
     const runCalls = ledger.calls.filter(
       (call) => call.runId === this.runId && call.status !== "not-started",
     );
+    const acceptedPriorHold = ledger.calls
+      .filter(
+        (call) =>
+          call.status === "unknown" &&
+          call.runId !== this.runId &&
+          (reservation.acceptedUnknownSequences ?? []).includes(call.sequence),
+      )
+      .reduce((sum, call) => sum + holdUsd(call), 0);
     if (
       !Number.isFinite(worstUsd) ||
       worstUsd <= 0 ||
       bounds.reservedUsd < worstUsd ||
       runCalls.length >= reservation.calls ||
       runCalls.reduce(
-        (sum, call) => sum + (call.actualUsd ?? call.reservedUsd),
+        (sum, call) =>
+          sum +
+          (call.status === "unknown"
+            ? holdUsd(call)
+            : (call.actualUsd ?? call.reservedUsd)),
         0,
       ) +
+        acceptedPriorHold +
         bounds.reservedUsd >
         reservation.usd ||
       ledger.totals.spentCalls >= ledger.limits.calls ||
-      ledger.totals.spentUsd + bounds.reservedUsd > ledger.limits.usd
+      ledger.totals.spentUsd +
+        ledger.totals.outstandingReservedUsd +
+        bounds.reservedUsd >
+        ledger.limits.usd
     )
       fail();
     // Verify the existing attempt journal exists before introducing a row.
@@ -326,7 +404,8 @@ export class RequestLedger {
       identity,
       provider: "anthropic",
       model: "claude-sonnet-4-6",
-      status: "not-started",
+      // Reserve atomically before releasing the transaction, even before started().
+      status: "unknown",
       invocation: "not-started",
       transport: "not-started",
       reservedUsd: bounds.reservedUsd,
@@ -337,16 +416,21 @@ export class RequestLedger {
     this.#save(ledger, call);
     const update = (change: (current: Call) => void) => {
       try {
-        const currentLedger = this.#read();
-        const current = currentLedger.calls.find(
-          (entry) => entry.sequence === call.sequence,
-        );
-        if (!current || current.identity?.turnId !== identity.turnId)
-          return fail();
-        const before = JSON.stringify(current);
-        change(current);
-        if (JSON.stringify(current) !== before)
-          this.#save(currentLedger, current);
+        this.#transaction(() => {
+          const currentLedger = this.#read();
+          const current = currentLedger.calls.find(
+            (entry) => entry.sequence === call.sequence,
+          );
+          if (
+            !current?.identity ||
+            identityKey(current.identity) !== identityKey(identity)
+          )
+            return fail();
+          const before = JSON.stringify(current);
+          change(current);
+          if (JSON.stringify(current) !== before)
+            this.#save(currentLedger, current);
+        });
       } catch {
         this.poison();
         throw new Error(

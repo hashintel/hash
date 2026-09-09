@@ -2,6 +2,7 @@
  * synthetic HTTPS socket events at the real-mode pinned transport boundary. */
 /* eslint-disable no-await-in-loop -- One disposable ledger and built runtime, deliberately serial. */
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import https from "node:https";
@@ -19,6 +20,53 @@ import {
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { pinnedNativeRequest } from "../src/evaluations/real-provider-a5/transport.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+
+const controls = [
+  "late-one-hour",
+  "late-one-hour-decrease",
+  "initial-partition-mismatch",
+  "late-partition-mismatch",
+  "input-loss",
+  "complete-initial-one-hour",
+  "complete-initial-five-minute",
+  "complete-initial-mixed",
+  "complete-late-five-minute",
+  "complete-supported-update",
+  "complete-input-reclassification",
+  "complete-mixed-nullable",
+  "missing-terminal-usage",
+  "created-missing-terminal",
+  "missing-output",
+  "null-output",
+  "string-output",
+  "negative-output",
+  "fraction-output",
+  "regressed-output",
+  "missing-stop",
+  "incoming-retention-error",
+  "outgoing-retention-error",
+  "complete",
+  "complete-multiline",
+] as const;
+const selectedControl = process.argv[2];
+if (selectedControl === undefined) {
+  // Built registration owns a module-scoped ledger. An expected refusal poisons
+  // that instance even if its synthetic file is reset. Isolate controls, not the
+  // two submissions within each control: those must share the same stop state.
+  for (const control of controls) {
+    const result = spawnSync(
+      process.execPath,
+      ["--experimental-strip-types", import.meta.filename, control],
+      { encoding: "utf8", timeout: 30_000, maxBuffer: 8 * 1024 * 1024 },
+    );
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 0, `${control}: ${result.stderr}`);
+    assert(result.stdout.includes('"passed":true'));
+    process.stdout.write(result.stdout);
+  }
+  process.exit(0);
+}
+assert(controls.some((control) => control === selectedControl));
 
 const directory = mkdtempSync(join(tmpdir(), "TEST-a5-terminal-"));
 const path = join(directory, "TEST-usage-ledger.json");
@@ -314,33 +362,7 @@ const submit = async () => {
 };
 const outcomes: unknown[] = [];
 try {
-  for (const control of [
-    "late-one-hour",
-    "late-one-hour-decrease",
-    "initial-partition-mismatch",
-    "late-partition-mismatch",
-    "input-loss",
-    "complete-initial-one-hour",
-    "complete-initial-five-minute",
-    "complete-initial-mixed",
-    "complete-late-five-minute",
-    "complete-supported-update",
-    "complete-input-reclassification",
-    "complete-mixed-nullable",
-    "missing-terminal-usage",
-    "created-missing-terminal",
-    "missing-output",
-    "null-output",
-    "string-output",
-    "negative-output",
-    "fraction-output",
-    "regressed-output",
-    "missing-stop",
-    "incoming-retention-error",
-    "outgoing-retention-error",
-    "complete",
-    "complete-multiline",
-  ] as const) {
+  for (const control of controls.filter((entry) => entry === selectedControl)) {
     scenario = control;
     reset();
     const before = dispatches;

@@ -163,6 +163,49 @@ Browser attachment is currently workpiece-only. External pending client tools re
 
 `test/persona-browser.integration.ts` exercises this exact extension registration/configuration and input seam against the built mounted ChatAgent and real Chrome, with synthetic provider substitution, two source-linked workpiece revisions, identity/binding/UID negatives and normal UI continuation. It does not run a persona model or earn persona fidelity, semantic, utility or PM acceptance.
 
+## Accountable two-participant launch
+
+The app and persona share the **same original** `BRUNCH_STEP_A_ACCOUNTING` JSON configuration (`{"ledgerPath":"/absolute/original/usage-ledger.json","runId":"fresh-run-id"}`). The parent alone prepares the allocation. Do not copy the ledger or reuse an old activation. This also accounts for the browser's initialization opening and subsequent ordinary UI continuation while the configured server remains running.
+
+The existing native provider wrapper is reused by the persona through public `pi.registerProvider(provider)`. App rows retain their Flue identity; persona rows contain `{kind:"pi",sessionId,requestId}`, using the actual Pi session ID and a fresh ID for each underlying native request. Pi's ordinary replies, tool continuations and native compaction use its model-runtime stream path; changing a summary's routing session ID does not change the owning Pi session. The wrapper observes both `stream` and `streamSimple`, caps output against the allocation, disables SDK retries, and accounts beneath admission. No model-callable accounting tool or second ledger is introduced.
+
+Each ledger read–modify–write transaction exclusively creates `<ledgerPath>.lock`. Contention or a stale guard stops that process; it never waits, retries or steals the guard. The guard is released only by its owning transaction. A crash can leave it behind for parent investigation. Existing `journalPending` uncertainty remains a stop even if the guard is subsequently removed by an authorized operator. The initial row reserves as unknown before releasing the transaction, avoiding an unreserved interval between preparation and invocation. This is local coordinated access, not a remote-filesystem or power-loss guarantee.
+
+An allocation may contain `reservation.acceptedUnknownSequences`, an explicit, unique list of existing unknown rows accepted by the parent. The original rows remain unknown and unchanged. Their hold is `max(reservedUsd, observed usage cost, observed partial-usage cost)`. All outstanding holds subtract from the global ceiling; accepted prior-run holds also subtract from this run's allocation, while same-run holds are counted once among this run's requests. The historical `totals.remainingUsd` continues to mean ceiling minus confirmed catalogue spend, **before** outstanding holds. A newly unknown request, journal uncertainty, nonexistent acceptance entry or exhausted allocation still stops dispatch. Only the parent may authorize sequence 6; tests exercise disposable synthetic rows instead.
+
+Provision a **fresh**, private Pi configuration directory, not a copied config/auth/catalog directory. Inherit only the intended process credential from the parent; never put a key in argv, a prompt, evidence, or `--api-key`. Do not use `/login`, switch providers, reload configuration, or resume another Pi session during the run. Pi's stored/OAuth credentials precede environment credentials, so the fresh directory is required **before CLI startup**, not merely before inference. The extension checks that no saved credentials or model overrides are present, automatic/provider retries are disabled, and the public native auth resolver selected the intended process `ANTHROPIC_API_KEY`. It checks the resolved request key, exact model/API and native base URL again before invocation and dispatch. Pi may itself create an empty `auth.json` and an offline `models-store.json`; neither should be provisioned from an existing directory. Configuration checks do not authenticate a key remotely.
+
+After parent review/allocation, start `yarn dev:brunch` with `BRUNCH_CHAT_MODEL=claude-sonnet-4-6` and the shared accounting configuration in the intended key-bearing environment. Capture the actual initialized browser session privately as above. From `apps/brunch-agent`, the persona launch is:
+
+```sh
+# ANTHROPIC_API_KEY is already inherited from the parent's intended source.
+# BRUNCH_STEP_A_ACCOUNTING is already set to the original ledger and fresh run ID.
+# Remove unintended auth-token/base-URL/proxy/DEBUG overrides before launching.
+umask 077
+personaConfig="$(mktemp -d "${TMPDIR:-/tmp}/brunch-persona.XXXXXX")"
+printf '%s\n' '{"retry":{"enabled":false,"provider":{"maxRetries":0}}}' > "$personaConfig/settings.json"
+export PI_CODING_AGENT_DIR="$personaConfig" PI_OFFLINE=1 PI_TELEMETRY=0
+PI_SUBAGENT_NAME=<fresh-persona-name> pi \
+  --model anthropic/claude-sonnet-4-6 --thinking medium \
+  --no-extensions --extension .pi/extensions/brunch-persona-testing.ts \
+  --no-builtin-tools --tools brunch_turn \
+  --no-skills --no-prompt-templates --no-context-files \
+  --append-system-prompt .pi/extensions/brunch-persona-testing/SYSTEM.md \
+  --brunch-browser-session /absolute/private/session.json \
+  --brunch-tool-host none \
+  --brunch-evidence-dir /absolute/run-evidence-directory \
+  --session-dir "$personaConfig/sessions" \
+  --no-approve
+```
+
+Supply the approved context pack and objective privately in Pi's input; do not grant a file-reading tool. `--no-approve` excludes project settings; the explicitly selected extension and system policy still load. `PI_OFFLINE=1` prevents startup network operations, **not inference**. Retain the private native Pi session alongside the operator-owned evidence; the Pi session is not another spend authority. Host `none` remains workpiece-only and stops on external client-tool requests.
+
+Verification: `test/provider-accounting.test.ts` exercises prior-unknown hold arithmetic, unchanged rows, new-unknown refusal, existing journal crash behavior, and actual two-process transaction contention/stale-guard refusal. `test/persona-request-accounting.test.ts` exercises the registered native provider against synthetic SSE responses, both stream entrypoints, distinct Pi request identities and credential/model refusal. These tests do not claim an actual persona conversation or an exercised CLI compaction. A restricted installed-Pi CLI load/configuration probe, under OS network denial with an intentionally absent disposable ledger, reached `Step A accounting refused` before native invocation; no extension/configuration error or ledger creation occurred.
+
+**First-use stop condition:** installed ChatAgent split-turn compaction starts two summaries concurrently. The second reservation sees the first in-flight unknown, refuses and poisons that ledger instance; the first request then remains unknown with its hold retained. Independent synthetic execution of native Flue compaction reproduced this. The first serial elicitation may proceed with this explicit fail-stop limit; usable split compaction is not claimed. Stop and inspect if it occurs—do not retry, clear the hold or automatically accept the new unknown. Do not overlap ordinary UI submissions with the persona either. Pi's own split summaries are sequential, but actual CLI compaction remains unexercised.
+
+**Usage limit:** this join records Pi's normalized usage and native response identity when present, with catalogue estimates—not invoices or universal raw terminal attestation. The old `real-provider-a5/native-response.ts` attester accepts a complete buffered SSE body and is called by that instrument's buffered transport before releasing bytes to Pi. It is not directly a streaming accounting hook; applying it here would require response buffering/transport work, which this join does not add. Its stricter raw-gated claims remain confined to that old instrument.
+
 ## Rejected alternatives and limits
 
 - A nested `persona → elicitor subagent` topology, because it duplicates elicitor authority and bypasses the real boundary.

@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import {
   mkdtempSync,
   mkdirSync,
@@ -17,6 +18,7 @@ import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { afterEach, expect, test } from "vitest";
 
 import { createStepARequestAccounting } from "../src/provider-accounting.ts";
+import { RequestLedger } from "../src/provider-accounting/request-ledger.ts";
 import { withBufferedToolAdmission } from "../src/provider-admission.ts";
 
 const native: Provider = anthropicProvider();
@@ -537,4 +539,214 @@ test("historical five-call authority is compatible only in a disposable copy; pr
   expect(fixture.read().totals.spentCalls).toBe(6);
   expect(fixture.read().totals.spentUsd).toBeCloseTo(0.09158535, 12);
   expect(readFileSync(path, "utf8")).toBe(original);
+});
+
+const piIdentity = {
+  kind: "pi" as const,
+  sessionId: "TEST-pi-session",
+  requestId: "TEST-pi-request",
+};
+
+for (const sameRun of [false, true]) {
+  for (const ceiling of ["global", "run"] as const) {
+    test(`accepted unknown preserves its hold against ${ceiling}, same run=${sameRun}`, async () => {
+      const fixture = setup();
+      fixture.respond({ ...complete, stopReason: "error" });
+      await fixture.run(async () => {
+        await fixture.metered
+          .streamSimple(model, { messages: [] }, fixture.options)
+          .result();
+      });
+      const prior = fixture.read();
+      const original = structuredClone(prior.calls[0]);
+      const runId = sameRun ? "TEST-run" : "TEST-new-run";
+      const allocated = {
+        ...prior,
+        reservation: {
+          ...prior.reservation,
+          runId,
+          calls: 4,
+          usd: 13,
+          acceptedUnknownSequences: [1],
+        },
+      };
+      if (ceiling === "global") {
+        allocated.reservation.usd = 30;
+        allocated.limits.usd = 13;
+        allocated.totals.remainingUsd = 13;
+      }
+      writeFileSync(fixture.ledgerPath, JSON.stringify(allocated));
+      const ledger = () =>
+        new RequestLedger(
+          fixture.ledgerPath,
+          join(fixture.directory, "attempt-ledger.md"),
+          runId,
+        );
+      expect(() => ledger().prepare(piIdentity, model)).toThrow(
+        /accounting refused/,
+      );
+      expect(fixture.read().calls[0]).toEqual(original);
+      allocated.reservation.usd = 14;
+      allocated.limits.usd = 100;
+      allocated.totals.remainingUsd = 100;
+      writeFileSync(fixture.ledgerPath, JSON.stringify(allocated));
+      const request = ledger().prepare(piIdentity, model);
+      expect(fixture.read().calls.at(-1)).toMatchObject({
+        identity: piIdentity,
+        status: "unknown",
+      });
+      expect(fixture.read().totals.outstandingReservedUsd).toBe(14);
+      // The new unknown is not admitted by acceptance of the prior sequence.
+      expect(() =>
+        ledger().prepare({ ...piIdentity, requestId: "TEST-next" }, model),
+      ).toThrow(/accounting refused/);
+      request.notStarted();
+      expect(fixture.read().calls[0]).toEqual(original);
+      expect(fixture.read().totals.outstandingReservedUsd).toBe(7);
+    });
+  }
+}
+
+test("acceptance cannot name future rows or duplicates", () => {
+  for (const sequences of [[1], [1, 1]]) {
+    const fixture = setup();
+    writeFileSync(
+      fixture.ledgerPath,
+      JSON.stringify({
+        ...fixture.ledger,
+        reservation: {
+          ...fixture.ledger.reservation,
+          acceptedUnknownSequences: sequences,
+        },
+      }),
+    );
+    const ledger = new RequestLedger(
+      fixture.ledgerPath,
+      join(fixture.directory, "attempt-ledger.md"),
+      "TEST-run",
+    );
+    expect(() => ledger.prepare(piIdentity, model)).toThrow(
+      /accounting refused/,
+    );
+    expect(fixture.read().calls).toHaveLength(0);
+  }
+});
+
+test("accepted unknown uses the larger observed hold and never waives journalPending", () => {
+  const fixture = setup();
+  const makeLedger = () =>
+    new RequestLedger(
+      fixture.ledgerPath,
+      join(fixture.directory, "attempt-ledger.md"),
+      "TEST-run",
+    );
+  const request = makeLedger().prepare(piIdentity, model);
+  request.started();
+  request.dispatched();
+  const partial = structuredClone(complete);
+  partial.usage.cost.input = 9;
+  partial.usage.cost.total = 9.00015;
+  request.partial(partial);
+  const prior = fixture.read();
+  const allocated = {
+    ...prior,
+    reservation: {
+      ...prior.reservation,
+      acceptedUnknownSequences: [1],
+      usd: 16,
+    },
+  };
+  writeFileSync(fixture.ledgerPath, JSON.stringify(allocated));
+  expect(() =>
+    makeLedger().prepare({ ...piIdentity, requestId: "TEST-next" }, model),
+  ).toThrow(/accounting refused/);
+  expect(fixture.read().totals.outstandingReservedUsd).toBe(9.00015);
+  allocated.reservation.usd = 17;
+  const first = allocated.calls[0];
+  if (!first) throw new Error("TEST missing prior request");
+  first.journalPending = true;
+  writeFileSync(fixture.ledgerPath, JSON.stringify(allocated));
+  expect(() =>
+    makeLedger().prepare({ ...piIdentity, requestId: "TEST-next" }, model),
+  ).toThrow(/accounting refused/);
+  expect(fixture.read().calls).toEqual(allocated.calls);
+});
+
+test("two real processes cannot interleave ledger transactions; a stale guard is never stolen", async () => {
+  const fixture = setup();
+  const source = new URL(
+    "../src/provider-accounting/request-ledger.ts",
+    import.meta.url,
+  ).href;
+  // Child pauses inside the real transaction's read. This is test-only scheduling,
+  // not an alternate ledger implementation or a provider invocation.
+  const child = spawn(
+    process.execPath,
+    [
+      "--experimental-transform-types",
+      "--input-type=module",
+      "-e",
+      `
+    import fs from 'node:fs';
+    import { syncBuiltinESMExports } from 'node:module';
+    import { RequestLedger } from ${JSON.stringify(source)};
+    const read = fs.readFileSync;
+    let paused = false;
+    fs.readFileSync = (...args) => {
+      if (args[0] === process.argv[1] && !paused) {
+        paused = true;
+        process.stdout.write('LOCKED\\n');
+        read(0, 'utf8'); // Parent releases this real transaction through stdin EOF.
+      }
+      return read(...args);
+    };
+    syncBuiltinESMExports();
+    const ledger = new RequestLedger(process.argv[1], process.argv[2], 'TEST-run');
+    ledger.prepare(${JSON.stringify(piIdentity)}, ${JSON.stringify(model)}).notStarted();
+  `,
+      fixture.ledgerPath,
+      join(fixture.directory, "attempt-ledger.md"),
+    ],
+    { stdio: ["pipe", "pipe", "pipe"] },
+  );
+  let stderr = "";
+  child.stderr.on("data", (chunk: Buffer) => {
+    stderr += chunk.toString();
+  });
+  const exited = new Promise<number | null>((resolve, reject) => {
+    child.once("error", reject);
+    child.once("exit", resolve);
+  });
+  await new Promise<void>((resolve, reject) => {
+    child.stdout.once("data", () => resolve());
+    child.once("exit", () =>
+      reject(new Error(`Child exited before transaction: ${stderr}`)),
+    );
+  });
+  const ledger = () =>
+    new RequestLedger(
+      fixture.ledgerPath,
+      join(fixture.directory, "attempt-ledger.md"),
+      "TEST-run",
+    );
+  try {
+    expect(() =>
+      ledger().prepare({ ...piIdentity, requestId: "TEST-parent" }, model),
+    ).toThrow(/accounting refused/);
+  } finally {
+    child.stdin.end();
+  }
+  expect(await exited, stderr).toBe(0);
+  expect(fixture.read().calls).toHaveLength(1);
+  ledger()
+    .prepare({ ...piIdentity, requestId: "TEST-parent" }, model)
+    .notStarted();
+  expect(fixture.read().calls).toHaveLength(2);
+  writeFileSync(`${fixture.ledgerPath}.lock`, "TEST stale owner");
+  expect(() =>
+    ledger().prepare({ ...piIdentity, requestId: "TEST-stale" }, model),
+  ).toThrow(/accounting refused/);
+  expect(readFileSync(`${fixture.ledgerPath}.lock`, "utf8")).toBe(
+    "TEST stale owner",
+  );
 });

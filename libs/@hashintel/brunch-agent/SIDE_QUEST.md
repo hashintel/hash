@@ -2,7 +2,7 @@
 
 ## Status
 
-Suspended while the owner-authorized Postgres fixture-delivery side quest in [`MISSION.md`](MISSION.md#current-bounded-side-quest--postgres-fixture-delivery) executes. This remediation is not completed and grants no concurrent work. Its remaining guidance obligations are retained below; resume only after an explicit priority decision.
+Suspended while [`MISSION.md`](MISSION.md#product-results-and-execution-graph) resumes useful persona elicitation after checkpointing the Postgres/template investigation. This remediation is not completed and grants no concurrent work. Its remaining guidance obligations are retained below; resume only after an explicit priority decision.
 
 ## Relationship to the live mission
 

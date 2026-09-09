@@ -23,9 +23,16 @@ import {
   TOOL_HOST_FLAG,
 } from "../../src/evaluations/persona/client-tool-hosts.ts";
 import { writeProofArtifacts } from "../../src/evaluations/persona/proof-artifacts.ts";
+import {
+  registerPersonaAccounting,
+  type PersonaAccountingContext,
+} from "../../src/evaluations/persona/request-accounting.ts";
+
+import type { Provider } from "@earendil-works/pi-ai";
 
 /** The slice of Pi's extension API this entry needs; Pi itself is not a workspace dependency. */
 interface BrunchPersonaExtensionApi extends BrunchTurnExtensionApi {
+  registerProvider(provider: Provider): void;
   registerFlag(
     name: string,
     options: {
@@ -37,7 +44,10 @@ interface BrunchPersonaExtensionApi extends BrunchTurnExtensionApi {
   getFlag(name: string): boolean | string | undefined;
   on(
     event: "session_start" | "session_shutdown",
-    handler: () => void | Promise<void>,
+    handler: (
+      event: unknown,
+      context: PersonaAccountingContext,
+    ) => void | Promise<void>,
   ): void;
 }
 
@@ -88,6 +98,7 @@ const createConfiguredClientToolHost = (
 export default async function brunchPersonaTestingExtension(
   pi: BrunchPersonaExtensionApi,
 ): Promise<void> {
+  registerPersonaAccounting(pi);
   pi.registerFlag(TOOL_HOST_FLAG, {
     type: "string",
     default: "none",

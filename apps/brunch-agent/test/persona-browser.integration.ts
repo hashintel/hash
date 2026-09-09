@@ -212,6 +212,11 @@ try {
   let persona: BrunchTurnTool | undefined;
   const hooks: (() => void | Promise<void>)[] = [];
   await brunchPersonaTestingExtension({
+    registerProvider: () => {
+      throw new Error(
+        "Synthetic browser join must not register a live provider",
+      );
+    },
     registerFlag: () => {},
     getFlag: (name) =>
       name === "brunch-browser-session"
@@ -221,7 +226,14 @@ try {
       persona = tool;
     },
     on: (event, handler) => {
-      if (event === "session_start") hooks.push(handler);
+      if (event === "session_start")
+        hooks.push(() =>
+          handler(undefined, {
+            model: undefined,
+            sessionManager: { getSessionId: () => "TEST-browser-join" },
+            modelRegistry: { getProviderAuth: async () => undefined },
+          }),
+        );
     },
   });
   for (const hook of hooks) await hook();
