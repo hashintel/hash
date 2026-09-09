@@ -139,13 +139,14 @@ const statsRowStyle = css({
   whiteSpace: "nowrap",
 });
 
+// The bar is the header's bottom edge: nothing else draws a rule under it.
 const progressTrackStyle = css({
   position: "absolute",
   left: "[0]",
   right: "[0]",
   bottom: "[0]",
-  height: "[3px]",
-  backgroundColor: "neutral.s30",
+  height: "[2px]",
+  backgroundColor: "neutral.s20",
 });
 
 const progressFillStyle = css({
@@ -178,9 +179,12 @@ const statStyle = css({
     borderLeftColor: "neutral.bd.subtle",
   },
   "&[data-align=end]": { alignItems: "flex-end" },
+  // A compact chip is as tall as the title line, so the chips sit on the
+  // title's centre line rather than at the top of the row.
   "&[data-density=compact]": {
     flexDirection: "row",
     alignItems: "center",
+    height: "[24px]",
     padding: "[0]",
   },
   "&[data-trailing=true]": { marginLeft: "auto" },

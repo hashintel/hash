@@ -68,10 +68,8 @@ const sectionFrameStyle = css({
   backgroundColor: "neutral.s00",
 });
 
+// The frame header's progress bar is the section header's bottom edge.
 const sectionHeaderStyle = css({
-  borderBottomWidth: "[1px]",
-  borderBottomStyle: "solid",
-  borderBottomColor: "neutral.s40",
   flexShrink: "0",
 });
 
@@ -88,12 +86,13 @@ const sectionFooterStyle = css({
   borderTopColor: "neutral.s40",
 });
 
-// The ds header's own padding goes; the frame header brings its own and sets
-// its height. The close button the ds header draws floats over the frame
-// header's right gutter.
+// The ds header's own padding and bottom rule go; the frame header brings
+// its own padding and its progress bar is the bottom edge. The close button
+// the ds header draws floats over the frame header's right gutter.
 const drawerHeaderStyle = css({
   display: "block",
   padding: "[0 !important]",
+  borderBottomWidth: "[0 !important]",
   position: "relative",
   "& > div:first-child": { minWidth: "[0]" },
   "& > button": {
