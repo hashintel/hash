@@ -10,7 +10,7 @@ pub use self::{
     postgres::{
         AsClient, BeginReadOnlyTransaction, EntityDeletion, EntityEnd, EntityEvent,
         EntityEventStream, EntityUpdate, GenericClientIter, InTransaction, IsolationLevel,
-        NoTransaction, PostgresStore, PostgresStorePool, PostgresStoreSettings,
+        NoTransaction, PooledConnection, PostgresStore, PostgresStorePool, PostgresStoreSettings,
         PostgresStoreTransactionBuilder, SemanticSearchSettings, TransactionOptions,
         TransactionState,
     },

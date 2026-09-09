@@ -45,7 +45,6 @@ pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), Report<GraphErr
         NoTls,
         PostgresStoreSettings::default(),
     )
-    .await
     .change_context(GraphError)
     .map_err(|report| {
         tracing::error!(error = ?report, "Failed to connect to database");

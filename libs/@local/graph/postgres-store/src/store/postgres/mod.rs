@@ -1,3 +1,5 @@
+pub mod connection;
+
 mod crud;
 pub(crate) mod knowledge;
 mod migration;
@@ -83,7 +85,7 @@ pub use self::{
     },
     pool::{
         AsClient, GenericClientIter, InTransaction, IsolationLevel, NoTransaction,
-        PostgresStorePool, TransactionOptions, TransactionState,
+        PooledConnection, PostgresStorePool, TransactionOptions, TransactionState,
     },
     traversal_context::TraversalContext,
 };

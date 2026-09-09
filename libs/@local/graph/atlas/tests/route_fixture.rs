@@ -342,7 +342,7 @@ fn fixture_actor() -> String {
 /// The delta consumer stays off, because every claim here is about the change under test and never
 /// about live store state. Rate limiting observes, because a oneshot request carries no connection
 /// info for the per-address key.
-async fn served_router() -> axum::Router {
+fn served_router() -> axum::Router {
     let store = |name: &str, fallback: &str| {
         std::env::var(format!("HASH_GRAPH_PG_{name}")).unwrap_or_else(|_| fallback.to_owned())
     };
@@ -360,7 +360,6 @@ async fn served_router() -> axum::Router {
         NoTls,
         PostgresStoreSettings::default(),
     )
-    .await
     .expect("the store the HASH_GRAPH_PG_* environment names is reachable");
 
     let invocation = Invocation::parse_from(["route-fixture", "--no-delta"]);
@@ -399,7 +398,7 @@ async fn routes_refuse_without_actor() {
         return;
     }
     let actor = fixture_actor();
-    let router = served_router().await;
+    let router = served_router();
 
     let (status, _, body) = send(
         &router,
@@ -516,7 +515,7 @@ async fn route_served_scoped_tile_fixture() {
         "ATLAS_ROUTE_FIXTURE selects capture or verify, not {mode:?}",
     );
     let actor = fixture_actor();
-    let router = served_router().await;
+    let router = served_router();
 
     // The generation under serve, from the route that names it.
     let (status, _, body) = send(

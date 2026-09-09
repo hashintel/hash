@@ -114,7 +114,6 @@ impl StoreWrapper {
             NoTls,
             PostgresStoreSettings::default(),
         )
-        .await
         .expect("could not connect to database");
 
         // Create a new connection to the source database, copy the database, drop the connection
@@ -206,7 +205,6 @@ impl StoreWrapper {
                 NoTls,
                 PostgresStoreSettings::default(),
             )
-            .await
             .expect("could not connect to database");
 
             db_pool
@@ -224,7 +222,6 @@ impl StoreWrapper {
             NoTls,
             PostgresStoreSettings::default(),
         )
-        .await
         .expect("could not connect to database");
 
         // _owned is necessary as otherwise we have a self-referential struct

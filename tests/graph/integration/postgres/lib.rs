@@ -188,7 +188,6 @@ impl DatabaseTestWrapper {
             NoTls,
             settings,
         )
-        .await
         .expect("could not connect to database");
 
         let connection = pool
