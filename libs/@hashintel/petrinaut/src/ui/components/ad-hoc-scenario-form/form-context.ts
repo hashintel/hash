@@ -52,13 +52,18 @@ export const adHocSelectionText = (selection: AdHocFormSelection): string => {
  */
 export const adHocSelectionApplies = (
   selection: AdHocFormSelection,
-  kind: "real" | "integer" | "boolean" | "string" | "uuid" | "count",
+  kind: "real" | "integer" | "boolean" | "ratio" | "string" | "uuid" | "count",
 ): boolean => {
   switch (selection) {
     case "optimize":
       return true;
     case "sweep":
-      return kind === "real" || kind === "integer" || kind === "count";
+      return (
+        kind === "real" ||
+        kind === "integer" ||
+        kind === "ratio" ||
+        kind === "count"
+      );
     default:
       return false;
   }

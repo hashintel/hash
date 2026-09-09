@@ -1452,3 +1452,89 @@ describe("createAdHocTargetLabeler", () => {
     ).toBe("Pumps › item 1 › worn");
   });
 });
+
+describe("ratio Variables", () => {
+  const withFill = (
+    variable: Partial<AdHocScenarioState["variables"][number]>,
+  ): AdHocScenarioState => {
+    const state = baseState();
+    state.variables = [
+      {
+        name: "fill",
+        type: "ratio",
+        expression: "0.25",
+        optimize: null,
+        ...variable,
+      },
+    ];
+    return state;
+  };
+
+  it("exposes a ratio Variable as a ratio scenario parameter", () => {
+    const scenario = scenarioOf(
+      synthesizeAdHocScenario(withFill({ exposed: true }), context),
+    );
+    expect(scenario.scenarioParameters).toEqual([
+      { type: "ratio", identifier: "fill", default: 0.25 },
+    ]);
+  });
+
+  it("rejects an exposed ratio whose value leaves the range", () => {
+    const outcome = synthesizeAdHocScenario(
+      withFill({ exposed: true, expression: "1.5" }),
+      context,
+    );
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors).toHaveLength(1);
+    expect(outcome.errors[0]!.slot.part).toBe("expression");
+    expect(outcome.errors[0]!.message).toMatch(/between 0 and 1/);
+  });
+
+  it("rejects an optimized ratio whose kept value leaves the range", () => {
+    // Valid bounds, but the value the generated parameter defaults to is
+    // 1.5: the manifest would refuse it at creation, so the form must.
+    const outcome = synthesizeAdHocOptimization(
+      withFill({
+        expression: "1.5",
+        optimize: { min: "0", max: "1", scale: "linear" },
+      }),
+      context,
+    );
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors).toHaveLength(1);
+    expect(outcome.errors[0]!.slot.part).toBe("expression");
+    expect(outcome.errors[0]!.message).toMatch(/between 0 and 1 \(got 1\.5\)/);
+  });
+
+  it("keeps an optimized ratio's bounds within the range", () => {
+    const outOfRange = synthesizeAdHocOptimization(
+      withFill({ optimize: { min: "0", max: "2", scale: "linear" } }),
+      context,
+    );
+    expect(outOfRange.ok).toBe(false);
+    if (!outOfRange.ok) {
+      expect(outOfRange.errors[0]!.slot.part).toBe("max");
+      expect(outOfRange.errors[0]!.message).toMatch(/ratio/);
+    }
+
+    const inRange = synthesizeAdHocOptimization(
+      withFill({ optimize: { min: "0.1", max: "0.9", scale: "linear" } }),
+      context,
+    );
+    expect(inRange.ok).toBe(true);
+    if (inRange.ok) {
+      expect(inRange.output.optimizedFields[0]!.domain).toEqual({
+        kind: "continuous",
+        minimum: 0.1,
+        maximum: 0.9,
+        scale: "linear",
+      });
+    }
+  });
+});

@@ -441,6 +441,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     { value: "real", text: "Real" },
                     { value: "integer", text: "Integer" },
                     { value: "boolean", text: "Boolean" },
+                    { value: "ratio", text: "Ratio" },
                   ]}
                 />
               </td>

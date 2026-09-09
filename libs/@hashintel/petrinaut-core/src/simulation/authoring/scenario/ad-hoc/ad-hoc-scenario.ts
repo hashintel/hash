@@ -763,7 +763,9 @@ function inlinePlaceVariables(
  * nil UUID — `Uuid.generate()` is kernel-only, and nil is the engine's uuid
  * default too.
  */
-export const adHocNeutralExpression = (type: ColorElementType): string => {
+export const adHocNeutralExpression = (
+  type: ColorElementType | "ratio",
+): string => {
   switch (type) {
     case "boolean":
       return "false";
@@ -1026,7 +1028,7 @@ interface OptimizedEntity {
   /** What errors and result attribution call this entity. */
   itemId: string;
   target: AdHocValueTarget;
-  type: "real" | "integer" | "boolean";
+  type: "real" | "integer" | "boolean" | "ratio";
   settings: AdHocOptimizeSettings;
   /** The kept non-optimized expression, used for the preview default. */
   expression: string;
@@ -1471,6 +1473,15 @@ function resolveOptimized(
         });
         continue;
       }
+      if (entity.type === "ratio" && (minimum < 0 || maximum > 1)) {
+        plan.errors.push({
+          source: "bounds",
+          itemId: entity.parameterName,
+          slot: { target: entity.target, part: minimum < 0 ? "min" : "max" },
+          message: `"${entity.itemId}" is a ratio, so its bounds must stay between 0 and 1.`,
+        });
+        continue;
+      }
       if (entity.type === "integer") {
         const step = entity.settings.step
           ? evaluateBound(entity, "step", "step", entity.settings.step)
@@ -1549,6 +1560,18 @@ function resolveOptimized(
       }
     } catch {
       // Not a constant (it references `i`, a per-place Variable, …).
+    }
+    // The manifest rejects a ratio parameter whose default leaves 0..1, and
+    // the bounds check above cannot see the kept value; reporting it at the
+    // expression fails the form instead of the creation that follows.
+    if (entity.type === "ratio" && (defaultValue < 0 || defaultValue > 1)) {
+      plan.errors.push({
+        source: "variable",
+        itemId: entity.itemId,
+        slot: { target: entity.target, part: "expression" },
+        message: `"${entity.itemId}" is a ratio, so its value must stay between 0 and 1 (got ${defaultValue}).`,
+      });
+      continue;
     }
 
     scenarioParameters.push({
@@ -1668,6 +1691,15 @@ function resolveExposed(
         itemId: variable.name,
         slot: { target, part: "expression" },
         message: `Variable "${variable.name}" is exposed as a scenario parameter, so its expression must resolve to a constant: ${error instanceof Error ? error.message : String(error)}`,
+      });
+      continue;
+    }
+    if (variable.type === "ratio" && (defaultValue < 0 || defaultValue > 1)) {
+      plan.errors.push({
+        source: "variable",
+        itemId: variable.name,
+        slot: { target, part: "expression" },
+        message: `Variable "${variable.name}" is a ratio exposed as a scenario parameter, so its value must stay between 0 and 1 (got ${defaultValue}).`,
       });
       continue;
     }
