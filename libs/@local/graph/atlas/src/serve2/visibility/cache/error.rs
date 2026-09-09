@@ -8,7 +8,7 @@ pub enum VisibilityCacheError {
 impl fmt::Display for VisibilityCacheError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Panic => write!(fmt, "authorization cache panicked"),
+            Self::Panic => write!(fmt, "visibility cache panicked"),
         }
     }
 }

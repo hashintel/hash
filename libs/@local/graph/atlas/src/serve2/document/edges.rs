@@ -10,6 +10,8 @@ use crate::{
     serve2::{
         codec::EncodedRowId,
         intern::{InternTable, TableIndex},
+        scene::Scene,
+        walk::Walk,
     },
 };
 
@@ -54,9 +56,25 @@ pub(crate) struct EdgesDocument<'details> {
 
 impl<'details> EdgesDocument<'details> {
     pub(crate) fn new(
+        Scene {
+            world,
+            epoch,
+            mask,
+            schedule,
+            delivery,
+        }: Scene,
         tiles: &[MortonTile],
-        options: &EdgesDocumentOptions,
+        EdgesDocumentOptions { detail, limits }: &EdgesDocumentOptions,
     ) -> Result<Self, Report<EdgesDocumentError>> {
+        if tiles.len() > limits.tiles as usize {
+            todo!("error out")
+        }
+
+        let walk = Walk {
+            schedule: delivery,
+            index: &world.layout.index,
+        };
+
         // TODO: first we need: the view, and the store, and the limits
         todo!()
     }

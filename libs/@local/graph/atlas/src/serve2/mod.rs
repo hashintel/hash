@@ -7,6 +7,7 @@ mod hydrate;
 mod intern;
 mod membership;
 mod runtime;
+mod scene;
 mod schedule;
 mod secret;
 #[cfg(test)]

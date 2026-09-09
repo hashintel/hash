@@ -6,11 +6,12 @@ use core::{
 use std::time::Instant;
 
 use error_stack::{Report, ResultExt as _};
-use moka::ops::compute::Op;
+use moka::ops::compute::{CompResult, Op};
 use serde_json::value::RawValue;
 use type_system::principal::actor::ActorId;
 
-use self::{error::VisibilityCacheError, filter::FilterDigest};
+use self::error::VisibilityCacheError;
+pub(crate) use self::filter::FilterDigest;
 use crate::{
     allocator::HeapMemoryUsage,
     file::generation::GenerationId,
@@ -82,8 +83,8 @@ hashql_core::id::newtype_producer!(struct PublicationProducer(Publication));
 
 #[derive(Debug)]
 pub(crate) struct CacheEntry {
-    mask: VisibilityMask,
-    schedule: ViewSchedule,
+    pub mask: VisibilityMask,
+    pub schedule: ViewSchedule,
     filter: Option<Arc<RawValue>>,
     occupancy: Option<ViewOccupancy>,
     resolved_at: Instant,
@@ -171,40 +172,6 @@ impl VisibilityCache {
         }
     }
 
-    async fn try_replace<R, E>(
-        &self,
-        epoch: &Epoch,
-        key: CacheKey,
-        now: Instant,
-        resolver: R,
-    ) -> Result<Option<Arc<CacheEntry>>, E>
-    where
-        R: AsyncFnOnce(&Epoch) -> Result<PendingCacheEntry, E>,
-        E: Send + Sync + 'static,
-    {
-        let key_generation = key.generation;
-
-        self.entries
-            .entry(key)
-            .and_try_compute_with(async |held| {
-                if held.is_some_and(|held| !held.value().is_expired(now, self.limits.hard)) {
-                    return Ok::<_, E>(Op::Nop);
-                }
-
-                if key_generation != epoch.generation() {
-                    return Ok(Op::Nop);
-                }
-
-                Ok(Op::Put(Arc::new(CacheEntry::new(
-                    resolver(epoch).await?,
-                    now,
-                    self.publications.next(),
-                ))))
-            })
-            .await
-            .map(|result| result.into_entry().map(|entry| entry.into_value()))
-    }
-
     async fn get_or_insert_with<R, E>(
         &self,
         epoch: &Epoch,
@@ -219,23 +186,28 @@ impl VisibilityCache {
         let key_generation = key.generation;
         self.entries
             .entry(key)
-            .and_try_compute_with(async |entry| {
-                if entry.is_some() {
-                    return Ok(Op::Nop);
+            .and_try_compute_with(async |held| {
+                if held.is_some_and(|held| !held.value().is_expired(now, self.limits.hard)) {
+                    return Ok::<_, E>(Op::Nop);
                 }
 
-                if epoch.generation() != key_generation {
-                    // We do not renew a cache entry which is currently on the expiration path.
-                    return Ok(Op::Nop);
+                if key_generation != epoch.generation() {
+                    return Ok(Op::Remove);
                 }
 
-                let pending = resolver(epoch).await?;
-
-                let entry = Arc::new(CacheEntry::new(pending, now, self.publications.next()));
-                Ok(Op::Put(entry))
+                Ok(Op::Put(Arc::new(CacheEntry::new(
+                    resolver(epoch).await?,
+                    now,
+                    self.publications.next(),
+                ))))
             })
             .await
-            .map(|result| result.into_entry().map(|entry| entry.into_value()))
+            .map(|result| match result {
+                CompResult::StillNone(_) | CompResult::Removed(_) => None,
+                CompResult::Unchanged(entry)
+                | CompResult::Inserted(entry)
+                | CompResult::ReplacedWith(entry) => Some(entry.into_value()),
+            })
     }
 
     pub(crate) async fn resolve<R, E>(
@@ -255,7 +227,7 @@ impl VisibilityCache {
         };
 
         if entry.is_expired(now, self.limits.hard) {
-            return self.try_replace(epoch, key, now, resolver).await;
+            return self.get_or_insert_with(epoch, key, now, resolver).await;
         }
 
         if entry.is_stale(now, self.limits.soft) && entry.claim_refresh() {

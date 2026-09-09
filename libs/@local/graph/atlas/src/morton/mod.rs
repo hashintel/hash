@@ -29,7 +29,7 @@ use core::{fmt, iter::Step};
 
 use hashql_core::id::Id as _;
 
-use crate::math::Log2;
+use crate::math::{Log2, unsafe_impl_try_from_bytes};
 
 #[cfg(test)]
 mod tests;
@@ -149,7 +149,6 @@ impl schemars::JsonSchema for Depth {
     PartialOrd,
     Ord,
     zerocopy::IntoBytes,
-    zerocopy::TryFromBytes, // TODO: needs a manual impl?
     zerocopy::Immutable,
     zerocopy::Unaligned,
     zerocopy::KnownLayout,
@@ -172,6 +171,14 @@ impl Zoom {
         }
 
         Some(Self(zoom))
+    }
+
+    /// Accepts exactly the byte patterns stored by [`new`](Self::new).
+    const fn is_canonical(value: u8) -> bool {
+        match Self::new(value) {
+            Some(accepted) => accepted.0 == value,
+            None => false,
+        }
     }
 
     pub(crate) const fn depth(self, span: Log2) -> Option<Depth> {
@@ -203,6 +210,8 @@ impl Zoom {
         self.0
     }
 }
+
+unsafe_impl_try_from_bytes!(Zoom[u8]);
 
 impl From<Zoom> for Log2 {
     fn from(zoom: Zoom) -> Self {

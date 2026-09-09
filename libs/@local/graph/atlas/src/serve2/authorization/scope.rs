@@ -5,8 +5,9 @@ use error_stack::Report;
 
 use super::{actor::ArchivedActorId, error::AuthorityError};
 use crate::{
-    file::generation::GenerationId, morton::Zoom, serve::cache::scope::FilterDigest,
-    serve2::delta::DeltaReference,
+    file::generation::GenerationId,
+    morton::Zoom,
+    serve2::{delta::DeltaReference, visibility::cache::FilterDigest},
 };
 
 /// A scope's request filter, by identity.

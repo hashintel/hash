@@ -86,6 +86,7 @@ impl ViewSchedule {
                     .into_iter()
                     .chain(bounds)
                     .reduce(Bounds2::union);
+
                 let data = match kind {
                     VisibilityKind::Corpus => ScheduleData::Corpus {
                         extension: BucketColumn::new(rows, |key| {
@@ -163,9 +164,10 @@ impl ViewSchedule {
 impl HeapMemoryUsage for ViewSchedule {
     fn heap_memory_usage(&self) -> u64 {
         match &self.data {
-            ScheduleData::Corpus { extension } => extension.heap_memory_usage(),
-            // base is not accounted for because it's shared
-            ScheduleData::Saturated { base: _, extension } => extension.heap_memory_usage(),
+            // base is ignored because it's world-wide
+            ScheduleData::Corpus { extension } | ScheduleData::Saturated { base: _, extension } => {
+                extension.heap_memory_usage()
+            }
             ScheduleData::Scoped(scoped) => scoped.heap_memory_usage(),
         }
     }

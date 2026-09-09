@@ -1,7 +1,27 @@
 use hashql_core::id::Id as _;
 use proptest::{prop_assert, prop_assert_eq, prop_assert_ne, property_test};
+use zerocopy::TryFromBytes as _;
 
-use super::{Depth, MortonCell, MortonKey, MortonTile};
+use super::{Depth, MortonCell, MortonKey, MortonTile, Zoom};
+
+/// Borrowed and copied decoding admit exactly the constructor's zoom domain.
+#[test]
+fn zoom_byte_domain() {
+    for byte in u8::MIN..=u8::MAX {
+        let bytes = [byte];
+        let expected = Zoom::new(byte);
+        assert_eq!(
+            Zoom::try_read_from_bytes(&bytes).ok(),
+            expected,
+            "copied decoding should enforce the zoom domain for byte {byte}"
+        );
+        assert_eq!(
+            Zoom::try_ref_from_bytes(&bytes).ok().copied(),
+            expected,
+            "borrowed decoding should enforce the zoom domain for byte {byte}"
+        );
+    }
+}
 
 #[test]
 fn curve_start() {

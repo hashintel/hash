@@ -17,8 +17,9 @@ use super::{
     token::{EncryptedToken, MessageVersion, Token, TokenHeader, UnixEpochSeconds},
 };
 use crate::{
-    integrity::SecretHexBytes, morton::Zoom, serve::cache::scope::FilterDigest,
-    serve2::delta::epoch::Epoch,
+    integrity::SecretHexBytes,
+    morton::Zoom,
+    serve2::{delta::epoch::Epoch, visibility::cache::FilterDigest},
 };
 
 type Encryption = XChaCha20Poly1305;
