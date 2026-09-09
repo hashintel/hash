@@ -140,16 +140,31 @@ function respondError(id: number, message: string): void {
   } satisfies ServerMessage);
 }
 
-/** Run diagnostics on all SDCPN code files and push results to the main thread. */
-function publishAllDiagnostics(
+/**
+ * The net's own diagnostics as last computed, keyed on the SDCPN and
+ * extensions objects they came from. Every publish carries them, and most
+ * publishes are session syncs — a keystroke in a scenario, metric, or
+ * ad-hoc form — for which re-checking every transition of the net was the
+ * bulk of the work. The net's diagnostics change only with the net itself
+ * or one of its documents; both paths drop the cache.
+ */
+let netDiagnosticsCache: {
+  sdcpn: SDCPN;
+  extensions: PetrinautExtensionSettings;
+  params: readonly PublishDiagnosticsParams[];
+} | null = null;
+
+function netDiagnostics(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
-): void {
-  if (!server) {
-    return;
+): readonly PublishDiagnosticsParams[] {
+  if (
+    netDiagnosticsCache?.sdcpn === sdcpn &&
+    netDiagnosticsCache.extensions === extensions
+  ) {
+    return netDiagnosticsCache.params;
   }
-
-  const result = checkSDCPN(sdcpn, server, extensions);
+  const result = checkSDCPN(sdcpn, server!, extensions);
   const params: PublishDiagnosticsParams[] = result.itemDiagnostics.map(
     (item) => {
       const uri = filePathToUri(item.filePath);
@@ -164,6 +179,22 @@ function publishAllDiagnostics(
       };
     },
   );
+  netDiagnosticsCache = { sdcpn, extensions, params };
+  return params;
+}
+
+/** Run diagnostics on all SDCPN code files and push results to the main thread. */
+function publishAllDiagnostics(
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): void {
+  if (!server) {
+    return;
+  }
+
+  const params: PublishDiagnosticsParams[] = [
+    ...netDiagnostics(sdcpn, extensions),
+  ];
 
   // Include diagnostics for all active scenario sessions
   for (const [, session] of scenarioSessions) {
@@ -375,6 +406,7 @@ workerRuntime.onMessage((data) => {
         lastSDCPN = sdcpn;
         lastExtensions = extensions;
         server = new SDCPNLanguageServer();
+        netDiagnosticsCache = null;
         server.syncFiles(sdcpn, extensions);
         // Replay scenario sessions that arrived before SDCPN init
         for (const session of pendingScenarioInits) {
@@ -429,6 +461,11 @@ workerRuntime.onMessage((data) => {
         const filePath = uriToFilePath(data.params.textDocument.uri);
         if (filePath) {
           server.updateDocumentContent(filePath, data.params.text);
+          // A net document changed under the same SDCPN object; session
+          // documents (`/_temp/...`) never feed the net's diagnostics.
+          if (!filePath.startsWith("/_temp/")) {
+            netDiagnosticsCache = null;
+          }
           // Re-run full diagnostics since type changes can cascade
           if (lastSDCPN) {
             publishAllDiagnostics(lastSDCPN, lastExtensions);

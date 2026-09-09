@@ -169,8 +169,23 @@ function createReadableStore<T>(initial: T): ReadableStore<T> & {
   };
 }
 
+const sameDiagnostics = (
+  left: readonly Diagnostic[],
+  right: readonly Diagnostic[],
+): boolean =>
+  left === right ||
+  (left.length === right.length &&
+    JSON.stringify(left) === JSON.stringify(right));
+
+/**
+ * Builds the next snapshot from a publish, keeping the previous snapshot's
+ * array for every document whose diagnostics did not change. The server
+ * republishes every document on any change, so without this each publish
+ * handed consumers fresh arrays for documents nothing happened to.
+ */
 function buildSnapshot(
   allParams: PublishDiagnosticsParams[],
+  previous: DiagnosticsSnapshot,
 ): DiagnosticsSnapshot {
   const byUri = new Map<DocumentUri, Diagnostic[]>();
   let total = 0;
@@ -179,7 +194,13 @@ function buildSnapshot(
     if (param.diagnostics.length === 0) {
       continue;
     }
-    byUri.set(param.uri, param.diagnostics);
+    const kept = previous.byUri.get(param.uri);
+    byUri.set(
+      param.uri,
+      kept !== undefined && sameDiagnostics(kept, param.diagnostics)
+        ? kept
+        : param.diagnostics,
+    );
     total += param.diagnostics.length;
     for (const diagnostic of param.diagnostics) {
       if (diagnostic.severity === DiagnosticSeverity.Error) {
@@ -188,6 +209,32 @@ function buildSnapshot(
     }
   }
   return { byUri, total, errorCount };
+}
+
+/**
+ * Whether a publish changed anything. Per-document arrays are reused by
+ * `buildSnapshot` when equal, so identity comparison is exact here. An
+ * unchanged publish must not reach the store: every consumer of the
+ * diagnostics re-renders on a new snapshot, and the busiest publishers — the
+ * form sessions — publish on every keystroke.
+ */
+function sameDiagnosticsSnapshot(
+  left: DiagnosticsSnapshot,
+  right: DiagnosticsSnapshot,
+): boolean {
+  if (
+    left.total !== right.total ||
+    left.errorCount !== right.errorCount ||
+    left.byUri.size !== right.byUri.size
+  ) {
+    return false;
+  }
+  for (const [uri, diagnostics] of right.byUri) {
+    if (left.byUri.get(uri) !== diagnostics) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -228,7 +275,11 @@ export function createLanguageClient(
         entry.resolve(msg.result as never);
       }
     } else if ("method" in msg) {
-      diagnostics.set(buildSnapshot(msg.params));
+      const previous = diagnostics.get();
+      const next = buildSnapshot(msg.params, previous);
+      if (!sameDiagnosticsSnapshot(previous, next)) {
+        diagnostics.set(next);
+      }
     }
   });
 

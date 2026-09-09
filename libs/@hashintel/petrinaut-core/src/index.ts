@@ -452,6 +452,8 @@ export {
   cycleAdHocRowKind,
   setAdHocRowKind,
   adHocNeutralExpression,
+  createAdHocPlaceTotalResolver,
+  createAdHocTargetLabeler,
   resolveAdHocPlaceTotal,
   shareAdHocColumn,
   synthesizeAdHocOptimization,

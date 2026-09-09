@@ -34,7 +34,6 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocNeutralExpression,
   adHocSlotKey,
-  adHocTargetLabel,
 } from "@hashintel/petrinaut-core";
 
 import { CodeEditor } from "../../monaco/code-editor";
@@ -432,8 +431,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const {
     errorFor,
     uriFor,
-    formState,
-    synthesisContext,
+    labelFor,
     selection,
     highlight,
     setFocusedValue,
@@ -444,7 +442,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const booleanDomain = kind === "boolean";
   const triggerPlaceholder =
     placeholder ?? (kind === "count" ? "0" : adHocNeutralExpression(kind));
-  const label = adHocTargetLabel(target, formState, synthesisContext);
+  const label = labelFor(target);
   const dependencyHighlighted = highlight.slotKeys.has(
     adHocSlotKey({ target, part: "expression" }),
   );

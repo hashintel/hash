@@ -1,5 +1,6 @@
 import { use, useEffect, useRef, useState } from "react";
 
+import { useLatest } from "../../../react/hooks/use-latest";
 import { LanguageClientContext } from "../../../react/lsp/context";
 
 import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
@@ -10,6 +11,13 @@ import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
  * document, and diagnostics arrive through the language client's
  * `diagnosticsByUri`. With the default (no-op) language client this is
  * harmless: no documents exist and no diagnostics ever arrive.
+ *
+ * The session follows the definition's content, not the state object's
+ * identity. Hosts rebuild an identical state every render (a run-mode host
+ * materializes it from the scenario it shows), and every update the worker
+ * receives ends in a diagnostics publish that re-renders those hosts — an
+ * identity-keyed update turned that into a loop that saturated the main
+ * thread for as long as the form was on screen.
  */
 export function useAdHocLspSession(
   state: AdHocScenarioState,
@@ -24,16 +32,26 @@ export function useAdHocLspSession(
   const [generatedSessionId] = useState(() => crypto.randomUUID());
   const sessionId = externalSessionId ?? generatedSessionId;
   const initializedRef = useRef(false);
+  // The content key; the effect reads the state itself through the ref so
+  // the worker receives the object, not a re-parsed copy.
+  const serializedState = JSON.stringify(state);
+  const latestState = useLatest(state);
 
   useEffect(() => {
-    const params = { sessionId, state };
+    const params = { sessionId, state: latestState.current };
     if (!initializedRef.current) {
       initializeAdHocSession(params);
       initializedRef.current = true;
     } else {
       updateAdHocSession(params);
     }
-  }, [initializeAdHocSession, sessionId, state, updateAdHocSession]);
+  }, [
+    initializeAdHocSession,
+    latestState,
+    serializedState,
+    sessionId,
+    updateAdHocSession,
+  ]);
 
   useEffect(() => {
     return () => {

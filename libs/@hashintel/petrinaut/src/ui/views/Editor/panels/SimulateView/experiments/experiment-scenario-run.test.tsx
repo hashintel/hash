@@ -114,4 +114,37 @@ describe("ExperimentScenarioRun", () => {
     expect(region!.className).toContain("bg-c_neutral.s20");
     expect(region!.className).toContain("bd-c_neutral.bd.subtle");
   });
+
+  it("keeps the form mounted for an equal-content scenario and reseeds on a change", async () => {
+    const runFor = (current: Scenario) => (
+      <LanguageClientContext value={languageClient}>
+        <ExperimentScenarioRun
+          scenario={current}
+          context={context}
+          values={{}}
+          onValuesChange={() => {}}
+        />
+      </LanguageClientContext>
+    );
+    const view = render(runFor(scenario));
+    const toggle = () =>
+      screen.getByRole("button", { name: "Toggle Computed state section" });
+    const mounted = toggle();
+    fireEvent.click(mounted);
+    await waitFor(() => screen.getByText("Initial state"));
+
+    // The document hands out a fresh scenario object on every edit anywhere
+    // in the net. Equal content must not remount the form: its undo history
+    // and open sections would be lost to unrelated edits.
+    view.rerender(
+      runFor({ ...scenario, initialState: { ...scenario.initialState } }),
+    );
+    expect(toggle()).toBe(mounted);
+    expect(screen.getByText("Initial state")).toBeTruthy();
+
+    // A saved edit to the definition changes its content: the form reseeds
+    // to the new definition, which remounts it.
+    view.rerender(runFor({ ...scenario, name: "Baseline, revised" }));
+    expect(toggle()).not.toBe(mounted);
+  });
 });
