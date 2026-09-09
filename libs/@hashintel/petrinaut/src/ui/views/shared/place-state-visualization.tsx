@@ -79,7 +79,11 @@ export const PlaceStateVisualization: React.FC<
    * on its own, without this memo, 45 down to 35: the update that moves the
    * frame is the one that has to redraw, so there is nothing left to defer
    * that the memo has not already skipped, and the second priority pass costs
-   * a whole extra draw.
+   * a whole extra draw. That was a scrub against a picture whose cost is in
+   * its render; a picture whose cost is in the nodes it produces pays that in
+   * the commit, which no priority can interrupt either. Somewhere the frame
+   * is not what changed — code being typed in the visualizer editor, say — a
+   * transition may still be the right tool.
    */
   const picture = useMemo(() => {
     if (!VisualizerComponent || !placeType) {

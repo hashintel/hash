@@ -103,8 +103,9 @@ function compile(code: string): VisualizerComponent {
  * visualizer that does not compile is asked for just as often as one that
  * does.
  *
- * Bounded, and oldest-first: editing the code produces a new entry per
- * keystroke, and only the latest is worth holding.
+ * Bounded, and least-recently-used first: editing the code produces an entry
+ * per keystroke, so evicting by arrival would throw out the visualizers being
+ * looked at to make room for one keystroke's worth of drafts.
  */
 const CACHE_LIMIT = 24;
 const compiled = new Map<
@@ -137,6 +138,9 @@ const compiled = new Map<
 export function compileVisualizer(code: string): VisualizerComponent {
   const cached = compiled.get(code);
   if (cached) {
+    // Re-inserting makes this the newest entry, so use decides what survives.
+    compiled.delete(code);
+    compiled.set(code, cached);
     if ("error" in cached) {
       throw cached.error;
     }

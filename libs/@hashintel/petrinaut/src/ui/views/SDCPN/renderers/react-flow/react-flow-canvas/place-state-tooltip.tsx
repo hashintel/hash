@@ -5,7 +5,7 @@ import {
   useReactFlow,
   useViewport,
 } from "@xyflow/react";
-import { lazy, Suspense, use, useRef } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
@@ -17,11 +17,31 @@ import { UserSettingsContext } from "../../../../../../react/state/user-settings
 import { PinIcon } from "../../../../../components/pin-icon";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 
-const DeferredPlaceStateVisualization = lazy(async () => {
-  const { PlaceStateVisualization } =
-    await import("../../../../shared/place-state-visualization");
-  return { default: PlaceStateVisualization };
-});
+/**
+ * The module that draws a visualizer, loaded on demand and remembered.
+ *
+ * It carries the compiler for user code, so it stays out of the canvas's own
+ * chunk. Loaded through state rather than `lazy` and a boundary inside the
+ * box: a boundary there lets the box mount and measure itself empty, and the
+ * retry that brings the artwork in re-renders only the suspended subtree, so
+ * the size the box opens at is never corrected. Held here, the box does not
+ * exist until it has something to draw.
+ */
+type PlaceStateVisualizationComponent =
+  (typeof import("../../../../shared/place-state-visualization"))["PlaceStateVisualization"];
+
+let loadedVisualization: PlaceStateVisualizationComponent | null = null;
+let pendingVisualization: Promise<PlaceStateVisualizationComponent> | null =
+  null;
+
+const loadVisualization = () => {
+  pendingVisualization ??=
+    import("../../../../shared/place-state-visualization").then((module) => {
+      loadedVisualization = module.PlaceStateVisualization;
+      return module.PlaceStateVisualization;
+    });
+  return pendingVisualization;
+};
 
 // Gap between the node and the box, in screen pixels. Held as padding on the
 // wrapper rather than as the toolbar's offset, so the pointer can cross from
@@ -173,8 +193,33 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
   const { flowToScreenPosition } = useReactFlow();
   useViewport();
 
+  // Both the initial value and the setter are wrapped: a component is a
+  // function, and React would take a bare one for a lazy initialiser or a
+  // state updater and call it with no props.
+  const [PlaceStateVisualization, setPlaceStateVisualization] =
+    useState<PlaceStateVisualizationComponent | null>(
+      () => loadedVisualization,
+    );
+
+  useEffect(() => {
+    if (PlaceStateVisualization) {
+      return;
+    }
+    let cancelled = false;
+    void loadVisualization().then((component) => {
+      if (!cancelled) {
+        setPlaceStateVisualization(() => component);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [PlaceStateVisualization]);
+
   const contentRef = useRef<HTMLDivElement>(null);
-  const boxSize = useElementSize(contentRef);
+  // The border box: the flip below decides against the height the box
+  // actually occupies, padding and border included.
+  const boxSize = useElementSize(contentRef, { box: "border" });
 
   const place = petriNetDefinition.places.find((pl) => pl.id === nodeId);
   const placeType = place?.colorId
@@ -187,7 +232,8 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
     !placeType ||
     placeType.elements.length === 0 ||
     !place.visualizerCode ||
-    !node
+    !node ||
+    !PlaceStateVisualization
   ) {
     return null;
   }
@@ -230,12 +276,7 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
         onPointerLeave={clearHoveredItem}
       >
         <div ref={contentRef} className={tooltipStyle}>
-          <Suspense fallback={null}>
-            <DeferredPlaceStateVisualization
-              place={place}
-              placeType={placeType}
-            />
-          </Suspense>
+          <PlaceStateVisualization place={place} placeType={placeType} />
         </div>
         <div className={cx(pinStyle({ pinned }), PIN_CLASS)}>
           <Button
