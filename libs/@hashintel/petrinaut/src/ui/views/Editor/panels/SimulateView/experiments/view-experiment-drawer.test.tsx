@@ -13,14 +13,12 @@ import {
   frameHeader,
   scrollFrameBody,
 } from "../shared/drawer-frame/frame-test-helpers";
+import { describeExperiment } from "./experiment-results";
 import {
   makeExperiment,
   makeParameterSweepExperiment,
 } from "./experiments-story-fixtures";
-import {
-  describeExperiment,
-  ViewExperimentDrawer,
-} from "./view-experiment-drawer";
+import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { ReactNode } from "react";
