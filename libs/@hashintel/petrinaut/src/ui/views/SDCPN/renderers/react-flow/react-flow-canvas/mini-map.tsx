@@ -31,8 +31,8 @@ const SELECTED_STROKE_WIDTH = 12;
 
 /**
  * Custom node renderer for the MiniMap.
- * Renders place nodes as rounded rectangles and transition nodes as squared
- * ones, the way the canvas draws them.
+ * Renders place nodes fully rounded and transition nodes squared, the way the
+ * canvas draws them.
  */
 const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
   // MiniMapNodeProps doesn't include node data, so we look it up from the store
@@ -61,7 +61,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
         y={y + (SHAPE_SIZE - PLACE_HEIGHT) / 2}
         width={SHAPE_SIZE}
         height={PLACE_HEIGHT}
-        rx={PLACE_HEIGHT / 4}
+        rx={PLACE_HEIGHT / 2}
         fill={isSelected ? SELECTED_COLOR : fill}
         stroke={isSelected ? SELECTED_COLOR : "none"}
         strokeWidth={isSelected ? SELECTED_STROKE_WIDTH : 0}
@@ -102,8 +102,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
 
 /**
  * A wrapper around ReactFlow's MiniMap with custom styling.
- * Renders place nodes as rounded rectangles and transition nodes as squared
- * ones.
+ * Renders place nodes fully rounded and transition nodes squared.
  * Positions at top-right, offset by properties panel width when visible.
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {

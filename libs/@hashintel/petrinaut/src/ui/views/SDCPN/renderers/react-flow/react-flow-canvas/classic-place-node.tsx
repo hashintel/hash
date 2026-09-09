@@ -27,7 +27,11 @@ const containerStyle = css({
 });
 
 const placeBoxStyle = css({
-  borderRadius: "[20px]",
+  // Fully rounded, so each end is a semicircle rather than an ellipse: the
+  // radius clamps to half the shorter side.
+  borderRadius: "full",
+  // Wider than the transition's, to keep the name clear of the curve.
+  padding: "[8px 20px]",
 });
 
 const dynamicsIconStyle = css({

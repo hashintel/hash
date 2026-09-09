@@ -27,6 +27,10 @@ const containerStyle = css({
   height: "full",
 });
 
+const transitionBoxStyle = css({
+  padding: "[8px 12px]",
+});
+
 const stochasticIconStyle = css({
   color: "blue.s60",
   fontSize: "lg",
@@ -70,7 +74,7 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
       />
       <div
         ref={boxRef}
-        className={`${nodeSurfaceStyle({ selection: selectionVariant })} ${transitionSurfaceStyle} ${classicNodeBoxStyle}`}
+        className={`${nodeSurfaceStyle({ selection: selectionVariant })} ${transitionSurfaceStyle} ${classicNodeBoxStyle} ${transitionBoxStyle}`}
       >
         <div className={classicNodeRowStyle}>
           {data.lambdaType === "stochastic" ? (

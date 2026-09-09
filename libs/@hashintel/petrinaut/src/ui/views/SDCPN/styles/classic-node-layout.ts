@@ -30,7 +30,6 @@ export const classicNodeBoxStyle = css({
   _after: {
     inset: `[-${OUTLINE_WIDTH}]`,
   },
-  padding: "[8px 12px]",
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
