@@ -24,9 +24,9 @@ export const compactNodeDimensions: RenderNodeDimensions = {
 };
 
 export const classicNodeDimensions: RenderNodeDimensions = {
-  /** Square, so the place draws as a circle. The transition is 3:2. */
+  /** Square, so the place draws as a circle. The transition is 2:1. */
   place: { width: 135, height: 135 },
-  transition: { width: 180, height: 120 },
+  transition: { width: 200, height: 100 },
   componentInstance: { width: 180, height: 96 },
 };
 
