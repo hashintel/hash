@@ -1,10 +1,9 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useSelectionVariant } from "../../../hooks/use-selection-variant";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 
 import type { ComponentInstanceNodeType } from "./react-flow-types";
@@ -107,22 +106,7 @@ const portLabelStyle = css({
 export const ComponentInstanceNode: React.FC<
   NodeProps<ComponentInstanceNodeType>
 > = ({ id, data, selected }: NodeProps<ComponentInstanceNodeType>) => {
-  const {
-    isSelected,
-    isNotSelectedConnection,
-    hoveredItem,
-    isNotHoveredConnection,
-  } = use(EditorContext);
-
-  const isInSelection = isSelected(id);
-  const selectionVariant = isInSelection
-    ? "resource"
-    : selected
-      ? "reactflow"
-      : isNotHoveredConnection(id) ||
-          (!hoveredItem && isNotSelectedConnection(id))
-        ? "notSelectedConnection"
-        : "none";
+  const selectionVariant = useSelectionVariant(id, selected);
 
   const { ports } = data;
   const portCount = ports.length;

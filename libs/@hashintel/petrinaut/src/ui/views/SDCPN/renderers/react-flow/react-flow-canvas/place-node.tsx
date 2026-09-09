@@ -6,14 +6,9 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ExecutionFrameSourceContext } from "../../../../../../react/execution-frame/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useSelectionVariant } from "../../../hooks/use-selection-variant";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
-import {
-  iconBadgeStyle,
-  iconContainerBaseStyle,
-  NodeCard,
-  nodeCardStyle,
-  type SelectionVariant,
-} from "./node-card";
+import { iconBadgeStyle, iconContainerBaseStyle, NodeCard } from "./node-card";
 import { PlaceStateTooltip } from "./place-state-tooltip";
 
 import type { PlaceNodeType } from "./react-flow-types";
@@ -55,14 +50,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  const {
-    globalMode,
-    isSelected,
-    isNotSelectedConnection,
-    hoveredItem,
-    isNotHoveredConnection,
-    isHovered,
-  } = use(EditorContext);
+  const { globalMode, isHovered } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
   const { currentViewedFrame, totalFrames } = use(ExecutionFrameSourceContext);
@@ -81,16 +69,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = typeof marking === "number" ? marking : (marking?.length ?? 0);
   }
 
-  // Determine selection state
-  const isInSelection = isSelected(id);
-  const selectionVariant: SelectionVariant = isInSelection
-    ? "resource"
-    : selected
-      ? "reactflow"
-      : isNotHoveredConnection(id) ||
-          (!hoveredItem && isNotSelectedConnection(id))
-        ? "notSelectedConnection"
-        : "none";
+  const selectionVariant = useSelectionVariant(id, selected);
 
   const subtitle = data.dynamicsEnabled ? "Place (Dynamics)" : "Place";
 
@@ -102,7 +81,8 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     <>
       {showStateTooltip && <PlaceStateTooltip nodeId={id} />}
       <NodeCard
-        cardClassName={`${nodeCardStyle({ selection: selectionVariant })} ${placeCardStyle}`}
+        selection={selectionVariant}
+        cardClassName={placeCardStyle}
         cardStyle={{
           borderColor: typeColorBorder,
           backgroundColor: placeBackgroundColor,
