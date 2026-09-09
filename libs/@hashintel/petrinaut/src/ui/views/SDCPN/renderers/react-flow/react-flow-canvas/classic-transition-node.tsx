@@ -28,7 +28,7 @@ const containerStyle = css({
 });
 
 const transitionBoxStyle = css({
-  padding: "[4px 12px]",
+  padding: "[6px 10px]",
   gap: "[2px]",
   // The flat box leaves less room for a name than a circle does, so its
   // three lines are set smaller.
@@ -40,7 +40,7 @@ const transitionRowStyle = css({
 });
 
 const transitionLabelStyle = css({
-  lineClamp: "3",
+  lineClamp: "4",
 });
 
 const stochasticIconStyle = css({

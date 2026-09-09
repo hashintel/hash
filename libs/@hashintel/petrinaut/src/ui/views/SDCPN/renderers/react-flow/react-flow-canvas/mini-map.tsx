@@ -21,8 +21,8 @@ const miniMapClassName = css({
 });
 
 const SHAPE_SIZE = 90;
-/** Transitions are drawn 3:2, the ratio the canvas gives them. */
-const TRANSITION_WIDTH_RATIO = 1.5;
+/** Component instances are the one wide shape on the canvas. */
+const COMPONENT_INSTANCE_WIDTH_RATIO = 1.5;
 const DEFAULT_TRANSITION_FILL = "#6b7280";
 const DEFAULT_COMPONENT_FILL = "#0f766e";
 const SELECTED_COLOR = "#3bb9f6";
@@ -72,7 +72,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
       <rect
         x={x - SHAPE_SIZE}
         y={y - SHAPE_SIZE / 2}
-        width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
+        width={SHAPE_SIZE * COMPONENT_INSTANCE_WIDTH_RATIO}
         height={SHAPE_SIZE}
         rx={12}
         fill={isSelected ? SELECTED_COLOR : fill}
@@ -85,9 +85,9 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
 
   return (
     <rect
-      x={x - SHAPE_SIZE}
-      y={y - SHAPE_SIZE / TRANSITION_WIDTH_RATIO}
-      width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
+      x={x}
+      y={y}
+      width={SHAPE_SIZE}
       height={SHAPE_SIZE}
       fill={isSelected ? SELECTED_COLOR : fill}
       stroke={isSelected ? SELECTED_COLOR : "none"}
