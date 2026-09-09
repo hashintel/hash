@@ -1,0 +1,70 @@
+{
+  "outcomes": [
+    {
+      "cohort": "declared",
+      "identity": {
+        "principalKey": "505d137d-e3fc-43e2-8344-4728b27f7232",
+        "conversationId": "prepared-root-arc:5742ab67-9469-468d-a932-8778bf2c65f0"
+      },
+      "binding": {
+        "conversationId": "prepared-root-arc:5742ab67-9469-468d-a932-8778bf2c65f0",
+        "documentId": "mission-6-crew-reservation-document-v1:root-arc",
+        "incarnationId": "5742ab67-9469-468d-a932-8778bf2c65f0"
+      },
+      "conversationId": "conv_01M21VPHVDP4TY70S4YZM4S8VZ",
+      "sourceId": "entry_direct_c3ViX2lrX2JmZDk3NDYzYTFiY2JmMjE3ZDFlMjg2NjRkMjAyNGM1",
+      "whyAnswers": 9,
+      "reopenedSameStore": true,
+      "runtimeRestarted": true,
+      "browserReloaded": true,
+      "secondProcessRestart": false,
+      "errors": [],
+      "blocked": []
+    },
+    {
+      "cohort": "absent",
+      "identity": {
+        "principalKey": "e21d7528-f55c-411c-a7e6-a281e880411d",
+        "conversationId": "prepared-root-arc:8c9a301d-8b08-445a-8b79-15997ef85282"
+      },
+      "binding": {
+        "conversationId": "prepared-root-arc:8c9a301d-8b08-445a-8b79-15997ef85282",
+        "documentId": "mission-6-crew-reservation-document-v1:root-arc",
+        "incarnationId": "8c9a301d-8b08-445a-8b79-15997ef85282"
+      },
+      "conversationId": "conv_01M21VPVEHEX0TCBMX437DPZBB",
+      "sourceId": "entry_direct_c3ViX2lrX2UyYWU0Nzk4YTU1ZTcxOWQxNTA3Njc5MjIzMWY4MjFi",
+      "whyAnswers": 3,
+      "reopenedSameStore": true,
+      "runtimeRestarted": true,
+      "browserReloaded": true,
+      "secondProcessRestart": false,
+      "errors": [],
+      "blocked": []
+    },
+    {
+      "cohort": "temporal",
+      "identity": {
+        "principalKey": "1d7e3f93-d24d-46a9-a456-2ec265cb934e",
+        "conversationId": "prepared-root-arc:2dd39b16-0a35-4344-b74c-4caedaa07b25"
+      },
+      "binding": {
+        "conversationId": "prepared-root-arc:2dd39b16-0a35-4344-b74c-4caedaa07b25",
+        "documentId": "mission-6-crew-reservation-document-v1:root-arc",
+        "incarnationId": "2dd39b16-0a35-4344-b74c-4caedaa07b25"
+      },
+      "conversationId": "conv_01M21VPY10DVTFXEMB96T909HZ",
+      "sourceId": "entry_direct_c3ViX2lrXzg2NTNmYTc5Y2M5ZWQ4NTA1NWY0ZmVlMjllYjBjMWFj",
+      "whyAnswers": 2,
+      "reopenedSameStore": true,
+      "runtimeRestarted": true,
+      "browserReloaded": true,
+      "secondProcessRestart": false,
+      "errors": [],
+      "blocked": []
+    }
+  ],
+  "paidCalls": 0,
+  "claim": "Synthetic-control product wiring and interpretation only. Not genuine testimony, real-model fidelity, Lu utility adjudication, Step A acceptance, or Step B.",
+  "recoveryIntegrationRecheckRequired": true
+}

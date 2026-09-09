@@ -1,0 +1,78 @@
+# Conversation-bound root progression — checkpoint handoff
+
+## Result and review status
+
+The existing built ChatAgent → real local Chrome path now initializes on its first ordinary user submission, settles an actual workpiece, consumes a verified earlier browser read/base, applies native `addArc`, settles a workpiece correction, consumes another verified read/base, applies native `updateArcWeight`, and explains the corrected weight while retaining the distinct arc origin. The final synthetic browser instrument completes **9 checkpoints / 23 native SDK requests**, with **two applied transition records** and a separately verified stale attempt. Model-facing results supply revision IDs, hashes, passage spans, endpoint IDs and observation IDs; neither a prepared workpiece nor imported conversation projections provide them.
+
+**This is a first-path checkpoint, not construction-lane completion.** Only this root arc/weight stratum is mounted in the new candidate. The required remaining root classes are explicitly unavailable there; [class-table.md](class-table.md) records every operation, canonical footprint, carriage/effect/why coverage and next discriminator. There is no genuine/provider-class admission, real-model interpretation, utility adjudication, full accepted-region construction, new process/compaction proof, paid call or Step B claim. The integration owner has frozen production for independent first-path/renderer review and reconciliation before class breadth resumes. The existing synthetic net substrate is visibly labelled and remains external structure, not model-produced construction.
+
+Independent first-path review found no confirmed data/control safety blocker and independently repeated the 23-request witness. Milestone credit was withheld when rendered inspection exposed a green success card for an actually stale result. The owner authorized a narrowly scoped shared-renderer repair at alpha authority commit `4191a5f4d2`; the repaired source and new browser evidence are returned for focused re-review, not self-accepted. Panel overlap with the properties sidebar remains an explicit unpolished/utility limit.
+
+## Exact commits and ownership
+
+Departure: `c41aeb54ca83d3aeb6f6678c9e2d318d120b5e33`; worktree `/Users/lunelson/.herdr/worktrees/hash/m7-construction-readiness`; branch `ln/fe-1573-construction-readiness`.
+
+| Commit | Owner and scope |
+| --- | --- |
+| `cb5482aae6` | Worker: approved opaque SDK-typed initialData transport option, website bridge, focused tests and initial operation/side-effect checkpoint. Alpha has separately integrated it as `d606c98050`; do not duplicate that integration. |
+| `8210e96d06` | Integration owner, committed serially in this worktree: new hermetic importer and `test:construction-progression` script only. |
+| `30d026e2ac` | Worker: distinct mode/incarnation host binding, native read/arc/weight schemas, prior-read/raw-base validation, existing recorder/effect/why extensions, candidate Chrome oracle and ordinary tests/docs. Depends on the following registration closure; do not admit it alone. |
+| `476370d652ef6abdf5bc808042a8d916ea04a920` | Integration owner, committed serially: exactly the `app.ts` import and spread of `observedConstructionBrowserToolNames`. Accounting and admission algorithms are unchanged. |
+| `6e722b13d0` | Worker under the separate owner approval: generic Petrinaut non-application rendering, existing renderer tests, user-guide note, one Petrinaut patch changeset, and candidate stale DOM assertion. Other first-path source remained frozen. |
+| Following evidence commit | This immutable packet, source/build/protected pins, commands and retained red/green observations. It does not grant review acceptance. |
+
+`write-set.json` lists the complete intentional code/config/docs/evidence paths through the renderer commit, including the two owner commits. `manifest.json` pins exact source/build bytes, protected-path equality and packet bytes. No push occurred. Core evidence/locator/carry, runtime patches, package-manager files, accounting/admission algorithms, existing recovery/proving helpers and MISSION.md were not rewritten. The parent-owned authority amendment was read at its alpha source, not cherry-picked into this frozen implementation branch.
+
+## Mechanism and constraints preserved
+
+The transport forwards opaque initialData only on user submissions, including retries; it omits the property for unconfigured hosts and client-result signals. There is no local initialized flag or prepared bootstrap. The website uses the distinct `construction-candidate-v1:<incarnation>` conversation identity and a separate persisted document ID, so retained legacy/unbound instances cannot silently acquire new initial data. The existing ownership guard checks the new construction binding against the authorized conversation.
+
+The plugin owns native canonical schema composition: `safeExtend` adds only the Brunch basis/read envelope. Both mutation schemas retain canonical input exports, strict fields and executable endpoint checks. Normalization uses Petrinaut's existing API: numeric strings normalize for `addArc` only; weight corrections do not invent string coercion. The actual SDK serialized tool entries are compared directly against native input exports. Strict generation policy is unchanged.
+
+Each new mutation carries an explicit `observationToolCallId`, exact `requestedBaseHash`, settled basis, raw canonical call history and detached canonical execution input. The app verifies a correlated earlier admitted full browser read and its independent hash; result verification restricts that observation to history before the mutation call. The browser captures the request at input projection, never reconstructs a base at execution, and requires the cited locally observed read before synchronous execution. Reopen requires a fresh read for new work. Exact raw pre/base equality remains mandatory even when explanation reconciliation may recognize object-key-order equivalence.
+
+The same browser recorder and plugin diff verifier now admit the narrow weight update: exactly one mapped numeric weight change, no created/deleted/derived remainder. Existing root insertion semantics are unchanged. Pre/post definitions remain full independently observed snapshots; effects are recomputed at the receiving boundary. No second store/ledger, model effect list, observer engine or generic converter was introduced. Canonical stock callbacks execute once; duplicate results do not reapply/continue. Failed/no-op/stale/unknown/conflicting attempts never become causes.
+
+Why keeps the creation call ID separate from subsequent applied operations/basis references and attempts. A weight query resolves its own latest recorded change and governing settled revision/passage; operation-only linkage remains partially supported, with relevance/template/utility flags unassessed. A discontinuity between recorded post and later pre content refuses attribution rather than laundering unrecorded changes. This is conservative whole-document gap refusal, not field-level external-edit reconciliation. Known retired root arc recreation refuses; the helper's original-record test does not earn general epochs or an actual browser delete/recreate lifecycle.
+
+The native candidate mount and app admission registration now share one explicit catalogue. No legacy tool list was broadened, and the buffered admission algorithm, one-browser rule and accounting placement are unchanged.
+
+## Real failures, owning repairs and evidence
+
+1. **Registration red:** the old built app classified `updateArcWeight` as server-side because its browser catalogue omitted it. `admission-red/mixed-weight-revision-verdict.json` records `mixedRejected: false`; actual history retains the forbidden sibling settlement. This falsifies the preliminary instrument's safety, not the single-browser policy itself. The owner added the candidate catalogue at the existing registration. The unchanged oracle then records rejection, one provider request, no sibling tool publication and no continuation. Read+weight also now refuses specifically as multiple browser calls.
+2. **Rendered false success:** `renderer-red/browser.png` shows “Updated arc weight …: 4” in green while the field remains 3 and the canonical record/result is stale/applied:false. The transport did not corrupt the result: the shared card renderer ignored `AiToolOutput.applied:false` and fell back to requested-input summaries. `6e722b13d0` now presents completed explicit non-application as **Not applied**, its actual reason, neutral tone and a dash, with no requested-value success summary/check. Groups count **operations**, not changes. Applied summaries, error danger, reads and interactive widgets remain intact. No Brunch-specific metadata enters Petrinaut. `browser-final/stale-not-applied.png` and its DOM assertions prove the corrected real boundary with field 3 unchanged.
+3. **Instrument corrections:** `failed-ui-reopen` retains the hidden-composer timeout; the test now waits for and opens the existing assistant after navigation. `failed-error-oracle` retains a correct conflict rejection that did not match an overly specific public error regex; Flue intentionally returns its generic failed-submission error, so the final oracle checks the actual typed failure plus zero continuation, while server logs retain the conflict reason. No product error privacy was weakened.
+4. **Intermediate build/lint failures:** retained under `logs/`. Local native-union typing, test typing, duplicate imports and new test lint errors were corrected. No timeout, safety assertion, legacy source or test was weakened; final forced checks pass.
+
+## Verification
+
+All installs/builds/probes ran under the previously verified native-delivery process-tree denial profiles; only actual local Chrome used loopback allowance. Guard output is retained, including fresh final Java/Node descendant checks. The initial immutable offline link used the authorized regular copy of alpha's already-local generator JAR; source/destination were 27,103,489 bytes with SHA-256 `9718ff7844e89462c75dcd9b20a35136f6db257bfe1b874db1e3002e99de4609`, different inode and no symlink. Its original acquisition incident remains disclosed in native-local-delivery; this is not a claim of original offline acquisition. No unguarded retry, download, upstream work or application/provider call occurred.
+
+| Oracle | Result and retained evidence |
+| --- | --- |
+| Transport initialization TDD | Prior checkpoint: 1 red / 20 passing; then 21/21 transport and 9/9 bridge tests. Default omission, exact opaque value, retry/key preservation and unchanged result envelopes. |
+| Native and effect contracts | Native schema equality and runtime controls; 15 browser-adapter tests; retired-arc helper and existing reconciliation tests. Full suite includes unchanged raw mutation-base/serialization refusal. |
+| Actual initial-user progression | `browser-final/`: 9 externally counted checkpoints, 23 synthetic SDK requests, two applied records, one stale record. Actual model-obtainable IDs/hashes/locators, first user initialization without prepared signal, corrected governing revision, correlated results and duplicate safety. |
+| Admission/binding/refusals | Same final run: unknown read has no browser result; mixed weight+revision and multiple browser proposals have no partial publication/continuation; foreign incarnation and contradictory result fail before model continuation; actual hand edit remains field 3 and stale weight4 does not apply; why refuses the unrecorded edit. |
+| Generic renderer TDD | 8 red / 35 passing → 43/43 renderer tests. Explicit blocked/declined/no-op/stale/contradictory-summary controls, applied/error positives, existing read/widget controls and honest operation grouping. |
+| Final affected portfolio | `logs/m7-renderer-portfolio.log.gz`: **63/63 uncached tasks, 1,642 tests**: core128, plugin76, binding20, transport45, app288, Petrinaut699, website386. All affected builds/types/lints/unit tests pass, serial Turbo concurrency1. |
+| Legacy actual browser | `legacy-final/`: unchanged prepared A3 plus A5 route passes under the corrected renderer, including its 14 why results and all three cohorts. This retains its existing same-process/runtime-reopen limits, not new process durability. |
+| Accounting regression | `logs/m7-construction-accounting.log.gz`: 13 outcomes, six synthetic starts/dispatches, isolated TEST ledger only. No shared paid-ledger change. |
+| Architecture/format | Final architecture and root format logs pass; signed guarded commit hooks and `git diff --check` pass. No new architectural folder in Petrinaut, no core change or core changeset. |
+
+Replay from root, with `E=libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/native-local-delivery`:
+
+```sh
+node "$E/verify-network-guard.mjs"
+sandbox-exec -f "$E/deny-network.sb" env YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 CARGO_NET_OFFLINE=true VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat yarn exec turbo run build test:unit lint:tsc lint:eslint --filter=@hashintel/brunch-agent --filter=@hashintel/brunch-agent-plugin-sdcpn --filter=@hashintel/brunch-agent-binding-flue --filter=@hashintel/brunch-agent-transport-aisdk --filter=@apps/brunch-agent --filter=@apps/petrinaut-website --filter=@hashintel/petrinaut --continue=always --force --concurrency=1
+sandbox-exec -f "$E/loopback-only.sb" env YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 M7_CONSTRUCTION_OUTPUT=/tmp/<fresh-output> yarn workspace @apps/brunch-agent test:construction-progression
+sandbox-exec -f "$E/loopback-only.sb" env YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 M7_BROWSER_OUTPUT=/tmp/<fresh-legacy-output> yarn workspace @apps/brunch-agent test:reopened-why
+```
+
+The actual original SQLite stores stay only at their `/tmp` paths; retained JSON is observation/equality evidence, never import authority. Large JSON artifacts are losslessly gzip-compressed. Earlier successful-looking screenshots remain explicitly pre-repair rather than relabelled as corrected. Current source/guidance is frozen for re-review; no final genuine-driver instrument is claimed.
+
+## Next ownership and limits
+
+The integration owner owns focused review, reconciliation/integration and any MISSION status amendment. Construction remains responsible for the remaining root class stratum after that reviewed departure; a two-operation fixture is not the accepted region. Next source-supported work is duplicate/retired identity preconditions plus native creation/effect/why coverage for places/transitions, then types/elements/scenarios and parameters when used. Canonical secondary sanitization/kernel generation and scenario migration must be fully accounted as derived without automatic basis inheritance. Default/input/export semantics and provider-class gates remain separate. Exact per-operation limits and re-entry tests are in the class table.
+
+Subnets/components, optimisation, broad scenario history, deletion/recreation epochs, async/cosmetic observation and generic history APIs remain unavailable or separately bounded. Existing prepared structure is external. New workpieces in this witness are synthetic assistant tool outputs over synthetic user messages, not expert testimony; optional evidence relations were not declared in this candidate, so why correctly labels passages temporal context. The separate retained A5 run rechecks actual source/evidence/carry semantics. None of these mechanical links earns relevance, a complete template, ordinary useful coverage or owner acceptance.
