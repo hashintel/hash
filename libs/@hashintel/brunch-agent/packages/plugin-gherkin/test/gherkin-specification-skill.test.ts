@@ -24,6 +24,20 @@ describe("the authored gherkin-specification skill directory", () => {
     }
   });
 
+  test("uses core's workpiece authority and keeps only the Gherkin normative consequence", () => {
+    const instructions = gherkinSpecificationSkill.instructions;
+    expect(instructions).toContain(
+      "Follow core's `elicitation` guidance for workpiece settlement",
+    );
+    expect(instructions).not.toContain("runbook-ir");
+    expect(instructions).toContain("Apply core's non-interactive routing rule");
+    const reference = readSkillFile("references/gherkin-elicitation.md");
+    expect(reference).toContain("Apply core's normative-language distinction");
+    expect(reference).toContain(
+      "Do not force a proposed rule through a last-occurrence test",
+    );
+  });
+
   test("routes universal judgment to core's elicitation skill and names only packaged resources", () => {
     const instructions = gherkinSpecificationSkill.instructions;
     expect(instructions).toContain("Activate the `elicitation` skill");

@@ -1,11 +1,11 @@
 ---
 name: elicitation
-description: Acquire and improve an epistemically responsible account of what a person knows through adaptive conversation. Use before substantive interviewing, when an existing account must be corrected or extended with human knowledge, when accounts conflict, or when recording workpiece evidence.
+description: Acquire and improve an epistemically responsible source-side account through conversation and consulted material. Use before substantive interviewing, source consultation, consequential correction or conflict resolution, and when recording workpiece evidence.
 ---
 
 # Adaptive elicitation
 
-This capability owns human-knowledge acquisition and epistemic correction: recognizing cues, selecting the next probe, handling contradiction and contextual variation, preserving authorship and uncertainty, checking consequential interpretations, and judging when evidence is sufficient. It teaches core's shared workpiece settlement and evidence protocol. The job skill owns the domain-specific workpiece shape, target transformation, target tools, and checks of that projection.
+This capability owns source-side acquisition and epistemic correction: recognizing cues, selecting the next probe or consultation, handling contradiction and contextual variation, preserving authorship and uncertainty, checking consequential interpretations, and judging when evidence is sufficient. It teaches core's shared workpiece settlement and evidence protocol. The job skill owns the domain-specific workpiece shape, target transformation, target tools, and checks of that projection.
 
 ## Procedure
 
@@ -29,7 +29,7 @@ Learn who the result is for, what it must and must not support, the relevant bou
 
 ### Follow the person's account
 
-Use the person's vocabulary. Prefer concrete remembered cases to an abstract tour, and follow the active thread rather than traversing workpiece headings or target concepts. A destination representation may shape your attention; it must not replace the person's account.
+Use the person's vocabulary and follow the active thread rather than traversing workpiece headings or target concepts. For practice-based sources, prefer concrete remembered cases to an abstract tour; the Operations menu supplies those moves. A destination representation may shape your attention; it must not replace the person's account.
 
 ### Protect interaction bandwidth
 
@@ -37,7 +37,7 @@ Do not open with a battery of independent questions. Ask one coherent, answerabl
 
 ### Preserve authorship and uncertainty
 
-Keep the person's evidence distinct from your normalization, inference, assumption, proposal, transformation, or default. Never introduce a value, rule, distinction, or level of precision as if the person supplied it when they did not.
+Keep the person's evidence, consulted material, and your normalization, inference, assumption, proposal, transformation, or default distinct. Record the consulted source and the person's standing beside its claim: accepted, disputed, or not yet shown; if shown but unsettled, say so. Acceptance does not turn external authorship into independently person-originated evidence. Never introduce a value, rule, distinction, or level of precision as if the person supplied it when they did not.
 
 Preserve unknown, not-yet-asked, declined, deferred, ambiguous, conflicting, corrected, context-dependent, and deliberately omitted material when those distinctions matter. Do not turn one state into another for the convenience of a complete-looking result.
 
@@ -47,11 +47,11 @@ Do not average, silently choose, or treat recency as universal truth when accoun
 
 ### Maintain a recoverable workpiece
 
-Follow core's `update_workpiece` cadence: settle the full current Markdown account as soon as one consequential distinction exists, then after each useful stretch or correction and before delivery. Keep one cold-readable current account rather than relying on the transcript or repeated summaries. Preserve unrelated meaning, evidence and unresolved material. Wait for the returned `revisionId` and `sha256`; a candidate or failed call is not a settled revision. This tool does not end the response. Read back with `brunch_workpiece` when available after settlement for presentation.
+Create a first partial workpiece as soon as one consequential distinction exists, then update after each useful stretch or correction and before delivery. Settle the full current Markdown account with `update_workpiece`. Keep one cold-readable current account rather than relying on the transcript or repeated summaries. Preserve unrelated meaning, evidence and unresolved material. Wait for the returned `revisionId` and `sha256`; a candidate or failed call is not a settled revision. This tool does not end the response. Read back with `brunch_workpiece` when available after settlement for presentation.
 
 When `brunch_workpiece` is mounted, use it to obtain the actual current revision and authorized true-user source IDs before supplying optional revision evidence. For model-obtainable offsets, pass an explicitly unsettled `markdown` candidate and `locateTexts` to that read tool before declaring evidence. It returns literal UTF-16 occurrence spans with a candidate hash/length, never a revision or authorization. After settlement, query `locateTexts` without candidate Markdown when you need locators in the actual current revision. Changed text requires a fresh lookup; duplicates, overlapping matches and any omitted matches are explicit, not an automatic passage choice.
 
-An evidence relation names an immutable UTF-16 `locator: { start, end }`, `messageIds`, and `kind` (`elicited`, `inference`, `default`, `formalism-constraint`, `external`, or `correction`). Elicited relations need actual user sources; a prepared dispatch, assistant proposal, or unrelated context is not elicited support. Valid IDs and spans do not establish relevance. Keep epistemic treatment beside the authoritative claim; these relations do not make headings or labels mandatory.
+An evidence relation names an immutable UTF-16 `locator: { start, end }`, `messageIds`, and `kind` (`elicited`, `inference`, `default`, `formalism-constraint`, `external`, or `correction`). Elicited relations need actual user sources; a prepared dispatch, assistant proposal, or unrelated context is not elicited support. Every supplied message ID must resolve to an authorized true-user source in this conversation, including for `external` relations: an external URL or tool-result ID is not a user message ID. An `external` relation may use an empty `messageIds` list when no user source supports it. Keep external source attribution and the person's standing in Markdown beside the claim; the `external` kind alone does not express that standing. Valid IDs and spans do not establish relevance. Keep epistemic treatment beside the authoritative claim; these relations do not make headings or labels mandatory.
 
 Only unique unchanged text at the same revision-local span automatically carries its relation. Moves, renames, paraphrases, split/merge, deletion, reintroduction and duplicate text do not earn inferred continuity; make a new explicit, justified declaration or leave support absent. No relation means temporal context, not implied support. This fallback makes no introduced-by or passage-identity claim.
 
@@ -69,7 +69,7 @@ Words such as “usually,” “roughly,” “mostly,” “sometimes,” and �
 
 ### Normative language
 
-“We would,” “the rule is,” “you are supposed to,” and documents describing procedure establish a prescribed account, not necessarily observed practice. Notice the possible divergence without assuming that it exists.
+“We would,” “the rule is,” “you are supposed to,” and documents describing procedure may express the desired product, not a defective report of practice. Establish whether the account describes what happens now, what should happen, or a discrepancy that matters. Divergence from practice is a possibility, not a presumption.
 
 ### Tension within or between accounts
 
@@ -77,7 +77,7 @@ An answer that does not fit an earlier answer may indicate a correction, ambigui
 
 ### Unexplained terms and artifacts
 
-Local terms, forms, diagrams, policies, spreadsheets, and other artifacts may carry tacit distinctions. Treat an artifact as a sourced proposition and ask how its meaning relates to actual use rather than accepting your own reading.
+Local terms, forms, diagrams, policies, spreadsheets, and other artifacts may carry tacit distinctions. Treat an artifact as a sourced proposition and ask how its meaning relates to the account being given rather than accepting your own reading.
 
 ### Burden, impatience, or limited availability
 
@@ -121,11 +121,15 @@ Ask how the person would know, what they actually look at, or what would be diff
 
 ### Ground a term or artifact
 
-Ask for the person's meaning of a local term. For a document or other artifact, ask when it matches practice, when it does not, and what observation could distinguish the accounts.
+Ask for the person's meaning of a local term. For a document or other artifact, ask how its meaning relates to the account the person is giving. For a description of practice, ask when it matches, when it does not, and what observation could distinguish the accounts. For normative or consulted material, establish whether the person adopts, disputes, or has not yet taken a position on it.
 
-### Clarify until observable
+### Consult and present for confirmation
 
-Clarify a consequential statement until a suitably informed observer could report it without asking what its terms meant. Stop at the granularity the person or available evidence can actually observe.
+When the person refers to something that must be looked up, use an available authorized source-side tool to consult it. If no such capability is available, name the gap rather than claiming a lookup. Present what was found as an attributed proposal in the person's frame and record their position. A lookup narrows the next question; it never replaces the person's check. Keep not-yet-shown material distinct until that check occurs. This is the same agent's conversation, not a second model call. Target-formalism documentation and checks remain with the job skill.
+
+### Clarify until applicable
+
+Clarify a consequential statement until a suitably informed reader could apply it without asking what its terms meant. Stop at the granularity the source can support. For practice-based accounts, observability is the default: clarify until an informed observer could report the distinction, stopping at what the person or available evidence can actually observe.
 
 ### Use contrastive cases
 
@@ -209,7 +213,7 @@ Verification applies near the action it checks. Repair locally where possible; r
 
 ### Before recording
 
-- Every load-bearing claim is supported by the person's account or visibly marked as agent inference, assumption, transformation, or default.
+- Every load-bearing claim is supported by the person's account, attributed to consulted material with the person's standing visible, or marked as agent inference, assumption, transformation, or default.
 - A hedge, remembered incident, or ambiguous term has not silently become a precise value, rate, category, or rule.
 - Assent to your wording has not been presented as independently originated evidence.
 - A correction, conflict, and contextual variation have not been flattened into one undifferentiated account.
@@ -226,7 +230,7 @@ Verification applies near the action it checks. Repair locally where possible; r
 - **Fluent and empty:** the conversation reads well but the workpiece has not gained a consequential distinction. Change operation or state the blocker.
 - **Schema-shaped questioning:** questions follow headings or fields. Return to a concrete case or active uncertainty.
 - **Silent hardening:** precision increased without evidence. Restore the hedge, ask, or mark an assumption.
-- **Invented content:** a load-bearing claim has no person-supplied basis and no agent-authorship mark. Remove or relabel it.
+- **Invented content:** a load-bearing claim has no person-supplied basis, attributed consulted source, or agent-authorship mark. Remove or relabel it.
 - **Never-asked blindness:** a consequential dependency remains unsupported because no question reached it. Use Coverage as a gap check, not a questionnaire.
 - **Premature accommodation:** burden ends questioning while gaps disappear from the deliverable. Honour the stop and restore the gaps.
 - **Deferral without deposit:** future work is promised but not recoverably described. Record the missing information, consequence, source, and return condition.

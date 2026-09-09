@@ -59,6 +59,48 @@ describe("the authored elicitation skill", () => {
     );
   });
 
+  test("keeps practice defaults distinct from normative and consulted accounts", () => {
+    const instructions = elicitationSkill.instructions;
+    expect(instructions).toContain(
+      "For practice-based sources, prefer concrete remembered cases",
+    );
+    expect(instructions).toContain(
+      "what happens now, what should happen, or a discrepancy that matters",
+    );
+    expect(instructions).toContain(
+      "how its meaning relates to the account the person is giving",
+    );
+    expect(instructions).toContain(
+      "Stop at the granularity the source can support",
+    );
+    expect(instructions).toContain(
+      "For practice-based accounts, observability is the default",
+    );
+    expect(instructions).toContain(
+      "Every load-bearing claim is supported by the person's account, attributed to consulted material",
+    );
+    expect(instructions).toContain(
+      "accepted, disputed, or not yet shown; if shown but unsettled, say so",
+    );
+    expect(instructions).toContain(
+      "the `external` kind alone does not express that standing",
+    );
+    expect(instructions).toContain(
+      "an external URL or tool-result ID is not a user message ID",
+    );
+    expect(instructions).toContain(
+      "An `external` relation may use an empty `messageIds` list",
+    );
+    expect(instructions).toContain(
+      "use an available authorized source-side tool",
+    );
+    expect(instructions).toContain(
+      "If no such capability is available, name the gap",
+    );
+    expect(instructions).toContain("A lookup narrows the next question");
+    expect(instructions).toContain("not a second model call");
+  });
+
   test("parses frontmatter fields without interpreting field names as patterns", () => {
     const skill = skillFromMarkdown(
       "---\r\nname: example\r\ndescription: Example skill\r\n---\r\nDo the work.\r\n",
