@@ -9,6 +9,8 @@ import { createContext, use, type ReactNode } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import type { FrameHeaderEngagement } from "./use-header-engaged";
+
 /** The header's height in pixels at rest: the title line, the stats line and the bar. */
 export const FRAME_HEADER_HEIGHT = 56;
 /** The header's height in pixels once the body has scrolled: one line and the bar. */
@@ -204,7 +206,8 @@ export type FrameHeaderProps = {
   animate: boolean;
   /** Room kept clear on the right for a close button the surrounding chrome draws. */
   closeGutter?: number;
-  onEngagedChange: (engaged: boolean) => void;
+  /** The pointer and focus handlers that hold the header open while the body is scrolled. */
+  engagement: FrameHeaderEngagement;
 };
 
 export const FrameHeader = ({
@@ -217,7 +220,7 @@ export const FrameHeader = ({
   condensed,
   animate,
   closeGutter = 0,
-  onEngagedChange,
+  engagement,
 }: FrameHeaderProps) => (
   <div
     className={rootStyle}
@@ -228,10 +231,7 @@ export const FrameHeader = ({
       height: condensed ? FRAME_HEADER_CONDENSED_HEIGHT : FRAME_HEADER_HEIGHT,
       paddingRight: closeGutter > 0 ? closeGutter : undefined,
     }}
-    onPointerEnter={() => onEngagedChange(true)}
-    onPointerLeave={() => onEngagedChange(false)}
-    onFocus={() => onEngagedChange(true)}
-    onBlur={() => onEngagedChange(false)}
+    {...engagement}
   >
     <div className={titleRowStyle}>
       {leading === undefined ? null : leading}

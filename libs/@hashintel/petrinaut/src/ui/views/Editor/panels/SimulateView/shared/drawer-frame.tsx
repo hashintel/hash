@@ -6,9 +6,11 @@
  * changes the body's available height and never its scroll offset. The body
  * is a size container; `FrameColumns` arranges its content by the body's
  * width. A `note` row is always mounted, empty when there is nothing to say,
- * so an error or a resume note appearing moves nothing.
+ * so an error or a resume note appearing moves nothing. In a drawer the body
+ * takes the opening focus, so wheel and arrow keys scroll it at once and no
+ * control in the header holds the header open.
  */
-import { use, useState, type ReactNode } from "react";
+import { type ReactNode, use, useRef } from "react";
 
 import { Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -16,6 +18,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { FrameHeader } from "./drawer-frame/frame-header";
 import { useBodyScrolled } from "./drawer-frame/use-body-scrolled";
+import { useHeaderEngaged } from "./drawer-frame/use-header-engaged";
 import { usePrefersReducedMotion } from "./drawer-frame/use-prefers-reduced-motion";
 
 export {
@@ -111,6 +114,7 @@ const bodyStyle = css({
   minWidth: "[0]",
   overflowY: "auto",
   overflowX: "hidden",
+  outline: "none",
   scrollbarWidth: "[thin]",
   scrollbarGutter: "stable",
   paddingX: "5",
@@ -171,7 +175,8 @@ export const DrawerFrame = ({
   const { showAnimations } = use(UserSettingsContext);
   const reducedMotion = usePrefersReducedMotion();
   const { scrolled, onScroll } = useBodyScrolled();
-  const [engaged, setEngaged] = useState(false);
+  const { engaged, engagement, settleFocus } = useHeaderEngaged();
+  const bodyRef = useRef<HTMLDivElement>(null);
   const condensed = scrolled && !engaged;
 
   const header = (
@@ -185,12 +190,21 @@ export const DrawerFrame = ({
       condensed={condensed}
       animate={showAnimations && !reducedMotion}
       closeGutter={drawer === undefined ? 0 : DRAWER_CLOSE_GUTTER}
-      onEngagedChange={setEngaged}
+      engagement={engagement}
     />
   );
 
   const body = (
-    <div className={bodyStyle} data-frame-body onScroll={onScroll}>
+    <div
+      ref={bodyRef}
+      className={bodyStyle}
+      data-frame-body
+      tabIndex={-1}
+      onScroll={(event) => {
+        onScroll(event);
+        settleFocus();
+      }}
+    >
       <div
         className={noteRowStyle}
         data-frame-note
@@ -220,6 +234,7 @@ export const DrawerFrame = ({
       showBackdrop={false}
       onClose={drawer.onClose}
       swapKey={drawer.swapKey}
+      initialFocusRef={bodyRef}
     >
       <Drawer.Header className={drawerHeaderStyle}>{header}</Drawer.Header>
       <Drawer.Body withPadding={false} className={drawerBodyStyle}>

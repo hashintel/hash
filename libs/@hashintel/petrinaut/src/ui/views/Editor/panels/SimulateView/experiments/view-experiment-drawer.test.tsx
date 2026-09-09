@@ -4,7 +4,14 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { frameLayoutSignature } from "../shared/drawer-frame";
+import {
+  FRAME_HEADER_CONDENSED_HEIGHT,
+  frameLayoutSignature,
+} from "../shared/drawer-frame";
+import {
+  frameHeader,
+  scrollFrameBody,
+} from "../shared/drawer-frame/frame-test-helpers";
 import {
   makeExperiment,
   makeParameterSweepExperiment,
@@ -158,6 +165,16 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(document.querySelector("[data-frame-progress]")).toBeTruthy();
     expect(screen.getByText("Parameters")).toBeTruthy();
     expect(screen.getByTestId("sweep-surface")).toBeTruthy();
+  });
+
+  it("condenses the header once the body scrolls, with nothing else involved", () => {
+    renderDrawer(sweep);
+
+    scrollFrameBody(80);
+    expect(frameHeader().style.height).toBe(
+      `${FRAME_HEADER_CONDENSED_HEIGHT}px`,
+    );
+    expect(frameHeader().dataset.condensed).toBe("true");
   });
 
   it("keeps the header, the note row and every card at one height across running, complete, cancelled and error", () => {
