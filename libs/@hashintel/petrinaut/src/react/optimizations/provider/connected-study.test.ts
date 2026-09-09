@@ -332,7 +332,7 @@ describe("createConnectedStudy", () => {
     });
 
     const empty = setup();
-    empty.study.settle("cancelled");
+    empty.study.settle("complete");
     expect(empty.latest()?.navigation).toEqual({
       positions: { infected_ratio: 25 },
       booleans: {},
@@ -341,7 +341,7 @@ describe("createConnectedStudy", () => {
     expect(empty.refinementRuns.runs).toHaveLength(1);
   });
 
-  it("a stop settles on the best too; a navigation the user moved earlier stays where it is", () => {
+  it("a stop settles on the best too, without refining it; a navigation the user moved earlier stays where it is", () => {
     const { study, startTrial, latest, refinementRuns } = setup();
     study.trialReported(trialEvent(0, 0.05, 0.3));
     const trial = startTrial(1, 0.02);
@@ -352,11 +352,14 @@ describe("createConnectedStudy", () => {
     trial.run.cancel();
     study.trialSettled(1, cancelledRunOutcome);
     const bestPosition = optimizationAxisPositionFor(axis, 0.05);
-    expect(latest()?.navigation.positions).toEqual({
-      infected_ratio: bestPosition,
+    expect(latest()?.navigation).toEqual({
+      positions: { infected_ratio: bestPosition },
+      booleans: {},
+      followTrials: false,
     });
-    expect(refinementRuns.runs).toHaveLength(1);
-    expect(latest()?.selection?.key).toBe(`infected_ratio=${bestPosition}`);
+    // Nothing computes at the best until it is asked for.
+    expect(refinementRuns.runs).toHaveLength(0);
+    expect(latest()?.selection).toBeNull();
 
     const moved = setup();
     moved.startTrial(0, 0.05);
@@ -370,6 +373,59 @@ describe("createConnectedStudy", () => {
       infected_ratio: 10,
     });
     expect(moved.refinementRuns.runs).toHaveLength(1);
+  });
+
+  it("a pause drains the followed trial into the record, parks at the best it reveals and refines nothing", () => {
+    const { study, startTrial, latest, refinementRuns } = setup();
+    study.trialReported(trialEvent(0, 0.05, 0.3));
+    const trial = startTrial(1, 0.02);
+
+    study.settle("paused");
+    // The trial in flight keeps streaming as the selection until it settles.
+    expect(latest()?.selection?.key).toBe("trial:1");
+    expect(refinementRuns.runs).toHaveLength(0);
+
+    const result = completedRunResult({
+      metricId,
+      frames: [distributionFrame(metricId, 180, [[0.1, 3]])],
+      runValues: [0.1, 0.1, 0.1],
+    });
+    study.trialSettled(1, result);
+    trial.settle(result);
+    expect(latest()?.navigation.positions).toEqual({
+      infected_ratio: optimizationAxisPositionFor(axis, 0.05),
+    });
+    expect(latest()?.selection).toBeNull();
+
+    // The drained trial reports as the new best (the study minimizes): the
+    // parked navigation follows it there, and still nothing refines.
+    study.trialReported(trialEvent(1, 0.02, 0.1));
+    expect(latest()?.navigation.positions).toEqual({
+      infected_ratio: optimizationAxisPositionFor(axis, 0.02),
+    });
+    expect(refinementRuns.runs).toHaveLength(0);
+  });
+
+  it("refineBest moves to the best step's point and climbs the ladder there; settling a failed study starts nothing", () => {
+    const { study, latest, refinementRuns } = setup();
+    study.trialReported(trialEvent(0, 0.05, 0.3));
+    study.settle("error");
+    expect(refinementRuns.runs).toHaveLength(0);
+
+    study.refineBest();
+    const bestPosition = optimizationAxisPositionFor(axis, 0.05);
+    expect(latest()?.navigation).toEqual({
+      positions: { infected_ratio: bestPosition },
+      booleans: {},
+      followTrials: false,
+    });
+    expect(refinementRuns.runs).toHaveLength(1);
+    expect(refinementRuns.runs[0]?.request).toMatchObject({
+      scenarioParameterValues: {
+        infected_ratio: optimizationAxisValueAt(axis, bestPosition),
+      },
+    });
+    expect(latest()?.selection?.key).toBe(`infected_ratio=${bestPosition}`);
   });
 
   it("turning following back on attaches to the trial being evaluated", () => {

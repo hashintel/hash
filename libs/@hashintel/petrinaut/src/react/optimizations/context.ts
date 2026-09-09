@@ -12,9 +12,16 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type { OptimizationScalar } from "@hashintel/petrinaut-core/optimization";
 
+/**
+ * `paused` is a connected study drained on request: no new steps, the ones
+ * in flight finished and reported, the sampler kept. The word is the
+ * simulation layer's (`SimulationState` "Paused"), lowercase like its
+ * siblings here.
+ */
 export type OptimizationStatus =
   | "initializing"
   | "running"
+  | "paused"
   | "complete"
   | "error"
   | "cancelled";
@@ -277,6 +284,26 @@ export type OptimizationsContextValue = {
    * event, and keeps its sampler's history, so it can be continued.
    */
   cancelOptimization: (optimizationId: string) => void;
+  /**
+   * Drains a running connected study: no new steps are asked, the ones in
+   * flight finish and report, and the study keeps its sampler. The record
+   * reads `paused` at once and becomes resumable when the segment's
+   * `paused` event lands. Nothing computes at the best point (see
+   * `refineOptimizationBest`). A remote study ignores the call.
+   */
+  pauseOptimization: (optimizationId: string) => void;
+  /**
+   * Runs the steps a paused study still owes (the requested count minus the
+   * steps told so far), following them. Rejects as `extendOptimization`
+   * does, and when nothing is owed.
+   */
+  resumeOptimization: (optimizationId: string) => Promise<void>;
+  /**
+   * Moves a settled connected study's navigation to its best step's point
+   * and climbs the run ladder there: the explicit form of what settling used
+   * to start on its own. A remote study has no navigation and ignores it.
+   */
+  refineOptimizationBest: (optimizationId: string) => void;
   removeOptimization: (optimizationId: string) => void;
   /**
    * Runs `trials` more steps on a resumable connected study, following them
@@ -309,6 +336,10 @@ const DEFAULT_CONTEXT_VALUE: OptimizationsContextValue = {
   createOptimization: () =>
     Promise.reject(new Error("Optimization is unavailable")),
   cancelOptimization: () => {},
+  pauseOptimization: () => {},
+  resumeOptimization: () =>
+    Promise.reject(new Error("Optimization is unavailable")),
+  refineOptimizationBest: () => {},
   removeOptimization: () => {},
   extendOptimization: () =>
     Promise.reject(new Error("Optimization is unavailable")),

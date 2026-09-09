@@ -12,6 +12,8 @@ export const describeOptimizationStatus = (
       return "Initializing";
     case "running":
       return "Running";
+    case "paused":
+      return "Paused";
     case "complete":
       return "Complete";
     case "error":

@@ -92,6 +92,40 @@ describe("describeStudyProgress", () => {
     );
   });
 
+  it("says a paused study is paused, and how many steps are still finishing", () => {
+    const paused = {
+      input,
+      trials: trials.slice(0, 4),
+      best: { trial: 2, parameters: {}, objective: 650.5 },
+      status: "paused" as const,
+    };
+    expect(
+      describeStudyProgress(
+        makeOptimizationRecord({
+          ...paused,
+          connected: makeConnectedStudyState(input),
+        }),
+      ),
+    ).toBe(
+      `Paused at 4 of 30 steps · best step so far: step 3 (${formatNumber(650.5)})`,
+    );
+    expect(
+      describeStudyProgress(
+        makeOptimizationRecord({
+          ...paused,
+          connected: makeConnectedStudyState(input, {
+            inFlight: [
+              { trial: 4, parameters: {}, objective: null },
+              { trial: 5, parameters: {}, objective: null },
+            ],
+          }),
+        }),
+      ),
+    ).toBe(
+      `Paused at 4 of 30 steps · 2 steps finishing · best step so far: step 3 (${formatNumber(650.5)})`,
+    );
+  });
+
   it("admits there is no best step yet", () => {
     expect(
       describeStudyProgress(

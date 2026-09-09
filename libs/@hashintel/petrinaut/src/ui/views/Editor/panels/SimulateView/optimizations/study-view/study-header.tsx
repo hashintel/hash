@@ -43,7 +43,8 @@ const bestPart = (best: OptimizationRecord["best"]): string =>
 /**
  * "Step 17 of 30 · best step so far: step 12 (650.5)" while live;
  * "Stopped after 17 of 30 steps · best step so far: step 12 (650.5)" once
- * settled.
+ * settled; "Paused at 17 of 30 steps · 1 step finishing · best step so far:
+ * step 12 (650.5)" while a pause drains.
  */
 export const describeStudyProgress = (
   optimization: Pick<
@@ -65,6 +66,14 @@ export const describeStudyProgress = (
       return `Starting · ${best}`;
     case "running":
       return `Step ${Math.min(finished + 1, requested)} of ${requested} · ${best}`;
+    case "paused": {
+      const inFlight = optimization.connected?.inFlight.length ?? 0;
+      const finishing =
+        inFlight === 0
+          ? ""
+          : ` · ${inFlight} ${inFlight === 1 ? "step" : "steps"} finishing`;
+      return `Paused at ${finished} of ${requested} steps${finishing} · ${best}`;
+    }
     case "complete":
       return finished === requested
         ? `Finished ${requested} steps · ${best}`

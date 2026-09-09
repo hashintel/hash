@@ -70,6 +70,7 @@ const errorStyle = css({
 const STATUS_TONE: Record<OptimizationRecord["status"], SummaryStatusTone> = {
   initializing: "active",
   running: "active",
+  paused: "neutral",
   complete: "done",
   error: "error",
   cancelled: "neutral",

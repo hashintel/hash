@@ -481,6 +481,30 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     [patchOptimization],
   );
 
+  /**
+   * The record reads paused as soon as the user asks: the steps in flight
+   * keep reporting into it, and the segment's `paused` event makes it
+   * resumable once they have.
+   */
+  const markOptimizationPaused = useCallback(
+    (optimizationId: string) => {
+      patchOptimization(optimizationId, (current) =>
+        withConnected(
+          {
+            ...current,
+            status: "paused",
+            error: null,
+            errorCategory: null,
+            errorDiagnostics: null,
+          },
+          () => ({ resumable: false }),
+        ),
+      );
+      settleStudy(optimizationId, "paused");
+    },
+    [patchOptimization],
+  );
+
   const markOptimizationFailed = useCallback(
     (
       optimizationId: string,
@@ -547,9 +571,12 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
           patchOptimization(optimizationId, (current) => ({
             ...current,
             ...extra,
-            // A trial that settled as the study was stopped still reports;
-            // it does not revive the study.
-            status: current.status === "cancelled" ? "cancelled" : "running",
+            // A trial that settled as the study was stopped or paused still
+            // reports; it does not revive the study.
+            status:
+              current.status === "cancelled" || current.status === "paused"
+                ? current.status
+                : "running",
             completedTrials:
               current.completedTrials + (event.state === "complete" ? 1 : 0),
             prunedTrials:
@@ -587,6 +614,22 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
             ),
           );
           settleStudy(optimizationId, "complete", event.best);
+          break;
+        case "paused":
+          patchOptimization(optimizationId, (current) =>
+            withConnected(
+              {
+                ...current,
+                ...extra,
+                status: "paused",
+                connectionState: null,
+                requestedTrials: event.requestedTrials,
+                best: event.best ?? current.best,
+              },
+              () => ({ resumable: resumable(event) }),
+            ),
+          );
+          settleStudy(optimizationId, "paused", event.best);
           break;
         case "error": {
           const cancelled =
@@ -725,7 +768,11 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
             }
             consecutiveFailures = 0;
             receivedAnyEvent = true;
-            if (event.type === "complete" || event.type === "error") {
+            if (
+              event.type === "complete" ||
+              event.type === "paused" ||
+              event.type === "error"
+            ) {
               sawTerminalEvent = true;
             }
             applyOptimizationEvent(optimizationId, event, {
@@ -1144,6 +1191,36 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     markOptimizationCancelled(optimizationId);
   };
 
+  const pauseOptimization: OptimizationsContextValue["pauseOptimization"] = (
+    optimizationId,
+  ) => {
+    const runId = resolveRunId(optimizationId);
+    const connection = connectionRef.current;
+    const existing = optimizations.find(
+      (optimization) => optimization.id === optimizationId,
+    );
+    if (
+      !connection ||
+      !studiesRef.current.has(optimizationId) ||
+      runId === undefined ||
+      !existing ||
+      !isOptimizationActive(existing)
+    ) {
+      return;
+    }
+    // The attachment stays: the steps in flight report into the record and
+    // the segment's paused event lands after them.
+    void connection.capability
+      .pauseOptimizationRun(runId)
+      .catch(() => undefined);
+    markOptimizationPaused(optimizationId);
+  };
+
+  const refineOptimizationBest: OptimizationsContextValue["refineOptimizationBest"] =
+    (optimizationId) => {
+      studiesRef.current.get(optimizationId)?.refineBest();
+    };
+
   const removeOptimization: OptimizationsContextValue["removeOptimization"] = (
     optimizationId,
   ) => {
@@ -1231,6 +1308,21 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       });
     };
 
+  const resumeOptimization: OptimizationsContextValue["resumeOptimization"] =
+    async (optimizationId) => {
+      const existing = optimizations.find(
+        (optimization) => optimization.id === optimizationId,
+      );
+      const owed =
+        existing === undefined
+          ? 0
+          : existing.requestedTrials - existing.trials.length;
+      if (owed < 1) {
+        throw new Error("This optimization has no steps left to resume");
+      }
+      await extendOptimization(optimizationId, owed);
+    };
+
   const setOptimizationNavigation: OptimizationsContextValue["setOptimizationNavigation"] =
     (optimizationId, patch) => {
       studiesRef.current.get(optimizationId)?.setNavigation(patch);
@@ -1262,6 +1354,9 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     setSelectedOptimizationId,
     createOptimization,
     cancelOptimization,
+    pauseOptimization,
+    resumeOptimization,
+    refineOptimizationBest,
     removeOptimization,
     extendOptimization,
     setOptimizationNavigation,
