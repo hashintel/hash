@@ -226,6 +226,23 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     }
   };
 
+  if (item.selectedStyle === "checkbox" && "onClick" in item) {
+    return (
+      <Menu.CheckboxItem
+        value={itemId}
+        checked={isSelected}
+        disabled={!isInteractive}
+        closeOnSelect={closeOnSelect}
+        onCheckedChange={handleSelect}
+        className={classes.item}
+        data-selected={isSelected || undefined}
+        data-loading={(item.loading && !item.disabled) || undefined}
+      >
+        {body}
+      </Menu.CheckboxItem>
+    );
+  }
+
   return (
     <Menu.Item
       value={itemId}

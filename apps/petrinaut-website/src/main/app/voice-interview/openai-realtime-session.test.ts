@@ -1255,6 +1255,79 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.localTracks[0]!.enabled).toBe(true);
   });
 
+  test("releases every buffered response after one spoken-interruption clear", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setInterruptionBySpeaking(true);
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("first", "First canonical segment."),
+    ]);
+    authorizeLatestSpeechResponse(channel, "response-first");
+    channel.receive({
+      response_id: "response-first",
+      type: "output_audio_buffer.started",
+    });
+    harness.session.speakCanonical([
+      canonicalSegment("second", "Second canonical segment."),
+    ]);
+    channel.receive({
+      response: {
+        id: "response-first",
+        output: [
+          {
+            content: [
+              { transcript: "First canonical segment.", type: "output_audio" },
+            ],
+            role: "assistant",
+            type: "message",
+          },
+        ],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+    authorizeLatestSpeechResponse(channel, "response-second");
+    channel.receive({
+      response: {
+        id: "response-second",
+        output: [
+          {
+            content: [
+              { transcript: "Second canonical segment.", type: "output_audio" },
+            ],
+            role: "assistant",
+            type: "message",
+          },
+        ],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+    channel.send.mockClear();
+
+    channel.receive({
+      audio_start_ms: 100,
+      item_id: "interrupting-answer",
+      type: "input_audio_buffer.speech_started",
+    });
+    expect(sentEvents(channel)).toEqual([
+      { type: "output_audio_buffer.clear" },
+    ]);
+    channel.receive({
+      response_id: "response-first",
+      type: "output_audio_buffer.cleared",
+    });
+
+    expect(harness.events).toContainEqual({
+      connectionEpoch: 1,
+      responseId: "response-second",
+      speechRequestId: "canonical-1-2",
+      type: "output-interrupted",
+    });
+  });
+
   test("releases active canonical ownership after acknowledged cancellation", async () => {
     const harness = createHarness();
     await harness.session.connect();
@@ -1825,6 +1898,54 @@ describe("OpenAIRealtimeSession", () => {
         connectionEpoch: 1,
         itemId: "item-reordered",
         type: "input-speech-started",
+      },
+    ]);
+  });
+
+  test("exposes only the first unresolved provider input item", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+
+    for (const itemId of ["first-item", "overlapping-item"]) {
+      channel.receive({
+        audio_start_ms: 100,
+        item_id: itemId,
+        type: "input_audio_buffer.speech_started",
+      });
+    }
+    channel.receive({
+      content_index: 0,
+      item_id: "first-item",
+      transcript: "Submit only this answer.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    channel.receive({
+      content_index: 0,
+      item_id: "overlapping-item",
+      transcript: "Do not submit this overlap.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+
+    expect(
+      harness.events.filter(
+        ({ type }) => type === "input-speech-started" || type === "completed",
+      ),
+    ).toEqual([
+      {
+        connectionEpoch: 1,
+        itemId: "first-item",
+        type: "input-speech-started",
+      },
+      {
+        key: {
+          connectionEpoch: 1,
+          contentIndex: 0,
+          itemId: "first-item",
+        },
+        text: "Submit only this answer.",
+        type: "completed",
       },
     ]);
   });

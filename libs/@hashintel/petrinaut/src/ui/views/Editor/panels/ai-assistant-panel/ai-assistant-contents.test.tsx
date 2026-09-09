@@ -452,9 +452,10 @@ describe("AiAssistantContents", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Voice playback options" }),
     );
-    const preference = await screen.findByRole("menuitem", {
+    const preference = await screen.findByRole("menuitemcheckbox", {
       name: "Interruption by speaking",
     });
+    expect(preference.getAttribute("aria-checked")).toBe("true");
     expect(preference.hasAttribute("data-selected")).toBe(true);
     const menu = screen.getByRole("menu");
     fireEvent.keyDown(menu, { key: "End" });
@@ -466,12 +467,14 @@ describe("AiAssistantContents", () => {
       expect(setInterruptionBySpeaking).toHaveBeenCalledWith(false),
     );
     expect(screen.getByRole("menu")).not.toBeNull();
+    expect(preference.getAttribute("aria-checked")).toBe("false");
     expect(preference.hasAttribute("data-selected")).toBe(false);
     expect(screen.getByRole("button", { name: "Your turn" })).not.toBeNull();
     fireEvent.keyDown(menu, { key: "Enter" });
     await waitFor(() =>
       expect(setInterruptionBySpeaking).toHaveBeenLastCalledWith(true),
     );
+    expect(preference.getAttribute("aria-checked")).toBe("true");
     expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
   });
 

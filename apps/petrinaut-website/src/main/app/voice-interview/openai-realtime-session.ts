@@ -725,6 +725,16 @@ export class OpenAIRealtimeSession {
         this.#playbackOverlappingInputItemIds.add(itemId);
         return;
       }
+      if (
+        this.#acceptedInputItemIds.has(itemId) ||
+        this.#playbackOverlappingInputItemIds.has(itemId)
+      ) {
+        return;
+      }
+      if (this.#acceptedInputItemIds.size > 0) {
+        this.#playbackOverlappingInputItemIds.add(itemId);
+        return;
+      }
       this.#acceptedInputItemIds.add(itemId);
       if (this.#interruptionBySpeaking) {
         try {
@@ -1044,6 +1054,14 @@ export class OpenAIRealtimeSession {
     const wasSpeaking = this.#speakingResponseId === responseId;
     const wasCleared = event.type === "output_audio_buffer.cleared";
     const speechRequestId = this.#speechRequestIds.get(responseId);
+    const additionallyClearedResponses = wasCleared
+      ? [...this.#terminalCanonicalResponseIds]
+          .filter((terminalResponseId) => terminalResponseId !== responseId)
+          .map((terminalResponseId) => ({
+            responseId: terminalResponseId,
+            speechRequestId: this.#speechRequestIds.get(terminalResponseId),
+          }))
+      : [];
     const interruptedBeforePlayback =
       wasCleared &&
       !wasSpeaking &&
@@ -1055,11 +1073,6 @@ export class OpenAIRealtimeSession {
         ? "request-aborted"
         : undefined,
     );
-    if (wasCleared && this.#cancelOutputAwaitingOutputBufferClear) {
-      for (const terminalResponseId of this.#terminalCanonicalResponseIds) {
-        this.#finishSpeech(terminalResponseId, "request-aborted");
-      }
-    }
     if (wasSpeaking) {
       this.#emit({
         connectionEpoch,
@@ -1071,6 +1084,14 @@ export class OpenAIRealtimeSession {
         connectionEpoch,
         responseId,
         speechRequestId,
+        type: "output-interrupted",
+      });
+    }
+    for (const clearedResponse of additionallyClearedResponses) {
+      this.#finishSpeech(clearedResponse.responseId, "request-aborted");
+      this.#emit({
+        connectionEpoch,
+        ...clearedResponse,
         type: "output-interrupted",
       });
     }

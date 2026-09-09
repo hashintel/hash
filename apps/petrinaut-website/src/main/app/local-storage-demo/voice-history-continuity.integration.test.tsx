@@ -190,7 +190,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("reopens typed, Voice-origin, and durably stopped history in a second mounted client", async () => {
+test("projects typed, Voice-tool, and stopped fixture history after remount", async () => {
   const storageEntries = new Map<string, string>();
   vi.stubGlobal("localStorage", {
     get length() {
@@ -335,11 +335,11 @@ test("reopens typed, Voice-origin, and durably stopped history in a second mount
     return "stop-requested" as const;
   });
 
-  const firstClient = render(
+  const firstMount = render(
     <ContinuityPanel
       clientPromise={observation.clientPromise}
       endVoice={endVoice}
-      handleId="voice-continuity-tab-a"
+      handleId="voice-continuity-mount-a"
       requestStop={requestStop}
       transport={transport}
     />,
@@ -360,13 +360,13 @@ test("reopens typed, Voice-origin, and durably stopped history in a second mount
     fireEvent.click(screen.getByRole("button", { name: "Stop AI response" })),
   );
   await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
-  firstClient.unmount();
+  firstMount.unmount();
 
-  const secondClient = render(
+  const secondMount = render(
     <ContinuityPanel
       clientPromise={observation.clientPromise}
       endVoice={endVoice}
-      handleId="voice-continuity-tab-b"
+      handleId="voice-continuity-mount-b"
       requestStop={requestStop}
       transport={transport}
     />,
@@ -384,7 +384,7 @@ test("reopens typed, Voice-origin, and durably stopped history in a second mount
   ).toBeNull();
   expect(
     within(
-      secondClient.container.querySelector(
+      secondMount.container.querySelector(
         '[data-tool-call-id="voice-tool-1"]',
       )!,
     ).getByTestId("voice-input-provenance"),
