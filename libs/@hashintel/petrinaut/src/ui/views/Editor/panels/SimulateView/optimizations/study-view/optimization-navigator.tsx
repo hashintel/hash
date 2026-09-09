@@ -90,7 +90,15 @@ const nameStyle = css({
   whiteSpace: "nowrap",
 });
 
+// The slider's root: it stretches across the row so the rail is drawn at
+// full width; centring its children would shrink the rail to the thumb.
 const controlStyle = css({
+  flex: "1",
+  minWidth: "[0]",
+  justifyContent: "center",
+});
+
+const toggleSlotStyle = css({
   flex: "1",
   display: "flex",
   alignItems: "center",
@@ -176,6 +184,7 @@ export const OptimizationNavigator = ({
             </span>
             <Slider
               className={controlStyle}
+              variant="plain"
               min={0}
               max={axis.stepCount}
               step={1}
@@ -209,7 +218,7 @@ export const OptimizationNavigator = ({
             <span className={nameStyle} title={identifier}>
               {identifier}
             </span>
-            <span className={controlStyle}>
+            <span className={toggleSlotStyle}>
               <Toggle
                 size="sm"
                 aria-label={identifier}
