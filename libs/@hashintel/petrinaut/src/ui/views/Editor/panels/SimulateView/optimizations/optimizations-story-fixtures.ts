@@ -559,13 +559,13 @@ const hirField = (id: number, target: HirExpr, field: string): HirExpr => ({
 });
 
 /** The rate cap the stories' parameter constraint imposes on `production_rate`. */
-export const FAKE_RATE_CAP = 350;
+export const FAKE_RATE_CAP = 320;
 /** The runs each step of the constrained study runs; the state rates are fractions of it. */
 export const FAKE_CONSTRAINED_RUNS = 60;
 
 /**
  * The stories' two constraints, hand-lowered so the fixtures need no
- * TypeScript compiler: `scenario.production_rate <= 350` over the parameter
+ * TypeScript compiler: `scenario.production_rate <= 320` over the parameter
  * space, and `return state.places.FinishedGoods.count <= 500;` over the
  * state.
  */
@@ -573,7 +573,7 @@ export const fakeStudyConstraints: Constraint[] = [
   {
     space: "parameters",
     id: "rate-cap",
-    name: "Production rate under 350",
+    name: "Production rate under 320",
     code: `scenario.production_rate <= ${FAKE_RATE_CAP}`,
     hir: {
       hirVersion: 1,

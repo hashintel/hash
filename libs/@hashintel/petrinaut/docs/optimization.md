@@ -84,12 +84,28 @@ the saved scenario keeps its values.
 
 ## Constraints
 
-The **Constraints** section of the create-optimization drawer records boolean conditions with the study. They are carried in the study's manifest and readable by every consumer (the Python tooling included), but **nothing enforces them yet** -- they do not prune trials or stop runs. Two kinds:
+The **Constraints** section of the create-optimization drawer records boolean
+conditions with the study. They are carried in the study's manifest and
+readable by every consumer (the Python tooling included). A study run in the
+browser (see [Running in the browser](#running-in-the-browser)) evaluates them
+and reports what it finds; the objective is never changed by them, and no run
+is excluded from it. Two kinds:
 
-- **Parameter constraints** -- one-line expressions over the study's parameters (`scenario.*` for scenario parameters, `parameters.*` for net parameters) that must produce a boolean, for example `scenario.min_load < scenario.max_load`. In a later iteration these will let the optimizer avoid infeasible parameter combinations.
-- **State constraints** -- small code bodies that read the simulation `state` exactly like a [metric](experiments.md#metrics) and `return` a boolean, for example `return state.places.Queue.count <= 10;`. In a later iteration these will measure how close a run comes to leaving the safe region, not just whether it did.
+- **Parameter constraints** -- one-line expressions over the study's parameters (`scenario.*` for scenario parameters, `parameters.*` for net parameters) that must produce a boolean, for example `scenario.min_load < scenario.max_load`. Before each step runs, the browser checks them at the step's values. A step whose values break one is **infeasible**: it costs one step and no simulation, it is reported as pruned with the constraint named, and it is drawn grey everywhere a step is drawn.
+- **State constraints** -- small code bodies that read the simulation `state` exactly like a [metric](experiments.md#metrics) and `return` a boolean, for example `return state.places.Queue.count <= 10;`. Every run of a step reports whether the condition held at every sampled time: a run **passed** when it did and **failed** otherwise.
+
+A step's verdict comes from its runs. The **Pass threshold**, one setting for
+the whole study shown under the constraint rows once a row exists, is the share
+of a step's runs that must pass (95 percent by default, an alpha of 0.05). A
+step is **clear** when every state constraint held on at least that share of
+its runs and **limited** when one fell short. Every rate in the results is
+printed as its raw fraction beside the percentage, `52 / 60 · 87%`, so the run
+count behind a percentage is always in view.
 
 Add a condition with its **Add ... constraint** button, edit it in place, and remove it with **Remove**. Each editor checks as you type: type errors, unknown names and a result that is not a boolean are underlined, and the message appears under the row. Typing `scenario.`, `parameters.` or `state.places.` offers completions, and hovering a name shows its type. **Run** stays disabled, with the first failing row named in the footer, until every constraint compiles; the constraints are compiled once more when you press Run. Empty rows are ignored.
+
+A study run on the optimization service carries its constraints but reports
+no verdicts yet.
 
 ## Watching results
 
@@ -134,7 +150,11 @@ The line under the title counts the completed steps.
 The steps table sits at the bottom, newest steps first, each with its
 parameters, objective value and a state mark (complete, pruned or failed). It
 scrolls on its own, and a long study shows its newest 200 steps while the
-strip keeps the totals and the best.
+strip keeps the totals and the best. A study with
+[constraints](#constraints) run in the browser adds a **Runs passed** column
+(`52 / 60 · 87%`, the constraint with the fewest passing runs when there are
+several; hover the mark for the rest) and greys the rows of infeasible steps,
+their mark reading **Infeasible:** and the constraint's name.
 
 Once a study is over, whether it finished, was stopped, or failed, its
 charts show the results: the objective by step and the surface keep their
@@ -209,6 +229,16 @@ view on a laptop screen while the study streams:
   in flight and the study's history are read together. In the drawer, the
   three cards wrap to two rows when the drawer is not wide enough for all
   three; the full view shows them in one row.
+- A study with [constraints](#constraints) adds a **Constraints** card as the
+  fourth. Its headline is the steps **clear** across the study over the steps
+  that simulated, `14 / 20 · 70%`, with the infeasible draws counted in the
+  line under the title beside the pass threshold. Beneath it, one line gives
+  the latest step's verdict (clear, limited or infeasible) with the runs that
+  passed its tightest constraint, and one bar per state constraint shows the
+  share of steps it passed, with a dashed mark at the threshold. The same
+  headline sits in the summary band as **Steps clear**. Infeasible draws are
+  grey dots on the Objective by step chart and hollow grey rings on the
+  surface, and the best step so far is never one of them.
 - The steps table fills whatever height is left, the best step starred and
   tinted. It shows a row or two on a laptop screen and a page of them on a
   taller one; the strip's step count and best value stay in view either way.

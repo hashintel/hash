@@ -576,7 +576,7 @@ describe("ViewOptimizationDrawer for a connected study with constraints", () => 
     expect(infeasible.length).toBeGreaterThan(0);
     expect(infeasible[0]?.getAttribute("data-state")).toBe("infeasible");
     expect(infeasible[0]?.getAttribute("title")).toBe(
-      "Infeasible: Production rate under 350",
+      "Infeasible: Production rate under 320",
     );
   });
 
