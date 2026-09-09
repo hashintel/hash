@@ -3,8 +3,9 @@
  * row per batch computing right now with its own progress. A sweep runs the
  * selection's ladder, surface chunks and cell refinements in parallel, a
  * study its steps and the navigated point's refinement, so the list shows
- * that parallelism. The list is a popover, so opening it moves nothing; the
- * chip keeps its slot while nothing computes, hidden.
+ * that parallelism. The list is a popover, so opening it moves nothing. The
+ * chip is always drawn, `0 computing` and disabled while nothing runs, and is
+ * as wide as a three-digit count, so the strip never moves around it.
  */
 import { useRef, useState } from "react";
 
@@ -21,10 +22,12 @@ export type ComputeBatch = {
   completedRuns: number;
 };
 
+/** The widest count the chip reserves room for. */
+const WIDEST_COUNT = "000";
+
 const slotStyle = css({
   display: "inline-flex",
   flexShrink: "0",
-  "&[data-idle=true]": { visibility: "hidden" },
 });
 
 const chipStyle = css({
@@ -33,7 +36,6 @@ const chipStyle = css({
   gap: "1",
   paddingX: "1.5",
   height: "[18px]",
-  minWidth: "[11ch]",
   borderRadius: "sm",
   borderWidth: "[0]",
   fontSize: "[11px]",
@@ -44,6 +46,22 @@ const chipStyle = css({
   cursor: "pointer",
   whiteSpace: "nowrap",
   _hover: { backgroundColor: "neutral.s20" },
+  "&[data-idle=true]": {
+    color: "neutral.s70",
+    cursor: "default",
+    _hover: { backgroundColor: "neutral.s10" },
+  },
+});
+
+// The live text and the widest text share one grid cell, so the chip is as
+// wide as `000 computing` whatever the count.
+const chipTextStyle = css({
+  display: "grid",
+  "& > *": { gridArea: "[1 / 1]" },
+});
+
+const sizerStyle = css({
+  visibility: "hidden",
 });
 
 const computingDotStyle = css({
@@ -51,6 +69,7 @@ const computingDotStyle = css({
   height: "[6px]",
   borderRadius: "full",
   backgroundColor: "blue.s100",
+  "[data-idle=true] > &": { backgroundColor: "neutral.s50" },
 });
 
 const listStyle = css({
@@ -151,22 +170,23 @@ export const ComputeBatchesChip = ({
   const showing = open && !idle;
 
   return (
-    <span
-      className={slotStyle}
-      data-idle={idle}
-      aria-hidden={idle}
-      data-compute-batches
-    >
+    <span className={slotStyle} data-idle={idle} data-compute-batches>
       <button
         ref={triggerRef}
         type="button"
         className={chipStyle}
+        data-idle={idle}
         aria-expanded={showing}
         disabled={idle}
         onClick={() => setOpen((previous) => !previous)}
       >
         <span className={computingDotStyle} />
-        {batches.length} computing
+        <span className={chipTextStyle}>
+          <span className={sizerStyle} aria-hidden>
+            {WIDEST_COUNT} computing
+          </span>
+          <span>{batches.length} computing</span>
+        </span>
         <Icon name={showing ? "chevronUp" : "chevronDown"} size="xxs" />
       </button>
       {showing ? (

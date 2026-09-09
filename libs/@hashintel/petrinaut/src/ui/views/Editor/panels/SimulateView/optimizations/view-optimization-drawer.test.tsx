@@ -20,6 +20,7 @@ import {
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import {
   FRAME_HEADER_CONDENSED_HEIGHT,
+  FRAME_HEADER_HEIGHT,
   frameLayoutSignature,
 } from "../shared/drawer-frame";
 import {
@@ -244,7 +245,10 @@ describe("ViewOptimizationDrawer for a remote study", () => {
     expect(screen.getByText("Complete")).toBeTruthy();
     expect(screen.getByText("5 / 30")).toBeTruthy();
     expect(
-      screen.getByText("Best step so far").nextElementSibling?.textContent,
+      screen
+        .getByText("Best step so far")
+        .nextElementSibling?.querySelector("[data-frame-stat-value]")
+        ?.textContent,
     ).toBe(formatObjective(best!.objective));
     expect(screen.getByText("Best parameters")).toBeTruthy();
     expect(screen.getByRole("table")).toBeTruthy();
@@ -369,7 +373,10 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     expect(screen.getByText("Running")).toBeTruthy();
     expect(screen.getByText("3 / 30")).toBeTruthy();
     expect(
-      screen.getByText("Best step so far").nextElementSibling?.textContent,
+      screen
+        .getByText("Best step so far")
+        .nextElementSibling?.querySelector("[data-frame-stat-value]")
+        ?.textContent,
     ).toBe(formatObjective(trials[2]!.best!.objective));
     // The table lists the newest step first; the header row is row 1.
     const bestTrial = trials[2]!.best!.trial;
@@ -1058,7 +1065,7 @@ describe("ViewOptimizationDrawer holds every box still across states", () => {
       return signature;
     });
 
-    expect(signatures[0]!.header).toBe("56px");
+    expect(signatures[0]!.header).toBe(`${FRAME_HEADER_HEIGHT}px`);
     expect(signatures[0]!.note).toBe("20px");
     expect(signatures[0]!.steps).toBe("320px");
     expect(signatures[0]!.cards.map(([title]) => title)).toEqual([

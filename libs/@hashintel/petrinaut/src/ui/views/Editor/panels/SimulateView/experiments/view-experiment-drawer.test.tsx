@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   FRAME_HEADER_CONDENSED_HEIGHT,
+  FRAME_HEADER_HEIGHT,
   frameLayoutSignature,
 } from "../shared/drawer-frame";
 import {
@@ -156,9 +157,12 @@ describe("ViewExperimentDrawer in the frame", () => {
       ),
     ).toBeTruthy();
     expect(screen.getByText("Running")).toBeTruthy();
-    expect(screen.getByText("Runs").nextElementSibling?.textContent).toMatch(
-      /active, .* complete$/u,
-    );
+    expect(
+      screen
+        .getByText("Runs")
+        .nextElementSibling?.querySelector("[data-frame-stat-value]")
+        ?.textContent,
+    ).toMatch(/^\d+ active, \d+ complete$/u);
     expect(screen.getByText("Selection")).toBeTruthy();
     expect(screen.getByText("CPU")).toBeTruthy();
     expect(screen.queryByText("Summary")).toBeNull();
@@ -187,7 +191,7 @@ describe("ViewExperimentDrawer in the frame", () => {
       return signature;
     });
 
-    expect(signatures[0]!.header).toBe("56px");
+    expect(signatures[0]!.header).toBe(`${FRAME_HEADER_HEIGHT}px`);
     expect(signatures[0]!.note).toBe("20px");
     expect(signatures[0]!.cards.length).toBeGreaterThan(1);
     for (const signature of signatures.slice(1)) {

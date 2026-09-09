@@ -1,7 +1,8 @@
 /**
- * The experiment frame's stats line: the status pill, the runs, the errors,
+ * The experiment frame's stat columns: the status pill, the runs, the errors,
  * the simulated time, the wall-clock time, the selection's sampling for a
- * sweep, and the chip listing what computes. Every value reserves its width.
+ * sweep, and the chip listing what computes. Every column is as wide as its
+ * widest value.
  */
 import { useEffect, useState } from "react";
 
@@ -33,11 +34,13 @@ const STATUS_DISPLAY: Record<
   cancelled: { label: "Cancelled", tone: "neutral" },
 };
 
-/** Longest status label plus the dot, so the pill keeps its width as the status changes. */
-const STATUS_CHARS =
-  Math.max(
-    ...Object.values(STATUS_DISPLAY).map((entry) => entry.label.length),
-  ) + 2;
+/** The longest status label, so the pill keeps its width as the status changes. */
+const WIDEST_STATUS = Object.values(STATUS_DISPLAY)
+  .map((entry) => entry.label)
+  .reduce((widest, label) => (label.length > widest.length ? label : widest));
+
+/** The widest wall-clock readout `formatDurationMs` prints. */
+const WIDEST_DURATION = "59m 59s";
 
 /**
  * A clock that advances while `active`, so an elapsed-time readout keeps
@@ -104,52 +107,44 @@ export const ExperimentStats = ({
   const elapsedMs = getExperimentElapsedMs(experiment, now);
   const status = STATUS_DISPLAY[experiment.status];
   const runCount = formatCount(experiment.runCount);
+  const maxTime = formatFixed(experiment.maxTime);
 
   return (
     <>
-      <FrameStatusPill tone={status.tone} minChars={STATUS_CHARS}>
-        {status.label}
-      </FrameStatusPill>
+      <FrameStat label="Status" widest="" align="start">
+        <FrameStatusPill tone={status.tone} widest={WIDEST_STATUS}>
+          {status.label}
+        </FrameStatusPill>
+      </FrameStat>
       <FrameStat
         label="Runs"
-        minChars={`${runCount} active, ${runCount} complete`.length}
+        widest={`${runCount} active, ${runCount} complete`}
       >
         {progress
           ? `${formatCount(progress.activeRuns)} active, ${formatCount(progress.completedRuns)} complete`
           : runCount}
       </FrameStat>
-      <FrameStat label="Errors" minChars={runCount.length}>
+      <FrameStat label="Errors" widest={runCount}>
         {formatCount(progress?.erroredRuns ?? 0)}
       </FrameStat>
-      <FrameStat
-        label="Time"
-        minChars={
-          `${formatFixed(experiment.maxTime)} / ${formatFixed(experiment.maxTime)}`
-            .length
-        }
-      >
-        {formatFixed(progress?.time ?? settledTime(experiment))} /{" "}
-        {formatFixed(experiment.maxTime)}
+      <FrameStat label="Time" widest={`${maxTime} / ${maxTime}`}>
+        {formatFixed(progress?.time ?? settledTime(experiment))} / {maxTime}
       </FrameStat>
-      {/* Wall-clock, as distinct from the simulated time; dashed out when
-          stepping never began. */}
-      <FrameStat
-        label={experiment.finishedAt === null ? "Elapsed" : "Duration"}
-        minChars={8}
-      >
+      {/* Wall-clock, as distinct from the simulated time; it stops once the
+          experiment finishes and is dashed out when stepping never began. */}
+      <FrameStat label="Elapsed" widest={WIDEST_DURATION}>
         {elapsedMs === null ? "—" : formatDurationMs(elapsedMs)}
       </FrameStat>
       {experiment.sweep ? (
-        <FrameStat
-          label="Selection"
-          minChars={`${runCount} / ${runCount} runs`.length}
-        >
+        <FrameStat label="Selection" widest={`${runCount} / ${runCount} runs`}>
           {formatCount(experiment.sweep.runsSampled)} / {runCount} runs
         </FrameStat>
       ) : null}
-      <ComputeBatchesChip
-        batches={experimentComputeBatches(experiment.sweepBatches)}
-      />
+      <FrameStat label="Activity" widest="" align="start">
+        <ComputeBatchesChip
+          batches={experimentComputeBatches(experiment.sweepBatches)}
+        />
+      </FrameStat>
     </>
   );
 };
