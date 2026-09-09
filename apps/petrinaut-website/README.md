@@ -95,7 +95,9 @@ ordinary cross-site browser requests, but a non-browser caller can spoof its
 `Origin` header and create billable Realtime sessions. Use a dedicated OpenAI
 project with low usage thresholds and alerts, monitor it while Voice is
 enabled, and set `PETRINAUT_OPENAI_VOICE_ENABLED=false` immediately if usage is
-unexpected. FE-1622 tracks adding caller authentication.
+unexpected. Revoke or rotate the dedicated `OPENAI_VOICE_API_KEY` in OpenAI,
+then update the deployment secret before re-enabling Voice. FE-1622 tracks
+adding caller authentication.
 
 Text and Voice mode use one assistant transcript and composer. When Voice mode
 is available, the empty first-run prompt and empty composer show a waveform

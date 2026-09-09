@@ -19,6 +19,29 @@ describe("OpenAI voice policy", () => {
     ).toEqual({ available: false, connectionTimeoutMs: 15_000 });
   });
 
+  test("keeps the enabled flag closed without a non-whitespace key", () => {
+    expect(
+      getOpenAIVoiceAvailability({
+        PETRINAUT_OPENAI_VOICE_ENABLED: "true",
+      }),
+    ).toEqual({ available: false, connectionTimeoutMs: 15_000 });
+    expect(
+      getOpenAIVoiceAvailability({
+        OPENAI_VOICE_API_KEY: " \t\n ",
+        PETRINAUT_OPENAI_VOICE_ENABLED: "true",
+      }),
+    ).toEqual({ available: false, connectionTimeoutMs: 15_000 });
+  });
+
+  test("requires the enabled flag's exact lowercase value", () => {
+    expect(
+      getOpenAIVoiceAvailability({
+        OPENAI_VOICE_API_KEY: "server-secret",
+        PETRINAUT_OPENAI_VOICE_ENABLED: "TRUE",
+      }),
+    ).toEqual({ available: false, connectionTimeoutMs: 15_000 });
+  });
+
   test("enables explicitly configured voice in production", () => {
     expect(
       getOpenAIVoiceAvailability({
