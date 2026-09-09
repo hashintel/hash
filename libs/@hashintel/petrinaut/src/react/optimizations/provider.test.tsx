@@ -388,6 +388,66 @@ describe("OptimizationsProvider", () => {
     });
   });
 
+  it("keeps the latest importance estimate a trial or the complete event carried", async () => {
+    const first = { values: { infected_ratio: 1 }, completedTrials: 50 };
+    const last = { values: { infected_ratio: 1 }, completedTrials: 60 };
+    const trial = {
+      type: "trial",
+      trial: 0,
+      parameters: { infected_ratio: 0.1 },
+      objective: 1,
+      state: "complete",
+      best: null,
+    } as const;
+    const capability: PetrinautOptimization = {
+      createOptimizationRun: () => Promise.resolve({ runId: "run-importance" }),
+      async *attachOptimizationRun() {
+        yield { ...trial, seq: 1 };
+        yield { ...trial, trial: 1, importances: first, seq: 2 };
+        yield { ...trial, trial: 2, seq: 3 };
+        yield {
+          type: "complete",
+          requestedTrials: 3,
+          completedTrials: 3,
+          prunedTrials: 0,
+          failedTrials: 0,
+          best: null,
+          importances: last,
+          seq: 4,
+        };
+      },
+      cancelOptimizationRun: () => Promise.resolve(),
+    };
+    let latest: OptimizationsContextValue | null = null;
+
+    render(
+      <PetrinautOptimizationContext value={capability}>
+        <PetrinautNavigationProvider>
+          <OptimizationsProvider>
+            <CaptureContext
+              onValue={(value) => {
+                latest = value;
+              }}
+            />
+          </OptimizationsProvider>
+        </PetrinautNavigationProvider>
+      </PetrinautOptimizationContext>,
+    );
+
+    await act(async () => {
+      await latest!.createOptimization(input);
+    });
+    await waitFor(() =>
+      expect(latest!.optimizations[0]?.status).toBe("complete"),
+    );
+
+    expect(latest!.optimizations[0]?.importance).toEqual(last);
+    expect(latest!.optimizations[0]?.trials[1]?.importances).toEqual(first);
+    expect(latest!.optimizations[0]?.trials[2]).not.toHaveProperty(
+      "importances",
+    );
+  });
+
   it("retries a failed optimization from its original input", async () => {
     let call = 0;
     const capability: PetrinautOptimization = {
