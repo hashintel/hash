@@ -7,7 +7,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ExecutionFrameSourceContext } from "../../../../../../react/execution-frame/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { splitPascalCase } from "../../../../../lib/split-pascal-case";
+import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
 import { useSelectionVariant } from "../../../hooks/use-selection-variant";
 import { nodeSurfaceStyle } from "../../../styles/node-surface";
 import { handleStyling } from "../../../styles/styling";
@@ -100,8 +100,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = typeof marking === "number" ? marking : (marking?.length ?? 0);
   }
 
-  // Add zero width space to labels between pascal case points as text-wrapping breakpoints
-  const label = splitPascalCase(data.label).join("\u200B");
+  // Wrap points let a long name break inside the circle instead of clipping.
+  const label = withLabelWrapPoints(data.label);
 
   const selectionVariant = useSelectionVariant(id, selected);
 

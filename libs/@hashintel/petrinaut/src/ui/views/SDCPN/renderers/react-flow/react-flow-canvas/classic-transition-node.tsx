@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
 import { useFiringAnimation } from "../../../hooks/use-firing-animation";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { useSelectionVariant } from "../../../hooks/use-selection-variant";
@@ -22,22 +23,30 @@ const containerStyle = css({
 });
 
 const transitionBoxStyle = css({
-  padding: "2",
+  padding: "[10px]",
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
   alignItems: "center",
-  fontSize: "[15px]",
+  gap: "[4px]",
+  fontSize: "[14px]",
 });
 
-const stochasticIconStyle = css({
-  position: "absolute",
-  top: "[8px]",
-  left: "[0px]",
-  width: "[100%]",
+/**
+ * The rows above and below the label are always in the layout, so the label
+ * sits at the same height on every transition and whatever they hold appears
+ * over or under it rather than pushing it aside.
+ */
+const iconRowStyle = css({
+  height: "[18px]",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  flexShrink: "0",
+  lineHeight: "[1]",
+});
+
+const stochasticIconStyle = css({
   color: "blue.s60",
   fontSize: "lg",
 });
@@ -45,20 +54,14 @@ const stochasticIconStyle = css({
 const labelStyle = css({
   textAlign: "center",
   maxWidth: "[100%]",
+  overflowWrap: "break-word",
   textOverflow: "ellipsis",
   overflow: "hidden",
-  lineClamp: "2",
-  lineHeight: "[1.25]",
+  lineClamp: "3",
+  lineHeight: "[1.2]",
 });
 
 const firingIndicatorStyle = css({
-  position: "absolute",
-  bottom: "[8px]",
-  left: "[0px]",
-  width: "[100%]",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
   fontSize: "xl",
   color: "yellow.s60",
   opacity: "[0]",
@@ -71,7 +74,8 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<TransitionNodeType>) => {
-  const { label } = data;
+  // Wrap points let a long name break inside the square instead of clipping.
+  const label = withLabelWrapPoints(data.label);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -97,14 +101,18 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
         ref={boxRef}
         className={`${nodeSurfaceStyle({ selection: selectionVariant })} ${transitionSurfaceStyle} ${transitionBoxStyle}`}
       >
-        {data.lambdaType === "stochastic" && (
-          <div className={stochasticIconStyle}>
-            <Icon name="lambda" size="sm" />
-          </div>
-        )}
+        <div className={iconRowStyle}>
+          {data.lambdaType === "stochastic" ? (
+            <div className={stochasticIconStyle}>
+              <Icon name="lambda" size="sm" />
+            </div>
+          ) : null}
+        </div>
         <div className={labelStyle}>{label}</div>
-        <div ref={boltRef} className={firingIndicatorStyle}>
-          <Icon name="lightning" size="sm" />
+        <div className={iconRowStyle}>
+          <div ref={boltRef} className={firingIndicatorStyle}>
+            <Icon name="lightning" size="sm" />
+          </div>
         </div>
       </div>
       <Handle
