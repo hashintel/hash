@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,14 +27,14 @@ const SKIP_DIRECTORIES = new Set([
 export const sourceFiles = (): SourceFile[] => {
   const found: SourceFile[] = [];
   const walk = (current: string): void => {
-    for (const entry of readdirSync(current)) {
-      if (SKIP_DIRECTORIES.has(entry)) {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      if (SKIP_DIRECTORIES.has(entry.name)) {
         continue;
       }
-      const path = join(current, entry);
-      if (statSync(path).isDirectory()) {
+      const path = join(current, entry.name);
+      if (entry.isDirectory()) {
         walk(path);
-      } else if (SOURCE_EXTENSIONS.test(entry)) {
+      } else if (SOURCE_EXTENSIONS.test(entry.name)) {
         found.push({
           path,
           relPath: relative(APP_ROOT, path).replaceAll("\\", "/"),

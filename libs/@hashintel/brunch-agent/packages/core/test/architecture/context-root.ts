@@ -11,6 +11,6 @@ export const CONTEXT_ROOT = fileURLToPath(
  * Pruned jobs copy these non-workspace paths explicitly. Skip the affected
  * tests instead of failing opaquely if that CI contract drifts.
  */
-export const contextRootPresent =
-  existsSync(join(CONTEXT_ROOT, "docs")) &&
-  existsSync(join(CONTEXT_ROOT, "scripts"));
+export const contextRootPresent = existsSync(
+  join(CONTEXT_ROOT, "scripts/linear-project-graph.ts"),
+);
