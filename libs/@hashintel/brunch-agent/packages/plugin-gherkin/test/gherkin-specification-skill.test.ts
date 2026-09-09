@@ -14,6 +14,9 @@ const readSkillFile = (fileName: string): string =>
 describe("the authored gherkin-specification skill directory", () => {
   test("is one Flue skill whose packaged paths equal the authored paths", () => {
     expect(gherkinSpecificationSkill.name).toBe("gherkin-specification");
+    expect(gherkinSpecificationSkill.instructions).toContain(
+      "Aligned to core as of",
+    );
     expect(Object.keys(gherkinSpecificationSkill.files ?? {}).sort()).toEqual([
       "references/gherkin-authoring-and-checks.md",
       "references/gherkin-elicitation.md",

@@ -138,6 +138,7 @@ Before hermetic proofs, provider authentication checks or paid evaluations, read
   [`docs/agents/issue-writing.md`](docs/agents/issue-writing.md) whenever creating or editing an
   issue, pull request, or comment.
 - **Plugin scope:** each plugin pairs one reusable domain typology with one target formalism; it may name concepts from that typology but never facts or nouns from a concrete domain, organization, situation, or scenario.
+- **Plugin freshness:** after core guidance changes, re-read roughed-in plugins before treating them as seam evidence. Classify each divergence as lag (realign) or intent (record why), then update the plugin's single `Aligned to core as of <commit>` marker to the reviewed core revision. Coordinate in-progress packages with their assigned owner rather than editing across ownership.
 - **Topology gates** (enforced by tests): core and plugins expose Flue-native production resources through dedicated `./flue` subpaths; plugins depend inward on core and never on bindings; transport packages never depend on a binding; suspended code lives under a package's `src/_suspended/` and is never mounted; bindings translate generalized capture machinery into the selected substrate. Evaluation answer keys stay on the evaluation side, never inside interviewee or elicitor inputs.
 - **Posture:** prototype · stakes high — persisted capture data and merge gates must fail loudly,
   never corrupt silently · horizon: current milestone.

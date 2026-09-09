@@ -39,6 +39,10 @@ Result: **12/12 tasks successful**, one cached prerequisite; **233 tests passed*
 
 These checks establish instruction placement and preserved mechanical contracts, not model compliance, useful elicitation or semantic fidelity. **P7 remains pending**: the persona was not resumed and no app restart or browser submission was performed. Lu's normative-source witness also remains pending, after the relevant A-list changes. The retained conversation already contains 11 question markers; it cannot retrospectively earn a first-revision-before-most-questions claim for its complete history. Define the intended continuation window with Lu before treating a suffix measurement as P7 acceptance.
 
+## Subsequent review
+
+Lu relayed the review agent's acceptance of `a9b8b8c`: it independently re-ran 233 tests and typechecks (8/8 tasks), did not re-run lint, and confirmed that no assertions were removed. Its follow-ups were stale `CONTEXT.md` ownership wording and drift risk among the three cadence copies; both are addressed in `223d721`, with one canonical phrase asserted against the mounted system prompt, tool description and activated skill. The six evidence kinds and locator procedure deliberately remain behind `elicitation` activation rather than being duplicated into the always-on prompt; the actual pre-change run contained the activation calls, so this is a disclosure choice, not a demonstrated activation defect.
+
 ## Review handoff
 
 Review this checkpoint against `SIDE_QUEST.md` B1 and the protected pre-change guidance in `fba9bb2`. The next plugin may consume core's shared protocol; it should not copy the protocol into another job skill. Later source-neutral authorship and trust teaching is not present yet. This note records an implementation checkpoint, not side-quest closure or authorization to expand it.

@@ -5,6 +5,8 @@ description: Elicit or revise software behavior, maintain a recoverable behavior
 
 # Capability-aware specification lifecycle
 
+Aligned to core as of `223d721`.
+
 Use one conceptual lifecycle: orient, elicit or revise behavior, maintain the workpiece, author or revise Gherkin when useful, check, and deliver. Authoring is a thin projection and correction surface, not a separate modelling world. The current conversation may expose only part of the lifecycle; do not claim an unavailable check occurred.
 
 ## Select the runtime branch
