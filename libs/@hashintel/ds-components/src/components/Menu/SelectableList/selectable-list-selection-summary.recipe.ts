@@ -4,6 +4,9 @@ export const summaryRow = cva({
   base: {
     display: "flex",
     alignItems: "center",
+    paddingX: "[0.5px]",
+    marginBottom:
+      "[calc(-0.25 * var(--selectable-list-header-footer-padding-y))]",
   },
   // Text sits one step below the list's item text, matching its group labels
   variants: {

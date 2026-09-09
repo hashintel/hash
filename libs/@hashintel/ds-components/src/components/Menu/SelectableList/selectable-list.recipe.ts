@@ -27,7 +27,8 @@ export const styles = sva({
       "& > [data-selectable-list-scroll]": {
         flexShrink: "1",
       },
-      padding: "[var(--selectable-list-content-padding)]",
+      paddingX: "[var(--selectable-list-container-padding-x)]",
+      paddingY: "[var(--selectable-list-container-padding-y)]",
       backgroundColor: "white",
       border: "1px solid {colors.bd.subtle}",
       borderRadius: "lg",
@@ -64,7 +65,7 @@ export const styles = sva({
       color: "fg.subtle",
       fontWeight: "medium",
       textTransform: "uppercase",
-      paddingX: "[var(--selectable-list-padding-x)]",
+      paddingX: "[var(--selectable-list-item-padding-x)]",
       userSelect: "none",
       width: "full",
     },
@@ -80,8 +81,8 @@ export const styles = sva({
       display: "flex",
       alignItems: "center",
       width: "full",
-      paddingX: "[var(--selectable-list-padding-x)]",
-      paddingY: "[var(--selectable-list-padding-y)]",
+      paddingX: "[var(--selectable-list-item-padding-x)]",
+      paddingY: "[var(--selectable-list-item-padding-y)]",
     },
     scrollArea: {
       display: "flex",
@@ -108,23 +109,11 @@ export const styles = sva({
       width: "[min-content]",
       minWidth: "[100%]",
       boxSizing: "border-box",
-      paddingX: "[var(--selectable-list-padding-x)]",
-      paddingY: "[var(--selectable-list-padding-y)]",
-      marginBottom: "1",
-      // A search header brings its own full-bleed chrome (see searchRow)
-      "&:has([data-selectable-list-search])": {
-        marginBottom: "0",
-      },
-      // With swap-on-flip, an upward-opening dropdown puts the header on
-      // the bottom edge (nearest the trigger)
+      paddingX: "[var(--selectable-list-item-padding-x)]",
+      paddingY: "[var(--selectable-list-header-footer-padding-y)]",
       "[data-placement^='top'] &": {
         "&[data-selectable-list-swap-on-flip]": {
           order: "[1]",
-          marginBottom: "0",
-          marginTop: "1",
-          "&:has([data-selectable-list-search])": {
-            marginTop: "0",
-          },
         },
       },
     },
@@ -132,14 +121,11 @@ export const styles = sva({
       width: "[min-content]",
       minWidth: "[100%]",
       boxSizing: "border-box",
-      paddingX: "[var(--selectable-list-padding-x)]",
-      paddingY: "[var(--selectable-list-padding-y)]",
-      marginTop: "1",
+      paddingX: "[var(--selectable-list-item-padding-x)]",
+      paddingY: "[var(--selectable-list-header-footer-padding-y)]",
       "[data-placement^='top'] &": {
         "&[data-selectable-list-swap-on-flip]": {
           order: "[-1]",
-          marginTop: "0",
-          marginBottom: "1",
         },
       },
     },
@@ -148,9 +134,11 @@ export const styles = sva({
     size: {
       xxs: {
         content: {
-          "--selectable-list-content-padding": "var(--spacing-0\\.5)",
-          "--selectable-list-padding-x": "var(--spacing-1\\.5)",
-          "--selectable-list-padding-y": "var(--spacing-0\\.5)",
+          "--selectable-list-container-padding-x": "var(--spacing-0\\.5)",
+          "--selectable-list-container-padding-y": "var(--spacing-0\\.5)",
+          "--selectable-list-item-padding-x": "var(--spacing-1\\.5)",
+          "--selectable-list-item-padding-y": "var(--spacing-0\\.5)",
+          "--selectable-list-header-footer-padding-y": "var(--spacing-1)",
         },
         groupLabel: {
           fontSize: "[9px]",
@@ -174,9 +162,11 @@ export const styles = sva({
       },
       xs: {
         content: {
-          "--selectable-list-content-padding": "var(--spacing-0\\.5)",
-          "--selectable-list-padding-x": "var(--spacing-2)",
-          "--selectable-list-padding-y": "3px",
+          "--selectable-list-container-padding-x": "var(--spacing-0\\.5)",
+          "--selectable-list-container-padding-y": "var(--spacing-0\\.5)",
+          "--selectable-list-item-padding-x": "var(--spacing-2)",
+          "--selectable-list-item-padding-y": "3px",
+          "--selectable-list-header-footer-padding-y": "5px",
         },
         groupLabel: {
           textStyle: "xxs",
@@ -198,9 +188,11 @@ export const styles = sva({
       },
       sm: {
         content: {
-          "--selectable-list-content-padding": "var(--spacing-1)",
-          "--selectable-list-padding-x": "var(--spacing-2)",
-          "--selectable-list-padding-y": "3px",
+          "--selectable-list-container-padding-x": "var(--spacing-1)",
+          "--selectable-list-container-padding-y": "var(--spacing-1)",
+          "--selectable-list-item-padding-x": "var(--spacing-2)",
+          "--selectable-list-item-padding-y": "3px",
+          "--selectable-list-header-footer-padding-y": "5px",
         },
         groupLabel: {
           textStyle: "xs",
@@ -222,9 +214,11 @@ export const styles = sva({
       },
       md: {
         content: {
-          "--selectable-list-content-padding": "var(--spacing-1)",
-          "--selectable-list-padding-x": "var(--spacing-2\\.5)",
-          "--selectable-list-padding-y": "4px",
+          "--selectable-list-container-padding-x": "var(--spacing-1)",
+          "--selectable-list-container-padding-y": "var(--spacing-1)",
+          "--selectable-list-item-padding-x": "var(--spacing-2\\.5)",
+          "--selectable-list-item-padding-y": "4px",
+          "--selectable-list-header-footer-padding-y": "6px",
         },
         groupLabel: {
           textStyle: "sm",
@@ -246,9 +240,11 @@ export const styles = sva({
       },
       lg: {
         content: {
-          "--selectable-list-content-padding": "var(--spacing-1\\.5)",
-          "--selectable-list-padding-x": "var(--spacing-2\\.5)",
-          "--selectable-list-padding-y": "4px",
+          "--selectable-list-container-padding-x": "var(--spacing-1\\.5)",
+          "--selectable-list-container-padding-y": "var(--spacing-1\\.5)",
+          "--selectable-list-item-padding-x": "var(--spacing-2\\.5)",
+          "--selectable-list-item-padding-y": "4px",
+          "--selectable-list-header-footer-padding-y": "6px",
         },
         groupLabel: {
           textStyle: "sm",

@@ -28,7 +28,8 @@ export const styles = sva({
       fontWeight: "normal",
       textDecoration: "none",
       transition: "[background-color 0.1s ease, color 0.1s ease]",
-      paddingX: "[var(--selectable-list-padding-x)]",
+      paddingX: "[var(--selectable-list-item-padding-x)]",
+      paddingY: "[var(--selectable-list-item-padding-y)]",
 
       "&[data-highlighted]": {
         backgroundColor: "neutral.a35",
@@ -107,7 +108,6 @@ export const styles = sva({
         item: {
           textStyle: "xxs",
           gap: "1",
-          paddingY: "0.5",
           borderRadius: "sm",
         },
         description: { fontSize: "[9px]", marginTop: "[-3px]" },
@@ -123,7 +123,6 @@ export const styles = sva({
         item: {
           textStyle: "xs",
           gap: "1.5",
-          paddingY: "[3px]",
           borderRadius: "md",
         },
         description: { textStyle: "xxs", marginTop: "-0.5" },
@@ -139,7 +138,6 @@ export const styles = sva({
         item: {
           textStyle: "sm",
           gap: "1.5",
-          paddingY: "[3px]",
           borderRadius: "md",
         },
         description: { textStyle: "xs", marginTop: "[-2px]" },
@@ -155,7 +153,6 @@ export const styles = sva({
         item: {
           textStyle: "base",
           gap: "2",
-          paddingY: "[4px]",
           borderRadius: "lg",
         },
         description: { textStyle: "sm", marginTop: "[-3px]" },
@@ -172,7 +169,6 @@ export const styles = sva({
         item: {
           textStyle: "base",
           gap: "2",
-          paddingY: "[4px]",
           borderRadius: "lg",
         },
         description: { textStyle: "sm", marginTop: "-0.5" },
