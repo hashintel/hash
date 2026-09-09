@@ -2,7 +2,7 @@
 
 ## Status
 
-**Live — recut around the product question, 2026-09-09.** Lu authorized this reorientation after the [landing assessment](docs/evidence/implementations/fe-1573-step-a/landing-20260909/mission-health.md) and its [comparative assessment](docs/evidence/implementations/fe-1573-step-a/landing-20260909/mission-health-comparative.md). Keep the integrated mechanical checkpoint at `dc27f5aed8`; retire the A1–A6 execution campaign, not its earned contracts or evidence. No implementation lane is active. Step A is not accepted; Step B remains closed.
+**Live — recut around the product question, 2026-09-09.** Lu authorized this reorientation after the [landing assessment](docs/evidence/implementations/fe-1573-step-a/landing-20260909/mission-health.md) and its [comparative assessment](docs/evidence/implementations/fe-1573-step-a/landing-20260909/mission-health-comparative.md). Keep the integrated mechanical checkpoint at `dc27f5aed8`; retire the A1–A6 execution campaign, not its earned contracts or evidence. The next authorized unit is one persona-driven, browser-visible elicitation session worth continuing, followed by fixture portability and teammate access as described below. Implementation starts with the current persona/browser join; no paid run is activated. Step A is not accepted; Step B remains closed except for the explicitly advanced fixture delivery scope below.
 
 **Departure evidence:** [landing audit](docs/evidence/implementations/fe-1573-step-a/landing-20260909/integration.md), **66/66 uncached tasks / 3,282 tests**, actual synthetic node/arc/typed-state construction, causal effects, authorized why and bounded original-store recovery. This is a usable local path, not evidence of genuine elicitation, operational meaning or useful explanation. The capability gaps in historical class tables are observations, not a completion queue.
 
@@ -12,7 +12,7 @@
 
 Establish whether Brunch can elicit a genuinely complex operational account, conserve its meaning and uncertainty, construct a meaningful Petrinaut region from it, and explain its ordinary behaviour-affecting elements and fields through declared basis and recorded effects.
 
-**The next product question is whether the current Brunch can acquire and conserve the selected Vestera account well enough to begin meaningful construction and explanation.** Observe that through the existing product before deciding what more to build. A failed or partial attempt can answer the question; a completed capability catalogue cannot.
+**The next product question is whether persona-driven use of the real Brunch product can produce a sophisticated, browser-visible elicitation session and evolving workpiece worth continuing into construction and explanation.** The PM's critical path is a visible IR/workpiece during elicitation, updated as the agent proceeds—not an end-of-interview document reveal. Persona production addresses the time and context-pack cost of developing such accounts; its output is reusable product state, not merely an evaluation score. Observe the existing product first and repair the boundary that prevents this result.
 
 The accepted region remains multi-line production eligibility, shared changeover crew contention, asymmetric family changes, product/line restrictions and preserved unknowns, including the stage/availability/occupancy distinctions those rules need. Neither the whole plant nor a disconnected resource arc is the target. No optimiser, invented rates or reduced region substitutes for this meaning.
 
@@ -20,20 +20,27 @@ Keep the final **100% useful ordinary behaviour-affecting explanation coverage**
 
 ## Throughline
 
-### Next evidence-producing use
+### Product results and execution graph
 
 ```text
-resolve the credential/accounting stop with the owner
-→ use the existing local product for the genuine Vestera conversation
-→ inspect what the current guidance acquires and what the settled workpiece conserves
-→ attempt supported construction and ordinary why through the same product
-→ retain the first consequential success, loss, refusal or unavailable capability
-→ compare that observation with the accepted meaning; choose the next move
+inspect/join existing persona input → production ChatAgent → actual browser host
++ resolve credential/accounting stop before paid execution
+→ 1. produce and curate one rich, visible, correctable elicitation session
+→ 2. extract and seed its connected state into a fresh local deployment
+→ 3. deliver a discoverable, continuable demo fixture through deployment setup
 ```
 
-The first inspection point is a meaningful elicited workpiece, not completion of construction. If acquisition or conservation already fails, record that evidence before adding construction capability. If the conversation and workpiece support progress, continue through the current supported path. Stop at a consequential boundary that requires a decision; do not stop merely to package another lane milestone.
+Each major unit ends in a legible, usable result; tests support that result rather than substitute for it. Within each unit: attempt the actual interaction, repair the observed blocker, then return to that interaction. The graph names dependencies, not three concurrent lanes. Construction, analysis, provenance and modification consume the same curated account as soon as it supports them; completing all construction classes is not a prerequisite to session production or portability.
 
-Use local `yarn dev:brunch`, one authorized principal and one conversation bound to one document incarnation, through the mounted `/agents/chat/:instanceId` production ChatAgent and existing browser host. A genuine human interview is admitted. The existing persona route is also admitted when its participants can be accounted for within a named allocation; it is not grounds to build a new runner. Route choice belongs in the next bounded run brief, not a parallel implementation campaign.
+**1 — A session worth continuing (active).** The persona supplies only the interviewee's utterances from an approved context pack. Brunch itself creates the conversation, workpiece revisions, evidence references and any model effects through the same mounted APIs and browser-backed execution used by web users. Let substantive elicitation take the turns it needs within a named budget; an arbitrary short-turn run is not the target. Demonstrate a useful workpiece appearing and changing during elicitation, followed by a correction/qualification that conserves unaffected meaning and unknowns. Reopen and continue the retained session in the normal UI. Curate quality before scaling production across contexts/personas. Simulated testimony stays labelled simulated; production-created records are not fabricated fixtures.
+
+**2 — A portable trajectory fixture (next, dependent on a curated session).** Export the connected conversation/revision/evidence state and associated document/effect records when present, using inspected owning storage contracts. Preserve valid revision IDs and references; any necessary ownership rebinding must preserve their meaning and be verified, not implemented as blind string replacement. Seed a fresh local database/deployment, open the fixture through the normal UI, resolve its references, and make a further turn/correction. Original-store reopening and history dumps do not establish this capability. The reusable fixture is a starting point for generation, analysis, provenance and modification—not just a Markdown example or a completed-contract proof packet.
+
+**3 — Teammate-ready demo access (after portability).** Integrate approved fixture data with the existing Brunch image/build and seed/startup setup so a teammate or PM can discover, open and continue named examples. Supply the owner binding through deployment configuration, keeping its secret value out of image layers, source and evidence. The proposed localStorage demo identity (`brunch-principal-v1` today) is shared client-supplied demo access, not authenticated user identity. Decide shared mutable sessions versus per-user copies before implementing mutation/seed policy; repeat setup must not overwrite subsequently edited sessions. Prove the procedure on a fresh local deployment/image; remote rollout, ingress/security changes and broader Mission 8 infrastructure remain separately owned.
+
+The immediate work is the first unit's unpaid production-path join and configuration preflight, not a new harness or export framework. Any inability to display, conserve or continue the account determines the next repair. A productive conversation can continue into supported construction without stopping merely to package a milestone.
+
+Use local `yarn dev:brunch`, one authorized principal and one conversation bound to one document incarnation, through the mounted `/agents/chat/:instanceId` production ChatAgent and existing browser host. The persona route is the selected first production method, with every participant accounted for within a named allocation. A genuine human interview remains admitted. Reuse the existing persona bridge and browser host; close observed parity gaps rather than build a parallel runner, result store or synthetic successful-path adapter.
 
 Only the interviewee receives the existing [Vestera situation pack](evaluations/cases/vestera-scheduling/). The elicitor gets the normal opening and operational replies, never the case pack, truth ledger, expected net or evaluation instructions. A user request may focus the accepted region without supplying hidden facts or formal-model answers. Label human, persona and test-authored material accurately. Keep Vestera facts out of reusable prompts and skills. Inspect current core `elicitation` and plugin `sdcpn-modelling` guidance as the hypothesis; no teaching redesign is presumed necessary.
 
@@ -49,7 +56,7 @@ The potential envelope remains root places/transitions/arcs, types/elements, sce
 
 ### Work selection and delegation
 
-No lane is active. Apply [standing delegation practice](AGENTS.md#mission-current-throughline-and-delegated-work): any next task must name the genuine Vestera observation it enables or the observed failure preventing it. Historical class-table completion is not that observation.
+Unit 1 is active: one integration owner first traces and joins persona submissions to the browser-visible workpiece and normal session continuation. Apply [standing delegation practice](AGENTS.md#mission-current-throughline-and-delegated-work): each task names the visible result it unblocks, its actual interaction oracle and return condition. Parallelize only independent dependencies of this first session; additional contexts/personas become throughput work after this route and participant accounting are proved. Historical class-table completion is not the consumer.
 
 Implementation ownership remains core for revision/query semantics, plugin for SDCPN admission/effects/locators, app/binding for authorized acquisition and why composition, transport for correlations/projections, and browser for bound canonical execution and observation. Petrinaut owns schemas, validation, actions, compilation and document state, not Brunch provenance. Coordinate shared production files, registration, runtime patches, scripts and paid ledgers serially. No new lane is dispatched by this document.
 
@@ -60,6 +67,12 @@ Implementation ownership remains core for revision/query semantics, plugin for S
 For the next authorized use, retain the actual conversation, settled workpiece revisions, raw tool inputs/results and independently observed net changes that occur. Inspect acquisition, conservation, construction and explanation separately. Name missing operational facts, unsupported assumptions, lost distinctions and interaction strain; distinguish interviewee nondisclosure from agent failure. Do not manufacture a successful net or force all adversarial cases into the initial conversation before learning from it.
 
 The next run returns a concise account of **what the product did, which accepted requirement it addressed or lost, and what decision the evidence permits**. If it stops before construction, say so. That is progress evidence, not Step A acceptance. HTTP authentication and synthetic dry runs cannot answer this product question.
+
+### Visible result oracles
+
+- **Session:** inspect an actual browser recording/live witness alongside canonical history: a meaningful workpiece appears before elicitation ends, consequential testimony causes visible updates without repeated user prompting, and a correction preserves unrelated meaning and uncertainty. Lu reviews the conversation/workpiece for sophistication and usability against the supplied testimony; turn count, revisions and successful requests alone do not pass. Reopen the original session and continue it through the normal UI with references intact.
+- **Portability:** on a fresh local database/deployment, load an exported curated session, check all included revision/evidence/effect references and ownership/document bindings, display the session/workpiece, and continue with a new revision and a supported downstream action. Compare meaning and references with the source fixture; reject missing/dangling or foreign references. Exact storage mechanism and checks follow inspection of the owning APIs; no import claim from copied diagnostic dumps.
+- **Delivery:** a teammate/PM follows the documented demo-access procedure on the built local image, finds a named seeded example and continues it without developer intervention. Repeat seed/startup preserves existing edits under the selected policy. Confirm secrets are absent from image/fixture artifacts and label shared demo identity honestly. This advances only fixture delivery, not remote deployment or full-region release acceptance.
 
 ### Acceptance obligations retained, not scheduled as prerequisite lanes
 
@@ -115,7 +128,10 @@ For any use of the integrated real-provider driver, preserve raw native terminal
 | Present uncertainty | Next discriminating observation | Re-entry limit |
 | --- | --- | --- |
 | Can the configured provider be used within accountable bounds? | Owner's secure credential correction and explicit disposition of sequence 6 / US$7; then a specifically authorized real request | No key search, guessed free request, automatic retry or harness expansion |
-| Does current guidance acquire and conserve the accepted account? | Genuine product conversation and actual settled revisions, checked against interviewee testimony | Diagnose acquisition/conservation/nondisclosure before prescribing prompt architecture |
+| Does the existing persona bridge activate today's browser-bound session and workpiece path? | One actual mounted persona submission, visible evolving workpiece and normal UI continuation with canonical references | Reuse existing APIs/host; headless or server-only success does not prove UI parity |
+| Does current guidance acquire and conserve the accepted account? | Persona-driven product conversation and actual settled revisions, checked against interviewee testimony and Lu's usability review | Diagnose acquisition/conservation/nondisclosure before prescribing prompt architecture |
+| How can a curated session be portably seeded without losing identity or provenance? | Inspect owning storage APIs, then fresh-store import plus actual continuation of that session | No dump-as-authority assumption, guessed ID rewrite or generic migration framework |
+| Should demo users share mutable sessions or receive independent copies? | Lu selects the intended teammate editing experience before seed/mutation policy is implemented | LocalStorage identity is not authentication; do not bake a secret into the image |
 | Can the existing representation express that account? | Actual supported construction attempt from its workpiece; behavioural positive/negative cases when representation exists | Admit a missing operation only for an observed requirement; keep unavailable meaning visible |
 | Are recorded explanations useful rather than merely linked? | Ordinary product why answers adjudicated by Lu, including real corrections/derived fields and aggregate refusal | A safe refusal or valid locator is not useful coverage; no speculative selector/provenance engine |
 | Does genuine evidence survive the needed lifecycle? | Reuse original-store product query/reopen/compaction checks on those actual records | No generic durability/relocation campaign before there is a genuine consumer |
@@ -128,12 +144,12 @@ Stop the affected path and return the evidence when progress would require guess
 
 A new correction must name the observed failure and the current claim it invalidates. Repair that boundary, then return to the product question. If the proposed work instead completes a matrix, hardens an unconsumed interface or builds another proving facility, surface it as a choice rather than continuing. Repeatedly finding reasons to postpone the genuine account is itself a reason to reorient.
 
-Lu performs semantic/utility and Step A acceptance. No subagent review, implementation integration, diagnostic pass or this recut opens Step B.
+Lu performs semantic/utility and Step A acceptance. This amendment advances the three explicit session/fixture units, including local image seed delivery, without opening the remaining Step B release obligations. No subagent review, implementation integration or diagnostic pass grants acceptance.
 
 ## Deferred
 
 - **Demand-triggered capability gaps:** historical root/class, passage and host parity tables remain diagnostic records. Their re-entry is an actual accepted-region action or false/unsafe current claim, not automatic completion. Unused removals/arc variants/parameters/title-layout, general concurrency, expanded passage identity and generic recovery remain carried until that trigger. This changes scheduling authority, not the region or final explanation denominator.
-- **Step B:** [existing amendment packet](docs/mission-drafts/7-explainable-construction.md) retains full-region release/demo, lineage and product/lifecycle closure, list/diff, migration/rollback/dual-read removal, external import and broader refusal controls, subtraction, and genuine typed/Voice/stopped two-tab and final behaviour/utility gates. Requires Lu's Step A decision and separate authority amendment.
+- **Step B:** [existing amendment packet](docs/mission-drafts/7-explainable-construction.md) retains full-region release/demo, lineage and product/lifecycle closure, list/diff, migration/rollback/dual-read removal, external import and broader refusal controls, subtraction, and genuine typed/Voice/stopped two-tab and final behaviour/utility gates. Requires Lu's Step A decision and separate authority amendment, except the curated-session portability and local demo seed/access work explicitly advanced above. That bounded exception does not authorize general external import, remote rollout or full-region release.
 - **Future missions:** [MISSION.next.md](MISSION.next.md) and its linked drafts retain Mission 8 deployment, Missions 9/10 repeat/change/concurrency/scenario/reviewer breadth, Mission 11 optimisation and the uncut fast-preview/teaching hypotheses. They remain provisional, not work authorized here. `SIDE_QUEST.md` remains a separately owner-authorized documentation remediation.
 - **Evidence/test reduction:** archive retirement and witness consolidation remain separate work, using the accepted distinction between future trajectory fixtures and completed contract-establishment material. They are not prerequisites for the next product use. Standing delegation and execution guidance is now in `AGENTS.md` and its linked procedures, not deferred work.
 
