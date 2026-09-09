@@ -28,12 +28,18 @@ const containerStyle = css({
 });
 
 const transitionBoxStyle = css({
-  padding: "[6px 12px]",
-  gap: "[3px]",
+  padding: "[2px 8px]",
+  gap: "[2px]",
+  // The flat box leaves less room for a name than a circle does.
+  fontSize: "[13px]",
 });
 
 const transitionRowStyle = css({
-  height: "[14px]",
+  height: "[12px]",
+});
+
+const transitionLabelStyle = css({
+  lineClamp: "1",
 });
 
 const stochasticIconStyle = css({
@@ -88,7 +94,9 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
             </div>
           ) : null}
         </div>
-        <div className={classicNodeLabelStyle}>{label}</div>
+        <div className={`${classicNodeLabelStyle} ${transitionLabelStyle}`}>
+          {label}
+        </div>
         <div className={`${classicNodeRowStyle} ${transitionRowStyle}`}>
           <div ref={boltRef} className={firingIndicatorStyle}>
             <Icon name="lightning" size="sm" />

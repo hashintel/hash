@@ -38,6 +38,10 @@ const placeRowStyle = css({
   height: "[18px]",
 });
 
+const placeLabelStyle = css({
+  lineClamp: "3",
+});
+
 const dynamicsIconStyle = css({
   color: "blue.s110",
   fontSize: "lg",
@@ -113,7 +117,9 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             </div>
           ) : null}
         </div>
-        <div className={classicNodeLabelStyle}>{label}</div>
+        <div className={`${classicNodeLabelStyle} ${placeLabelStyle}`}>
+          {label}
+        </div>
         <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
           {tokenCount === null ? null : (
             <div className={tokenCountBadgeStyle}>{tokenCount}</div>

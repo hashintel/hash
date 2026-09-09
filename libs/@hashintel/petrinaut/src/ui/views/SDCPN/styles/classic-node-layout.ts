@@ -48,11 +48,15 @@ export const classicNodeRowStyle = css({
   lineHeight: "[1]",
 });
 
+/**
+ * How many lines a name may take is left to each node: a circle has the
+ * height for three, a flat transition for one. Both classes setting the
+ * clamp would leave the winner to Panda's own ordering.
+ */
 export const classicNodeLabelStyle = css({
   maxWidth: "[100%]",
   overflowWrap: "break-word",
   textOverflow: "ellipsis",
   overflow: "hidden",
-  lineClamp: "3",
   lineHeight: "[1.2]",
 });
