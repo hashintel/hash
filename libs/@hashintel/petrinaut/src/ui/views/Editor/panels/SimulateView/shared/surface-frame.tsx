@@ -1,7 +1,10 @@
 /**
  * The card both surface views share: the plot in the body, the state line
- * (or the drag readout) in the subtitle, and the X/Y axis selects, with
- * whatever else the view controls, in the footer.
+ * (or the drag readout) in the subtitle, and the X/Y axis selects in the
+ * footer, with whatever else the view controls on a second footer row. The
+ * footer is a grid of label and select pairs: the selects share the row's
+ * width, so the footer fits the card's narrowest column without overflowing,
+ * and a view with further controls reserves its second row at all times.
  */
 import { Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -12,20 +15,22 @@ import type { ReactNode } from "react";
 
 /** The plot's height in pixels inside a surface card. */
 export const SURFACE_PLOT_HEIGHT = 280;
-/** The footer's content height: an extra-small Select. */
+/** The footer's content height for one row of controls: an extra-small Select. */
 export const SURFACE_FOOTER_HEIGHT = 24;
+/** The footer's content height for two rows of controls and the gap between them. */
+export const SURFACE_FOOTER_TWO_ROW_HEIGHT = SURFACE_FOOTER_HEIGHT * 2 + 6;
 
+// Two label-and-select pairs per row; each select takes its share of the row
+// and ellipsizes a long option name rather than pushing the next label.
 const controlsStyle = css({
-  display: "flex",
+  display: "grid",
+  gridTemplateColumns: "[auto minmax(0, 1fr) auto minmax(0, 1fr)]",
   alignItems: "center",
-  gap: "2",
+  columnGap: "2",
+  rowGap: "[6px]",
+  width: "full",
   minWidth: "[0]",
-  // Compact inline controls; the ds Select otherwise stretches to the row.
-  // No content floor either: in a narrow card the selects shrink evenly and
-  // ellipsize their labels rather than the fixed-height footer clipping one.
-  "& [data-scope='select']": { width: "[170px]", minWidth: "[0]" },
-  // The Select's root insists on min-content width, which overflows the
-  // 170px box over the next label; a long option name fits by ellipsis.
+  "& [data-scope='select']": { width: "full", minWidth: "[0]" },
   "& > div > div": { minWidth: "[0]" },
 });
 
@@ -42,6 +47,7 @@ export const SurfaceFrame = ({
   actions,
   bodyHeight,
   footer,
+  footerHeight = SURFACE_FOOTER_HEIGHT,
   tone,
   children,
 }: {
@@ -54,6 +60,8 @@ export const SurfaceFrame = ({
   bodyHeight?: number;
   /** The axis selects and whatever else the view controls. */
   footer: ReactNode;
+  /** The footer's content height; two rows when the view adds controls to the axis selects. */
+  footerHeight?: number;
   tone?: ChartCardTone;
   children: ReactNode;
 }) => (
@@ -63,7 +71,7 @@ export const SurfaceFrame = ({
     actions={actions}
     bodyHeight={bodyHeight}
     footer={footer}
-    footerHeight={SURFACE_FOOTER_HEIGHT}
+    footerHeight={footerHeight}
     tone={tone}
   >
     {children}
@@ -74,7 +82,7 @@ export const SurfaceControlLabel = ({ children }: { children: ReactNode }) => (
   <span className={controlLabelStyle}>{children}</span>
 );
 
-/** The X and Y axis selects; `children` adds further controls to the row. */
+/** The X and Y axis selects on one row; `children` adds further controls on the row beneath. */
 export const SurfaceAxisControls = ({
   axes,
   xAxisId,
