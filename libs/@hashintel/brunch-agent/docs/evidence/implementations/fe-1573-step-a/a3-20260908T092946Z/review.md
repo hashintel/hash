@@ -1,5 +1,7 @@
 # A3 review and dispositions
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 A read-only background review examined the transition semantics, bound adapter and synchronous host seam. Its findings were source-derived counterexamples, not independent browser results. All five findings were checked against the implementation before committing; no paid provider witness was involved.
 
 | Finding | Disposition and discriminator |

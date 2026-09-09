@@ -1,5 +1,7 @@
 # Local recovery implementation handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Result
 
 **Both authorized Flue recovery corrections are implemented and locally verified.** Final built-route safety packet `a4-safety-N6GqzEeW` passes **11/11 checks**. The forced affected portfolio passes **63/63 uncached tasks and 1,573 tests**. Installed native/schema, accounting and actual Chrome/browser-result oracles pass. No paid application/provider call, upstream work, new store/ledger, Step B or acceptance claim.

@@ -1,5 +1,7 @@
 # Current-A5 paid readiness — activation withheld
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Reviewed instrument and decision
 
 Worker branch `ln/fe-1573-real-provider-a5` proposed implementation `efeb4921ca39d7da8878016b022ed8628b8b5416`, evidence through `f93d62a5404dcd3379971dc5940b59e610f18586`, based on `c41aeb54ca83d3aeb6f6678c9e2d318d120b5e33`. Its original manifest SHA-256 is `030ad3c7bc6886687d9b8537e28788d829c920f544d7c67bde2bf42dcef11c17` for 3,310 source/build/guidance/tool/fixture/runtime files. This review does not integrate or activate that candidate.

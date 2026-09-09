@@ -1,5 +1,7 @@
 # Shutdown correction command record
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Run from `/Users/lunelson/.herdr/worktrees/hash/m7-provider-proving`. These commands describe retained execution, not permission to overwrite its outputs. Each probe/check has its stdout/stderr or combined log and exit status under the original root. No paid profile, final-freeze generator, provider/auth probe or real-ledger command was run.
 
 ```sh

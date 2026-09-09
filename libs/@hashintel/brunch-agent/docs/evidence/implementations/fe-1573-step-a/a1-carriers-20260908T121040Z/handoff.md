@@ -1,5 +1,7 @@
 # A1 remaining-carrier feasibility handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Result and limits
 
 **Partial for the complete canonical → carrier → Flue → Anthropic contract.** The required 27-operation envelope is surveyed: **17 exact local schema matches, six empty-`required` representational differences, four fail-closed operations**. Root `addArc` is locally carried and its normalized root-place request works with A3's existing effect verifier over a real canonical headless handle. No new production carrier selection, tool mounting, admission, browser execution, or paid provider proof was earned or installed.

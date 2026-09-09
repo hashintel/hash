@@ -1,5 +1,7 @@
 # Independent bounded runtime diagnostics
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 These diagnostics followed the successful new-record threshold/reopen result. They use the real built ChatAgent mount, disposable original SQLite stores and a synthetic provider. They do not change maintained dependencies, product storage, canonical history, core revision policy or tool termination. Final observations and assertions are in `a4-replay-TZu8fGk9/audit.json`; exact commands and process exits are in its `commands.log`. Diagnostic subprocesses are deliberately killed with **SIGKILL**, not application stop or client abort. No external process is targeted.
 
 ## Instrument identity and bound

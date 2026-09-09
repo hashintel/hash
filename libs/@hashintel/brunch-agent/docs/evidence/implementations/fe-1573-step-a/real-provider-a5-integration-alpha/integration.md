@@ -1,5 +1,7 @@
 # Bounded A5 provider driver — integrated, not activated
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Disposition
 
 Accept the reviewed driver, terminal-usage/cleanup correction and cache/input attestation for the bounded synthetic-user A5 instrument. They are integrated with the current construction/renderer and passage/retention code. **No paid run, allocation, provider egress or final instrument freeze is claimed here.** The next proving worktree must build/check/pin this merged product before the parent activates its sole shared reservation.

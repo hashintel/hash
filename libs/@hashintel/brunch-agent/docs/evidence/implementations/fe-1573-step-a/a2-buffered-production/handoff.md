@@ -1,5 +1,7 @@
 # A2 buffered production admission — implementation handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Result
 
 **The authorized scoped buffered-rejection mechanism is implemented and exercised through the built production ChatAgent mount.** Both admission obligations pass under Lu's approved whole-proposal rejection policy. The original ordinary mixed-batch safety assertion is unchanged and now green.

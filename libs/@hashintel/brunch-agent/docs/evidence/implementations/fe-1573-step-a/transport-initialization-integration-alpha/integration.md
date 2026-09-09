@@ -1,5 +1,7 @@
 # Optional transport initialization — integrated checkpoint
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Scope
 
 Reviewed and integrated worker checkpoint `cb5482aae6b5544eb6f7ee8d4ecf47c8dd2df8fa` as alpha `d606c98050a0f8c6bce7204885e40d8472e8ea27`. This adds the already-authorized SDK-owned opaque `initialData` option and its website bridge forwarding. Configured user submissions, including same-message retries, carry the same value; default sends omit the field; client-result signals never carry it. The public SDK owns the type. No initialization flag, wrapper client, new route/store or binding reinterpretation was added.

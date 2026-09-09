@@ -1,5 +1,7 @@
 # Combined native-schema, accounting and A4 integration
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Reviewed and integrated state
 
 Tested alpha HEAD: **`5686b0224c`**. Native worker commits `6eae999b8f`, `fa0537fed6` and `10a37e753d` were reviewed and integrated as `d6efc4e034`, `f77a065541` and `5686b0224c`, respectively. Accounting and A4 had already been reviewed/integrated, including their requested corrections and the independent cold crash review. The rebase and intervening CORS/deploy/browser-test lint changes were preserved. A stale sequencer from the parent's failed pre-rebase native cherry-pick was inspected, matched to those exact three unapplied commits, and cleared with `--quit` without changing HEAD before the successful new cherry-pick.

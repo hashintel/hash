@@ -1,5 +1,7 @@
 # Preliminary synthetic passage-policy result — Partial
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Boundary and verdict
 
 **Selected existing branch: Partial — unsupported continuity classes explicitly lose automatic relations; use immutable revision-local fallback.** The edit itself settles successfully; refusal here means no automatic evidence carry, not an `update_workpiece` error. No cross-revision introduced-by, identity reuse, predecessor/successor sets or source relevance is earned. This is the Mission 7 Step A preliminary synthetic matrix, not the final genuine passage-policy or semantic/utility verdict and not Step A/Step B acceptance.

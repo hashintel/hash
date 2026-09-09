@@ -1,5 +1,7 @@
 # A5 reopened serialization-equivalence decision
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 The in-flight A5 browser tracer reached a refused reopened explanation after a real local-storage reload. The worker retained the original transition result, reopened observation and failure under `/tmp/m7-a5-explanation.ih0VgfEQ/browser-second/`; lossless copies are beside this record. They are synthetic prepared-tracer evidence, not real expert testimony or utility acceptance.
 
 The integration owner independently parsed both files, ran `verifyArcTransitionAttempt` on the recorded applied attempt, recomputed SHA-256 over `JSON.stringify` for both complete definitions, compared them with the existing `canonicalContent`, and separately recursively checked every field, value, type and array position. Both raw hashes verified; complete content matched. The sole object-key-order difference was `/transitions/0/inputArcs/1`: recorded keys `[type, placeId, weight]`, reopened keys `[placeId, weight, type]`.

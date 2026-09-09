@@ -1,6 +1,0 @@
-{
-  "error": "AssertionError [ERR_ASSERTION]: Synthetic response assertion failed: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'e841f1fa42474119bc26a3ad1ec662af306169947fc4a334a789e5dbdee6be48'\n- '8d20798b2f62d26573043a7f3145994128ad9eee293fef11e2fd6614ff231343'\n\n\n1 !== 0\n",
-  "stack": "AssertionError [ERR_ASSERTION]: Synthetic response assertion failed: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'e841f1fa42474119bc26a3ad1ec662af306169947fc4a334a789e5dbdee6be48'\n- '8d20798b2f62d26573043a7f3145994128ad9eee293fef11e2fd6614ff231343'\n\n\n1 !== 0\n\n    at Object.send (file:///Users/lunelson/.herdr/worktrees/hash/m7-passage-policy/apps/brunch-agent/test/passage-policy-lookup-hash.temporary.ts:199:12)\n    at async seed (file:///Users/lunelson/.herdr/worktrees/hash/m7-passage-policy/apps/brunch-agent/test/passage-policy-lookup-hash.temporary.ts:282:3)\n    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-passage-policy/apps/brunch-agent/test/passage-policy-lookup-hash.temporary.ts:404:21",
-  "rows": [],
-  "counterexamples": []
-}

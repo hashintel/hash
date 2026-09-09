@@ -1,5 +1,7 @@
 # A4 preliminary retention, materialization and reopen
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Verdict and selected branch
 
 **Pass — genuine retained-live-store history retrieval and continuation, under the local header authorization contract. Relocation unsupported/not attempted; final authorized product why remains pending.** After graceful shutdown, a fresh process loaded the same production artifact and SQLite store, reauthorized the caller through the mounted route, returned the exact public history, and admitted a normal follow-up against the original instance UID. It did not import a diagnostic snapshot or replay prepared messages to manufacture the original conversation.

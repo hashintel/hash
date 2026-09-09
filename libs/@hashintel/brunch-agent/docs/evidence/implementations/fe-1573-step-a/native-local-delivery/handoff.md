@@ -1,5 +1,7 @@
 # Native-schema local delivery handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Result
 
 **Delivered locally:** three pinned Yarn patches, explicit Standard Schema dependency resolution, native canonical root `addArc` plus previously earned `addType`, and the real built ChatAgent → Anthropic preparation/SDK serialization → native validation → real-Chrome record/result continuation path. Strict generation remains off. The final guarded portfolio passes **63/63 uncached tasks and 1,516 tests**. This is synthetic local delivery evidence, not real-provider acceptance, genuine Vestera construction, paid readiness or Mission acceptance.
@@ -60,13 +62,13 @@ The first guarded full run exposed required `tsx` IPC, outdated architecture ass
 
 ## Replay commands
 
-From repository root after installing the pinned dependencies, with `E=libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/native-local-delivery`:
+From repository root after installing the pinned dependencies, with `E=libs/@hashintel/brunch-agent/evaluations/protocols/network-guard` (the byte-identical relocated guard; historical manifests are unchanged):
 
 ```sh
 node "$E/verify-network-guard.mjs"
 sandbox-exec -f "$E/deny-network.sb" env YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 YARN_ENABLE_SCRIPTS=0 yarn install --immutable
 sandbox-exec -f "$E/deny-network.sb" env YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 CARGO_NET_OFFLINE=true yarn exec turbo run build test:unit lint:tsc lint:eslint --filter=@hashintel/brunch-agent --filter=@hashintel/brunch-agent-plugin-sdcpn --filter=@hashintel/brunch-agent-binding-flue --filter=@hashintel/brunch-agent-transport-aisdk --filter=@apps/brunch-agent --filter=@apps/petrinaut-website --filter=@hashintel/petrinaut --continue=always --force --concurrency=1
-sandbox-exec -f "$E/deny-network.sb" env YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 node "$E/installed-runtime.mjs" "$PWD/<fresh-runtime-output>"
+sandbox-exec -f "$E/deny-network.sb" env YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 node "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/native-local-delivery/installed-runtime.mjs" "$PWD/<fresh-runtime-output>"
 sandbox-exec -f "$E/deny-network.sb" env YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 M7_NATIVE_OUTPUT="$PWD/<fresh-mounted-output>" yarn workspace @apps/brunch-agent test:native-schema
 sandbox-exec -f "$E/deny-network.sb" env YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat yarn workspace @apps/petrinaut-website build
 sandbox-exec -f "$E/loopback-only.sb" env YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 M7_BROWSER_OUTPUT="$PWD/<fresh-browser-output>" yarn workspace @apps/brunch-agent test:browser-tracer

@@ -1,5 +1,7 @@
 # Native-schema repair candidate — integration review
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 The integration owner reviewed the three-package candidate diff and handoff in worker commit `dd79496585b0af71b5fa1a19de931f561fb137a9`, then cherry-picked that evidence-only commit as `bd5ca43326`. The worker's duplicate authority cherry-pick `6c599c87fc` was not integrated. No candidate patch was applied to installed dependencies or HASH production code.
 
 The review checked native input export/default optionality, executable refinements, validation ownership before hooks, explicit normalization, parsed-output typing, raw history/call identity, cancellation and the unchanged generic/Valibot route. The source-map patch is a review companion, not a dependency source-build result. The candidate changes published runtime/type/docs surfaces; it is not merely a serializer substitution.

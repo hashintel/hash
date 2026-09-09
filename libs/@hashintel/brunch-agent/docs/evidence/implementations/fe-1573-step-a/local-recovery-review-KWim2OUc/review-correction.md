@@ -1,5 +1,7 @@
 # Review correction: preserve the overflow-triggering completed response
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Scope and disposition
 
 **The demonstrated oracle blind spot is corrected; no product loss or runtime blocker was demonstrated.** Review base: `46aa1908f65a05d48a1f22e239debb0182a7c68e`, branch `ln/fe-1573-local-recovery`, same assigned worktree. Test correction: **`6c6dcac5c9`**. This following evidence commit retains explicitly new observations. Core, Flue/native/Pi patches, lockfile, package manifests, production behavior and built product bytes are unchanged. No rebuild, install, upstream request, paid call, new service or production history store was needed or performed. The wider alpha delegation supplies no authority to this chunk.

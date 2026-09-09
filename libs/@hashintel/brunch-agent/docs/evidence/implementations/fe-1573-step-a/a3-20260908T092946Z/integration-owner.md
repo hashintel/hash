@@ -1,5 +1,7 @@
 # A3 integration-owner patch requests
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 These are proposals for the owner-held production join, not edits applied by A3. No carrier, catalogue, plugin `flue.ts`, ChatAgent composition, website transport/registration, settled-manifest or planning file changed. Read alongside `browser-witness.md`; this is not a claim that the following join already exists.
 
 ## 1. Mount the synchronous executor on the existing website

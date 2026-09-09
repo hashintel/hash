@@ -1,5 +1,7 @@
 # Final merged current-A5 instrument preflight
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Disposition
 
 **Unpaid final freeze ready for parent review. No allocation, paid-profile activation, DNS/provider connection, credential-validity request or paid invocation occurred.** This is the current merged product at exact code/base commit **`3f86c1461c2654b80b5eca0e7b5e65580146a9e0`**, branch `ln/fe-1573-provider-proving`, in `/Users/lunelson/.herdr/worktrees/hash/m7-provider-proving`. The initial worktree was clean. No production/evaluation code, test, schema, guidance, fixture, package/lockfile, runtime patch, shared inventory/script, MISSION or real ledger was edited. The evidence-only commit containing this document is the handoff commit; obtain its exact identity with `git log -1 --format=%H -- <this-directory>`.

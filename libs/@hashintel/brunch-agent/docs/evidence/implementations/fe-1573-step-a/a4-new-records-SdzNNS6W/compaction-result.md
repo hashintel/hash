@@ -1,5 +1,7 @@
 # New-record threshold compaction — preliminary Pass
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Final oracle: `apps/brunch-agent/test/history-retention-new-records.integration.ts`, followed by the read-only `history-retention-audit.py`. Final run: [`a4-replay-TZu8fGk9/audit.json`](a4-replay-TZu8fGk9/audit.json). Production source is exactly the reconciled pre-native base `113c8ada6f9a74d097bfbeb1b944db8c39223759`; source/build/runtime identities are pinned in `source-build-manifest.json`. These are NEW actual core/browser records produced by the unchanged built Chrome entrypoint, with a synthetic provider and prepared material. They are not genuine interview testimony or a final Mission 7 compaction verdict.
 
 ## Real boundary and folding

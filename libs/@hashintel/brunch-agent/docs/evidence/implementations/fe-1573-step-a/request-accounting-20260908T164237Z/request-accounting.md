@@ -1,5 +1,7 @@
 # Step A request-accounting readiness handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Result and authority
 
 **The opt-in accounting path crosses the built production ChatAgent registration with synthetic native responses and disposable fixture ledgers.** Reservations precede native invocation and SDK dispatch; actual runtime identity correlates without timing guesses; completed rejected responses retain native usage once; uncertainty blocks subsequent launches across ledger reread and an abruptly terminated process. This is unpaid accounting readiness for review, not authorization to reserve or launch paid work, native-schema acceptance, genuine construction, A5, Step A acceptance or Step B.

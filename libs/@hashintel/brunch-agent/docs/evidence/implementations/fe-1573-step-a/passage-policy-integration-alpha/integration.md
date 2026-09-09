@@ -1,5 +1,7 @@
 # Passage policy — corrected synthetic matrix integrated
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Disposition
 
 Accept the corrected **preliminary Partial** matrix under the existing revision-local fallback. The parent re-read the changed oracle and full case/disposition report, verified all **1,109 worker source/build/runtime pins**, independently ran the corrected source and three discriminating mutants, then repeated the mounted matrix on alpha. No production semantics, guidance or shared helper changed. This is not the final genuine passage-policy or semantic/utility verdict.

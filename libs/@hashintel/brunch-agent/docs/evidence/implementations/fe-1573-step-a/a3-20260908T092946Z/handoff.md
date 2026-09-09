@@ -1,5 +1,7 @@
 # Mission 7 A3 — partial handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 **Partial: implementation candidate and component/handle proof, not A3 completion.** The optional synchronous host seam, narrow root-arc effect accounting, record integrity checks and local duplicate handling are implemented and verified. The website does not yet mount the recorder or carry its records through the production client-result signal. No real browser witness was performed, and the exact production/browser integration oracle remains blocked. No Step A acceptance or Step B authority is claimed.
 
 ## 1. Commits, authority and actual write set

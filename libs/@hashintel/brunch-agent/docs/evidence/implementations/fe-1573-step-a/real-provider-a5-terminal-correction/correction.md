@@ -1,5 +1,7 @@
 # Raw terminal-usage and retention correction
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Status
 
 **Correction ready for re-review; no paid activation, provider request, reservation allocation or shared-ledger write.** Final source: `2610b4d3f321a60c0497c6d74bf28ee4b57d6ab2`, following correction milestone `7b167f5328796d9ed988bb3c926c3c5c6a1b7d86`. The original implementation/evidence commits `efeb4921ca`, `9afe0bcb81`, `f93d62a540` and the entire first `real-provider-a5-readiness/` packet are preserved unchanged. That first packet was **not paid-ready**: the owner's independently reproduced missing-terminal-usage counterexample invalidated its accounting-readiness claim. No reservation was activated against it.

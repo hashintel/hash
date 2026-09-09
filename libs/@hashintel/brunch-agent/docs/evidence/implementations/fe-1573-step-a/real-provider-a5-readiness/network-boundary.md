@@ -1,5 +1,7 @@
 # Network boundary observations before activation
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 All actual installation/build/application/dry probes used the existing native-local-delivery deny-network or loopback-only parent profile. `network-guard-final.log.gz` retains the Java/Node descendant IP-denial and loopback controls. No paid egress was opened during preparation.
 
 ## Rejected numeric destination policy

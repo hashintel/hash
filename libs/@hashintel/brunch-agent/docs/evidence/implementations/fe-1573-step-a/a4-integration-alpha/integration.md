@@ -1,5 +1,7 @@
 # A4 integration review: retained records and recovery diagnostics
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Integration outcome
 
 Reviewed and integrated worker commits `c53cae1b95`, `1553038fae`, `cf424fc3af` and the requested disclosure correction `00c6fc766c` as `ea8fc38549`, `b16f64f2be`, `0fead4971c` and `207e7d41d9`. The integration owner added the two reviewed substrate entrypoints in `apps/brunch-agent/test/architecture/boundaries.integration.ts`; the exact-set assertion was not weakened. Intervening alpha changes, including `ae84a771e7`, were preserved.

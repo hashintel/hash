@@ -1,5 +1,7 @@
 # Native root creation — blocked checkpoint
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Disposition and owning need
 
 **Partial, not integration-ready or construction-stratum completion.** The actual built ChatAgent + Chrome path creates root places and a transition from an empty document, connects them with two arcs, obtains a clean canonical compilation result, settles a correction, changes a place field and transition code, and obtains ordinary-name entity/field why. The next actual reopen boundary loses the recorded place capacity. Stop expansion at that published-core ownership boundary; no Petrinaut patch or alternate storage/rehydration workaround was made.

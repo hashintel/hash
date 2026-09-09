@@ -22,7 +22,7 @@ const snapshot = JSON.parse(
   gunzipSync(
     readFileSync(
       new URL(
-        "../../../libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/typed-state-checkpoint/browser-final/history.json.gz",
+        "./fixtures/aggregate-why/typed-state/history.json.gz",
         import.meta.url,
       ),
     ),
@@ -132,7 +132,7 @@ test("does not refuse an unchanged aggregate or primitive merely because sibling
 
 test("existing transition arc aggregates cannot inherit their empty creation basis", async () => {
   const directory = new URL(
-    "../../../libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/root-creation-post-capacity/browser-final/",
+    "./fixtures/aggregate-why/root-creation/",
     import.meta.url,
   );
   const rootSnapshot = JSON.parse(

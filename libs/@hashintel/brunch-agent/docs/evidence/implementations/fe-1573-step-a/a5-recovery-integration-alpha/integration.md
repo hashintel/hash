@@ -1,5 +1,7 @@
 # First A5 product path on the repaired runtime
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Review and integration
 
 Tested alpha HEAD: **`3fe6e0b862`**. Integrated owner inventory/scripts `78de886f8c` as `993c67e8de`, product `fb90244b23` as `3c73ab6a45`, original evidence/logs `1fc101a5d8` / `3dfa79a0bf` as `95bd40e6c8` / `cd01f1f8ab`, conservation correction `5f49529c8c` as `1aeca793df`, and correction evidence/pin `543c351a7b` / `0987537b91` as `87f25a36b8` / `3fe6e0b862`. The duplicate worker authority cherry-pick `dad3fbd48b` was omitted; alpha retains its later authority and verified recovery state.

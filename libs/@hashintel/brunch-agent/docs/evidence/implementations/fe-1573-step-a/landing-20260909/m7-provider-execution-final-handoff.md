@@ -1,5 +1,7 @@
 **r2 blocked. Executed exactly once; launcher exit 1. No retry.**
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Anthropic returned **HTTP 401 `authentication_error`: “invalid x-api-key”** on the preparation request.
 
 - Request ID: `req_011CesJFAm63EBk1iSmJT6xd`

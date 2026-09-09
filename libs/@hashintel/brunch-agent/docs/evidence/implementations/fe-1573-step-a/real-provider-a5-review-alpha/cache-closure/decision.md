@@ -1,5 +1,7 @@
 # Raw cache/input attestation — bounded review closure
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Independent re-review of implementation `008b576b6107175ee02d80ed91bd55ba6d79c0f0` at worker HEAD `862f6d72345d3313ff09c8f00d986e9577abe4d1` found **no remaining concrete blocker at this bounded seam**. The original exact tier-loss and aggregate-input-loss discriminator was rerun unchanged: both now retain one unknown request, no actual cost, US$7 held and no second HTTPS dispatch. Prior failing packets are retained, not retrospectively relabelled.
 
 The review reran 26 focused tests, then independently extended the actual built registration/native SDK/pinned transport/RequestLedger probe to **27 controls / 37 synthetic dispatches**. It checked raw effective input/read/write/one-hour/output counts against actual native ledger usage and separately computed catalogue costs, including both completed rows after a permitted second request. Initial one-hour, five-minute, mixed cache, nullable deltas and supported redistribution settle correctly. An added supported write decrease passes, while writes below the retained one-hour subset refuse. The full report and exact checker/probe are retained here.

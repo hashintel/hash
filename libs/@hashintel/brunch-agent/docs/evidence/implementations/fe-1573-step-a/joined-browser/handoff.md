@@ -1,5 +1,7 @@
 # Joined settled-basis / root-arc browser tracer
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Result and boundary
 
 **Earned: one unpaid, labelled prepared root-arc tracer through the existing built website and production ChatAgent mount, using a real local Chrome browser and a synthetic model.** The current settled core revision authorizes the call; the browser records independently observed canonical effects; the correlated result resumes the agent once. Duplicate delivery and retained-history reload do not reapply the mutation. An unknown citation never becomes executable browser work, and a contradictory result cannot become success or continue the model.

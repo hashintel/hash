@@ -1,5 +1,7 @@
 # Narrow tracer inventory and contract dispositions
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Fixed rule and denominator
 
 `browser-final/a5-inventory-rule.json.gz` was written before construction. Its generator in `apps/brunch-agent/test/reopened-why.integration.ts` enumerates every canonical entity (including nested arcs), scalar/null field and empty collection by snapshot-local path. Coordinates `x`/`y` remain enumerated but are excluded from semantic utility with a reason. It does not infer passage identities or entity epochs. The complete generated lists are `a5-{declared,absent,temporal}-inventory.json.gz`; the final hand-edited definition has its own `a5-hand-edit-inventory.json.gz`.

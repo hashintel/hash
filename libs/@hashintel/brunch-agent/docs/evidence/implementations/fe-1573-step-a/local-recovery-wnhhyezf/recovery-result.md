@@ -1,5 +1,7 @@
 # Local recovery safety result
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Verdict and instrument
 
 **Pass for the two authorized local paths.** Final packet: `a4-safety-N6GqzEeW`, built production ChatAgent, actual original disposable SQLite stores, synthetic provider responses, unchanged real-browser entrypoint. Its read-only `audit.json.gz` reports **11/11 checks passing**. This is not genuine testimony, product why, broad crash safety, legacy-store repair or Mission acceptance.

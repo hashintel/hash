@@ -3,7 +3,7 @@
 # Default includes the actual browser witness; "recovery" runs only synthetic recovery controls.
 set -euo pipefail
 ROOT=$(git rev-parse --show-toplevel)
-BASE=${1:-"$ROOT/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a"}
+BASE=${1:-${TMPDIR:-/tmp}}
 MODE=${2:-all}
 [[ "$MODE" == all || "$MODE" == recovery ]]
 OUT=$(mktemp -d "$BASE/a4-safety-XXXXXXXX")

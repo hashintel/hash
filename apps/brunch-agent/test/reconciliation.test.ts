@@ -21,10 +21,7 @@ import type { ArcTransitionAttempt } from "@hashintel/brunch-agent-plugin-sdcpn"
 
 const snapshot = JSON.parse(
   readFileSync(
-    new URL(
-      "../../../libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/joined-browser/final-run-4/history.json",
-      import.meta.url,
-    ),
+    new URL("./fixtures/reconciliation/history.json", import.meta.url),
     "utf8",
   ),
 ) as FlueConversationSnapshot;
@@ -204,10 +201,7 @@ test.each(["no-op", "failed", "stale", "unknown"] as const)(
 const a5Snapshot = JSON.parse(
   gunzipSync(
     readFileSync(
-      new URL(
-        "../../../libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-product-tracer.8ijsbgGT/serialization-fixture/a5-history.json.gz",
-        import.meta.url,
-      ),
+      new URL("./fixtures/reconciliation/a5-history.json.gz", import.meta.url),
     ),
   ).toString("utf8"),
 ) as FlueConversationSnapshot;

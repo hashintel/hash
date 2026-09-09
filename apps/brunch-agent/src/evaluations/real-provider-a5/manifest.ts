@@ -42,8 +42,9 @@ export const instrumentManifest = () => {
     "apps/petrinaut-website/package.json",
     "apps/petrinaut-website/vite.config.ts",
     "libs/@hashintel/brunch-agent/MISSION.md",
-    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/native-local-delivery/loopback-only.sb",
-    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/native-local-delivery/deny-network.sb",
+    ...files(
+      "libs/@hashintel/brunch-agent/evaluations/protocols/network-guard",
+    ),
   ];
   return {
     label:

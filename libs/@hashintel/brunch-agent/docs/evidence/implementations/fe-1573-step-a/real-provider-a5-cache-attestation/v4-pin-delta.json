@@ -1,8 +1,0 @@
-{
-  "previousManifestSha256": "1de43141dfbe68902af2bf1d62f52bbdaf72c2f10e6277abc6c0fa759b62b243",
-  "changed": [
-    "apps/brunch-agent/src/evaluations/real-provider-a5/native-response.ts",
-    "apps/brunch-agent/test/real-provider-a5-terminal.integration.ts"
-  ],
-  "fullRefreeze": "Withheld pending focused re-review as instructed"
-}

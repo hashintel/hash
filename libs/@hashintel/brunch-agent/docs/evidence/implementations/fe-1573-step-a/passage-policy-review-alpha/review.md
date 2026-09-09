@@ -1,5 +1,7 @@
 # Passage-policy draft — false-green oracle withheld
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Observed counterexample
 
 The integration owner reviewed draft `apps/brunch-agent/test/passage-policy.integration.ts` in the dedicated worktree based on `b5a8b6224d`. Source SHA-256 was `75acd84f923db46e72dc61bbc7003cf603819d1598c82d42073591658b866f1a`. The importer uses the built ownership-guarded ChatAgent, native synthetic SDK responses, actual core source/locator/revision tools, fresh TEST conversations and original-store runtime reload. No browser/listener or positive browser outcome is supplied; fixture binding is labelled solely as a mount prerequisite.

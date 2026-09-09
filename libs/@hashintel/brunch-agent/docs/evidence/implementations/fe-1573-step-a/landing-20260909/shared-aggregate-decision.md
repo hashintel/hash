@@ -1,5 +1,7 @@
 # Close the same aggregate boundary for existing node queries
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 During landing review of typed correction `87beb4c654`, the integration owner traced the shared `explainRootArc` selector beyond the new state-kind allowlist. Existing `locateRootNode` also accepts ordinary `inputArcs` and `outputArcs` fields. They have the same descendant-selection obligation; the typed-only guard leaves that root cause open for already-mounted transition queries.
 
 ## Actual discriminator

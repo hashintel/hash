@@ -1,5 +1,7 @@
 # Land the current Mission 7 checkpoint
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Disposition
 
 **All current subagent work is accounted for and landed or explicitly retained.** No active implementation lane remains. This is a clean local checkpoint for Lu's reassessment, not Step A acceptance, a release, a push, or authority to start another campaign. The [lane audit](lane-dispositions.md), [health assessment](mission-health.md) and current `MISSION.md` distinguish implementation footing from the unproved genuine/utility outcome.

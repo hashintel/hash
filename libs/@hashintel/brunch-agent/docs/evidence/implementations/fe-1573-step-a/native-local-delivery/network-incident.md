@@ -1,5 +1,7 @@
 # External-download policy failure and guarded re-entry
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Retained failed-policy attempt
 
 The initial forced application build violated the no-external-request constraint. Its exact command was:
@@ -26,8 +28,10 @@ The guard is an operating-system process sandbox, not an exhaustive security aud
 
 ## Guarded command shape
 
+The reusable five-file guard now lives byte-identically in `evaluations/protocols/network-guard/` under the Brunch context. Historical logs and manifests above retain their original identities.
+
 ```sh
-E=libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/native-local-delivery
+E=libs/@hashintel/brunch-agent/evaluations/protocols/network-guard
 sandbox-exec -f "$E/deny-network.sb" env YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 CARGO_NET_OFFLINE=true yarn exec turbo run build test:unit lint:tsc lint:eslint --filter=@hashintel/brunch-agent --filter=@hashintel/brunch-agent-plugin-sdcpn --filter=@hashintel/brunch-agent-binding-flue --filter=@hashintel/brunch-agent-transport-aisdk --filter=@apps/brunch-agent --filter=@apps/petrinaut-website --filter=@hashintel/petrinaut --continue=always --force --concurrency=1
 ```
 

@@ -1,5 +1,7 @@
 # A5 first product tracer handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Result and authority
 
 **The first unpaid synthetic-control A5 path crosses the actual joined product route.** Model-facing source/locator discovery → authorized revision evidence before settlement → settled revision-local basis → native root arc → actual Chrome effects/correlated result → structured `brunch_why` → assistant interpretation and visible workpiece/why pane → same-store application-runtime restart and Chrome reload → the same authorized why operation. The final browser instrument makes **81 synthetic native SDK requests**, including the original ten-request A3 safety witness, and exercises **14 actual model-facing why results** across three predeclared cohorts. No real application/provider call, paid reservation, microphone/audio-provider call, upstream work, push, Step B work or acceptance occurred.

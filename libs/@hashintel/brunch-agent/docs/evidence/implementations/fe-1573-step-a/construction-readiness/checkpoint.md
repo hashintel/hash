@@ -1,5 +1,7 @@
 # Construction readiness checkpoint
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 This is a transport prerequisite checkpoint, not construction completion or new operation/provider admission. Exact departure: `c41aeb54ca83d3aeb6f6678c9e2d318d120b5e33`, worktree `m7-construction-readiness`, branch `ln/fe-1573-construction-readiness`. Mission remains parent-owned. No hidden case inputs were read, no provider call was made, and no paid authority changed.
 
 ## Owner decisions and delivered seam

@@ -1,5 +1,7 @@
 # Bounded current-A5 real-provider readiness
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Status and authority
 
 **Unpaid driver/preflight implemented and proved; ready for integration-owner review, concrete egress decision and named reservation. No paid provider request, reservation allocation or actual-ledger write occurred.** This packet does not award real-provider acceptance, genuine testimony, semantic usefulness, Step A or Step B acceptance.

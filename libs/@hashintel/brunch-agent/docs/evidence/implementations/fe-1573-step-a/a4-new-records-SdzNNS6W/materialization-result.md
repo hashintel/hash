@@ -1,5 +1,7 @@
 # Retained-live-store reopen — preliminary Pass; full materialization Partial
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Final observation: `a4-replay-TZu8fGk9/browser/retention-{fold,reopen}-result.json`, complete public snapshots and comparisons beside them. The original disposable browser-created store stays at `a4-replay-TZu8fGk9/browser/conversation.db` under this worktree. It is locally retained/ignored, not committed or represented as a portable import authority. No relocation, rebinding, projection import or alternative storage was attempted. The supported same-store route is sufficient for this preliminary check; portability is not a prerequisite.
 
 The unchanged browser entrypoint closed the app and exited. PID **2799** reopened its actual records, compacted them and awaited application shutdown. PID **2807** then reopened the **same path** with the same built app. Before any model request it returned the exact 41-message post-compaction snapshot, including its public conversation/stream identity, record offsets, settlements and failed/conflicting attempts. A normal follow-up then completed on the retained instance, with unchanged revision state and no new tool call. JSON files are equality oracles only; the runtime never receives them as history.

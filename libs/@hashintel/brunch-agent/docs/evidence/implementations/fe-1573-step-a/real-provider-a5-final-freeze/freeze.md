@@ -1,5 +1,7 @@
 # Final A5 provider instrument after owner inventory admission
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 **Mechanical refreeze complete; independent review and explicit paid activation remain pending.** No provider request, DNS/credential probe, reservation allocation or shared-ledger mutation occurred. The raw attester, transport, driver and tests were frozen throughout this refreeze as instructed.
 
 ## Exact identity

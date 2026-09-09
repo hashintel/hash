@@ -1,5 +1,7 @@
 # Public browser shutdown rejection — bounded correction for re-review
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Status and exact scope
 
 **Correction ready for parent focused re-review; no final freeze or activation.** Source/test commit **`c9f8ced5eca31bc177539d185c2b4addd97f99eb`**, based on the unchanged prior `070cb6fb42` / `3d4a5ebab5` adapter packet. Execution authority: ALPHA **`6d94fd6354`**, MISSION’s sibling-browser correction paragraph and `sibling-browser-review-alpha/decision.md`, read without importing authority or capacity changes into this worktree.

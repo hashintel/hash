@@ -1,5 +1,7 @@
 # Aggregate state why correction — bounded handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Disposition and scope
 
 This closes only the confirmed explanation-selection blocker from the independent review at `/tmp/m7-typed-review.WjrqZt/review.md`. It does not expand construction breadth. Original checkpoint source `3b98cb287275c60c45087e4dc2500f626a39f163` and evidence `1031d34c1e56769453533fd85af45767438c1fdd` remain immutable, including the original overclaiming aggregate behavior. The complete independent report, original failing discriminator, outputs and log are retained unchanged under `original-review/` with compressed/uncompressed hashes.

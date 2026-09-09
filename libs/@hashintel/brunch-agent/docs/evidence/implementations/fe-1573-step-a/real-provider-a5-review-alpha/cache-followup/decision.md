@@ -1,5 +1,7 @@
 # Raw input/cache cost evidence — activation remains withheld
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 The focused re-review confirms the original missing-terminal-output and retention-callback corrections: 26 focused tests and a separate 13-control/15-dispatch built replay pass. These use actual native parsing, built registration, admission and RequestLedger with synthetic HTTPS/auth; they are not real TLS or provider calls. The correction/refreeze through worker `12e27bc2217d620654b5cc02832f35c784df9889` remains unactivated.
 
 A further cache-cost counterexample is independently reproduced by both reviewer and parent. Initial native usage is input100/output1; terminal output20 adds `cache_creation_input_tokens:100` and `cache_creation:{ephemeral_1h_input_tokens:100,ephemeral_5m_input_tokens:0}`. The raw attester accepts. Pi updates `cacheWrite` but sets its one-hour subset only from the initial event, losing the later distinction. The actual ledger records input100/output20/cacheWrite100/cacheWrite1h0, settles **US$0.000975**, releases the US$7 hold and permits a second HTTPS dispatch. The frozen catalogue applied to the explicit one-hour information would yield **US$0.0012**. Numeric validity alone has not preserved the raw cost-bearing information.

@@ -1,5 +1,7 @@
 # First construction progression — integrated and replayed
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Disposition
 
 Accept the first narrow synthetic construction checkpoint, including its admission-registration and visible-result corrections. It is **not construction-lane completion**, broader operation/provider admission, genuine Vestera construction or semantic utility acceptance. The next required work is creation/correction and complete effect/why coverage for the remaining root classes, not another proof of the same two-operation fixture.

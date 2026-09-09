@@ -1,5 +1,7 @@
 # Mission 7 A2 — partial handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 **Partial. Stop at the demonstrated mixed-batch feasibility gate.** The built production ChatAgent settles a server-side workpiece revision and preserves its call identity in public history. The installed runtime does **not** make a mixed non-terminating/server and terminating/browser batch safe: it admits the browser mutation and continues the model before any client result. Do not integrate this as a safe construction protocol or mark A2 complete.
 
 ## Policy follow-up — mechanical inventory failure cleared

@@ -1,5 +1,7 @@
 # Preserve overlapping carried evidence — review correction
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Result
 
 **The conservation blocker is fixed at the shared core root.** `settleWorkpieceEvidence` now keeps explicit new declarations separate from the accumulated result. Only explicit declarations participate in the existing overlap-override check; carrying an old relation cannot suppress another old relation. No deduplication, sorting, new passage identity, continuity expansion, schema or tool-surface change was introduced.

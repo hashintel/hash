@@ -1,5 +1,7 @@
 # Bounded raw cache-cost attestation correction
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Status and bounded delta
 
 **Ready for the requested focused re-review, not paid execution or another full freeze.** Implementation: **`008b576b6107175ee02d80ed91bd55ba6d79c0f0`**. Only two files changed:

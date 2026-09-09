@@ -1,5 +1,7 @@
 # Combined A2–A4 integration baseline
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## What was integrated
 
 At Lu's request, the settled worker candidates and their evidence are now together on `ln/fe-1573-construct-and-explain`. This joins their source and tests, **not the still-missing production provenance flow**.

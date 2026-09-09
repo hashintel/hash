@@ -1,5 +1,7 @@
 # Exact command record
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Repository root: `/Users/lunelson/.herdr/worktrees/hash/m7-provider-proving`. Original output root: `/tmp/m7-sibling-adapter.WgFRSb`. No paid-profile invocation appears in this record. The `launch.ts` and browser integration entrypoints are process/filesystem-only orchestration; their owner/controller/audit children receive separate explicit guards. Wrapping orchestration in a paid or deny-only parent would reproduce the forbidden nesting rather than this topology.
 
 ```sh

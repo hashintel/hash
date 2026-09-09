@@ -1,5 +1,7 @@
 # A3 browser witness — blocked, not performed
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 No real browser transition is claimed by this branch. No screenshot or browser-observed canonical pre/post definition was produced. `canonical-pre.handle.json`, `canonical-post.handle.json`, and `transition-records.handle.json` are separately labelled canonical-handle observations from the unpaid script in this directory; the panel regression is jsdom component evidence.
 
 ## Boundary established so far

@@ -1,8 +1,0 @@
-{
-  "path": "node_modules/@openapitools/openapi-generator-cli/versions/6.6.0.jar",
-  "version": "6.6.0",
-  "bytes": 27103489,
-  "sha256": "9718ff7844e89462c75dcd9b20a35136f6db257bfe1b874db1e3002e99de4609",
-  "source": "Observed downloader output, not an offline cache hit",
-  "requestTelemetry": "No packet capture, request count, redirect/proxy details or final URL was retained"
-}

@@ -1,5 +1,7 @@
 # Durability premise — unresolved crash window
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 A read-only independent source review raised a crash-window concern. This is **unresolved, not a reproduced runtime bug**. No fault injection was performed, and no repair is implemented past the mixed-batch stop. The normal-settlement and application stop/reload pins remain valid but must not be promoted to crash-safe durability.
 
 ## Claim record

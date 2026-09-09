@@ -1,5 +1,7 @@
 # Request-accounting integration on alpha
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Reviewed and integrated `400023cf898e2d169e8af0bf597e2c0274b6c65a`, `32a36976bca6d2a98cf44e6d4ab5afe266ca4c33` and `7965e9d07e` as `dfe15f60db`, `f25e0130d8` and `e060478e77`. The parent added both reviewed accounting test entrypoints to the hermetic inventory without weakening its exact-set assertion. The worker's reported sole portfolio failure was that missing owner insertion, not a skipped test.
 
 ## Review

@@ -1,5 +1,7 @@
 # Mission 7 preliminary A4 handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Decision-ready result
 
 **Existing-tool preliminary pin delivered. Final A4, Step A acceptance and Step B remain pending.** Threshold compaction preserves every tested public source record; the same retained canonical store reopens through the production mount under the same local principal/conversation identity. A separate controlled overflow case folds successfully but fails continuation, and is retained as an executable failing pin. No archive hardening is earned yet. No supported relocation/import route was found; use the genuine retained-live-store route.

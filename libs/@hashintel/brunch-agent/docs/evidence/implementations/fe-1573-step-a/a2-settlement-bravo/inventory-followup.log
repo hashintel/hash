@@ -1,9 +1,0 @@
-
- RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/bravo/apps/brunch-agent
-
-
- Test Files  1 passed (1)
-      Tests  27 passed (27)
-   Start at  11:50:37
-   Duration  285ms (transform 19ms, setup 0ms, import 37ms, tests 62ms, environment 0ms)
-

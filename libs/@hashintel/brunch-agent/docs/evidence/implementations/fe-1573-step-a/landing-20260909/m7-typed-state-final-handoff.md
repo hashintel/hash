@@ -1,5 +1,7 @@
 Typed-scoped correction and evidence are committed; worktree is clean.
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 - **Correction:** `87beb4c654926964d9012535331066ed7bfd0334`
 - **Evidence:** `70bbe190e08e9056e92fec58ff3447215ef560f2`
 - Parent-owned inventory admission: `8cf9690a40`

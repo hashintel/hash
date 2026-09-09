@@ -1,5 +1,7 @@
 # Sibling-browser adapter — close-rejection blocker
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Observed result
 
 The independent parent-commissioned review of code `070cb6fb42` / evidence `3d4a5ebab5` reran the **22** binding/old-activation tests, actual integrated **dry5** and all **five** existing lifecycle controls successfully. Its source review found no concrete removable mechanism that would preserve the current identity/lifetime obligations, and confirmed guarded siblings, private run/execution binding, no credential-bearing browser environment, no `exposeNetwork`/proxy/header forwarding and unchanged app/accounting/scenario paths.

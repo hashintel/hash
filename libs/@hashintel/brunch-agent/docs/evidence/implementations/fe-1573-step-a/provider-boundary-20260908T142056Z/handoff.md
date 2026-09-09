@@ -1,5 +1,7 @@
 # Step A provider-boundary discriminator handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Result and authority
 
 **The installed Anthropic adapter has a supported, root-preserving path: per-tool `constrainedSampling: { type: "json_schema", strict: "require" }`.** With the unchanged `anthropic/claude-sonnet-4-6` catalogue entry, both provider entrypoints preserve the complete tested input schema at `onPayload`; synthetic SDK serialization preserves those same tool schemas. This is a **Pass for the tested local pre-HTTP conversion**, not Anthropic schema acceptance, constrained-generation fidelity, a structural production mount, or paid proof. The unchanged Flue tool declaration/conversion path does not expose or forward this setting. A scoped provider-context annotation or upstream Flue support is still an **owner-held schema-policy/wiring decision**; neither was installed here.

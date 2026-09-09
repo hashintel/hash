@@ -1,5 +1,7 @@
 # Bounded A5 sibling-browser adapter — source and local evidence for review
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Status and authority
 
 **Ready for parent focused review, not another final freeze or paid launch.** Source/test commit: **`070cb6fb42df2568de04d7c79499ad4d29a0b011`**. Execution authority is ALPHA **`47ebb1ef57`**, its MISSION “Sibling-browser adapter” paragraph and `sibling-browser-topology/decision.md`, read in ALPHA without cherry-picking authority into this worktree. The old `34a90935e4` / `8a47d333…7381` instrument remains historical and unlaunchable; its files and the original paid→loopback failure were not rewritten.

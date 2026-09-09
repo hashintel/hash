@@ -1,9 +1,0 @@
-
- RUN  v4.1.10 /Users/lunelson/.herdr/worktrees/hash/m7-admission/apps/brunch-agent
-
-
- Test Files  2 passed (2)
-      Tests  31 passed (31)
-   Start at  14:19:36
-   Duration  1.59s (transform 26ms, setup 0ms, import 85ms, tests 1.45s, environment 0ms)
-

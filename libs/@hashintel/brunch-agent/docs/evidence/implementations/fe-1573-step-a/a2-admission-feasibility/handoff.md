@@ -1,5 +1,7 @@
 # Mission 7 A2 admission feasibility — owner decision handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Verdict
 
 **Lu selected the bounded buffered-rejection route after reviewing this handoff's decision prompt. Dependent implementation awaits the integration owner's authority amendment and production registration; it is not blocked on lack of any supported capability.** The built mount still violates both admission obligations. A supported custom-provider experiment can reject whole mixed proposals before they enter Flue's client stream, but it buffers output and fails the submission. This alternative is not silently installed as product policy, and no settled-citation join has been implemented.

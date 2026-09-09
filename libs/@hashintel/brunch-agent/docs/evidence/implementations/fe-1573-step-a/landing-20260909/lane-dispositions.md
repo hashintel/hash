@@ -1,5 +1,7 @@
 # Current lane disposition audit
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Captured on ALPHA from `3a597f5b15`, before this landing's changes. Canonical parent-owned registry status was inspected; all existing direct children were settled. Only `m7-typed-state` was resumed, solely to close the reviewed aggregate attribution blocker. No breadth/provider continuation was dispatched.
 
 `git cherry` was checked against each current worktree HEAD. Historical branches that predate user-managed rebases show non-equivalent ancestor commits; those are not a hidden integration queue and were not blindly replayed. The exact current-round patches are now integrated, including the corrected typed checkpoint recorded below. Shared-file patches with changed surrounding context were inspected directly. Final results below incorporate the subsequent correction and handoff closure. The real-provider inventory entry from `9cef631081` is already present through `7a27bb0954` with the same entry and contract.

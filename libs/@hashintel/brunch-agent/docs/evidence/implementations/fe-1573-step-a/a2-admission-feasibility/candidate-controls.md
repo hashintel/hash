@@ -1,5 +1,7 @@
 # A2 admission controls: capability investigation
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 This records the investigation before the owner decision. Lu subsequently selected the bounded buffered-rejection route; see `handoff.md` for the exact selection and the still-required integration-owned authority amendment. No diagnostic candidate is mounted in production.
 
 ## Scope and result

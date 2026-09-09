@@ -1,5 +1,7 @@
 # Native schema local delivery — package installation
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Delivery starts from `113c8ada6f9a74d097bfbeb1b944db8c39223759` on `ln/fe-1573-local-native-schema`. This packet is new evidence, not a replacement for the pinned copied-package experiment.
 
 ## Pinned repair
@@ -10,7 +12,7 @@ Yarn's `patch` extracted each exact npm version; the reviewed unified diff was a
 
 ## Offline installation and type resolution
 
-From repository root, with the existing package cache and Yarn 4.16.0 available. Final verification uses the process-tree guard documented in `network-incident.md`; environment flags alone do not constrain transitive downloaders. Prefix the following commands with `sandbox-exec -f "$E/deny-network.sb" env`, where `E` is this evidence directory:
+From repository root, with the existing package cache and Yarn 4.16.0 available. Final verification uses the process-tree guard documented in `network-incident.md`; environment flags alone do not constrain transitive downloaders. Prefix the following commands with `sandbox-exec -f "$E/deny-network.sb" env`, where `E=libs/@hashintel/brunch-agent/evaluations/protocols/network-guard` is the maintained guard home (relocated byte-identically; historical manifests retain their original paths):
 
 ```sh
 YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 YARN_ENABLE_SCRIPTS=0 yarn install --immutable

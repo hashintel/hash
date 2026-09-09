@@ -1,5 +1,7 @@
 # Commands and retained stores
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Run from `/Users/lunelson/.herdr/worktrees/hash/m7-a5-explanation`. The exact starting base was `b5f320b90c753e2b1eeded5455e0f8d02e06584b`; the product milestone is `fb90244b230d32afaa6497e03a0aea47a187a0f9`. No command enables external provider egress. Cache misses stop; the local generator copy below was separately owner-authorized.
 
 ```sh

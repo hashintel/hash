@@ -1,5 +1,0 @@
-# Original disposable stores stay local. Never stage/import DB, WAL or SHM artifacts.
-**/*.db
-**/*.db-*
-**/*.sqlite
-**/*.sqlite-*

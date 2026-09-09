@@ -1,5 +1,7 @@
 # Typed-state construction checkpoint — review handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Disposition and freeze
 
 Continue Mission 7 Step A's remaining CONSTRUCTION stratum from reviewed base `dd748a42399b6d0866156ef7e72002b41a1873ac`; this is not a new mission. The initially clean worktree was `/Users/lunelson/.herdr/worktrees/hash/m7-typed-state`, branch `ln/fe-1573-typed-state`. The [class/field matrix](class-table.md) preserves every remaining root obligation. **Production is frozen at `3b98cb287275c60c45087e4dc2500f626a39f163` pending independent review.** Do not treat the first typed path or these record totals as lane completion, provider-class admission, genuine construction, semantic utility, or Step A/B acceptance. After review, continue the required remaining root operations in this same mission; do not laterally rewrite this frozen seam during review.

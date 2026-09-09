@@ -1,5 +1,7 @@
 # A4 new-record retention/recovery handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Decision packet
 
 Worktree `/Users/lunelson/.herdr/worktrees/hash/m7-record-retention`, branch `ln/fe-1573-new-record-retention`, exact base `113c8ada6f9a74d097bfbeb1b944db8c39223759`. Sole authority: unchanged `libs/@hashintel/brunch-agent/MISSION.md`, Step A A4 bounds. Implementation milestones: **`c53cae1b95`** (new-record retention probe) and **`1553038fae`** (bounded diagnostics/replay/audit). The following evidence commit retains this packet. No push.

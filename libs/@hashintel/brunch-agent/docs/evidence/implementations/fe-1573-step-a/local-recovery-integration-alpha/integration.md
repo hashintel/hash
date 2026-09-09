@@ -1,5 +1,7 @@
 # Local recovery integration and corrected safety verification
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Review and integration
 
 Reviewed and integrated the blocked-prerequisite record `b78a30c4be`, red safety oracles `a521cfd109`, runtime repair `a5daa71373`, first handoff `46aa1908f6`, requested oracle correction `6c6dcac5c9`, and new correction evidence `1907e55fcf`. Alpha mappings: `d04c26b700`, `b5a0218f01`, `6eed6fd542`, `abb4bf02ed`, `94471fb26a`, and **`cfb50552c4`**. No protected parent authority, A5 source, accounting code or prior evidence was replaced.

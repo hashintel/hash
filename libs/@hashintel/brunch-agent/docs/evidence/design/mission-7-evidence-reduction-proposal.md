@@ -2,7 +2,9 @@
 
 ## Status and authority
 
-**Bounded pass authorized after persona/browser integration.** Lu instructed the parent to proceed and retain the bounded evidence reduction; `b4030f1` separately amends [MISSION.md](../../../MISSION.md) before dependent work. The mission authorizes living-consumer relocation and explicitly inventoried redundant contract-packet retirement with the protected exceptions below. This document supplies the procedure, not an additional execution authority. Test consolidation, ledger mutation and external archive cleanup remain excluded.
+**Bounded pass completed; procedure retained for provenance.** The [disposition audit](../implementations/fe-1573-step-a/landing-20260909/evidence-reduction.md) records the actual keep-set, relocations, retirement and checks. No further deletion is authorized by this now-historical proposal.
+
+**Authorization used after persona/browser integration.** Lu instructed the parent to proceed and retain the bounded evidence reduction; `b4030f1` separately amends [MISSION.md](../../../MISSION.md) before dependent work. The mission authorizes living-consumer relocation and explicitly inventoried redundant contract-packet retirement with the protected exceptions below. This document supplies the procedure, not an additional execution authority. Test consolidation, ledger mutation and external archive cleanup remain excluded.
 
 The credential/accounting stop remains intact. Reduction is independent maintenance, not a prerequisite for persona use or Step A acceptance. The original proposal's inventory is an observation to refresh, not permission to delete unclassified paths.
 

@@ -1,5 +1,7 @@
 # Commands and retained attempts
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Working directory for Yarn commands: repository root `/Users/lunelson/.herdr/worktrees/hash/m7-record-retention`. `E` below was this packet's absolute path. The final replay's `a4-replay-TZu8fGk9/commands.log` is the authoritative exact expanded command/exit list; it runs Node from `apps/brunch-agent`. Logs/sources ending in `.gz` are losslessly compressed after execution. No environment dump was taken. **Post-review qualification:** this is a record of the original commands, not proof of network isolation. Package-manager offline environment flags do not deny network access by the process tree; the acquisition event below invalidates the original campaign-wide no-external-request claim. No command was rerun for this correction.
 
 ```sh

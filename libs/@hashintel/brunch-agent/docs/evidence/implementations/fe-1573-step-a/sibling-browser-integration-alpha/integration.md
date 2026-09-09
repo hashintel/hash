@@ -1,5 +1,7 @@
 # Sibling browser and bounded shutdown — integrated
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Disposition
 
 Accept the separately guarded browser adapter and the reviewed close-rejection/timeout correction for this bounded A5 evaluator. The original paid→nested-loopback failure remains retained and r1 remains released unused. **No final instrument freeze, provider-capable connection test, TLS check, allocation or real invocation is inferred from this integration.**

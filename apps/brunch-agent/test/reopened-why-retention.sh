@@ -12,7 +12,7 @@ fi
 output=$(cd "$output" && pwd)
 test ! -e "$output/original"
 test ! -e "$output/instrument.json"
-guard="$repo/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/native-local-delivery"
+guard="$repo/libs/@hashintel/brunch-agent/evaluations/protocols/network-guard"
 node "$guard/verify-network-guard.mjs" > "$output/network-guard.log" 2>&1
 cd "$repo"
 sandbox-exec -f "$guard/deny-network.sb" python3 - "$output/instrument.json" <<'PY'
@@ -28,7 +28,7 @@ roots = [
     'node_modules/@flue/runtime/dist', 'node_modules/@flue/sdk/dist',
     'node_modules/@earendil-works/pi-ai/dist', 'node_modules/@earendil-works/pi-agent-core/dist',
     '.yarn/patches',
-    'libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/native-local-delivery',
+    'libs/@hashintel/brunch-agent/evaluations/protocols/network-guard',
 ]
 paths = {path for root in roots for path in Path(root).rglob('*') if path.is_file() and 'node_modules' not in path.parts[1:-1] and '.turbo' not in path.parts}
 # Explicit runtime roots above have node_modules as their FIRST path component.

@@ -1,5 +1,7 @@
 # Root creation after canonical capacity preservation
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Review disposition
 
 **Synthetic creation checkpoint and named controls pass; production is frozen for independent review.** This is a new post-fix packet, not a rewrite of the [original blocked checkpoint](../root-creation-checkpoint/handoff.md), root-lane completion, provider/genuine class admission or useful-field-coverage acceptance. No production implementation changed during this resumed segment. The only new executable change is focused browser witness coverage in `apps/brunch-agent/test/root-creation.integration.ts`; remaining classes stay unmounted.

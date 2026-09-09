@@ -1,5 +1,7 @@
 # Native schema boundary repair — detailed evidence
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Concise relay: [handoff.md](handoff.md).
 
 ## Outcome and remaining decision

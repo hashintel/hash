@@ -13,10 +13,7 @@ import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { ArcTransitionRecord } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 // Immutable positive fixture earned by the actual local browser, not an invented applied record.
-const witness = new URL(
-  "../../../libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/joined-browser/final-run-3/history.json",
-  import.meta.url,
-);
+const witness = new URL("./fixtures/root-arc/history.json", import.meta.url);
 const fixture = () => {
   const snapshot = JSON.parse(
     readFileSync(witness, "utf8"),

@@ -1,5 +1,7 @@
 # Conversation-bound root progression — checkpoint handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Result and review status
 
 The existing built ChatAgent → real local Chrome path now initializes on its first ordinary user submission, settles an actual workpiece, consumes a verified earlier browser read/base, applies native `addArc`, settles a workpiece correction, consumes another verified read/base, applies native `updateArcWeight`, and explains the corrected weight while retaining the distinct arc origin. The final synthetic browser instrument completes **9 checkpoints / 23 native SDK requests**, with **two applied transition records** and a separately verified stale attempt. Model-facing results supply revision IDs, hashes, passage spans, endpoint IDs and observation IDs; neither a prepared workpiece nor imported conversation projections provide them.

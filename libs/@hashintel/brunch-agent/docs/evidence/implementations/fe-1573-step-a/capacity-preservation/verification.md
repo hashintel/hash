@@ -1,5 +1,7 @@
 # Canonical capacity repair — verified and delivered
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Bounded result
 
 Owner implementation **`28a529a7bf`** fixes the confirmed root-place capacity omission in ALPHA. The same commit is already delivered to the root-creation worktree as **`28ea6db828`**, following owner importer/script admission **`e13a8e0e8f`**. The root worker must now rebuild and replay the unchanged actual Chrome reopening assertion and previously unreachable controls before its broader node checkpoint is accepted.

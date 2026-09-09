@@ -1,5 +1,7 @@
 # Native schema repair handoff
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 **The bounded candidate passes over isolated copies of the installed dependencies.** The next choice is how to deliver a known repair, not whether to keep building the converter. Full evidence, commands, affected consumers and limitations: [native-schema-boundary.md](native-schema-boundary.md).
 
 ## What was proved

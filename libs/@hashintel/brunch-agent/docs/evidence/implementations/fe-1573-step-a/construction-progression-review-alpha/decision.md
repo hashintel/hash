@@ -1,5 +1,7 @@
 # First construction progression — review and visible-result correction
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Review disposition
 
 Independent read-only review of `c41aeb54ca` through `476370d652ef6abdf5bc808042a8d916ea04a920` found no confirmed first narrow-path data/control safety blocker. One fresh actual-Chrome probe passed with **23 synthetic requests, two applied records and nine completed checkpoints**; 31 focused admission/reconciliation tests also passed. Native creation and weight correction cite verified prior raw bases, record actual effects and distinguish origin/current change/attempt. The faux callback oracle has outside completion counts and unique successful text gates; it does not exhibit the passage draft's demonstrated presence-only false green.

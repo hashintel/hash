@@ -1,5 +1,7 @@
 # Root-node construction checkpoint — integrated and replayed
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Disposition
 
 Accept the bounded synthetic root-place/transition creation/correction checkpoint after the canonical capacity repair. This is **not root-stratum completion**, recorded-deletion/epoch breadth, real-provider/genuine admission or useful-field coverage. Remaining required operations and actual generated/sanitized browser effects remain explicit in the [post-capacity class matrix](../root-creation-post-capacity/class-table.md).

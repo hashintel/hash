@@ -1,5 +1,7 @@
 # A4 compaction configuration seam
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 Owner-requested integration seam, 2026-09-08. This unblocks configuring A4's low-retention probe; it does not claim compaction survival or reopen correctness. No paid calls, new agent/mount, database/history mechanism, prompt/tool/state changes or termination changes.
 
 ## Contract

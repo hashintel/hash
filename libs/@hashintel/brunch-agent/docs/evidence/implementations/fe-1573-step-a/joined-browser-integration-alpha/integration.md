@@ -1,5 +1,7 @@
 # Joined-browser integration on alpha
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Integration and review
 
 Integration owner reviewed and cherry-picked the browser worker's implementation `1067dedee4a31a2b0935166eefcc5a961f00ec08` as `bd6f497fb2`, evidence `f458eab7ab51ea86d8afa3bb66877461bf2ed3ca` as `82cb3f71dd`, and requested policy clarification `978f33680cad3359ab3f43572d50e27f3f098236` as `d6ee1ff631`. The clarification changes only the handoff and its manifest entry: the witness uses the interim carrier; native input-schema carriage and production-converter retirement remain prerequisites for paid construction and schema-path acceptance. No protected behavior was relaxed and no production correction was required by the integration review.

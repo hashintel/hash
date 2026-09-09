@@ -14,10 +14,7 @@ const load = (name: string): unknown =>
   JSON.parse(
     gunzipSync(
       readFileSync(
-        new URL(
-          `../../../docs/evidence/implementations/fe-1573-step-a/a5-product-tracer.8ijsbgGT/serialization-fixture/${name}.json.gz`,
-          import.meta.url,
-        ),
+        new URL(`./fixtures/reconciliation/${name}.json.gz`, import.meta.url),
       ),
     ).toString("utf8"),
   );

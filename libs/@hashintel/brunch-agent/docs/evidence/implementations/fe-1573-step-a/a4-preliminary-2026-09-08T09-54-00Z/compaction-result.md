@@ -1,5 +1,7 @@
 # A4 preliminary compaction result
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Verdict and selected branch
 
 **Pass — existing-tool preliminary public-history pin. Final A4 remains pending actual A2 revisions and A3 transitions.** In the built mounted production ChatAgent, actual threshold compaction reduced model context from 20 messages to 3. All 10 previously observed public messages remained accessible, with exactly equal IDs, roles, purposes, parts, tool inputs/results, data and correlations. No archive repair is earned by this observation. A separate oversized-input probe exposed a failing overflow continuation; it limits runtime-continuation claims, not the observed threshold-history survival.

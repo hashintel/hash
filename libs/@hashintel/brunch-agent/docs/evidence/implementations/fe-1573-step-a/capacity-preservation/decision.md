@@ -1,5 +1,7 @@
 # Canonical place-capacity preservation — confirmed owning repair
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Claim and discriminator
 
 **Claim:** `normalizeSDCPN` and the canonical `createJsonDocHandle` initialization path lose valid root `Place.capacity` from complete documents. **Relied on by:** the root-creation checkpoint's unchanged raw reopen assertion and any claim that a recorded capacity correction survives canonical reopening. **Promised contract:** a complete SDCPN is valid authoring input and normalizes to an equivalent canonical value.

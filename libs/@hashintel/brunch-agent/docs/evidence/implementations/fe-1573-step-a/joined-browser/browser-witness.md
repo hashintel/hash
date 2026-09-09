@@ -1,5 +1,7 @@
 # Actual local-browser witness — joined root arc
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Instrument and claim
 
 Oracle: **“correlates the real browser transition record and resumes without reapplying”** in `apps/brunch-agent/test/transition-records.integration.ts`, explicitly run by `yarn workspace @apps/brunch-agent test:browser-tracer`. Final retained execution: `final-run-4`; implementation `1067dedee4a31a2b0935166eefcc5a961f00ec08`. The positive record is produced by the mounted browser recorder, not written by the test runner or a headless Petrinaut executor.

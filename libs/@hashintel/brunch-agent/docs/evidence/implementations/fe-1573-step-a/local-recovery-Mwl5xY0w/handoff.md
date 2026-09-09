@@ -1,5 +1,7 @@
 # Local recovery — stopped at missing local build artifact
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Status and bounded decision
 
 **Blocked before TDD or implementation.** Exact starting HEAD: `b5f320b90c753e2b1eeded5455e0f8d02e06584b`; branch `ln/fe-1573-local-recovery`; worktree `/Users/lunelson/.herdr/worktrees/hash/m7-local-recovery`. The initial worktree was clean. The full current Mission and applicable AGENTS instructions were read. Both authorized recovery fixes remain unimplemented; neither existing failure is claimed repaired. No production, test, dependency patch, package-manager, inventory, Mission or ledger source changed. This packet is the only intentional write set.

@@ -1,5 +1,7 @@
 # Single-browser proposal admission decision
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 A remaining documented admission gap was probed after A5/recovery integration at alpha `963c0054dc`. The actual built ChatAgent mount received one synthetic proposal containing valid `getLatestNetDefinition {}` and invalid native `addType { id: "invalid-type" }`, with no client-result submission. The competing safe behavior would reject the whole proposal or wait for the admitted read's result despite the invalid sibling.
 
 Observed: the read settled server-side as `{ awaiting: "client" }`, the native mutation correctly failed validation, and the model made a second request and emitted `CONTINUED_WITHOUT_CLIENT_RESULT`. The retained report has `providerCalls: 2`, `clientResultSignals: 0`, `continued: true`. This is an actual mounted causal-result gap, not a physical browser mutation or a paid-provider result. The small probe ran under the existing deny-network profile, used a fresh original SQLite store and substituted only the underlying provider with the existing faux mechanism. Source, command output and public history are retained losslessly here; no stored history was fabricated or imported.

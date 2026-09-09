@@ -1,5 +1,7 @@
 # Mission 7 A1/A2 integration — alpha
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Integrated result
 
 A1 remaining-carrier feasibility and A2 buffered production admission were integrated onto `ln/fe-1573-construct-and-explain` without conflict. The tested source head is recorded in `source.txt`.

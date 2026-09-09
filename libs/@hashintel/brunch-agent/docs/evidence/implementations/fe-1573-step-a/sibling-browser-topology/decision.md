@@ -1,5 +1,7 @@
 # Separate guarded browser roots — bounded adapter approval
 
+> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
+
 ## Evidence and owner decision
 
 The actual paid→loopback sandbox application failed before any provider contact, so the original named allocation was released unused. The subsequent local probe demonstrates the minimum browser-control alternative with installed Playwright **1.58.2**: public `chromium.launchServer({ host: "127.0.0.1", port: 0, … })` in a credential-free loopback-only owner, and public `chromium.connect()` in a separately launched loopback-only controller. Chrome belongs to the owner, not the controller. No custom browser-control service, provider proxy, app or model server was introduced.

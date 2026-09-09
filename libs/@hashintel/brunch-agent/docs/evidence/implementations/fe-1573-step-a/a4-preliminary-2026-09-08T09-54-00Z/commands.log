@@ -1,7 +1,0 @@
-Instrument commit: 8493526
-Threshold create:
-exit=0
-Threshold reopen:
-exit=0
-Overflow (expected failing pin, not included in green wrapper):
-exit=1

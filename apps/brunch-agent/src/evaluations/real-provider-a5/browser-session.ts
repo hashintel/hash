@@ -25,7 +25,7 @@ export const chromeExecutable =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 export const loopbackProfile = resolve(
   repositoryRoot,
-  "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/native-local-delivery/loopback-only.sb",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/network-guard/loopback-only.sb",
 );
 export const browserLibraryRoots = [
   "node_modules/playwright-core",
