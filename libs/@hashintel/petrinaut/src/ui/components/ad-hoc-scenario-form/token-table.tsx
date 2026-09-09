@@ -378,7 +378,11 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                       rowIndex + 1
                     } — one token. Enter chooses the row's kind, Delete removes it.`
                   : `Row ${rowIndex + 1} — dynamic${
-                      kind === "optimized" ? ", count optimized" : ""
+                      kind === "optimized"
+                        ? selection === "sweep"
+                          ? ", count swept"
+                          : ", count optimized"
+                        : ""
                     }. Enter chooses the row's kind, Delete removes it.`
               }
               label={`Row ${rowIndex + 1} kind`}
@@ -394,11 +398,14 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   label: "Dynamic count",
                   checked: kind === "dynamic",
                 },
-                ...(selection === "optimize"
+                ...(selection === "optimize" || selection === "sweep"
                   ? [
                       {
                         id: "optimized",
-                        label: "Optimized count",
+                        label:
+                          selection === "sweep"
+                            ? "Swept count"
+                            : "Optimized count",
                         checked: kind === "optimized",
                       },
                     ]

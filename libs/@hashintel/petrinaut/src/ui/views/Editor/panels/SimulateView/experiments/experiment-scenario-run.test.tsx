@@ -71,6 +71,19 @@ const scenario: Scenario = {
   },
 };
 
+// A scenario parameter drives a place's count, so a preview shows which
+// value the parameter took.
+const parameterizedScenario: Scenario = {
+  id: "scenario-2",
+  name: "Parameterized",
+  scenarioParameters: [{ type: "real", identifier: "rate", default: 10 }],
+  parameterOverrides: {},
+  initialState: {
+    type: "per_place",
+    content: { "place-1": "scenario.rate", "place-2": "2", "place-3": "3" },
+  },
+};
+
 // The preview only materializes from a lowered scenario, so the stand-in
 // client lowers with the real compiler instead of the stub's empty HIR.
 const languageClient = {
@@ -86,8 +99,9 @@ describe("ExperimentScenarioRun", () => {
         <ExperimentScenarioRun
           scenario={scenario}
           context={context}
-          values={{}}
-          onValuesChange={() => {}}
+          inputs={{}}
+          sweepable={false}
+          onInputsChange={() => {}}
         />
       </LanguageClientContext>,
     );
@@ -121,8 +135,9 @@ describe("ExperimentScenarioRun", () => {
         <ExperimentScenarioRun
           scenario={current}
           context={context}
-          values={{}}
-          onValuesChange={() => {}}
+          inputs={{}}
+          sweepable={false}
+          onInputsChange={() => {}}
         />
       </LanguageClientContext>
     );
@@ -146,5 +161,44 @@ describe("ExperimentScenarioRun", () => {
     // to the new definition, which remounts it.
     view.rerender(runFor({ ...scenario, name: "Baseline, revised" }));
     expect(toggle()).not.toBe(mounted);
+  });
+
+  it("seeds a swept parameter's Sweep from its range and previews the range start", async () => {
+    render(
+      <LanguageClientContext value={languageClient}>
+        <ExperimentScenarioRun
+          scenario={parameterizedScenario}
+          context={context}
+          inputs={{ rate: { mode: "range", min: 20, max: 30 } }}
+          sweepable
+          onInputsChange={() => {}}
+        />
+      </LanguageClientContext>,
+    );
+
+    // The range seeds the Variable's Sweep, so a reseed keeps every sweep
+    // instead of rebuilding the Variables from fixed values alone.
+    expect(
+      screen
+        .getByRole("button", { name: "Sweep rate" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Toggle Computed state section" }),
+    );
+    await waitFor(() => screen.getByText("Initial state"));
+
+    // A swept parameter previews at the start of its range — the first
+    // combination the sweep runs — not at the scenario's default, and the
+    // notice says which value stood in.
+    expect(
+      screen.getByText(
+        /Swept parameters shown at the start of their ranges: rate = 20/,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Place 1 › count").textContent).toContain(
+      "20",
+    );
   });
 });

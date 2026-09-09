@@ -13,8 +13,8 @@ Ad-hoc scenarios are **experimental and off by default**. Turn them on in the vi
 The same form appears in three places, always when **no scenario is selected**:
 
 1. **Quick simulation** -- in the [Simulation Settings](simulation.md#simulation-settings) tab, with "No scenario" selected, the **Parameters** and **Initial state** columns are the form's own tables: parameter overrides as a spreadsheet on the left, token counts and values in the middle -- no separate dialog. A **Clear** button appears next to the Initial state title once you have entries. There are no Variables in this embedding. The next simulation run uses what you defined. Any [compile error](#errors) appears in the settings panel's error banner.
-2. **Experiments** -- in the [create-experiment drawer](experiments.md#creating-an-experiment), choosing "No scenario" shows the form inside the Scenario section. The experiment's runs start from the state you defined, and the experiments table shows "Ad-hoc scenario" in its Scenario column.
-3. **Optimizations** -- in the [create-optimization drawer](optimization.md#creating-an-optimization), the scenario picker offers **No scenario** too. This is the only surface where the form shows **Optimize** controls (see below).
+2. **Experiments** -- in the [create-experiment drawer](experiments.md#creating-an-experiment), choosing "No scenario" shows the form inside the Scenario section. The experiment's runs start from the state you defined, and the experiments table shows "Ad-hoc scenario" in its Scenario column. With [Parameter sweeps](experiments.md#parameter-sweeps) enabled, every numeric value carries a **Sweep** toggle (see below).
+3. **Optimizations** -- in the [create-optimization drawer](optimization.md#creating-an-optimization), the scenario picker offers **No scenario** too. This is the surface where the form shows **Optimize** controls (see below).
 4. **Scenario creation** -- [creating or editing a scenario](scenarios.md#creating-a-scenario) uses the same form with a **Scenario Parameter** toggle on each top-level Variable; see [Saved ad-hoc scenarios](#saved-ad-hoc-scenarios).
 
 ## The form
@@ -88,6 +88,14 @@ Each selection becomes a generated scenario parameter with a deterministic name,
 - `adhoc_param_<variable_name>` -- a net parameter override.
 
 Optimized values follow the same rules as [scenario parameter domains](optimization.md#search-domains): bounds must be expressions that resolve to finite constants, integer domains need integer bounds and a positive step, and logarithmic domains need a positive minimum. One optimized value cannot appear in another optimized value's bounds.
+
+## Sweep selections (experiments only)
+
+In the create-experiment drawer, with [Parameter sweeps](experiments.md#parameter-sweeps) enabled, every numeric value slot -- cells, counts, variables, shared columns, and net parameters -- carries a labeled **Sweep** toggle in the same places the Optimize toggle appears in the optimization drawer. Turning it on replaces the expression with **Min** and **Max** cells; a sweep declares an interval and nothing else, so there is no Scale or Step. Boolean and text values offer no toggle, and changing a swept Variable to boolean turns its Sweep off. A row's gutter menu offers **Swept count** in place of Optimized count.
+
+Each selection becomes a swept parameter of the experiment, named like an [Optimize selection](#optimize-selections-optimizations-only) and shown in the sweep navigator under the value's path (`Space › item 0 › x`). Bounds must resolve to constants, integer values need integer bounds, and the maximum must exceed the minimum; a value that does not run shows its problem on the bound, and the drawer's footer names it. The experiment then behaves like any [parameter sweep](experiments.md#parameter-sweeps): the initial state compiles at the navigator's selection, parameter overrides follow each run's draw.
+
+A saved scenario shown through the form in the experiment drawer offers the same toggle on each numeric scenario parameter row, so its parameters sweep exactly as they do in the classic rows.
 
 ## Saved ad-hoc scenarios
 
