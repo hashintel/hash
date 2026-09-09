@@ -31,7 +31,7 @@ Switch between two node rendering styles:
 - **Classic** (disabled, the default) -- larger nodes with inline summary information (e.g. token counts, firing-rate type indicators). Easier to read at a glance for small models or when teaching / demoing.
 - **Compact** (enabled) -- small card-style nodes that show just the place / transition name. Fits more of the net on screen at once; best for large or dense models where you mostly select-and-inspect via the Properties panel.
 
-Both styles draw a node the same way -- a thin border in the place's token colour, a white transition, and a soft shadow -- and differ only in a node's size, shape, and how much it shows.
+Both styles draw a node the same way -- a thin outline in the place's token colour, a white transition, and a soft shadow -- and differ only in a node's size, shape, and how much it shows.
 
 Toggle freely -- this setting only affects rendering, not the underlying net.
 
