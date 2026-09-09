@@ -410,9 +410,15 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
       />,
     );
 
-    expect(await screen.findByLabelText("Sweep Rate")).toBeInstanceOf(
-      HTMLElement,
-    );
+    const toggle = await screen.findByLabelText("Sweep Rate");
+    expect(toggle).toBeInstanceOf(HTMLElement);
+
+    // Turning a value's sweep on names it in the summary line, like a
+    // classic parameter's range does.
+    fireEvent.click(toggle);
+    expect(
+      await screen.findByText(/Rate swept over its interval/),
+    ).toBeTruthy();
   });
 
   it("offers no Sweep toggle on the ad-hoc form while sweeps are off", async () => {

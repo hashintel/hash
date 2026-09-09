@@ -1017,6 +1017,14 @@ export const CreateExperimentDrawer = ({
     };
   })();
 
+  // Shown under whichever scenario body is on screen: the classic rows, the
+  // ad-hoc form, or a saved scenario shown through it.
+  const sweepSummaryLine = sweepSummary ? (
+    <span className={sweepSummaryStyle} data-tone={sweepSummary.tone}>
+      {sweepSummary.text}
+    </span>
+  ) : null;
+
   const footerError = error ?? metricFormError;
   const canRun =
     !isSubmitting && metricFormError === null && sweepSummary?.error !== true;
@@ -1297,21 +1305,24 @@ export const CreateExperimentDrawer = ({
                 // mode: scenario parameters editable in worksheet style, and
                 // a collapsed "Computed state" preview of the exact values
                 // and tokens each run starts with.
-                <ExperimentScenarioRun
-                  scenario={selectedScenario}
-                  context={adHocFormContext}
-                  values={fixedParamValues}
-                  sweepable={enableParameterSweeps}
-                  onInputsChange={(updates) =>
-                    setParamInputs((prev) => {
-                      const next = { ...prev };
-                      for (const update of updates) {
-                        next[update.identifier] = update.input;
-                      }
-                      return next;
-                    })
-                  }
-                />
+                <>
+                  <ExperimentScenarioRun
+                    scenario={selectedScenario}
+                    context={adHocFormContext}
+                    values={fixedParamValues}
+                    sweepable={enableParameterSweeps}
+                    onInputsChange={(updates) =>
+                      setParamInputs((prev) => {
+                        const next = { ...prev };
+                        for (const update of updates) {
+                          next[update.identifier] = update.input;
+                        }
+                        return next;
+                      })
+                    }
+                  />
+                  {sweepSummaryLine}
+                </>
               ) : selectedScenario.scenarioParameters.length === 0 ? (
                 <div className={emptyParamsStyle}>No scenario parameters</div>
               ) : (
@@ -1335,14 +1346,7 @@ export const CreateExperimentDrawer = ({
                       }
                     />
                   ))}
-                  {sweepSummary ? (
-                    <span
-                      className={sweepSummaryStyle}
-                      data-tone={sweepSummary.tone}
-                    >
-                      {sweepSummary.text}
-                    </span>
-                  ) : null}
+                  {sweepSummaryLine}
                 </>
               )
             ) : enableAdHocScenarios ? (
@@ -1352,12 +1356,15 @@ export const CreateExperimentDrawer = ({
               // experiment runs exactly as before. Behind the Ad-hoc
               // scenarios setting; off, no scenario means the model's own
               // initial marking, as before the feature.
-              <AdHocScenarioForm
-                state={adHocState ?? EMPTY_AD_HOC_STATE}
-                onChange={setAdHocState}
-                context={adHocFormContext}
-                selection={enableParameterSweeps ? "sweep" : "none"}
-              />
+              <>
+                <AdHocScenarioForm
+                  state={adHocState ?? EMPTY_AD_HOC_STATE}
+                  onChange={setAdHocState}
+                  context={adHocFormContext}
+                  selection={enableParameterSweeps ? "sweep" : "none"}
+                />
+                {sweepSummaryLine}
+              </>
             ) : null}
           </Section>
 
