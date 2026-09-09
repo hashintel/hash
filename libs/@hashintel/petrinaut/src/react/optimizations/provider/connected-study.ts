@@ -47,7 +47,7 @@ export type ConnectedStudyUpdate = Pick<
 /** The status a study settles with. */
 export type ConnectedStudyOutcome = Extract<
   OptimizationStatus,
-  "complete" | "error" | "cancelled"
+  "complete" | "paused" | "error" | "cancelled"
 >;
 
 /** A trial as the channel reports it: the optimizer's values and the batch evaluating them. */
@@ -90,14 +90,21 @@ export type ConnectedStudy = {
   /**
    * The study reached a terminal status, `best` overriding the best kept from
    * the trials when given. While following, the navigation settles on the
-   * best trial's point, following ends, and the point refines; a navigation
-   * the user moved earlier stays where it is.
+   * best trial's point and following ends; a navigation the user moved
+   * earlier stays where it is. Only a completed study refines its point:
+   * a pause, a stop or a failure starts no refinement, and `refineBest` is
+   * the explicit way to run at the best configuration.
    */
   settle(
     this: void,
     outcome: ConnectedStudyOutcome,
     best?: OptimizationBest | null,
   ): void;
+  /**
+   * Moves the navigation to the best trial's point (or keeps it where it is
+   * without a best), stops following and climbs the run ladder there.
+   */
+  refineBest(this: void): void;
   /**
    * More steps were asked of a settled study: following turns back on so the
    * next step is followed, and the point refining stops.
@@ -175,6 +182,8 @@ export const createConnectedStudy = ({
   let activity: readonly OptimizationBatchStatus[] = [];
   let best: OptimizationBest | null = null;
   let terminal: ConnectedStudyOutcome | null = null;
+  /** Set while the navigation sits where settling put it, at the best; a user move clears it. */
+  let parkedOnBest = false;
   let disposed = false;
   /** Trials being evaluated, in the order they started. */
   const evaluating = new Map<number, EvaluatingTrial>();
@@ -335,15 +344,28 @@ export const createConnectedStudy = ({
   const mostRecentlyStarted = (): EvaluatingTrial | undefined =>
     [...evaluating.values()].at(-1);
 
-  /** Following ends where the study did best, and that point refines. */
-  const settleOnBest = () => {
+  /**
+   * Following ends where the study did best; the point refines only when
+   * asked. Without a refinement nothing has computed at the point, so the
+   * selection empties rather than keep showing the last followed step.
+   */
+  const settleOnBest = (refine: boolean) => {
     stopFollowing();
     navigation = best
       ? navigationAt(best.parameters, false)
       : { ...navigation, followTrials: false };
-    refineHere();
+    parkedOnBest = true;
+    if (refine) {
+      refineHere();
+    } else {
+      refinement.stop();
+      selection = null;
+    }
     publish();
   };
+
+  /** A completed study refines where it settles; a paused, stopped or failed one starts nothing. */
+  const refinesOnSettle = (): boolean => terminal === "complete";
 
   return {
     computeBackend,
@@ -354,6 +376,9 @@ export const createConnectedStudy = ({
       }
       const moved =
         patch.positions !== undefined || patch.booleans !== undefined;
+      if (moved) {
+        parkedOnBest = false;
+      }
       navigation = {
         positions: { ...navigation.positions, ...patch.positions },
         booleans: { ...navigation.booleans, ...patch.booleans },
@@ -436,7 +461,7 @@ export const createConnectedStudy = ({
             note: null,
           };
       if (terminal !== null) {
-        settleOnBest();
+        settleOnBest(refinesOnSettle());
         return;
       }
       const latest = mostRecentlyStarted();
@@ -452,9 +477,19 @@ export const createConnectedStudy = ({
       }
       const previousBestKey = bestKey();
       best = foldBestTrial(direction, best, event);
+      if (navigation.followTrials || bestKey() === previousBestKey) {
+        return;
+      }
+      // A step draining after a pause may turn out the best: the navigation
+      // settled on the best follows it there, still without refining.
+      if (parkedOnBest && best && terminal !== null && !refinesOnSettle()) {
+        navigation = navigationAt(best.parameters, false);
+        publish();
+        return;
+      }
       // A parked point's standing against the best may have changed: as the
       // best it climbs past an early stop, no longer the best it may stop.
-      if (!navigation.followTrials && bestKey() !== previousBestKey) {
+      if (terminal === null || refinesOnSettle()) {
         refineHere();
       }
     },
@@ -467,11 +502,17 @@ export const createConnectedStudy = ({
         best = settledBest;
       }
       if (navigation.followTrials && !followed) {
-        settleOnBest();
-      } else if (!navigation.followTrials) {
+        settleOnBest(refinesOnSettle());
+      } else if (!navigation.followTrials && refinesOnSettle()) {
         // A parked point keeps its place; the settled best may be its own.
         refineHere();
       }
+    },
+    refineBest: () => {
+      if (disposed) {
+        return;
+      }
+      settleOnBest(true);
     },
     resume: () => {
       if (disposed || terminal === null) {

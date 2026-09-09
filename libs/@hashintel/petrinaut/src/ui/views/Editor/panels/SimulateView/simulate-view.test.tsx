@@ -60,6 +60,7 @@ const connectedSource: PetrinautConnectedOptimization = {
   connect: () => ({
     ...capability,
     extendOptimizationRun: () => Promise.resolve(),
+    pauseOptimizationRun: () => Promise.resolve(),
     releaseOptimizationRun: () => Promise.resolve(),
     dispose: () => {},
   }),
