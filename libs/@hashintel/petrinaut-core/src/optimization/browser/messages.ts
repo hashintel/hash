@@ -37,6 +37,8 @@ export type OptimizerStudySummary = {
   best: OptimizerBestTrial | null;
   /** Set when the segment stopped early because the run was cancelled. */
   cancelled?: boolean;
+  /** Set when the segment drained early because the run was paused. */
+  paused?: boolean;
   /** The final estimate, when the study could make one. */
   importances?: OptimizerImportances;
 };
@@ -75,6 +77,16 @@ export type OptimizerCancelMessage = {
   runId: string;
 };
 
+/**
+ * Drains the running segment: no further trial is asked, the evaluations in
+ * flight settle with their real outcomes and are told, then the segment ends
+ * with `paused`. The study stays in memory.
+ */
+export type OptimizerPauseMessage = {
+  type: "pause";
+  runId: string;
+};
+
 /** Drops the kept study; nothing is posted back. */
 export type OptimizerReleaseMessage = {
   type: "release";
@@ -87,6 +99,7 @@ export type OptimizerToWorkerMessage =
   | OptimizerExtendMessage
   | OptimizerEvaluatedMessage
   | OptimizerCancelMessage
+  | OptimizerPauseMessage
   | OptimizerReleaseMessage;
 
 export type OptimizerReadyMessage = {
@@ -123,6 +136,13 @@ export type OptimizerCancelledMessage = {
   runId: string;
 };
 
+/** The segment drained after `pause`; the summary counts every told trial. */
+export type OptimizerPausedMessage = {
+  type: "paused";
+  runId: string;
+  summary: OptimizerStudySummary;
+};
+
 export type OptimizerErrorMessage = {
   type: "error";
   runId: string;
@@ -136,4 +156,5 @@ export type OptimizerToMainMessage =
   | OptimizerTrialMessage
   | OptimizerCompleteMessage
   | OptimizerCancelledMessage
+  | OptimizerPausedMessage
   | OptimizerErrorMessage;

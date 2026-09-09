@@ -26,6 +26,8 @@ export type OptimizerStudyCallbacks = {
   ): Promise<PetrinautOptimizationTrialOutcome>;
   onTrial(event: OptimizerTrialPayload): void;
   isCancelled(): boolean;
+  /** Polled beside `isCancelled`; true drains the segment instead of stopping it. */
+  isPaused(): boolean;
 };
 
 export type OptimizerStudyStartInput = {
@@ -76,6 +78,7 @@ type PyodideEntryModule = {
     evaluate: (values: unknown) => Promise<PythonTrialOutcome>,
     onTrial: (payload: unknown) => void,
     isCancelled: () => boolean,
+    isPaused: () => boolean,
   ): Promise<unknown>;
   release_browser_study(handle: StudyHandleProxy): void;
 };
@@ -177,6 +180,7 @@ const normalizeSummary = (value: unknown): OptimizerStudySummary => {
     failedTrials: asNumber(record.failedTrials, "failed trial count"),
     best: asBest(record.best),
     ...(record.cancelled === true ? { cancelled: true } : {}),
+    ...(record.paused === true ? { paused: true } : {}),
     ...withImportances(record.importances),
   };
 };
@@ -282,6 +286,7 @@ export const createOptimizerStudyRunner = (options: {
         evaluate,
         onTrial,
         () => callbacks.isCancelled(),
+        () => callbacks.isPaused(),
       );
       const summary = normalizeSummary(toJsValue(result));
       if (isPyProxyLike(result)) {

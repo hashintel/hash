@@ -116,6 +116,7 @@ const recorder = (options?: {
       trials.push(event);
     },
     isCancelled: options?.isCancelled ?? (() => false),
+    isPaused: () => false,
   };
   return { evaluated, trialNumbers, trials, callbacks };
 };

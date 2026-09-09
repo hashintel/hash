@@ -701,6 +701,29 @@ export const petrinautOptimizationCompleteEventSchema = z
   .meta({ description: "The final optimization summary." });
 
 /**
+ * A segment's early end after a pause. The optimizer asked for no further
+ * trial once paused; the trials in flight finished, were told to the study
+ * and reported as `trial` events before this one, so nothing is discarded.
+ * Terminal for the segment the way `complete` is, and the study stays
+ * resumable, so a `started` event may follow.
+ */
+export const petrinautOptimizationPausedEventSchema = z
+  .strictObject({
+    type: z.literal("paused"),
+    requestedTrials: z.number().int().positive(),
+    completedTrials: z.number().int().nonnegative(),
+    prunedTrials: z.number().int().nonnegative(),
+    failedTrials: z.number().int().nonnegative(),
+    best: optimizationBestSchema.nullable(),
+    resumable: optimizationResumableSchema,
+    seq: optimizationEventSeqSchema,
+  })
+  .meta({
+    description:
+      "The segment drained after a pause; every trial in flight was told and reported.",
+  });
+
+/**
  * The `code` of the terminal error event that reports a cancellation rather
  * than a failure. A detached run is cancelled out-of-band — an explicit
  * `DELETE`, orphan reaping, or optimizer shutdown — and the stream has no
@@ -740,6 +763,7 @@ export const petrinautOptimizationEventSchema = z
     petrinautOptimizationStartedEventSchema,
     petrinautOptimizationTrialEventSchema,
     petrinautOptimizationCompleteEventSchema,
+    petrinautOptimizationPausedEventSchema,
     petrinautOptimizationErrorEventSchema,
   ])
   .meta({ description: "One event in the optimizer response stream." });
@@ -778,6 +802,9 @@ export type PetrinautOptimizationEvent = z.infer<
 export type PetrinautOptimizationTrialEvent = z.infer<
   typeof petrinautOptimizationTrialEventSchema
 >;
+export type PetrinautOptimizationPausedEvent = z.infer<
+  typeof petrinautOptimizationPausedEventSchema
+>;
 export type PetrinautOptimizationConstraintPolicy = z.infer<
   typeof petrinautOptimizationConstraintPolicySchema
 >;
@@ -812,7 +839,7 @@ export type PetrinautOptimization = {
   /**
    * Stream a detached run's events, replaying those with `seq` greater than
    * `cursor` (0 replays everything) before tailing live events. The stream
-   * ends after a terminal `complete`/`error` event. `onAttached` fires once
+   * ends after a terminal `complete`, `paused` or `error` event. `onAttached` fires once
    * the attachment is accepted (the response headers arrived OK), which may
    * be long before the first event on a quiet run — UIs use it to report an
    * honest connection state while reconnecting.
@@ -908,9 +935,9 @@ export type PetrinautConnectedRunOptions = {
 };
 
 /**
- * The capability a connected source yields. A study that completed or was
- * cancelled stays in memory until it is released, so more trials can be run
- * on it with the sampler's history intact.
+ * The capability a connected source yields. A study that completed, was
+ * paused or was cancelled stays in memory until it is released, so more
+ * trials can be run on it with the sampler's history intact.
  */
 export type PetrinautConnectedOptimizationCapability = Omit<
   PetrinautOptimization,
@@ -929,6 +956,13 @@ export type PetrinautConnectedOptimizationCapability = Omit<
    * `PETRINAUT_OPTIMIZATION_MAX_TRIALS`.
    */
   extendOptimizationRun(runId: string, trials: number): Promise<void>;
+  /**
+   * Stop asking for trials on a running run. The trials in flight finish and
+   * report, the segment ends with a `paused` event and the study stays
+   * resumable, so `extendOptimizationRun` continues it. Idempotent; a no-op
+   * on a settled run. Cancelling instead discards the trials in flight.
+   */
+  pauseOptimizationRun(runId: string): Promise<void>;
   /** Drop the study behind a run, which can then no longer be extended. Idempotent. */
   releaseOptimizationRun(runId: string): Promise<void>;
   /** Cancel every run, drop every study and free the runtime. */
