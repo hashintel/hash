@@ -101,7 +101,7 @@ See also: [arc weight for multi-token operations](useful-patterns.md#arc-weight-
 
 ## Token capacity
 
-Select a place to open its properties, then tick **Token capacity** to cap how many tokens the place can hold. Leave it off (the default) and the place is unbounded.
+Select a place to open its properties, then tick **Token capacity** to cap how many tokens the place can hold. Leave it off (the default) and the place is unbounded. The capacity setting is saved with the net and kept when you reopen it.
 
 A capacity works like an arc weight on the receiving side. A transition needs enough tokens in its input places to fire; with a capacity set, it also needs enough _room_ in its output places. If firing would take a place above its capacity, that transition simply is not enabled -- so a full place blocks the transitions feeding it, and the limit is never exceeded.
 

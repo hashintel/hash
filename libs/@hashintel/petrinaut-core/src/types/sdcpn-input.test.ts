@@ -63,6 +63,30 @@ describe("normalizeSDCPN", () => {
     expect(Object.hasOwn(result, "metrics")).toBe(false);
   });
 
+  it.each([undefined, null, 0, 3])(
+    "preserves capacity %s without inventing an absent capacity",
+    (capacity) => {
+      const input: SDCPNInput = {
+        places: [{ id: "p1", name: "Capacity", x: 1, y: 2, capacity }],
+        transitions: [],
+      };
+      const normalized = normalizeSDCPN(input);
+      expect(normalized.places).toStrictEqual([
+        {
+          id: "p1",
+          name: "Capacity",
+          x: 1,
+          y: 2,
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          ...(capacity === undefined ? {} : { capacity }),
+        },
+      ]);
+      expect(normalizeSDCPN(normalized)).toStrictEqual(normalized);
+    },
+  );
+
   it("preserves provided extension values instead of overwriting them", () => {
     const result = normalizeSDCPN({
       places: [
