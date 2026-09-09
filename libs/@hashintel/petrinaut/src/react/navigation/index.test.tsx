@@ -6,9 +6,11 @@ import { describe, expect, test, vi } from "vitest";
 import {
   defaultPetrinautNavigationState,
   navigationResourceToSimulateDrawer,
+  openPetrinautOptimizationFullView,
   openPetrinautSimulationResource,
   openPetrinautSubnet,
   PetrinautNavigationProvider,
+  petrinautNavigationStatesMatch,
   simulateDrawerToNavigationOverlay,
   simulateDrawerToNavigationResource,
   usePetrinautNavigation,
@@ -548,5 +550,43 @@ describe("Petrinaut navigation", () => {
         id: "optimization-a",
       }),
     ).toEqual({ type: "closed" });
+  });
+
+  test("presents an optimization in a drawer by default and opens the full view in one step", () => {
+    expect(defaultPetrinautNavigationState.simulatePresentation).toBe("drawer");
+    expect(
+      openPetrinautOptimizationFullView("optimization-a")({
+        ...defaultPetrinautNavigationState,
+        overlay: { type: "create-optimization" },
+      }),
+    ).toEqual({
+      ...defaultPetrinautNavigationState,
+      mode: "simulate",
+      simulateView: "optimizations",
+      simulateResource: { type: "optimization", id: "optimization-a" },
+      simulatePresentation: "full",
+    });
+    // The record's drawer is driven by the optimizations provider, not by
+    // the editor's drawer state, in either presentation.
+    expect(
+      navigationResourceToSimulateDrawer({
+        type: "optimization",
+        id: "optimization-a",
+      }),
+    ).toEqual({ type: "closed" });
+  });
+
+  test("tells the two presentations of one record apart", () => {
+    const drawer: PetrinautNavigationState = {
+      ...defaultPetrinautNavigationState,
+      simulateResource: { type: "optimization", id: "optimization-a" },
+    };
+    expect(
+      petrinautNavigationStatesMatch(drawer, {
+        ...drawer,
+        simulatePresentation: "full",
+      }),
+    ).toBe(false);
+    expect(petrinautNavigationStatesMatch(drawer, { ...drawer })).toBe(true);
   });
 });

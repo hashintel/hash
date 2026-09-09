@@ -20,6 +20,7 @@ import {
   EditorContext,
   initialEditorState,
   type EditorContextValue,
+  type PetrinautSimulatePresentation,
   type SimulateDrawerState,
   type SimulateViewMode,
 } from "../../../../../../react/state/editor-context";
@@ -728,6 +729,9 @@ export function FakeEditorProvider({
   const [simulateDrawer, setSimulateDrawer] = useState<SimulateDrawerState>({
     type: "closed",
   });
+  // Stateful so the optimization stories can open a record as the whole section.
+  const [simulatePresentation, setSimulatePresentation] =
+    useState<PetrinautSimulatePresentation>("drawer");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const value = useMemo<EditorContextValue>(
@@ -767,6 +771,8 @@ export function FakeEditorProvider({
       updateDraggingStateByNodeId: () => {},
       simulateDrawer,
       setSimulateDrawer,
+      simulatePresentation,
+      setSimulatePresentation,
       setAiAssistantOpen: () => {},
       toggleAiAssistant: () => {},
       resetDraggingState: () => {},
@@ -779,7 +785,7 @@ export function FakeEditorProvider({
       triggerPanelAnimation: () => {},
       searchInputRef,
     }),
-    [simulateDrawer, simulateViewMode],
+    [simulateDrawer, simulatePresentation, simulateViewMode],
   );
 
   return <EditorContext value={value}>{children}</EditorContext>;

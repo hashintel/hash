@@ -75,6 +75,7 @@ const editorContextValue = (
   setHiddenTimelineSeriesIds: () => {},
   setSimulateViewMode: () => {},
   setSimulateDrawer: () => {},
+  setSimulatePresentation: () => {},
   setSearchOpen: () => {},
   setAiAssistantOpen: () => {},
   toggleAiAssistant: () => {},
