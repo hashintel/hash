@@ -9,6 +9,7 @@ use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 
 use super::{OpenOptions, encoding::Encoding, error::WorldError};
 use crate::{
+    dataset::auxiliary::Legend,
     identity::{BasePosition, Column, NodeRowId},
     postgres::id::ArchivedEntityId,
     salt::fit::prepare::identity::IdentityTableArchive,
@@ -112,6 +113,17 @@ impl NodeIndex {
             .bind(NaiveIdentityProvider::from_ref(&self.identity));
 
         provider.provide_key_of_at(row, epoch.revision())
+    }
+
+    pub(crate) fn payload<'scene>(
+        &'scene self,
+        epoch: &'scene Epoch,
+        row: NodeRowId,
+    ) -> Option<&'scene Legend> {
+        epoch
+            .nodes(self)
+            .bind(NaiveIdentityProvider::from_ref(&self.identity))
+            .into_payload_of_row_at(row, epoch.revision())
     }
 
     /// Returns the row at `index`, or [`None`] outside the fitted position domain.

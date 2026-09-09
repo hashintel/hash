@@ -230,20 +230,13 @@ impl ClosureMap {
         (type_row.as_usize() < self.bits.row_domain_size()).then(|| self.bits.row(type_row))
     }
 
-    /// Returns the [`IconSource`] `type_row` resolves to, or [`None`] for an icon-free cone.
+    /// Resolves the nearest icon-bearing ancestor within the closure.
     ///
-    /// Equal-depth candidates resolve to the earlier parent in the run, so resolution is
-    /// deterministic under the artifact's ascending-row parent order.
-    ///
-    /// # Panics
-    ///
-    /// This panics when `type_row` lies past the closure's type domain. The closure tabulates
-    /// the generation's own types, and a row the delta allocated past that bound resolves its
-    /// icon through the register's extension instead, so reaching here with one is a caller
-    /// routing bug rather than data.
+    /// Returns [`None`] outside the type domain or for an icon-free cone. Equal-depth candidates
+    /// resolve to the earlier parent in the artifact's ascending-row parent order.
     #[must_use]
-    pub(crate) const fn icon_source(&self, type_row: OntologyRowId) -> Option<IconSource> {
-        self.icon_sources[type_row]
+    pub(crate) fn icon_source(&self, type_row: OntologyRowId) -> Option<IconSource> {
+        self.icon_sources.lookup(type_row).copied()
     }
 
     pub(crate) fn membership(

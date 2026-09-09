@@ -2,6 +2,7 @@ use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 
 use super::{OpenOptions, error::WorldError};
 use crate::{
+    dataset::auxiliary::Icon,
     identity::OntologyRowId,
     postgres::id::ArchivedOntologyTypeUuid,
     salt::{
@@ -111,6 +112,17 @@ impl Ontology {
             .ontology(self)
             .bind(NaiveIdentityProvider::from_ref(&self.identity))
             .provide_key_of_at(row, epoch.revision())
+    }
+
+    pub(crate) fn payload<'scene>(
+        &'scene self,
+        epoch: &'scene Epoch,
+        row: OntologyRowId,
+    ) -> Option<&'scene Icon> {
+        epoch
+            .ontology(self)
+            .bind(NaiveIdentityProvider::from_ref(&self.identity))
+            .into_payload_of_row_at(row, epoch.revision())
     }
 
     pub(crate) const fn identity(

@@ -400,16 +400,33 @@ impl OntologyResolver for GraphDatabaseClient {
 
 #[cfg(test)]
 mod tests {
+    use alloc::sync::Arc;
+
+    use hash_graph_postgres_store::store::{
+        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
+        PostgresStoreSettings,
+    };
     use hash_graph_store::filter::{
         Filter, FilterExpression, Parameter, protection::PropertyProtectionFilterConfig,
     };
+    use hashql_core::id::IdSlice;
+    use tokio::runtime::Handle;
+    use tokio_postgres::NoTls;
     use type_system::{
         knowledge::Entity,
         principal::actor::{ActorId, UserId},
     };
     use uuid::Uuid;
 
-    use super::VisibilityActor;
+    use super::{GraphDatabaseClient, VisibilityActor};
+    use crate::{
+        math::nz,
+        serve2::hydrate::{
+            NodeRequestColumns, TypeUrlResolver,
+            locate::{LocateLinkResponse, LocateNodeResponse, LocateRequest, LocateResolver},
+            ontology::OntologyResolver,
+        },
+    };
 
     /// The masking actor over the user `actor` names.
     fn masking(actor: u128, instance_admin: bool) -> VisibilityActor {
@@ -446,6 +463,66 @@ mod tests {
             | Filter::EndsWith(..)
             | Filter::ContainsSegment(..) => false,
         }
+    }
+
+    #[tokio::test]
+    async fn blocking_worker_empty_requests() {
+        let pool = Arc::new(
+            PostgresStorePool::new(
+                &DatabaseConnectionInfo::new(
+                    DatabaseType::Postgres,
+                    "hydrate-test".to_owned(),
+                    String::new(),
+                    "/no-hydrate-test-postgres".to_owned(),
+                    5432,
+                    "hydrate-test".to_owned(),
+                ),
+                &DatabasePoolConfig {
+                    max_connections: nz!(1),
+                },
+                NoTls,
+                PostgresStoreSettings::default(),
+            )
+            .await
+            .expect("should construct an unconnected pool"),
+        );
+        let client = GraphDatabaseClient::new(pool, Handle::current());
+
+        // The async runtime continues polling while its blocking worker drives synchronous reads.
+        tokio::task::spawn_blocking(move || {
+            let urls: Vec<_> = TypeUrlResolver::resolve(&client, [])
+                .expect("should resolve no URLs without a database connection")
+                .into_iter()
+                .collect();
+            assert!(urls.is_empty(), "should return no unrequested URLs");
+            assert!(
+                OntologyResolver::resolve(&client, IdSlice::from_raw(&[]))
+                    .expect("should resolve no ontology rows without a connection")
+                    .is_empty(),
+                "should return no unrequested ontology rows"
+            );
+            let response = LocateResolver::resolve(
+                &client,
+                LocateRequest {
+                    actor: masking(11, false),
+                    nodes: NodeRequestColumns {
+                        ids: IdSlice::from_raw(&[]),
+                        rows: IdSlice::from_raw(&[]),
+                        delivered: IdSlice::from_raw(&[]),
+                        arrivals: IdSlice::from_raw(&[]),
+                    },
+                    links: IdSlice::from_raw(&[]),
+                    properties: 10,
+                    link_type_ids: 5,
+                    link_properties: 10,
+                },
+            )
+            .expect("should resolve an empty locate request without a connection");
+            assert_eq!(response.nodes, LocateNodeResponse::empty(0));
+            assert_eq!(response.links, LocateLinkResponse::empty(0));
+        })
+        .await
+        .expect("the blocking worker should finish without a nested-runtime panic");
     }
 
     /// A deployment that protects no property masks nobody.

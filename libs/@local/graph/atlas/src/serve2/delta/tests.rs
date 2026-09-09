@@ -60,6 +60,8 @@ fn epoch(delta: &Delta) -> Epoch {
 #[test]
 fn node_added_revival() {
     let (_fixture, mut delta) = fixture("delta-node-added-revival");
+    let world = Arc::clone(&delta.world);
+    let before = epoch(&delta);
     let entity = entity(100);
     let position = Vec2::new(0.25, -0.5);
     delta.revision = DeltaRevision::new(1);
@@ -69,6 +71,12 @@ fn node_added_revival() {
     );
     let row = delta.node_row(entity).expect("should allocate a node row");
     let first = epoch(&delta);
+    let first_payload = world
+        .layout
+        .index
+        .payload(&first, row)
+        .expect("should borrow the added node legend");
+    assert!(world.layout.index.payload(&before, row).is_none());
     assert_eq!(row, NodeRowId::new(NODES));
     assert_eq!(delta.world.layout.position(&first, row), Some(position));
     assert_eq!(delta.world.topology.node_count(&first), NODES as usize + 1);
@@ -97,17 +105,17 @@ fn node_added_revival() {
     assert_eq!(delta.world.layout.position(&revived, row), Some(position));
     assert_eq!(delta.world.layout.position(&withdrawn, row), None);
     assert_eq!(delta.world.layout.position(&first, row), Some(position));
-    let identities = DeltaIdentityProvider::from_parts(
-        &delta.node,
-        NaiveIdentityProvider::from_ref(&delta.world.layout.index.identity),
-    );
     assert_eq!(
-        identities
-            .payload_of_row(row)
-            .expect("should retain the current legend")
+        world
+            .layout
+            .index
+            .payload(&revived, row)
+            .expect("should borrow the revived node legend")
             .label(),
         "latest"
     );
+    assert!(world.layout.index.payload(&withdrawn, row).is_none());
+    assert_eq!(first_payload.label(), "first");
 }
 
 /// Full identities keep equal entity UUIDs in different webs independent.
@@ -374,6 +382,9 @@ fn endpoints_added_self_loop() {
 #[test]
 fn ontology_icon_replacement() {
     let (_fixture, mut delta) = fixture("delta-ontology-icon-replacement");
+    let world = Arc::clone(&delta.world);
+    let before = epoch(&delta);
+    delta.revision.increment_by(1);
     let row = OntologyRowId::MIN;
     let fitted = delta
         .world
@@ -415,12 +426,42 @@ fn ontology_icon_replacement() {
         "changed"
     );
     assert_eq!(identities.count(), TYPES as usize + 1);
+
+    let captured = epoch(&delta);
+    let rows = [row, added_row];
+    let held = rows.map(|row| {
+        world
+            .ontology
+            .payload(&captured, row)
+            .expect("should borrow the captured icon")
+    });
+    assert!(world.ontology.payload(&before, added_row).is_none());
+    delta.revision.increment_by(1);
+    for (key, row) in [fitted, added].into_iter().zip(rows) {
+        assert_eq!(
+            delta.register_ontology(key, OwnedIcon::from("latest")),
+            Some((row, true))
+        );
+    }
+    let replaced = epoch(&delta);
+    drop(delta);
+    for ((row, icon), expected) in rows.into_iter().zip(held).zip(["changed", "added"]) {
+        assert_eq!(icon.as_ref(), expected);
+        assert_eq!(
+            world
+                .ontology
+                .payload(&replaced, row)
+                .expect("should borrow the replaced icon")
+                .as_ref(),
+            "latest"
+        );
+    }
 }
 
 /// Base payload queries borrow the mapped legend without copying it.
 #[test]
 fn payload_base() {
-    let (_fixture, delta) = fixture("delta-payload-base");
+    let (_fixture, mut delta) = fixture("delta-payload-base");
     let world = Arc::clone(&delta.world);
     let captured = epoch(&delta);
     let mapped = world
@@ -438,8 +479,77 @@ fn payload_base() {
         "should borrow the same mapped legend"
     );
     assert!(world.topology.payload(&captured, EdgeRowId::MAX).is_none());
+
+    let node = NodeRowId::MIN;
+    let mapped_node = world
+        .layout
+        .index
+        .identity
+        .payload_of_row(node)
+        .expect("should read the base node legend");
+    let node_payload = world
+        .layout
+        .index
+        .payload(&captured, node)
+        .expect("should borrow the base node legend");
+    assert!(
+        ptr::eq(mapped_node, node_payload),
+        "should borrow the same mapped node legend"
+    );
+    assert!(
+        world
+            .layout
+            .index
+            .payload(&captured, NodeRowId::MAX)
+            .is_none()
+    );
+
+    let ontology = OntologyRowId::MIN;
+    let mapped_icon = world
+        .ontology
+        .identity
+        .payload_of_row(ontology)
+        .expect("should read the base icon");
+    let icon = world
+        .ontology
+        .payload(&captured, ontology)
+        .expect("should borrow the base icon");
+    assert!(
+        ptr::eq(mapped_icon, icon),
+        "should borrow the same mapped icon"
+    );
+    assert!(
+        world
+            .ontology
+            .payload(&captured, OntologyRowId::MAX)
+            .is_none()
+    );
+
+    let key = world
+        .layout
+        .index
+        .identity
+        .key_of(node)
+        .expect("should resolve the base node");
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_node(key, legend("replacement"), Vec2::ZERO),
+        Some(true)
+    );
+    let replaced = epoch(&delta);
+    assert_eq!(
+        world
+            .layout
+            .index
+            .payload(&replaced, node)
+            .expect("should borrow the replacement legend")
+            .label(),
+        "replacement"
+    );
     drop(delta);
     assert_eq!(payload.label(), mapped.label());
+    assert_eq!(node_payload.label(), mapped_node.label());
+    assert_eq!(icon.as_ref(), mapped_icon.as_ref());
 }
 
 /// Captures retain base overrides and added legends through withdrawal and revival.
@@ -555,6 +665,24 @@ fn ontology_keys_foreign_world() {
         .world
         .ontology
         .key_of(&epoch(&right), OntologyRowId::MIN);
+}
+
+#[test]
+#[should_panic(expected = "index must belong to the epoch's world")]
+fn node_payload_foreign_world() {
+    let (_left_files, left) = fixture("delta-node-payload-foreign-left");
+    let (_right_files, right) = fixture("delta-node-payload-foreign-right");
+    let foreign = epoch(&right);
+    let _payload = left.world.layout.index.payload(&foreign, NodeRowId::MIN);
+}
+
+#[test]
+#[should_panic(expected = "ontology must belong to the epoch's world")]
+fn ontology_payload_foreign_world() {
+    let (_left_files, left) = fixture("delta-ontology-payload-foreign-left");
+    let (_right_files, right) = fixture("delta-ontology-payload-foreign-right");
+    let foreign = epoch(&right);
+    let _payload = left.world.ontology.payload(&foreign, OntologyRowId::MIN);
 }
 
 /// Reusing a delta allocation copies component state without mutating a held publication.
