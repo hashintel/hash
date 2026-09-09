@@ -57,6 +57,17 @@ describe("constraintSchema", () => {
     ).toBe(false);
   });
 
+  it("stores the code verbatim, so the HIR spans keep indexing into it", () => {
+    const code = "  scenario.min_load < scenario.max_load";
+    const parsed = constraintSchema.safeParse({
+      ...parameterConstraint,
+      code,
+      hir: lower(code, "scenario-expression"),
+    });
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.code).toBe(code);
+  });
+
   it("rejects an empty id or code", () => {
     expect(
       constraintSchema.safeParse({ ...parameterConstraint, id: "" }).success,

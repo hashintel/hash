@@ -49,10 +49,18 @@ const constraintBaseShape = {
     description:
       "Optional display name shown wherever the constraint is reported.",
   }),
-  code: z.string().trim().min(1).meta({
-    description:
-      "The authored TypeScript source, the editable text of record. `hir` is its lowered form; regenerating `hir` from `code` must be a no-op.",
-  }),
+  // Validated on its trimmed form but stored verbatim: `hir` was lowered
+  // from this exact text, and its spans index into it.
+  code: z
+    .string()
+    .min(1)
+    .refine((code) => code.trim().length > 0, {
+      message: "Constraint code must not be blank",
+    })
+    .meta({
+      description:
+        "The authored TypeScript source, the editable text of record. `hir` is its lowered form; regenerating `hir` from `code` must be a no-op.",
+    }),
 };
 
 export const parameterConstraintSchema = z
