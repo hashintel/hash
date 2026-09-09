@@ -13,36 +13,45 @@
 export {
   assertArcEffects,
   canonicalContent,
+  clientToolResultMetadataSchema,
   deriveArcEffects,
   expectedNodeDefinition,
   observedArcOutcome,
+  parseClientToolResultMetadata,
   reconcileArcTransitionAttempts,
   verifyArcTransitionAttempt,
   verifyDefinitionObservation,
   reconcileDefinitionObservations,
   type ArcEffects,
   type ArcMutationRequest,
+  type BrowserBinding,
+  type ClientToolResultMetadata,
+  type ConstructionMutationName,
   type ConstructionMutationRequest,
   type ConstructionTransitionAttempt,
   type ConstructionTransitionRecord,
   type ArcTransitionAttempt,
   type ArcTransitionRecord,
   type DefinitionObservation,
+  type UnverifiedDefinitionObservation,
 } from "./transition-record";
 
 export {
   conversationConstructionMode,
-  observedConstructionBrowserToolNames,
   joinedRootArcInputSchema,
   observedArcInputSchema,
+  observedArcMutationNames,
+  isObservedArcMutation,
   parseObservedArcInput,
   parseJoinedRootArcInput,
   browserBindingSchema,
   rootArcEnvelopeSchema,
   rootArcWhyInputSchema,
   locateRootArc,
+  type ObservedArcMutationName,
   type RootArcWhyInput,
 } from "./root-arc";
+export { observedConstructionBrowserToolNames } from "./construction-tool-names";
 export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";
 export {
   constructionWhyInputSchema,
@@ -66,6 +75,7 @@ export {
   assertStateIdentity,
   rootStateWhyInputSchema,
   locateRootState,
+  type ObservedStateMutationName,
   type RootStateWhyInput,
 } from "./root-state";
 

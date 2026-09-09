@@ -1,25 +1,31 @@
 import { z } from "zod";
 
-import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
+import type {
+  WorkpieceEvidenceRelation,
+  WorkpieceRevision,
+} from "@hashintel/brunch-agent/workpiece";
 
 const nonempty = z.string().min(1);
 export const sha256Pattern = /^[a-f0-9]{64}$/u;
 export const sha256Schema = z.string().regex(sha256Pattern);
 
+// Tool inputs are Zod by contract, so these cannot import core's Valibot
+// schemas; the `satisfies` pins them to core's shapes so drift fails to compile.
+const revisionCitation = z.strictObject({
+  revisionId: nonempty,
+  sha256: sha256Schema,
+}) satisfies z.ZodType<Pick<WorkpieceRevision, "revisionId" | "sha256">>;
+const locator = z.strictObject({
+  start: z.number().int().min(0),
+  end: z.number().int().min(1),
+}) satisfies z.ZodType<WorkpieceEvidenceRelation["locator"]>;
+
 /** Immutable revision-local UTF-16 spans; no cross-revision continuity claim. */
 export const declaredBasisSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("declared"),
-    revisionId: nonempty,
-    sha256: sha256Schema,
-    locators: z
-      .array(
-        z.strictObject({
-          start: z.number().int().min(0),
-          end: z.number().int().min(1),
-        }),
-      )
-      .min(1),
+    ...revisionCitation.shape,
+    locators: z.array(locator).min(1),
     rationale: nonempty,
     scope: z.literal("operation"),
     supersessionIntended: z.boolean().optional(),

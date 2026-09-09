@@ -50,12 +50,6 @@ const schemas = {
 };
 export const observedStateInputSchema = (name: ObservedStateMutationName) =>
   schemas[name];
-type WithoutEnvelope<Input> = Input extends unknown
-  ? Omit<Input, "brunch">
-  : never;
-export type ObservedStateInput = WithoutEnvelope<
-  z.input<(typeof schemas)[ObservedStateMutationName]>
->;
 
 /** Validate natively but retain raw field presence: a default is not authored input. */
 export const parseObservedStateInput = (

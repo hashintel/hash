@@ -12,28 +12,22 @@ import type { SDCPN } from "@hashintel/petrinaut-core";
 
 export const conversationConstructionMode =
   "conversation-construction-candidate";
-export const observedConstructionBrowserToolNames = [
-  "getLatestNetDefinition",
-  "addArc",
-  "updateArcWeight",
-  "addPlace",
-  "updatePlace",
-  "addTransition",
-  "updateTransition",
-  "getNetCompilationErrors",
-  "addType",
-  "updateType",
-  "addTypeElement",
-  "updateTypeElement",
-  "addScenario",
-  "updateScenario",
-] as const;
+
+export const observedArcMutationNames = ["addArc", "updateArcWeight"] as const;
+export type ObservedArcMutationName = (typeof observedArcMutationNames)[number];
+export const isObservedArcMutation = (
+  name: string,
+): name is ObservedArcMutationName =>
+  observedArcMutationNames.some((entry) => entry === name);
 
 /** Names are conveniences; ambiguous names refuse rather than choosing an occurrence. */
 export const rootArcWhyInputSchema = v.strictObject({
   transition: v.string(),
   place: v.string(),
-  arcDirection: v.picklist(["input", "output"]),
+  // Petrinaut owns the direction enum; why-queries stay Valibot but do not restate it.
+  arcDirection: v.picklist(
+    petrinautAiTools.addArc.inputSchema.shape.arcDirection.options,
+  ),
   field: v.optional(
     v.picklist(["entity", "placeId", "weight", "type"]),
     "entity",
@@ -125,10 +119,10 @@ const observedArcSchemas = {
     .refine(rootPlaceArc, { message: "Only root place arcs are admitted." })
     .describe(petrinautAiTools.updateArcWeight.description),
 };
-export const observedArcInputSchema = (name: "addArc" | "updateArcWeight") =>
+export const observedArcInputSchema = (name: ObservedArcMutationName) =>
   observedArcSchemas[name];
 export const parseObservedArcInput = (
-  name: "addArc" | "updateArcWeight",
+  name: ObservedArcMutationName,
   input: unknown,
 ) =>
   observedArcInputSchema(name).parse(

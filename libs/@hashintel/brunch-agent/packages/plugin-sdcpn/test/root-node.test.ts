@@ -12,17 +12,13 @@ import {
 import {
   deriveArcEffects,
   expectedNodeDefinition,
-  observedArcOutcome,
-  type ConstructionMutationRequest,
 } from "../src/transition-record";
+import {
+  constructionRequest as request,
+  emptyDefinition as empty,
+  observedOutcome as outcome,
+} from "./fixtures";
 
-const empty = (): SDCPN => ({
-  places: [],
-  transitions: [],
-  types: [],
-  parameters: [],
-  differentialEquations: [],
-});
 const place = {
   id: "test-place",
   name: "TestPlace",
@@ -31,40 +27,18 @@ const place = {
   differentialEquationId: null,
   x: 0,
   y: 0,
-};
+} satisfies SDCPN["places"][number];
 const transition = {
   id: "test-transition",
   name: "Test transition",
   inputArcs: [],
   outputArcs: [],
-  lambdaType: "predicate" as const,
+  lambdaType: "predicate",
   lambdaCode: "export default () => true;",
   transitionKernelCode: "",
   x: 100,
   y: 0,
-};
-const request = (
-  toolName: ConstructionMutationRequest["toolName"],
-  input: ConstructionMutationRequest["input"],
-): ConstructionMutationRequest => ({
-  toolName,
-  input,
-  toolCallId: "test-call",
-  requestedBaseHash: "a".repeat(64),
-  binding: {
-    conversationId: "test-conversation",
-    documentId: "test-document",
-    incarnationId: "test-incarnation",
-  },
-});
-const outcome = (req: ConstructionMutationRequest, pre: SDCPN, post: SDCPN) =>
-  observedArcOutcome({
-    request: req,
-    binding: req.binding,
-    pre: { definition: pre, sha256: req.requestedBaseHash },
-    post: { definition: post, sha256: "b".repeat(64) },
-    effects: deriveArcEffects(req, pre, post),
-  });
+} satisfies SDCPN["transitions"][number];
 
 describe("native root node construction", () => {
   test.each(observedNodeMutationNames)(

@@ -3,6 +3,8 @@ import * as v from "valibot";
 
 import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
 import {
+  getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
   normalizePetrinautAiToolInput,
   petrinautAiTools,
 } from "@hashintel/petrinaut-core/ai";
@@ -17,22 +19,31 @@ import {
 
 import type {
   DefinitionObservation,
-  ArcMutationRequest,
+  BrowserBinding,
   ConstructionMutationRequest,
 } from "../transition-record";
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
 export { joinedRootArcInputSchema } from "../root-arc";
 
-/** The only joined mutation; inherited headless tools are not newly admitted. */
-export const createJoinedRootArcTool = (options: {
-  currentRevision: WorkpieceRevision | null;
-  retainedRevisionFor: (
+/** Settled-revision authority every browser-bound construction tool checks basis against. */
+export interface WorkpieceAuthorityOptions {
+  readonly currentRevision: WorkpieceRevision | null;
+  readonly retainedRevisionFor: (
     revisionId: string,
   ) => Promise<WorkpieceRevision | undefined>;
-  binding: ArcMutationRequest["binding"];
-  requestedBaseHash: string;
-}) =>
+}
+
+/** The immutable browser join a legacy prepared-fixture tracer mutates against. */
+export interface JoinedBrowserOptions {
+  readonly binding: BrowserBinding;
+  readonly requestedBaseHash: string;
+}
+
+/** The only joined mutation; inherited headless tools are not newly admitted. */
+export const createJoinedRootArcTool = (
+  options: WorkpieceAuthorityOptions & JoinedBrowserOptions,
+) =>
   defineTool({
     name: "addArc",
     description: `${petrinautAiTools.addArc.description}\nRoot place arcs only. Cite a settled workpiece in brunch.basis and the issued brunch.requestedBaseHash. Numeric-string weights normalize before structural and canonical validation.`,
@@ -51,10 +62,10 @@ export const createJoinedRootArcTool = (options: {
     },
   });
 
-export { observedConstructionBrowserToolNames } from "../root-arc";
+export { observedConstructionBrowserToolNames } from "../construction-tool-names";
 
 export const observedDefinitionReadTool = defineTool({
-  name: "getLatestNetDefinition",
+  name: getLatestNetDefinitionToolName,
   description: petrinautAiTools.getLatestNetDefinition.description,
   input: petrinautAiTools.getLatestNetDefinition.inputSchema,
   output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
@@ -64,7 +75,7 @@ export const observedDefinitionReadTool = defineTool({
 });
 
 export const observedCompilationReadTool = defineTool({
-  name: "getNetCompilationErrors",
+  name: getNetCompilationErrorsToolName,
   description: petrinautAiTools.getNetCompilationErrors.description,
   input: petrinautAiTools.getNetCompilationErrors.inputSchema,
   output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
@@ -73,16 +84,17 @@ export const observedCompilationReadTool = defineTool({
   },
 });
 
+/** Resolves an earlier verified browser read so a mutation can cite its exact base. */
+export interface ObservedConstructionOptions extends WorkpieceAuthorityOptions {
+  readonly observationFor: (
+    id: string,
+    mutation?: Pick<ConstructionMutationRequest, "toolName" | "input">,
+  ) => Promise<DefinitionObservation>;
+}
+
 export const createObservedArcTool = (
   name: ConstructionMutationRequest["toolName"],
-  options: {
-    currentRevision: WorkpieceRevision | null;
-    retainedRevisionFor: (id: string) => Promise<WorkpieceRevision | undefined>;
-    observationFor: (
-      id: string,
-      mutation?: Pick<ConstructionMutationRequest, "toolName" | "input">,
-    ) => Promise<DefinitionObservation>;
-  },
+  options: ObservedConstructionOptions,
 ) =>
   defineTool({
     name,

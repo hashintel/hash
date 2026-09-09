@@ -1,3 +1,5 @@
+import * as v from "valibot";
+
 import {
   mutationActionInputSchemas,
   createPetrinautActions,
@@ -5,6 +7,12 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import { sha256Pattern } from "./declared-basis";
+import {
+  browserBindingSchema,
+  isObservedArcMutation,
+  type ObservedArcMutationName,
+} from "./root-arc";
 import {
   assertNodeIdentity,
   isObservedNodeMutation,
@@ -15,41 +23,88 @@ import {
   isObservedStateMutation,
   stateMutationTarget,
   type ObservedStateMutationName,
-  type ObservedStateInput,
 } from "./root-state";
 
 import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 
+/** The bound document incarnation a mutation was authorized against. */
+export type BrowserBinding = v.InferOutput<typeof browserBindingSchema>;
+
 /** Retained arc request contract; root node requests extend it without changing legacy consumers. */
 export type ArcMutationRequest = {
   toolCallId: string;
-  toolName: "addArc" | "updateArcWeight";
-  input: PetrinautAiToolInput<"addArc">;
-  binding: {
-    conversationId: string;
-    documentId: string;
-    incarnationId: string;
-  };
+  toolName: ObservedArcMutationName;
+  input: PetrinautAiToolInput<ObservedArcMutationName>;
+  binding: BrowserBinding;
   requestedBaseHash: string;
   /** Required only in the distinct conversation-bound mode; legacy history is unchanged. */
   observationToolCallId?: string;
 };
 
+export type ConstructionMutationName =
+  | ObservedArcMutationName
+  | ObservedNodeMutationName
+  | ObservedStateMutationName;
+
 export type ConstructionMutationRequest = Omit<
   ArcMutationRequest,
   "toolName" | "input"
 > & {
-  toolName:
-    | ArcMutationRequest["toolName"]
-    | ObservedNodeMutationName
-    | ObservedStateMutationName;
-  input:
-    | ArcMutationRequest["input"]
-    | PetrinautAiToolInput<ObservedNodeMutationName>
-    | ObservedStateInput;
+  toolName: ConstructionMutationName;
+  input: PetrinautAiToolInput<ConstructionMutationName>;
 };
 
 export type DefinitionObservation = { definition: SDCPN; sha256: string };
+
+/** A delivered observation before `verifyDefinitionObservation` has re-parsed and re-hashed it. */
+export type UnverifiedDefinitionObservation = {
+  definition: unknown;
+  sha256: string;
+};
+
+const constructionOutcomes = [
+  "applied",
+  "no-op",
+  "failed",
+  "stale",
+  "unknown",
+] as const;
+
+/**
+ * Host-owned sidecar the browser attaches to a client-tool result. Parsing
+ * establishes shape only: `observation.observed` still needs
+ * `verifyDefinitionObservation`, and each `transitionRecord.attempts` member
+ * still needs `verifyArcTransitionAttempt` at the receiving boundary.
+ */
+export const clientToolResultMetadataSchema = v.object({
+  observation: v.optional(
+    v.object({
+      toolCallId: v.pipe(v.string(), v.minLength(1)),
+      binding: browserBindingSchema,
+      observed: v.object({
+        definition: v.unknown(),
+        sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
+      }),
+    }),
+  ),
+  transitionRecord: v.optional(
+    v.object({
+      attempts: v.array(v.unknown()),
+      outcome: v.picklist(constructionOutcomes),
+    }),
+  ),
+});
+export type ClientToolResultMetadata = v.InferOutput<
+  typeof clientToolResultMetadataSchema
+>;
+
+/** Read the sidecar off a delivered result; anything else is not a Brunch sidecar. */
+export const parseClientToolResultMetadata = (
+  metadata: unknown,
+): ClientToolResultMetadata | undefined => {
+  const parsed = v.safeParse(clientToolResultMetadataSchema, metadata);
+  return parsed.success ? parsed.output : undefined;
+};
 
 /** Snapshot-relative JSON pointer. Values retain the entire changed subtree. */
 export type DefinitionChange = {
@@ -73,7 +128,7 @@ export type ConstructionTransitionAttempt = {
   binding: ArcMutationRequest["binding"];
   pre: DefinitionObservation;
   post?: DefinitionObservation;
-  outcome: "applied" | "no-op" | "failed" | "stale" | "unknown";
+  outcome: (typeof constructionOutcomes)[number];
   effects: ArcEffects;
   error?: string;
 };
@@ -472,9 +527,12 @@ export const observedArcOutcome = (
 };
 
 export const verifyDefinitionObservation = async (
-  observation: DefinitionObservation,
+  observation: DefinitionObservation | UnverifiedDefinitionObservation,
 ): Promise<DefinitionObservation> => {
-  const detached = structuredClone(observation);
+  const detached: UnverifiedDefinitionObservation =
+    structuredClone(observation);
+  if (!objectValue(detached.definition))
+    throw new Error("Invalid canonical observation: not a definition object.");
   const parsed = parseSDCPNFile({
     ...detached.definition,
     title: "Browser observation",
@@ -492,7 +550,8 @@ export const verifyDefinitionObservation = async (
     throw new Error(
       "Transition observation hash does not match its definition.",
     );
-  return detached;
+  // The canonical parse above is what earns the SDCPN claim on the raw definition.
+  return { definition: detached.definition as SDCPN, sha256: detached.sha256 };
 };
 
 /** Reconciliation only: never an alias or relaxation of mutation/base checks. */
@@ -533,10 +592,10 @@ export const verifyArcTransitionAttempt = async <
   // Validate a detached delivery: callers cannot change the content while hashes settle.
   const attempt = structuredClone(delivery);
   if (
-    (!["addArc", "updateArcWeight"].includes(attempt.request.toolName) &&
+    (!isObservedArcMutation(attempt.request.toolName) &&
       !isObservedNodeMutation(attempt.request.toolName) &&
       !isObservedStateMutation(attempt.request.toolName)) ||
-    !/^[a-f0-9]{64}$/u.test(attempt.request.requestedBaseHash) ||
+    !sha256Pattern.test(attempt.request.requestedBaseHash) ||
     [
       attempt.request.toolCallId,
       ...Object.values(attempt.request.binding),

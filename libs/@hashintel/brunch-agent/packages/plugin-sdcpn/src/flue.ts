@@ -11,8 +11,11 @@ import * as v from "valibot";
 import {
   preparedWorkpieceInitialDataMode,
   preparedWorkpieceSignalType,
-  type WorkpieceRevision,
 } from "@hashintel/brunch-agent/workpiece";
+import {
+  getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
+} from "@hashintel/petrinaut-core/ai";
 
 import { sha256Pattern } from "./declared-basis";
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
@@ -29,6 +32,8 @@ import {
   observedConstructionBrowserToolNames,
   petrinautConstructionTools,
   petrinautFixtureTools,
+  type ObservedConstructionOptions,
+  type WorkpieceAuthorityOptions,
 } from "./tools/petrinaut-construction";
 import {
   READ_PETRINAUT_DOC_TOOL_NAME,
@@ -38,6 +43,11 @@ import {
 export { conversationConstructionMode } from "./root-arc";
 export const VALIDATED_CONSTRUCTION_MODE = "validated-construction";
 export const validatedFixtureMutationMode = preparedWorkpieceInitialDataMode;
+
+/** Signal appended at agent start carrying the conversation-bound construction binding. */
+export const CONSTRUCTION_BINDING_SIGNAL_TYPE = "brunch.construction-binding";
+/** Signal appended at agent start carrying the joined prepared-fixture browser context. */
+export const CONSTRUCTION_CONTEXT_SIGNAL_TYPE = "brunch.construction-context";
 
 export const sdcpnInitialDataSchema = v.optional(
   v.pipe(
@@ -75,20 +85,23 @@ export const sdcpnInitialDataSchema = v.optional(
 
 export type SdcpnInitialData = v.InferOutput<typeof sdcpnInitialDataSchema>;
 
+type SdcpnInitialDataFields = NonNullable<SdcpnInitialData>;
+
+/**
+ * The browser the agent is bound to: either the conversation-construction
+ * binding (marked `construction`) or the legacy joined prepared-fixture base.
+ */
+export type BrowserContext =
+  | (NonNullable<SdcpnInitialDataFields["construction"]> & {
+      readonly construction: true;
+    })
+  | NonNullable<SdcpnInitialDataFields["browser"]>;
+
 /** Mount the prompt material, skill, and conditional tools owned by the SDCPN plugin. */
-export function useSdcpnPlugin(options?: {
-  currentRevision: WorkpieceRevision | null;
-  observationFor?: (
-    id: string,
-    mutation?: Pick<
-      import("./transition-record").ConstructionMutationRequest,
-      "toolName" | "input"
-    >,
-  ) => Promise<import("./transition-record").DefinitionObservation>;
-  retainedRevisionFor: (
-    revisionId: string,
-  ) => Promise<WorkpieceRevision | undefined>;
-}): void {
+export function useSdcpnPlugin(
+  options?: WorkpieceAuthorityOptions &
+    Partial<Pick<ObservedConstructionOptions, "observationFor">>,
+): void {
   const initialData = useInitialData<SdcpnInitialData>();
   const delivery = useDelivery();
 
@@ -104,8 +117,8 @@ export function useSdcpnPlugin(options?: {
     useAgentStart(({ append }) =>
       append({
         kind: "signal",
-        type: "brunch.construction-binding",
-        tagName: "brunch.construction-binding",
+        type: CONSTRUCTION_BINDING_SIGNAL_TYPE,
+        tagName: CONSTRUCTION_BINDING_SIGNAL_TYPE,
         body: JSON.stringify(initialData.construction),
       }),
     );
@@ -114,9 +127,9 @@ export function useSdcpnPlugin(options?: {
     );
     for (const name of observedConstructionBrowserToolNames)
       useTool(
-        name === "getLatestNetDefinition"
+        name === getLatestNetDefinitionToolName
           ? observedDefinitionReadTool
-          : name === "getNetCompilationErrors"
+          : name === getNetCompilationErrorsToolName
             ? observedCompilationReadTool
             : createObservedArcTool(name, {
                 ...options,
@@ -146,8 +159,8 @@ This is a construct-only headless conversation. Use only the supplied runbook IR
       useAgentStart(({ append }) => {
         append({
           kind: "signal",
-          type: "brunch.construction-context",
-          tagName: "brunch.construction-context",
+          type: CONSTRUCTION_CONTEXT_SIGNAL_TYPE,
+          tagName: CONSTRUCTION_CONTEXT_SIGNAL_TYPE,
           body: JSON.stringify({
             browser: joined,
             currentWorkpiece: options.currentRevision,

@@ -25,7 +25,10 @@ export const constructionWhyInputSchema = v.pipe(
     ...v.partial(rootArcWhyInputSchema).entries,
     ...v.partial(rootNodeWhyInputSchema).entries,
     kind: v.optional(
-      v.picklist(["place", "transition", "type", "type-element", "scenario"]),
+      v.picklist([
+        ...rootNodeWhyInputSchema.entries.kind.options,
+        ...rootStateWhyInputSchema.entries.kind.options,
+      ]),
     ),
     type: v.optional(v.string()),
   }),
@@ -168,7 +171,7 @@ export const assertNodeIdentity = (
 /** Names are conveniences, never identities. The returned path is snapshot-relative. */
 export const locateRootNode = (
   definition: SDCPN,
-  query: { kind: "place" | "transition"; name: string; field: string },
+  query: Pick<RootNodeWhyInput, "kind" | "name" | "field">,
 ) => {
   const entries =
     query.kind === "place" ? definition.places : definition.transitions;
