@@ -13,15 +13,24 @@ import {
   ExperimentMetricTimeline,
   MetricViewMenu,
 } from "../../experiments/experiment-metric-timeline";
-import { ChartCard } from "../../shared/chart-card";
+import { CHART_CARD_FOOTER_CHROME, ChartCard } from "../../shared/chart-card";
+import {
+  SURFACE_FOOTER_HEIGHT,
+  SURFACE_PLOT_HEIGHT,
+} from "../../shared/surface-frame";
 
 import type {
   OptimizationRecord,
   OptimizationSelectionStream,
 } from "../../../../../../../react/optimizations/context";
 
-/** Sized so the card ends level with the surface beside it. */
-export const OBJECTIVE_PLOT_HEIGHT = 240;
+/**
+ * Sized so the card ends level with the surface card beside it: that card's
+ * plot plus the footer row holding its axis selects, which this card has no
+ * use for.
+ */
+export const OBJECTIVE_PLOT_HEIGHT =
+  SURFACE_PLOT_HEIGHT + SURFACE_FOOTER_HEIGHT + CHART_CARD_FOOTER_CHROME;
 
 export const OptimizationMetrics = ({
   optimization,
