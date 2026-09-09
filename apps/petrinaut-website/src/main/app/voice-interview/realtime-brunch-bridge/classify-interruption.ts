@@ -44,18 +44,20 @@ export const classifyInterruption = (
   canonicalPlaybackText: readonly string[],
 ): "prompt-regurgitation" | "self-echo" | null => {
   const tokens = tokensOf(transcript);
+  const canonicalPlaybackTokens = tokensOf(canonicalPlaybackText.join(" "));
+  if (
+    tokens.length > 0 &&
+    tokens.join(" ") === canonicalPlaybackTokens.join(" ")
+  ) {
+    return "self-echo";
+  }
   // Short answers and isolated domain terms are not enough evidence of echo.
   if (tokens.length < 6) return null;
   const bigrams = bigramsOf(tokens);
   if (tokens.length >= 8 && hasStrongOrderedOverlap(bigrams, promptBigrams)) {
     return "prompt-regurgitation";
   }
-  if (
-    hasStrongOrderedOverlap(
-      bigrams,
-      bigramsOf(tokensOf(canonicalPlaybackText.join(" "))),
-    )
-  ) {
+  if (hasStrongOrderedOverlap(bigrams, bigramsOf(canonicalPlaybackTokens))) {
     return "self-echo";
   }
   return null;

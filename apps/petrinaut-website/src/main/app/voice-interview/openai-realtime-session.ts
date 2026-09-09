@@ -205,6 +205,7 @@ export class OpenAIRealtimeSession {
   readonly #pendingSpeechRequests = new Map<string, SpeechTiming>();
   readonly #playbackOverlappingInputItemIds = new Set<string>();
   readonly #remoteStreams = new Set<MediaStream>();
+  readonly #responseSpeechRequestIds = new Map<string, string>();
   readonly #speechRequestIds = new Map<string, string>();
   readonly #speechTimings = new Map<string, SpeechTiming>();
   readonly #terminalCanonicalResponseIds = new Set<string>();
@@ -425,15 +426,21 @@ export class OpenAIRealtimeSession {
     }
     let cancelledOutput = false;
     for (const responseId of this.#canonicalResponseIds) {
+      const responseIsActive = this.#activeResponseIds.has(responseId);
+      const responseHasBufferedOutput =
+        this.#terminalCanonicalResponseIds.has(responseId) ||
+        this.#speakingResponseId === responseId;
       if (
-        (this.#activeResponseIds.has(responseId) ||
-          this.#speakingResponseId === responseId) &&
-        !this.#cancelledCanonicalResponseIds.has(responseId)
+        this.#cancelledCanonicalResponseIds.has(responseId) ||
+        (!responseIsActive && !responseHasBufferedOutput)
       ) {
-        this.#cancelledCanonicalResponseIds.add(responseId);
-        this.#cancelResponse(responseId);
-        cancelledOutput = true;
+        continue;
       }
+      this.#cancelledCanonicalResponseIds.add(responseId);
+      if (responseIsActive) {
+        this.#cancelResponse(responseId);
+      }
+      cancelledOutput = true;
     }
     if (cancelledOutput) this.#send({ type: "output_audio_buffer.clear" });
   }
@@ -766,6 +773,7 @@ export class OpenAIRealtimeSession {
     }
     this.#completeResponseCreateEvent(speechRequestId);
     this.#canonicalResponseIds.add(responseId);
+    this.#responseSpeechRequestIds.set(responseId, speechRequestId);
     if (this.#cancelledSpeechRequestIds.delete(speechRequestId)) {
       this.#cancelPendingSpeechRequest(speechRequestId);
       this.#cancelledCanonicalResponseIds.add(responseId);
@@ -885,7 +893,8 @@ export class OpenAIRealtimeSession {
     this.#finishOutputCancellation();
     this.#clearResponseCancelEvents(responseId);
     this.#waitingForResponseTerminal = false;
-    const speechRequestId = this.#speechRequestIds.get(responseId);
+    const speechRequestId = this.#responseSpeechRequestIds.get(responseId);
+    this.#responseSpeechRequestIds.delete(responseId);
     const terminalEvent = {
       connectionEpoch,
       responseId,
@@ -1443,6 +1452,7 @@ export class OpenAIRealtimeSession {
     this.#pendingClientEvents.clear();
     this.#pendingSpeechRequests.clear();
     this.#playbackOverlappingInputItemIds.clear();
+    this.#responseSpeechRequestIds.clear();
     this.#speechTimings.clear();
     this.#speechRequestIds.clear();
     this.#terminalCanonicalResponseIds.clear();

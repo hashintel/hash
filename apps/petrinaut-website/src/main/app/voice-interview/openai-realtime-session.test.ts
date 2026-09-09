@@ -352,6 +352,8 @@ describe("OpenAIRealtimeSession", () => {
       });
       if (phase !== "creating") {
         authorizeLatestSpeechResponse(channel, "question-response");
+      }
+      if (phase === "playing") {
         channel.receive({
           type: "output_audio_buffer.started",
           response_id: "question-response",
@@ -381,10 +383,11 @@ describe("OpenAIRealtimeSession", () => {
         audio_start_ms: 100,
       });
       if (phase !== "creating") {
-        expect(sentEvents(channel).map(({ type }) => type)).toEqual([
-          "response.cancel",
-          "output_audio_buffer.clear",
-        ]);
+        expect(sentEvents(channel).map(({ type }) => type)).toEqual(
+          phase === "playing"
+            ? ["response.cancel", "output_audio_buffer.clear"]
+            : ["output_audio_buffer.clear"],
+        );
       }
       expect(harness.localTracks.at(-1)?.enabled).toBe(true);
       channel.receive({
@@ -415,8 +418,12 @@ describe("OpenAIRealtimeSession", () => {
         type: "output_audio_buffer.cleared",
         response_id: "question-response",
       };
-      channel.receive(phase === "playing" ? terminal : cleared);
-      channel.receive(phase === "playing" ? cleared : terminal);
+      if (phase === "generated") {
+        channel.receive(cleared);
+      } else {
+        channel.receive(phase === "playing" ? terminal : cleared);
+        channel.receive(phase === "playing" ? cleared : terminal);
+      }
       channel.receive({
         type: "output_audio_buffer.started",
         response_id: "question-response",
@@ -1234,6 +1241,9 @@ describe("OpenAIRealtimeSession", () => {
       canonicalSegment("question", "Canonical question"),
     ]);
     const responseCreate = sentEvents(channel)[0]!;
+    const response = responseCreate.response as Record<string, unknown>;
+    const responseMetadata = response.metadata as Record<string, unknown>;
+    const speechRequestId = responseMetadata.petrinaut_request_id;
 
     void harness.session.cancelOutput();
 
@@ -1244,7 +1254,7 @@ describe("OpenAIRealtimeSession", () => {
     channel.receive({
       response: {
         id: "response-canonical",
-        metadata: (responseCreate.response as Record<string, unknown>).metadata,
+        metadata: responseMetadata,
       },
       type: "response.created",
     });
@@ -1270,6 +1280,13 @@ describe("OpenAIRealtimeSession", () => {
       type: "response.done",
     });
 
+    expect(harness.events).toContainEqual({
+      connectionEpoch: 1,
+      responseId: "response-canonical",
+      speechRequestId,
+      status: "cancelled",
+      type: "response-terminal",
+    });
     expect(harness.events).not.toContainEqual(
       expect.objectContaining({ type: "output-started" }),
     );

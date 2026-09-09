@@ -161,13 +161,15 @@ transcripts never submit; recoverable failures leave a not-heard or too-long
 notice in the dock. Provisional transcription remains display-only.
 Only interruption-originated completions receive local prompt-regurgitation
 and self-echo checks before admission or pending-answer retention. Comparison
-uses NFKC, lowercase, punctuation removal, and whitespace collapse, with at least
-80% ordered bigram overlap and minimum lengths of eight tokens for the vocabulary
-prompt or six for active canonical playback. The playback reference is captured
-when interruption starts, excludes queued speech and history, and is released on
-completion or lifecycle cleanup. Rejections produce only content-free diagnostics;
-they create no answer, error, or pending-answer notice. Short novel answers remain
-valid and the admitted payload keeps its original casing and punctuation.
+uses NFKC, lowercase, punctuation removal, and whitespace collapse. Exact
+normalized active-playback echoes are rejected at any length; fuzzy comparison
+requires at least 80% ordered bigram overlap and minimum lengths of eight tokens
+for the vocabulary prompt or six for active canonical playback. The playback
+reference is captured when interruption starts, excludes queued speech and
+history, and is released on completion or lifecycle cleanup. Rejections produce
+only content-free diagnostics; they create no answer, error, or pending-answer
+notice. Short novel answers remain valid and the admitted payload keeps its
+original casing and punctuation.
 
 The bridge waits for the correlated Brunch turn before returning canonical
 speech segments to Realtime. It instructs Realtime to speak only those

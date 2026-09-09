@@ -247,6 +247,44 @@ describe("RealtimeBrunchBridge", () => {
     },
   );
 
+  test("rejects a short exact self-echo while admitting short novel speech", () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.emit({
+      type: "output-started",
+      connectionEpoch: 3,
+      responseId: "playing",
+      speechRequestId: "speech",
+      canonicalText: ["Who approves this?"],
+    });
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "short-echo",
+      interruptionBySpeaking: true,
+    });
+    harness.emit(completedTranscript(3, "ＷＨＯ approves this!", "short-echo"));
+
+    expect(harness.events.at(-1)).toEqual({
+      type: "transcript-rejected",
+      reason: "self-echo",
+    });
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "short-novel",
+      interruptionBySpeaking: true,
+    });
+    harness.emit(completedTranscript(3, "The supervisor does.", "short-novel"));
+
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "The supervisor does." }),
+    );
+  });
+
   test.each([vocabularyLeak, assistantText])(
     "leaves ordinary transcripts unchanged: %s",
     (text) => {
@@ -465,7 +503,7 @@ describe("RealtimeBrunchBridge", () => {
     expect(harness.session.speakCanonical).not.toHaveBeenCalled();
   });
 
-  test.each(["stop", "cancelPendingSpeech", "reconnect"] as const)(
+  test.each(["stop", "reconnect"] as const)(
     "clears a retained interruption on %s",
     (action) => {
       const harness = createHarness();
@@ -494,6 +532,57 @@ describe("RealtimeBrunchBridge", () => {
         status: "ready",
       });
       expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(["stop-before-cancellation", "cancellation-before-stop"] as const)(
+    "preserves a retained interruption through host Stop when %s settles first",
+    async (order) => {
+      const harness = createHarness();
+      startReady(harness);
+      harness.emit(completedTranscript(3, "Initial answer", "initial"));
+      await vi.waitFor(() =>
+        expect(harness.events).toContainEqual(
+          expect.objectContaining({ type: "submission-accepted" }),
+        ),
+      );
+      harness.bridge.updateChat({
+        canAcceptInterviewAnswer: false,
+        canonicalSegments: [],
+        status: "streaming",
+      });
+      harness.emit({
+        type: "input-speech-started",
+        connectionEpoch: 3,
+        itemId: "pending",
+        interruptionBySpeaking: true,
+      });
+      harness.emit(completedTranscript(3, "Pending answer", "pending"));
+
+      harness.bridge.cancelPendingSpeech();
+      const stoppedChat = {
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: [],
+        status: "ready" as const,
+        settlements: [
+          { outcome: "aborted" as const, submissionId: "submission-voice-1" },
+        ],
+        stopped: true,
+      };
+      if (order === "stop-before-cancellation") {
+        harness.bridge.updateChat(stoppedChat);
+        harness.bridge.completeTurnHandoff();
+      } else {
+        harness.bridge.completeTurnHandoff();
+        harness.bridge.updateChat(stoppedChat);
+      }
+
+      await vi.waitFor(() =>
+        expect(harness.submitInterviewAnswer).toHaveBeenCalledTimes(2),
+      );
+      expect(harness.submitInterviewAnswer).toHaveBeenLastCalledWith(
+        expect.objectContaining({ text: "Pending answer" }),
+      );
     },
   );
 

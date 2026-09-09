@@ -262,7 +262,6 @@ export class RealtimeBrunchBridge {
 
   public cancelPendingSpeech(): void {
     this.#outputCancellationPending = true;
-    this.#pendingInterruption = null;
     this.#interruptionPlaybackText.clear();
     for (const responseId of this.#activePlaybackText.keys()) {
       this.#activePlaybackText.set(responseId, []);
@@ -276,6 +275,7 @@ export class RealtimeBrunchBridge {
     this.#activePlaybackText.clear();
     this.#outputCancellationPending = false;
     this.#pendingSpeechRequestIds.clear();
+    this.#drainPendingInterruption();
   }
 
   public notifyResponseMessageCompleted(
@@ -374,12 +374,12 @@ export class RealtimeBrunchBridge {
       for (const segment of update.canonicalSegments) {
         this.#seenSegmentIds.add(segment.id);
       }
-      return;
     }
-    if (update.status !== "ready") {
+    if (this.#outputCancellationPending) {
       return;
     }
     if (this.#drainPendingInterruption()) return;
+    if (update.stopped || update.status !== "ready") return;
 
     const newSegments = update.canonicalSegments.filter(
       ({ id }) => !this.#seenSegmentIds.has(id),
@@ -592,7 +592,13 @@ export class RealtimeBrunchBridge {
   #drainPendingInterruption(): boolean {
     const pending = this.#pendingInterruption;
     if (!pending) return false;
-    if (this.#activeEpoch === null || !this.#canSubmitAnswerNow()) return true;
+    if (
+      this.#activeEpoch === null ||
+      this.#outputCancellationPending ||
+      !this.#canSubmitAnswerNow()
+    ) {
+      return true;
+    }
     this.#pendingInterruption = null;
     this.#submitAnswer(pending.answer, pending.deliveryId);
     return true;
@@ -723,6 +729,7 @@ export class RealtimeBrunchBridge {
             : "withheld",
         type: "submission-stopped",
       });
+      this.#drainPendingInterruption();
       return;
     }
     // A reply may be written by the admitted submission itself or by a
