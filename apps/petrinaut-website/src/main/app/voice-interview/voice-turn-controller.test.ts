@@ -570,6 +570,9 @@ describe("VoiceTurnController", () => {
 
     expect(repeatedHandoff).toBe(handoff);
     expect(harness.bridge.cancelPendingSpeech).toHaveBeenCalledOnce();
+    expect(harness.bridge.cancelPendingSpeech).toHaveBeenCalledWith({
+      discardPendingInterruption: true,
+    });
     expect(harness.session.cancelOutput).toHaveBeenCalledOnce();
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
       false,
@@ -770,6 +773,7 @@ describe("VoiceTurnController", () => {
     });
     harness.emitSession({
       connectionEpoch: 1,
+      playbackExpected: true,
       responseId: "response-generated",
       speechRequestId: "speech-generated",
       status: "completed",

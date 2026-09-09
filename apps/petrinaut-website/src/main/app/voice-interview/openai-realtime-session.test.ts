@@ -365,7 +365,18 @@ describe("OpenAIRealtimeSession", () => {
           response: {
             id: "question-response",
             status: "completed",
-            output: [],
+            output: [
+              {
+                content: [
+                  {
+                    transcript: "Who approves this?",
+                    type: "output_audio",
+                  },
+                ],
+                role: "assistant",
+                type: "message",
+              },
+            ],
           },
         });
       }
@@ -1406,6 +1417,7 @@ describe("OpenAIRealtimeSession", () => {
 
     expect(harness.events).toContainEqual({
       connectionEpoch: 1,
+      playbackExpected: false,
       responseId: "response-canonical",
       speechRequestId,
       status: "cancelled",

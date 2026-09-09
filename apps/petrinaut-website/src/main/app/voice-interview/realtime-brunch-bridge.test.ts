@@ -588,6 +588,33 @@ describe("RealtimeBrunchBridge", () => {
     },
   );
 
+  test("discards a retained interruption for an explicit turn handoff", () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "streaming",
+    });
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "pending",
+      interruptionBySpeaking: true,
+    });
+    harness.emit(completedTranscript(3, "Stale pending answer", "pending"));
+
+    harness.bridge.cancelPendingSpeech({ discardPendingInterruption: true });
+    harness.bridge.completeTurnHandoff();
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      status: "ready",
+    });
+
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+  });
+
   test("releases generated output ownership after interruption before playback", async () => {
     const harness = createHarness();
     startReady(harness);
@@ -599,6 +626,7 @@ describe("RealtimeBrunchBridge", () => {
     harness.emit({
       type: "response-terminal",
       connectionEpoch: 3,
+      playbackExpected: true,
       responseId: "response-generated",
       speechRequestId: "speech-generated",
       status: "completed",

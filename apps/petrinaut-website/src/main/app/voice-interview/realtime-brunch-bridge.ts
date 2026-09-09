@@ -30,6 +30,10 @@ export type VoiceSubmissionSettlement = Pick<
   "outcome" | "submissionId"
 >;
 
+export interface CancelPendingSpeechOptions {
+  readonly discardPendingInterruption?: boolean;
+}
+
 interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
@@ -260,11 +264,16 @@ export class RealtimeBrunchBridge {
     return () => this.#listeners.delete(listener);
   }
 
-  public cancelPendingSpeech(): void {
+  public cancelPendingSpeech({
+    discardPendingInterruption = false,
+  }: CancelPendingSpeechOptions = {}): void {
     this.#outputCancellationPending = true;
     this.#interruptionPlaybackText.clear();
     for (const responseId of this.#activePlaybackText.keys()) {
       this.#activePlaybackText.set(responseId, []);
+    }
+    if (discardPendingInterruption) {
+      this.#pendingInterruption = null;
     }
     if (this.#activeSubmission) {
       this.#activeSubmission.speechCancelled = true;

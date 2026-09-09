@@ -3,6 +3,7 @@ import { VoiceError, type VoiceErrorCode } from "../../../voice-diagnostics";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type {
+  CancelPendingSpeechOptions,
   RealtimeBridgeErrorCode,
   RealtimeBrunchBridgeEvent,
   VoiceSubmissionSettlement,
@@ -79,7 +80,7 @@ interface RealtimeSession {
 }
 
 interface RealtimeBridge {
-  cancelPendingSpeech(): void;
+  cancelPendingSpeech(options?: CancelPendingSpeechOptions): void;
   completeTurnHandoff(): void;
   start(connectionEpoch: number): void;
   stop(): void;
@@ -515,7 +516,7 @@ export class VoiceTurnController {
       return Promise.resolve();
 
     const generation = this.#generation;
-    this.#bridge.cancelPendingSpeech();
+    this.#bridge.cancelPendingSpeech({ discardPendingInterruption: true });
     this.#session.setMicrophoneEnabled(false);
     this.#inputTurnPending = false;
     this.#transcriptItemId = null;
