@@ -387,6 +387,14 @@ try {
           chunk.type === "tool-input-available" &&
           chunk.toolName === READ_PETRINAUT_DOC_TOOL_NAME,
       ) ?? null;
+    const firstCurrentNetCall =
+      initialChunks.find(
+        (
+          chunk,
+        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
+          chunk.type === "tool-input-available" &&
+          chunk.toolName === "getLatestNetDefinition",
+      ) ?? null;
 
     const pendingHistory = projectHistory(await historyClient.history());
     const pendingHistoryClientToolState = pendingHistory
@@ -397,7 +405,11 @@ try {
           part.toolCallId === clientToolCall?.toolCallId,
       );
 
-    if (startChunk?.type !== "start" || clientToolCall === null) {
+    if (
+      startChunk?.type !== "start" ||
+      clientToolCall === null ||
+      firstCurrentNetCall === null
+    ) {
       throw new Error("initial stream did not reach the client-tool pause");
     }
     const resumeMessages = [
@@ -408,7 +420,7 @@ try {
         parts: [
           {
             type: "tool-getLatestNetDefinition",
-            toolCallId: "tool-current-net-1",
+            toolCallId: firstCurrentNetCall.toolCallId,
             state: "output-available",
             input: {},
             output: firstCurrentNetSnapshot,
@@ -482,7 +494,7 @@ try {
             parts: [
               {
                 type: "tool-getLatestNetDefinition",
-                toolCallId: "tool-current-net-2",
+                toolCallId: secondCurrentNetCall.toolCallId,
                 state: "output-available",
                 input: {},
                 output: secondCurrentNetSnapshot,
@@ -504,6 +516,48 @@ try {
         message.purpose === "dispatch" &&
         message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL,
     ).length;
+    const clientToolResultSignals = snapshot.messages
+      .filter(
+        (message) =>
+          message.purpose === "dispatch" &&
+          message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL,
+      )
+      .map((message) => {
+        const body = message.parts
+          .filter((part) => part.type === "text")
+          .map((part) => part.text)
+          .join("");
+        const parsed: unknown = JSON.parse(body);
+        if (!Array.isArray(parsed)) {
+          throw new Error("client-tool-result signal body was not an array");
+        }
+        return parsed;
+      });
+    const clientToolResultMatches = (
+      toolCall: Extract<UIMessageChunk, { type: "tool-input-available" }>,
+      output: unknown,
+    ): boolean =>
+      clientToolResultSignals.some((signal) =>
+        signal.some((entry) => {
+          if (typeof entry !== "object" || entry === null) return false;
+          const result = entry as {
+            toolCallId?: unknown;
+            output?: unknown;
+          };
+          return (
+            result.toolCallId === toolCall.toolCallId &&
+            JSON.stringify(result.output) === JSON.stringify(output)
+          );
+        }),
+      );
+    if (
+      !clientToolResultMatches(firstCurrentNetCall, firstCurrentNetSnapshot) ||
+      !clientToolResultMatches(secondCurrentNetCall, secondCurrentNetSnapshot)
+    ) {
+      throw new Error(
+        "client-tool-result signals did not contain both current-net snapshots",
+      );
+    }
     const firstSweep = await applyCaptureSweep(
       identity,
       userEntryIds,
@@ -583,18 +637,7 @@ try {
           ? pingOutputChunk.output
           : null,
       clientToolCall,
-      firstCurrentNetCall:
-        initialChunks.find(
-          (
-            chunk,
-          ): chunk is Extract<
-            UIMessageChunk,
-            { type: "tool-input-available" }
-          > =>
-            chunk.type === "tool-input-available" &&
-            chunk.toolName === "getLatestNetDefinition" &&
-            chunk.toolCallId === "tool-current-net-1",
-        ) ?? null,
+      firstCurrentNetCall,
       firstCurrentNetSnapshot,
       firstGroundingText: resumedChunks
         .filter((chunk) => chunk.type === "text-delta")
@@ -636,6 +679,7 @@ try {
       historyGetStatus: 200,
       historyUserText: userTextFromHistory(historyMessages),
       historyUserTexts,
+      clientToolResultSignals,
       legacyRouteStatus: legacyRoute.status,
       unauthenticatedHistoryStatus,
       foreignAgentHistoryStatus,

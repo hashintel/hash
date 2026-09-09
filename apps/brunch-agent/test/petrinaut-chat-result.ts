@@ -42,6 +42,7 @@ export interface PetrinautChatResult {
   readonly historyGetStatus: number;
   readonly historyUserText: string;
   readonly historyUserTexts: readonly string[];
+  readonly clientToolResultSignals: readonly unknown[];
   readonly legacyRouteStatus: number;
   readonly unauthenticatedHistoryStatus: number;
   readonly foreignAgentHistoryStatus: number;

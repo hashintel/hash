@@ -89,6 +89,12 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.firstGroundingText).toContain(
       "Susceptible, Infected, and Recovered",
     );
+    expect(JSON.stringify(result.clientToolResultSignals)).toContain(
+      '"toolCallId":"tool-current-net-1"',
+    );
+    expect(JSON.stringify(result.clientToolResultSignals)).toContain(
+      '"title":"SIR epidemic model"',
+    );
 
     expect(result.secondCurrentNetCall).toMatchObject({
       type: "tool-input-available",
@@ -113,6 +119,12 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.secondGroundingText).toContain("Recovered cases");
     expect(result.secondGroundingText).not.toContain(
       "SIR epidemic model is unchanged",
+    );
+    expect(JSON.stringify(result.clientToolResultSignals)).toContain(
+      '"toolCallId":"tool-current-net-2"',
+    );
+    expect(JSON.stringify(result.clientToolResultSignals)).toContain(
+      '"title":"SIR epidemic model (revised)"',
     );
     expect(result.historyUserTexts).toEqual([
       "Run the FE-1435 transport probe.",
