@@ -2,9 +2,11 @@ import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
+import { browserIdentity, browserLibraryRoots } from "./browser-session.ts";
 import { selectedModel, sha256 } from "./preflight.ts";
 
 const roots = [
+  ...browserLibraryRoots,
   "apps/brunch-agent/src",
   "apps/brunch-agent/test",
   "apps/brunch-agent/dist",
@@ -51,6 +53,7 @@ export const instrumentManifest = () => {
     }).trim(),
     runtime: process.version,
     bounds: selectedModel(),
+    browser: browserIdentity(),
     files: Object.fromEntries(
       [...new Set(paths)]
         .sort()
@@ -60,7 +63,7 @@ export const instrumentManifest = () => {
       "Built production ChatAgent only; pre-authored user; deterministic unscored evaluation",
     ],
     network:
-      "Build/dry process-tree denial; paid OS TCP-443-only plus application exact endpoint and TLS to owner-approved pinned IP; Chrome narrower loopback-only sandbox. macOS rejects numeric/hostname destination filters. Parent must explicitly accept the layered boundary; no OS destination-filtering claim.",
+      "Build/dry process-tree denial; paid OS TCP-443-only plus application exact endpoint and TLS to owner-approved pinned IP; Chrome and its credential-free library owner in a separate loopback-only root; driver connects as a guarded sibling. macOS rejects numeric/hostname destination filters. Parent must explicitly accept the layered boundary; no OS destination-filtering claim.",
   };
 };
 export const verifyManifest = (path: string, expectedHash: string) => {
@@ -74,6 +77,8 @@ export const verifyManifest = (path: string, expectedHash: string) => {
     if (sha256(readFileSync(file)) !== digest)
       throw new Error(`Frozen instrument changed: ${file}`);
   }
+  if (JSON.stringify(manifest.browser) !== JSON.stringify(browserIdentity()))
+    throw new Error("Browser topology/library/profile identity changed");
   if (JSON.stringify(manifest.bounds) !== JSON.stringify(selectedModel()))
     throw new Error("Model catalogue changed");
   return manifest;

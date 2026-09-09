@@ -7,12 +7,17 @@ import { isIP } from "node:net";
 import { extname, join, resolve } from "node:path";
 
 import { createFlueClient, type AgentSendResult } from "@flue/sdk";
-import { chromium } from "@playwright/test";
+import { chromium, type BrowserContext } from "@playwright/test";
 
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../conversation/identity.ts";
+import {
+  browserTopology,
+  claimBrowser,
+  dryRunId,
+} from "./real-provider-a5/browser-session.ts";
 import {
   instrumentManifest,
   verifyManifest,
@@ -33,7 +38,8 @@ import {
 import { pinnedNativeRequest } from "./real-provider-a5/transport.ts";
 import { loadBuiltBrunchApplication } from "./runbook/load-built-application.ts";
 
-const [mode, outputArgument, activationPath] = process.argv.slice(2);
+const [mode, outputArgument, activationPath, browserBindingPath, executionId] =
+  process.argv.slice(2);
 assert(
   mode === "preflight" || mode === "dry" || mode === "real",
   "Explicit mode required: preflight | dry | real",
@@ -68,8 +74,14 @@ if (mode === "preflight") {
   });
   process.stdout.write(`Read-only preflight: ${output}\n`);
 } else {
+  assert(
+    browserBindingPath && executionId,
+    "Explicit sibling browser binding and execution identity required; use the launcher",
+  );
   type Activation = {
     runId: string;
+    executionId: string;
+    browserTopology: typeof browserTopology;
     ledgerPath: string;
     manifestPath: string;
     manifestSha256: string;
@@ -86,7 +98,9 @@ if (mode === "preflight") {
     process.env.ANTHROPIC_API_KEY = "TEST-synthetic-transport-not-a-credential";
     process.env.BRUNCH_CHAT_MODEL = modelId;
     activation = {
-      runId: "TEST-a5-driver",
+      runId: dryRunId,
+      executionId,
+      browserTopology,
       ledgerPath: join(output, "TEST-usage-ledger.json"),
       manifestPath: "",
       manifestSha256: "",
@@ -123,6 +137,12 @@ if (mode === "preflight") {
   } else {
     assert(activationPath, "Explicit parent activation file required");
     activation = JSON.parse(readFileSync(activationPath, "utf8")) as Activation;
+    assert.equal(
+      activation.browserTopology,
+      browserTopology,
+      "Old activation cannot launch",
+    );
+    assert.equal(activation.executionId, executionId);
     assert.equal(activation.singleWriter, true);
     assert.equal(
       activation.egressPolicy,
@@ -152,6 +172,8 @@ if (mode === "preflight") {
     );
     save("activation-observation.json", {
       runId: activation.runId,
+      executionId,
+      browserTopology,
       ledgerPath: activation.ledgerPath,
       manifestSha256: activation.manifestSha256,
       providerIp: activation.providerIp,
@@ -164,6 +186,28 @@ if (mode === "preflight") {
       "Technical prerequisite: configured provider credentials unavailable; no validity request made",
     );
   }
+  // Validate and consume the private owner binding before any application/native
+  // invocation. The endpoint capability never enters page/model data or output.
+  const browserReadiness = claimBrowser(
+    browserBindingPath,
+    activation.runId,
+    executionId,
+  );
+  assert.equal(
+    process.ppid,
+    browserReadiness.launcherPid,
+    "Controller must be the named launcher's sibling child",
+  );
+  save("browser-session-observation.json", {
+    runId: activation.runId,
+    executionId,
+    topology: browserTopology,
+    ownerPid: browserReadiness.ownerPid,
+    chromePid: browserReadiness.chromePid,
+    controllerPid: process.pid,
+    launcherPid: process.ppid,
+    identity: browserReadiness.identity,
+  });
   activation.ledgerPath = realpathSync(activation.ledgerPath);
   if (mode === "real")
     assert(
@@ -283,7 +327,8 @@ if (mode === "preflight") {
   let application:
     | Awaited<ReturnType<typeof loadBuiltBrunchApplication>>
     | undefined;
-  let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
+  let browser: Awaited<ReturnType<typeof chromium.connect>> | undefined;
+  let context: BrowserContext | undefined;
   let client: ReturnType<typeof createFlueClient> | undefined;
   const errors: string[] = [];
   const blockedOrigins: string[] = [];
@@ -387,25 +432,24 @@ if (mode === "preflight") {
     })();
   });
   try {
+    try {
+      browser = await chromium.connect(browserReadiness.endpoint, {
+        timeout: 10_000,
+      });
+    } catch {
+      // Playwright diagnostics can contain the endpoint capability. Keep it out
+      // of public errors; do not attach from arbitrary options or fall back.
+      throw new Error("Sibling browser attachment failed; no fallback");
+    }
     application = await loadBuiltBrunchApplication();
     server.listen(0, "127.0.0.1");
     await once(server, "listening");
     const address = server.address();
     assert(address && typeof address !== "string");
     origin = `http://127.0.0.1:${address.port}`;
-    // Chrome receives no provider credentials and a strictly narrower OS sandbox.
-    browser = await chromium.launch({
-      executablePath: resolve(
-        "apps/brunch-agent/src/evaluations/real-provider-a5/chrome-loopback.sh",
-      ),
-      headless: true,
-      env: {
-        PATH: process.env.PATH ?? "/usr/bin:/bin",
-        HOME: process.env.HOME ?? "/tmp",
-        TMPDIR: process.env.TMPDIR ?? "/tmp",
-      },
-    });
-    const context = await browser.newContext({
+    // Both modes attach to the same independently guarded, credential-free
+    // owner. Only that owner/orchestrator may close the Chrome process.
+    context = await browser.newContext({
       viewport: { width: 1600, height: 1100 },
       serviceWorkers: "block",
     });
@@ -558,7 +602,11 @@ if (mode === "preflight") {
       });
     } finally {
       try {
-        await browser?.close();
+        try {
+          await context?.close();
+        } finally {
+          await browser?.close();
+        }
       } finally {
         try {
           await application?.stop();
