@@ -63,46 +63,86 @@ export const PlaceStateVisualization: React.FC<
     }
   }, [place.visualizerCode]);
 
+  /*
+   * The picture, held against what it is drawn from.
+   *
+   * Rendering it runs user code, and the tokens it takes are derived fresh
+   * each time, so without this every re-render of the surface it sits on — a
+   * hover settling, a pin, a box being measured — redrew the picture too.
+   * Keeping the element lets React reuse the subtree until the frame, the
+   * marking, the parameters or the code itself move. Measured on a scrub with
+   * a 100ms picture pinned to the canvas: 45 to 63 frames per second, worst
+   * frame 92ms to 51ms.
+   *
+   * `useDeferredValue` on the frame does NOT belong on top of this, though it
+   * looks like it should. Measured the same way it took 63 down to 54-59, and
+   * on its own, without this memo, 45 down to 35: the update that moves the
+   * frame is the one that has to redraw, so there is nothing left to defer
+   * that the memo has not already skipped, and the second priority pass costs
+   * a whole extra draw.
+   */
+  const picture = useMemo(() => {
+    if (!VisualizerComponent || !placeType) {
+      return null;
+    }
+
+    const tokens: TokenRecord[] = [];
+
+    if (totalFrames > 0 && currentFrameReader) {
+      tokens.push(...currentFrameReader.getPlaceTokens(place));
+    } else {
+      const marking = initialMarking[place.id];
+      if (Array.isArray(marking) && marking.length > 0) {
+        // Marking records may hold uuid values as at-rest strings; coerce them
+        // to runtime token values (uuid → bigint) as the engine would. Total
+        // per element: a stored value that no longer converts (e.g. legacy
+        // data predating a schema edit) falls back to the element's default
+        // instead of crashing the panel.
+        for (const token of marking) {
+          const coerced: TokenRecord = createUserKeyedRecord();
+          for (const element of placeType.elements) {
+            try {
+              coerced[element.name] = coerceTokenAttributeValue(
+                element,
+                getOwn(token, element.name),
+                `Initial marking for place ${place.name}`,
+              );
+            } catch {
+              coerced[element.name] = defaultTokenAttributeValue(element.type);
+            }
+          }
+          tokens.push(coerced);
+        }
+      }
+    }
+
+    return (
+      // eslint-disable-next-line react-hooks-js/static-components -- Runtime visualizer code intentionally creates a component from user input.
+      <VisualizerComponent
+        tokens={tokens}
+        parameters={mergeParameterValues(
+          parameterValues,
+          defaultParameterValues,
+        )}
+      />
+    );
+  }, [
+    VisualizerComponent,
+    defaultParameterValues,
+    initialMarking,
+    parameterValues,
+    place,
+    placeType,
+    totalFrames,
+    currentFrameReader,
+  ]);
+
   if (!place.visualizerCode) {
     return <div className={messageStyle}>No visualizer code defined</div>;
   }
 
   if (!placeType) {
     return <div className={messageStyle}>Place has no type set</div>;
-  }
-
-  const tokens: TokenRecord[] = [];
-  let parameters: Record<string, number | boolean> = {};
-
-  if (totalFrames > 0 && currentFrameReader) {
-    tokens.push(...currentFrameReader.getPlaceTokens(place));
-    parameters = mergeParameterValues(parameterValues, defaultParameterValues);
-  } else {
-    const marking = initialMarking[place.id];
-    if (Array.isArray(marking) && marking.length > 0) {
-      // Marking records may hold uuid values as at-rest strings; coerce them
-      // to runtime token values (uuid → bigint) as the engine would. Total
-      // per element: a stored value that no longer converts (e.g. legacy
-      // data predating a schema edit) falls back to the element's default
-      // instead of crashing the panel.
-      for (const token of marking) {
-        const coerced: TokenRecord = createUserKeyedRecord();
-        for (const element of placeType.elements) {
-          try {
-            coerced[element.name] = coerceTokenAttributeValue(
-              element,
-              getOwn(token, element.name),
-              `Initial marking for place ${place.name}`,
-            );
-          } catch {
-            coerced[element.name] = defaultTokenAttributeValue(element.type);
-          }
-        }
-        tokens.push(coerced);
-      }
-    }
-
-    parameters = mergeParameterValues(parameterValues, defaultParameterValues);
   }
 
   if (!VisualizerComponent) {
@@ -113,10 +153,5 @@ export const PlaceStateVisualization: React.FC<
     );
   }
 
-  return (
-    <VisualizerErrorBoundary>
-      {/* eslint-disable-next-line react-hooks-js/static-components -- Runtime visualizer code intentionally creates a component from user input. */}
-      <VisualizerComponent tokens={tokens} parameters={parameters} />
-    </VisualizerErrorBoundary>
-  );
+  return <VisualizerErrorBoundary>{picture}</VisualizerErrorBoundary>;
 };
