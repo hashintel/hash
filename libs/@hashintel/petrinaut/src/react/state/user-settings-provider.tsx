@@ -52,22 +52,6 @@ const loadSettings = (): UserSettings => {
   return defaultUserSettings;
 };
 
-/**
- * Provides the persisted user settings. A host may mount it above
- * `Petrinaut` to share the settings with its own components; the editor's
- * own instance then reuses that ancestor, so one state owns the storage key.
- */
-export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
-  children,
-}) => {
-  const ancestor = use(UserSettingsContext);
-  return ancestor === defaultUserSettingsContextValue ? (
-    <OwnedUserSettingsProvider>{children}</OwnedUserSettingsProvider>
-  ) : (
-    children
-  );
-};
-
 const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
@@ -174,5 +158,21 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
 
   return (
     <UserSettingsContext value={contextValue}>{children}</UserSettingsContext>
+  );
+};
+
+/**
+ * Provides the persisted user settings. A host may mount it above
+ * `Petrinaut` to share the settings with its own components; the editor's
+ * own instance then reuses that ancestor, so one state owns the storage key.
+ */
+export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
+  children,
+}) => {
+  const ancestor = use(UserSettingsContext);
+  return ancestor === defaultUserSettingsContextValue ? (
+    <OwnedUserSettingsProvider>{children}</OwnedUserSettingsProvider>
+  ) : (
+    children
   );
 };
