@@ -8,12 +8,12 @@ const FLASH_ANIMATION_ID = "petrinaut-transition-flash";
 const FLASH_BACKGROUND = "rgba(255, 224, 132, 0.7)";
 /**
  * The glow keeps whatever ring the node draws, so a classic transition does
- * not lose its outline for the length of the flash. A compact card leaves
- * `--node-outline-color` unset and draws a border instead, so its ring is
- * transparent.
+ * not lose its outline for the length of the flash. A compact card draws a
+ * border rather than a ring and never sets `--node-outline-ring`, so the
+ * fallback leaves it with the glow alone.
  */
 const FLASH_GLOW =
-  "0 0 0 1.5px var(--node-outline-color, transparent), 0 0 6px 1px rgba(255, 132, 0, 0.59)";
+  "var(--node-outline-ring, 0 0 0 0 transparent), 0 0 6px 1px rgba(255, 132, 0, 0.59)";
 
 const cancelPreviousFlash = (element: HTMLDivElement): void => {
   for (const animation of element.getAnimations()) {

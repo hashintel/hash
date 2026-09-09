@@ -19,12 +19,16 @@ const OUTLINE_WIDTH = "1.5px";
  * The classic node is outlined by a ring rather than a border: a browser
  * floors a 1.5px border to a whole pixel, while a shadow's spread is painted
  * as given. `--node-outline-color` carries the colour, which a place takes
- * from its token type.
+ * from its token type, and `--node-outline-ring` the shadow that draws it,
+ * which the firing flash reuses so a transition keeps its outline while it
+ * glows. Only a classic node sets the ring, so a compact card's flash draws
+ * none.
  */
 export const classicNodeBoxStyle = css({
-  shadow: `[0 0 0 ${OUTLINE_WIDTH} var(--node-outline-color, currentColor), 0px 2px 9px rgba(0, 0, 0, 0.04)]`,
+  "--node-outline-ring": `0 0 0 ${OUTLINE_WIDTH} var(--node-outline-color, currentColor)`,
+  shadow: "[var(--node-outline-ring), 0px 2px 9px rgba(0, 0, 0, 0.04)]",
   _hover: {
-    shadow: `[0 0 0 ${OUTLINE_WIDTH} var(--node-outline-color, currentColor), 0px 4px 11px rgba(0, 0, 0, 0.1)]`,
+    shadow: "[var(--node-outline-ring), 0px 4px 11px rgba(0, 0, 0, 0.1)]",
   },
   // The ring is painted outside the box, so the hover and selection outlines
   // start beyond it, and the overlay that dims a node covers it.
