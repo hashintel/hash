@@ -3,6 +3,7 @@
 //! Construction resolves either source identity into the captured scene and caps its incident edges
 //! before hydration.
 
+use alloc::alloc::Allocator;
 use core::{error::Error, fmt};
 
 use error_stack::{Report, ResultExt as _};
@@ -13,7 +14,7 @@ use self::{
     subgraph::{LocateSubgraph, SourcePoint},
     trailer::LocateTrailer,
 };
-use super::masks::TypeMasks;
+use super::{Document, codec::Envelope, masks::TypeMasks};
 use crate::{
     file::generation::GenerationId,
     identity::{EdgeRowId, NodeRowId},
@@ -31,6 +32,7 @@ use crate::{
     },
 };
 
+mod codec;
 mod subgraph;
 mod trailer;
 
@@ -229,5 +231,15 @@ impl<'details> LocateDocument<'details> {
             edge_targets,
             trailer,
         })
+    }
+}
+
+impl Document for LocateDocument<'_> {
+    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Envelope {
+        self::codec::LocateResponse {
+            variant: 0,
+            document: self,
+        }
+        .encode_into(buffer)
     }
 }

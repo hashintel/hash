@@ -3,13 +3,18 @@
     reason = "fixture stagings deliberately live to the end of their tests"
 )]
 use core::{assert_matches, num::NonZero};
-use std::{fs, io::Write as _};
+use std::{
+    fs::{self, File},
+    io::{self, Read as _, Write as _},
+    process::Command,
+};
 
 use camino::Utf8PathBuf;
+use uuid::Uuid;
 
 use super::{
-    ActivateError, CurrentError, GenerationId, GenerationRoot, METADATA_FILE, OpenError, SealError,
-    StagedGeneration,
+    ActivateError, CurrentError, GenerationId, GenerationRoot, LOCK_FILE, METADATA_FILE, OpenError,
+    RemoveError, ScratchDirectory, SealError, StagedGeneration,
 };
 use crate::{
     dataset::DatasetOrigin,
@@ -209,7 +214,7 @@ fn evidence() -> Evidence {
     }
 }
 
-/// Restores the write permission a seal dropped, so a test can tamper with published bytes.
+/// Restores write permission for tampering with published bytes.
 fn make_writable(path: &camino::Utf8Path) {
     let mut permissions = fs::metadata(path)
         .expect("a published file should stat")
@@ -233,15 +238,13 @@ fn stage_all(staging: &StagedGeneration, repository: &SaltRepository) {
 }
 
 #[test]
-fn sealed_generation_is_complete_and_verifiable() {
+fn seal_round_trip() {
     let root = GenerationRoot::new(scratch("publish")).expect("the root should open");
     let repository = repository();
 
     let staging = root.stage().expect("the staging should create");
     stage_all(&staging, &repository);
     let published = staging.seal(&repository).expect("the staging should seal");
-    // The generation is where the root says it is: the seal writes to the root's own
-    // generation path, so the directory is derived rather than stored.
     let published_path = root.generation_path(published.id());
 
     // Every manifest file is present with its staged bytes.
@@ -251,8 +254,6 @@ fn sealed_generation_is_complete_and_verifiable() {
         assert_eq!(bytes, entry.name.as_str().as_bytes());
     }
 
-    // The directory name is the SHA-256 of the metadata document, so the
-    // identity is recomputable from the published bytes alone.
     let document = fs::read(published_path.join(METADATA_FILE)).expect("the document should read");
     let mut hasher = Sha256::new();
     hasher.update(&document);
@@ -265,7 +266,7 @@ fn sealed_generation_is_complete_and_verifiable() {
 }
 
 #[test]
-fn sealed_files_refuse_rewriting() {
+fn seal_read_only() {
     let root = GenerationRoot::new(scratch("readonly")).expect("the root should open");
     let repository = repository();
 
@@ -300,7 +301,7 @@ fn sealed_files_refuse_rewriting() {
 }
 
 #[test]
-fn seal_rejects_a_manifest_the_staging_disagrees_with() {
+fn seal_manifest_mismatch() {
     let root = GenerationRoot::new(scratch("mismatch")).expect("the root should open");
     let repository = repository();
 
@@ -330,7 +331,7 @@ fn seal_rejects_a_manifest_the_staging_disagrees_with() {
 }
 
 #[test]
-fn identical_document_publishes_once() {
+fn seal_duplicate_document() {
     let root = GenerationRoot::new(scratch("identical")).expect("the root should open");
     let repository = repository();
 
@@ -347,7 +348,7 @@ fn identical_document_publishes_once() {
 }
 
 #[test]
-fn activation_flips_the_pointer_and_supports_rollback() {
+fn activate_rollback() {
     let root = GenerationRoot::new(scratch("activate")).expect("the root should open");
     assert!(
         root.current()
@@ -403,7 +404,7 @@ fn activation_flips_the_pointer_and_supports_rollback() {
 }
 
 #[test]
-fn corrupt_pointer_is_rejected() {
+fn current_corrupt_pointer() {
     let root = GenerationRoot::new(scratch("corrupt")).expect("the root should open");
     fs::write(root.path.join("current"), "not a digest").expect("the pointer should write");
 
@@ -411,7 +412,7 @@ fn corrupt_pointer_is_rejected() {
 }
 
 #[test]
-fn activated_generation_opens_verified() {
+fn open_active_generation() {
     let root = GenerationRoot::new(scratch("open")).expect("the root should open");
     let repository = repository();
 
@@ -441,7 +442,7 @@ fn activated_generation_opens_verified() {
 }
 
 #[test]
-fn open_rejects_missing_tampered_and_foreign_documents() {
+fn open_invalid_documents() {
     let root = GenerationRoot::new(scratch("open-reject")).expect("the root should open");
 
     // An unpublished generation.
@@ -481,11 +482,10 @@ fn open_rejects_missing_tampered_and_foreign_documents() {
 }
 
 #[test]
-fn open_reports_a_retired_version_before_interpreting_the_body() {
+fn open_version_precedence() {
     let root = GenerationRoot::new(scratch("open-version")).expect("the root should open");
 
-    // Serialized by this crate, so the keys arrive in the order the version check
-    // depends on.
+    // Serializing the repository preserves the field order required by version checking.
     let document = serde_json::to_string(&repository()).expect("the repository should serialize");
     assert!(document.contains(r#""version":2"#));
     assert!(document.contains(r#""reproducibility""#));
@@ -501,12 +501,11 @@ fn open_reports_a_retired_version_before_interpreting_the_body() {
     // A body that no longer satisfies the current schema.
     let broken = document.replace(r#""reproducibility""#, r#""reproducibilty""#);
 
-    // A retired version reports the version rather than the body, so the error
-    // tells the operator of a superseded generation to refit.
+    // A retired version takes precedence over an invalid body.
     let retired = broken.replace(r#""version":2"#, r#""version":1"#);
     let error = root
         .open(publish(&retired))
-        .expect_err("a retired version is rejected");
+        .expect_err("a retired version should fail");
     assert!(
         error
             .to_string()
@@ -514,11 +513,10 @@ fn open_reports_a_retired_version_before_interpreting_the_body() {
         "the version decides the diagnosis: {error}",
     );
 
-    // The same body under the accepted version fails on the body, so the
-    // assertion above rests on the order and not on a document that parses.
+    // An accepted version exposes the same body's schema error.
     let error = root
         .open(publish(&broken))
-        .expect_err("an invalid body is rejected");
+        .expect_err("an invalid body should fail");
     let message = error.to_string();
     assert!(
         !message.contains("unsupported repository version"),
@@ -527,7 +525,7 @@ fn open_reports_a_retired_version_before_interpreting_the_body() {
 }
 
 #[test]
-fn dropped_staging_leaves_nothing_behind() {
+fn staging_drop_cleanup() {
     let path = scratch("abandon");
     let root = GenerationRoot::new(&path).expect("the root should open");
 
@@ -541,6 +539,179 @@ fn dropped_staging_leaves_nothing_behind() {
         .collect();
     assert!(
         entries.is_empty(),
-        "an abandoned staging should be removed: {entries:?}"
+        "dropping an abandoned staging should leave no entries: {entries:?}"
     );
+}
+
+fn root() -> (ScratchDirectory, GenerationRoot) {
+    let path = Utf8PathBuf::from_path_buf(std::env::temp_dir())
+        .expect("the temporary directory should have a UTF-8 path")
+        .join(format!("atlas-generation-lock-{}", Uuid::now_v7()));
+    let scratch = ScratchDirectory::new(path.clone());
+    let root = GenerationRoot::new(path).expect("the generation root should open");
+    (scratch, root)
+}
+
+fn publish(root: &GenerationRoot, byte: u8) -> GenerationId {
+    let id = format!("{byte:02x}")
+        .repeat(32)
+        .parse()
+        .expect("the hexadecimal fixture should name a generation");
+    fs::create_dir_all(root.generation_path(id)).expect("the generation directory should create");
+    id
+}
+
+#[test]
+fn remove_active() {
+    let (_scratch, root) = root();
+    let id = publish(&root, 1);
+    root.activate(id).expect("the generation should activate");
+
+    let error = root
+        .remove(id)
+        .expect_err("the active generation should remain");
+    assert_matches!(error, RemoveError::Active(active) if active == id);
+    assert!(root.generation_path(id).is_dir());
+    assert_eq!(root.current().expect("the pointer should read"), Some(id));
+}
+
+#[test]
+#[expect(
+    clippy::verbose_file_reads,
+    reason = "the test reads a retained descriptor after removing its path"
+)]
+fn remove_inactive() {
+    let (_scratch, root) = root();
+    let retired = publish(&root, 1);
+    let active = publish(&root, 2);
+    root.activate(active)
+        .expect("the generation should activate");
+    let path = root.generation_path(retired).join("artifact");
+    fs::write(&path, "retained bytes").expect("the artifact should write");
+    let mut reader = File::open(path).expect("the artifact should open");
+
+    root.remove(retired)
+        .expect("the inactive generation should remove");
+
+    assert!(!root.generation_path(retired).exists());
+    assert_eq!(
+        root.current().expect("the pointer should read"),
+        Some(active)
+    );
+    let mut content = String::new();
+    reader
+        .read_to_string(&mut content)
+        .expect("the open descriptor should remain readable");
+    assert_eq!(content, "retained bytes");
+    assert_matches!(root.activate(retired), Err(ActivateError::Unpublished(id)) if id == retired);
+    assert_eq!(
+        root.current().expect("the pointer should read"),
+        Some(active)
+    );
+}
+
+#[test]
+fn remove_corrupt_pointer() {
+    let (_scratch, root) = root();
+    let id = publish(&root, 1);
+    fs::write(root.path().join("current"), "not a generation")
+        .expect("the corrupt pointer should write");
+
+    let error = root
+        .remove(id)
+        .expect_err("a corrupt pointer should prevent removal");
+
+    assert_matches!(error, RemoveError::Current(CurrentError::Corrupt(_)));
+    assert!(root.generation_path(id).is_dir());
+}
+
+#[test]
+fn remove_missing() {
+    let (_scratch, root) = root();
+    let id = publish(&root, 1);
+    root.remove(id)
+        .expect("an inactive generation should remove without a current pointer");
+
+    let error = root
+        .remove(id)
+        .expect_err("an absent directory should report its filesystem error");
+
+    assert_matches!(error, RemoveError::Io(error) if error.kind() == io::ErrorKind::NotFound);
+}
+
+#[test]
+fn lock_unavailable() {
+    let (_scratch, root) = root();
+    let id = publish(&root, 1);
+    fs::create_dir_all(root.path().join(LOCK_FILE))
+        .expect("the lock-path obstruction should create");
+
+    assert_matches!(root.activate(id), Err(ActivateError::Io(_)));
+    let error = root
+        .remove(id)
+        .expect_err("removal should require the root lock");
+    assert_matches!(error, RemoveError::Io(_));
+    assert!(root.generation_path(id).is_dir());
+    assert_eq!(
+        root.current().expect("the absent pointer should read"),
+        None
+    );
+}
+
+/// Independently opened descriptors contend across processes and release on close.
+#[test]
+#[cfg_attr(miri, ignore = "Miri cannot spawn a second test process")]
+fn lock_exclusion() {
+    const ROOT: &str = "HASH_ATLAS_LOCK_TEST_ROOT";
+    const BLOCKED: &str = "HASH_ATLAS_LOCK_TEST_BLOCKED";
+    if let Some(path) = std::env::var_os(ROOT) {
+        let file = File::options()
+            .read(true)
+            .write(true)
+            .open(std::path::Path::new(&path).join(LOCK_FILE))
+            .expect("the parent's lock file should open independently");
+        if std::env::var_os(BLOCKED).is_some() {
+            assert_matches!(file.try_lock(), Err(fs::TryLockError::WouldBlock));
+        } else {
+            file.try_lock()
+                .expect("the closed descriptor should release its lock");
+        }
+        return;
+    }
+
+    let (_scratch, root) = root();
+    let lock = root.lock().expect("the root lock should acquire");
+    let child = |blocked: bool| {
+        let mut command =
+            Command::new(std::env::current_exe().expect("the test binary should resolve"));
+        command
+            .args([
+                "--exact",
+                "file::generation::tests::lock_exclusion",
+                "--nocapture",
+            ])
+            .env(ROOT, root.path())
+            .env_remove(BLOCKED);
+        if blocked {
+            command.env(BLOCKED, "1");
+        }
+        let output = command
+            .output()
+            .expect("the lock-checking child should execute");
+        assert!(
+            output.status.success(),
+            "the child should satisfy the lock assertion: {} {}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(
+            String::from_utf8_lossy(&output.stdout).contains("1 passed"),
+            "the child should execute its assertion"
+        );
+    };
+
+    child(true);
+    drop(lock);
+    assert!(root.path().join(LOCK_FILE).is_file());
+    child(false);
 }

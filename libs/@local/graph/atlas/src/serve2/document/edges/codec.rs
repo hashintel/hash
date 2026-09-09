@@ -1,39 +1,20 @@
 use alloc::alloc::Allocator;
 
-use hashql_core::id::{Id as _, IdSlice};
+use hashql_core::id::Id as _;
 use zerocopy::IntoBytes as _;
 
-use super::{EdgeSlot, EdgesDocument, EdgesTrailer};
+use super::{EdgesDocument, EdgesTrailer};
 use crate::{
     file::generation::GenerationId,
     identity::NodeRowId,
     postgres::id::ArchivedEntityId,
     serve2::{
         codec::EncodedRowId,
-        document::codec::{CborWriter, Envelope, EnvelopeWriter, Kind, encode_details},
+        document::codec::{
+            CborWriter, ColumnWriter, Envelope, EnvelopeWriter, Kind, encode_details,
+        },
     },
 };
-
-#[expect(
-    clippy::little_endian_bytes,
-    reason = "endpoint columns use little-endian integers"
-)]
-fn write_column<I, A: Allocator>(
-    bytes: &mut Vec<u8, A>,
-    values: &IdSlice<EdgeSlot, EncodedRowId<I>>,
-) {
-    bytes.reserve(size_of_val(values.as_raw()));
-    for &value in values {
-        bytes.extend_from_slice(&value.get().to_le_bytes());
-    }
-}
-
-fn write_identities<A: Allocator>(
-    bytes: &mut Vec<u8, A>,
-    ids: &IdSlice<EdgeSlot, ArchivedEntityId>,
-) {
-    bytes.extend_from_slice(zerocopy::IntoBytes::as_bytes(ids.as_raw()));
-}
 
 /// One edges response in writable form.
 #[derive(Debug)]
@@ -70,9 +51,9 @@ impl EdgesResponse<'_> {
 
         envelope.reserve(Self::HEAD_AND_PADDING + count * Self::ROW_SIZE);
         envelope.slot(|buf| self.encode_head(buf, count as u64));
-        envelope.slot(|buf| write_column(buf, &self.document.sources));
-        envelope.slot(|buf| write_column(buf, &self.document.targets));
-        envelope.slot(|buf| write_identities(buf, &self.document.ids));
+        envelope.slot(|buf| ColumnWriter::over(buf).rows(&self.document.sources));
+        envelope.slot(|buf| ColumnWriter::over(buf).rows(&self.document.targets));
+        envelope.slot(|buf| ColumnWriter::over(buf).identities(&self.document.ids));
 
         match &self.document.trailer {
             Some(trailer) => envelope.finish_with_trailer(|buf| Self::encode_trailer(buf, trailer)),

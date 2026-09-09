@@ -23,10 +23,10 @@ use crate::{
     salt::{
         fit::prepare::identity::IdentityTable,
         lod::{key, stage::WIRE_FRAME},
-        wire::Mode,
     },
     serve2::{
         delta::{Delta, epoch::Epoch},
+        document::codec::Mode,
         membership::{OntologySelection, SelectionSlot},
         scene::Scene,
         schedule::ViewSchedule,
@@ -400,10 +400,7 @@ fn mode_delta_empty_total_full() {
         delta_document.ids.is_empty(),
         "should carry no rows this tile newly delivers"
     );
-    assert_eq!(
-        delta_document.generation,
-        fixture.world.generation().id().digest()
-    );
+    assert_eq!(delta_document.generation, fixture.world.generation().id());
     assert_eq!(delta_document.coordinate, coordinate);
     assert_eq!(delta_document.mode, Mode::Delta);
     assert_eq!(delta_document.positions.len(), delta_document.ids.len());
@@ -441,10 +438,7 @@ fn mode_delta_empty_total_full() {
         expected_positions,
         "should list each cumulative row's own position, read independently through World"
     );
-    assert_eq!(
-        total_document.generation,
-        fixture.world.generation().id().digest()
-    );
+    assert_eq!(total_document.generation, fixture.world.generation().id());
     assert_eq!(total_document.coordinate, coordinate);
     assert_eq!(total_document.mode, Mode::Total);
     assert_eq!(total_document.positions.len(), total_document.ids.len());

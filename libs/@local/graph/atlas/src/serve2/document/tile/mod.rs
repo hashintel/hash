@@ -2,22 +2,27 @@
 //!
 //! Construction gathers delivery rows and optional display payloads before serialization.
 
+mod codec;
 #[cfg(test)]
 mod tests;
 
+use alloc::alloc::Allocator;
 use core::{error::Error, fmt};
 
 use error_stack::Report;
 use hashql_core::id::{Id as _, IdVec};
 
-use super::masks::TypeMasks;
+use super::{
+    Document,
+    codec::{Envelope, Mode},
+    masks::TypeMasks,
+};
 use crate::{
     dataset::auxiliary::{Icon, Label},
+    file::generation::GenerationId,
     identity::NodeRowId,
-    integrity::Sha256Digest,
-    math::{Log2, Vec2},
+    math::{Bounds2, Log2, Vec2},
     morton::{Depth, MortonCell, MortonTile, Zoom},
-    salt::wire::{Mode, tile::GlobalHead},
     serve2::{codec::EncodedRowId, membership::OntologySelection, scene::Scene, walk::Walk},
 };
 
@@ -117,9 +122,16 @@ impl<'details> TileTrailer<'details> {
     }
 }
 
+/// Metadata of the entire post-intersection visible set.
+struct GlobalHead {
+    visible: u64,
+    bounds: Option<Bounds2>,
+    min_resolution: u64,
+}
+
 /// One tile's geometry and optional details in bucket-major delivery order.
 pub(crate) struct TileDocument<'details> {
-    generation: Sha256Digest,
+    generation: GenerationId,
     coordinate: MortonTile,
     mode: Mode,
     first_bucket: Depth,
@@ -196,7 +208,7 @@ impl<'details> TileDocument<'details> {
             TileDocumentDetailLevel::Auxiliary => Some(TileTrailer::new(count)),
         };
         let mut this = Self {
-            generation: world.generation().id().digest(),
+            generation: world.generation().id(),
             coordinate,
             mode: *mode,
             first_bucket: delivered.first_bucket,
@@ -220,5 +232,15 @@ impl<'details> TileDocument<'details> {
             }
         }
         Ok(this)
+    }
+}
+
+impl Document for TileDocument<'_> {
+    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Envelope {
+        self::codec::TileResponse {
+            variant: 0,
+            document: self,
+        }
+        .encode_into(buffer)
     }
 }
