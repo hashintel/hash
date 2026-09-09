@@ -1,10 +1,10 @@
 /**
  * One study in the shared frame, for the drawer and the full view alike: the
  * one-line title with the progress line beside it, the stats and the compute
- * badge, the steps bar; then, arranged by the frame's width, the Parameters
- * band and the surface, the chart cards (the objective at the point, the
- * objective by step, Constraints when the study declares any, Parameter
- * importance) and the steps table; and the actions in the footer.
+ * badge, the steps bar; the Parameters band across the body; then, arranged
+ * by the frame's width, the surface, the chart cards (the objective at the
+ * point, the objective by step, Constraints when the study declares any,
+ * Parameter importance) and the steps table; and the actions in the footer.
  */
 import { use, type ReactNode } from "react";
 
@@ -243,47 +243,45 @@ const RemoteStudyBody = ({
     enableOptimizationSurface && optimization.axes.length >= 2;
 
   return (
-    <FrameColumns
-      primary={
-        optimization.best || surfaceEligible ? (
-          <>
-            <BestParametersBand optimization={optimization} />
-            {surfaceEligible ? (
-              <FrameBand title="Surface" help={REMOTE_SURFACE_HELP}>
-                <OptimizationSurface
-                  key={optimization.id}
-                  optimization={optimization}
-                />
-              </FrameBand>
-            ) : null}
-          </>
-        ) : undefined
-      }
-      secondary={
-        <ChartCardGrid
-          minColumnWidth={CHART_CARD_MIN_WIDTH}
-          rowHeight={STUDY_CARD_HEIGHT}
-        >
-          <ObjectiveHistoryCard
-            optimization={optimization}
-            plotHeight={OBJECTIVE_PLOT_HEIGHT}
-          />
-        </ChartCardGrid>
-      }
-      after={
-        optimization.trials.length > 0 ? (
-          <StudySteps optimization={optimization} bestTrial={null} />
-        ) : undefined
-      }
-    />
+    <>
+      <BestParametersBand optimization={optimization} />
+      <FrameColumns
+        primary={
+          surfaceEligible ? (
+            <FrameBand title="Surface" help={REMOTE_SURFACE_HELP}>
+              <OptimizationSurface
+                key={optimization.id}
+                optimization={optimization}
+              />
+            </FrameBand>
+          ) : undefined
+        }
+        secondary={
+          <ChartCardGrid
+            minColumnWidth={CHART_CARD_MIN_WIDTH}
+            rowHeight={STUDY_CARD_HEIGHT}
+          >
+            <ObjectiveHistoryCard
+              optimization={optimization}
+              plotHeight={OBJECTIVE_PLOT_HEIGHT}
+            />
+          </ChartCardGrid>
+        }
+        after={
+          optimization.trials.length > 0 ? (
+            <StudySteps optimization={optimization} bestTrial={null} />
+          ) : undefined
+        }
+      />
+    </>
   );
 };
 
 /**
  * A study evaluated in this browser: the parameter controls with their state
- * line and the surface on one side, the chart cards on the other, the steps
- * beneath. The navigation drives the surface and the objective's timeline,
- * following each step while the study runs.
+ * line across the body, then the surface on one side, the chart cards on the
+ * other, the steps beneath. The navigation drives the surface and the
+ * objective's timeline, following each step while the study runs.
  */
 const ConnectedStudyBody = ({
   optimization,
@@ -301,16 +299,16 @@ const ConnectedStudyBody = ({
     optimization.status === "paused" ? "paused" : "default";
 
   return (
-    <FrameColumns
-      primary={
-        <>
-          <NavigatorBand
-            optimization={optimization}
-            connected={connected}
-            running={phase === "live"}
-            onNavigationChange={onNavigationChange}
-          />
-          {optimization.axes.length >= 2 ? (
+    <>
+      <NavigatorBand
+        optimization={optimization}
+        connected={connected}
+        running={phase === "live"}
+        onNavigationChange={onNavigationChange}
+      />
+      <FrameColumns
+        primary={
+          optimization.axes.length >= 2 ? (
             <NavigatedOptimizationSurface
               key={`surface-${optimization.id}`}
               optimization={optimization}
@@ -319,52 +317,52 @@ const ConnectedStudyBody = ({
               actions={<HelpTooltip content={SURFACE_HELP} align="center" />}
               tone={tone}
             />
-          ) : null}
-        </>
-      }
-      secondary={
-        <ChartCardGrid
-          minColumnWidth={CHART_CARD_MIN_WIDTH}
-          rowHeight={STUDY_CARD_HEIGHT}
-        >
-          {/* Keyed so faded previous pictures never leak from one study into
-              another when the surface swaps records. */}
-          <OptimizationMetrics
-            key={`metrics-${optimization.id}`}
-            optimization={optimization}
-            selection={connected.selection}
-            title={objectiveAtPointTitle(phase, connected.selection)}
-            tone={tone}
-          />
-          <ObjectiveHistoryCard
-            optimization={optimization}
-            plotHeight={OBJECTIVE_PLOT_HEIGHT}
-            tone={tone}
-          />
-          {(optimization.input.constraints ?? []).length > 0 ? (
-            <ConstraintSummaryCard
+          ) : undefined
+        }
+        secondary={
+          <ChartCardGrid
+            minColumnWidth={CHART_CARD_MIN_WIDTH}
+            rowHeight={STUDY_CARD_HEIGHT}
+          >
+            {/* Keyed so faded previous pictures never leak from one study into
+                another when the surface swaps records. */}
+            <OptimizationMetrics
+              key={`metrics-${optimization.id}`}
               optimization={optimization}
               selection={connected.selection}
+              title={objectiveAtPointTitle(phase, connected.selection)}
+              tone={tone}
+            />
+            <ObjectiveHistoryCard
+              optimization={optimization}
               plotHeight={OBJECTIVE_PLOT_HEIGHT}
               tone={tone}
             />
-          ) : null}
-          {/* Only a study evaluated here receives importances; a remote study
-              has no panel rather than an empty one. */}
-          <ParameterImportancePanel
+            {(optimization.input.constraints ?? []).length > 0 ? (
+              <ConstraintSummaryCard
+                optimization={optimization}
+                selection={connected.selection}
+                plotHeight={OBJECTIVE_PLOT_HEIGHT}
+                tone={tone}
+              />
+            ) : null}
+            {/* Only a study evaluated here receives importances; a remote study
+                has no panel rather than an empty one. */}
+            <ParameterImportancePanel
+              optimization={optimization}
+              plotHeight={OBJECTIVE_PLOT_HEIGHT}
+              tone={tone === "paused" ? tone : undefined}
+            />
+          </ChartCardGrid>
+        }
+        after={
+          <StudySteps
             optimization={optimization}
-            plotHeight={OBJECTIVE_PLOT_HEIGHT}
-            tone={tone === "paused" ? tone : undefined}
+            bestTrial={optimization.best?.trial ?? null}
           />
-        </ChartCardGrid>
-      }
-      after={
-        <StudySteps
-          optimization={optimization}
-          bestTrial={optimization.best?.trial ?? null}
-        />
-      }
-    />
+        }
+      />
+    </>
   );
 };
 

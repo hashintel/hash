@@ -1,10 +1,11 @@
 /**
- * The frame body's arrangement. At the extra-large drawer's width and above,
- * two columns: the parameters and the surface on the left, the metric cards
- * on the right, the right column never narrower than two cards. In a
- * narrower drawer, one column with the metric cards first, then the
- * parameters, then the surface, so the thing being watched is at the top
- * either way. Whatever follows (a steps table) spans the width beneath.
+ * The frame body's arrangement under the Parameters band. At the extra-large
+ * drawer's width and above, two columns: the surface on the left, the metric
+ * cards on the right, the right column never narrower than two cards. In a
+ * narrower drawer, one column with the metric cards first, then the surface,
+ * so the thing being watched is at the top either way. Without a surface the
+ * cards take the whole width. Whatever follows (a steps table) spans the
+ * width beneath.
  */
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -36,8 +37,10 @@ const columnsStyle = css({
   gridTemplateColumns: "minmax(0, 1fr)",
   gridTemplateAreas: '"secondary" "primary" "after"',
   "@container drawer-frame-body (min-width: 960px)": {
-    gridTemplateColumns: "minmax(0, 3fr) minmax(652px, 5fr)",
-    gridTemplateAreas: '"primary secondary" "after after"',
+    "&[data-primary=true]": {
+      gridTemplateColumns: "minmax(0, 3fr) minmax(652px, 5fr)",
+      gridTemplateAreas: '"primary secondary" "after after"',
+    },
   },
 });
 
@@ -53,14 +56,18 @@ export const FrameColumns = ({
   secondary,
   after,
 }: {
-  /** The parameters band, then the surface card. */
+  /** The surface card; absent, the secondary column takes the width. */
   primary?: ReactNode;
   /** The metric cards grid. */
   secondary?: ReactNode;
   /** Full width beneath both columns: a steps table. */
   after?: ReactNode;
 }) => (
-  <div className={columnsStyle} data-frame-columns>
+  <div
+    className={columnsStyle}
+    data-frame-columns
+    data-primary={primary !== undefined}
+  >
     {primary === undefined ? null : (
       <div className={areaStyle} style={{ gridArea: "primary" }}>
         {primary}

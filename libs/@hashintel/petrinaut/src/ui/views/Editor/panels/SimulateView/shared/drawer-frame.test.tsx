@@ -12,11 +12,14 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { CHART_CARD_MIN_WIDTH } from "./chart-card";
 import {
+  ComputeBatchesChip,
   DrawerFrame,
   FRAME_HEADER_CONDENSED_HEIGHT,
   FRAME_HEADER_HEIGHT,
   FRAME_SECONDARY_MIN_WIDTH,
   FRAME_TWO_COLUMN_MIN_WIDTH,
+  FrameBand,
+  FrameColumns,
   FrameStat,
   FrameStatusPill,
 } from "./drawer-frame";
@@ -48,10 +51,12 @@ const frame = ({
     headline={<span>Step 3 of 30</span>}
     stats={
       <>
-        <FrameStatusPill tone="active" minChars={14}>
-          Running
-        </FrameStatusPill>
-        <FrameStat label="Runs" minChars={12}>
+        <FrameStat label="Status" widest="" align="start">
+          <FrameStatusPill tone="active" widest="Initializing">
+            Running
+          </FrameStatusPill>
+        </FrameStat>
+        <FrameStat label="Runs" widest="1,000 complete">
           100 complete
         </FrameStat>
         {stats}
@@ -70,7 +75,7 @@ const renderFrame = (note: { content: string; tone: "error" } | null = null) =>
   render(frame({ note }));
 
 describe("DrawerFrame", () => {
-  it("renders the title, the stats with their labels, the badge, the bar and the footer at rest", () => {
+  it("renders the title, the stat columns sized by their widest value, the badge column, the bar and the footer at rest", () => {
     renderFrame();
 
     expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
@@ -81,13 +86,21 @@ describe("DrawerFrame", () => {
       ),
     ).toBeTruthy();
     expect(screen.getByText("Step 3 of 30")).toBeTruthy();
-    expect(screen.getByText("Runs").nextElementSibling?.textContent).toBe(
+    const runs = screen.getByText("Runs").nextElementSibling!;
+    expect(runs.querySelector("[data-frame-stat-value]")?.textContent).toBe(
       "100 complete",
     );
-    expect(screen.getByText("Runs").nextElementSibling).toHaveProperty(
-      "style.minWidth",
-      "12ch",
+    expect(runs.querySelector("[data-frame-stat-sizer]")?.textContent).toBe(
+      "1,000 complete",
     );
+    // The stats are labelled columns; the badge is the last of them.
+    const columns = [
+      ...document.querySelectorAll("[data-frame-stats] > [data-frame-stat]"),
+    ];
+    expect(
+      columns.map((column) => column.querySelector("span")?.textContent),
+    ).toEqual(["Status", "Runs", "Compute"]);
+    expect(columns.at(-1)?.getAttribute("data-trailing")).toBe("true");
     expect(screen.getByText("CPU")).toBeTruthy();
     expect(
       document.querySelector<HTMLElement>("[data-frame-progress] > div")?.style
@@ -107,8 +120,10 @@ describe("DrawerFrame", () => {
     expect(compact.textContent).toContain("Running");
     expect(compact.textContent).toContain("CPU");
     expect(
-      compact.querySelector("[data-frame-stat]")?.getAttribute("title"),
-    ).toBe("Runs");
+      [...compact.querySelectorAll("[data-frame-stat]")].map((stat) =>
+        stat.getAttribute("title"),
+      ),
+    ).toEqual(["Status", "Runs", "Compute"]);
     expect(
       document.querySelector("[data-frame-stats]")?.getAttribute("aria-hidden"),
     ).toBe("true");
@@ -171,5 +186,71 @@ describe("DrawerFrame", () => {
     expect(row.style.height).toBe("20px");
     expect(row.dataset.tone).toBe("error");
     expect(row.textContent).toBe("metric__profit: Unexpected token");
+  });
+
+  it("draws the computing chip at zero, disabled, with room for a three-digit count", () => {
+    render(<ComputeBatchesChip batches={[]} />);
+
+    const chip = screen.getByRole("button", { name: "0 computing" });
+    expect(chip).toHaveProperty("disabled", true);
+    expect(
+      chip.closest("[data-compute-batches]")?.getAttribute("data-idle"),
+    ).toBe("true");
+    expect(chip.textContent).toContain("000 computing");
+  });
+
+  it("folds a collapsible band's controls away without unmounting them", () => {
+    render(
+      <FrameBand title="Parameters" collapsible>
+        <input aria-label="population" defaultValue="42" />
+      </FrameBand>,
+    );
+
+    const toggle = screen.getByRole("button", { name: "Collapse Parameters" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(toggle);
+
+    const content = document.querySelector<HTMLElement>(
+      "[data-frame-band-content]",
+    )!;
+    expect(
+      document
+        .querySelector("[data-frame-band]")
+        ?.getAttribute("data-collapsed"),
+    ).toBe("true");
+    expect(content.getAttribute("aria-hidden")).toBe("true");
+    expect(content.hasAttribute("inert")).toBe(true);
+    expect(content.querySelector("input")?.value).toBe("42");
+    expect(
+      screen
+        .getByRole("button", { name: "Expand Parameters" })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand Parameters" }));
+    expect(content.hasAttribute("inert")).toBe(false);
+    expect(screen.getByRole("textbox", { name: "population" })).toBeTruthy();
+  });
+
+  it("gives the secondary column the whole width when there is no primary", () => {
+    const view = render(<FrameColumns secondary={<div>cards</div>} />);
+    expect(
+      view.container
+        .querySelector("[data-frame-columns]")
+        ?.getAttribute("data-primary"),
+    ).toBe("false");
+    view.unmount();
+
+    render(
+      <FrameColumns
+        primary={<div>surface</div>}
+        secondary={<div>cards</div>}
+      />,
+    );
+    expect(
+      document
+        .querySelector("[data-frame-columns]")
+        ?.getAttribute("data-primary"),
+    ).toBe("true");
   });
 });

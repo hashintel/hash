@@ -4,11 +4,12 @@
  *
  * The header sits outside the body's scroll container, so condensing it
  * changes the body's available height and never its scroll offset. The body
- * is a size container; `FrameColumns` arranges its content by the body's
- * width. A `note` row is always mounted, empty when there is nothing to say,
- * so an error or a resume note appearing moves nothing. In a drawer the body
- * takes the opening focus, so wheel and arrow keys scroll it at once and no
- * control in the header holds the header open.
+ * is a size container: a `note` row always mounted, empty when there is
+ * nothing to say, so an error or a resume note appearing moves nothing; then
+ * the adopter's parameter band across the width, then `FrameColumns`, which
+ * arranges the surface and the cards by the body's width. In a drawer the
+ * body takes the opening focus, so wheel and arrow keys scroll it at once and
+ * no control in the header holds the header open.
  */
 import { type ReactNode, use, useRef } from "react";
 
@@ -16,6 +17,7 @@ import { Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { FrameAnimateContext } from "./drawer-frame/frame-animate-context";
 import { FrameHeader } from "./drawer-frame/frame-header";
 import { useBodyScrolled } from "./drawer-frame/use-body-scrolled";
 import { useHeaderEngaged } from "./drawer-frame/use-header-engaged";
@@ -110,6 +112,7 @@ const drawerBodyStyle = css({
 const bodyStyle = css({
   display: "flex",
   flexDirection: "column",
+  gap: "3",
   flex: "[1]",
   minHeight: "[0]",
   minWidth: "[0]",
@@ -129,7 +132,6 @@ const noteRowStyle = css({
   alignItems: "center",
   flexShrink: "0",
   minWidth: "[0]",
-  marginBottom: "1",
   fontSize: "xs",
   lineHeight: "[16px]",
   color: "neutral.s80",
@@ -146,9 +148,9 @@ export type DrawerFrameProps = {
   leading?: ReactNode;
   /** The title line's right side while at rest: the study's progress line. */
   headline?: ReactNode;
-  /** The stats line: `FrameStat`s, the status pill, the computing chip. */
+  /** The stat columns: `FrameStat`s holding the status pill, the counts, the computing chip. */
   stats: ReactNode;
-  /** Pinned to the stats line's right: the compute badge. */
+  /** The strip's last column, pinned right: the compute badge. */
   badge?: ReactNode;
   /** The bar along the header's bottom edge, 0 to 100. */
   progress: number;
@@ -179,6 +181,7 @@ export const DrawerFrame = ({
   const { engaged, engagement, settleFocus } = useHeaderEngaged();
   const bodyRef = useRef<HTMLDivElement>(null);
   const condensed = scrolled && !engaged;
+  const animate = showAnimations && !reducedMotion;
 
   const header = (
     <FrameHeader
@@ -189,7 +192,7 @@ export const DrawerFrame = ({
       badge={badge}
       progress={progress}
       condensed={condensed}
-      animate={showAnimations && !reducedMotion}
+      animate={animate}
       closeGutter={drawer === undefined ? 0 : DRAWER_CLOSE_GUTTER}
       engagement={engagement}
     />
@@ -215,7 +218,7 @@ export const DrawerFrame = ({
       >
         {note?.content}
       </div>
-      {children}
+      <FrameAnimateContext value={animate}>{children}</FrameAnimateContext>
     </div>
   );
 
