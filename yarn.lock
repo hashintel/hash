@@ -430,7 +430,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apps/brunch-agent@workspace:*, @apps/brunch-agent@workspace:apps/brunch-agent":
+"@apps/brunch-agent@workspace:apps/brunch-agent":
   version: 0.0.0-use.local
   resolution: "@apps/brunch-agent@workspace:apps/brunch-agent"
   dependencies:
@@ -7526,7 +7526,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/brunch-agent-plugin-dafny@workspace:*, @hashintel/brunch-agent-plugin-dafny@workspace:libs/@hashintel/brunch-agent/packages/plugin-dafny":
+"@hashintel/brunch-agent-plugin-dafny@workspace:libs/@hashintel/brunch-agent/packages/plugin-dafny":
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-plugin-dafny@workspace:libs/@hashintel/brunch-agent/packages/plugin-dafny"
   dependencies:
@@ -7541,7 +7541,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/brunch-agent-plugin-gherkin@workspace:*, @hashintel/brunch-agent-plugin-gherkin@workspace:libs/@hashintel/brunch-agent/packages/plugin-gherkin":
+"@hashintel/brunch-agent-plugin-gherkin@workspace:libs/@hashintel/brunch-agent/packages/plugin-gherkin":
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-plugin-gherkin@workspace:libs/@hashintel/brunch-agent/packages/plugin-gherkin"
   dependencies:
@@ -17777,25 +17777,6 @@ __metadata:
   checksum: 10c0/75fea130a52bf320d35d46ed54f3eec77e71a56911b8b69a3fe29497b0b9947b2dc80d30f04054ad4ce7f577856ae3e5397ea7dff0ef14944d3909784c7a93fe
   languageName: node
   linkType: hard
-
-"@tests/brunch-agent-architecture@workspace:tests/brunch-agent-architecture":
-  version: 0.0.0-use.local
-  resolution: "@tests/brunch-agent-architecture@workspace:tests/brunch-agent-architecture"
-  dependencies:
-    "@apps/brunch-agent": "workspace:*"
-    "@hashintel/brunch-agent": "workspace:*"
-    "@hashintel/brunch-agent-binding-flue": "workspace:*"
-    "@hashintel/brunch-agent-plugin-dafny": "workspace:*"
-    "@hashintel/brunch-agent-plugin-gherkin": "workspace:*"
-    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*"
-    "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
-    "@types/node": "npm:22.18.13"
-    "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
-    oxlint: "npm:1.63.0"
-    oxlint-tsgolint: "npm:0.22.1"
-    vitest: "npm:4.1.10"
-  languageName: unknown
-  linkType: soft
 
 "@tests/hash-backend-integration@workspace:tests/hash-backend-integration":
   version: 0.0.0-use.local

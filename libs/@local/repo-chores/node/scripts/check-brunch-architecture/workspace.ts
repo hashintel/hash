@@ -11,17 +11,18 @@
  *   skipped into a vacuous pass.
  */
 
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import nodePath from "node:path";
 
-/** Resolved through `fileURLToPath` — a raw `URL.pathname` is percent-encoded. */
-export const HASH_ROOT = fileURLToPath(
-  new URL("../../..", import.meta.url),
-).replace(/[/\\]$/, "");
-export const CONTEXT_ROOT = join(HASH_ROOT, "libs/@hashintel/brunch-agent");
-const PACKAGES_ROOT = join(CONTEXT_ROOT, "packages");
-const APP_ROOT = join(HASH_ROOT, "apps/brunch-agent");
+import { monorepoRootDirPath } from "../shared/monorepo";
+
+export const HASH_ROOT = monorepoRootDirPath;
+export const CONTEXT_ROOT = nodePath.join(
+  HASH_ROOT,
+  "libs/@hashintel/brunch-agent",
+);
+const PACKAGES_ROOT = nodePath.join(CONTEXT_ROOT, "packages");
+const APP_ROOT = nodePath.join(HASH_ROOT, "apps/brunch-agent");
 
 export interface WorkspacePackage {
   /** Package name from its manifest, e.g. `@hashintel/brunch-agent-plugin-gherkin`. */
@@ -46,16 +47,16 @@ export interface PackageManifest {
 }
 
 function directoriesIn(parent: string): string[] {
-  return readdirSync(parent).filter((entry) =>
-    statSync(join(parent, entry)).isDirectory(),
-  );
+  return readdirSync(parent, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
 }
 
 export function workspacePackages(): WorkspacePackage[] {
   const packagePaths = directoriesIn(PACKAGES_ROOT).map((dir) => ({
     dir,
     kind: "package" as const,
-    path: join(PACKAGES_ROOT, dir),
+    path: nodePath.join(PACKAGES_ROOT, dir),
   }));
   const workspacePaths = [
     ...packagePaths,
@@ -63,10 +64,10 @@ export function workspacePackages(): WorkspacePackage[] {
   ];
 
   return workspacePaths.map(({ dir, kind, path }) => {
-    const manifestPath = join(path, "package.json");
+    const manifestPath = nodePath.join(path, "package.json");
     if (!existsSync(manifestPath)) {
       throw new Error(
-        `${relative(HASH_ROOT, path)} has no package.json — every Brunch workspace needs one.`,
+        `${nodePath.relative(HASH_ROOT, path)} has no package.json — every Brunch workspace needs one.`,
       );
     }
     const manifest = JSON.parse(
@@ -76,7 +77,7 @@ export function workspacePackages(): WorkspacePackage[] {
       name: manifest.name,
       dir,
       path,
-      relPath: relative(HASH_ROOT, path).replaceAll("\\", "/"),
+      relPath: nodePath.relative(HASH_ROOT, path).replaceAll("\\", "/"),
       kind,
       manifest,
     };
@@ -112,18 +113,23 @@ export function filesIn(
   dir: string,
   skip: readonly string[] = SKIP_DIRECTORIES,
 ): SourceFile[] {
-  if (!existsSync(dir)) return [];
+  if (!existsSync(dir)) {
+    return [];
+  }
   const skipped = new Set(skip);
   const found: SourceFile[] = [];
   const walk = (current: string): void => {
-    for (const entry of readdirSync(current)) {
-      if (skipped.has(entry)) continue;
-      const path = join(current, entry);
-      if (statSync(path).isDirectory()) walk(path);
-      else if (SOURCE_EXTENSIONS.test(entry)) {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      if (skipped.has(entry.name)) {
+        continue;
+      }
+      const path = nodePath.join(current, entry.name);
+      if (entry.isDirectory()) {
+        walk(path);
+      } else if (SOURCE_EXTENSIONS.test(entry.name)) {
         found.push({
           path,
-          relPath: relative(HASH_ROOT, path).replaceAll("\\", "/"),
+          relPath: nodePath.relative(HASH_ROOT, path).replaceAll("\\", "/"),
           text: readFileSync(path, "utf8"),
         });
       }
@@ -149,7 +155,7 @@ function partitionedFiles(pkg: WorkspacePackage): {
   const source: SourceFile[] = [];
   const test: SourceFile[] = [];
   for (const file of filesIn(pkg.path)) {
-    const segments = relative(pkg.path, file.path).split(/[/\\]/);
+    const segments = nodePath.relative(pkg.path, file.path).split(/[/\\]/);
     (segments.some((segment) => TEST_DIRECTORIES.has(segment))
       ? test
       : source
@@ -201,7 +207,9 @@ export function importedModules(file: SourceFile): string[] {
   ];
   for (const pattern of patterns) {
     for (const match of file.text.matchAll(pattern)) {
-      if (match[1]) specifiers.add(match[1]);
+      if (match[1]) {
+        specifiers.add(match[1]);
+      }
     }
   }
   return [...specifiers];

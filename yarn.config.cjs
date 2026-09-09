@@ -39,8 +39,6 @@ const ignoredWorkspaces = [];
 const allowedGitDependencies = [];
 
 const brunchAgentCore = "@hashintel/brunch-agent";
-const brunchAgentApp = "@apps/brunch-agent";
-const brunchArchitectureChecker = "@tests/brunch-agent-architecture";
 const brunchAgentTransportPrefix = `${brunchAgentCore}-transport-`;
 const brunchSubstrateScopes = ["@earendil-works/", "@flue/"];
 
@@ -348,32 +346,6 @@ function enforceBrunchTransportBoundary({ Yarn }) {
   }
 }
 
-/**
- * Keeps every governed Brunch workspace upstream of the architecture checker.
- *
- * This constraint runs against the complete repository graph, so adding a new
- * Brunch workspace cannot bypass the checker by being absent from its prune.
- *
- * @param {Context} context - The Yarn constraint context.
- */
-function enforceBrunchArchitectureCheckerCoverage({ Yarn }) {
-  const checker = Yarn.workspace({ ident: brunchArchitectureChecker });
-
-  if (checker === null) {
-    throw new Error(`missing workspace ${brunchArchitectureChecker}`);
-  }
-
-  for (const workspace of Yarn.workspaces()) {
-    if (
-      workspace.ident === brunchAgentApp ||
-      workspace.ident === brunchAgentCore ||
-      workspace.ident?.startsWith(`${brunchAgentCore}-`)
-    ) {
-      checker.set(`devDependencies.${workspace.ident}`, "workspace:*");
-    }
-  }
-}
-
 module.exports = defineConfig({
   async constraints(context) {
     enforceConsistentDependenciesAcrossTheProject(context);
@@ -382,6 +354,5 @@ module.exports = defineConfig({
     enforceDevDependenciesAreProperlyDeclared(context);
     enforceNoInstallScripts(context);
     enforceBrunchTransportBoundary(context);
-    enforceBrunchArchitectureCheckerCoverage(context);
   },
 });

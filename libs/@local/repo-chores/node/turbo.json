@@ -1,6 +1,17 @@
 {
   "extends": ["//"],
   "tasks": {
+    "lint:brunch-architecture": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/brunch-agent/package.json",
+        "$TURBO_ROOT$/apps/brunch-agent/**/*.{ts,tsx,mts,mjs,js,jsx}",
+        "!$TURBO_ROOT$/apps/brunch-agent/{dist,node_modules,.flue,.turbo}/**",
+        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/packages/*/package.json",
+        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/packages/**/*.{ts,tsx,mts,mjs,js,jsx}",
+        "!$TURBO_ROOT$/libs/@hashintel/brunch-agent/packages/**/{dist,node_modules,.flue,.turbo}/**"
+      ]
+    },
     "test:unit": {
       "dependsOn": ["^build"]
     }
