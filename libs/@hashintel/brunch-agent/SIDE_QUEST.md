@@ -2,9 +2,7 @@
 
 ## Status
 
-Active. Owner-authorized documentation remediation inside Mission 7. This file
-is not a second mission and does not change Step A product work, teaching, or
-oracles.
+Suspended while the owner-authorized Postgres fixture-delivery side quest in [`MISSION.md`](MISSION.md#current-bounded-side-quest--postgres-fixture-delivery) executes. This remediation is not completed and grants no concurrent work. Its remaining guidance obligations are retained below; resume only after an explicit priority decision.
 
 ## Relationship to the live mission
 
