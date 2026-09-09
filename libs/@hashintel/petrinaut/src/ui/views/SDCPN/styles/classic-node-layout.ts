@@ -5,7 +5,9 @@
  * The rows are always in the layout, so a name sits at the same height on
  * every node and whatever a row holds -- the dynamics or lambda mark above,
  * a token count or the firing bolt below -- appears over or under the name
- * rather than pushing it aside.
+ * rather than pushing it aside. Each node sets its own row height and gap:
+ * a flat transition has less room to give them than a circle, and two
+ * classes setting one property would leave the winner to Panda's ordering.
  */
 
 import { css } from "@hashintel/ds-helpers/css";
@@ -34,13 +36,11 @@ export const classicNodeBoxStyle = css({
   flexDirection: "column",
   justifyContent: "center",
   alignItems: "center",
-  gap: "[4px]",
   fontSize: "[15px]",
   textAlign: "center",
 });
 
 export const classicNodeRowStyle = css({
-  height: "[18px]",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",

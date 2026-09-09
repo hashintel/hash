@@ -31,6 +31,11 @@ const placeBoxStyle = css({
   borderRadius: "[50%]",
   // Wider than the transition's, to keep the name clear of the curve.
   padding: "[8px 20px]",
+  gap: "[4px]",
+});
+
+const placeRowStyle = css({
+  height: "[18px]",
 });
 
 const dynamicsIconStyle = css({
@@ -101,7 +106,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
           } as React.CSSProperties
         }
       >
-        <div className={classicNodeRowStyle}>
+        <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
           {data.dynamicsEnabled ? (
             <div className={dynamicsIconStyle}>
               <Icon name="function" size="sm" />
@@ -109,7 +114,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
           ) : null}
         </div>
         <div className={classicNodeLabelStyle}>{label}</div>
-        <div className={classicNodeRowStyle}>
+        <div className={`${classicNodeRowStyle} ${placeRowStyle}`}>
           {tokenCount === null ? null : (
             <div className={tokenCountBadgeStyle}>{tokenCount}</div>
           )}

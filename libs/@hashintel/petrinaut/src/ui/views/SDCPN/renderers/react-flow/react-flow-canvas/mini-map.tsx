@@ -21,8 +21,8 @@ const miniMapClassName = css({
 });
 
 const SHAPE_SIZE = 90;
-/** Transitions are drawn 2:1, the ratio the canvas gives them. */
-const TRANSITION_WIDTH_RATIO = 2;
+/** Transitions are drawn 3:1, the ratio the canvas gives them. */
+const TRANSITION_WIDTH_RATIO = 3;
 const DEFAULT_TRANSITION_FILL = "#6b7280";
 const DEFAULT_COMPONENT_FILL = "#0f766e";
 const SELECTED_COLOR = "#3bb9f6";

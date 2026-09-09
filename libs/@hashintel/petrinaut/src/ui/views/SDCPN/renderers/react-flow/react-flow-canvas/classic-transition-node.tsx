@@ -28,7 +28,12 @@ const containerStyle = css({
 });
 
 const transitionBoxStyle = css({
-  padding: "[8px 12px]",
+  padding: "[6px 12px]",
+  gap: "[3px]",
+});
+
+const transitionRowStyle = css({
+  height: "[14px]",
 });
 
 const stochasticIconStyle = css({
@@ -76,7 +81,7 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
         ref={boxRef}
         className={`${nodeSurfaceStyle({ selection: selectionVariant })} ${transitionSurfaceStyle} ${classicNodeBoxStyle} ${transitionBoxStyle}`}
       >
-        <div className={classicNodeRowStyle}>
+        <div className={`${classicNodeRowStyle} ${transitionRowStyle}`}>
           {data.lambdaType === "stochastic" ? (
             <div className={stochasticIconStyle}>
               <Icon name="lambda" size="sm" />
@@ -84,7 +89,7 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
           ) : null}
         </div>
         <div className={classicNodeLabelStyle}>{label}</div>
-        <div className={classicNodeRowStyle}>
+        <div className={`${classicNodeRowStyle} ${transitionRowStyle}`}>
           <div ref={boltRef} className={firingIndicatorStyle}>
             <Icon name="lightning" size="sm" />
           </div>
