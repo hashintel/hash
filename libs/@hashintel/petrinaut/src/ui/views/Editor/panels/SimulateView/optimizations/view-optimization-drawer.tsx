@@ -19,12 +19,12 @@ import {
 } from "./optimization-surface";
 import {
   ContinueControl,
+  NavigatorBand,
+  OptimizationMetrics,
   remainingOptimizationSteps,
-} from "./view-optimization-drawer/continue-control";
-import { NavigatorBand } from "./view-optimization-drawer/navigator-band";
-import { OptimizationMetrics } from "./view-optimization-drawer/optimization-metrics";
-import { StepsTable } from "./view-optimization-drawer/steps-table";
-import { StudySummaryStrip } from "./view-optimization-drawer/study-summary-strip";
+  StepsTable,
+  StudySummaryStrip,
+} from "./study-view";
 
 // The drawer body is a column: the summary, the navigator and the surface
 // hold still at the top, and one region below them scrolls.

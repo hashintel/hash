@@ -29,7 +29,7 @@ study keeps its sampler and can be continued. The strip appends
 `view-optimization-drawer.tsx` branches once, on `record.connected`: a
 `ConnectedStudyState` renders `ConnectedStudySections`, `null` renders
 `RemoteStudySections`. Both open with `StudySummaryStrip`
-(`view-optimization-drawer/study-summary-strip.tsx`): the status with its
+(`study-view/study-summary-strip.tsx`): the status with its
 dot, **Steps** as `describeStepProgress` (`4 / 30`, then `· 3 runs each` and
 `· 2 at once` when those are above 1), and **Best** with the best step's
 parameters in a tooltip (`formatParameters`). Beneath it `ComputeActivity`
@@ -50,7 +50,7 @@ section once trials exist.
 The connected sections are laid out so the strip, the controls and both plots
 stay in view while the study streams:
 
-- `NavigatorBand` (`view-optimization-drawer/navigator-band.tsx`): the
+- `NavigatorBand` (`study-view/navigator-band.tsx`): the
   **Parameters** title with its help tooltip, `OptimizationNavigatorStatus`,
   the state line from `describeSelection` (`Following step 4`,
   `12 of 25 runs — refining`, `Could not compute: …`, or the refinement note)
