@@ -38,6 +38,7 @@ export type {
 export {
   defaultPetrinautNavigationHistoryPolicy,
   defaultPetrinautNavigationState,
+  openPetrinautOptimizationFullView,
   openPetrinautSimulationResource,
   openPetrinautSubnet,
   PetrinautNavigationProvider,
@@ -55,6 +56,7 @@ export type {
   PetrinautNavigationState,
   PetrinautNavigationUpdate,
   PetrinautNavigationUpdater,
+  PetrinautSimulatePresentation,
   PetrinautSimulateResource,
 } from "./navigation";
 // The vocabularies two navigation fields are drawn from. A host encoding the
