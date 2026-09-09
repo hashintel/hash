@@ -14,13 +14,13 @@ import {
   TokenTypeIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
-import { DifferentialEquationsSectionHeaderAction } from "./differential-equations-list";
+import { AddDifferentialEquationAction } from "./entities-tree/add-differential-equation-action";
+import { AddParameterAction } from "./entities-tree/add-parameter-action";
+import { AddTypeAction } from "./entities-tree/add-type-action";
 import {
   RowMenu,
   createFilterableListSubView,
 } from "./filterable-list-sub-view";
-import { ParametersHeaderAction } from "./parameters-list";
-import { TypesSectionHeaderAction } from "./types-list";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
@@ -133,7 +133,7 @@ function useEntityTreeItems(): EntityTreeItem[] {
             id: "group-types",
             name: "Token Types",
             emptyGroupMessage: "No token types",
-            renderGroupAction: TypesSectionHeaderAction,
+            renderGroupAction: AddTypeAction,
             children: types.map((t) => ({
               id: t.id,
               name: t.name,
@@ -150,7 +150,7 @@ function useEntityTreeItems(): EntityTreeItem[] {
             id: "group-equations",
             name: "Differential Equations",
             emptyGroupMessage: "No differential equations",
-            renderGroupAction: DifferentialEquationsSectionHeaderAction,
+            renderGroupAction: AddDifferentialEquationAction,
             children: differentialEquations.map((eq) => ({
               id: eq.id,
               name: eq.name,
@@ -169,7 +169,7 @@ function useEntityTreeItems(): EntityTreeItem[] {
             id: "group-parameters",
             name: "Parameters",
             emptyGroupMessage: "No parameters",
-            renderGroupAction: ParametersHeaderAction,
+            renderGroupAction: AddParameterAction,
             children: parameters.map((p) => ({
               id: p.id,
               name: p.name,

@@ -139,18 +139,20 @@ Whether a node must be fully inside or only partially inside the selection box i
 
 ## Left sidebar
 
-The left sidebar has four tabs for creating and managing entities:
+The left sidebar holds **Entities**, one tree of everything in the net, in these groups:
 
-| Tab                        | Contents                                                             |
+| Group                      | Contents                                                             |
 | -------------------------- | -------------------------------------------------------------------- |
 | **Nodes**                  | All places and transitions. Click to select and open properties.     |
-| **Types**                  | Token types (colours). Click **+** to create a new type.             |
+| **Token Types**            | Token types (colours). Click **+** to create a new type.             |
 | **Differential Equations** | ODE definitions for continuous dynamics. Click **+** to create.      |
 | **Parameters**             | Global parameters available in all user code. Click **+** to create. |
 
+A group appears only when the net's [extensions](petri-net-extensions.md) allow it: Token Types needs colours, Differential Equations needs colours and dynamics, Parameters needs parameters. Nets with subnets get a **Subnets** panel below the tree.
+
 Toggle the sidebar with the button in the top-left corner.
 
-Each list is a single Tab stop. Arrow keys move through the rows and select as they move, Shift+Arrow extends the selection, and Enter or Space selects the focused row. ArrowRight on a row reaches its **⋯** menu (or a group's **+** button), and ArrowLeft returns to the row. Group headers collapse with ArrowLeft and expand with ArrowRight.
+The tree is a single Tab stop. Arrow keys move through the rows and select as they move, Shift+Arrow extends the selection, and Enter or Space selects the focused row. ArrowRight on a row reaches its **⋯** menu (or a group's **+** button), and ArrowLeft returns to the row. Group headers collapse with ArrowLeft and expand with ArrowRight.
 
 ## Search
 

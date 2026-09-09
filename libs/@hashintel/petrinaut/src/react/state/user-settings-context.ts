@@ -46,7 +46,6 @@ export type UserSettings = {
   showMinimap: boolean;
   snapToGrid: boolean;
   partialSelection: boolean;
-  useEntitiesTreeView: boolean;
   enableNetComponents: boolean;
   enableNotebookView: boolean;
   /**
@@ -123,7 +122,6 @@ export type UserSettingsActions = {
   setShowMinimap: (value: boolean) => void;
   setSnapToGrid: (value: boolean) => void;
   setPartialSelection: (value: boolean) => void;
-  setUseEntitiesTreeView: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
   setEnableNotebookView: (value: boolean) => void;
   setEnableAdHocScenarios: (value: boolean) => void;
@@ -159,7 +157,6 @@ export const defaultUserSettings: UserSettings = {
   showMinimap: true,
   snapToGrid: true,
   partialSelection: true,
-  useEntitiesTreeView: false,
   enableNetComponents: false,
   enableNotebookView: false,
   enableAdHocScenarios: false,
@@ -190,7 +187,6 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setShowMinimap: () => {},
   setSnapToGrid: () => {},
   setPartialSelection: () => {},
-  setUseEntitiesTreeView: () => {},
   setEnableNetComponents: () => {},
   setEnableNotebookView: () => {},
   setEnableAdHocScenarios: () => {},
