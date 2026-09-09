@@ -7,10 +7,11 @@ const FIRING_ANIMATION_DURATION_MS = 300;
  * fires, through the Web Animations API so the timing is driven from the
  * firing delta rather than from a class toggle.
  *
- * The box flash ends on the box's own resting background, read off the
- * element once any flash still in flight is cancelled: the animation holds
- * its last frame, so a fixed colour here would leave every fired transition
- * tinted for as long as it stays mounted.
+ * The box flash ends on the box's own resting background and shadow, read off
+ * the element once any flash still in flight is cancelled: the animation
+ * holds its last frame, so fixed values here would leave every fired
+ * transition tinted, and stripped of its shadow, for as long as it stays
+ * mounted.
  */
 export const useFiringAnimation = (
   boxRef: React.RefObject<HTMLDivElement | null>,
@@ -34,7 +35,8 @@ export const useFiringAnimation = (
       animation.cancel();
     }
 
-    const restingBackground = getComputedStyle(box).backgroundColor;
+    const { backgroundColor: restingBackground, boxShadow: restingShadow } =
+      getComputedStyle(box);
 
     // Animate the box: flash yellow background and glow
     box.animate(
@@ -45,7 +47,7 @@ export const useFiringAnimation = (
         },
         {
           background: restingBackground,
-          boxShadow: "0 0 0 0 rgba(255, 132, 0, 0)",
+          boxShadow: restingShadow,
         },
       ],
       {
