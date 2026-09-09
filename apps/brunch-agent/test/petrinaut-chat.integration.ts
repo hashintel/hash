@@ -212,18 +212,34 @@ try {
           ],
           { stopReason: "toolUse" },
         ),
-      fauxAssistantMessage(
-        [
-          fauxThinking("Confirm the server path, then read the guide."),
-          fauxText("Checking the server, then the docs."),
-          fauxToolCall(
-            PING_TOOL_NAME,
-            { note: "health" },
-            { id: "tool-ping-1" },
-          ),
-        ],
-        { stopReason: "toolUse" },
-      ),
+      (context) => {
+        const modelRequest = JSON.stringify(context);
+        for (const requiredPromptText of [
+          "Before answering a user request about this model or the current, open, visible, or existing net",
+          "getLatestNetDefinition",
+        ]) {
+          if (!modelRequest.includes(requiredPromptText)) {
+            throw new Error(`model request omitted: ${requiredPromptText}`);
+          }
+        }
+        return fauxAssistantMessage(
+          [
+            fauxThinking("Confirm the server path, then read the guide."),
+            fauxText("Checking the server, then the docs."),
+            fauxToolCall(
+              PING_TOOL_NAME,
+              { note: "health" },
+              { id: "tool-ping-1" },
+            ),
+            fauxToolCall(
+              "getLatestNetDefinition",
+              {},
+              { id: "tool-current-net-1" },
+            ),
+          ],
+          { stopReason: "toolUse" },
+        );
+      },
       fauxAssistantMessage(
         [
           fauxThinking("The ping returned. Read the user guide next."),
@@ -330,6 +346,19 @@ try {
         id: startChunk.messageId,
         role: "assistant" as const,
         parts: [
+          {
+            type: "tool-getLatestNetDefinition",
+            toolCallId: "tool-current-net-1",
+            state: "output-available",
+            input: {},
+            output: {
+              title: "Current net",
+              definition: {
+                places: [],
+                transitions: [],
+              },
+            },
+          },
           {
             type: `tool-${READ_PETRINAUT_DOC_TOOL_NAME}`,
             toolCallId: clientToolCall.toolCallId,

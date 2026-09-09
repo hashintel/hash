@@ -1,4 +1,7 @@
-import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
+import {
+  getLatestNetDefinitionToolName,
+  readPetrinautDocToolName,
+} from "@hashintel/petrinaut-core";
 
 /**
  * The one catalog of tools the browser answers on Brunch's behalf. The panel
@@ -9,4 +12,5 @@ import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
  */
 export const brunchClientToolNames: ReadonlySet<string> = new Set([
   readPetrinautDocToolName,
+  getLatestNetDefinitionToolName,
 ]);

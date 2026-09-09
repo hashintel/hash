@@ -188,6 +188,82 @@ test("preserves every persisted Voice tool origin across hydration and reopen", 
   });
 });
 
+test("projects a hydrated current-net client-tool result", async () => {
+  const snapshot = {
+    title: "SIR model",
+    definition: {
+      places: [
+        { id: "susceptible", name: "Susceptible" },
+        { id: "infected", name: "Infected" },
+        { id: "recovered", name: "Recovered" },
+      ],
+      transitions: [],
+    },
+  };
+  const harness = createObservationHarness({
+    conversation: {
+      conversationId: "conversation-1",
+      settlements: [],
+      messages: [
+        {
+          id: "assistant-current-net",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "tool-current-net-1",
+              toolName: "getLatestNetDefinition",
+              state: "output-available",
+              input: {},
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+        {
+          id: "signal-current-net",
+          role: "system",
+          purpose: "dispatch",
+          display: "hidden",
+          signal: { tagName: "client-tool-result" },
+          parts: [
+            {
+              type: "text",
+              text: JSON.stringify([
+                {
+                  toolCallId: "tool-current-net-1",
+                  toolName: "getLatestNetDefinition",
+                  output: snapshot,
+                },
+              ]),
+              state: "done",
+            },
+          ],
+        },
+      ],
+    },
+    offset: "offset-current-net",
+    phase: "live",
+    error: undefined,
+  });
+
+  const { result } = renderHook(() =>
+    useFlueChatHistory(harness.clientPromise, "conversation-1"),
+  );
+
+  await waitFor(() => expect(result.current.ready).toBe(true));
+  expect(result.current.messages?.[0]?.parts).toEqual([
+    {
+      type: "tool-getLatestNetDefinition",
+      toolCallId: "tool-current-net-1",
+      state: "output-available",
+      input: {},
+      output: snapshot,
+    },
+  ]);
+});
+
 test("asks nothing of the generic chat route, which keeps no history", () => {
   const { result } = renderHook(() =>
     useFlueChatHistory(null, "conversation-1"),

@@ -234,7 +234,10 @@ describe("local storage demo Brunch voice integration", () => {
     const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
-    expect([...brunchClientToolNames]).toEqual(["readPetrinautDoc"]);
+    expect([...brunchClientToolNames]).toEqual([
+      "readPetrinautDoc",
+      "getLatestNetDefinition",
+    ]);
     expect(aiAssistant.interactiveTools).toEqual([]);
     expect(
       aiAssistant.interactiveTools?.some(

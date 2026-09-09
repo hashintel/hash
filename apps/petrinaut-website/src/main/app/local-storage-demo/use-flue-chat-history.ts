@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
 import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
-import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
+
+import { brunchClientToolNames } from "./brunch-client-tools";
 
 import type {
   AgentConversationObservation,
@@ -15,7 +16,6 @@ import type {
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const noSettlements: readonly FlueConversationSettlement[] = [];
-const brunchClientToolNames = new Set([readPetrinautDocToolName]);
 
 /**
  * The observed canonical conversation together with the durable-stream offset

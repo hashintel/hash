@@ -4,11 +4,9 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
-import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
-
-const brunchClientToolNames = new Set([readPetrinautDocToolName]);
+import { brunchClientToolNames } from "./brunch-client-tools";
 
 import type {
   SweepCapture,
