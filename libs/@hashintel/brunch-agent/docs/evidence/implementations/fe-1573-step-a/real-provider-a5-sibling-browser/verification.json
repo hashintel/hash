@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "sourceCommit": "070cb6fb42df2568de04d7c79499ad4d29a0b011",
+  "originalAndArchivedFilesVerified": 360,
+  "componentPinsVerified": {
+    "source-review-pins.json": 8,
+    "built-review-pins.json": 106,
+    "browser-library-review-pins.json": 563
+  },
+  "protectedPathsUnchanged": 20,
+  "finalFreezeGenerated": false,
+  "paidCalls": 0,
+  "oldAllocation": "Released; not activated"
+}

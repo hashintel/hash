@@ -1,0 +1,14 @@
+{
+  "label": "Bounded code review only; not an activation manifest",
+  "commit": "070cb6fb42df2568de04d7c79499ad4d29a0b011",
+  "files": {
+    "apps/brunch-agent/src/evaluations/real-provider-a5.ts": "342d22d312cca9d67a4b5baeb8be780b08225e47eda52e483342dcefb6156411",
+    "apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts": "429e501c3f983a369d53f7c823758d58ca8712a0bf8df7de8577e4e7bacd825e",
+    "apps/brunch-agent/src/evaluations/real-provider-a5/browser-session.ts": "9baa0f8d67ddaf0bf30abf70bc8fc79ac92b5546c3ea3122f610e4c34394c410",
+    "apps/brunch-agent/src/evaluations/real-provider-a5/chrome-loopback.sh": null,
+    "apps/brunch-agent/src/evaluations/real-provider-a5/launch.ts": "24ac7be7d96976457593970005177439fcdea9473cc9d805e5a950658889ee2b",
+    "apps/brunch-agent/src/evaluations/real-provider-a5/manifest.ts": "649bde3c5619a9a455869bd27cfb5e1a577468dee2169cbfb33d7a6bc1db7afe",
+    "apps/brunch-agent/test/real-provider-a5-browser.integration.ts": "31a58d45d98b292deeaded29b34dfa4f4c5d24a95edec563b8a063cd38ebe129",
+    "apps/brunch-agent/test/real-provider-a5-browser.test.ts": "6f99937387c847c94784d1bea88f47fda94f55206eeadfc4c60e2a16797c7806"
+  }
+}
