@@ -73,6 +73,10 @@ impl OntologySelection {
         self.0.is_empty()
     }
 
+    pub(crate) fn contains(&self, id: ArchivedOntologyTypeUuid) -> bool {
+        self.0.contains(&id)
+    }
+
     pub(crate) fn new(ontology: &[ArchivedOntologyTypeUuid]) -> &Self {
         zerocopy::transmute_ref!(ontology)
     }

@@ -1,3 +1,5 @@
+use alloc::vec;
+
 use type_system::ontology::id::BaseUrl;
 
 /// One scalar property value.
@@ -107,5 +109,14 @@ impl ScalarProperties {
 
         entries.truncate(maximum);
         (Self(entries), true)
+    }
+}
+
+impl IntoIterator for ScalarProperties {
+    type IntoIter = vec::IntoIter<Self::Item>;
+    type Item = (BaseUrl, ScalarValue);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }

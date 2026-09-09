@@ -1,18 +1,13 @@
-use alloc::alloc::Global;
-
-use hashql_core::id::{IdSlice, IdVec};
+use hashql_core::id::{Id, IdVec};
 
 use super::{
     super::codec::{RowCodec, Universe},
     OpenOptions,
 };
-use crate::{
-    identity::{BasePosition, NodeRowId},
-    serve2::codec::{EncodableId, EncodedRowId},
-};
+use crate::serve2::codec::{EncodableId, EncodedRowId};
 
 #[derive(Debug)]
-pub struct Encoding<I> {
+pub(crate) struct Encoding<I> {
     codec: RowCodec<I>,
     lookup: IdVec<I, EncodedRowId<I>>,
 }
@@ -40,5 +35,12 @@ impl<I> Encoding<I> {
         }
 
         self.codec.encode(row)
+    }
+
+    pub(super) fn decode(&self, wire: EncodedRowId<I>, universe: Universe<I>) -> Option<I>
+    where
+        I: Id,
+    {
+        self.codec.decode(wire, universe)
     }
 }

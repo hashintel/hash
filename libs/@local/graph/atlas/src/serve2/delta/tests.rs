@@ -56,6 +56,141 @@ fn epoch(delta: &Delta) -> Epoch {
     Epoch::from(Guard::from_inner(Arc::new(delta.clone())))
 }
 
+#[test]
+fn decode_base() {
+    let (_fixture, delta) = fixture("decode-base");
+    let index = &delta.world.layout.index;
+    let captured = epoch(&delta);
+    for row in (0..NODES).map(NodeRowId::new) {
+        assert_eq!(
+            index.decode(&captured, index.encode(row)),
+            Some(row),
+            "should invert each allocated base row"
+        );
+    }
+    for row in [NodeRowId::new(NODES), NodeRowId::from_u32(u32::MAX)] {
+        assert_eq!(
+            index.decode(&captured, index.encode(row)),
+            None,
+            "should reject rows outside the captured allocation domain"
+        );
+    }
+}
+
+#[test]
+fn decode_captures() {
+    let (_fixture, mut delta) = fixture("decode-captures");
+    let world = Arc::clone(&delta.world);
+    let index = &world.layout.index;
+    let rows = [NodeRowId::MIN, NodeRowId::new(NODES)];
+    let wires = rows.map(|row| index.encode(row));
+    let identities = [
+        index
+            .identity
+            .key_of(rows[0])
+            .expect("should resolve the base node"),
+        entity(905),
+    ];
+    let before = epoch(&delta);
+
+    delta.revision.increment_by(1);
+    for identity in identities {
+        assert_eq!(
+            delta.update_node(identity, legend("live"), Vec2::ZERO),
+            Some(true),
+            "should activate the base and added nodes"
+        );
+    }
+    let live = epoch(&delta);
+    delta.revision.increment_by(1);
+    for identity in identities {
+        assert!(delta.withdraw(identity), "should withdraw the node");
+    }
+    let withdrawn = epoch(&delta);
+    delta.revision.increment_by(1);
+    for identity in identities {
+        assert_eq!(
+            delta.update_node(identity, legend("revived"), Vec2::ZERO),
+            Some(true),
+            "should revive the existing row"
+        );
+    }
+    let revived = epoch(&delta);
+    drop(delta);
+
+    for ((row, wire), earlier) in rows.into_iter().zip(wires).zip([Some(rows[0]), None]) {
+        assert_eq!(
+            index.decode(&before, wire),
+            earlier,
+            "should preserve pre-allocation capture"
+        );
+        assert_eq!(
+            index.decode(&live, wire),
+            Some(row),
+            "should decode the live capture"
+        );
+        assert_eq!(
+            index.decode(&withdrawn, wire),
+            None,
+            "should reject the withdrawn capture"
+        );
+        assert_eq!(
+            index.decode(&revived, wire),
+            Some(row),
+            "should decode the revived row"
+        );
+        assert_eq!(
+            index.encode(row),
+            wire,
+            "should preserve the row's encoded identity"
+        );
+    }
+    let outside = index.encode(NodeRowId::new(NODES + 1));
+    assert_eq!(
+        index.decode(&revived, outside),
+        None,
+        "should reject the next unallocated row"
+    );
+}
+
+#[test]
+#[should_panic(expected = "index must belong to the epoch's world")]
+fn decode_foreign_world() {
+    let (_left_files, left) = fixture("decode-foreign-left");
+    let (_right_files, right) = fixture("decode-foreign-right");
+    let index = &left.world.layout.index;
+    let _row = index.decode(&epoch(&right), index.encode(NodeRowId::MIN));
+}
+
+#[test]
+fn mask_actor() {
+    let (_fixture, delta) = fixture("mask-actor");
+    let captured = epoch(&delta);
+    for (seed, kind, instance_admin) in [(1, ActorType::User, false), (2, ActorType::Machine, true)]
+    {
+        let actor = VisibilityActor {
+            id: ActorId::new(Uuid::from_u128(seed), kind),
+            instance_admin,
+        };
+        for mask in [
+            VisibilityMask::full(&captured, actor),
+            VisibilityMask::partial(
+                &captured,
+                actor,
+                CompressedBitSet::default(),
+                CompressedBitSet::default(),
+            ),
+        ] {
+            let bound = mask.actor();
+            assert_eq!(bound.id, actor.id, "should retain the bound actor identity");
+            assert_eq!(
+                bound.instance_admin, actor.instance_admin,
+                "should retain the bound privilege"
+            );
+        }
+    }
+}
+
 /// Repeated insertion and revival preserve the node row and its first coordinates.
 #[test]
 fn node_added_revival() {
@@ -79,8 +214,9 @@ fn node_added_revival() {
     assert!(world.layout.index.payload(&before, row).is_none());
     assert_eq!(row, NodeRowId::new(NODES));
     assert_eq!(delta.world.layout.position(&first, row), Some(position));
-    assert_eq!(delta.world.topology.node_count(&first), NODES as usize + 1);
-    assert_eq!(delta.world.layout.node_count(&first), NODES as usize + 1);
+    let count = usize::try_from(NODES).expect("should fit the fixture count") + 1;
+    assert_eq!(delta.world.topology.node_count(&first), count);
+    assert_eq!(delta.world.layout.node_count(&first), count);
     assert_eq!(
         delta.update_node(entity, legend("first"), Vec2::ZERO),
         Some(false)
@@ -220,7 +356,10 @@ fn endpoints_node_and_edge_withdrawals() {
         delta.world.topology.endpoints(&before, edge),
         Some(ENDPOINTS[0])
     );
-    assert_eq!(delta.world.topology.edge_count(&hidden), EDGES as usize);
+    assert_eq!(
+        delta.world.topology.edge_count(&hidden),
+        usize::try_from(EDGES).expect("should fit the fixture count")
+    );
 
     delta.revision.increment_by(1);
     assert_eq!(
@@ -270,7 +409,7 @@ fn edge_unbound_revival() {
     let unbound = epoch(&delta);
     assert_eq!(
         delta.world.topology.edge_count(&unbound),
-        EDGES as usize + 1
+        usize::try_from(EDGES).expect("should fit the fixture count") + 1
     );
     assert_eq!(delta.world.topology.endpoints(&unbound, edge), None);
 
@@ -314,7 +453,7 @@ fn edge_unbound_revival() {
     );
     assert_eq!(
         delta.world.topology.edge_count(&revived),
-        EDGES as usize + 1
+        usize::try_from(EDGES).expect("should fit the fixture count") + 1
     );
 }
 
@@ -425,7 +564,10 @@ fn ontology_icon_replacement() {
             .as_ref(),
         "changed"
     );
-    assert_eq!(identities.count(), TYPES as usize + 1);
+    assert_eq!(
+        identities.count(),
+        usize::try_from(TYPES).expect("should fit the fixture count") + 1
+    );
 
     let captured = epoch(&delta);
     let rows = [row, added_row];

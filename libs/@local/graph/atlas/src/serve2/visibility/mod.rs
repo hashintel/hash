@@ -120,6 +120,10 @@ impl VisibilityMask {
         }
     }
 
+    pub(crate) const fn actor(&self) -> VisibilityActor {
+        self.actor
+    }
+
     pub(crate) const fn kind(&self) -> VisibilityKind {
         match self.nodes {
             Rows::Full => VisibilityKind::Corpus,

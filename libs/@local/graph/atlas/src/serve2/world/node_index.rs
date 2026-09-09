@@ -17,14 +17,14 @@ use crate::{
         codec::{EncodedRowId, Universe},
         delta::{
             epoch::Epoch,
-            overlay::{NaiveIdentityProvider, VersionedIdentityProvider},
+            overlay::{NaiveIdentityProvider, VersionedIdentityProvider as _},
         },
     },
 };
 
 /// Node identities and the inverse mappings between row and base-position order.
 #[derive(Debug)]
-pub struct NodeIndex {
+pub(crate) struct NodeIndex {
     pub identity: IdentityTableArchive<ArchivedEntityId, NodeRowId>,
     encoding: Encoding<NodeRowId>,
 
@@ -148,6 +148,22 @@ impl NodeIndex {
         self.encoding.encode(row)
     }
 
+    /// Decodes rows allocated and live in the supplied [`Epoch`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if this index does not belong to `epoch`'s [`World`](super::World).
+    pub(crate) fn decode(&self, epoch: &Epoch, wire: EncodedRowId<NodeRowId>) -> Option<NodeRowId> {
+        let provider = epoch
+            .nodes(self)
+            .bind(NaiveIdentityProvider::from_ref(&self.identity));
+        let row = self.encoding.decode(wire, provider.provide_universe())?;
+
+        provider
+            .provide_key_of_at(row, epoch.revision())
+            .map(|_key| row)
+    }
+
     /// Returns the fitted position of `index`, or [`None`] outside the fitted row domain.
     pub(super) fn base_reverse(&self, index: NodeRowId) -> Option<BasePosition> {
         self.reverse.view().get(index).copied()
@@ -158,10 +174,10 @@ impl NodeIndex {
             .nodes(self)
             .bind(NaiveIdentityProvider::from_ref(&self.identity));
 
+        let position = self.base_reverse(index)?;
         provider
             .permits_row(index, Some(epoch.revision()))
-            .then_some(index)
-            .and_then(|index| self.base_reverse(index))
+            .then_some(position)
     }
 
     pub(crate) fn len(&self) -> usize {
