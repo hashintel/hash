@@ -28,6 +28,8 @@ export type ImportanceRow = {
 export type ImportanceView = {
   /** Sorted by importance, largest first, then by identifier. */
   rows: readonly ImportanceRow[];
+  /** Whether an estimate has been received at all. */
+  estimated: boolean;
   /** Completed steps the estimate is fitted on, or completed so far while none was received. */
   effectiveCount: number;
   floor: number;
@@ -155,6 +157,7 @@ export const importanceRows = (
   );
   return {
     rows,
+    estimated: importance !== null,
     effectiveCount,
     floor,
     belowFloor,
@@ -162,9 +165,16 @@ export const importanceRows = (
   };
 };
 
-/** The line under the card's title: the count first, so it survives a narrow card's clipping. */
+/**
+ * The line under the card's title: the count first, so it survives a narrow
+ * card's clipping. Before the first estimate the line says so rather than
+ * claiming an estimate over the steps completed so far.
+ */
 export const describeImportance = (view: ImportanceView): string => {
-  const count = `estimated from ${view.effectiveCount} completed ${view.effectiveCount === 1 ? "step" : "steps"}`;
+  const steps = `${view.effectiveCount} completed ${view.effectiveCount === 1 ? "step" : "steps"}`;
+  const count = view.estimated
+    ? `estimated from ${steps}`
+    : `no estimate yet · ${steps}`;
   const floor = view.belowFloor
     ? ` · below the ${view.floor}-step floor, treat as a hint`
     : "";
