@@ -322,6 +322,46 @@ impl GraphDatabaseClient {
             properties_complete,
         })
     }
+
+    #[tracing::instrument(skip_all, fields(types))]
+    async fn resolve_type_urls(
+        &self,
+        types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator> + Send,
+    ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>> {
+        let types = types.into_iter();
+        tracing::Span::current().record("types", types.len());
+
+        if types.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let connection = self.connection().await?;
+        let client = connection.as_client();
+
+        let uuids: Vec<_> = types.map(EntityTypeUuid::from).collect();
+        let filter = Filter::for_entity_type_uuids(&uuids);
+
+        let mut compiler = SelectCompiler::new(None, false);
+        compiler
+            .add_filter(&filter)
+            .expect("the type-uuid filter compiles against the entity-type query paths");
+
+        let columns = TypeUrlColumns::select(&mut compiler);
+        let (statement, parameters) = compiler.compile();
+
+        let rows = client
+            .query_raw(&statement, parameters)
+            .await
+            .change_context(HydrateError::Query)?;
+
+        let mut pairs = Vec::with_capacity(uuids.len());
+        let mut rows = pin!(rows);
+        while let Some(row) = rows.try_next().await.change_context(HydrateError::Query)? {
+            pairs.push(columns.pair(&row));
+        }
+
+        Ok(pairs)
+    }
 }
 
 impl LocateResolver for GraphDatabaseClient {
@@ -369,48 +409,6 @@ impl OntologyResolver for GraphDatabaseClient {
             .iter()
             .map(|uuid| resolved.get(uuid).cloned())
             .collect())
-    }
-}
-
-impl TypeUrlResolver for GraphDatabaseClient {
-    #[tracing::instrument(skip_all, fields(types))]
-    async fn resolve(
-        &self,
-        types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator> + Send,
-    ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>> {
-        let types = types.into_iter();
-        tracing::Span::current().record("types", types.len());
-
-        if types.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let connection = self.connection().await?;
-        let client = connection.as_client();
-
-        let uuids: Vec<_> = types.map(EntityTypeUuid::from).collect();
-        let filter = Filter::for_entity_type_uuids(&uuids);
-
-        let mut compiler = SelectCompiler::new(None, false);
-        compiler
-            .add_filter(&filter)
-            .expect("the type-uuid filter compiles against the entity-type query paths");
-
-        let columns = TypeUrlColumns::select(&mut compiler);
-        let (statement, parameters) = compiler.compile();
-
-        let rows = client
-            .query_raw(&statement, parameters)
-            .await
-            .change_context(HydrateError::Query)?;
-
-        let mut pairs = Vec::with_capacity(uuids.len());
-        let mut rows = pin!(rows);
-        while let Some(row) = rows.try_next().await.change_context(HydrateError::Query)? {
-            pairs.push(columns.pair(&row));
-        }
-
-        Ok(pairs)
     }
 }
 

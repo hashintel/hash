@@ -13,7 +13,7 @@ use type_system::principal::actor::ActorId;
 use self::error::VisibilityCacheError;
 pub(crate) use self::filter::FilterDigest;
 use crate::{
-    allocator::HeapMemoryUsage,
+    allocator::HeapMemoryUsage as _,
     file::generation::GenerationId,
     offload,
     serve2::{
@@ -24,6 +24,9 @@ use crate::{
 
 mod error;
 mod filter;
+
+#[cfg(test)]
+mod tests;
 
 fn weight_of(retained: u64, filter: Option<&RawValue>) -> u32 {
     let inline = size_of::<CacheEntry>() as u64 + size_of::<CacheKey>() as u64;
@@ -231,7 +234,7 @@ impl VisibilityCache {
         }
 
         if entry.is_stale(now, self.limits.soft) && entry.claim_refresh() {
-            // To exhaust we skip refreshes for entries that haven't expired
+            // Entries from another generation expire without renewal.
             if key.generation != epoch.generation() {
                 return Ok(Some(entry));
             }

@@ -7,35 +7,38 @@ use super::{
     OpenOptions,
 };
 use crate::{
-    identity::BasePosition,
+    identity::{BasePosition, NodeRowId},
     serve2::codec::{EncodableId, EncodedRowId},
 };
 
 #[derive(Debug)]
 pub struct Encoding<I> {
     codec: RowCodec<I>,
-    lookup: IdVec<BasePosition, EncodedRowId<I>>,
-    universe: Universe<I>,
+    lookup: IdVec<I, EncodedRowId<I>>,
 }
 
 impl<I> Encoding<I> {
     pub(crate) fn open(
         OpenOptions { generation, secret }: OpenOptions<'_>,
-        domain: &IdSlice<BasePosition, I>,
+        universe: Universe<I>,
     ) -> Self
     where
         I: EncodableId,
     {
         let codec = RowCodec::derive(secret.as_ref(), generation.id());
-        let lookup = IdVec::from_domain_derive_in(|_, &id| codec.encode(id), domain, Global);
+        let lookup = IdVec::from_fn(universe.size(), |id| codec.encode(id));
 
-        // The domain length is the same across domains, as the domain is bijective
-        let universe = Universe::new(I::from_usize(domain.len()));
+        Self { codec, lookup }
+    }
 
-        Self {
-            codec,
-            lookup,
-            universe,
+    pub(super) fn encode(&self, row: I) -> EncodedRowId<I>
+    where
+        I: EncodableId,
+    {
+        if let Some(&encoded) = self.lookup.get(row) {
+            return encoded;
         }
+
+        self.codec.encode(row)
     }
 }

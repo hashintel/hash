@@ -120,7 +120,7 @@ fn shared_depth_bit_pairs() {
     assert_eq!(key.shared_depth(key), Depth::MAX);
     // y's top bit differs: the keys part at the first subdivision.
     assert_eq!(key.shared_depth(MortonKey::new(0, 1 << 31)).get(), 0);
-    // x's second bit differs: one agreed bit pair, so one shared subdivision.
+    // x's second bit differs: one agreed bit pair and one shared subdivision.
     assert_eq!(key.shared_depth(MortonKey::new(1 << 30, 0)).get(), 1);
 }
 

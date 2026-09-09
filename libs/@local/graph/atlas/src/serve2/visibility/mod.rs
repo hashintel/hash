@@ -72,6 +72,15 @@ hashql_core::id::newtype! {
     pub(crate) struct Visible<T>(u64)
 }
 
+impl<T> Visible<T> {
+    pub(crate) fn unwrap(self) -> T
+    where
+        T: Id,
+    {
+        T::from_u64(self.as_u64())
+    }
+}
+
 /// The declared delivery policy, independent of a mask's cardinality.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum VisibilityKind {
@@ -122,8 +131,16 @@ impl VisibilityMask {
         self.nodes.contains(node).then(|| Visible::new(node.get()))
     }
 
-    pub(crate) fn visible_edge(&self, edge: EdgeRowId) -> Option<Visible<EdgeRowId>> {
-        self.edges.contains(edge).then(|| Visible::new(edge.get()))
+    pub(crate) fn visible_edge(
+        &self,
+        edge: EdgeRowId,
+        endpoints: [NodeRowId; 2],
+    ) -> Option<Visible<EdgeRowId>> {
+        (self.edges.contains(edge)
+            && endpoints
+                .iter()
+                .all(|&endpoint| self.nodes.contains(endpoint)))
+        .then(|| Visible::new(edge.get()))
     }
 }
 

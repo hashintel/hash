@@ -1,4 +1,4 @@
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 
 use super::{
     delta::epoch::Epoch,

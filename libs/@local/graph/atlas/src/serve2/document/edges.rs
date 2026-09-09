@@ -3,13 +3,19 @@ use hashql_core::id::IdVec;
 use type_system::ontology::VersionedUrl;
 
 use crate::{
+    bench::MortonCell,
+    bitset::CompressedBitSet,
     dataset::auxiliary::Label,
     identity::NodeRowId,
+    math::Log2,
     morton::MortonTile,
     postgres::id::ArchivedEntityId,
+    serve::hydrate::EdgesStore,
     serve2::{
         codec::EncodedRowId,
+        hydrate::TypeUrlResolver,
         intern::{InternTable, TableIndex},
+        neighbourhood::{DeliveredEdge, Neighbourhood},
         scene::Scene,
         walk::Walk,
     },
@@ -32,9 +38,10 @@ pub(crate) struct EdgesLimits {
     pub edges: u32 = 0x4000,
 }
 
-pub(crate) struct EdgesDocumentOptions {
+pub(crate) struct EdgesDocumentOptions<R> {
     pub detail: EdgesDocumentDetailLevel,
     pub limits: EdgesLimits,
+    pub resolver: R,
 }
 
 pub(crate) struct EdgesTrailer<'details> {
@@ -55,8 +62,8 @@ pub(crate) struct EdgesDocument<'details> {
 }
 
 impl<'details> EdgesDocument<'details> {
-    pub(crate) fn new(
-        Scene {
+    pub(crate) fn new<R>(
+        scene @ Scene {
             world,
             epoch,
             mask,
@@ -64,18 +71,71 @@ impl<'details> EdgesDocument<'details> {
             delivery,
         }: Scene,
         tiles: &[MortonTile],
-        EdgesDocumentOptions { detail, limits }: &EdgesDocumentOptions,
-    ) -> Result<Self, Report<EdgesDocumentError>> {
+        EdgesDocumentOptions {
+            detail,
+            limits,
+            resolver,
+        }: &EdgesDocumentOptions<R>,
+    ) -> Result<Self, Report<EdgesDocumentError>>
+    where
+        R: TypeUrlResolver,
+    {
         if tiles.len() > limits.tiles as usize {
             todo!("error out")
         }
 
-        let walk = Walk {
-            schedule: delivery,
-            index: &world.layout.index,
+        // TODO: error out if zoom too large
+
+        let mut delivered = CompressedBitSet::new();
+        for &tile in tiles {
+            let cell = MortonCell::from_tile(tile).ok_or_else(|| todo!("error out"))?;
+
+            for node in delivery.total(tile.z.zoom(Log2::ZERO), cell).rows {
+                delivered.insert(node);
+            }
+        }
+
+        let induced = Neighbourhood { provider: scene }.induced(&delivered, limits.edges as usize);
+
+        let length = induced.edges.len();
+        let mut this = EdgesDocument {
+            ids: IdVec::with_capacity(length),
+            sources: IdVec::with_capacity(length),
+            targets: IdVec::with_capacity(length),
+            trailer: None,
+            complete: induced.complete,
         };
 
-        // TODO: first we need: the view, and the store, and the limits
-        todo!()
+        this.trailer = match detail {
+            EdgesDocumentDetailLevel::Minimal => None,
+            EdgesDocumentDetailLevel::Auxiliary => {
+                let trailer = EdgesTrailer {
+                    labels: IdVec::with_capacity(length),
+                    representative_type_urls: IdVec::with_capacity(length),
+                    representative_type_urls_interner: InternTable::new(),
+                };
+
+                let mut dispatch = IdVec::new();
+                for edge in &induced.edges {
+                    let legend = world.topology.payload(epoch, edge.row.unwrap());
+                    todo!()
+                }
+
+                Some(trailer)
+            }
+        };
+
+        for DeliveredEdge {
+            row: _,
+            endpoints: [source, target],
+            identity,
+        } in induced.edges
+        {
+            this.ids.push(identity);
+            this.sources.push(world.layout.index.encode(source));
+            this.targets.push(world.layout.index.encode(target));
+        }
+
+        Ok(this)
     }
 }

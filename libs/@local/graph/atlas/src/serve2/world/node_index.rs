@@ -12,9 +12,12 @@ use crate::{
     identity::{BasePosition, Column, NodeRowId},
     postgres::id::ArchivedEntityId,
     salt::fit::prepare::identity::IdentityTableArchive,
-    serve2::delta::{
-        epoch::Epoch,
-        overlay::{NaiveIdentityProvider, VersionedIdentityProvider},
+    serve2::{
+        codec::{EncodedRowId, Universe},
+        delta::{
+            epoch::Epoch,
+            overlay::{NaiveIdentityProvider, VersionedIdentityProvider},
+        },
     },
 };
 
@@ -64,7 +67,10 @@ impl NodeIndex {
             });
 
         let encoding = lookup.map(|column: Column<BasePosition, NodeRowId>| {
-            (Encoding::open(options, column.view()), column)
+            (
+                Encoding::open(options, Universe::from_length(column.len())),
+                column,
+            )
         });
 
         let (identity, (encoding, lookup), reverse) =
@@ -124,6 +130,10 @@ impl NodeIndex {
         provider
             .permits_row(row, Some(epoch.revision()))
             .then_some(row)
+    }
+
+    pub(crate) fn encode(&self, row: NodeRowId) -> EncodedRowId<NodeRowId> {
+        self.encoding.encode(row)
     }
 
     /// Returns the fitted position of `index`, or [`None`] outside the fitted row domain.

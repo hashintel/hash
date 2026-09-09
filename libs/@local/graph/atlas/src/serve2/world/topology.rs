@@ -7,6 +7,7 @@ use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 
 use super::{OpenOptions, error::WorldError};
 use crate::{
+    dataset::auxiliary::Legend,
     identity::{Column, EdgeRowId, NodeRowId},
     postgres::id::ArchivedEntityId,
     salt::{
@@ -188,6 +189,13 @@ impl Topology {
             .edges(self)
             .bind(NaiveIdentityProvider::from_ref(&self.identity))
             .provide_key_of_at(edge, epoch.revision())
+    }
+
+    pub(crate) fn payload(&self, epoch: &Epoch, edge: EdgeRowId) -> Option<&Legend> {
+        epoch
+            .edges(self)
+            .bind(NaiveIdentityProvider::from_ref(&self.identity))
+            .provide_payload_of_row_at(edge, epoch.revision())
     }
 
     /// Returns the allocated edge count, including withdrawn and unbound rows.

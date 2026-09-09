@@ -9,7 +9,7 @@ use super::client::HydrateError;
 
 /// The capability to resolve ontology type uuids to their versioned URLs.
 pub(crate) trait TypeUrlResolver {
-    async fn resolve(
+    fn resolve(
         &self,
         types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator> + Send,
     ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>>;
@@ -19,11 +19,11 @@ impl<T> TypeUrlResolver for &T
 where
     T: TypeUrlResolver,
 {
-    async fn resolve(
+    fn resolve(
         &self,
         types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator> + Send,
     ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>> {
-        T::resolve(self, types).await
+        T::resolve(self, types)
     }
 }
 
@@ -31,11 +31,11 @@ impl<T> TypeUrlResolver for Arc<T>
 where
     T: TypeUrlResolver,
 {
-    async fn resolve(
+    fn resolve(
         &self,
         types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator> + Send,
     ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>> {
-        T::resolve(self, types).await
+        T::resolve(self, types)
     }
 }
 
@@ -66,7 +66,7 @@ impl<T> TypeUrlResolver for CachedTypeUrlResolver<T>
 where
     T: TypeUrlResolver,
 {
-    async fn resolve(
+    fn resolve(
         &self,
         types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator> + Send,
     ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, Report<HydrateError>> {
@@ -90,7 +90,7 @@ where
             return Ok(found);
         }
 
-        let fresh = self.inner.resolve(misses).await?;
+        let fresh = self.inner.resolve(misses)?;
 
         {
             let mut known = self.known.write();

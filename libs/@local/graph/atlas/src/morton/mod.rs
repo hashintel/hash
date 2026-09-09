@@ -1,15 +1,12 @@
 //! Z-order keys: two 32-bit axes interleaved into one sortable `u64`.
 //!
-//! The module is crate-internal, with one deliberate seam: the `bench` facade re-exports
-//! [`Depth`], [`MortonKey`], and [`MortonCell`] so the benchmark targets speak the same typed
-//! vocabulary as production instead of raw integers. The items are therefore `pub` while the
-//! module is not, and they reach a consumer only through that feature-gated door. Examples carry
-//! `ignore` and spell each call as an in-crate caller writes it.
+//! The crate-internal module exports [`Depth`], [`MortonKey`], and [`MortonCell`] through the
+//! `bench` facade when that feature is enabled. Examples carry `ignore` and use in-crate paths.
 //!
 //! [`MortonKey::new`] interleaves the bits of an `(x, y)` pair, `x` into the even bits and `y` into
-//! the odd bits, so that comparing keys compares positions along the Z-order curve. Every
-//! axis-aligned power-of-two cell of the grid is one contiguous key range, so a sorted key array
-//! answers cell queries with two binary searches.
+//! the odd bits. Comparing keys compares positions along the Z-order curve. Every axis-aligned
+//! power-of-two cell of the grid is one contiguous key range. A sorted key array answers cell
+//! queries with two binary searches.
 //!
 //! [`Depth`] counts subdivisions. Depth 0 is the whole domain, each step quarters a cell, and depth
 //! 32 pins both axes to a single key. A tile address `(z, x, y)` names the cell
@@ -38,8 +35,7 @@ hashql_core::id::newtype! {
     /// A subdivision depth between the whole domain and a single key.
     ///
     /// Depth `d` cells are the squares of a `2^d x 2^d` grid over the axis domain. [`Depth::MIN`] is
-    /// the whole domain; [`Depth::MAX`] fixes all 32 bits of both axes, so a cell at it holds exactly
-    /// one key.
+    /// the whole domain. [`Depth::MAX`] fixes all 32 bits of both axes and identifies one key.
     #[id(unaligned, const, derive(Step))]
     pub struct Depth(u8 is 0..=32)
 }
@@ -72,15 +68,16 @@ impl Depth {
 
     /// Adds `steps` subdivisions, saturating at [`Depth::MAX`].
     ///
-    /// The domain is capped, so the sum clamps instead of overflowing: the same contract as
-    /// [`u8::saturating_add`], with the ceiling at the key width rather than the type width.
+    /// Like [`u8::saturating_add`], the sum clamps instead of overflowing. The ceiling is the key
+    /// width rather than the type width.
     ///
     /// # Examples
     ///
     /// ```ignore
-    /// let depth = Depth::new(30).unwrap();
-    /// assert_eq!(depth.saturating_add(1).get(), 31);
-    /// assert_eq!(depth.saturating_add(9), Depth::MAX);
+    /// let depth = Depth::new(30);
+    /// let steps = Log2::new(9).expect("9 should fit the exponent domain");
+    /// assert_eq!(depth.saturating_add(Log2::ONE).get(), 31);
+    /// assert_eq!(depth.saturating_add(steps), Depth::MAX);
     /// ```
     #[inline]
     #[must_use]
@@ -201,7 +198,7 @@ impl Zoom {
     /// Returns the zoom one level deeper, [`None`] at [`Zoom::MAX`].
     #[must_use]
     pub(crate) const fn deeper(self) -> Option<Self> {
-        // The level lies at or below `Depth::MAX`, so the increment stays within `u8`.
+        // Incrementing a level at or below `Depth::MAX` fits within `u8`.
         Self::new(self.0 + 1)
     }
 
@@ -255,8 +252,7 @@ impl Step for Zoom {
     }
 
     fn backward_checked(start: Self, count: usize) -> Option<Self> {
-        // Any value below `start` is a valid zoom, so underflow of the inner
-        // `u8` is the only failure mode.
+        // Any value below `start` is a valid zoom. Only `u8` underflow can fail.
         u8::backward_checked(start.0, count).map(Self)
     }
 
@@ -339,9 +335,9 @@ impl MortonTile {
 
 /// A Z-order key interleaving two 32-bit axes into one `u64`.
 ///
-/// `x` occupies the even bits and `y` the odd bits, starting at bit 0, so key order is Z-order
-/// curve order and every [`MortonCell`] is one contiguous key range. Every bit pattern is a valid
-/// key.
+/// `x` occupies the even bits and `y` the odd bits, starting at bit 0. Key order follows the
+/// Z-order curve, and every [`MortonCell`] is one contiguous key range. Every bit pattern is a
+/// valid key.
 ///
 /// # Examples
 ///
@@ -402,7 +398,7 @@ impl MortonKey {
     ///
     /// ```ignore
     /// let key = MortonKey::new(0b10 << 30, 0b11 << 30);
-    /// assert_eq!(key.prefix(Depth::new(2).unwrap()), 0b1110);
+    /// assert_eq!(key.prefix(Depth::new(2)), 0b1110);
     /// ```
     #[inline]
     #[must_use]
@@ -415,7 +411,7 @@ impl MortonKey {
 
     /// Returns the deepest depth at which this key and `other` share a cell.
     ///
-    /// A depth-`d` cell is the leading `2 · d` key bits, so the shared depth counts the agreed
+    /// A depth-`d` cell is the leading `2 · d` key bits. The shared depth counts the agreed
     /// leading bit pairs. Equal keys share every grid and return [`Depth::MAX`].
     ///
     /// # Examples
@@ -428,7 +424,7 @@ impl MortonKey {
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
-        reason = "a cell index is two key bits, so the shared depth is the agreed bit count halved"
+        reason = "the shared depth counts agreed two-bit pairs"
     )]
     #[inline]
     #[must_use]
@@ -439,7 +435,7 @@ impl MortonKey {
         )]
         let agreed = ((self.0 ^ other.0).leading_zeros() / 2) as u8;
 
-        // At most 64 agreed bits halve to 32, which is `Depth::MAX` itself.
+        // Half of at most 64 agreed bits fits within `Depth::MAX`.
         Depth::new(agreed)
     }
 
@@ -477,7 +473,7 @@ impl MortonCell {
     /// # Examples
     ///
     /// ```ignore
-    /// let depth = Depth::new(3).unwrap();
+    /// let depth = Depth::new(3);
     /// assert!(MortonCell::new(depth, 7, 0).is_some());
     /// assert_eq!(MortonCell::new(depth, 8, 0), None);
     /// ```

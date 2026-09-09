@@ -6,6 +6,7 @@ mod document;
 mod hydrate;
 mod intern;
 mod membership;
+mod neighbourhood;
 mod runtime;
 mod scene;
 mod schedule;
