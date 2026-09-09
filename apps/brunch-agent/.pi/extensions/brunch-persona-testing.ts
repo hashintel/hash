@@ -123,38 +123,69 @@ export default async function brunchPersonaTestingExtension(
     description:
       "Private operator JSON captured from an initialized Petrinaut browser session",
   });
-  const browserSessionPath = stringFlag(pi, BROWSER_SESSION_FLAG);
-  if (
-    browserSessionPath !== undefined &&
-    (stringFlag(pi, TOOL_HOST_FLAG) ?? "none") !== "none"
-  ) {
-    throw new Error(
-      "Browser attachment requires --brunch-tool-host=none; browser mutation hosting is not implemented",
-    );
-  }
-  const browserOptions =
-    browserSessionPath === undefined
-      ? undefined
-      : await readBrowserSessionOptions(browserSessionPath);
-
   let clientToolHost: BrunchClientToolHost | undefined;
-  pi.on("session_start", async () => {
-    await clientToolHost?.dispose?.();
-    clientToolHost = createConfiguredClientToolHost(pi);
-  });
-  pi.on("session_shutdown", async () => {
-    await clientToolHost?.dispose?.();
+  let generation = 0;
+  const dispose = async () => {
+    generation += 1;
+    const previousHost = clientToolHost;
     clientToolHost = undefined;
-  });
+    await previousHost?.dispose?.();
+  };
 
-  registerBrunchTurn(pi, {
-    ...browserOptions,
-    resolveClientToolHost: () => clientToolHost,
-    retainSnapshot: async (snapshot) => {
-      const directory = stringFlag(pi, EVIDENCE_DIRECTORY_FLAG);
-      if (directory !== undefined) {
-        await writeProofArtifacts(directory, snapshot);
-      }
-    },
+  pi.on("session_shutdown", dispose);
+  pi.on("session_start", async () => {
+    // CLI extension flags are applied only after the factory has finished.
+    // Invalidate old tool closures before any fallible cleanup or validation:
+    // Pi reports lifecycle errors but may continue running the agent.
+    await dispose();
+    const currentGeneration = generation;
+    const browserSessionPath = stringFlag(pi, BROWSER_SESSION_FLAG);
+    if (
+      pi.getFlag(BROWSER_SESSION_FLAG) !== undefined &&
+      browserSessionPath === undefined
+    ) {
+      throw new Error("--brunch-browser-session requires a non-empty path");
+    }
+    if (
+      browserSessionPath !== undefined &&
+      (stringFlag(pi, TOOL_HOST_FLAG) ?? "none") !== "none"
+    ) {
+      throw new Error(
+        "Browser attachment requires --brunch-tool-host=none; browser mutation hosting is not implemented",
+      );
+    }
+    const browserOptions =
+      browserSessionPath === undefined
+        ? undefined
+        : await readBrowserSessionOptions(browserSessionPath);
+
+    clientToolHost = createConfiguredClientToolHost(pi);
+
+    registerBrunchTurn(
+      {
+        registerTool: (tool) =>
+          pi.registerTool({
+            ...tool,
+            execute: async (...args) => {
+              if (generation !== currentGeneration) {
+                throw new Error(
+                  "brunch_turn session is not initialized; attachment unavailable",
+                );
+              }
+              return tool.execute(...args);
+            },
+          }),
+      },
+      {
+        ...browserOptions,
+        resolveClientToolHost: () => clientToolHost,
+        retainSnapshot: async (snapshot) => {
+          const directory = stringFlag(pi, EVIDENCE_DIRECTORY_FLAG);
+          if (directory !== undefined) {
+            await writeProofArtifacts(directory, snapshot);
+          }
+        },
+      },
+    );
   });
 }

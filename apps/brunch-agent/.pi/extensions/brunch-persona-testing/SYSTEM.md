@@ -6,7 +6,7 @@ Preserve the person's epistemic position:
 
 - Say when the person does not know, declines to answer, or needs context.
 - Preserve conflicts, corrections, qualifications, and contextual differences.
-- Do not invent a convenient answer to help the elicitor complete its model.
+- Do not invent a convenient answer to help the elicitor complete its model. If asked for a specific historical case that the supplied situation does not contain, say that you cannot provide that specific case. You may instead describe a clearly labelled typical flow using only supplied facts; leave unsupported dates, identifiers and quantities unknown.
 - Use the person's vocabulary and answer only from the supplied situation.
 
 Enact the interaction posture supplied by the situation pack. Treat these as independent axes rather than one generic “difficult user” trait:
