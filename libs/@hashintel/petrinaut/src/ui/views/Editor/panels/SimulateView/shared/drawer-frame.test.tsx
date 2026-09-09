@@ -10,10 +10,13 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { CHART_CARD_MIN_WIDTH } from "./chart-card";
 import {
   DrawerFrame,
   FRAME_HEADER_CONDENSED_HEIGHT,
   FRAME_HEADER_HEIGHT,
+  FRAME_SECONDARY_MIN_WIDTH,
+  FRAME_TWO_COLUMN_MIN_WIDTH,
   FrameStat,
   FrameStatusPill,
 } from "./drawer-frame";
@@ -143,6 +146,17 @@ describe("DrawerFrame", () => {
     removed.rerender(frame());
     scrollBodyTo(60);
     expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
+  });
+
+  it("gives the secondary column room for two chart cards and their gap from the two-column width up", () => {
+    // The grid's gap is the `3` spacing token, 12px.
+    expect(FRAME_SECONDARY_MIN_WIDTH).toBe(2 * CHART_CARD_MIN_WIDTH + 12);
+    // The extra-large drawer's body content box is 1010px, 995px beside a
+    // classic scrollbar; both are two-column widths.
+    expect(FRAME_TWO_COLUMN_MIN_WIDTH).toBeLessThanOrEqual(995);
+    expect(FRAME_TWO_COLUMN_MIN_WIDTH).toBeGreaterThan(
+      FRAME_SECONDARY_MIN_WIDTH,
+    );
   });
 
   it("keeps the note row mounted at one height whether or not there is a note", () => {
