@@ -99,6 +99,7 @@ These rules exist because Mission 4 lost its design between the owner conversati
 ## Correctives
 
 - Before adding structure, name the production pressure that requires it.
+- **Safeguards must earn their friction.** Before adding or defending a limit, gate or refusal, identify the observed failure, concrete external constraint or explicit owner requirement it protects. Inherited code, a safety label and passing enforcement tests do not establish necessity. When a safeguard blocks real use, question its justification before tuning or instrumenting it; preserve the actual data/security contract with the least mechanism.
 - Work the first unproven boundary; do not build toward the imagined end.
 - Real entrypoint or it did not happen; a proof is legible when a human can watch it and decide.
 - A ticket is a projection; the mission is the authority. If the ticket stops serving the

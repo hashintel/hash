@@ -15,7 +15,6 @@ import type {
 export const admissionBufferLimits = {
   bytes: 8 * 1024 * 1024,
   events: 16_384,
-  milliseconds: 120_000,
 } as const;
 const bufferLimitError = () =>
   new Error("Brunch response exceeded the admission buffering limit.");
@@ -76,10 +75,6 @@ class AdmittedStream extends EventStream<
       signal.addEventListener("abort", rejectAbort, { once: true });
     });
     void interrupted.catch(() => {});
-    const timer = setTimeout(
-      () => controller.abort(bufferLimitError()),
-      admissionBufferLimits.milliseconds,
-    );
     const count = (value: unknown) => {
       bytes += Buffer.byteLength(JSON.stringify(value), "utf8");
       if (
@@ -165,7 +160,6 @@ class AdmittedStream extends EventStream<
         .catch(() => {});
       throw error;
     } finally {
-      clearTimeout(timer);
       signal.removeEventListener("abort", rejectAbort);
     }
   }

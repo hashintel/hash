@@ -301,6 +301,79 @@ test("checks the tool inputs Flue publishes as well as the final response calls"
   ).rejects.toThrow("Mixed browser/server proposal");
 });
 
+for (const method of ["stream", "streamSimple"] as const) {
+  test.each(["complete", "cancel"] as const)(
+    `${method} can %s after waiting beyond the former two-minute deadline`,
+    async (ending) => {
+      vi.useFakeTimers();
+      try {
+        const { faux, model } = fixture();
+        const upstream = createAssistantMessageEventStream();
+        let upstreamSignal: AbortSignal | undefined;
+        const start: Provider["streamSimple"] = (_model, _context, options) => {
+          upstreamSignal = options?.signal;
+          return upstream;
+        };
+        const provider = withBufferedToolAdmission(
+          { ...faux.provider, [method]: start },
+          () => true,
+          new Set(["browser"]),
+        );
+        const abort = new AbortController();
+        const stream = provider[method](
+          model,
+          { messages: [] },
+          { signal: abort.signal },
+        );
+        const published: AssistantMessageEvent[] = [];
+        const reading = (async () => {
+          for await (const event of stream) published.push(event);
+          return stream.result();
+        })();
+        const outcome = reading.then(
+          (result) => result,
+          (error: unknown) => error,
+        );
+        await vi.advanceTimersByTimeAsync(180_000);
+        expect(upstreamSignal?.aborted).toBe(false);
+        expect(published).toEqual([]);
+        const call = fauxToolCall("browser", {}, { id: "delayed-call" });
+        const message = fauxAssistantMessage([call], {
+          stopReason: "toolUse",
+        });
+        if (ending === "cancel") {
+          abort.abort();
+        } else {
+          upstream.push({
+            type: "toolcall_end",
+            contentIndex: 0,
+            toolCall: call,
+            partial: message,
+          });
+          upstream.push({ type: "done", reason: "toolUse", message });
+        }
+        const expected =
+          ending === "cancel"
+            ? new DOMException(
+                "Brunch response cancelled before admission.",
+                "AbortError",
+              )
+            : message;
+        expect(await outcome).toEqual(expected);
+        expect(upstreamSignal?.aborted).toBe(ending === "cancel");
+        expect(published.map((event) => event.type)).toEqual(
+          ending === "cancel" ? [] : ["toolcall_end", "done"],
+        );
+        await expect(
+          stream.result().catch((error: unknown) => error),
+        ).resolves.toEqual(expected);
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+}
+
 test("bounds event count even when individual chunks are tiny", async () => {
   const { faux, model } = fixture();
   const upstream = createAssistantMessageEventStream();
@@ -321,28 +394,4 @@ test("bounds event count even when individual chunks are tiny", async () => {
   await expect(
     collect(provider.streamSimple(model, { messages: [] })),
   ).rejects.toThrow("buffering limit");
-});
-
-test("bounds silence without a retryable timeout message", async () => {
-  vi.useFakeTimers();
-  try {
-    const { faux, model } = fixture();
-    const provider = withBufferedToolAdmission(
-      {
-        ...faux.provider,
-        streamSimple() {
-          return createAssistantMessageEventStream();
-        },
-      },
-      () => true,
-      new Set(["browser"]),
-    );
-    const assertion = expect(
-      collect(provider.streamSimple(model, { messages: [] })),
-    ).rejects.toThrow("buffering limit");
-    await vi.advanceTimersByTimeAsync(admissionBufferLimits.milliseconds);
-    await assertion;
-  } finally {
-    vi.useRealTimers();
-  }
 });
