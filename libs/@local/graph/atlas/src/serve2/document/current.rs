@@ -41,7 +41,9 @@ mod tests {
         let document = CurrentDocument::new(generation);
         let mut bytes = Vec::new_in(&Global);
         bytes.extend_from_slice(b"previous document");
-        let _completed = document.encode(&mut bytes);
+        let _completed = document
+            .encode(&mut bytes)
+            .expect("should complete the current-generation response");
         assert_eq!(
             bytes,
             br#"{"generation":"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"}"#,

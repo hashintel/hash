@@ -32,5 +32,10 @@ pub(crate) trait Document {
     type Error;
 
     /// Replaces `buffer` and returns its writer's completion token.
+    ///
+    /// # Errors
+    ///
+    /// Returns the implementation's encoding error. The buffer may contain a partial document on
+    /// failure.
     fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Result<Envelope, Self::Error>;
 }

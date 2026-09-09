@@ -23,7 +23,9 @@ fn json_empty() {
     };
     let mut bytes = Vec::new_in(&Global);
     bytes.extend_from_slice(b"previous document");
-    let _completed = document.encode(&mut bytes);
+    let _completed = document
+        .encode(&mut bytes)
+        .expect("should complete the empty response");
     assert_eq!(bytes, br#"{"nodes":{},"edges":{}}"#);
 }
 
@@ -54,7 +56,9 @@ fn json_nodes_edges() {
         )]),
     };
     let mut bytes = Vec::new_in(&Global);
-    let _completed = document.encode(&mut bytes);
+    let _completed = document
+        .encode(&mut bytes)
+        .expect("should complete the geometry response");
     let actual: serde_json::Value =
         serde_json::from_slice(&bytes).expect("should decode a complete translate response");
     assert_eq!(
@@ -80,7 +84,9 @@ fn json_nodes_edges() {
         nodes: BTreeMap::new(),
         edges: BTreeMap::new(),
     };
-    let _completed = empty.encode(&mut bytes);
+    let _completed = empty
+        .encode(&mut bytes)
+        .expect("should complete the replacement response");
     assert_eq!(
         bytes, br#"{"nodes":{},"edges":{}}"#,
         "should replace the longer response"
