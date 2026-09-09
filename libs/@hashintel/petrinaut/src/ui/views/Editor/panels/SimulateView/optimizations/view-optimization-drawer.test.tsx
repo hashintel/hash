@@ -12,6 +12,7 @@ import {
   type OptimizationsContextValue,
 } from "../../../../../../react/optimizations/context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { frameLayoutSignature } from "../shared/drawer-frame";
 import {
   fakeConstrainedStudyInput,
   fakeConstrainedStudyTrials,
@@ -37,17 +38,8 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   const Drawer = Object.assign(
     ({ children }: { children: ReactNode }) => <div>{children}</div>,
     {
-      Header: ({
-        title,
-        description,
-      }: {
-        title: ReactNode;
-        description?: ReactNode;
-      }) => (
-        <header>
-          {title}
-          <p>{description}</p>
-        </header>
+      Header: ({ children }: { children: ReactNode }) => (
+        <header>{children}</header>
       ),
       Body: ({ children }: { children: ReactNode }) => <main>{children}</main>,
       Footer: ({ actions }: { actions: ReactNode }) => (
@@ -111,7 +103,18 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
     );
   };
 
-  return { ...actual, Drawer, Menu, Slider, Tooltip };
+  // The Ark popover positions itself against a trigger jsdom cannot lay out;
+  // this one renders its panel in place.
+  const Popover = Object.assign(
+    ({ children }: { children: ReactNode }) => <div>{children}</div>,
+    {
+      Container: ({ children }: { children: ReactNode }) => (
+        <div>{children}</div>
+      ),
+    },
+  );
+
+  return { ...actual, Drawer, Menu, Popover, Slider, Tooltip };
 });
 
 vi.mock("./optimization-surface", () => ({
@@ -239,7 +242,7 @@ describe("ViewOptimizationDrawer for a remote study", () => {
     expect(screen.queryByTitle("Best step")).toBeNull();
   });
 
-  it("names the scenario and the objective under the title", () => {
+  it("names the scenario and the objective in the one-line title", () => {
     renderDrawer(remote);
 
     const metric = input.model.definition.metrics![0]!;
@@ -469,13 +472,9 @@ describe("ViewOptimizationDrawer for a connected study", () => {
       },
     });
 
+    // The reason lives in the badge's tooltip, which the mock does not render.
     expect(screen.getByText("CPU")).toBeTruthy();
     expect(screen.queryByText("GPU")).toBeNull();
-    expect(
-      screen.getByText(
-        "Ran on the CPU: the GPU cannot compute expression metrics",
-      ),
-    ).toBeTruthy();
   });
 
   it("badges a study that ran on the GPU", () => {
@@ -519,7 +518,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     expect(extendOptimization).toHaveBeenCalledWith(stopped.id, 4);
   });
 
-  it("shows the followed step's runs under the steps bar and lists the batches computing", () => {
+  it("lists the batches computing from the computing chip", () => {
     renderDrawer({
       ...connected,
       connected: {
@@ -538,7 +537,6 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     });
 
     expect(screen.getByText("3 / 30")).toBeTruthy();
-    expect(screen.getByText("Step 3 · 1 / 1 runs")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /2 computing/ }));
     expect(screen.getByText("Step 3")).toBeTruthy();
     expect(screen.getByText("0 / 1 runs")).toBeTruthy();
@@ -927,5 +925,103 @@ describe("ViewOptimizationDrawer's Sensitivity analysis card", () => {
     expect(card.textContent).not.toContain("floor");
     expect(card.querySelectorAll("[data-importance-row]")).toHaveLength(1);
     expect(card.textContent).toMatch(/[+−]\d\.\d\d/u);
+  });
+});
+
+describe("ViewOptimizationDrawer holds every box still across states", () => {
+  const navigation = navigationAtTrial(input, trials[2]!, true);
+  const base = {
+    input,
+    trials: trials.slice(0, 3),
+    best: trials[2]!.best,
+  };
+  const states: OptimizationRecord[] = [
+    makeOptimizationRecord({
+      ...base,
+      status: "running",
+      connected: makeConnectedStudyState(input, {
+        navigation,
+        selection: makeSelectionStream({
+          input,
+          navigation,
+          followedTrial: 2,
+          runsCompleted: 1,
+          computing: true,
+          frameCount: 4,
+        }),
+      }),
+    }),
+    makeOptimizationRecord({
+      ...base,
+      status: "paused",
+      connected: makeConnectedStudyState(input, {
+        navigation: navigationAtTrial(input, trials[2]!, false),
+        selection: null,
+        resumable: true,
+      }),
+    }),
+    makeOptimizationRecord({
+      ...base,
+      status: "cancelled",
+      connected: makeConnectedStudyState(input, {
+        navigation: navigationAtTrial(input, trials[2]!, false),
+        resumable: true,
+      }),
+    }),
+    makeOptimizationRecord({
+      ...base,
+      status: "complete",
+      connected: makeConnectedStudyState(input, {
+        navigation: navigationAtTrial(input, trials[2]!, false),
+        resumable: true,
+      }),
+    }),
+  ];
+
+  it("gives the header, the note row, every card and the steps table one height in running, paused, stopped and complete", () => {
+    const signatures = states.map((state) => {
+      const view = renderDrawer(state);
+      const signature = frameLayoutSignature(view.container);
+      view.unmount();
+      return signature;
+    });
+
+    expect(signatures[0]!.header).toBe("56px");
+    expect(signatures[0]!.note).toBe("20px");
+    expect(signatures[0]!.steps).toBe("320px");
+    expect(signatures[0]!.cards.map(([title]) => title)).toEqual([
+      "Objective at the step in flight",
+      "Objective by step",
+      "Parameter importance",
+    ]);
+    for (const signature of signatures.slice(1)) {
+      // A settled study titles the objective card for the point it shows;
+      // the boxes are the same.
+      expect({
+        ...signature,
+        cards: signature.cards.map(([, height]) => height),
+      }).toEqual({
+        ...signatures[0],
+        cards: signatures[0]!.cards.map(([, height]) => height),
+      });
+    }
+  });
+
+  it("puts the resume note in the reserved row while paused", () => {
+    renderDrawer(states[1]!);
+
+    const note = document.querySelector<HTMLElement>("[data-frame-note]")!;
+    expect(note.style.height).toBe("20px");
+    expect(note.querySelector("[data-resume-note]")).toBeTruthy();
+  });
+
+  it("leaves the objective card's height alone when its aggregation changes", () => {
+    const view = renderDrawer(states[0]!);
+    const before = frameLayoutSignature(view.container);
+
+    fireEvent.click(screen.getByRole("button", { name: "Chart options" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Median" }));
+
+    expect(frameLayoutSignature(view.container)).toEqual(before);
   });
 });
