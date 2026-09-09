@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "sourceCommit": "c9f8ced5eca31bc177539d185c2b4addd97f99eb",
+  "originalFilesVerified": 353,
+  "protectedNonledgerPaths": 24,
+  "sourcePaths": 3,
+  "inheritedBuildFiles": 106,
+  "inheritedBrowserLibraryFiles": 563,
+  "finalFreezeGenerated": false,
+  "rebuilt": false
+}

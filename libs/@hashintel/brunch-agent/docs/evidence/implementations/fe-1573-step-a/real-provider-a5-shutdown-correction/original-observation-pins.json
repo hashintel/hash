@@ -1,0 +1,1767 @@
+{
+  "observations/runs/app-tests.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/app-tests.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/app-tests.log.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/app-tests.log",
+    "sha256": "1b9a05227b242b00dde0b3eb8610b7302a27a5064e1ea449d54788ab81ef00ba",
+    "bytes": 437
+  },
+  "observations/runs/dry/TEST-usage-ledger.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/TEST-usage-ledger.json",
+    "sha256": "4943ec8b6a676eb61da6264bfba219b7d3e18e48bc9f349cb84349337cc1db97",
+    "bytes": 11124
+  },
+  "observations/runs/dry/accounting-observations.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/accounting-observations.json",
+    "sha256": "b54a0b41b4ad7fa85a7e4031b77e68d62171b3084fc9a211a48eadb8e887d759",
+    "bytes": 10941
+  },
+  "observations/runs/dry/attempt-ledger.md.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/attempt-ledger.md",
+    "sha256": "2c27b67a2b62b32f4542976820dbd069e06c20f7bba6f5f0d01f290ef79c8d6c",
+    "bytes": 6571
+  },
+  "observations/runs/dry/browser-driver.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/browser-driver.stderr",
+    "sha256": "7cb5c1a67a28b4825c0a922d05ea45d206072de9daf3b686f496eb8f210005a4",
+    "bytes": 169
+  },
+  "observations/runs/dry/browser-driver.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/browser-driver.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/dry/browser-lifecycle.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/browser-lifecycle.json",
+    "sha256": "6151b63d7e469473ee19ee3148a589c4c134e5fd6877050d02a765c4e11aaf3a",
+    "bytes": 2002
+  },
+  "observations/runs/dry/browser-owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/browser-owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/dry/browser-owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/browser-owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/dry/browser-session-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/browser-session-observation.json",
+    "sha256": "78c4437fae3ad584c478e17c553f1fe6ea01c006a4aecaf7244a95fdf9967edf",
+    "bytes": 935
+  },
+  "observations/runs/dry/conversation.db.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/conversation.db",
+    "sha256": "bcfa954789b8cbfea5981a6f4e67755abbb40d1987fab5794946a2c3b614cac9",
+    "bytes": 204800
+  },
+  "observations/runs/dry/driver-result.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/driver-result.json",
+    "sha256": "5e93c291a43ad5c014f1a3e05e3877cebad4421e65b0f71e5bd541ef02c19c4b",
+    "bytes": 649
+  },
+  "observations/runs/dry/final-browser-document.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/final-browser-document.json",
+    "sha256": "0af213ca9ba318c09001ccbaa7cd384e5556456a9a910a2bee392495259d6c62",
+    "bytes": 2718
+  },
+  "observations/runs/dry/final-history.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/final-history.json",
+    "sha256": "e56b8ec094e2009ec98a5595ce493a6cdc864e5629901fd82e50e5af6a8a9aa7",
+    "bytes": 17085
+  },
+  "observations/runs/dry/history-0.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/history-0.json",
+    "sha256": "d41fd1250582d6d1eda8fde6ef6697694e0222cef7a6adf1859d67ad5ae915fd",
+    "bytes": 14660
+  },
+  "observations/runs/dry/history-1.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/history-1.json",
+    "sha256": "e56b8ec094e2009ec98a5595ce493a6cdc864e5629901fd82e50e5af6a8a9aa7",
+    "bytes": 17085
+  },
+  "observations/runs/dry/http-deliveries.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/http-deliveries.json",
+    "sha256": "4fcde11d81f83678abbf8ee84b0ae388416cbe860a9fb94fce91ac05e62e59aa",
+    "bytes": 9095
+  },
+  "observations/runs/dry/initial-browser-document.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/initial-browser-document.json",
+    "sha256": "ddaa87d3902762005a346c5f210f16cd9c0c2201fd16bbba1ed9bfab1d0d6a12",
+    "bytes": 2463
+  },
+  "observations/runs/dry/native-1-request.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/native-1-request.json",
+    "sha256": "e4a763a49ca2dc3b95d912cb12bae4eeeeba44cfdda977593dcfbbdfec9cfcdb",
+    "bytes": 15899
+  },
+  "observations/runs/dry/native-2-request.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/native-2-request.json",
+    "sha256": "6897e5540fc46149d5cd3aa642bedf3fc7a4419a9c323fcbef91a2d86ac63bab",
+    "bytes": 17332
+  },
+  "observations/runs/dry/native-3-request.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/native-3-request.json",
+    "sha256": "e9c5dabf4f2682ab12289f6678e3270fdbae377c23c73750956b26604715b920",
+    "bytes": 23649
+  },
+  "observations/runs/dry/native-4-request.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/native-4-request.json",
+    "sha256": "075473729b890deff29a5261af9c2d8056545220cfc71eab37641c83eb140d05",
+    "bytes": 28349
+  },
+  "observations/runs/dry/native-5-request.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/native-5-request.json",
+    "sha256": "497b6aead07bfcee7258dfcb188df9f6f64a13ce0b65e63fe2ec61d0b74e0ae1",
+    "bytes": 29720
+  },
+  "observations/runs/dry/pane-0.png": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/pane-0.png",
+    "sha256": "6cd401778f984e46b60f7215958d9cdffe17574f4ff393c9564a9fa37ad56b08",
+    "bytes": 196018
+  },
+  "observations/runs/dry/pane-1.png": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/pane-1.png",
+    "sha256": "5e7235f137c4df45ca51aecf7830992bc63d760e3b4931c79c310ea2bf17a206",
+    "bytes": 239022
+  },
+  "observations/runs/dry/preparation-receipt.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/preparation-receipt.json",
+    "sha256": "a0a0cc975821f7981e95c66a58560065c2f39963c0d852226645f6bdbd9a6e53",
+    "bytes": 275
+  },
+  "observations/runs/dry/retained-history-on-exit.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/retained-history-on-exit.json",
+    "sha256": "e56b8ec094e2009ec98a5595ce493a6cdc864e5629901fd82e50e5af6a8a9aa7",
+    "bytes": 17085
+  },
+  "observations/runs/dry/user-0-receipt.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/user-0-receipt.json",
+    "sha256": "b1263aa3a295aeaf8222d259ced4f55094ccb7d2ab4e2a37f399a99bcd50dab4",
+    "bytes": 275
+  },
+  "observations/runs/dry/user-1-receipt.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry/user-1-receipt.json",
+    "sha256": "c594750f8c0eeee70dd2d9d65cfb68738fe44858c41d3f049b22e05be1606999",
+    "bytes": 275
+  },
+  "observations/runs/dry.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/dry.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/dry.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/dry.stdout",
+    "sha256": "7edd283725bd60b2fe50890fe0eed4578d35dbac15bdac3e17386b67173f99d7",
+    "bytes": 68
+  },
+  "observations/runs/fault-green/close-rejection/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-rejection/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-green/close-rejection/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-rejection/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/close-rejection/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-rejection/endpoint-before-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-green/close-rejection/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-rejection/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/close-rejection/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-rejection/identity.json",
+    "sha256": "89d329dd06dfbb7c5a518daee4d8c786f24d706b89ac04dd52d60f799f13f80c",
+    "bytes": 1233
+  },
+  "observations/runs/fault-green/close-rejection/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-rejection/owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/close-rejection/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-rejection/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/close-rejection/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-rejection/production-observation.json",
+    "sha256": "a87774d1a665f778cae233276aa05c764ac87bacfefe644445ffe1b70b3c01e8",
+    "bytes": 2022
+  },
+  "observations/runs/fault-green/close-rejection/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-rejection/test-cleanup.json",
+    "sha256": "069f70d20166246888e08cb63ac61c64836be1cb36971b6d94feb6bc3a867c68",
+    "bytes": 198
+  },
+  "observations/runs/fault-green/close-timeout/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-timeout/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-green/close-timeout/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-timeout/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/close-timeout/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-timeout/endpoint-before-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-green/close-timeout/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-timeout/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/close-timeout/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-timeout/identity.json",
+    "sha256": "18ae0e14610ba95cc1d017f814516e9198d571451c665fb50377f76404bce2ef",
+    "bytes": 1231
+  },
+  "observations/runs/fault-green/close-timeout/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-timeout/owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/close-timeout/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-timeout/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/close-timeout/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-timeout/production-observation.json",
+    "sha256": "5d1efe1476949bf8255ca1891a874f0376677abfd93636d52f1f5829aac7e8e6",
+    "bytes": 1061
+  },
+  "observations/runs/fault-green/close-timeout/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/close-timeout/test-cleanup.json",
+    "sha256": "069f70d20166246888e08cb63ac61c64836be1cb36971b6d94feb6bc3a867c68",
+    "bytes": 198
+  },
+  "observations/runs/fault-green/kill-rejection/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-rejection/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-green/kill-rejection/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-rejection/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/kill-rejection/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-rejection/endpoint-before-rescue.json",
+    "sha256": "32e4fdf646579b329a08aa75753990ed36a92d3ef58d8ace5b2312efb001719f",
+    "bytes": 21
+  },
+  "observations/runs/fault-green/kill-rejection/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-rejection/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/kill-rejection/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-rejection/identity.json",
+    "sha256": "4932933b4c0f739008534107a0b7b9f879ca22378f7cf4b8d96abfac8a05a028",
+    "bytes": 1232
+  },
+  "observations/runs/fault-green/kill-rejection/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-rejection/owner.stderr",
+    "sha256": "8c680a6253abf260fb8a94e09587b46a9644a0a948a08d9a8a1337e35ce6ef5a",
+    "bytes": 61
+  },
+  "observations/runs/fault-green/kill-rejection/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-rejection/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/kill-rejection/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-rejection/production-observation.json",
+    "sha256": "cba583e32fd126cb92ee8c020c372882ea039790b07bc5ad8ebdeee0af387f27",
+    "bytes": 3462
+  },
+  "observations/runs/fault-green/kill-rejection/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-rejection/test-cleanup.json",
+    "sha256": "0e41791cdf1f5f9eb9fd5ab5f025e6c9f4656e5e432a7d1aba09e7ee320cad81",
+    "bytes": 197
+  },
+  "observations/runs/fault-green/kill-timeout/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-timeout/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-green/kill-timeout/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-timeout/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/kill-timeout/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-timeout/endpoint-before-rescue.json",
+    "sha256": "32e4fdf646579b329a08aa75753990ed36a92d3ef58d8ace5b2312efb001719f",
+    "bytes": 21
+  },
+  "observations/runs/fault-green/kill-timeout/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-timeout/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/kill-timeout/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-timeout/identity.json",
+    "sha256": "489dd318194cbf5417c21588a0e938f64fe98b0c5388158319296edb77fd9e05",
+    "bytes": 1230
+  },
+  "observations/runs/fault-green/kill-timeout/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-timeout/owner.stderr",
+    "sha256": "8c680a6253abf260fb8a94e09587b46a9644a0a948a08d9a8a1337e35ce6ef5a",
+    "bytes": 61
+  },
+  "observations/runs/fault-green/kill-timeout/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-timeout/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green/kill-timeout/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-timeout/production-observation.json",
+    "sha256": "d48607601458a10b434226a2fddd2e17905c5a99d719f43514be8915e7876721",
+    "bytes": 2504
+  },
+  "observations/runs/fault-green/kill-timeout/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/kill-timeout/test-cleanup.json",
+    "sha256": "0e41791cdf1f5f9eb9fd5ab5f025e6c9f4656e5e432a7d1aba09e7ee320cad81",
+    "bytes": 197
+  },
+  "observations/runs/fault-green/result.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green/result.json",
+    "sha256": "0ab38886dca8a4089e95400a33d5e87c76cf0355a329a06b1d104e60552478e7",
+    "bytes": 9802
+  },
+  "observations/runs/fault-green-first/close-rejection/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-rejection/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-green-first/close-rejection/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-rejection/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/close-rejection/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-rejection/endpoint-before-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-green-first/close-rejection/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-rejection/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/close-rejection/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-rejection/identity.json",
+    "sha256": "cd144559131d7160751e76e22bb82e4a0c250a82d0d7d49c0337d3230e5f800a",
+    "bytes": 1233
+  },
+  "observations/runs/fault-green-first/close-rejection/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-rejection/owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/close-rejection/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-rejection/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/close-rejection/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-rejection/production-observation.json",
+    "sha256": "d290f52c7138e88671a93ef7651c16a143154fda162045507b86a193ddb1b055",
+    "bytes": 2022
+  },
+  "observations/runs/fault-green-first/close-rejection/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-rejection/test-cleanup.json",
+    "sha256": "069f70d20166246888e08cb63ac61c64836be1cb36971b6d94feb6bc3a867c68",
+    "bytes": 198
+  },
+  "observations/runs/fault-green-first/close-timeout/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-timeout/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-green-first/close-timeout/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-timeout/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/close-timeout/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-timeout/endpoint-before-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-green-first/close-timeout/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-timeout/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/close-timeout/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-timeout/identity.json",
+    "sha256": "064c27e8fcdf9c06cf51211348203c95355e6c8dfdd127c3e7389569dd077a3e",
+    "bytes": 1231
+  },
+  "observations/runs/fault-green-first/close-timeout/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-timeout/owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/close-timeout/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-timeout/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/close-timeout/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-timeout/production-observation.json",
+    "sha256": "59dfde300b01a27ab16d7ab107751e65ccbe4ef0283a7cfc46a1aa1e85fbc89a",
+    "bytes": 1061
+  },
+  "observations/runs/fault-green-first/close-timeout/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/close-timeout/test-cleanup.json",
+    "sha256": "069f70d20166246888e08cb63ac61c64836be1cb36971b6d94feb6bc3a867c68",
+    "bytes": 198
+  },
+  "observations/runs/fault-green-first/kill-rejection/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-rejection/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-green-first/kill-rejection/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-rejection/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/kill-rejection/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-rejection/endpoint-before-rescue.json",
+    "sha256": "32e4fdf646579b329a08aa75753990ed36a92d3ef58d8ace5b2312efb001719f",
+    "bytes": 21
+  },
+  "observations/runs/fault-green-first/kill-rejection/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-rejection/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/kill-rejection/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-rejection/identity.json",
+    "sha256": "dd5d01f166642b14e2e68e77aae06030920f8bf5a9451343302ff25734f80fef",
+    "bytes": 1232
+  },
+  "observations/runs/fault-green-first/kill-rejection/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-rejection/owner.stderr",
+    "sha256": "8c680a6253abf260fb8a94e09587b46a9644a0a948a08d9a8a1337e35ce6ef5a",
+    "bytes": 61
+  },
+  "observations/runs/fault-green-first/kill-rejection/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-rejection/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/kill-rejection/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-rejection/production-observation.json",
+    "sha256": "6fdae119b4f8ac3f2f2ec324ea01b1593eb7af234b1c1f13f2af9f34d098566e",
+    "bytes": 3462
+  },
+  "observations/runs/fault-green-first/kill-rejection/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-rejection/test-cleanup.json",
+    "sha256": "0e41791cdf1f5f9eb9fd5ab5f025e6c9f4656e5e432a7d1aba09e7ee320cad81",
+    "bytes": 197
+  },
+  "observations/runs/fault-green-first/kill-timeout/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-timeout/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-green-first/kill-timeout/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-timeout/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/kill-timeout/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-timeout/endpoint-before-rescue.json",
+    "sha256": "32e4fdf646579b329a08aa75753990ed36a92d3ef58d8ace5b2312efb001719f",
+    "bytes": 21
+  },
+  "observations/runs/fault-green-first/kill-timeout/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-timeout/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/kill-timeout/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-timeout/identity.json",
+    "sha256": "6dc6cd64e19c80958336613d6bdb417a046f92a9cd3f56922aca539b8b333b4b",
+    "bytes": 1230
+  },
+  "observations/runs/fault-green-first/kill-timeout/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-timeout/owner.stderr",
+    "sha256": "8c680a6253abf260fb8a94e09587b46a9644a0a948a08d9a8a1337e35ce6ef5a",
+    "bytes": 61
+  },
+  "observations/runs/fault-green-first/kill-timeout/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-timeout/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first/kill-timeout/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-timeout/production-observation.json",
+    "sha256": "592a56ffeaf2d213bfd0327dd792fa13e58b84448feedc1da188beb1b8862d44",
+    "bytes": 2504
+  },
+  "observations/runs/fault-green-first/kill-timeout/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/kill-timeout/test-cleanup.json",
+    "sha256": "0e41791cdf1f5f9eb9fd5ab5f025e6c9f4656e5e432a7d1aba09e7ee320cad81",
+    "bytes": 197
+  },
+  "observations/runs/fault-green-first/result.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first/result.json",
+    "sha256": "2c63cf2098af282016a3db4bbcb402a1b5fbe5eb182d5b88be95c6f1eac1b870",
+    "bytes": 9802
+  },
+  "observations/runs/fault-green-first.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/fault-green-first.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green-first.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green-first.stdout",
+    "sha256": "d0d9830f8e45ad02fa969979c1d7a154de46b9687a62406ea81ddb43c5285763",
+    "bytes": 104
+  },
+  "observations/runs/fault-green.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/fault-green.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-green.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-green.stdout",
+    "sha256": "60f55164537a983bc742899f76e236539c1abb7f7a3e38af00c73fa3323a41c3",
+    "bytes": 98
+  },
+  "observations/runs/fault-red/close-rejection/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-red/close-rejection/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-red/close-rejection/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-red/close-rejection/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-red/close-rejection/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-red/close-rejection/endpoint-before-rescue.json",
+    "sha256": "32e4fdf646579b329a08aa75753990ed36a92d3ef58d8ace5b2312efb001719f",
+    "bytes": 21
+  },
+  "observations/runs/fault-red/close-rejection/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-red/close-rejection/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-red/close-rejection/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-red/close-rejection/identity.json",
+    "sha256": "41cb44bfbc44343f677e2314c64dcd9193b4b4655c666a806aded8ce84ca2659",
+    "bytes": 1233
+  },
+  "observations/runs/fault-red/close-rejection/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-red/close-rejection/owner.stderr",
+    "sha256": "8c680a6253abf260fb8a94e09587b46a9644a0a948a08d9a8a1337e35ce6ef5a",
+    "bytes": 61
+  },
+  "observations/runs/fault-red/close-rejection/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-red/close-rejection/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-red/close-rejection/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-red/close-rejection/production-observation.json",
+    "sha256": "b2d00433b8845af91fd458dd367ad1edc265043735c6c5779e01392e40580668",
+    "bytes": 982
+  },
+  "observations/runs/fault-red/close-rejection/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-red/close-rejection/test-cleanup.json",
+    "sha256": "0e41791cdf1f5f9eb9fd5ab5f025e6c9f4656e5e432a7d1aba09e7ee320cad81",
+    "bytes": 197
+  },
+  "observations/runs/fault-red.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-red.exit",
+    "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "bytes": 2
+  },
+  "observations/runs/fault-red.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-red.stderr",
+    "sha256": "aeb4acb329c8a2c00c026a96f4341fb3e719e98a4338ef69b7b7b0dc375e5b30",
+    "bytes": 541
+  },
+  "observations/runs/fault-red.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-red.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/close-rejection/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-rejection/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-review/close-rejection/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-rejection/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/close-rejection/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-rejection/endpoint-before-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-review/close-rejection/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-rejection/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/close-rejection/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-rejection/identity.json",
+    "sha256": "b943638bb0cc3f029d5a97cb05a4bd95087201e092c1b8454e64c9f0c3186a25",
+    "bytes": 1233
+  },
+  "observations/runs/fault-review/close-rejection/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-rejection/owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/close-rejection/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-rejection/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/close-rejection/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-rejection/production-observation.json",
+    "sha256": "46c5770358fc391b0cc67144cbd2eea6f2fc0bd0c635b82d5911f65541f324cd",
+    "bytes": 2059
+  },
+  "observations/runs/fault-review/close-rejection/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-rejection/test-cleanup.json",
+    "sha256": "069f70d20166246888e08cb63ac61c64836be1cb36971b6d94feb6bc3a867c68",
+    "bytes": 198
+  },
+  "observations/runs/fault-review/close-timeout/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-timeout/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-review/close-timeout/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-timeout/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/close-timeout/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-timeout/endpoint-before-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-review/close-timeout/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-timeout/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/close-timeout/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-timeout/identity.json",
+    "sha256": "459e60e2550f11d162dd073b69b943c2c3552261d4c8e8260e27b3f92942b9ad",
+    "bytes": 1231
+  },
+  "observations/runs/fault-review/close-timeout/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-timeout/owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/close-timeout/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-timeout/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/close-timeout/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-timeout/production-observation.json",
+    "sha256": "5e94284f750584c5a0852d614b5bc3ed7ae02672199ab2e03f93e9904b7b9236",
+    "bytes": 1091
+  },
+  "observations/runs/fault-review/close-timeout/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/close-timeout/test-cleanup.json",
+    "sha256": "069f70d20166246888e08cb63ac61c64836be1cb36971b6d94feb6bc3a867c68",
+    "bytes": 198
+  },
+  "observations/runs/fault-review/kill-rejection/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-rejection/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-review/kill-rejection/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-rejection/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/kill-rejection/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-rejection/endpoint-before-rescue.json",
+    "sha256": "32e4fdf646579b329a08aa75753990ed36a92d3ef58d8ace5b2312efb001719f",
+    "bytes": 21
+  },
+  "observations/runs/fault-review/kill-rejection/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-rejection/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/kill-rejection/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-rejection/identity.json",
+    "sha256": "2865f2710d6c2293d0a6085cf5df0e87c647c6338ad125c76b6b43d1d0ee254a",
+    "bytes": 1232
+  },
+  "observations/runs/fault-review/kill-rejection/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-rejection/owner.stderr",
+    "sha256": "8c680a6253abf260fb8a94e09587b46a9644a0a948a08d9a8a1337e35ce6ef5a",
+    "bytes": 61
+  },
+  "observations/runs/fault-review/kill-rejection/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-rejection/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/kill-rejection/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-rejection/production-observation.json",
+    "sha256": "ec084a3ae09e02f59e3e8c7d1178e500bdae669f5a2d163cccbd0bb74ff00214",
+    "bytes": 3500
+  },
+  "observations/runs/fault-review/kill-rejection/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-rejection/test-cleanup.json",
+    "sha256": "0e41791cdf1f5f9eb9fd5ab5f025e6c9f4656e5e432a7d1aba09e7ee320cad81",
+    "bytes": 197
+  },
+  "observations/runs/fault-review/kill-timeout/endpoint-after-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-timeout/endpoint-after-rescue.json",
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "bytes": 24
+  },
+  "observations/runs/fault-review/kill-timeout/endpoint-after-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-timeout/endpoint-after-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/kill-timeout/endpoint-before-rescue.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-timeout/endpoint-before-rescue.json",
+    "sha256": "32e4fdf646579b329a08aa75753990ed36a92d3ef58d8ace5b2312efb001719f",
+    "bytes": 21
+  },
+  "observations/runs/fault-review/kill-timeout/endpoint-before-rescue.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-timeout/endpoint-before-rescue.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/kill-timeout/identity.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-timeout/identity.json",
+    "sha256": "969bdb67b026ef6e32dfdf79bc4f1851083f84cf5463061d3e9b8cd1008ed70b",
+    "bytes": 1230
+  },
+  "observations/runs/fault-review/kill-timeout/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-timeout/owner.stderr",
+    "sha256": "8c680a6253abf260fb8a94e09587b46a9644a0a948a08d9a8a1337e35ce6ef5a",
+    "bytes": 61
+  },
+  "observations/runs/fault-review/kill-timeout/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-timeout/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review/kill-timeout/production-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-timeout/production-observation.json",
+    "sha256": "8d7ede262114dab5ff9ebd89c004fc8ee87ab4e353f46f91d6b6c6891caab8db",
+    "bytes": 2542
+  },
+  "observations/runs/fault-review/kill-timeout/test-cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/kill-timeout/test-cleanup.json",
+    "sha256": "0e41791cdf1f5f9eb9fd5ab5f025e6c9f4656e5e432a7d1aba09e7ee320cad81",
+    "bytes": 197
+  },
+  "observations/runs/fault-review/result.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review/result.json",
+    "sha256": "8bcb923ecb0f56254d948d16732fc15d534bab10c7dd3c2a8bd950e511c881ee",
+    "bytes": 9961
+  },
+  "observations/runs/fault-review.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/fault-review.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/fault-review.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/fault-review.stdout",
+    "sha256": "675ee909206fe9dfeb918ec8dc664600421e151151121f220ad0bf565fcb7f1e",
+    "bytes": 99
+  },
+  "observations/runs/format-check.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/format-check.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/format-check.log.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/format-check.log",
+    "sha256": "d3362f887f1704fe64688f6d388efefe4397febd301d7c4fa8bbc3ec0c8e9193",
+    "bytes": 622
+  },
+  "observations/runs/format-final.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/format-final.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/format-final.log.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/format-final.log",
+    "sha256": "b7c963ab54fe8e4eaf7d0b1e14be148ccbf6e77a118187791773b595c323c0f8",
+    "bytes": 556
+  },
+  "observations/runs/format.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/format.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/format.log.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/format.log",
+    "sha256": "66f85b039f24e3183f7136ad27b71f3208aad25164c605bfeef8bcb86134ad15",
+    "bytes": 556
+  },
+  "observations/runs/lifecycle/attach-failure/audit.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/audit.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/attach-failure/audit.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/audit.stdout",
+    "sha256": "86e6c86b8148f3a06d5c85657c50fe8775f6ec74d5b65fc02e4d82ced753258c",
+    "bytes": 34
+  },
+  "observations/runs/lifecycle/attach-failure/driver-output/TEST-usage-ledger.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/driver-output/TEST-usage-ledger.json",
+    "sha256": "9f97f2a82684c17a538f07f0cd3a942b436620a27f9aae1f1192d2d4e40cebae",
+    "bytes": 499
+  },
+  "observations/runs/lifecycle/attach-failure/driver-output/accounting-observations.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/driver-output/accounting-observations.json",
+    "sha256": "b6debc8f0a5a69e8a9c3f6d4776d67de7105108d76a84a01365e1132f4f7267f",
+    "bytes": 316
+  },
+  "observations/runs/lifecycle/attach-failure/driver-output/attempt-ledger.md.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/driver-output/attempt-ledger.md",
+    "sha256": "300a3cfe4d6cf476e69e5bc0d844f73c6576d287ece0806c167c3e5a326eec7f",
+    "bytes": 36
+  },
+  "observations/runs/lifecycle/attach-failure/driver-output/browser-session-observation.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/driver-output/browser-session-observation.json",
+    "sha256": "e3161771e7782075c2c6b74e0ab3c089d310bdedb0cb7374410f9eae8df88350",
+    "bytes": 935
+  },
+  "observations/runs/lifecycle/attach-failure/driver-output/driver-result.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/driver-output/driver-result.json",
+    "sha256": "d3469b53c7efbc11f7e930e02de65c212b7bd651a6e91217f1dee089daae9c69",
+    "bytes": 642
+  },
+  "observations/runs/lifecycle/attach-failure/driver-output/http-deliveries.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/driver-output/http-deliveries.json",
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "bytes": 3
+  },
+  "observations/runs/lifecycle/attach-failure/driver.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/driver.stderr",
+    "sha256": "3f6631a59c8bc8da0a83b6e921206474994e8d0e478c9e4a2db57b0bf3842a55",
+    "bytes": 416
+  },
+  "observations/runs/lifecycle/attach-failure/driver.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/driver.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/attach-failure/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/attach-failure/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/attach-failure/result.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/attach-failure/result.json",
+    "sha256": "682442127ab0c9df2729cb8b8bad0501e2153c8ef227a868e41fec07d46acef9",
+    "bytes": 1015
+  },
+  "observations/runs/lifecycle/foreign-execution/audit.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/foreign-execution/audit.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/foreign-execution/audit.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/foreign-execution/audit.stdout",
+    "sha256": "86e6c86b8148f3a06d5c85657c50fe8775f6ec74d5b65fc02e4d82ced753258c",
+    "bytes": 34
+  },
+  "observations/runs/lifecycle/foreign-execution/driver-output/TEST-usage-ledger.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/foreign-execution/driver-output/TEST-usage-ledger.json",
+    "sha256": "9f97f2a82684c17a538f07f0cd3a942b436620a27f9aae1f1192d2d4e40cebae",
+    "bytes": 499
+  },
+  "observations/runs/lifecycle/foreign-execution/driver-output/attempt-ledger.md.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/foreign-execution/driver-output/attempt-ledger.md",
+    "sha256": "300a3cfe4d6cf476e69e5bc0d844f73c6576d287ece0806c167c3e5a326eec7f",
+    "bytes": 36
+  },
+  "observations/runs/lifecycle/foreign-execution/driver.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/foreign-execution/driver.stderr",
+    "sha256": "dd6639e3a3af262fd45d7889827e33ce895203980027f52b5aa1cca9c17dc658",
+    "bytes": 834
+  },
+  "observations/runs/lifecycle/foreign-execution/driver.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/foreign-execution/driver.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/foreign-execution/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/foreign-execution/owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/foreign-execution/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/foreign-execution/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/foreign-execution/result.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/foreign-execution/result.json",
+    "sha256": "337d53d924aee159a2bb1ab10edb35ea9d2e2ea39efac30ef1adadbe041ae533",
+    "bytes": 1018
+  },
+  "observations/runs/lifecycle/interrupt/audit.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/interrupt/audit.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/interrupt/audit.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/interrupt/audit.stdout",
+    "sha256": "86e6c86b8148f3a06d5c85657c50fe8775f6ec74d5b65fc02e4d82ced753258c",
+    "bytes": 34
+  },
+  "observations/runs/lifecycle/interrupt/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/interrupt/owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/interrupt/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/interrupt/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/interrupt/result.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/interrupt/result.json",
+    "sha256": "c9096a33b16bfd4d315d923494e36e5cbbc3a8596a7498e67cd4269a9f7a1f5f",
+    "bytes": 961
+  },
+  "observations/runs/lifecycle/launcher-interrupt/driver-output/browser-lifecycle.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/launcher-interrupt/driver-output/browser-lifecycle.json",
+    "sha256": "65fdd3e904d2e4032b17dfb389ff81374ae953bd889e3f2dec71191d6347ca2e",
+    "bytes": 1937
+  },
+  "observations/runs/lifecycle/launcher-interrupt/driver-output/browser-orchestration-failure.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/launcher-interrupt/driver-output/browser-orchestration-failure.json",
+    "sha256": "a83ec079ced769a6f222b49a3745e8b29d085817aa7d26f4540332d1165e3fb3",
+    "bytes": 1203
+  },
+  "observations/runs/lifecycle/launcher-interrupt/driver-output/browser-owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/launcher-interrupt/driver-output/browser-owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/launcher-interrupt/driver-output/browser-owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/launcher-interrupt/driver-output/browser-owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/launcher-interrupt/launcher.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/launcher-interrupt/launcher.stderr",
+    "sha256": "3400789fd79160b165a1bbee1ef850c9572703849796d1955e09746090e88a34",
+    "bytes": 87
+  },
+  "observations/runs/lifecycle/launcher-interrupt/launcher.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/launcher-interrupt/launcher.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-PRaKgB/cleanup.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-PRaKgB/cleanup.json",
+    "sha256": "16ec85a3bb9dac18a4e1ea8cb1cfd7ce9b2673092781d13547386eb88f13050e",
+    "bytes": 600
+  },
+  "observations/runs/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-PRaKgB/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-PRaKgB/owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-PRaKgB/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-PRaKgB/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-PRaKgB/session.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-PRaKgB/session.json",
+    "sha256": "ebd6ed096f934003e9e028552df6934a5dd3b10b056f324adb3713fff5c26632",
+    "bytes": 1006
+  },
+  "observations/runs/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-PRaKgB/stop.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-PRaKgB/stop",
+    "sha256": "a11c3d917a2149a4b548217038bc8f2dd2130a1966e0c7af5c4225d81f25a8c3",
+    "bytes": 5
+  },
+  "observations/runs/lifecycle/lease-expired/audit.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/lease-expired/audit.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/lease-expired/audit.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/lease-expired/audit.stdout",
+    "sha256": "86e6c86b8148f3a06d5c85657c50fe8775f6ec74d5b65fc02e4d82ced753258c",
+    "bytes": 34
+  },
+  "observations/runs/lifecycle/lease-expired/owner.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/lease-expired/owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/lease-expired/owner.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/lease-expired/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle/lease-expired/result.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/lease-expired/result.json",
+    "sha256": "0f292902c6eda86d7d6bc698a0bc7e4cce8a5d65216c3ee6843797d2c1fc0194",
+    "bytes": 969
+  },
+  "observations/runs/lifecycle/result.json.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle/result.json",
+    "sha256": "c55a488d11b8b3820e45a6e03cb147b5d5a8898bfce2c266cc13c3062134b659",
+    "bytes": 6734
+  },
+  "observations/runs/lifecycle.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/lifecycle.stderr.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/lifecycle.stdout.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lifecycle.stdout",
+    "sha256": "8f6b67f056b45c2ec167645680ccde41520ab21cf02fd72740d3b0ba43011439",
+    "bytes": 100
+  },
+  "observations/runs/lint-final.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lint-final.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/lint-final.log.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lint-final.log",
+    "sha256": "81c17127ff2d64a46804006acafa185584a38417a636d2139046850036aaf10b",
+    "bytes": 11388
+  },
+  "observations/runs/lint-review.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lint-review.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/lint-review.log.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lint-review.log",
+    "sha256": "c1a12ad2c393bc2a517f30ca6e720dccb295b83cb98fd3916d98e652d4395125",
+    "bytes": 11388
+  },
+  "observations/runs/lint.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lint.exit",
+    "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "bytes": 2
+  },
+  "observations/runs/lint.log.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/lint.log",
+    "sha256": "e99b675402f758588949b232ed07c5a74e71983bf989ef7097f962b5b2d14631",
+    "bytes": 11700
+  },
+  "observations/runs/network-guard.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/network-guard.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/network-guard.log.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/network-guard.log",
+    "sha256": "271d807dcdbbc518e60403cea832908ec409759f9e603586673d9a3eae6ebc06",
+    "bytes": 578
+  },
+  "observations/runs/red-shutdown-hook.ts.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/red-shutdown-hook.ts",
+    "sha256": "1de7df3106ba98bef053e604409deabccd757c336977e1afb5d6325ddaff30e3",
+    "bytes": 2213
+  },
+  "observations/runs/red-shutdown-probe.ts.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/red-shutdown-probe.ts",
+    "sha256": "97628268896ac5d3c05ab6f503df96530022f5f1c7dbc13db900e84b3c3d5216",
+    "bytes": 8796
+  },
+  "observations/runs/types-final.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/types-final.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/types-final.log.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/types-final.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/types.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/types.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/types.log.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/types.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/runs/unit-22.exit.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/unit-22.exit",
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2
+  },
+  "observations/runs/unit-22.log.gz": {
+    "original": "/private/tmp/m7-shutdown-correction.KHbjED/unit-22.log",
+    "sha256": "73bf3d85817f91ee4221b8e8140ad90fa14986dba8c95c441110a5b50638a58b",
+    "bytes": 260
+  },
+  "observations/private-sessions/brunch-a5-browser-8PyJy0/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-8PyJy0/TEST-close-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-8PyJy0/TEST-kill-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-8PyJy0/TEST-kill-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-8PyJy0/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-8PyJy0/TEST-shutdown-fault.json",
+    "sha256": "ec2a9b0f59dce6398b427a2b7b830b35135701b8895c0f7a029376c7715e097e",
+    "bytes": 33
+  },
+  "observations/private-sessions/brunch-a5-browser-8PyJy0/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-8PyJy0/cleanup.json",
+    "sha256": "1bddcac2db38908a2181f07ba1d464997787d257d1faee6ad84431c94abeab9c",
+    "bytes": 581
+  },
+  "observations/private-sessions/brunch-a5-browser-8PyJy0/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-8PyJy0/session.json",
+    "sha256": "ec616369cd1d74e9cee46002b253cc65ae64251b30853877a38f8a909c852870",
+    "bytes": 991
+  },
+  "observations/private-sessions/brunch-a5-browser-8PyJy0/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-8PyJy0/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-AwzRF4/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-AwzRF4/TEST-close-called.json",
+    "sha256": "384cf728272af731bddd2661751977adadd504e57407e5b7e66b263584a10450",
+    "bytes": 43
+  },
+  "observations/private-sessions/brunch-a5-browser-AwzRF4/TEST-kill-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-AwzRF4/TEST-kill-called.json",
+    "sha256": "6b74e3e011131a001cbfa815b91fceca2af7735967b911cb7e893b295b96daa5",
+    "bytes": 42
+  },
+  "observations/private-sessions/brunch-a5-browser-AwzRF4/TEST-rescue-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-AwzRF4/TEST-rescue-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-AwzRF4/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-AwzRF4/TEST-shutdown-fault.json",
+    "sha256": "9829741542be4ec6c84156cead3e5a5f7010bf1ef7a6eef81986fd1337caa703",
+    "bytes": 32
+  },
+  "observations/private-sessions/brunch-a5-browser-AwzRF4/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-AwzRF4/cleanup.json",
+    "sha256": "9e2d7117a7d74bde6885ab3796fa63fdd75a3b6ba8055241013ef6f802e012a2",
+    "bytes": 1526
+  },
+  "observations/private-sessions/brunch-a5-browser-AwzRF4/owner-failure.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-AwzRF4/owner-failure.json",
+    "sha256": "9b1db02c721f4974cd33fe64c3111db9663626695f8bb90226289312a3a7f491",
+    "bytes": 529
+  },
+  "observations/private-sessions/brunch-a5-browser-AwzRF4/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-AwzRF4/session.json",
+    "sha256": "0dd7b5d6c357fa7f7fa2e389ea5270283116eade1017f740ca4762d53fd2abea",
+    "bytes": 990
+  },
+  "observations/private-sessions/brunch-a5-browser-AwzRF4/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-AwzRF4/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-B7vUAG/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-B7vUAG/TEST-close-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-B7vUAG/TEST-rescue-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-B7vUAG/TEST-rescue-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-B7vUAG/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-B7vUAG/TEST-shutdown-fault.json",
+    "sha256": "bedee94e5e83af204dac0077eac514c2f786d5e1404fa7f7f0f0669cb332e5db",
+    "bytes": 35
+  },
+  "observations/private-sessions/brunch-a5-browser-B7vUAG/owner-failure.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-B7vUAG/owner-failure.json",
+    "sha256": "e02bd44662cb6c7e5eb1989442c2c13f40df65d1cf374dfb4520ead3a5b8580c",
+    "bytes": 591
+  },
+  "observations/private-sessions/brunch-a5-browser-B7vUAG/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-B7vUAG/session.json",
+    "sha256": "2244c05659732dcb31d440df740c3813eb4ebf19a75f5b368d2f55f28d8d86a3",
+    "bytes": 993
+  },
+  "observations/private-sessions/brunch-a5-browser-B7vUAG/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-B7vUAG/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-C3i2gm/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-C3i2gm/TEST-close-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-C3i2gm/TEST-kill-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-C3i2gm/TEST-kill-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-C3i2gm/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-C3i2gm/TEST-shutdown-fault.json",
+    "sha256": "ec2a9b0f59dce6398b427a2b7b830b35135701b8895c0f7a029376c7715e097e",
+    "bytes": 33
+  },
+  "observations/private-sessions/brunch-a5-browser-C3i2gm/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-C3i2gm/cleanup.json",
+    "sha256": "f38e7b5f6e091af97b885fad95d1b3c5d006212d7b6a3c92fbd0764476ee8759",
+    "bytes": 581
+  },
+  "observations/private-sessions/brunch-a5-browser-C3i2gm/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-C3i2gm/session.json",
+    "sha256": "9d14def7744de4a4252a9cd7f2b6b471a7911ccf3b38d069c66f85188446ffa6",
+    "bytes": 991
+  },
+  "observations/private-sessions/brunch-a5-browser-C3i2gm/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-C3i2gm/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-Cayid8/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Cayid8/TEST-close-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-Cayid8/TEST-kill-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Cayid8/TEST-kill-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-Cayid8/TEST-rescue-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Cayid8/TEST-rescue-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-Cayid8/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Cayid8/TEST-shutdown-fault.json",
+    "sha256": "9829741542be4ec6c84156cead3e5a5f7010bf1ef7a6eef81986fd1337caa703",
+    "bytes": 32
+  },
+  "observations/private-sessions/brunch-a5-browser-Cayid8/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Cayid8/cleanup.json",
+    "sha256": "78b7777ef6968a9e806a5b1bc6e286b2109c8707559c7909c79e96d0792d96ed",
+    "bytes": 1526
+  },
+  "observations/private-sessions/brunch-a5-browser-Cayid8/owner-failure.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Cayid8/owner-failure.json",
+    "sha256": "8514ab9adb1c6d992e188fea7bfa36a0e5f2ecd280ed9d76ebc1f93dacbd15de",
+    "bytes": 529
+  },
+  "observations/private-sessions/brunch-a5-browser-Cayid8/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Cayid8/session.json",
+    "sha256": "0567c9be12cf36a15990388ac5ba8635e2942e4b98c223aaed2d9f8ad816938d",
+    "bytes": 990
+  },
+  "observations/private-sessions/brunch-a5-browser-Cayid8/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Cayid8/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-DjckuP/binding.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-DjckuP/binding.json",
+    "sha256": "d39bff65bee3dd25e582ef789b74d2b132e15b903ba6eb04ebfb6d2818bfbdd6",
+    "bytes": 1172
+  },
+  "observations/private-sessions/brunch-a5-browser-DjckuP/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-DjckuP/cleanup.json",
+    "sha256": "ccc2cd0b408dcd11f402a5d3961c925e747c0fee7ef5fc933cf080b5d290ebf5",
+    "bytes": 577
+  },
+  "observations/private-sessions/brunch-a5-browser-DjckuP/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-DjckuP/session.json",
+    "sha256": "8c32b76e19524fa060e10bbb950dc015d2c53b403596fce4cb26e64df9b7481e",
+    "bytes": 900
+  },
+  "observations/private-sessions/brunch-a5-browser-DjckuP/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-DjckuP/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-ITTThz/binding.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-ITTThz/binding.json",
+    "sha256": "402296cbc9140d2ba0b7af6c2ae2004ff49de19fd2ffca173ace6aacfd5d1c02",
+    "bytes": 1172
+  },
+  "observations/private-sessions/brunch-a5-browser-ITTThz/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-ITTThz/cleanup.json",
+    "sha256": "6de6fb6f8f501896a09f52120bdc0978452710402e43b89b995dd955c44a3876",
+    "bytes": 581
+  },
+  "observations/private-sessions/brunch-a5-browser-ITTThz/controller-claim.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-ITTThz/controller-claim.json",
+    "sha256": "445b65c3c75e02301bcd128069fcc21d90f6bc46c07d7830c0a33154ea48e8e7",
+    "bytes": 86
+  },
+  "observations/private-sessions/brunch-a5-browser-ITTThz/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-ITTThz/session.json",
+    "sha256": "fafc3a1e8c0f0c72e9bbd27bd83c6695d281ac2a0bebf1f39bc22206b3d054b4",
+    "bytes": 987
+  },
+  "observations/private-sessions/brunch-a5-browser-ITTThz/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-ITTThz/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-VZc1WN/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-VZc1WN/TEST-close-called.json",
+    "sha256": "2432f7bdf37227e2f2ef879a8a6a97464784cf7ea6682820a670680a1d10fe72",
+    "bytes": 43
+  },
+  "observations/private-sessions/brunch-a5-browser-VZc1WN/TEST-kill-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-VZc1WN/TEST-kill-called.json",
+    "sha256": "7229c60da4327ef10a45f5ff371c00b40d322e8fe714f01b9340cd4da2fcab42",
+    "bytes": 43
+  },
+  "observations/private-sessions/brunch-a5-browser-VZc1WN/TEST-rescue-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-VZc1WN/TEST-rescue-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-VZc1WN/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-VZc1WN/TEST-shutdown-fault.json",
+    "sha256": "4f8645e33b12e4687e22a31365af28c0c03e23950166bf83995985fbe0381cb3",
+    "bytes": 34
+  },
+  "observations/private-sessions/brunch-a5-browser-VZc1WN/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-VZc1WN/cleanup.json",
+    "sha256": "385aeffbf6081670f79bd0544f56dccd728492f96d27f268ad013e4e4a54ed86",
+    "bytes": 2472
+  },
+  "observations/private-sessions/brunch-a5-browser-VZc1WN/owner-failure.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-VZc1WN/owner-failure.json",
+    "sha256": "9b1db02c721f4974cd33fe64c3111db9663626695f8bb90226289312a3a7f491",
+    "bytes": 529
+  },
+  "observations/private-sessions/brunch-a5-browser-VZc1WN/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-VZc1WN/session.json",
+    "sha256": "13b413f39e4cb1b236df2c32113ab4fe68229198cf0f5c0ff444cfb3e45ddfa4",
+    "bytes": 992
+  },
+  "observations/private-sessions/brunch-a5-browser-VZc1WN/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-VZc1WN/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-Yfdvf6/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Yfdvf6/TEST-close-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-Yfdvf6/TEST-kill-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Yfdvf6/TEST-kill-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-Yfdvf6/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Yfdvf6/TEST-shutdown-fault.json",
+    "sha256": "bedee94e5e83af204dac0077eac514c2f786d5e1404fa7f7f0f0669cb332e5db",
+    "bytes": 35
+  },
+  "observations/private-sessions/brunch-a5-browser-Yfdvf6/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Yfdvf6/cleanup.json",
+    "sha256": "922e8b356eef68e3251b0d042be4b9d389eea7d2c89a5ccabad5a5becbb159e0",
+    "bytes": 1530
+  },
+  "observations/private-sessions/brunch-a5-browser-Yfdvf6/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Yfdvf6/session.json",
+    "sha256": "7aeff4989f970d3b60fdb4c11253198e88457f9f08ad16b04ef9c4f2857b6409",
+    "bytes": 993
+  },
+  "observations/private-sessions/brunch-a5-browser-Yfdvf6/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-Yfdvf6/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-bMiwOD/binding.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-bMiwOD/binding.json",
+    "sha256": "8821a8cb8e4cefe798d7ff7a4378ec5172b3e3ba096e5e7ccff3d412489914d0",
+    "bytes": 1172
+  },
+  "observations/private-sessions/brunch-a5-browser-bMiwOD/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-bMiwOD/cleanup.json",
+    "sha256": "194e8f9ff0f5a170a51891af0b73ee89daed4809b53412fcd9750962a938dca5",
+    "bytes": 573
+  },
+  "observations/private-sessions/brunch-a5-browser-bMiwOD/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-bMiwOD/session.json",
+    "sha256": "c06bbdde83d3267b2f364909ce1a5a71be57aed7f43f151b525199b611d2bf82",
+    "bytes": 987
+  },
+  "observations/private-sessions/brunch-a5-browser-bMiwOD/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-bMiwOD/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-fJU6y8/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-fJU6y8/TEST-close-called.json",
+    "sha256": "4aa4bdc391b8d8d47762daa6a0afa129b1cffacdf6faa2d5fe51c6a7725983be",
+    "bytes": 43
+  },
+  "observations/private-sessions/brunch-a5-browser-fJU6y8/TEST-kill-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-fJU6y8/TEST-kill-called.json",
+    "sha256": "9be075bbdab97e83c612d031d1c480e4228e0e8184263389f8c7ebfe0a6a3969",
+    "bytes": 40
+  },
+  "observations/private-sessions/brunch-a5-browser-fJU6y8/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-fJU6y8/TEST-shutdown-fault.json",
+    "sha256": "bedee94e5e83af204dac0077eac514c2f786d5e1404fa7f7f0f0669cb332e5db",
+    "bytes": 35
+  },
+  "observations/private-sessions/brunch-a5-browser-fJU6y8/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-fJU6y8/cleanup.json",
+    "sha256": "1518523d146ff180bb967c77c0fb791a9e5dce3edbdcd56aa8b3d092e9409679",
+    "bytes": 1530
+  },
+  "observations/private-sessions/brunch-a5-browser-fJU6y8/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-fJU6y8/session.json",
+    "sha256": "3f1fb735a3dd20c48f59ab67110e86e36ba8c30fafd49e166373e74026b5dedc",
+    "bytes": 993
+  },
+  "observations/private-sessions/brunch-a5-browser-fJU6y8/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-fJU6y8/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-jMKLHC/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-jMKLHC/cleanup.json",
+    "sha256": "52a2495ffafffdc828ea890558f84b3713b7fe0fbc4506cc60ee7d2b50adc9a7",
+    "bytes": 581
+  },
+  "observations/private-sessions/brunch-a5-browser-jMKLHC/controller-claim.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-jMKLHC/controller-claim.json",
+    "sha256": "04665777a2aada8ed428f5b98fe2de79c0905920956b7eef30648562e72c689f",
+    "bytes": 86
+  },
+  "observations/private-sessions/brunch-a5-browser-jMKLHC/driver.stderr.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-jMKLHC/driver.stderr",
+    "sha256": "7cb5c1a67a28b4825c0a922d05ea45d206072de9daf3b686f496eb8f210005a4",
+    "bytes": 169
+  },
+  "observations/private-sessions/brunch-a5-browser-jMKLHC/driver.stdout.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-jMKLHC/driver.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/private-sessions/brunch-a5-browser-jMKLHC/owner.stderr.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-jMKLHC/owner.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/private-sessions/brunch-a5-browser-jMKLHC/owner.stdout.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-jMKLHC/owner.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "observations/private-sessions/brunch-a5-browser-jMKLHC/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-jMKLHC/session.json",
+    "sha256": "341c2d2f992f83cdfed3e8b4eca07c6e04d268dd64feebb9910c4e159df68353",
+    "bytes": 987
+  },
+  "observations/private-sessions/brunch-a5-browser-jMKLHC/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-jMKLHC/stop",
+    "sha256": "a11c3d917a2149a4b548217038bc8f2dd2130a1966e0c7af5c4225d81f25a8c3",
+    "bytes": 5
+  },
+  "observations/private-sessions/brunch-a5-browser-koFclR/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-koFclR/TEST-close-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-koFclR/TEST-kill-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-koFclR/TEST-kill-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-koFclR/TEST-rescue-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-koFclR/TEST-rescue-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-koFclR/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-koFclR/TEST-shutdown-fault.json",
+    "sha256": "9829741542be4ec6c84156cead3e5a5f7010bf1ef7a6eef81986fd1337caa703",
+    "bytes": 32
+  },
+  "observations/private-sessions/brunch-a5-browser-koFclR/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-koFclR/cleanup.json",
+    "sha256": "9705763e3a458b241ebb405db6895b41504b7daa468379e72bd98ba7db8e6c49",
+    "bytes": 1526
+  },
+  "observations/private-sessions/brunch-a5-browser-koFclR/owner-failure.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-koFclR/owner-failure.json",
+    "sha256": "9b1db02c721f4974cd33fe64c3111db9663626695f8bb90226289312a3a7f491",
+    "bytes": 529
+  },
+  "observations/private-sessions/brunch-a5-browser-koFclR/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-koFclR/session.json",
+    "sha256": "6ab597acab05117de9cb76ce11e35db3d5422402538d5d3b9dbbfe932298f775",
+    "bytes": 990
+  },
+  "observations/private-sessions/brunch-a5-browser-koFclR/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-koFclR/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-m2uAyI/binding.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-m2uAyI/binding.json",
+    "sha256": "105e1d77a6e05453edea561202aa0df0b6a45a4bb5f21d3403902cdee3af1eb2",
+    "bytes": 1172
+  },
+  "observations/private-sessions/brunch-a5-browser-m2uAyI/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-m2uAyI/cleanup.json",
+    "sha256": "80f165be91dcab123706c6131857de172dba3261d8abbc1eb63cedfd4eda078b",
+    "bytes": 581
+  },
+  "observations/private-sessions/brunch-a5-browser-m2uAyI/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-m2uAyI/session.json",
+    "sha256": "b282e8c22bc7d8466faadba20d2e710de2504a3c122725dc10e7ec770d16aa26",
+    "bytes": 987
+  },
+  "observations/private-sessions/brunch-a5-browser-m2uAyI/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-m2uAyI/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-oCpNf2/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-oCpNf2/TEST-close-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-oCpNf2/TEST-kill-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-oCpNf2/TEST-kill-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-oCpNf2/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-oCpNf2/TEST-shutdown-fault.json",
+    "sha256": "bedee94e5e83af204dac0077eac514c2f786d5e1404fa7f7f0f0669cb332e5db",
+    "bytes": 35
+  },
+  "observations/private-sessions/brunch-a5-browser-oCpNf2/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-oCpNf2/cleanup.json",
+    "sha256": "1a1e6b53ea22342c7632808ddd3ece77e159c58cfe09b6beebb8c572611078e8",
+    "bytes": 1530
+  },
+  "observations/private-sessions/brunch-a5-browser-oCpNf2/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-oCpNf2/session.json",
+    "sha256": "b2e4eaddd673071817a6b6d805b920b921a2748ac184be5844c926ecc23fd708",
+    "bytes": 993
+  },
+  "observations/private-sessions/brunch-a5-browser-oCpNf2/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-oCpNf2/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-os3ZF6/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-os3ZF6/TEST-close-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-os3ZF6/TEST-kill-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-os3ZF6/TEST-kill-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-os3ZF6/TEST-rescue-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-os3ZF6/TEST-rescue-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-os3ZF6/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-os3ZF6/TEST-shutdown-fault.json",
+    "sha256": "4f8645e33b12e4687e22a31365af28c0c03e23950166bf83995985fbe0381cb3",
+    "bytes": 34
+  },
+  "observations/private-sessions/brunch-a5-browser-os3ZF6/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-os3ZF6/cleanup.json",
+    "sha256": "4709026b8c01eb07722b86b8285da0e2fc84f222f09c20672248408a54bf928e",
+    "bytes": 2472
+  },
+  "observations/private-sessions/brunch-a5-browser-os3ZF6/owner-failure.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-os3ZF6/owner-failure.json",
+    "sha256": "9b1db02c721f4974cd33fe64c3111db9663626695f8bb90226289312a3a7f491",
+    "bytes": 529
+  },
+  "observations/private-sessions/brunch-a5-browser-os3ZF6/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-os3ZF6/session.json",
+    "sha256": "c5f5055b2cda4a7a28a3c06c805164479c33f9fb55c189369b9613ad70e0b1fd",
+    "bytes": 992
+  },
+  "observations/private-sessions/brunch-a5-browser-os3ZF6/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-os3ZF6/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-vYeyJO/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-vYeyJO/TEST-close-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-vYeyJO/TEST-kill-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-vYeyJO/TEST-kill-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-vYeyJO/TEST-rescue-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-vYeyJO/TEST-rescue-called.json",
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "bytes": 21
+  },
+  "observations/private-sessions/brunch-a5-browser-vYeyJO/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-vYeyJO/TEST-shutdown-fault.json",
+    "sha256": "4f8645e33b12e4687e22a31365af28c0c03e23950166bf83995985fbe0381cb3",
+    "bytes": 34
+  },
+  "observations/private-sessions/brunch-a5-browser-vYeyJO/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-vYeyJO/cleanup.json",
+    "sha256": "a1e32479ab8c9515cce4fbedfad5997ef493fc1a3fcb6fa44a717c638f2f6448",
+    "bytes": 2472
+  },
+  "observations/private-sessions/brunch-a5-browser-vYeyJO/owner-failure.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-vYeyJO/owner-failure.json",
+    "sha256": "8514ab9adb1c6d992e188fea7bfa36a0e5f2ecd280ed9d76ebc1f93dacbd15de",
+    "bytes": 529
+  },
+  "observations/private-sessions/brunch-a5-browser-vYeyJO/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-vYeyJO/session.json",
+    "sha256": "e5b012811959a1012d3d33b77df16b4bdc8fcde33f7b66ab2de093b394159395",
+    "bytes": 992
+  },
+  "observations/private-sessions/brunch-a5-browser-vYeyJO/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-vYeyJO/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "observations/private-sessions/brunch-a5-browser-zpnElB/TEST-close-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-zpnElB/TEST-close-called.json",
+    "sha256": "3b90ee196cef9b5eb66d0bcfc31f5535e59f634349faa3ad77f420bc00b663fa",
+    "bytes": 43
+  },
+  "observations/private-sessions/brunch-a5-browser-zpnElB/TEST-kill-called.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-zpnElB/TEST-kill-called.json",
+    "sha256": "fdef08642f56984e6b833f238ce07e5d3cce30467e4f7ff7e96d43f7fb4b670d",
+    "bytes": 44
+  },
+  "observations/private-sessions/brunch-a5-browser-zpnElB/TEST-shutdown-fault.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-zpnElB/TEST-shutdown-fault.json",
+    "sha256": "ec2a9b0f59dce6398b427a2b7b830b35135701b8895c0f7a029376c7715e097e",
+    "bytes": 33
+  },
+  "observations/private-sessions/brunch-a5-browser-zpnElB/cleanup.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-zpnElB/cleanup.json",
+    "sha256": "97195049d926def8e7b82695e576cafe0b026cd7cbad828899ed845fbe18e4b9",
+    "bytes": 581
+  },
+  "observations/private-sessions/brunch-a5-browser-zpnElB/session.json.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-zpnElB/session.json",
+    "sha256": "6be04120cd82c1eca49f8b54275ba8eff5cee31025154972c2dbc884542b6292",
+    "bytes": 991
+  },
+  "observations/private-sessions/brunch-a5-browser-zpnElB/stop.gz": {
+    "original": "/private/var/folders/2c/ptn6jcrj61lck_yzfz_p3b5m0000gn/T/brunch-a5-browser-zpnElB/stop",
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "bytes": 10
+  },
+  "parent-red/review.md.gz": {
+    "original": "/tmp/a5-sibling-review.J1ggxQ/review.md",
+    "sha256": "eec13c2da5762452844b8e0e6d519e1807959571d77aeb2ac3a14e9061947e14",
+    "bytes": 14366
+  },
+  "parent-red/close-rejection-result.json.gz": {
+    "original": "/tmp/m7-close-rejection-owner.WgsOCX/close-rejection-result.json",
+    "sha256": "123bfb29cca67d73db56d471288aaf6c4a325f38c3aea7c7e6aa12ef1aa4888a",
+    "bytes": 443
+  },
+  "parent-red/close-rejection-hook.mjs.gz": {
+    "original": "/tmp/m7-close-rejection-owner.WgsOCX/close-rejection-hook.mjs",
+    "sha256": "bbf9805b3603622380eb0d98dd879c55199fd6a68c209f36752ca642651357e1",
+    "bytes": 1170
+  },
+  "parent-red/close-rejection-probe.mjs.gz": {
+    "original": "/tmp/m7-close-rejection-owner.WgsOCX/close-rejection-probe.mjs",
+    "sha256": "ffcc623956b3d5e52fe1d21ac03b6fdf9bc0a6df62d51383d0d53dfa88eea48c",
+    "bytes": 2980
+  }
+}

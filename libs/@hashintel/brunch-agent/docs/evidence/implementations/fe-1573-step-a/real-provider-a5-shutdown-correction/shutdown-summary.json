@@ -1,0 +1,136 @@
+[
+  {
+    "control": "close-rejection",
+    "ownerPid": 38786,
+    "chromePid": 38839,
+    "killDelayMs": 0.2277920000000222,
+    "graceful": {
+      "status": "rejected",
+      "error": {
+        "name": "Error",
+        "message": "TEST injected public close rejection",
+        "stack": "Error: TEST injected public close rejection\n    at server.close (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/test/real-provider-a5-shutdown-hook.ts:27:27)\n    at file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:154:61\n    at async settleShutdown (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:127:16)\n    at async run (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:154:27)\n    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:226:1"
+      }
+    },
+    "fallback": {
+      "status": "complete"
+    },
+    "productionCleanupComplete": true,
+    "endpointBeforeRescue": "ECONNREFUSED",
+    "productionExit": {
+      "code": 0,
+      "signal": null
+    },
+    "testRescueUsed": false,
+    "testCleanup": {
+      "rescueUsed": false,
+      "exitAfterTestCleanup": {
+        "code": 0,
+        "signal": null
+      },
+      "ownerGone": true,
+      "chromeGone": true,
+      "profileRemoved": true,
+      "endpointClosed": "ECONNREFUSED"
+    }
+  },
+  {
+    "control": "close-timeout",
+    "ownerPid": 40272,
+    "chromePid": 40274,
+    "killDelayMs": 5002.039583,
+    "graceful": {
+      "status": "timeout"
+    },
+    "fallback": {
+      "status": "complete"
+    },
+    "productionCleanupComplete": true,
+    "endpointBeforeRescue": "ECONNREFUSED",
+    "productionExit": {
+      "code": 0,
+      "signal": null
+    },
+    "testRescueUsed": false,
+    "testCleanup": {
+      "rescueUsed": false,
+      "exitAfterTestCleanup": {
+        "code": 0,
+        "signal": null
+      },
+      "ownerGone": true,
+      "chromeGone": true,
+      "profileRemoved": true,
+      "endpointClosed": "ECONNREFUSED"
+    }
+  },
+  {
+    "control": "kill-rejection",
+    "ownerPid": 40580,
+    "chromePid": 40585,
+    "killDelayMs": 0.25462500000003274,
+    "graceful": {
+      "status": "rejected",
+      "error": {
+        "name": "Error",
+        "message": "TEST injected public close rejection",
+        "stack": "Error: TEST injected public close rejection\n    at server.close (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/test/real-provider-a5-shutdown-hook.ts:27:27)\n    at file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:154:61\n    at async settleShutdown (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:127:16)\n    at async run (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:154:27)\n    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:226:1"
+      }
+    },
+    "fallback": {
+      "status": "rejected",
+      "error": {
+        "name": "Error",
+        "message": "TEST injected public kill rejection",
+        "stack": "Error: TEST injected public kill rejection\n    at server.kill (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/test/real-provider-a5-shutdown-hook.ts:35:29)\n    at file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:160:56\n    at async settleShutdown (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:127:16)\n    at async run (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:160:22)\n    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:226:1"
+      }
+    },
+    "productionCleanupComplete": false,
+    "endpointBeforeRescue": "connected",
+    "productionExit": null,
+    "testRescueUsed": true,
+    "testCleanup": {
+      "rescueUsed": true,
+      "exitAfterTestCleanup": {
+        "code": 0,
+        "signal": null
+      },
+      "ownerGone": true,
+      "chromeGone": true,
+      "profileRemoved": true,
+      "endpointClosed": "ECONNREFUSED"
+    }
+  },
+  {
+    "control": "kill-timeout",
+    "ownerPid": 40992,
+    "chromePid": 40994,
+    "killDelayMs": 0.28129200000000765,
+    "graceful": {
+      "status": "rejected",
+      "error": {
+        "name": "Error",
+        "message": "TEST injected public close rejection",
+        "stack": "Error: TEST injected public close rejection\n    at server.close (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/test/real-provider-a5-shutdown-hook.ts:27:27)\n    at file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:154:61\n    at async settleShutdown (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:127:16)\n    at async run (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:154:27)\n    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/apps/brunch-agent/src/evaluations/real-provider-a5/browser-owner.ts:226:1"
+      }
+    },
+    "fallback": {
+      "status": "timeout"
+    },
+    "productionCleanupComplete": false,
+    "endpointBeforeRescue": "connected",
+    "productionExit": null,
+    "testRescueUsed": true,
+    "testCleanup": {
+      "rescueUsed": true,
+      "exitAfterTestCleanup": {
+        "code": 0,
+        "signal": null
+      },
+      "ownerGone": true,
+      "chromeGone": true,
+      "profileRemoved": true,
+      "endpointClosed": "ECONNREFUSED"
+    }
+  }
+]
