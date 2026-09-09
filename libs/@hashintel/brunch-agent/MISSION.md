@@ -62,11 +62,14 @@ acknowledged **Your turn** handoff.
    **Your turn** is visible.
 6. **Durable origin and Stop continuity.**
    `local-storage-demo/voice-history-continuity.integration.test.tsx` runs one
-   typed-origin plus direct-Voice-origin conversation through durable composer
-   **Stop**, closes it, and reopens it as a second mounted client. The reopened
-   panel must preserve per-message typed/Voice provenance, render the aborted
-   assistant entry as stopped rather than ordinary truncated content, and
-   prove local **Exit voice mode** does not issue durable **Stop**.
+   typed submission plus a direct Voice submission whose client-tool result
+   carries Flue's supported durable Voice provenance, then exercises durable
+   composer **Stop**, closes the conversation, and reopens it as a second
+   mounted client. The reopened panel must preserve the typed history and every
+   supported Voice tool-call origin, render the aborted assistant entry as
+   stopped rather than ordinary truncated content, and prove local **Exit voice
+   mode** does not issue durable **Stop**. This oracle does not claim
+   direct-user Voice source reconstruction after reopen.
 7. **Package integrity.** Focused Voice unit tests, Petrinaut unit tests,
    TypeScript checks, ESLint, the website and library builds, architecture-doc
    lint, repository formatting, and `git diff --check` distinguish a working
@@ -140,3 +143,10 @@ preference no longer restores the acknowledged half-duplex handoff.
 - A human browser/microphone witness owns claims about speaker feedback,
   acoustic false interruption, and audible interruption latency.
 - Preventing a false VAD event from stopping playback is outside FE-1604.
+- On 2026-09-09 the owner explicitly deferred direct-user Voice source
+  reconstruction after reopen: Flue 2.0.3 projects neither caller metadata nor
+  idempotency keys on canonical user messages, and browser-side correlation or
+  visible text encoding remain prohibited. The supported client-tool origin in
+  Proof 6 discharges FE-1604's combined continuity witness without claiming
+  that blocked marker; re-entry remains governed by
+  `docs/evidence/implementations/mission-5-voice-safety-parity/provenance-blocker.md`.
