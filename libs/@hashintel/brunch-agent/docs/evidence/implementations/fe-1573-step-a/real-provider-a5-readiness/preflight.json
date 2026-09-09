@@ -1,0 +1,36 @@
+{
+  "credentialsAvailable": true,
+  "credentialValidity": "Not probed; no provider invocation",
+  "model": {
+    "model": {
+      "id": "claude-sonnet-4-6",
+      "name": "Claude Sonnet 4.6",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://api.anthropic.com",
+      "reasoning": true,
+      "input": ["text", "image"],
+      "cost": {
+        "input": 3,
+        "output": 15,
+        "cacheRead": 0.3,
+        "cacheWrite": 3.75
+      },
+      "contextWindow": 1000000,
+      "maxTokens": 128000,
+      "thinkingLevelMap": {
+        "max": "max"
+      },
+      "compat": {
+        "forceAdaptiveThinking": true,
+        "supportsStrictTools": true
+      }
+    },
+    "inputRate": 6,
+    "worstUsd": 6.06144,
+    "maxOutputTokens": 4096,
+    "reservedUsd": 7
+  },
+  "manifestSha256": "030ad3c7bc6886687d9b8537e28788d829c920f544d7c67bde2bf42dcef11c17",
+  "activation": "NOT ACTIVE: parent must supply authoritative ledger, named reservation, sole-writer delegation, manifest hash and concrete egress decision"
+}
