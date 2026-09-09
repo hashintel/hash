@@ -1,0 +1,11 @@
+v22.21.1
+4.16.0
+0.34.5
+cargo 1.99.0-nightly (7c83d4cc0 2026-07-29)
+rustc 1.99.0-nightly (11177f223 2026-08-02)
+openjdk version "25.0.2" 2026-01-20
+OpenJDK Runtime Environment (build 25.0.2+10-69)
+OpenJDK 64-Bit Server VM (build 25.0.2+10-69, mixed mode, sharing)
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83

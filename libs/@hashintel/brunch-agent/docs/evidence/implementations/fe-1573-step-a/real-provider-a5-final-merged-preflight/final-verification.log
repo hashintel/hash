@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "manifestPath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/real-provider-a5-final-merged-preflight/final-freeze/manifest.json",
+  "manifestSha256": "8a47d3335bf5cd032b5f25efab5a53973d185e2f2c81ce1e691dc61fd4937381",
+  "pinnedFiles": 3344,
+  "pinnedAppAndWebsiteBuildFiles": 106,
+  "canonicalRegistryNames": 46,
+  "originalAndArchivedFilesVerified": 52,
+  "retainedFiles": 52,
+  "clonedLedgersUnchanged": true,
+  "credentialAvailability": true,
+  "credentialValidity": "Not probed",
+  "paidActivation": "Not active"
+}

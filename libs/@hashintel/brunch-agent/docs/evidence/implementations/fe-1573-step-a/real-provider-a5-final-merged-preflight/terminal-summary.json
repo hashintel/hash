@@ -1,0 +1,202 @@
+[
+  {
+    "control": "late-one-hour",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "late-one-hour-decrease",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "initial-partition-mismatch",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "late-partition-mismatch",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "input-loss",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "complete-initial-one-hour",
+    "firstFailed": false,
+    "dispatches": 2,
+    "firstStatus": "complete",
+    "firstActualUsd": 0.0012000000000000001,
+    "firstHeldUsd": 0
+  },
+  {
+    "control": "complete-initial-five-minute",
+    "firstFailed": false,
+    "dispatches": 2,
+    "firstStatus": "complete",
+    "firstActualUsd": 0.0009750000000000001,
+    "firstHeldUsd": 0
+  },
+  {
+    "control": "complete-initial-mixed",
+    "firstFailed": false,
+    "dispatches": 2,
+    "firstStatus": "complete",
+    "firstActualUsd": 0.0010710000000000001,
+    "firstHeldUsd": 0
+  },
+  {
+    "control": "complete-late-five-minute",
+    "firstFailed": false,
+    "dispatches": 2,
+    "firstStatus": "complete",
+    "firstActualUsd": 0.0009750000000000001,
+    "firstHeldUsd": 0
+  },
+  {
+    "control": "complete-supported-update",
+    "firstFailed": false,
+    "dispatches": 2,
+    "firstStatus": "complete",
+    "firstActualUsd": 0.0012075,
+    "firstHeldUsd": 0
+  },
+  {
+    "control": "complete-input-reclassification",
+    "firstFailed": false,
+    "dispatches": 2,
+    "firstStatus": "complete",
+    "firstActualUsd": 0.00033,
+    "firstHeldUsd": 0
+  },
+  {
+    "control": "complete-mixed-nullable",
+    "firstFailed": false,
+    "dispatches": 2,
+    "firstStatus": "complete",
+    "firstActualUsd": 0.0010710000000000001,
+    "firstHeldUsd": 0
+  },
+  {
+    "control": "missing-terminal-usage",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "created-missing-terminal",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "missing-output",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "null-output",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "string-output",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "negative-output",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "fraction-output",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "regressed-output",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "missing-stop",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "incoming-retention-error",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "outgoing-retention-error",
+    "firstFailed": true,
+    "dispatches": 1,
+    "firstStatus": "unknown",
+    "firstActualUsd": null,
+    "firstHeldUsd": 7
+  },
+  {
+    "control": "complete",
+    "firstFailed": false,
+    "dispatches": 2,
+    "firstStatus": "complete",
+    "firstActualUsd": 0.0006000000000000001,
+    "firstHeldUsd": 0
+  },
+  {
+    "control": "complete-multiline",
+    "firstFailed": false,
+    "dispatches": 2,
+    "firstStatus": "complete",
+    "firstActualUsd": 0.0006000000000000001,
+    "firstHeldUsd": 0
+  }
+]

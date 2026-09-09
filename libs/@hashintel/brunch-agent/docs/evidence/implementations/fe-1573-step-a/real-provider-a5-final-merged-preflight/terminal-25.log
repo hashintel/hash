@@ -1,0 +1,643 @@
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z8YE9TBCDQVE8RNG7NZGS',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z8YE9TBCDQVE8RNG7NZGS) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z8YE9TBCDQVE8RNG7NZGS)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z8YKBSX8B8YDPQE0N9F8E',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z8YKBSX8B8YDPQE0N9F8E) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z8YKBSX8B8YDPQE0N9F8E)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z8YKNXHD7PHYJDHCH9MNB',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z8YKNXHD7PHYJDHCH9MNB) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z8YKNXHD7PHYJDHCH9MNB)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z8YPXS6XVDY8RTKMQF325',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z8YPXS6XVDY8RTKMQF325) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z8YPXS6XVDY8RTKMQF325)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z8YQ5ANKA5BX5RK1ZJ36G',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z8YQ5ANKA5BX5RK1ZJ36G) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z8YQ5ANKA5BX5RK1ZJ36G)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z8YTD1V8Q9RBF15R07A68',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z8YTD1V8Q9RBF15R07A68) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z8YTD1V8Q9RBF15R07A68)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z8YTQR47VP4M4ASP77V51',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z8YTQR47VP4M4ASP77V51) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z8YTQR47VP4M4ASP77V51)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z8YY13TESWAJBW5M8EVMW',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z8YY13TESWAJBW5M8EVMW) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z8YY13TESWAJBW5M8EVMW)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z8YYA5E49AZP7RJNEX71B',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z8YYA5E49AZP7RJNEX71B) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z8YYA5E49AZP7RJNEX71B)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z8Z1QTBT0XXJ8AZ6FH5XS',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z8Z1QTBT0XXJ8AZ6FH5XS) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z8Z1QTBT0XXJ8AZ6FH5XS)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91459M3JRM9S2A1C3BW7',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91459M3JRM9S2A1C3BW7) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91459M3JRM9S2A1C3BW7)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z917BX6JA7J7CKR31CRP2',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z917BX6JA7J7CKR31CRP2) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z917BX6JA7J7CKR31CRP2)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z917KQQX1BA8N3H3G2MT3',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z917KQQX1BA8N3H3G2MT3) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z917KQQX1BA8N3H3G2MT3)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91AQNH8QQE3NG5F5TK93',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91AQNH8QQE3NG5F5TK93) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91AQNH8QQE3NG5F5TK93)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91AZQYWRGE0TDNT56TFW',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91AZQYWRGE0TDNT56TFW) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91AZQYWRGE0TDNT56TFW)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91E0ZBHK5GEGMT8PB0HB',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91E0ZBHK5GEGMT8PB0HB) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91E0ZBHK5GEGMT8PB0HB)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91EC2P2PKEDD01NF9MRD',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91EC2P2PKEDD01NF9MRD) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91EC2P2PKEDD01NF9MRD)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91H851G4367TW8ZT0QBR',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91H851G4367TW8ZT0QBR) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91H851G4367TW8ZT0QBR)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91HFAQKG5ZC8F6G65RZT',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91HFAQKG5ZC8F6G65RZT) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91HFAQKG5ZC8F6G65RZT)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91MHNNVETD01ZGCKX3AM',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91MHNNVETD01ZGCKX3AM) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91MHNNVETD01ZGCKX3AM)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91MQSJ9M188B0KWWCY81',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91MQSJ9M188B0KWWCY81) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91MQSJ9M188B0KWWCY81)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91QT2PNM6EE9VFHVYJY7',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91QT2PNM6EE9VFHVYJY7) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91QT2PNM6EE9VFHVYJY7)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91R22CPNW0496HJ181EF',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91R22CPNW0496HJ181EF) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91R22CPNW0496HJ181EF)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91VAQ33EYG14Q2K3B5EQ',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91VAQ33EYG14Q2K3B5EQ) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91VAQ33EYG14Q2K3B5EQ)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91VKZ52883EHY158Z5PE',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91VKZ52883EHY158Z5PE) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91VKZ52883EHY158Z5PE)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91YQNWWMR0MPS41YGSNR',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91YQNWWMR0MPS41YGSNR) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91YQNWWMR0MPS41YGSNR)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z91YYCVSY7VJWXN6PYCK8',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z91YYCVSY7VJWXN6PYCK8) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z91YYCVSY7VJWXN6PYCK8)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z9225C0WX0AZW2VE4WF45',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z9225C0WX0AZW2VE4WF45) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z9225C0WX0AZW2VE4WF45)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z922CJH0DTK8QBBA641KA',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z922CJH0DTK8QBBA641KA) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z922CJH0DTK8QBBA641KA)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z925GGSW6S6Y6CDPDDT7K',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z925GGSW6S6Y6CDPDDT7K) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z925GGSW6S6Y6CDPDDT7K)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z925R14Y2MYZ73TMHNE50',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z925R14Y2MYZ73TMHNE50) failed: Connection error.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z925R14Y2MYZ73TMHNE50)',
+    reason: 'Connection error.'
+  },
+  cause: undefined
+}
+[flue:submission-processing] {
+  submissionId: 'sub_01M21Z928SQJK1WR6R9AFBHQHD',
+  operation: 'process_submission',
+  outcome: 'failed'
+} OperationFailedError [FlueError]: direct(sub_01M21Z928SQJK1WR6R9AFBHQHD) failed: Step A accounting refused: invalid, missing, exhausted or unresolved reservation.
+    at Session.throwIfError (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4194:23)
+    at Session.resumeConversationToCompletion (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4394:10)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:4480:5
+    at async Session.withCallOverrides (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3491:11)
+    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3668:70
+    at async Session.runExclusive (file:///Users/lunelson/.herdr/worktrees/hash/m7-provider-proving/node_modules/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs:3719:11) {
+  type: 'operation_failed',
+  details: '',
+  dev: '',
+  meta: {
+    operation: 'direct(sub_01M21Z928SQJK1WR6R9AFBHQHD)',
+    reason: 'Step A accounting refused: invalid, missing, exhausted or unresolved reservation.'
+  },
+  cause: undefined
+}
+{"passed":true,"directory":"/tmp/m7-final-merged.zsW7IK/TEST-a5-terminal-sJwsgN","controls":25,"dispatches":34,"paidCalls":0}
+(node:34275) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
