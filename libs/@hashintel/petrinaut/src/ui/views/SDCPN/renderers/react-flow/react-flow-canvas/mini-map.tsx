@@ -21,6 +21,8 @@ const miniMapClassName = css({
 });
 
 const SHAPE_SIZE = 90;
+/** Places are drawn 5:4, the ratio the canvas gives them. */
+const PLACE_HEIGHT = (SHAPE_SIZE / 5) * 4;
 const TRANSITION_WIDTH_RATIO = 1.5;
 const DEFAULT_TRANSITION_FILL = "#6b7280";
 const DEFAULT_COMPONENT_FILL = "#0f766e";
@@ -29,7 +31,8 @@ const SELECTED_STROKE_WIDTH = 12;
 
 /**
  * Custom node renderer for the MiniMap.
- * Renders place nodes as circles and transition nodes as rectangles.
+ * Renders place nodes as rounded rectangles and transition nodes as squared
+ * ones, the way the canvas draws them.
  */
 const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
   // MiniMapNodeProps doesn't include node data, so we look it up from the store
@@ -53,10 +56,12 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
 
   if (node.data.kind === "place") {
     return (
-      <circle
-        cx={x + SHAPE_SIZE / 2}
-        cy={y + SHAPE_SIZE / 2}
-        r={SHAPE_SIZE / 2}
+      <rect
+        x={x}
+        y={y + (SHAPE_SIZE - PLACE_HEIGHT) / 2}
+        width={SHAPE_SIZE}
+        height={PLACE_HEIGHT}
+        rx={PLACE_HEIGHT / 4}
         fill={isSelected ? SELECTED_COLOR : fill}
         stroke={isSelected ? SELECTED_COLOR : "none"}
         strokeWidth={isSelected ? SELECTED_STROKE_WIDTH : 0}
@@ -97,7 +102,8 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
 
 /**
  * A wrapper around ReactFlow's MiniMap with custom styling.
- * Renders place nodes as circles and transition nodes as rectangles.
+ * Renders place nodes as rounded rectangles and transition nodes as squared
+ * ones.
  * Positions at top-right, offset by properties panel width when visible.
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {

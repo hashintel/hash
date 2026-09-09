@@ -23,6 +23,16 @@ const containerStyle = css({
  * declared dimensions (see `RenderNodeDimensions` in petrinaut-core).
  */
 const cardLayoutStyle = css({
+  borderStyle: "solid",
+  borderWidth: "[1px]",
+  shadow: "[0px 2px 9px rgba(0, 0, 0, 0.04)]",
+  _hover: {
+    shadow: "[0px 4px 11px rgba(0, 0, 0, 0.1)]",
+  },
+  // Covers the border, since the card is border-box.
+  _after: {
+    inset: "[-1px]",
+  },
   display: "flex",
   alignItems: "center",
   gap: "[8px]",

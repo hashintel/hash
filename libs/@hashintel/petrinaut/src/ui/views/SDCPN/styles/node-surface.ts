@@ -1,7 +1,11 @@
 /**
- * The surface every node on the canvas shares: a hairline border, a soft
- * shadow, and the hover and selection treatment. Each node style layers its
- * own size, shape and colours on top.
+ * The surface every node on the canvas shares: the hover and selection
+ * treatment, and the overlay that dims a node outside the selection.
+ *
+ * Each node style draws its own outline and shadow. A compact card outlines
+ * itself with a border and a classic node with a ring, so they set different
+ * properties, and two classes setting the same property would leave the
+ * winner to Panda's own ordering.
  *
  * Panda resolves style objects file by file, so the shared declarations live
  * in this `cva` and reach the node modules as the class it returns — a plain
@@ -21,16 +25,13 @@ export const nodeSurfaceStyle = cva({
   base: {
     width: "full",
     height: "full",
-    border: "1px solid",
     boxSizing: "border-box",
     position: "relative",
     cursor: "default",
     transition: "[all 0.2s ease]",
     outline: "[0px solid rgba(75, 126, 156, 0)]",
-    shadow: "[0px 2px 9px rgba(0, 0, 0, 0.04)]",
     _hover: {
       outline: "[4px solid rgba(75, 126, 156, 0.2)]",
-      shadow: "[0px 4px 11px rgba(0, 0, 0, 0.1)]",
     },
     _after: {
       content: '""',
@@ -38,7 +39,6 @@ export const nodeSurfaceStyle = cva({
       position: "absolute",
       pointerEvents: "none",
       borderRadius: "[inherit]",
-      inset: "[-1px]", // covers the border, since the surface is border-box
     },
   },
   variants: {
@@ -70,9 +70,13 @@ export const nodeSurfaceStyle = cva({
  * transition carries none, so its surface names them here.
  */
 export const transitionSurfaceStyle = css({
-  borderColor: "neutral.s70",
   background: "neutral.s00",
+  // The compact card outlines itself with a border, the classic node with a
+  // ring; each mode reads the one that applies to it.
+  borderColor: "neutral.s70",
+  "--node-outline-color": "var(--colors-neutral-s70)",
   _hover: {
     borderColor: "neutral.s100",
+    "--node-outline-color": "var(--colors-neutral-s100)",
   },
 });

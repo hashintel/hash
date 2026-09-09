@@ -9,6 +9,11 @@ import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { withLabelWrapPoints } from "../../../../../lib/label-wrap-points";
 import { useSelectionVariant } from "../../../hooks/use-selection-variant";
+import {
+  classicNodeBoxStyle,
+  classicNodeLabelStyle,
+  classicNodeRowStyle,
+} from "../../../styles/classic-node-layout";
 import { nodeSurfaceStyle } from "../../../styles/node-surface";
 import { handleStyling } from "../../../styles/styling";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
@@ -21,56 +26,26 @@ const containerStyle = css({
   height: "full",
 });
 
-const placeCircleStyle = css({
-  paddingY: "4",
-  paddingX: "2",
-  borderRadius: "[50%]",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  gap: "3",
-  minWidth: "0",
-  fontSize: "[15px]",
-  textAlign: "center",
-  lineHeight: "[1.3]",
+const placeBoxStyle = css({
+  borderRadius: "[20px]",
 });
 
 const dynamicsIconStyle = css({
-  position: "absolute",
-  top: "[25px]",
-  left: "[0px]",
-  width: "[100%]",
-  display: "flex",
-  alignItems: "center",
-  gap: "4",
-  justifyContent: "center",
   color: "blue.s110",
   fontSize: "lg",
 });
 
-const labelContainerStyle = css({
-  textAlign: "center",
-  padding: "[12px 0]",
-  lineHeight: "[1.1]",
-  maxWidth: "[100%]",
-  overflowWrap: "break-word",
-  lineClamp: "3",
-});
-
 const tokenCountBadgeStyle = css({
-  position: "absolute",
-  top: "[70%]",
-  fontSize: "base",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  height: "[18px]",
+  minWidth: "[22px]",
+  borderRadius: "[9px]",
+  padding: "[0 6px]",
+  fontSize: "sm",
   color: "neutral.s00",
   backgroundColor: "[black]",
-  minWidth: "[26px]",
-  height: "[26px]",
-  borderRadius: "[13px]",
-  padding: "[0 6px]",
   fontWeight: "semibold",
   fontVariantNumeric: "tabular-nums",
 });
@@ -100,7 +75,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = typeof marking === "number" ? marking : (marking?.length ?? 0);
   }
 
-  // Wrap points let a long name break inside the circle instead of clipping.
+  // Wrap points let a long name break inside the box instead of clipping.
   const label = withLabelWrapPoints(data.label);
 
   const selectionVariant = useSelectionVariant(id, selected);
@@ -115,21 +90,27 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         style={handleStyling}
       />
       <div
-        className={`${nodeSurfaceStyle({ selection: selectionVariant })} ${placeCircleStyle}`}
-        style={{
-          borderColor: placeBorderColor(data.typeColor),
-          backgroundColor: placeFillColor(data.typeColor),
-        }}
+        className={`${nodeSurfaceStyle({ selection: selectionVariant })} ${classicNodeBoxStyle} ${placeBoxStyle}`}
+        style={
+          {
+            "--node-outline-color": placeBorderColor(data.typeColor),
+            backgroundColor: placeFillColor(data.typeColor),
+          } as React.CSSProperties
+        }
       >
-        {data.dynamicsEnabled && (
-          <div className={dynamicsIconStyle}>
-            <Icon name="function" size="sm" />
-          </div>
-        )}
-        <div className={labelContainerStyle}>{label}</div>
-        {tokenCount !== null && (
-          <div className={tokenCountBadgeStyle}>{tokenCount}</div>
-        )}
+        <div className={classicNodeRowStyle}>
+          {data.dynamicsEnabled ? (
+            <div className={dynamicsIconStyle}>
+              <Icon name="function" size="sm" />
+            </div>
+          ) : null}
+        </div>
+        <div className={classicNodeLabelStyle}>{label}</div>
+        <div className={classicNodeRowStyle}>
+          {tokenCount === null ? null : (
+            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
+          )}
+        </div>
       </div>
       <Handle
         type="source"

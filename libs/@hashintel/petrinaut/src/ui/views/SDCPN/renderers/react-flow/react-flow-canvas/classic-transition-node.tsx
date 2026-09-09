@@ -9,6 +9,11 @@ import { useFiringAnimation } from "../../../hooks/use-firing-animation";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { useSelectionVariant } from "../../../hooks/use-selection-variant";
 import {
+  classicNodeBoxStyle,
+  classicNodeLabelStyle,
+  classicNodeRowStyle,
+} from "../../../styles/classic-node-layout";
+import {
   nodeSurfaceStyle,
   transitionSurfaceStyle,
 } from "../../../styles/node-surface";
@@ -22,43 +27,9 @@ const containerStyle = css({
   height: "full",
 });
 
-const transitionBoxStyle = css({
-  padding: "[10px]",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  gap: "[4px]",
-  fontSize: "[14px]",
-});
-
-/**
- * The rows above and below the label are always in the layout, so the label
- * sits at the same height on every transition and whatever they hold appears
- * over or under it rather than pushing it aside.
- */
-const iconRowStyle = css({
-  height: "[18px]",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: "0",
-  lineHeight: "[1]",
-});
-
 const stochasticIconStyle = css({
   color: "blue.s60",
   fontSize: "lg",
-});
-
-const labelStyle = css({
-  textAlign: "center",
-  maxWidth: "[100%]",
-  overflowWrap: "break-word",
-  textOverflow: "ellipsis",
-  overflow: "hidden",
-  lineClamp: "3",
-  lineHeight: "[1.2]",
 });
 
 const firingIndicatorStyle = css({
@@ -99,17 +70,17 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
       />
       <div
         ref={boxRef}
-        className={`${nodeSurfaceStyle({ selection: selectionVariant })} ${transitionSurfaceStyle} ${transitionBoxStyle}`}
+        className={`${nodeSurfaceStyle({ selection: selectionVariant })} ${transitionSurfaceStyle} ${classicNodeBoxStyle}`}
       >
-        <div className={iconRowStyle}>
+        <div className={classicNodeRowStyle}>
           {data.lambdaType === "stochastic" ? (
             <div className={stochasticIconStyle}>
               <Icon name="lambda" size="sm" />
             </div>
           ) : null}
         </div>
-        <div className={labelStyle}>{label}</div>
-        <div className={iconRowStyle}>
+        <div className={classicNodeLabelStyle}>{label}</div>
+        <div className={classicNodeRowStyle}>
           <div ref={boltRef} className={firingIndicatorStyle}>
             <Icon name="lightning" size="sm" />
           </div>
