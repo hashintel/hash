@@ -132,7 +132,8 @@ When no interview is active and the host permits clearing, **Clear AI chat** via
 The assistant has tools for inspecting and modifying the current net. You'll see one card per tool call inline in the conversation. A failed tool card leads with its complete error instead of hiding it behind a hover tooltip:
 
 - **Read tools** (neutral, expandable) –– for checking the current net state and active Petrinaut extensions at any point, for compilation errors, and for reading the user guide.
-- **Mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive mutations group under a collapsible "N changes" header.
+- **Applied mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive tools group under a collapsible "N operations" header; that count includes operations that made no change.
+- **Not applied** (neutral, with a dash) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, unchanged, and host-refused mutations. Execution errors remain red and show the error.
 - **`setNetTitle`** -- renames the net.
 - **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget with **Yes, auto-layout** / **No, keep current layout** buttons. Otherwise it'll run it without asking.
 - **Host-specific questions and actions** -- an application embedding Petrinaut

@@ -615,6 +615,26 @@ try {
     "Stale hand-edit base refused without applying.",
   );
   assert.equal(await weight.inputValue(), "3");
+  const staleRow = page.getByRole("button", {
+    name: /Not applied.*requested base/u,
+  });
+  await staleRow.waitFor();
+  assert.equal(await staleRow.getAttribute("data-tone"), "neutral");
+  assert.equal(
+    await staleRow.locator('[data-tool-result-icon="not-applied"]').count(),
+    1,
+  );
+  assert.equal(
+    await staleRow.locator('[data-tool-result-icon="complete"]').count(),
+    0,
+  );
+  assert(
+    !((await staleRow.textContent()) ?? "").includes("Updated arc weight"),
+  );
+  await page.screenshot({
+    path: join(output, "stale-not-applied.png"),
+    fullPage: true,
+  });
   const staleHistory = await client.history();
   save("stale-history", staleHistory);
   const stale = clientToolHistoryFrom(staleHistory.messages).results.find(

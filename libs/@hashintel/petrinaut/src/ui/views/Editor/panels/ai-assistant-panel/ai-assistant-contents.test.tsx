@@ -76,6 +76,144 @@ afterEach(() => {
 });
 
 describe("AiAssistantContents", () => {
+  test.each([
+    {
+      label: "blocked",
+      output: {
+        applied: false,
+        blocked: "readonly",
+        reason: "Read-only document.",
+      },
+    },
+    {
+      label: "declined",
+      output: { applied: false, reason: "User declined auto-layout." },
+    },
+    {
+      label: "no-op",
+      output: {
+        applied: false,
+        reason: "The mutation left the document unchanged.",
+      },
+    },
+    {
+      label: "stale host",
+      output: {
+        applied: false,
+        reason:
+          "The requested base does not match the independently observed document.",
+      },
+    },
+    {
+      label: "contradictory supplied summary",
+      output: {
+        applied: false,
+        reason: "Not applied by the host.",
+        title: "Updated arc weight",
+        detail: "Requested value: 4",
+      },
+    },
+  ])(
+    "renders an explicit $label result as not applied, never requested-value success",
+    ({ output }) => {
+      render(
+        <AiAssistantContents
+          input=""
+          status="ready"
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          messages={[
+            {
+              id: "assistant-unapplied",
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolName: "updateArcWeight",
+                  toolCallId: "unapplied",
+                  state: "output-available",
+                  input: {
+                    transitionId: "transition",
+                    placeId: "place",
+                    arcDirection: "input",
+                    weight: 4,
+                  },
+                  output,
+                },
+              ],
+            },
+          ]}
+        />,
+      );
+      const row = screen.getByRole("button", { name: /Not applied/u });
+      expect(row.getAttribute("data-tone")).toBe("neutral");
+      expect(within(row).getByText(output.reason)).not.toBeNull();
+      expect(
+        within(row).queryByText("Updated arc weight", { exact: true }),
+      ).toBeNull();
+      expect(
+        row.querySelector('[data-tool-result-icon="not-applied"]'),
+      ).not.toBeNull();
+      expect(
+        row.querySelector('[data-tool-result-icon="complete"]'),
+      ).toBeNull();
+    },
+  );
+
+  test.each(["output-available", "output-error"] as const)(
+    "preserves %s applied/error presentation",
+    (state) => {
+      render(
+        <AiAssistantContents
+          input=""
+          status="ready"
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          messages={[
+            {
+              id: "assistant-outcome",
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolName: "updateArcWeight",
+                  toolCallId: "outcome",
+                  input: {},
+                  ...(state === "output-error"
+                    ? {
+                        state: "output-error",
+                        errorText: "Canonical execution failed",
+                      }
+                    : {
+                        state: "output-available",
+                        output: {
+                          applied: true,
+                          title: "Updated arc weight",
+                          detail: "Observed value: 2",
+                        },
+                      }),
+                },
+              ],
+            },
+          ]}
+        />,
+      );
+      const row = screen.getByRole("button", {
+        name:
+          state === "output-error"
+            ? /Canonical execution failed/u
+            : /Updated arc weight/u,
+      });
+      expect(row.getAttribute("data-tone")).toBe(
+        state === "output-error" ? "danger" : "success",
+      );
+      expect(screen.queryByText("Not applied")).toBeNull();
+    },
+  );
   test("labels stopped history after a later completed reply without global Stop state", () => {
     render(
       <NotificationsProvider>
@@ -1758,7 +1896,9 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /2 changes/u })).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: /2 operations/u }),
+    ).not.toBeNull();
     expect(screen.queryByTestId("tool-item-chevron")).toBeNull();
     expect(
       screen
@@ -1826,7 +1966,7 @@ describe("AiAssistantContents", () => {
 
     expect(
       screen
-        .getByRole("button", { name: /2 changes/u })
+        .getByRole("button", { name: /2 operations/u })
         .getAttribute("aria-expanded"),
     ).toBe("false");
   });
@@ -1908,7 +2048,9 @@ describe("AiAssistantContents", () => {
         name: /HyProGen 121 - Stochastic Petri Net/u,
       }),
     ).toBeNull();
-    expect(screen.getByRole("button", { name: /2 changes/u })).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: /2 operations/u }),
+    ).not.toBeNull();
   });
 
   test("shows failed tool-call errors inline", () => {
