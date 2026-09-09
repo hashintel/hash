@@ -256,6 +256,10 @@ export const launchPersona = async (
     browser = await chromium.launchPersistentContext(browserProfile, {
       executablePath: chromeExecutable,
       headless: false,
+      args: [
+        "--remote-debugging-address=127.0.0.1",
+        "--remote-debugging-port=0",
+      ],
       env: Object.fromEntries(
         Object.entries(process.env).filter(
           ([name, value]) =>

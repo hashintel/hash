@@ -28,6 +28,24 @@ Pi's private actor session and Brunch's interview are different sessions. The br
 
 The browser displays the latest actual `brunch_workpiece` query result. A write without a subsequent query does not establish visible freshness. This route supports elicitation and workpiece updates, **not persona-driven browser construction**: external client-tool requests stop with an explicit error. There is no mock/headless substitution. Normal locally submitted UI turns retain their browser execution path.
 
+### Read-only browser observation
+
+While the launcher remains running, an operator may attach `cdp-cli` to the Chrome instance it already launched. This is observation of the same browser, not another browser, conversation, runner or UI submission. While the persona is active, use read-only observation (`tabs`, `snapshot`, `console`, `screenshot`, or DOM-reading `eval`); do not mutate the page, navigate, click, fill, reload, close tabs or submit a browser turn.
+
+```sh
+run=apps/brunch-agent/.data-wipe-me/persona-runs/run-XXXXXX
+profile="$(jq -r '.browserProfile' "$run/run.json")"
+port="$(head -n 1 "$profile/DevToolsActivePort")"
+case "$port" in *[!0-9]* | "") exit 1 ;; esac
+cdp="http://127.0.0.1:$port"
+cdp-cli --cdp-url "$cdp" tabs
+page=REPLACE_WITH_PAGE_ID_FROM_TABS
+cdp-cli --cdp-url "$cdp" snapshot "$page"
+cdp-cli --cdp-url "$cdp" screenshot "$page" "$run/browser-observer.png"
+```
+
+The debugging endpoint controls this browser: keep it loopback-only and keep its run-private profile/control material out of commits and shared proof artifacts. Pair any screenshot with its canonical history observation; the screenshot alone does not establish a settlement, freshness, or utility verdict.
+
 A failed or indeterminate admitted submission stops the persona without replay. Inspect its canonical history before deciding whether to continue or start another run. A tool failure is not a reason to rewrite testimony, manufacture results or silently switch identity.
 
 ## Retained data
