@@ -17,7 +17,7 @@ import {
   type FunctionComponent,
 } from "react";
 
-import { PortalContainerContext } from "@hashintel/ds-components";
+import { Button, Icon, PortalContainerContext } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   createJsonDocHandle,
@@ -71,6 +71,12 @@ const previewRootStyle = css({
   overflow: "hidden",
   backgroundColor: "neutral.s25",
   color: "neutral.fg.body",
+  // A drag on an embed pans the canvas or draws a selection box, so a text
+  // highlight is always accidental. Fields that still take typing keep theirs.
+  userSelect: "none",
+  "& :is(input, textarea)": {
+    userSelect: "text",
+  },
 });
 
 // The editor's top bar at embed height: the same flat 1px outline, padding
@@ -103,19 +109,9 @@ const previewTitleStyle = css({
   color: "neutral.fg.heading",
 });
 
-const previewBadgeStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1",
-  flexShrink: "0",
-  paddingX: "1.5",
-  paddingY: "0.5",
-  backgroundColor: "neutral.s15",
-  color: "neutral.s90",
-  fontSize: "[10px]",
-  fontWeight: "semibold",
-  textTransform: "uppercase",
-  letterSpacing: "[0.4px]",
+// The link keeps its icon at every width; the word goes first when the header
+// runs short of room, the way the Quick Simulation label does.
+const fullViewLabelStyle = css({
   "@media (max-width: 480px)": {
     display: "none",
   },
@@ -148,6 +144,12 @@ export type PetrinautPreviewProps = {
   documentId?: string;
   title?: string;
   /**
+   * Where the same model can be read at full size. Given one, Preview offers a
+   * link to it in the header, opened in a new tab so an embed on someone
+   * else's page never navigates the page around it.
+   */
+  fullViewUrl?: string;
+  /**
    * Optional host-owned navigation. The host may project this state into any
    * router; Preview itself does not depend on a router implementation.
    */
@@ -172,6 +174,7 @@ export type PetrinautPreviewProps = {
 export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
   definition,
   documentId,
+  fullViewUrl,
   navigation,
   quickSimulation,
   title = "Petrinaut model",
@@ -291,7 +294,19 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
               parameterBounds={quickSimulation.parameterBounds}
             />
           )}
-          <span className={previewBadgeStyle}>View only</span>
+          {fullViewUrl !== undefined && (
+            <Button
+              href={fullViewUrl}
+              target="_blank"
+              size="xs"
+              variant="ghost"
+              suffix={<Icon name="externalLink" size="xs" />}
+              tooltip="Open this model at full size in a new tab"
+              aria-label="Open full view"
+            >
+              <span className={fullViewLabelStyle}>Full view</span>
+            </Button>
+          )}
         </header>
         <main className={previewMainStyle}>
           <div className={previewCanvasStyle}>
