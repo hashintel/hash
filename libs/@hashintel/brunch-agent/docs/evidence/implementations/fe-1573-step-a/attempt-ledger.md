@@ -255,3 +255,125 @@ Parent allocates at most 160 combined underlying calls / USD85, including the un
 - vestera-persona-20260909-r1 stopped by parent for persona factual invention and observed context discontinuity; 19 requests complete, catalogue USD0.35302395. No new unknown or journal uncertainty. Original sequence6 remains unknown/USD7 held. Allocation blocked; no automatic retry. Original Postgres/session/browser material retained.
 
 - Owner disposition, 2026-09-09: Lu explicitly cleared sequence 6’s USD7 hold as a constraint. Reserved amount is now zero with original USD7 recorded in ownerDisposition; status/usage remain unknown, not fabricated complete or zero-cost. Future allocations may accept sequence 6 without a budget hold. New unknown requests remain fail-stop.
+
+- Parent activates vestera-persona-20260909-r2: <=160 combined calls / USD85, Sonnet4.6, 4096 output, USD7 per-call hold; reviewed attachment repair at c61105a2690154e95d3cb05662ec31523e51b12c. Original sequence6 usage accepted with owner-released zero hold. Fresh run, not replay of r1.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 26, request flue:turn_01M237KB39GMC953DE72J77VD3, unknown, invocation not-started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 26, request flue:turn_01M237KB39GMC953DE72J77VD3, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 26, request flue:turn_01M237KB39GMC953DE72J77VD3, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 26, request flue:turn_01M237KB39GMC953DE72J77VD3, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 26, request flue:turn_01M237KB39GMC953DE72J77VD3, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 26, request flue:turn_01M237KB39GMC953DE72J77VD3, complete, invocation started, reserved USD 7, catalogue estimate USD 0.10734525. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 27, request flue:turn_01M237KJ0CVZF5ZSVZMCYEE0EG, unknown, invocation not-started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 27, request flue:turn_01M237KJ0CVZF5ZSVZMCYEE0EG, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 27, request flue:turn_01M237KJ0CVZF5ZSVZMCYEE0EG, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 27, request flue:turn_01M237KJ0CVZF5ZSVZMCYEE0EG, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 27, request flue:turn_01M237KJ0CVZF5ZSVZMCYEE0EG, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 27, request flue:turn_01M237KJ0CVZF5ZSVZMCYEE0EG, complete, invocation started, reserved USD 7, catalogue estimate USD 0.0188019. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 28, request flue:turn_01M237KN93MHWM45AHEMDX7XSS, unknown, invocation not-started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 28, request flue:turn_01M237KN93MHWM45AHEMDX7XSS, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 28, request flue:turn_01M237KN93MHWM45AHEMDX7XSS, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 28, request flue:turn_01M237KN93MHWM45AHEMDX7XSS, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 28, request flue:turn_01M237KN93MHWM45AHEMDX7XSS, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 28, request flue:turn_01M237KN93MHWM45AHEMDX7XSS, complete, invocation started, reserved USD 7, catalogue estimate USD 0.043339050000000004. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 29, request flue:turn_01M237KXFW075VPHNVDGB6FH99, unknown, invocation not-started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 29, request flue:turn_01M237KXFW075VPHNVDGB6FH99, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 29, request flue:turn_01M237KXFW075VPHNVDGB6FH99, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 29, request flue:turn_01M237KXFW075VPHNVDGB6FH99, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 29, request flue:turn_01M237KXFW075VPHNVDGB6FH99, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 29, request flue:turn_01M237KXFW075VPHNVDGB6FH99, complete, invocation started, reserved USD 7, catalogue estimate USD 0.013128299999999999. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 30, request pi:01a0867a-61ef-708f-abe5-11f6600d92cf:f97d8c33-6e90-4181-82c6-022877b9b960, unknown, invocation not-started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 30, request pi:01a0867a-61ef-708f-abe5-11f6600d92cf:f97d8c33-6e90-4181-82c6-022877b9b960, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 30, request pi:01a0867a-61ef-708f-abe5-11f6600d92cf:f97d8c33-6e90-4181-82c6-022877b9b960, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 30, request pi:01a0867a-61ef-708f-abe5-11f6600d92cf:f97d8c33-6e90-4181-82c6-022877b9b960, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 30, request pi:01a0867a-61ef-708f-abe5-11f6600d92cf:f97d8c33-6e90-4181-82c6-022877b9b960, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 30, request pi:01a0867a-61ef-708f-abe5-11f6600d92cf:f97d8c33-6e90-4181-82c6-022877b9b960, complete, invocation started, reserved USD 7, catalogue estimate USD 0.02313525. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 31, request flue:turn_01M237N76K4Z389WN2ZD7WF5NY, unknown, invocation not-started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 31, request flue:turn_01M237N76K4Z389WN2ZD7WF5NY, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 31, request flue:turn_01M237N76K4Z389WN2ZD7WF5NY, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 31, request flue:turn_01M237N76K4Z389WN2ZD7WF5NY, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 31, request flue:turn_01M237N76K4Z389WN2ZD7WF5NY, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 31, request flue:turn_01M237N76K4Z389WN2ZD7WF5NY, complete, invocation started, reserved USD 7, catalogue estimate USD 0.02157015. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 32, request flue:turn_01M237NKRW87579CTZ12ZNK67G, unknown, invocation not-started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 32, request flue:turn_01M237NKRW87579CTZ12ZNK67G, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 32, request flue:turn_01M237NKRW87579CTZ12ZNK67G, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 32, request flue:turn_01M237NKRW87579CTZ12ZNK67G, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 32, request flue:turn_01M237NKRW87579CTZ12ZNK67G, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 32, request flue:turn_01M237NKRW87579CTZ12ZNK67G, complete, invocation started, reserved USD 7, catalogue estimate USD 0.014549099999999999. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 33, request pi:01a0867a-61ef-708f-abe5-11f6600d92cf:baf7d524-5081-49ef-9574-33f2ab8490bf, unknown, invocation not-started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 33, request pi:01a0867a-61ef-708f-abe5-11f6600d92cf:baf7d524-5081-49ef-9574-33f2ab8490bf, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 33, request pi:01a0867a-61ef-708f-abe5-11f6600d92cf:baf7d524-5081-49ef-9574-33f2ab8490bf, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 33, request pi:01a0867a-61ef-708f-abe5-11f6600d92cf:baf7d524-5081-49ef-9574-33f2ab8490bf, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 33, request pi:01a0867a-61ef-708f-abe5-11f6600d92cf:baf7d524-5081-49ef-9574-33f2ab8490bf, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 33, request pi:01a0867a-61ef-708f-abe5-11f6600d92cf:baf7d524-5081-49ef-9574-33f2ab8490bf, complete, invocation started, reserved USD 7, catalogue estimate USD 0.0051579. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 34, request flue:turn_01M237P28T3XEN8RHE8C9Y8155, unknown, invocation not-started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 34, request flue:turn_01M237P28T3XEN8RHE8C9Y8155, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 34, request flue:turn_01M237P28T3XEN8RHE8C9Y8155, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 34, request flue:turn_01M237P28T3XEN8RHE8C9Y8155, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 34, request flue:turn_01M237P28T3XEN8RHE8C9Y8155, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 34, request flue:turn_01M237P28T3XEN8RHE8C9Y8155, complete, invocation started, reserved USD 7, catalogue estimate USD 0.01957005. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 35, request flue:turn_01M237PDPHT4R7EJVDHZC1RN7X, unknown, invocation not-started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 35, request flue:turn_01M237PDPHT4R7EJVDHZC1RN7X, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 35, request flue:turn_01M237PDPHT4R7EJVDHZC1RN7X, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 35, request flue:turn_01M237PDPHT4R7EJVDHZC1RN7X, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 35, request flue:turn_01M237PDPHT4R7EJVDHZC1RN7X, unknown, invocation started, reserved USD 7, catalogue estimate USD unknown. JSON usage-ledger.json is authoritative.
+
+- Request accounting v1: run vestera-persona-20260909-r2, sequence 35, request flue:turn_01M237PDPHT4R7EJVDHZC1RN7X, complete, invocation started, reserved USD 7, catalogue estimate USD 0.0145299. JSON usage-ledger.json is authoritative.

@@ -29,6 +29,8 @@ than general persona cases.
 
 The situation pack, objective, uncertainty, and turn budget are supplied only in the Pi persona's launch prompt. They are not added to the Flue conversation, the Brunch `ChatAgent` instructions, or a Brunch tool payload.
 
+[SYSTEM.md](SYSTEM.md) owns the current actor policy: maintain the persona and disclose gradually, while allowing realistic improvisation and inconsistency rather than enforcing literal pack fidelity. Assess Brunch's elicitation, handling of testimony and resulting workpiece—not the actor's exact reproduction of the background. Preserve historical case packs; their stricter role-play wording does not override the current policy. Launch objectives should not reintroduce a no-improvisation gate. A session still needs human usefulness review before fixture curation.
+
 `brunch_turn` accepts exactly one model-authored field:
 
 ```ts
