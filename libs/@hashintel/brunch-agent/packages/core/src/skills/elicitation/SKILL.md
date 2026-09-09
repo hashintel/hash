@@ -1,11 +1,11 @@
 ---
 name: elicitation
-description: Acquire and improve an epistemically responsible account of what a person knows through adaptive conversation. Use before substantive interviewing, when an existing account must be corrected or extended with human knowledge, or when accounts conflict.
+description: Acquire and improve an epistemically responsible account of what a person knows through adaptive conversation. Use before substantive interviewing, when an existing account must be corrected or extended with human knowledge, when accounts conflict, or when recording workpiece evidence.
 ---
 
 # Adaptive elicitation
 
-This capability owns human-knowledge acquisition and epistemic correction: recognizing cues, selecting the next probe, handling contradiction and contextual variation, preserving authorship and uncertainty, checking consequential interpretations, and judging when evidence is sufficient. It does not own any target formalism's workpiece, review, revision, construction, or tools; the job skill that activated it owns those.
+This capability owns human-knowledge acquisition and epistemic correction: recognizing cues, selecting the next probe, handling contradiction and contextual variation, preserving authorship and uncertainty, checking consequential interpretations, and judging when evidence is sufficient. It teaches core's shared workpiece settlement and evidence protocol. The job skill owns the domain-specific workpiece shape, target transformation, target tools, and checks of that projection.
 
 ## Procedure
 
@@ -13,7 +13,7 @@ Follow the person's thread and the purpose they stated rather than any schema, t
 
 Deepen one answerable thread at a time. After each useful answer, re-evaluate the active gap and change operation when yield drops. Establish whether differing accounts are a correction, a conflict, or contextual coexistence before reconciling them.
 
-Return to the activating job skill's procedure to record what was learned. Keep what the person said distinct from your normalization, inference, assumption, and proposal when you hand material back.
+Record what was learned using the shared workpiece protocol below and the job skill's domain-specific recording guidance. Return to the job skill for target transformation and checks.
 
 The registers are addresses, not a procedure. **Directives** bind. **Recognition** changes what you notice or suspect. **Operations** are selectable moves. **Coverage** names information a useful account may need. **Verification** checks and repairs the interview and workpiece.
 
@@ -47,7 +47,13 @@ Do not average, silently choose, or treat recency as universal truth when accoun
 
 ### Maintain a recoverable workpiece
 
-Record useful understanding as the conversation develops. Keep one cold-readable current account rather than relying on the transcript or repeated summaries. Preserve the evidence and unresolved material needed to understand how that account was reached.
+Follow core's `update_workpiece` cadence: settle the full current Markdown account as soon as one consequential distinction exists, then after each useful stretch or correction and before delivery. Keep one cold-readable current account rather than relying on the transcript or repeated summaries. Preserve unrelated meaning, evidence and unresolved material. Wait for the returned `revisionId` and `sha256`; a candidate or failed call is not a settled revision. This tool does not end the response. Read back with `brunch_workpiece` when available after settlement for presentation.
+
+When `brunch_workpiece` is mounted, use it to obtain the actual current revision and authorized true-user source IDs before supplying optional revision evidence. For model-obtainable offsets, pass an explicitly unsettled `markdown` candidate and `locateTexts` to that read tool before declaring evidence. It returns literal UTF-16 occurrence spans with a candidate hash/length, never a revision or authorization. After settlement, query `locateTexts` without candidate Markdown when you need locators in the actual current revision. Changed text requires a fresh lookup; duplicates, overlapping matches and any omitted matches are explicit, not an automatic passage choice.
+
+An evidence relation names an immutable UTF-16 `locator: { start, end }`, `messageIds`, and `kind` (`elicited`, `inference`, `default`, `formalism-constraint`, `external`, or `correction`). Elicited relations need actual user sources; a prepared dispatch, assistant proposal, or unrelated context is not elicited support. Valid IDs and spans do not establish relevance. Keep epistemic treatment beside the authoritative claim; these relations do not make headings or labels mandatory.
+
+Only unique unchanged text at the same revision-local span automatically carries its relation. Moves, renames, paraphrases, split/merge, deletion, reintroduction and duplicate text do not earn inferred continuity; make a new explicit, justified declaration or leave support absent. No relation means temporal context, not implied support. This fallback makes no introduced-by or passage-identity claim.
 
 ### Stop honestly
 

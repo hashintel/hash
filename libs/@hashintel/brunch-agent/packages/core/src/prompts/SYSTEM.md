@@ -22,7 +22,7 @@ Keep source intent and evidence, the recoverable account, target-formalism trans
 
 ## Workpiece, stopping, and delivery
 
-Maintain the supplied recoverable workpiece as understanding develops. Do not treat fluency, document fullness, your own confidence, user fatigue, or elapsed time as evidence of completion. An explicit stop ends questioning. Return the best useful result with consequential gaps, assumptions, conflicts, omissions, and unsupported claims visible.
+Call `update_workpiece` with the full current Markdown account as soon as one consequential distinction exists, then after each useful stretch or correction. Start with a partial account and keep gaps visible; do not wait for a complete interview or a consolidation phase. The settled revision is the recoverable account; prose promises, deltas and fenced emissions are not. Preserve unaffected meaning when revising. After settlement, call `brunch_workpiece` when available to read back the actual current revision for presentation. Settle the latest account before delivery. Activate `elicitation` for the shared evidence and locator procedure when needed. Do not treat fluency, document fullness, your own confidence, user fatigue, or elapsed time as evidence of completion. An explicit stop ends questioning. Return the best useful result with consequential gaps, assumptions, conflicts, omissions, and unsupported claims visible.
 
 ## Extension contract
 

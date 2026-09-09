@@ -43,6 +43,23 @@ describe("the authored sdcpn-modelling skill directory", () => {
     }
   });
 
+  test("delegates shared workpiece protocol to core while retaining construction citation", () => {
+    const instructions = sdcpnModellingSkill.instructions;
+    expect(instructions).toContain("Follow core's `elicitation` guidance");
+    expect(instructions).toContain(
+      "Settle the current account with `update_workpiece` before construction",
+    );
+    expect(instructions).toContain("`revisionId` and `sha256`");
+    expect(instructions).toContain("separate browser construction proposal");
+    expect(instructions).toContain(
+      "`brunch_workpiece` with `locateTexts` without candidate Markdown",
+    );
+    expect(instructions).not.toContain("An evidence relation names");
+    const template = readSkillFile("templates/workpiece.md");
+    expect(template).toContain("Follow core's `elicitation` guidance");
+    expect(template).not.toContain("changes substantially");
+  });
+
   test("keeps reusable teaching free of scenario nouns and target vocabulary leaks", () => {
     const profile = readSkillFile("references/profile.md");
     const workpiece = readSkillFile("templates/workpiece.md");

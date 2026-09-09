@@ -125,6 +125,23 @@ test("captures the persistent-state setter at render and writes from run", async
     (definition) => definition.name === "update_workpiece",
   );
   expect(revisionTool).toBeDefined();
+  expect(prompt).toContain(
+    "Call `update_workpiece` with the full current Markdown account",
+  );
+  expect(prompt).toContain("as soon as one consequential distinction exists");
+  expect(prompt).toContain("after each useful stretch or correction");
+  expect(prompt).toContain(
+    "After settlement, call `brunch_workpiece` when available",
+  );
+  expect(revisionTool?.description).toContain(
+    "Create the first partial workpiece",
+  );
+  expect(revisionTool?.description).toContain(
+    "update after each useful stretch or correction",
+  );
+  expect(revisionTool?.description).toContain(
+    "Never combine it with browser construction in one batch",
+  );
   vi.mocked(usePersistentState).mockImplementation(() => {
     throw new Error("Hook invoked outside render");
   });
