@@ -13,7 +13,15 @@ import { dirname } from "node:path";
 import { calculateCost } from "@earendil-works/pi-ai";
 import * as v from "valibot";
 
-import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
+import { STEP_A_MODEL_ID } from "../chat-model.ts";
+
+import type {
+  Api,
+  AssistantMessage,
+  Model,
+  StopReason,
+  Usage,
+} from "@earendil-works/pi-ai";
 import type { FlueExecutionContext } from "@flue/runtime";
 
 const amount = v.pipe(v.number(), v.finite(), v.minValue(0));
@@ -42,6 +50,16 @@ const identityKey = (identity: RequestIdentity) =>
     ? `pi:${identity.sessionId}:${identity.requestId}`
     : `flue:${identity.turnId}`;
 
+// The ledger owns what it persists; the satisfies pins keep the persisted shape
+// aligned with the provider values it records.
+const stopReasons = [
+  "pending",
+  "stop",
+  "length",
+  "toolUse",
+  "error",
+  "aborted",
+] as const satisfies readonly StopReason[];
 const usageSchema = v.object({
   input: count,
   output: count,
@@ -58,17 +76,13 @@ const usageSchema = v.object({
     total: amount,
   }),
 });
+const _usageSchemaRecordsProviderUsage = (
+  usage: v.InferOutput<typeof usageSchema>,
+): Usage => usage;
 const observationSchema = v.object({
   provider: id,
   model: id,
-  stopReason: v.picklist([
-    "pending",
-    "stop",
-    "length",
-    "toolUse",
-    "error",
-    "aborted",
-  ]),
+  stopReason: v.picklist(stopReasons),
   responseId: v.optional(id),
   usage: usageSchema,
 });
@@ -84,7 +98,7 @@ const callSchema = v.looseObject({
   runId: v.optional(id),
   identity: v.optional(identitySchema),
   provider: v.optional(v.literal("anthropic")),
-  model: v.optional(v.literal("claude-sonnet-4-6")),
+  model: v.optional(v.literal(STEP_A_MODEL_ID)),
   maxOutputTokens: v.optional(positiveCount),
   inputTokenCeiling: v.optional(positiveCount),
   invocation: v.optional(v.picklist(["not-started", "started"])),
@@ -333,7 +347,7 @@ export class RequestLedger {
       reservation.status !== "active" ||
       reservation.runId !== this.runId ||
       model.provider !== "anthropic" ||
-      model.id !== "claude-sonnet-4-6" ||
+      model.id !== STEP_A_MODEL_ID ||
       model.api !== "anthropic-messages" ||
       !Number.isSafeInteger(model.contextWindow) ||
       model.contextWindow <= 0 ||
@@ -403,7 +417,7 @@ export class RequestLedger {
       runId: this.runId,
       identity,
       provider: "anthropic",
-      model: "claude-sonnet-4-6",
+      model: STEP_A_MODEL_ID,
       // Reserve atomically before releasing the transaction, even before started().
       status: "unknown",
       invocation: "not-started",

@@ -17,7 +17,10 @@ import {
   verifyArcTransitionAttempt,
   type ArcTransitionAttempt,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  clientToolHistoryFrom,
+  CLIENT_TOOL_RESULT_SIGNAL,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import {
   generateArcId,
   getArcEndpointKey,
@@ -30,6 +33,7 @@ import {
 } from "../src/conversation/identity.ts";
 
 import type { RootArcExplanation } from "../src/conversation/why.ts";
+import type { WorkpieceEvidenceRelation } from "@hashintel/brunch-agent/workpiece";
 import type { Browser, Page } from "@playwright/test";
 
 const tool = (name: string, args: Record<string, unknown>, id: string) =>
@@ -77,7 +81,7 @@ const markdown = [
   "Only the prepared root arc is in scope. Prepared surrounding topology remains external; timing and failure behavior are unproved.",
 ].join("\n");
 const locateTexts = [quote, inference, defaults, constraint];
-type Span = { start: number; end: number };
+type Span = WorkpieceEvidenceRelation["locator"];
 const productLocators = (
   output: Record<string, unknown>,
   subject: "unsettled-candidate" | "current-revision",
@@ -719,8 +723,8 @@ export const runReopenedWhyWitness = async ({
         const receipt = await client.send({
           message: {
             kind: "signal",
-            type: "client-tool-result",
-            tagName: "client-tool-result",
+            type: CLIENT_TOOL_RESULT_SIGNAL,
+            tagName: CLIENT_TOOL_RESULT_SIGNAL,
             body: JSON.stringify([
               {
                 ...browserResult,

@@ -9,6 +9,7 @@ import {
   canonicalContent,
   conversationConstructionMode,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { CONSTRUCTION_BINDING_SIGNAL_TYPE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import {
   agentOwnershipHeaders,
@@ -73,7 +74,7 @@ export const browserSessionOptions = async (
   const bindings = snapshot.messages.filter(
     (message) =>
       message.role === "system" &&
-      message.signal?.tagName === "brunch.construction-binding",
+      message.signal?.tagName === CONSTRUCTION_BINDING_SIGNAL_TYPE,
   );
   if (
     bindings.length === 0 ||

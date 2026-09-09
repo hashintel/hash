@@ -1,7 +1,6 @@
-interface UiTextPart {
-  readonly type: "text";
-  readonly text: string;
-}
+import type { UIMessage, UIMessageChunk } from "ai";
+
+type UiTextPart = Extract<UIMessage["parts"][number], { type: "text" }>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -64,8 +63,9 @@ export const validateUiMessageStream = async (
     if (!line.startsWith("data: ")) continue;
     const data = line.slice("data: ".length);
     if (data === "[DONE]") continue;
+    // The wire is the AI SDK stream protocol; a persisted line is one of its chunks.
     const event = JSON.parse(data) as {
-      readonly type?: unknown;
+      readonly type?: UIMessageChunk["type"];
       readonly delta?: unknown;
     };
     if (event.type === "error" || event.type === "abort") {

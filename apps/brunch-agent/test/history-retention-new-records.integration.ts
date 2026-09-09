@@ -11,6 +11,7 @@ import { fauxAssistantMessage, fauxProvider } from "@earendil-works/pi-ai";
 import { observe } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
+import { CONSTRUCTION_CONTEXT_SIGNAL_TYPE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
   clientToolHistoryFrom,
   snapshotToUiMessages,
@@ -137,7 +138,7 @@ const projection = (snapshot: FlueConversationSnapshot) =>
   });
 const currentRevision = (snapshot: FlueConversationSnapshot) => {
   const signal = snapshot.messages.findLast(
-    (message) => message.signal?.tagName === "brunch.construction-context",
+    (message) => message.signal?.tagName === CONSTRUCTION_CONTEXT_SIGNAL_TYPE,
   );
   assert(signal, "The real plugin must expose its current core revision");
   return (

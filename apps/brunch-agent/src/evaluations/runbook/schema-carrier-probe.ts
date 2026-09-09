@@ -18,6 +18,7 @@ import {
   type PetrinautAiToolInput,
 } from "@hashintel/petrinaut-core/ai";
 
+import { STEP_A_MODEL_ID } from "../../chat-model.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -34,7 +35,7 @@ assert(
   !process.argv.includes("--paid"),
   "The one-use paid A1 instrument is retired. Its source, evidence and batching-limit caveat are retained in the A1 carrier-result.md packet. A new paid instrument needs a new reservation and an enforced batched-attempt ceiling.",
 );
-const modelId = "claude-sonnet-4-6";
+const modelId = STEP_A_MODEL_ID;
 const runId = `a1-faux-${crypto.randomUUID()}`;
 const outputDirectory = mkdtempSync(join(tmpdir(), "a1-faux-"));
 process.env.BRUNCH_CHAT_MODEL = modelId;

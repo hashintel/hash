@@ -6,6 +6,7 @@ import {
 import { describe, expect, test, vi } from "vitest";
 
 import { conversationConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { CONSTRUCTION_BINDING_SIGNAL_TYPE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import {
   agentOwnershipHeaders,
@@ -39,7 +40,7 @@ const snapshot: FlueConversationSnapshot = {
       role: "system",
       purpose: "dispatch",
       display: "hidden",
-      signal: { tagName: "brunch.construction-binding" },
+      signal: { tagName: CONSTRUCTION_BINDING_SIGNAL_TYPE },
       parts: [
         { type: "text", state: "done", text: JSON.stringify({ binding }) },
       ],

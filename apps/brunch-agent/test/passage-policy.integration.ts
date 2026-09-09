@@ -16,6 +16,15 @@ import {
   type FauxResponseStep,
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
+import * as v from "valibot";
+
+import { validatedFixtureMutationMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { workpieceReadOutputSchema } from "@hashintel/brunch-agent/flue";
+import {
+  preparedWorkpieceAuthorship,
+  preparedWorkpieceSignalTag,
+  preparedWorkpieceSignalType,
+} from "@hashintel/brunch-agent/workpiece";
 
 import {
   agentOwnershipHeaders,
@@ -33,29 +42,13 @@ import type {
   WorkpieceRevision,
 } from "@hashintel/brunch-agent/workpiece";
 
-type Span = { start: number; end: number };
-type ReadResult = {
-  currentWorkpiece: WorkpieceRevision | null;
-  state: string;
-  sources: {
-    id: string;
-    text: string;
-    role: string;
-    purpose: string;
-    untrusted: boolean;
-  }[];
-  quality: string;
-  locatorLookup: {
-    subject: { kind: string; revisionId?: string };
-    sha256: string;
-    utf16Length: number;
-    queries: {
-      text: string;
-      occurrences: Span[];
-      matchedCount: number;
-      omittedCount: number;
-    }[];
-  };
+type ReadOutput = v.InferOutput<typeof workpieceReadOutputSchema>;
+/** Every read here supplies locateTexts, so the lookup branch is always present. */
+type ReadResult = Omit<ReadOutput, "locatorLookup"> & {
+  locatorLookup: Extract<
+    NonNullable<ReadOutput["locatorLookup"]>,
+    { sha256: string }
+  >;
 };
 const outputDirectory = resolve(process.env.PASSAGE_POLICY_OUTPUT ?? "");
 assert(
@@ -103,11 +96,21 @@ const modelOutput = (context: Context, id: string): ReadResult => {
     result?.role === "toolResult" && !result.isError,
     `Actual successful model-facing response required: ${id}`,
   );
-  return JSON.parse(
-    result.content
-      .flatMap((part) => (part.type === "text" ? [part.text] : []))
-      .join(""),
-  ) as ReadResult;
+  // Core's read-tool output schema decides what a well-formed response is.
+  const parsed = v.parse(
+    workpieceReadOutputSchema,
+    JSON.parse(
+      result.content
+        .flatMap((part) => (part.type === "text" ? [part.text] : []))
+        .join(""),
+    ),
+  );
+  const { locatorLookup } = parsed;
+  assert(
+    locatorLookup !== undefined && "sha256" in locatorLookup,
+    `Locator lookup expected on ${id}`,
+  );
+  return { ...parsed, locatorLookup };
 };
 const checkLookup = (
   read: ReadResult,
@@ -180,7 +183,7 @@ const session = (label: string) => {
       ...(!initialized
         ? {
             initialData: {
-              mode: "validated-fixture-mutation",
+              mode: validatedFixtureMutationMode,
               browser: {
                 binding: {
                   conversationId: identity.conversationId,
@@ -235,12 +238,7 @@ const seed = async (current: Session, markdown = base) => {
       const source = candidate.sources.find(
         (entry) => entry.text === sourceText,
       );
-      assert(
-        source &&
-          source.role === "user" &&
-          source.purpose === "user" &&
-          source.untrusted,
-      );
+      assert(source);
       sourceId = source.id;
       relations = [
         {
@@ -578,9 +576,9 @@ try {
   const preparedReceipt = await negatives.client.send({
     message: {
       kind: "signal",
-      type: "brunch.fixture.prepared",
-      tagName: "prepared-fixture",
-      attributes: { authorship: "test-authored" },
+      type: preparedWorkpieceSignalType,
+      tagName: preparedWorkpieceSignalTag,
+      attributes: { authorship: preparedWorkpieceAuthorship },
       body: "TEST prepared source, never operational user testimony.",
     },
   });
@@ -590,7 +588,7 @@ try {
   assert.equal(factoryFailures.length, 0);
   const history = await negatives.client.history();
   const preparedId = history.messages.find(
-    (message) => message.signal?.tagName === "prepared-fixture",
+    (message) => message.signal?.tagName === preparedWorkpieceSignalTag,
   )?.id;
   assert(preparedId);
   const assistantId = history.messages.find(

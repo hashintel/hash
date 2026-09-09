@@ -2,8 +2,17 @@
 
 import { basename } from "node:path";
 
+import { PETRINAUT_CONSTRUCTION_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import {
+  ASK_TOOL_NAME,
+  SWEEP_TOOL_NAME,
+} from "@hashintel/brunch-agent/client-tools";
 import { runbookIrFence } from "@hashintel/brunch-agent/workpiece";
 
+import {
+  ACTIVATE_SKILL_TOOL_NAME,
+  READ_SKILL_RESOURCE_TOOL_NAME,
+} from "../../conversation/client-tools.ts";
 import { recoverRunbookWorkpiece } from "../../conversation/workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
@@ -30,7 +39,7 @@ export const skillResourcePathsFrom = (
   snapshot.messages.flatMap((message) =>
     message.parts.flatMap((part) => {
       if (part.type !== "dynamic-tool") return [];
-      if (part.toolName !== "read_skill_resource") return [];
+      if (part.toolName !== READ_SKILL_RESOURCE_TOOL_NAME) return [];
       if (part.state !== "output-available") return [];
       if (
         typeof part.input !== "object" ||
@@ -58,24 +67,26 @@ export interface OrdinaryElicitationViolation {
   readonly detail: string;
 }
 
-const ORDINARY_TOOL_NAMES = new Set(["activate_skill", "read_skill_resource"]);
-const CONSTRUCTION_TOOL_NAMES = new Set([
-  "getLatestNetDefinition",
-  "addType",
-  "addParameter",
-  "addPlace",
-  "addTransition",
-  "addArc",
+const ORDINARY_TOOL_NAMES = new Set<string>([
+  ACTIVATE_SKILL_TOOL_NAME,
+  READ_SKILL_RESOURCE_TOOL_NAME,
 ]);
-const CAPTURE_TOOL_NAMES = new Set(["brunch_ask", "brunch_sweep"]);
+const CONSTRUCTION_TOOL_NAMES = new Set<string>(
+  PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+);
+const CAPTURE_TOOL_NAMES = new Set<string>([ASK_TOOL_NAME, SWEEP_TOOL_NAME]);
 const ORDINARY_RESOURCE_NAMES = new Set(["profile.md", "workpiece.md"]);
 const CONSTRUCTION_RESOURCE_NAMES = new Set([
   "pn-construction.md",
   "checks.md",
 ]);
 
+const fencedRunbookIrBlocks = new RegExp(
+  `\`\`\`${runbookIrFence}\\s*\\n[\\s\\S]*?\`\`\``,
+  "gu",
+);
 const interactiveTextFrom = (text: string): string =>
-  text.replace(/```runbook-ir\s*\n[\s\S]*?```/gu, "");
+  text.replace(fencedRunbookIrBlocks, "");
 
 export const ordinaryElicitationViolationsFrom = (
   snapshot: FlueConversationSnapshot,
@@ -121,7 +132,7 @@ export const ordinaryElicitationViolationsFrom = (
       }
       if (
         part.type !== "dynamic-tool" ||
-        part.toolName !== "read_skill_resource" ||
+        part.toolName !== READ_SKILL_RESOURCE_TOOL_NAME ||
         part.state !== "output-available" ||
         typeof part.input !== "object" ||
         part.input === null ||

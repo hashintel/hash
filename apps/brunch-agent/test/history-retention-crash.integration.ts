@@ -13,6 +13,11 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import {
+  CONSTRUCTION_CONTEXT_SIGNAL_TYPE,
+  validatedFixtureMutationMode,
+} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+
+import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
@@ -141,7 +146,7 @@ const assertRevision = (
     "Stable call/result identity and ordinal",
   );
   const signal = snapshot.messages.findLast(
-    (message) => message.signal?.tagName === "brunch.construction-context",
+    (message) => message.signal?.tagName === CONSTRUCTION_CONTEXT_SIGNAL_TYPE,
   );
   assert(signal);
   const context = JSON.parse(
@@ -160,7 +165,7 @@ try {
     const receipt = await client.send({
       uid: null,
       initialData: {
-        mode: "validated-fixture-mutation",
+        mode: validatedFixtureMutationMode,
         browser: {
           binding: {
             conversationId: identity.conversationId,

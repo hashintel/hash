@@ -14,6 +14,13 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
+import { validatedFixtureMutationMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import {
+  preparedWorkpieceAuthorship,
+  preparedWorkpieceSignalTag,
+  preparedWorkpieceSignalType,
+} from "@hashintel/brunch-agent/workpiece";
+
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -117,14 +124,14 @@ try {
   await client.wait(
     await client.send({
       initialData: {
-        mode: "validated-fixture-mutation",
+        mode: validatedFixtureMutationMode,
         browser: { binding, requestedBaseHash: "a".repeat(64) },
       },
       message: {
         kind: "signal",
-        type: "brunch.fixture.prepared",
-        tagName: "prepared-fixture",
-        attributes: { authorship: "test-authored" },
+        type: preparedWorkpieceSignalType,
+        tagName: preparedWorkpieceSignalTag,
+        attributes: { authorship: preparedWorkpieceAuthorship },
         body: "Prepared hypothesis, not elicited support.",
       },
     }),
@@ -267,7 +274,7 @@ try {
   assert.equal(observations.length, 3);
   const history = await client.history();
   const preparedId = history.messages.find(
-    (message) => message.signal?.tagName === "prepared-fixture",
+    (message) => message.signal?.tagName === preparedWorkpieceSignalTag,
   )?.id;
   const assistantId = history.messages.find(
     (message) => message.role === "assistant",

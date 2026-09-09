@@ -35,7 +35,10 @@ import {
   verifyDefinitionObservation,
   type ConstructionTransitionRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  clientToolHistoryFrom,
+  CLIENT_TOOL_RESULT_SIGNAL,
+} from "@hashintel/brunch-agent-transport-aisdk";
 
 import {
   agentOwnershipHeaders,
@@ -43,6 +46,7 @@ import {
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import { browserResultFrom, type BrowserResult } from "./browser-result.ts";
 import {
   nativeSchemaProvider,
   type NativeRequestCapture,
@@ -205,39 +209,18 @@ const toolOutput = (
       .join(""),
   ) as Record<string, unknown>;
 };
-type BrowserResult = {
-  toolCallId: string;
-  toolName: string;
-  output: unknown;
-  metadata?: {
-    observation?: {
-      toolCallId: string;
-      observed: { sha256: string; definition: SDCPN };
-    };
-    transitionRecord?: ConstructionTransitionRecord;
-  };
-};
-const browserResult = (context: Context, name: string): BrowserResult => {
-  const texts = context.messages.flatMap((message) =>
-    typeof message.content === "string"
-      ? [message.content]
-      : message.content.flatMap((part) =>
-          part.type === "text" ? [part.text] : [],
-        ),
+const browserResult = (context: Context, name: string): BrowserResult =>
+  browserResultFrom(
+    context.messages.flatMap((message) =>
+      typeof message.content === "string"
+        ? [message.content]
+        : message.content.flatMap((part) =>
+            part.type === "text" ? [part.text] : [],
+          ),
+    ),
+    name,
+    "Missing causal browser result",
   );
-  for (const body of texts.toReversed()) {
-    const match =
-      /<client-tool-result\b[^>]*>\s*([\s\S]*?)\s*<\/client-tool-result>/u.exec(
-        body,
-      );
-    if (!match?.[1]) continue;
-    const result = (JSON.parse(match[1]) as BrowserResult[]).find(
-      (entry) => entry.toolName === name,
-    );
-    if (result) return result;
-  }
-  throw new Error(`Missing causal browser result ${name}`);
-};
 let basis: Record<string, unknown> | undefined;
 const settle = (markdown: string, id: string) => [
   tool("update_workpiece", { markdown }, id),
@@ -1167,8 +1150,8 @@ try {
           await client.send({
             message: {
               kind: "signal",
-              type: "client-tool-result",
-              tagName: "client-tool-result",
+              type: CLIENT_TOOL_RESULT_SIGNAL,
+              tagName: CLIENT_TOOL_RESULT_SIGNAL,
               body: JSON.stringify([
                 { ...original, metadata: { transitionRecord: record } },
               ]),

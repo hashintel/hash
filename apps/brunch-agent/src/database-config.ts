@@ -41,9 +41,7 @@ export interface PostgresDatabaseConfig {
 
 export type DatabaseConfig = SqliteDatabaseConfig | PostgresDatabaseConfig;
 
-type Environment = Readonly<Record<string, string | undefined>>;
-
-const valueOf = (environment: Environment, name: string): string => {
+const valueOf = (environment: NodeJS.ProcessEnv, name: string): string => {
   const value = environment[name]?.trim();
   if (value === undefined || value.length === 0) {
     throw new Error(`Postgres database configuration requires ${name}.`);
@@ -51,13 +49,13 @@ const valueOf = (environment: Environment, name: string): string => {
   return value;
 };
 
-const absent = (environment: Environment, name: string): void => {
+const absent = (environment: NodeJS.ProcessEnv, name: string): void => {
   if (environment[name] !== undefined) {
     throw new Error(`Database configuration does not accept ${name}.`);
   }
 };
 
-const portOf = (environment: Environment): number => {
+const portOf = (environment: NodeJS.ProcessEnv): number => {
   const name = POSTGRES_ENV.port;
   const source = valueOf(environment, name);
   if (!/^\d+$/u.test(source)) {
@@ -70,14 +68,14 @@ const portOf = (environment: Environment): number => {
   return port;
 };
 
-const rejectLegacyPostgresInputs = (environment: Environment): void => {
+const rejectLegacyPostgresInputs = (environment: NodeJS.ProcessEnv): void => {
   absent(environment, "DATABASE_URL");
   absent(environment, "BRUNCH_DEV_DB_PATH");
   absent(environment, "BRUNCH_CHAT_DB_PATH");
 };
 
 export const loadDatabaseConfig = (
-  environment: Environment = process.env,
+  environment: NodeJS.ProcessEnv = process.env,
 ): DatabaseConfig => {
   const production = environment.NODE_ENV === "production";
   const kind =

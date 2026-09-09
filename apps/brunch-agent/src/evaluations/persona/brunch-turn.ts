@@ -15,14 +15,18 @@ import {
 import {
   createFlueClient,
   type FlueClient,
-  type FlueConversationPart,
   type FlueConversationSnapshot,
 } from "@flue/sdk";
 import { Type } from "typebox";
 
 import {
-  CLIENT_TOOL_RESULT_SIGNAL,
+  clientToolResultSignal,
+  type ClientToolResult,
+} from "@hashintel/brunch-agent-transport-aisdk";
+
+import {
   isAwaitingClient,
+  type DynamicToolPart,
 } from "../../conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
@@ -38,8 +42,7 @@ import {
   TOOL_HOST_FLAG,
 } from "./client-tool-hosts.ts";
 
-type BrunchFlueClient = Pick<FlueClient, "history" | "read" | "send">;
-type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
+export type BrunchFlueClient = Pick<FlueClient, "history" | "read" | "send">;
 
 interface TextContent {
   readonly type: "text";
@@ -405,11 +408,7 @@ export const createBrunchTurnTool = ({
             );
           }
 
-          const results: {
-            readonly toolCallId: string;
-            readonly toolName: string;
-            readonly output: unknown;
-          }[] = [];
+          const results: ClientToolResult[] = [];
 
           for (const call of pendingClientCalls) {
             try {
@@ -451,17 +450,7 @@ export const createBrunchTurnTool = ({
           }
 
           currentAdmission = await client.send({
-            message: {
-              kind: "signal",
-              type: CLIENT_TOOL_RESULT_SIGNAL,
-              tagName: CLIENT_TOOL_RESULT_SIGNAL,
-              body: JSON.stringify(results),
-              attributes: {
-                toolCallIds: results
-                  .map((result) => result.toolCallId)
-                  .join(","),
-              },
-            },
+            message: clientToolResultSignal(results),
             uid: incarnationUid,
             signal,
           });

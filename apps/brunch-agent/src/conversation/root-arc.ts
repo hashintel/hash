@@ -1,24 +1,40 @@
 import { createHash } from "node:crypto";
 
+import * as v from "valibot";
+
 import {
   canonicalContent,
   parseJoinedRootArcInput,
   parseObservedArcInput,
   parseObservedNodeInput,
+  isObservedArcMutation,
   isObservedNodeMutation,
   assertNodeIdentity,
   assertStateIdentity,
   isObservedStateMutation,
+  parseClientToolResultMetadata,
   parseObservedStateInput,
+  type BrowserBinding,
   type ConstructionMutationRequest,
   type DefinitionObservation,
   reconcileArcTransitionAttempts,
   verifyArcTransitionAttempt,
-  type ArcMutationRequest,
   type ConstructionTransitionAttempt as ArcTransitionAttempt,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  clientToolHistoryFrom,
+  isClientToolResult,
+} from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  UPDATE_WORKPIECE_TOOL_NAME,
+  updateWorkpieceInputSchema,
+  updateWorkpieceOutputSchema,
+} from "@hashintel/brunch-agent/flue";
 import { mutationActionInputSchemas } from "@hashintel/petrinaut-core";
+import {
+  getLatestNetDefinitionToolName,
+  type PetrinautAiToolInput,
+} from "@hashintel/petrinaut-core/ai";
 
 import { isAwaitingClient } from "./client-tools.ts";
 
@@ -39,23 +55,22 @@ export const retainedSettledRevision = (
     for (const part of message.parts) {
       if (
         part.type !== "dynamic-tool" ||
-        part.toolName !== "update_workpiece" ||
+        part.toolName !== UPDATE_WORKPIECE_TOOL_NAME ||
         part.toolCallId !== revisionId ||
         part.state !== "output-available"
       )
         continue;
+      // Core's own tool contracts decide what a settled call looks like.
+      const input = v.safeParse(
+        v.object({ markdown: updateWorkpieceInputSchema.entries.markdown }),
+        part.input,
+      );
+      const output = v.safeParse(updateWorkpieceOutputSchema, part.output);
+      if (!input.success || !output.success) continue;
+      const { markdown } = input.output;
+      const { sha256, ordinal, evidence, evidenceValidated } = output.output;
       if (
-        !record(part.input) ||
-        typeof part.input.markdown !== "string" ||
-        !record(part.output)
-      )
-        continue;
-      const { markdown } = part.input;
-      const { sha256, ordinal } = part.output;
-      if (
-        part.output.revisionId !== revisionId ||
-        typeof sha256 !== "string" ||
-        typeof ordinal !== "number" ||
+        output.output.revisionId !== revisionId ||
         createHash("sha256").update(markdown).digest("hex") !== sha256
       )
         continue;
@@ -64,11 +79,8 @@ export const retainedSettledRevision = (
         sha256,
         ordinal,
         markdown,
-        ...(part.output.evidenceValidated === true
-          ? {
-              evidence: part.output.evidence as WorkpieceRevision["evidence"],
-              evidenceValidated: true as const,
-            }
+        ...(evidenceValidated === true && evidence !== undefined
+          ? { evidence, evidenceValidated }
           : {}),
       };
     }
@@ -80,7 +92,7 @@ export const retainedSettledRevision = (
 export const assertArcNotRetired = async (
   snapshot: FlueConversationSnapshot,
   observed: DefinitionObservation,
-  input: ArcMutationRequest["input"],
+  input: PetrinautAiToolInput<"addArc">,
 ): Promise<void> => {
   const transition = observed.definition.transitions.find(
     (entry) => entry.id === input.transitionId,
@@ -94,15 +106,13 @@ export const assertArcNotRetired = async (
     throw new Error("Duplicate root arc identity cannot be created.");
   const results = clientToolHistoryFrom(snapshot.messages).results;
   for (const result of results) {
-    if (
-      result.toolName !== "addArc" ||
-      !record(result.metadata) ||
-      !record(result.metadata.transitionRecord) ||
-      !Array.isArray(result.metadata.transitionRecord.attempts)
-    )
+    const transitionRecord = parseClientToolResultMetadata(
+      result.metadata,
+    )?.transitionRecord;
+    if (result.toolName !== "addArc" || transitionRecord === undefined)
       continue;
     const verified = await Promise.all(
-      result.metadata.transitionRecord.attempts.map((raw: unknown) =>
+      transitionRecord.attempts.map((raw) =>
         verifyArcTransitionAttempt(raw as ArcTransitionAttempt),
       ),
     );
@@ -140,7 +150,7 @@ export const assertConstructionIdentity = async (
   snapshot: FlueConversationSnapshot,
   observed: DefinitionObservation,
   mutation: Pick<ConstructionMutationRequest, "toolName" | "input">,
-  binding: ArcMutationRequest["binding"],
+  binding: BrowserBinding,
   read: (id: string) => Promise<DefinitionObservation>,
 ): Promise<void> => {
   if (mutation.toolName === "addArc") {
@@ -164,7 +174,7 @@ export const assertConstructionIdentity = async (
         !isAwaitingClient(call.output)
       )
         continue;
-      if (call.toolName === "getLatestNetDefinition")
+      if (call.toolName === getLatestNetDefinitionToolName)
         earlier.push(await read(call.toolCallId));
     }
   }
@@ -173,8 +183,7 @@ export const assertConstructionIdentity = async (
     if (
       !isObservedNodeMutation(result.toolName) &&
       !isObservedStateMutation(result.toolName) &&
-      result.toolName !== "addArc" &&
-      result.toolName !== "updateArcWeight"
+      !isObservedArcMutation(result.toolName)
     )
       continue;
     await verifyRootArcResults({
@@ -183,17 +192,16 @@ export const assertConstructionIdentity = async (
       binding,
       observationFor: async (id) => read(id),
     });
-    if (
-      !record(result.metadata) ||
-      !record(result.metadata.transitionRecord) ||
-      !Array.isArray(result.metadata.transitionRecord.attempts)
-    )
+    const transitionRecord = parseClientToolResultMetadata(
+      result.metadata,
+    )?.transitionRecord;
+    if (transitionRecord === undefined)
       throw new Error("Missing identity history.");
-    for (const raw of result.metadata.transitionRecord.attempts) {
+    for (const raw of transitionRecord.attempts) {
       const attempt = await verifyArcTransitionAttempt(
         raw as ArcTransitionAttempt,
       );
-      if (result.metadata.transitionRecord.outcome === "unknown")
+      if (transitionRecord.outcome === "unknown")
         throw new Error(
           "Unknown construction history cannot establish safe identity reuse.",
         );
@@ -217,7 +225,7 @@ export const assertConstructionIdentity = async (
 export const verifyRootArcResults = async (input: {
   body: string;
   snapshot: FlueConversationSnapshot;
-  binding: ArcMutationRequest["binding"];
+  binding: BrowserBinding;
   requestedBaseHash?: string;
   observationFor?: (
     id: string,
@@ -229,12 +237,7 @@ export const verifyRootArcResults = async (input: {
   const history = clientToolHistoryFrom(input.snapshot.messages);
   await Promise.all(
     deliveries.map(async (delivery: unknown) => {
-      if (
-        !record(delivery) ||
-        typeof delivery.toolCallId !== "string" ||
-        typeof delivery.toolName !== "string" ||
-        !("output" in delivery)
-      )
+      if (!isClientToolResult(delivery))
         throw new Error("Malformed browser result identity.");
       const call = input.snapshot.messages
         .flatMap((message) => message.parts)
@@ -302,36 +305,32 @@ export const verifyRootArcResults = async (input: {
         throw new Error(
           "The issued browser base does not match the bound conversation.",
         );
-      if (
-        !record(delivery.metadata) ||
-        !record(delivery.metadata.transitionRecord) ||
-        !Array.isArray(delivery.metadata.transitionRecord.attempts)
-      )
+      const transitionRecord = parseClientToolResultMetadata(
+        delivery.metadata,
+      )?.transitionRecord;
+      if (transitionRecord === undefined)
         throw new Error(
           "The root arc result requires a browser transition record.",
         );
       const attempts = await Promise.all(
-        delivery.metadata.transitionRecord.attempts.map(
-          async (attempt: unknown) => {
-            // The plugin's receiving-boundary verifier validates detached observations and effects.
-            const verified = await verifyArcTransitionAttempt(
-              attempt as ArcTransitionAttempt,
+        transitionRecord.attempts.map(async (attempt) => {
+          // The plugin's receiving-boundary verifier validates detached observations and effects.
+          const verified = await verifyArcTransitionAttempt(
+            attempt as ArcTransitionAttempt,
+          );
+          if (
+            canonicalContent(verified.request) !== canonicalContent(expected) ||
+            canonicalContent(verified.binding) !==
+              canonicalContent(input.binding)
+          )
+            throw new Error(
+              "The browser record does not match the issued call or document incarnation.",
             );
-            if (
-              canonicalContent(verified.request) !==
-                canonicalContent(expected) ||
-              canonicalContent(verified.binding) !==
-                canonicalContent(input.binding)
-            )
-              throw new Error(
-                "The browser record does not match the issued call or document incarnation.",
-              );
-            return verified;
-          },
-        ),
+          return verified;
+        }),
       );
       const reconciled = reconcileArcTransitionAttempts(attempts);
-      if (reconciled.outcome !== delivery.metadata.transitionRecord.outcome)
+      if (reconciled.outcome !== transitionRecord.outcome)
         throw new Error("The browser aggregate outcome is inconsistent.");
       if (
         record(delivery.output) &&

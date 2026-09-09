@@ -13,7 +13,10 @@ import {
   petrinautFixtureToolNames,
   validatedFixtureMutationMode,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { createPreparedWorkpieceDelivery } from "@hashintel/brunch-agent/workpiece";
+import {
+  createPreparedWorkpieceDelivery,
+  preparedWorkpieceSignalTag,
+} from "@hashintel/brunch-agent/workpiece";
 
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
@@ -264,7 +267,7 @@ try {
         (message) =>
           message.role === "system" &&
           message.purpose === "dispatch" &&
-          message.signal?.tagName === "prepared-fixture",
+          message.signal?.tagName === preparedWorkpieceSignalTag,
       ).length,
     })}\n`,
   );

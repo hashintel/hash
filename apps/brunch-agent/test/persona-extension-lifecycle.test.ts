@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { expect, test } from "vitest";
 
 import { conversationConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { CONSTRUCTION_BINDING_SIGNAL_TYPE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import { flueConversationIdFrom } from "../src/conversation/identity";
 
@@ -58,7 +59,7 @@ test.skipIf(!cli || process.platform !== "darwin")(
                   role: "system",
                   purpose: "dispatch",
                   display: "hidden",
-                  signal: { tagName: "brunch.construction-binding" },
+                  signal: { tagName: CONSTRUCTION_BINDING_SIGNAL_TYPE },
                   parts: [
                     {
                       type: "text",

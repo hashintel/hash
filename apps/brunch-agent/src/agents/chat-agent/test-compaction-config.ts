@@ -2,7 +2,7 @@ import type { CompactionConfig } from "@flue/runtime";
 
 /** Local probe configuration; never alter deployed compaction through this seam. */
 export const loadTestCompactionConfig = (
-  environment: Readonly<Record<string, string | undefined>> = process.env,
+  environment: NodeJS.ProcessEnv = process.env,
 ): CompactionConfig | undefined => {
   const source = environment.BRUNCH_TEST_KEEP_RECENT_TOKENS;
   if (source === undefined) return undefined;

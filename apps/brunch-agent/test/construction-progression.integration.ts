@@ -34,7 +34,11 @@ import {
   verifyArcTransitionAttempt,
   type ArcTransitionRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import { conversationConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import {
+  clientToolHistoryFrom,
+  CLIENT_TOOL_RESULT_SIGNAL,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import {
   generateArcId,
   getArcEndpointKey,
@@ -47,6 +51,7 @@ import {
 } from "../src/conversation/identity.ts";
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import { browserResultFrom, type BrowserResult } from "./browser-result.ts";
 import {
   nativeSchemaProvider,
   type NativeRequestCapture,
@@ -207,36 +212,18 @@ const toolOutput = (
       .join(""),
   ) as Record<string, unknown>;
 };
-const browserResult = (context: Context, name: string) => {
-  const texts = context.messages.flatMap((message) =>
-    typeof message.content === "string"
-      ? [message.content]
-      : message.content.flatMap((part) =>
-          part.type === "text" ? [part.text] : [],
-        ),
+const browserResult = (context: Context, name: string): BrowserResult =>
+  browserResultFrom(
+    context.messages.flatMap((message) =>
+      typeof message.content === "string"
+        ? [message.content]
+        : message.content.flatMap((part) =>
+            part.type === "text" ? [part.text] : [],
+          ),
+    ),
+    name,
+    "No actual model-facing browser result",
   );
-  for (const body of texts.toReversed()) {
-    const match =
-      /<client-tool-result\b[^>]*>\s*([\s\S]*?)\s*<\/client-tool-result>/u.exec(
-        body,
-      );
-    if (!match?.[1]) continue;
-    const results = JSON.parse(match[1]) as {
-      toolName: string;
-      toolCallId: string;
-      output: unknown;
-      metadata: {
-        observation?: {
-          toolCallId: string;
-          observed: { sha256: string; definition: unknown };
-        };
-      };
-    }[];
-    const result = results.find((entry) => entry.toolName === name);
-    if (result) return result;
-  }
-  throw new Error("No actual model-facing browser result");
-};
 let completed = 0;
 let basis: Record<string, unknown> | undefined;
 let firstCall: Record<string, unknown> | undefined;
@@ -309,7 +296,7 @@ try {
     ...settle(quote, "construction-revision-one"),
     (context) => {
       const result = browserResult(context, "getLatestNetDefinition");
-      const observation = result.metadata.observation;
+      const observation = result.metadata?.observation;
       assert(observation && basis);
       const definition = observation.observed.definition as {
         places: { id: string; name: string }[];
@@ -378,7 +365,7 @@ try {
   };
   assert.equal(firstRequest.kind, "user");
   assert.deepEqual(firstRequest.initialData, {
-    mode: "conversation-construction-candidate",
+    mode: conversationConstructionMode,
     construction: {
       binding: {
         conversationId: identity.conversationId,
@@ -391,7 +378,7 @@ try {
     ...settle(corrected, "construction-revision-two"),
     (context) => {
       const result = browserResult(context, "getLatestNetDefinition");
-      const observation = result.metadata.observation;
+      const observation = result.metadata?.observation;
       assert(observation && basis && firstCall);
       const { type: _type, brunch: _brunch, ...canonical } = firstCall;
       secondCall = {
@@ -416,7 +403,7 @@ try {
     },
     (context) => {
       const observation = browserResult(context, "getLatestNetDefinition")
-        .metadata.observation;
+        .metadata?.observation;
       assert(observation);
       return tool(
         "brunch_why",
@@ -577,7 +564,7 @@ try {
     tool("getLatestNetDefinition", {}, "before-hand-edit"),
     (context) => {
       const observation = browserResult(context, "getLatestNetDefinition")
-        .metadata.observation;
+        .metadata?.observation;
       assert(observation && secondCall);
       staleCall = {
         ...secondCall,
@@ -651,7 +638,7 @@ try {
     tool("getLatestNetDefinition", {}, "hand-edit-why-read"),
     (context) => {
       const observation = browserResult(context, "getLatestNetDefinition")
-        .metadata.observation;
+        .metadata?.observation;
       assert(observation);
       return tool(
         "brunch_why",
@@ -747,8 +734,8 @@ try {
         await client.send({
           message: {
             kind: "signal",
-            type: "client-tool-result",
-            tagName: "client-tool-result",
+            type: CLIENT_TOOL_RESULT_SIGNAL,
+            tagName: CLIENT_TOOL_RESULT_SIGNAL,
             body: JSON.stringify([
               { ...original, metadata: { transitionRecord: foreign } },
             ]),
@@ -769,8 +756,8 @@ try {
         await client.send({
           message: {
             kind: "signal",
-            type: "client-tool-result",
-            tagName: "client-tool-result",
+            type: CLIENT_TOOL_RESULT_SIGNAL,
+            tagName: CLIENT_TOOL_RESULT_SIGNAL,
             body: JSON.stringify([
               { ...original, metadata: { transitionRecord: conflicting } },
             ]),

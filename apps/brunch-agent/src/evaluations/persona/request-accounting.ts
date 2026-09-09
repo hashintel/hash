@@ -7,6 +7,7 @@ import { isAbsolute, join } from "node:path";
 import { builtinProviders } from "@earendil-works/pi-ai/providers/all";
 import * as v from "valibot";
 
+import { STEP_A_MODEL_ID } from "../../chat-model.ts";
 import { createStepARequestAccounting } from "../../provider-accounting.ts";
 
 import type { Api, AuthResult, Model, Provider } from "@earendil-works/pi-ai";
@@ -117,7 +118,7 @@ export const registerPersonaAccounting = (pi: PersonaAccountingApi) => {
       !intendedKey ||
       checkPersonaConfiguration() !== intendedKey ||
       model.provider !== "anthropic" ||
-      model.id !== "claude-sonnet-4-6" ||
+      model.id !== STEP_A_MODEL_ID ||
       model.api !== "anthropic-messages" ||
       model.baseUrl !== "https://api.anthropic.com" ||
       options?.apiKey !== intendedKey
@@ -136,7 +137,7 @@ export const registerPersonaAccounting = (pi: PersonaAccountingApi) => {
     if (
       !accounting ||
       context.model?.provider !== "anthropic" ||
-      context.model.id !== "claude-sonnet-4-6"
+      context.model.id !== STEP_A_MODEL_ID
     )
       return fail();
     const auth = await context.modelRegistry.getProviderAuth("anthropic");

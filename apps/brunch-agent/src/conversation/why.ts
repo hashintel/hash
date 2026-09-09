@@ -23,30 +23,28 @@ import {
   validateDeclaredBasis,
   verifyArcTransitionAttempt,
   verifyDefinitionObservation,
-  type ArcMutationRequest,
-  type ConstructionTransitionAttempt as ArcTransitionAttempt,
+  parseClientToolResultMetadata,
+  type ConstructionTransitionAttempt,
+  type DeclaredBasis,
   type DefinitionObservation,
   type RootArcWhyInput,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 import { settleWorkpieceEvidence } from "@hashintel/brunch-agent/flue";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
 import { retainedSettledRevision } from "./root-arc.ts";
 import { workpieceEvidenceSources } from "./workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
+import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import type {
   WorkpieceEvidenceRelation,
   WorkpieceEvidenceSource,
   WorkpieceRevision,
 } from "@hashintel/brunch-agent/workpiece";
 
-type Browser = {
-  binding: ArcMutationRequest["binding"];
-  requestedBaseHash?: string;
-  construction?: true;
-};
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const resultMessages = (snapshot: FlueConversationSnapshot) =>
@@ -60,7 +58,7 @@ const resultMessages = (snapshot: FlueConversationSnapshot) =>
 /** A model-selected ID selects a recorded browser observation, never a model-supplied hash. */
 export const recordedBrowserObservation = async (
   snapshot: FlueConversationSnapshot,
-  browser: Browser,
+  browser: BrowserContext,
   toolCallId: string,
 ): Promise<DefinitionObservation> => {
   const calls = snapshot.messages
@@ -76,7 +74,7 @@ export const recordedBrowserObservation = async (
   if (
     calls.length !== 1 ||
     call?.type !== "dynamic-tool" ||
-    call.toolName !== "getLatestNetDefinition" ||
+    call.toolName !== getLatestNetDefinitionToolName ||
     call.state !== "output-available" ||
     !isAwaitingClient(call.output)
   )
@@ -85,6 +83,7 @@ export const recordedBrowserObservation = async (
     resultMessages(snapshot),
   ).results.filter((result) => result.toolCallId === toolCallId);
   const first = results[0];
+  const recorded = parseClientToolResultMetadata(first?.metadata)?.observation;
   if (
     !first ||
     results.length !== 1 ||
@@ -92,22 +91,18 @@ export const recordedBrowserObservation = async (
       (result) => canonicalContent(result) !== canonicalContent(first),
     ) ||
     first.toolName !== call.toolName ||
-    !record(first.metadata) ||
-    !record(first.metadata.observation) ||
+    recorded === undefined ||
     !record(first.output)
   )
     throw new Error("Missing or conflicting correlated browser observation.");
-  const metadata = first.metadata.observation;
   if (
-    metadata.toolCallId !== toolCallId ||
-    canonicalContent(metadata.binding) !== canonicalContent(browser.binding)
+    recorded.toolCallId !== toolCallId ||
+    canonicalContent(recorded.binding) !== canonicalContent(browser.binding)
   )
     throw new Error(
       "Browser observation belongs to another conversation or document incarnation.",
     );
-  const observation = await verifyDefinitionObservation(
-    metadata.observed as DefinitionObservation,
-  );
+  const observation = await verifyDefinitionObservation(recorded.observed);
   if (
     canonicalContent(first.output.definition) !==
     canonicalContent(observation.definition)
@@ -127,7 +122,7 @@ export interface RootArcExplanation {
     | "retired"
     | "refused";
   reason: string;
-  binding: Browser["binding"];
+  binding: BrowserContext["binding"];
   currentWorkpiece: WorkpieceRevision | null;
   reconciliation: {
     status:
@@ -148,36 +143,37 @@ export interface RootArcExplanation {
     | ReturnType<typeof locateRootArc>
     | ReturnType<typeof locateRootNode>
     | ReturnType<typeof locateRootState>;
-  governing?: {
-    revisionId: string;
-    sha256: string;
+  governing?: Pick<
+    Extract<DeclaredBasis, { kind: "declared" }>,
+    "revisionId" | "sha256" | "rationale" | "scope"
+  > & {
     status: "current" | "superseded";
-    rationale: string;
-    scope: "operation";
     passages: {
-      locator: { start: number; end: number };
+      locator: WorkpieceEvidenceRelation["locator"];
       text: string;
       standing: "declared-relations" | "temporal-context-only";
-      relations: {
-        kind: WorkpieceEvidenceRelation["kind"];
-        messageIds: readonly string[];
+      relations: (Pick<WorkpieceEvidenceRelation, "kind" | "messageIds"> & {
         sources: readonly WorkpieceEvidenceSource[];
-      }[];
+      })[];
     }[];
   };
   originToolCallId?: string;
   appliedChanges?: {
     toolCallId: string;
     operation: string;
-    basis: ReturnType<typeof parseJoinedRootArcInput>["brunch"]["basis"];
+    basis: DeclaredBasis;
   }[];
   recordedChange?: {
     toolCallId: string;
     preHash: string;
     postHash: string;
-    effects: ArcTransitionAttempt["effects"];
+    effects: ConstructionTransitionAttempt["effects"];
   };
-  attempts: { toolCallId: string; outcome: string }[];
+  /** `not-admitted` is this app's disposition for a call the model never completed. */
+  attempts: {
+    toolCallId: string;
+    outcome: ConstructionTransitionAttempt["outcome"] | "not-admitted";
+  }[];
   quality: {
     sourceRelevance: "unassessed";
     templateCompleteness: "unassessed";
@@ -191,7 +187,7 @@ export interface RootArcExplanation {
 export const explainRootArc = async (input: {
   snapshot: FlueConversationSnapshot;
   current: WorkpieceRevision | null;
-  browser: Browser;
+  browser: BrowserContext;
   query: RootArcWhyInput | RootNodeWhyInput | RootStateWhyInput;
   /** Only the active client-result delivery can earn live-observed, never an old ID alone. */
   activeObservationCallIds?: readonly string[];
@@ -217,8 +213,8 @@ export const explainRootArc = async (input: {
     const results = clientToolHistoryFrom(resultMessages(snapshot)).results;
     const changes: {
       callId: string;
-      attempt: ArcTransitionAttempt;
-      basis: ReturnType<typeof parseJoinedRootArcInput>["brunch"]["basis"];
+      attempt: ConstructionTransitionAttempt;
+      basis: DeclaredBasis;
       callIndex: number;
       partIndex: number;
     }[] = [];
@@ -292,12 +288,10 @@ export const explainRootArc = async (input: {
           throw new Error(
             "Conflicting browser deliveries are unknown attempts, not causes.",
           );
-        if (
-          first.toolName !== name ||
-          !record(first.metadata) ||
-          !record(first.metadata.transitionRecord) ||
-          !Array.isArray(first.metadata.transitionRecord.attempts)
-        )
+        const transitionRecord = parseClientToolResultMetadata(
+          first.metadata,
+        )?.transitionRecord;
+        if (first.toolName !== name || transitionRecord === undefined)
           throw new Error("Missing verified browser transition record.");
         const expected: ConstructionMutationRequest = {
           toolCallId: call.toolCallId,
@@ -315,9 +309,9 @@ export const explainRootArc = async (input: {
         )
           throw new Error("Issued base differs from the bound conversation.");
         const attempts = await Promise.all(
-          first.metadata.transitionRecord.attempts.map(async (raw: unknown) => {
+          transitionRecord.attempts.map(async (raw) => {
             const attempt = await verifyArcTransitionAttempt(
-              raw as ArcTransitionAttempt,
+              raw as ConstructionTransitionAttempt,
             );
             if (
               canonicalContent(attempt.request) !==
@@ -333,7 +327,7 @@ export const explainRootArc = async (input: {
         );
         const reconciled = reconcileArcTransitionAttempts(attempts);
         if (
-          reconciled.outcome !== first.metadata.transitionRecord.outcome ||
+          reconciled.outcome !== transitionRecord.outcome ||
           (record(first.output) &&
             first.output.applied === true &&
             reconciled.outcome !== "applied") ||
@@ -649,7 +643,7 @@ export const explainRootArc = async (input: {
 
 export const createRootArcWhyTool = (options: {
   current: WorkpieceRevision | null;
-  browser: Browser;
+  browser: BrowserContext;
   history: () => Promise<FlueConversationSnapshot>;
   activeObservationCallIds: readonly string[];
 }) =>

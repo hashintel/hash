@@ -2,7 +2,6 @@ import {
   FlueExecutionError,
   type AgentReadResult,
   type AgentSendResult,
-  type FlueClient,
   type FlueConversationPart,
   type FlueConversationSnapshot,
 } from "@flue/sdk";
@@ -15,6 +14,7 @@ import {
 import {
   createBrunchTurnTool,
   registerBrunchTurn,
+  type BrunchFlueClient,
   type BrunchTurnExtensionApi,
   type BrunchTurnTool,
 } from "../src/evaluations/persona/brunch-turn";
@@ -22,8 +22,6 @@ import {
   createMockClientToolHost,
   createRealHeadlessClientToolHost,
 } from "../src/evaluations/persona/client-tool-hosts";
-
-type BrunchFlueClient = Pick<FlueClient, "history" | "read" | "send">;
 
 const admission = (submissionId: string, uid: string): AgentSendResult => ({
   streamUrl: `http://brunch.local/stream/${submissionId}`,

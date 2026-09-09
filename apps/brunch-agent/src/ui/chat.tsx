@@ -9,22 +9,20 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
+  type ConversationIdentity,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { LOCAL_UI_PRINCIPAL } from "../conversation/payload.ts";
 import { CHAT_AGENT_ROUTE } from "../http/routes.ts";
 
+/** The local UI always speaks as its one demo principal. */
+type LocalConversationIdentity = ConversationIdentity & {
+  readonly principalKey: typeof LOCAL_UI_PRINCIPAL;
+};
+
 type ChatConfiguration =
-  | {
-      readonly mode: "writable";
-      readonly principalKey: typeof LOCAL_UI_PRINCIPAL;
-      readonly conversationId: string;
-    }
-  | {
-      readonly mode: "observe";
-      readonly principalKey: typeof LOCAL_UI_PRINCIPAL;
-      readonly conversationId: string;
-    }
+  | ({ readonly mode: "writable" } & LocalConversationIdentity)
+  | ({ readonly mode: "observe" } & LocalConversationIdentity)
   | {
       readonly mode: "observer-error";
       readonly message: string;

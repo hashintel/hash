@@ -19,18 +19,30 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
 import {
+  parseClientToolResultMetadata,
+  type ConstructionMutationRequest,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
   SDCPN_MODELLING_SKILL_NAME,
   sdcpnInitialDataSchema,
   useSdcpnPlugin,
+  type BrowserContext,
   type SdcpnInitialData,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { parseClientToolResults } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   createWorkpieceReadTool,
   useBrunchAgent,
 } from "@hashintel/brunch-agent/flue";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { selectChatModel } from "../../chat-model.ts";
-import { CLIENT_TOOL_RESULT_SIGNAL } from "../../conversation/client-tools.ts";
+import {
+  ACTIVATE_SKILL_TOOL_NAME,
+  CLIENT_TOOL_RESULT_SIGNAL,
+} from "../../conversation/client-tools.ts";
+
+export { ACTIVATE_SKILL_TOOL_NAME };
 import {
   retainedSettledRevision,
   verifyRootArcResults,
@@ -50,15 +62,13 @@ export const CHAT_MODEL_ID = selectChatModel();
 
 export const RUNBOOK_SKILL_NAME = SDCPN_MODELLING_SKILL_NAME;
 
-export const ACTIVATE_SKILL_TOOL_NAME = "activate_skill";
-
 const testCompactionConfig = loadTestCompactionConfig();
 
 export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
   const delivery = useDelivery();
-  const browserContext = initialData?.construction
-    ? { ...initialData.construction, construction: true as const }
+  const browserContext: BrowserContext | undefined = initialData?.construction
+    ? { ...initialData.construction, construction: true }
     : initialData?.browser;
   // Agent-local acquisition of this already-authorized instance's public history.
   // Reuse the existing router and storage; no listener, companion log or private records.
@@ -80,28 +90,12 @@ export function ChatAgent({ id }: AgentProps) {
     delivery.type === CLIENT_TOOL_RESULT_SIGNAL &&
     delivery.tagName === CLIENT_TOOL_RESULT_SIGNAL
   ) {
-    const results: unknown = JSON.parse(delivery.body);
-    if (Array.isArray(results))
-      for (const raw of results) {
-        const result: unknown = raw;
-        if (
-          typeof result === "object" &&
-          result !== null &&
-          "toolName" in result &&
-          result.toolName === "getLatestNetDefinition" &&
-          "toolCallId" in result &&
-          typeof result.toolCallId === "string"
-        ) {
-          activeObservationCallIds.push(result.toolCallId);
-          if (
-            "metadata" in result &&
-            typeof result.metadata === "object" &&
-            result.metadata !== null &&
-            "observation" in result.metadata
-          )
-            suppliedObservationCallIds.push(result.toolCallId);
-        }
-      }
+    for (const result of parseClientToolResults(delivery.body)) {
+      if (result.toolName !== getLatestNetDefinitionToolName) continue;
+      activeObservationCallIds.push(result.toolCallId);
+      if (parseClientToolResultMetadata(result.metadata)?.observation)
+        suppliedObservationCallIds.push(result.toolCallId);
+    }
   }
   const coreSystemPrompt = useBrunchAgent(
     `anthropic/${CHAT_MODEL_ID}`,
@@ -116,7 +110,7 @@ export function ChatAgent({ id }: AgentProps) {
               observationFor: async (
                 callId: string,
                 mutation?: Pick<
-                  import("@hashintel/brunch-agent-plugin-sdcpn").ConstructionMutationRequest,
+                  ConstructionMutationRequest,
                   "toolName" | "input"
                 >,
               ) => {

@@ -7,6 +7,8 @@
 import { Hono } from "hono";
 import { expect, test } from "vitest";
 
+import { validatedFixtureMutationMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+
 import {
   agentOwnershipHeaders,
   BRUNCH_CONVERSATION_HEADER,
@@ -66,7 +68,7 @@ test("refuses a joined initial binding for another authenticated conversation", 
       },
       body: JSON.stringify({
         initialData: {
-          mode: "validated-fixture-mutation",
+          mode: validatedFixtureMutationMode,
           browser: {
             binding: {
               conversationId: "another",

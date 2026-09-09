@@ -26,7 +26,11 @@ import {
   verifyDefinitionObservation,
   type ConstructionTransitionRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import { conversationConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import {
+  clientToolHistoryFrom,
+  CLIENT_TOOL_RESULT_SIGNAL,
+} from "@hashintel/brunch-agent-transport-aisdk";
 
 import {
   agentOwnershipHeaders,
@@ -35,6 +39,7 @@ import {
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
+import { browserResultFrom, type BrowserResult } from "./browser-result.ts";
 import {
   nativeSchemaProvider,
   type NativeRequestCapture,
@@ -110,39 +115,18 @@ const toolOutput = (
       .join(""),
   ) as Record<string, unknown>;
 };
-type BrowserResult = {
-  toolCallId: string;
-  toolName: string;
-  output: Record<string, unknown>;
-  metadata?: {
-    observation?: {
-      toolCallId: string;
-      observed: { sha256: string; definition: SDCPN };
-    };
-    transitionRecord?: ConstructionTransitionRecord;
-  };
-};
-const browserResult = (context: Context, name: string): BrowserResult => {
-  const texts = context.messages.flatMap((message) =>
-    typeof message.content === "string"
-      ? [message.content]
-      : message.content.flatMap((part) =>
-          part.type === "text" ? [part.text] : [],
-        ),
+const browserResult = (context: Context, name: string): BrowserResult =>
+  browserResultFrom(
+    context.messages.flatMap((message) =>
+      typeof message.content === "string"
+        ? [message.content]
+        : message.content.flatMap((part) =>
+            part.type === "text" ? [part.text] : [],
+          ),
+    ),
+    name,
+    "Missing actual model-facing browser result",
   );
-  for (const body of texts.toReversed()) {
-    const match =
-      /<client-tool-result\b[^>]*>\s*([\s\S]*?)\s*<\/client-tool-result>/u.exec(
-        body,
-      );
-    if (!match?.[1]) continue;
-    const result = (JSON.parse(match[1]) as BrowserResult[]).find(
-      (entry) => entry.toolName === name,
-    );
-    if (result) return result;
-  }
-  throw new Error(`Missing actual model-facing browser result: ${name}`);
-};
 let basis: Record<string, unknown> | undefined;
 const settle = (markdown: string, id: string) => [
   tool("update_workpiece", { markdown }, id),
@@ -204,7 +188,7 @@ const mutate = (
 const afterMutation = (name: string, id: string) =>
   checked((context) => {
     const result = browserResult(context, name);
-    assert.equal(result.output.applied, true);
+    assert.partialDeepStrictEqual(result.output, { applied: true });
     assert.equal(result.metadata?.transitionRecord?.outcome, "applied");
     return tool("getLatestNetDefinition", {}, id);
   });
@@ -362,7 +346,7 @@ try {
   };
   assert.equal(firstRequest.kind, "user");
   assert.deepEqual(firstRequest.initialData, {
-    mode: "conversation-construction-candidate",
+    mode: conversationConstructionMode,
     construction: {
       binding: {
         conversationId: identity.conversationId,
@@ -689,7 +673,7 @@ try {
     ),
     checked((context) => {
       const result = browserResult(context, "updatePlace");
-      assert.equal(result.output.applied, false);
+      assert.partialDeepStrictEqual(result.output, { applied: false });
       assert.equal(result.metadata?.transitionRecord?.outcome, "no-op");
       return text("Unchanged node is not a change.");
     }),
@@ -892,7 +876,7 @@ try {
     ),
     checked((context) => {
       const result = browserResult(context, "updatePlace");
-      assert.equal(result.output.applied, false);
+      assert.partialDeepStrictEqual(result.output, { applied: false });
       assert.equal(result.metadata?.transitionRecord?.outcome, "stale");
       return text("Stale node correction was not applied.");
     }),
@@ -993,8 +977,8 @@ try {
           await client.send({
             message: {
               kind: "signal",
-              type: "client-tool-result",
-              tagName: "client-tool-result",
+              type: CLIENT_TOOL_RESULT_SIGNAL,
+              tagName: CLIENT_TOOL_RESULT_SIGNAL,
               body: JSON.stringify([
                 { ...original, metadata: { transitionRecord: record } },
               ]),

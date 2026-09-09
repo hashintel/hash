@@ -19,6 +19,7 @@ import {
   isObservedStateMutation,
   parseObservedStateInput,
   observedStateMutationNames,
+  type ClientToolResultMetadata,
   type ConstructionTransitionAttempt as ArcTransitionAttempt,
   type DefinitionObservation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -350,7 +351,7 @@ export const createJoinedBrowserTransitionRecorder = (input: {
       observedReads.set(result.toolCallId, observed.sha256);
       return {
         observation: { toolCallId: result.toolCallId, binding, observed },
-      };
+      } satisfies ClientToolResultMetadata;
     }
     if (
       result.toolName !== "addArc" &&
@@ -372,7 +373,7 @@ export const createJoinedBrowserTransitionRecorder = (input: {
       throw new Error(
         "A root arc result requires an observed browser transition record.",
       );
-    return { transitionRecord };
+    return { transitionRecord } satisfies ClientToolResultMetadata;
   };
   return {
     ...recorder,

@@ -88,14 +88,17 @@ export type SdcpnInitialData = v.InferOutput<typeof sdcpnInitialDataSchema>;
 type SdcpnInitialDataFields = NonNullable<SdcpnInitialData>;
 
 /**
- * The browser the agent is bound to: either the conversation-construction
- * binding (marked `construction`) or the legacy joined prepared-fixture base.
+ * The browser the agent is bound to: the immutable binding, plus the issued
+ * base for the legacy joined prepared-fixture tracer, or the `construction`
+ * marker for the conversation-construction candidate.
  */
-export type BrowserContext =
-  | (NonNullable<SdcpnInitialDataFields["construction"]> & {
-      readonly construction: true;
-    })
-  | NonNullable<SdcpnInitialDataFields["browser"]>;
+export type BrowserContext = Pick<
+  NonNullable<SdcpnInitialDataFields["browser"]>,
+  "binding"
+> &
+  Partial<
+    Pick<NonNullable<SdcpnInitialDataFields["browser"]>, "requestedBaseHash">
+  > & { readonly construction?: true };
 
 /** Mount the prompt material, skill, and conditional tools owned by the SDCPN plugin. */
 export function useSdcpnPlugin(

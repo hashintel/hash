@@ -23,7 +23,9 @@ import {
   useCrewReservationSettledManifestStorage,
 } from "./use-crew-reservation-settled-manifest";
 
-const preparedHistory = {
+import type { CrewReservationHistory } from "./crew-reservation-history";
+
+const preparedHistory: CrewReservationHistory = {
   conversationId: "canonical-conversation",
   offset: "2",
   settlements: [{ submissionId: "prepare-submission", outcome: "completed" }],
@@ -32,6 +34,7 @@ const preparedHistory = {
       id: "prepared-message",
       role: "system",
       purpose: "dispatch",
+      display: "hidden",
       submissionId: "prepare-submission",
       signal: {
         tagName: preparedWorkpieceSignalTag,
@@ -41,7 +44,9 @@ const preparedHistory = {
           claimBoundary: preparedWorkpieceClaimBoundary,
         },
       },
-      parts: [{ type: "text", text: preparedCrewReservationWorkpiece }],
+      parts: [
+        { type: "text", state: "done", text: preparedCrewReservationWorkpiece },
+      ],
     },
   ],
 };

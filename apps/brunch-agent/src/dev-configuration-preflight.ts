@@ -4,9 +4,9 @@ import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseEnv } from "node:util";
 
-import { selectChatModel } from "./chat-model.ts";
+import { selectChatModel, STEP_A_MODEL_ID } from "./chat-model.ts";
 
-const expectedModel = "anthropic/claude-sonnet-4-6";
+const expectedModel = `anthropic/${STEP_A_MODEL_ID}`;
 const envFiles = [
   ".env",
   ".env.local",

@@ -17,6 +17,7 @@ import { projectFlueHistoryForSweep } from "@hashintel/brunch-agent-binding-flue
 import {
   clientToolHistoryFrom,
   snapshotToUiMessages,
+  CLIENT_TOOL_RESULT_SIGNAL,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
 
@@ -402,8 +403,8 @@ const send = async (message: DeliveredMessage, uid?: string | null) => {
 const completeClientTool = async (toolCallId: string, output: string) =>
   send({
     kind: "signal",
-    type: "client-tool-result",
-    tagName: "client-tool-result",
+    type: CLIENT_TOOL_RESULT_SIGNAL,
+    tagName: CLIENT_TOOL_RESULT_SIGNAL,
     attributes: { toolCallIds: toolCallId },
     body: JSON.stringify([
       { toolCallId, toolName: "readPetrinautDoc", output },
@@ -535,7 +536,9 @@ try {
     );
     assert(
       before.messages
-        .filter((message) => message.signal?.tagName === "client-tool-result")
+        .filter(
+          (message) => message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL,
+        )
         .every(
           (message) =>
             message.role === "system" && message.purpose === "dispatch",

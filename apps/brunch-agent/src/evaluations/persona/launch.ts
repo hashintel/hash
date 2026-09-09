@@ -10,7 +10,7 @@ import { parseArgs, promisify } from "node:util";
 import { chromium } from "@playwright/test";
 import { loadEnv } from "vite";
 
-import { selectChatModel } from "../../chat-model.ts";
+import { selectChatModel, STEP_A_MODEL_ID } from "../../chat-model.ts";
 import {
   defaultChatOrigin,
   localPanelListen,
@@ -85,7 +85,7 @@ const environment = () => {
   // Same loader and shell precedence as the normal development app.
   const loaded = { ...loadEnv("development", appRoot, ""), ...process.env };
   delete loaded.BRUNCH_STEP_A_ACCOUNTING;
-  loaded.BRUNCH_CHAT_MODEL ||= "claude-sonnet-4-6";
+  loaded.BRUNCH_CHAT_MODEL ||= STEP_A_MODEL_ID;
   return loaded;
 };
 export const paneIdFrom = (stdout: string) => {

@@ -103,6 +103,13 @@ export const createBrunchQuestionMarkerTool = (
     },
   });
 
+/** The settled pointer the model sees; consumers recovering a revision from history parse it too. */
+export const updateWorkpieceOutputSchema = v.object({
+  ...workpieceRevisionPointerSchema.entries,
+  evidence: v.optional(v.array(evidenceRelationSchema)),
+  evidenceValidated: v.optional(v.literal(true)),
+});
+
 export const createUpdateWorkpieceTool = (
   setRevision: StateSetter<WorkpieceRevision | null>,
   evidenceServices?: WorkpieceEvidenceServices,
@@ -112,11 +119,7 @@ export const createUpdateWorkpieceTool = (
     description:
       "Create a first partial workpiece as soon as one consequential distinction exists, then update after each useful stretch or correction and before delivery. Settle the full current Markdown workpiece and return its revisionId and SHA-256. Read back with brunch_workpiece when available after settlement for presentation. This server tool does not end the response. Never combine it with browser construction in one batch. Optional evidence relates immutable UTF-16 spans to authorized true-user message IDs and declared standing. Discover source IDs with brunch_workpiece when available. Invalid evidence refuses before settlement; valid linkage does not prove relevance or template quality.",
     input: updateWorkpieceInputSchema,
-    output: v.object({
-      ...workpieceRevisionPointerSchema.entries,
-      evidence: v.optional(v.array(evidenceRelationSchema)),
-      evidenceValidated: v.optional(v.literal(true)),
-    }),
+    output: updateWorkpieceOutputSchema,
     durable: true,
     async run({ data, toolCallId, signal }) {
       const prepared = prepareWorkpieceRevision(data, toolCallId);
