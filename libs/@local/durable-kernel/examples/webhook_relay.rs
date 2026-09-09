@@ -28,10 +28,7 @@ use core::time::Duration;
 use std::sync::Mutex;
 
 use durable_kernel::{
-    domain::{
-        DomainEvent, Executor, Fold, PartitionKey, Rejection, Retry, SimpleDomain, effect_id,
-        shard_of,
-    },
+    domain::{DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain, effect_id, shard_of},
     runtime::{Kernel, KernelConfig, RunningKernel, Submitted},
 };
 use serde::{Deserialize, Serialize};
@@ -75,21 +72,37 @@ struct RelayQueue {
     abandoned: BTreeMap<String, u32>,
 }
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+enum DeliveryRejection {
+    #[display("{delivery} already settled")]
+    AlreadySettled { delivery: String },
+    #[display("{delivery} is not pending")]
+    NotPending { delivery: String },
+}
+
 impl Fold<RelayEvent> for RelayQueue {
-    fn validate(&self, event: &RelayEvent) -> Result<(), Rejection> {
+    type Rejection = DeliveryRejection;
+
+    fn validate(&self, event: &RelayEvent) -> Result<(), error_stack::Report<Self::Rejection>> {
         match event {
             RelayEvent::Accepted { delivery, .. }
                 if self.delivered.contains_key(delivery)
                     || self.abandoned.contains_key(delivery) =>
             {
-                Err(Rejection::new(format!("{delivery} already settled")))
+                Err(error_stack::Report::new(
+                    DeliveryRejection::AlreadySettled {
+                        delivery: delivery.clone(),
+                    },
+                ))
             }
             RelayEvent::AttemptFailed { delivery, .. }
             | RelayEvent::Delivered { delivery, .. }
             | RelayEvent::Abandoned { delivery, .. }
                 if !self.pending.contains_key(delivery) =>
             {
-                Err(Rejection::new(format!("{delivery} is not pending")))
+                Err(error_stack::Report::new(DeliveryRejection::NotPending {
+                    delivery: delivery.clone(),
+                }))
             }
             RelayEvent::Accepted { .. }
             | RelayEvent::AttemptFailed { .. }
@@ -356,7 +369,10 @@ async fn submit_demo_webhooks(running: &RunningKernel<RelayDomain>) {
         match running.submit(event).await {
             Ok(Submitted::Applied) => accepted += 1,
             Ok(Submitted::AlreadyDurable) => deduplicated += 1,
-            Err(error) => println!("The webhook was rejected with {error}."),
+            Ok(Submitted::Rejected(rejection)) => {
+                println!("The webhook was rejected: {rejection}.");
+            }
+            Err(error) => println!("The webhook submission failed: {error}."),
         }
     }
     println!("Accepted {accepted} new webhooks. {deduplicated} were already durable.\n");

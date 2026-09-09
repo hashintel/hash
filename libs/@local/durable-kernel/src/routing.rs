@@ -1,6 +1,4 @@
-//! Shard identity for the durable control layer. Placement of a key onto a
-//! shard is the domain's concern. The kernel only requires that shard values
-//! stay inside the fixed routing range.
+//! Shard IDs in the fixed range `0..256`. Domains choose how to map their keys to these IDs.
 
 use core::fmt;
 

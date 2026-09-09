@@ -12,18 +12,15 @@ use crate::{
     shard_log::ShardCommandError,
 };
 
-/// Kernel-owned outcome of `Domain::prepare`.
-///
-/// The event is either already reflected in the projection as an idempotent duplicate or carries a
-/// mutation that is finalized after the append becomes durable.
+/// The result of [`Domain::prepare`]. A duplicate leaves state unchanged; a mutation is applied
+/// after the record becomes durable.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Prepared<T> {
     Noop,
     Mutation(T),
 }
 
-/// Recovery telemetry handed to `Domain::note_snapshot_recovery` after a
-/// shard's startup or ambiguity replay completes with snapshots enabled.
+/// Reports snapshot use and replay progress to [`Domain::note_snapshot_recovery`].
 #[derive(Debug, Clone)]
 pub struct SnapshotRecoveryStats {
     pub replayed_events: u64,
@@ -33,21 +30,18 @@ pub struct SnapshotRecoveryStats {
 }
 
 pub trait Domain: Send + Sync + 'static {
-    /// Journal wire codec expressed as the full versioned enum that covers
-    /// every supported version.
+    /// The wire format, including every supported record version.
     type Record: UntrimmedJournalRecord + Send + Sync;
-    /// Verified current-version record that producers propose, the loop
-    /// appends, and the fold consumes.
+    /// The validated record type used for new submissions and state updates.
     type RecordCurrent: Clone + Send;
-    /// Pure fold state. `Default` is the empty pre-history projection.
+    /// Application state. [`Default`] must represent an empty journal.
     type Projection: Default + Send + Sync;
     /// Prepared mutation between `prepare` and `finalize`.
     type Delta: Send;
-    /// Fold rejection whose `Display` output becomes the candidate-rejection
-    /// message, so implementations must keep it self-contained.
+    /// An error from validating or applying a record. Proposal validation returns this value
+    /// unchanged in [`crate::shard_log::ShardCommandOutcome::Rejected`].
     type FoldError: core::fmt::Display + Send;
-    /// Key of the domain's state-change signal for the aggregate whose
-    /// checkpoint state advanced.
+    /// Identifies the state that changed, for notifications after an append.
     type StateKey: Clone + Send + core::fmt::Debug;
     type Query: Send;
     type QueryResult: Send;
@@ -55,40 +49,37 @@ pub trait Domain: Send + Sync + 'static {
     /// Pre-append view of a control request against the projection.
     type ControlSnapshot: Send;
     type ControlOutcome: Clone + Send + core::fmt::Debug + PartialEq + Eq;
-    /// Reason a caller-side preflight already rejected a control request.
+    /// A rejection found before submitting the control request.
     type ControlRejection: Send;
-    /// Committed projection snapshot record that bounds replay. It is appended
-    /// to the shard log through the same registered-record discipline as events.
+    /// A snapshot stored through the same record registry and shard log as events.
     type Snapshot: DurableRecord + Send + Sync;
-    /// In-memory capture handed to the out-of-loop snapshot publisher.
+    /// State captured inside the command loop for a snapshot publisher to store.
     type SnapshotCapture: Send;
-    /// Domain-owned context for materializing snapshot payloads during recovery, for example an
-    /// artifact store when snapshot payloads are indirected.
-    ///
-    /// A domain whose snapshots are self-contained uses `()`.
+    /// Resources needed to load snapshot data, such as an artifact store. Use `()` when
+    /// snapshots contain all their data.
     type SnapshotContext: Clone + Send + Sync + 'static;
-    /// Recovered live-work descriptor reported to the scheduler at startup.
+    /// Work to resume after recovery.
     type WorkIntent: Clone + Send + core::fmt::Debug + PartialEq + Eq;
 
     fn record_shard(record: &Self::RecordCurrent) -> Shard;
-    /// The fold error rejecting a record proposed to the wrong shard.
+    /// Builds the error for a record submitted to the wrong shard.
     fn reject_foreign_shard(record: &Self::RecordCurrent) -> Self::FoldError;
     fn record_event_id(record: &Self::RecordCurrent) -> EventId;
     fn record_state_key(record: &Self::RecordCurrent) -> Self::StateKey;
     fn wire(record: Self::RecordCurrent) -> Self::Record;
     /// # Errors
     ///
-    /// Returns a fold error when the proposed record violates domain invariants.
+    /// Returns an error if the proposed record violates the domain’s validation rules.
     fn prepare(
         projection: &Self::Projection,
         record: &Self::RecordCurrent,
     ) -> Result<Prepared<Self::Delta>, Self::FoldError>;
-    /// Applies a prepared mutation at its durable sequence. Only called for
-    /// `Prepared::Mutation`. Duplicates return before the append.
+    /// Applies a mutation at its durable sequence. Called after [`Prepared::Mutation`];
+    /// duplicates are skipped before append.
     ///
     /// # Errors
     ///
-    /// Returns a fold error when the durable mutation cannot be applied.
+    /// Returns an error if the mutation cannot be applied.
     fn finalize(
         projection: &mut Self::Projection,
         delta: Self::Delta,
@@ -112,23 +103,22 @@ pub trait Domain: Send + Sync + 'static {
     fn control_prior_outcome(snapshot: &Self::ControlSnapshot) -> Option<Self::ControlOutcome>;
     /// Deterministic event identity a duplicate control resolution reports.
     fn control_event_id(request: &Self::ControlRequest) -> EventId;
-    /// Promotes a not-yet-resolved control request into the journal record
-    /// that durably resolves its acceptance or rejection.
+    /// Builds the journal record that accepts or rejects a pending control request.
     ///
     /// # Errors
     ///
-    /// Returns a fold error when the control request cannot become a valid journal record.
+    /// Returns an error if the request cannot be converted to a valid record.
     fn promote_control(
         projection: &Self::Projection,
         request: &Self::ControlRequest,
         preflight_rejection: Option<Self::ControlRejection>,
     ) -> Result<Self::RecordCurrent, Self::FoldError>;
-    /// Reads back the outcome the fold recorded for `request` and verifies it
-    /// binds this exact request. `Err` is a recovery-grade inconsistency.
+    /// Reads the stored outcome for this control request.
     ///
     /// # Errors
     ///
-    /// Returns an error when the recorded outcome is missing or belongs to another request.
+    /// Returns an error if the outcome is missing or belongs to a different request. The loop
+    /// treats this as a recovery failure.
     fn control_outcome_after_append(
         projection: &Self::Projection,
         request: &Self::ControlRequest,
@@ -147,8 +137,8 @@ pub trait Domain: Send + Sync + 'static {
     fn snapshot_bounds(snapshot: &Self::Snapshot) -> Result<(Shard, u64), String>;
     /// Audit timestamp recorded in the snapshot, for recovery telemetry.
     fn snapshot_created_at(snapshot: &Self::Snapshot) -> String;
-    /// Materializes the projection a snapshot references. `Err` falls back
-    /// to an older snapshot or full replay and never fails recovery.
+    /// Loads state from a snapshot. An error makes recovery try an older snapshot, then the
+    /// full journal.
     fn load_snapshot_projection(
         context: &Self::SnapshotContext,
         shard: Shard,
@@ -162,25 +152,24 @@ pub trait Domain: Send + Sync + 'static {
 
     /// The projection's inclusive durable high-water mark.
     fn through_sequence(projection: &Self::Projection) -> Option<u64>;
-    /// Validates and folds one scanned record during startup or ambiguity
-    /// recovery. `Err` is recovery-fatal for the shard.
+    /// Validates and applies a stored record during startup or append recovery.
     ///
     /// # Errors
     ///
-    /// Returns an error when a journal record is invalid or cannot be folded at its sequence.
+    /// Returns an error if the record cannot be applied at this sequence. Recovery stops on
+    /// this error.
     fn replay(
         projection: &mut Self::Projection,
         shard: Shard,
         sequence: u64,
         record: Self::Record,
     ) -> Result<(), String>;
-    /// Proves a freshly recovered prefix extends what this process already
-    /// acknowledged without a sequence regression or a lost or changed event.
+    /// Checks that recovered state preserves all acknowledged events.
     ///
     /// # Errors
     ///
-    /// Returns an error when recovery loses or changes an acknowledged event, or regresses its
-    /// sequence.
+    /// Returns an error if recovery loses or changes an acknowledged event, or moves the
+    /// sequence backwards.
     fn validate_recovered_prefix(
         previous: &Self::Projection,
         recovered: &Self::Projection,

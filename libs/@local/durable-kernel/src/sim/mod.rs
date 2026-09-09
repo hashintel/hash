@@ -1,11 +1,8 @@
-//! Deterministic simulation support uses an in-memory journal whose append
-//! dispositions come from a schedule plan. It implements the same six-method
-//! boundary as the production writer.
+//! An in-memory journal for deterministic tests of the command loop.
 //!
-//! The simulator executes the real command loop, recovery ordering, and
-//! retry and ambiguity discipline. Only the journal's answers are simulated.
-//! Nothing here reads a wall clock or an unordered map, so replaying a
-//! plan replays a run exactly.
+//! A schedule supplies append outcomes. The real command loop handles retries, uncertain
+//! commits, and recovery. Reusing the schedule and sequence seed reproduces the journal’s
+//! responses.
 
 use alloc::{collections::VecDeque, sync::Arc};
 use std::sync::Mutex;
@@ -19,8 +16,7 @@ pub use harness::{
     ScheduleReport, derive_plan, run_plan,
 };
 
-/// `SplitMix64` is deterministic, has no dependencies, and is suitable for
-/// drawing schedules. It is not suitable for cryptography.
+/// A deterministic generator for test schedules. Unsuitable for cryptographic use.
 #[derive(Debug, Clone)]
 pub struct SplitMix64 {
     state: u64,
@@ -40,7 +36,7 @@ impl SplitMix64 {
         mixed ^ (mixed >> 31)
     }
 
-    /// Uniform draw in `0..bound`. `bound` must be nonzero.
+    /// Draws a value in `0..bound` by reducing the next generated integer modulo `bound`.
     ///
     /// # Panics
     ///
@@ -51,7 +47,7 @@ impl SplitMix64 {
             .expect("random draw bound should be nonzero")
     }
 
-    /// Uniform draw in `low..=high`.
+    /// Draws a value in `low..=high`.
     pub const fn between(&mut self, low: u64, high: u64) -> u64 {
         low + self.below(high - low + 1)
     }
@@ -64,29 +60,24 @@ pub enum SimKey {
     Snapshots,
 }
 
-/// What the simulated journal reports for one append.
-///
-/// Each variant is one of the documented dispositions of the production log. The provider contracts
-/// determine whether the real provider honors them.
+/// The outcome assigned to an append by the test schedule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SimAppendOutcome {
     /// The record is stored, durable, and acknowledged.
     AckDurable,
     /// The record was not stored, so the caller may safely retry.
     DefinitelyNotCommitted,
-    /// The record is stored and durable, but the acknowledgement is lost. The
-    /// caller sees ambiguity and must recover before concluding anything.
+    /// Stores the record but loses the acknowledgement. The caller must recover to determine
+    /// whether it committed.
     CommitUnknownDurable,
-    /// The record is not stored, and the acknowledgement is lost. The caller
-    /// faces the same ambiguity, so the record must be proven absent and retried.
+    /// Loses the acknowledgement without storing the record. Recovery must establish that it is
+    /// absent before retrying.
     CommitUnknownLost,
-    /// A newer writer epoch owns the log, so this writer is permanently
-    /// fenced.
+    /// Rejects this writer because a newer writer owns the log.
     Fenced,
 }
 
-/// Per-mille weights for deriving a plan's disposition stream from a
-/// seed. The five weights must sum to 1000.
+/// Weights out of 1000 for each append outcome. The five weights must sum to 1000.
 #[derive(Debug, Clone, Copy)]
 pub struct DispositionWeights {
     pub ack_durable: u16,
@@ -97,7 +88,7 @@ pub struct DispositionWeights {
 }
 
 impl DispositionWeights {
-    /// Mostly-healthy journal with every failure class represented.
+    /// Uses mostly successful appends, with a nonzero weight for every failure outcome.
     pub const DEFAULT: Self = Self {
         ack_durable: 760,
         definitely_not_committed: 100,
@@ -150,23 +141,17 @@ struct SimLogState {
     entries: Vec<SimEntry>,
     next_sequence: u64,
     durable_end_exclusive: u64,
-    /// The epoch of the writer that owns the log. A writer whose
-    /// epoch is older is fenced, exactly like a superseded `SlateDB` client.
+    /// The active writer’s epoch. Older writers are rejected.
     writer_epoch: u64,
-    /// This generator controls sequence gaps only. The real log's sequences
-    /// are sparse, and the dispositions come from the plan, so this state does
-    /// not affect them.
+    /// Generates sequence gaps independently of append outcomes.
     gap_rng: SplitMix64,
-    /// The plan's disposition stream, consumed one append at a time. An
-    /// exhausted stream serves `AckDurable`, so every plan terminates.
+    /// Consumes one outcome per append. Once exhausted, appends succeed with `AckDurable`.
     pending: VecDeque<SimAppendOutcome>,
-    /// Every disposition served in order. The harness attributes coverage
-    /// by inspecting the window one command consumed.
+    /// Records append outcomes in order so tests can inspect those used by one command.
     outcome_log: Vec<SimAppendOutcome>,
 }
 
-/// Shared handle to one simulated shard journal. The harness holds one to
-/// inspect ground truth, while each opened writer holds one to append.
+/// Shares journal state between writers and the test driver.
 #[derive(Debug, Clone)]
 pub struct SimLogHandle {
     state: Arc<Mutex<SimLogState>>,
@@ -194,7 +179,7 @@ impl SimLogHandle {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
-    /// Opens a new writer epoch, fencing every previously opened writer.
+    /// Opens a writer with a new epoch, invalidating all older writers.
     pub(crate) fn open_writer(&self) -> SimWriter {
         let mut state = self.lock();
         state.writer_epoch += 1;
@@ -212,9 +197,8 @@ impl SimLogHandle {
         }
     }
 
-    /// The durable journal ground truth contains every stored sequence and its
-    /// bytes under `key` in sequence order. It is independent of the code
-    /// under test.
+    /// Returns stored sequences and bytes for `key` in sequence order, independently of the
+    /// command loop’s state.
     #[must_use]
     pub fn durable_entries(&self, key: SimKey) -> Vec<(u64, Bytes)> {
         self.lock()
@@ -237,9 +221,7 @@ impl SimLogHandle {
         self.lock().outcome_log.len()
     }
 
-    /// Whether the newest stored snapshot is the corruption marker, so the
-    /// harness grounds fallback coverage in journal state instead of its
-    /// own bookkeeping.
+    /// Checks the stored snapshot bytes for the corruption marker.
     #[must_use]
     pub fn latest_snapshot_is_corrupt(&self) -> bool {
         self.lock()
@@ -250,10 +232,10 @@ impl SimLogHandle {
             .is_some_and(|entry| entry.bytes.as_ref() == CORRUPTION_MARKER)
     }
 
-    /// Corrupts the newest stored snapshot in place.
+    /// Replaces the newest snapshot’s bytes with undecodable data.
     ///
-    /// The bytes stay present but no longer decode, so the next recovery must fall back to an older
-    /// snapshot or full replay. Returns false when no snapshot is stored.
+    /// Recovery must then use an older snapshot or replay the full journal. Returns `false` if
+    /// there is no snapshot.
     #[must_use]
     pub fn corrupt_latest_snapshot(&self) -> bool {
         let mut state = self.lock();
@@ -335,8 +317,7 @@ impl SimWriter {
             }
             SimAppendOutcome::CommitUnknownLost => SimAppendResult::CommitUnknown,
             SimAppendOutcome::Fenced => {
-                // The epoch that fenced this writer is a competitor the
-                // schedule never materializes. Advancing the epoch models it.
+                // Advancing the epoch models a competing writer taking ownership.
                 state.writer_epoch += 1;
                 SimAppendResult::Fenced
             }

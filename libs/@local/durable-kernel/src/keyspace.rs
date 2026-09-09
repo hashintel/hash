@@ -1,11 +1,8 @@
-//! Derives storage keys from one validated [`Namespace`].
+//! Storage paths under a validated [`Namespace`].
 //!
-//! Control records use `{namespace}/control/v1/...`. Artifacts use
-//! `{namespace}/artifacts/{kind}/sha256/...`. Writers and validators use these
-//! methods to agree on each record's location.
-//!
-//! The layout is part of the storage format. Domains build their record keys
-//! from these prefixes so stored data stays discoverable across releases.
+//! The kernel reserves `{namespace}/control/v1/...` for control records. Application artifacts
+//! use `{namespace}/artifacts/{kind}/sha256/...`. These paths are part of the storage format
+//! and must remain stable across releases.
 
 use core::fmt;
 
@@ -13,8 +10,10 @@ use crate::routing::{Shard, shard_path};
 
 pub const MAX_NAMESPACE_BYTES: usize = 256;
 
-/// Validated root prefix for one kernel instance. Segments use tenant-safe
-/// characters, and `/` separates segments.
+/// A storage prefix made of `/`-separated segments.
+///
+/// Segments accept ASCII letters, digits, `-`, `_`, `.`, `@`, and `:`. Empty segments, `.` and
+/// `..` are rejected.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Namespace(String);
 
@@ -52,6 +51,8 @@ fn valid_segment(segment: &str) -> bool {
 }
 
 impl Namespace {
+    /// Parses a namespace and checks each path segment.
+    ///
     /// # Errors
     ///
     /// Returns an error for an empty or oversized namespace, or an unsafe path segment.
@@ -100,8 +101,7 @@ impl Keyspace {
         &self.namespace
     }
 
-    // The kernel owns everything under the control root. Domains
-    // must not mint keys here.
+    // The control prefix is reserved for kernel records.
 
     #[must_use]
     pub fn control_root(&self) -> String {
@@ -167,9 +167,7 @@ impl Keyspace {
         format!("{}/projection", self.shard_root(shard))
     }
 
-    // Content-addressed artifacts. Publishers append
-    // `/sha256/{digest[..2]}/{digest}{ext}` under these prefixes. The
-    // `artifact_digest_prefix` is the matching validation boundary.
+    // Artifact paths append `/sha256/{digest[..2]}/{digest}{ext}` to this prefix.
 
     /// # Errors
     ///

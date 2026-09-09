@@ -21,10 +21,7 @@ use core::time::Duration;
 use std::path::{Path, PathBuf};
 
 use durable_kernel::{
-    domain::{
-        DomainEvent, Executor, Fold, PartitionKey, Rejection, Retry, SimpleDomain, effect_id,
-        shard_of,
-    },
+    domain::{DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain, effect_id, shard_of},
     runtime::{Kernel, KernelConfig, RunningKernel, Submitted},
 };
 use serde::{Deserialize, Serialize};
@@ -63,23 +60,33 @@ struct CustomerSync {
     synced: BTreeMap<String, String>,
 }
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+enum CustomerRejection {
+    #[display("customer {customer_id} is already known")]
+    AlreadyKnown { customer_id: String },
+    #[display("customer {customer_id} is not pending")]
+    NotPending { customer_id: String },
+}
+
 impl Fold<SyncEvent> for CustomerSync {
-    fn validate(&self, event: &SyncEvent) -> Result<(), Rejection> {
+    type Rejection = CustomerRejection;
+
+    fn validate(&self, event: &SyncEvent) -> Result<(), error_stack::Report<Self::Rejection>> {
         match event {
             SyncEvent::CustomerQueued { customer_id, .. }
                 if self.pending.contains_key(customer_id)
                     || self.synced.contains_key(customer_id) =>
             {
-                Err(Rejection::new(format!(
-                    "customer {customer_id} is already known"
-                )))
+                Err(error_stack::Report::new(CustomerRejection::AlreadyKnown {
+                    customer_id: customer_id.clone(),
+                }))
             }
             SyncEvent::CustomerSynced { customer_id, .. }
                 if !self.pending.contains_key(customer_id) =>
             {
-                Err(Rejection::new(format!(
-                    "customer {customer_id} is not pending"
-                )))
+                Err(error_stack::Report::new(CustomerRejection::NotPending {
+                    customer_id: customer_id.clone(),
+                }))
             }
             SyncEvent::CustomerQueued { .. } | SyncEvent::CustomerSynced { .. } => Ok(()),
         }
@@ -311,7 +318,10 @@ async fn main() {
         match running.submit(event).await {
             Ok(Submitted::Applied) => queued += 1,
             Ok(Submitted::AlreadyDurable) => already_durable += 1,
-            Err(error) => println!("The customer was rejected with {error}."),
+            Ok(Submitted::Rejected(rejection)) => {
+                println!("The customer was rejected: {rejection}.");
+            }
+            Err(error) => println!("The customer submission failed: {error}."),
         }
     }
     println!("Queued {queued} new customers. {already_durable} were already durable.\n");

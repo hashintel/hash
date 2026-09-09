@@ -9,6 +9,7 @@
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::{
+    convert::Infallible,
     fmt,
     num::NonZeroUsize,
     sync::atomic::{AtomicBool, Ordering},
@@ -30,7 +31,11 @@ const DEFAULT_CHANNEL_CAPACITY: usize = 64;
 const DEFAULT_SAFE_APPEND_RETRIES: u32 = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ShardCommandOutcome {
+pub enum ShardCommandOutcome<R = Infallible> {
+    /// Validation rejected the record before it was appended.
+    Rejected {
+        rejection: R,
+    },
     Applied {
         event_id: EventId,
         shard_sequence: u64,
@@ -79,10 +84,10 @@ pub struct StartupRecovery<W> {
     pub live_work: Vec<W>,
 }
 
-/// Lossy, derived notifications for rebuilding non-authoritative state hints.
+/// Reports keys whose state changed. Notifications may be dropped if the channel is full.
 ///
-/// The initial set makes restart repair independent of whether a notification was observed before
-/// the previous process stopped.
+/// `initial` contains the keys recovered at startup, so consumers can rebuild their state even
+/// if the previous process missed a notification.
 #[derive(Debug)]
 pub struct StateChangeFeed<K> {
     pub initial: Vec<K>,
@@ -98,14 +103,16 @@ pub struct ShardCommandHandle<D: Domain> {
 }
 
 impl<D: Domain> ShardCommandHandle<D> {
+    /// Returns the domain’s validation error in [`ShardCommandOutcome::Rejected`] without
+    /// appending the record.
+    ///
     /// # Errors
     ///
-    /// Returns an error when the command loop closes, the record is rejected, or durable append or
-    /// recovery fails.
+    /// Returns an error when the command loop closes or durable append or recovery fails.
     pub async fn propose(
         &self,
         record: D::RecordCurrent,
-    ) -> Result<ShardCommandOutcome, ShardCommandError> {
+    ) -> Result<ShardCommandOutcome<D::FoldError>, ShardCommandError> {
         if !self.accepting.load(Ordering::Acquire) {
             return Err(closed("shard command loop is not accepting proposals"));
         }
@@ -281,13 +288,12 @@ impl<D: Domain> ShardCommandHandle<D> {
         self.ownership_lost.cancel();
     }
 
-    /// The shard this handle proposes to.
     #[must_use]
     pub const fn shard(&self) -> crate::routing::Shard {
         self.shard
     }
 
-    /// Remaining command-channel capacity, for backpressure tests.
+    /// Returns the number of commands the channel can accept without waiting.
     #[cfg(any(test, feature = "test-util"))]
     #[must_use]
     pub fn queue_capacity(&self) -> usize {
@@ -298,7 +304,7 @@ impl<D: Domain> ShardCommandHandle<D> {
 enum Command<D: Domain> {
     Propose {
         record: D::RecordCurrent,
-        reply: oneshot::Sender<Result<ShardCommandOutcome, ShardCommandError>>,
+        reply: oneshot::Sender<Result<ShardCommandOutcome<D::FoldError>, ShardCommandError>>,
     },
     InspectControl {
         request: D::ControlRequest,
@@ -339,11 +345,11 @@ enum RecoveryMode {
     FullLeaseHandshake,
 }
 
-/// The `Default` configuration keeps `LocalReopen` recovery for unleased test rigs and reference
-/// embeddings, where reopening the writer locally is the intended ambiguity resolution.
+/// [`Default`] permits local writer reopen for tests and callers that manage recovery without
+/// leases.
 ///
-/// Production construction goes through [`ShardCommandConfig::new`], which fails closed by default.
-/// An ambiguous append requires a fresh lease acquisition handshake.
+/// [`ShardCommandConfig::new`] requires lease reacquisition when an append’s commit status is
+/// unknown.
 impl Default for ShardCommandConfig {
     fn default() -> Self {
         Self {
@@ -373,8 +379,7 @@ impl ShardCommandConfig {
         self
     }
 
-    /// Unleased ambiguity recovery for the reference and fault-injection
-    /// rigs that exercise the reopen-and-adopt loop directly.
+    /// Allows tests to reopen the writer locally when an append’s commit status is unknown.
     #[cfg(any(test, feature = "test-util"))]
     #[must_use]
     pub const fn allow_local_reopen(mut self) -> Self {
@@ -391,14 +396,15 @@ pub struct StartedShard<D: Domain> {
     pub task: tokio::task::JoinHandle<Result<(), ShardCommandError>>,
 }
 
-/// An opened writer that has not yet certified its durable prefix. No command
-/// handle exists at this stage, so lease revalidation can safely fail closed.
+/// A writer awaiting recovery. Recover it and revalidate the lease before enabling commands.
 pub struct OpenedShard {
     location: ShardLogLocation,
     writer: Option<ShardLogWriter>,
 }
 
 impl OpenedShard {
+    /// Opens a shard writer and captures its durable journal position.
+    ///
     /// # Errors
     ///
     /// Returns an error when the shard writer cannot be opened.
@@ -419,8 +425,8 @@ impl OpenedShard {
         })
     }
 
-    /// Snapshot-free recovery used by unleased test rigs. The production
-    /// handshake always recovers through `recover_with_snapshots`.
+    /// Replays the full journal for tests. Leased startup uses
+    /// [`Self::recover_with_snapshots`].
     #[cfg(any(test, feature = "test-util"))]
     /// # Errors
     ///
@@ -443,10 +449,8 @@ impl OpenedShard {
         mut self,
         context: Option<&D::SnapshotContext>,
     ) -> Result<RecoveredShard<D>, ShardCommandError> {
-        // A domain's codecs enter the process while its shard recovers.
-        // Interning here covers every subsequent scan and append, and a
-        // conflicting redeclaration of an interned name fails the shard
-        // instead of decoding history with the wrong codec.
+        // Register codecs before reading any records, so conflicting declarations fail
+        // recovery.
         crate::registry::intern_declaration(*<D::Record as DurableRecord>::declaration())
             .map_err(|error| recovery(format!("intern journal-record declaration: {error}")))?;
         crate::registry::intern_declaration(*<D::Snapshot as DurableRecord>::declaration())
@@ -525,8 +529,8 @@ impl OpenedShard {
     }
 }
 
-/// Fully recovered state that is still unable to accept commands. The lease
-/// handshake performs its second revalidation before consuming this value.
+/// Recovered state awaiting lease revalidation. Callers must complete that check before
+/// enabling commands.
 pub struct RecoveredShard<D: Domain> {
     location: ShardLogLocation,
     writer: Option<ShardLogWriter>,
@@ -538,8 +542,7 @@ pub struct RecoveredShard<D: Domain> {
 }
 
 impl<D: Domain> RecoveredShard<D> {
-    /// Startup-recovery summary computed during replay, inspectable before
-    /// the shard is enabled.
+    /// Reports recovery results before the shard starts accepting commands.
     pub const fn startup_recovery(&self) -> &StartupRecovery<D::WorkIntent> {
         &self.recovery
     }
@@ -621,11 +624,11 @@ impl<D: Domain> RecoveredShard<D> {
     }
 }
 
-/// Unleased shard constructor for lifecycle and conformance test rigs.
+/// Opens and recovers a shard for tests, then enables commands.
 ///
-/// It does not return a command handle until the writer's captured remote durable prefix has been
-/// completely projected and live work has been reconstructed. Production shards start only through
-/// the full lease acquisition handshake.
+/// The returned handle includes all records below the writer’s captured durable position and
+/// the work recovered from them. Production callers must complete lease acquisition before
+/// enabling a shard.
 #[cfg(any(test, feature = "test-util"))]
 /// # Errors
 ///
@@ -829,7 +832,21 @@ impl<D: Domain> CommandLoop<D> {
         }
         let record = D::promote_control(&self.projection, &request, preflight_rejection)
             .map_err(invalid_candidate)?;
-        let append = self.process(record).await?;
+        let append = match self.process(record).await? {
+            ShardCommandOutcome::Applied {
+                event_id,
+                shard_sequence,
+            } => ShardCommandOutcome::Applied {
+                event_id,
+                shard_sequence,
+            },
+            ShardCommandOutcome::AlreadyDurable { event_id } => {
+                ShardCommandOutcome::AlreadyDurable { event_id }
+            }
+            ShardCommandOutcome::Rejected { rejection } => {
+                return Err(invalid_candidate(rejection));
+            }
+        };
         let outcome =
             D::control_outcome_after_append(&self.projection, &request).map_err(recovery)?;
         Ok(ControlResolution { append, outcome })
@@ -838,16 +855,21 @@ impl<D: Domain> CommandLoop<D> {
     async fn process(
         &mut self,
         record: D::RecordCurrent,
-    ) -> Result<ShardCommandOutcome, ShardCommandError> {
+    ) -> Result<ShardCommandOutcome<D::FoldError>, ShardCommandError> {
         if D::record_shard(&record) != self.location.shard {
-            return Err(invalid_candidate(D::reject_foreign_shard(&record)));
+            return Ok(ShardCommandOutcome::Rejected {
+                rejection: D::reject_foreign_shard(&record),
+            });
         }
         let event_id = D::record_event_id(&record);
         let integration_id = D::record_state_key(&record);
         let mut safe_failures = 0_u32;
         loop {
             let previous_state_sequence = self.checkpoint_state_sequence(&integration_id);
-            let transition = D::prepare(&self.projection, &record).map_err(invalid_candidate)?;
+            let transition = match D::prepare(&self.projection, &record) {
+                Ok(transition) => transition,
+                Err(rejection) => return Ok(ShardCommandOutcome::Rejected { rejection }),
+            };
             let Prepared::Mutation(delta) = transition else {
                 self.notify_state_change_if_established(&integration_id);
                 return Ok(ShardCommandOutcome::AlreadyDurable { event_id });
@@ -865,10 +887,8 @@ impl<D: Domain> CommandLoop<D> {
             match append_result {
                 Ok(sequence) => {
                     if let Err(error) = D::finalize(&mut self.projection, delta, sequence) {
-                        // The append is already durable. A local finalization
-                        // failure is never a candidate rejection. Rebuild from
-                        // the authoritative prefix and require it to adopt the
-                        // exact event before serving another command.
+                        // The record is durable even though the state update failed. Recover
+                        // and verify that it was applied before accepting another command.
                         self.recover_durable_prefix()
                             .await
                             .map_err(|recovery_error| {
@@ -909,9 +929,8 @@ impl<D: Domain> CommandLoop<D> {
                     #[cfg(any(test, feature = "test-util"))]
                     self.wait_before_recovery().await;
                     self.recover_durable_prefix().await?;
-                    // Re-entering `prepare` adopts the exact durable event,
-                    // rejects a same-ID conflict, or proves it absent and
-                    // retries the exact record before any later command runs.
+                    // After recovery, `prepare` detects the stored event or a conflicting ID.
+                    // If the event is absent, retry it before processing another command.
                     safe_failures = 0;
                 }
                 Err(error) => return Err(append_error(&error)),
@@ -983,8 +1002,8 @@ impl<D: Domain> CommandLoop<D> {
 
     fn notify_state_change_if_established(&self, integration_id: &D::StateKey) {
         if self.checkpoint_state_sequence(integration_id).is_some() {
-            // Hints are derived. A full channel may drop this notification, while
-            // startup replay and later state events deterministically repair it.
+            // Startup and later state changes refresh these hints, so a full channel may drop a
+            // notification.
             let _: Result<_, _> = self.state_change_sender.try_send(integration_id.clone());
         }
     }
@@ -1018,8 +1037,7 @@ impl<D: Domain> CommandLoop<D> {
             });
         }
         if let Some(writer) = self.writer.take() {
-            // Close may itself be ambiguous. Reopening establishes a newer
-            // storage epoch before absence is evaluated from remote history.
+            // Reopening obtains a new writer epoch even if closing the old writer fails.
             let _: Result<_, _> = writer.close().await;
         }
         let writer = ShardLogWriter::open(&self.location)
@@ -1244,8 +1262,8 @@ async fn replay_durable_suffix<D: Domain>(
     durable_end_exclusive: u64,
     mut recovered: D::Projection,
 ) -> Result<(D::Projection, u64), ShardCommandError> {
-    // Scan through the same Remote-visible LogDb whose watermark was captured.
-    // A detached or stale reader must never certify prefix completeness.
+    // Use the writer that supplied the durable position, so the scan and its bounds share the
+    // same view of storage.
     let scan_started = std::time::Instant::now();
     let through_sequence = D::through_sequence(&recovered);
     let records = writer

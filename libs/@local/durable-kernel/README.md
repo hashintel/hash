@@ -1,26 +1,22 @@
 # Durable kernel
 
-The kernel stores application events in a journal and rebuilds state after a
-restart. Applications define their events, state, and external operations.
+Durable kernel stores application events in an object-storage journal and
+rebuilds state after a restart. Applications supply their events, state updates,
+and external operations. The kernel handles duplicate events, shard sequencing,
+snapshots, and recovery.
 
-## Programming with the kernel (example)
+## Define an application
 
-A CRM synchronizer needs to track which customers have been written and which
-are still pending. When writing five customers, a rejected write can leave one
-pending while the other four finish. After a restart, the synchronizer recovers
-that pending customer and retries the write.
+The [customer sync example](examples/customer_sync.rs) writes five customers to
+a simulated CRM. If one write fails, the other four can finish. A restart
+restores the pending customer and retries its write.
 
-The kernel represents this application through an event type, a state type,
-and an executor. Events describe what happened, state tracks pending and
-completed customers, and the executor performs the CRM writes.
-
-The [CRM synchronization code](examples/customer_sync.rs)
-implements this model.
+The application has three parts: events record what happened, state tracks what
+remains to do, and an executor performs the CRM writes.
 
 ### Events and state
 
-Each event records a state change. `CustomerQueued` records a request to write
-a customer to the CRM. `CustomerSynced` records the result of that write.
+`CustomerQueued` requests a CRM write. `CustomerSynced` records its result.
 
 ```rust
 enum SyncEvent {
@@ -35,19 +31,18 @@ enum SyncEvent {
 }
 ```
 
-The `CustomerSync` state has two maps. `pending` contains
-customers awaiting a write. `synced` maps completed customers to their CRM IDs.
+`CustomerSync` keeps two maps: `pending` holds customers awaiting a write, and
+`synced` maps completed customers to their CRM IDs. Applying `CustomerQueued`
+adds a pending customer. Applying `CustomerSynced` moves it to `synced`.
 
-The [domain traits](src/domain.rs) connect these types to the kernel.
+The [domain API](src/domain.rs) connects events and state to the kernel:
 
-| Trait or method | Role |
+| Trait or method | What it does |
 | --- | --- |
-| `DomainEvent` | Provides a stable event type name and a `PartitionKey` for each event. The key selects the shard that handles it. |
-| `Fold::validate` | Checks whether an event is allowed in the current state. A `Rejection` refuses the event. |
-| `Fold::apply` | Updates the state from an accepted event. This method also runs during recovery. |
-| `SimpleDomain` | Associates an application's event type with its state type. |
-
-The domain declaration associates `SyncEvent` with `CustomerSync`.
+| `DomainEvent` | Supplies a stable event type name and a `PartitionKey` used to select the shard. |
+| `Fold::validate` | Checks a proposed event against current state. Returns a report containing the application’s rejection error to refuse it. |
+| `Fold::apply` | Updates state after an event is stored and during recovery. |
+| `SimpleDomain` | Connects the event and state types. |
 
 ```rust
 struct CustomerDomain;
@@ -58,37 +53,49 @@ impl SimpleDomain for CustomerDomain {
 }
 ```
 
-`Projection` is the API's name for the state built from events. Applying
-`CustomerQueued` adds the customer to `pending`. Applying `CustomerSynced`
-moves it to `synced`.
+`Projection` means the state built from events. The kernel validates each new
+event, writes it to the journal, then applies it. One writer orders these changes
+for each shard.
 
-The kernel validates a new event, writes it to the journal, and applies it to
-state. One writer orders these changes for each shard. During recovery, the
-kernel calls `apply` for events already in the journal. It skips `validate`.
+Recovery calls `apply` for stored events and skips validation. `apply` must be
+deterministic and able to handle every accepted event; its return type is `()`.
+Keep external calls in the executor. Event and state serialization must also be
+deterministic. When changing an event type, keep its `DomainEvent::name` and
+support decoding all stored versions.
 
-Recovery depends on `apply` being deterministic. External calls belong in the
-executor. The return type of `apply` is `()`, so every accepted event must be
-safe to apply. Event and state serialization must also be deterministic.
-Changes to an event type must preserve support for reading older events and
-retain the same `DomainEvent::name`.
+### Validation errors
 
-### External work
+Each `Fold` implementation defines a `Rejection` type that implements
+`core::error::Error + Send + Sync + 'static`. Its `validate` method returns
+`Result<(), error_stack::Report<Self::Rejection>>`.
 
-The CRM writer implements `Executor<CustomerDomain>`, which has two methods,
-`plan` and `execute`.
+Use an enum for reasons callers need to distinguish. The customer example uses
+`CustomerRejection::AlreadyKnown { customer_id }` and
+`CustomerRejection::NotPending { customer_id }`. Validation constructs a report
+with `Report::new(error)` and can add diagnostic data with `attach` or retain an
+earlier error with `change_context`.
 
-`plan` returns the effects required by the current state. An effect is a
-serializable description of an external operation. An `UpsertCustomer` contains
-the customer ID and name needed for a CRM write. Planning is a pure function of
-the projection.
+The report reaches the caller in `Ok(Submitted::Rejected(report))`. Inspect its
+`current_context()` to handle the domain error, or `downcast_ref` to inspect
+attached data and earlier contexts. The kernel preserves the report through the
+command loop. A rejected event leaves the journal and state unchanged.
 
-`execute` performs the CRM write and returns completion events. A successful
-write returns `CustomerSynced`. The kernel records the event and updates the
-state, so subsequent calls to `plan` exclude that customer.
+Storage, encoding, and command-loop failures return `Err(KernelError)`.
 
-For a failed write, `execute` can return `Retry` with a reason and an optional delay.
-Other effects can run during the delay. Retry delays are held in memory and
-reset on restart.
+### External operations
+
+The CRM writer implements `Executor<CustomerDomain>`:
+
+- `plan` reads state and returns the operations needed to make progress. It must
+  be a pure function. Each operation, called an *effect*, is serializable. For
+  example, `UpsertCustomer` contains a customer ID and name.
+- `execute` performs an operation and returns completion events. After a CRM
+  write, it returns `CustomerSynced`. The kernel records that event and updates
+  state, so the next plan excludes the completed customer.
+
+A failed operation can return `Retry` with a reason and an optional delay. Other
+effects can run while it waits. Retry delays are held in memory and reset on
+restart.
 
 ```mermaid
 flowchart LR
@@ -99,14 +106,14 @@ flowchart LR
     E --> F[Customer is synced]
 ```
 
-### Submission and state access
+### Start, submit, and read
 
-`KernelConfig` specifies the storage URL and the shards owned by the process.
-Startup calls `Kernel::open`, `register::<CustomerDomain>`, and then `start`
-with the CRM executor. The [runtime](src/runtime.rs) recovers those shards
-before starting an effect driver for each one.
+Set the storage URL and owned shards in `KernelConfig`. Call `Kernel::open`,
+`register::<CustomerDomain>`, then `start` with the CRM executor. The
+[runtime](src/runtime.rs) recovers every owned shard before starting its effect
+drivers.
 
-The returned `RunningKernel` accepts event submissions.
+Submit events through the returned `RunningKernel`:
 
 ```rust
 running.submit(SyncEvent::CustomerQueued {
@@ -115,50 +122,42 @@ running.submit(SyncEvent::CustomerQueued {
 }).await?;
 ```
 
-A successful submission means the event is durable. Submitting the same event
-again returns `AlreadyDurable`. The kernel derives event IDs from their contents.
-Two identical actions that need separate records require a distinguishing field
-in the event, such as a request ID.
+`Submitted::Applied` and `Submitted::AlreadyDurable` mean the event is durable.
+Submitting identical contents again returns `AlreadyDurable`: event IDs are
+derived from those contents. If two identical actions need separate records, include a request ID
+or another distinguishing field.
 
-`RunningKernel::read` takes a partition key and a closure that selects values
-from the state. The closure receives the entire shard's projection and runs
-inside the command loop, so it must not block. `shutdown` stops the runtime.
+`RunningKernel::read` takes a partition key and a closure. The closure selects
+values from the entire shard's state and runs inside the command loop, so it
+must not block. Call `shutdown` to stop the runtime.
 
-### Recovery
+### Recover after a restart
 
-The kernel periodically saves the projection in a journal snapshot. On restart,
-it loads a usable snapshot and applies the events recorded after it. If no
-snapshot is available, it replays the full journal. The simple API skips
-snapshots larger than 15 MiB. After recovery, `plan` runs against the restored
-state to find pending work.
+The kernel periodically stores a snapshot of the state in the journal. Recovery
+loads a usable snapshot and applies the events after it, or replays the full
+journal if no snapshot is usable. The simple API skips snapshots larger than
+15 MiB. The executor then plans work from the recovered state.
 
-An external write can succeed before a crash prevents its completion event
-from being saved. In that case, the kernel can execute the effect again.
+A crash can happen after an external write succeeds but before its completion
+event is saved. Recovery can therefore execute the effect again.
 
-`effect_id(effect)` provides an idempotency key for the external system. For
-that key to prevent duplicate writes, the system must store it and return the
-previous result for a repeated write. These
-results belong to the CRM and are stored separately from the kernel journal.
-The linked implementation uses `crm.json` for this storage. A retry after a crash
-reuses the CRM record even if `CustomerSynced` hasn't reached the journal.
+Pass `effect_id(effect)` as an idempotency key to the external system. That
+system must store the result and return it for repeated requests with the same
+key. In the example, the simulated CRM keeps these results in `crm.json`,
+separate from the kernel journal. A retry reuses the CRM record even if
+`CustomerSynced` was never saved.
 
-### How the integration framework uses it
+### Supply your own runtime
 
-The integration framework uses
-[IntegrationsDomain](../../src/orchestrator/shard_log/command_loop.rs), an
-implementation of the lower-level `port::Domain` API. This lets it define its
-own record formats, projection, snapshots, scheduler, and Graph executor while
-using the kernel's journal and recovery code. Applications built with
-`SimpleDomain`, such as the CRM synchronizer described here, use the kernel
-runtime to handle more of this setup.
+The lower-level [`port::Domain`](src/port.rs) API lets an application define its
+own record formats, state, snapshots, scheduler, and executor while using the
+kernel's journal and recovery code. The integration framework's
+`IntegrationsDomain` uses this API with its Graph executor. Applications such as
+the CRM example use `SimpleDomain` and the provided runtime.
 
-## Examples
-
-The examples show journal recovery and at-least-once effect execution.
+## Run the examples
 
 ### Customer sync
-
-Start with `customer_sync.rs`. It sends five customers to a simulated CRM.
 
 ```sh
 cargo run -q -p durable-kernel --example customer_sync -- reset
@@ -166,37 +165,34 @@ cargo run -q -p durable-kernel --example customer_sync -- defer
 cargo run -q -p durable-kernel --example customer_sync
 ```
 
-The deferred run completes four customers and leaves customer 3 pending.
-Customer 3 is absent from `target/customer_sync_demo/crm.json`. The next run
-recovers and writes it.
+The deferred run completes four customers and leaves customer 3 pending. It is
+absent from `target/customer_sync_demo/crm.json` until the next run recovers and
+writes it.
 
-Read `SyncEvent`, then the `CustomerSync` implementation of `Fold`, then
-`CrmSync`. These types define the events, projection, planned effects, and CRM
-writes.
+Use `crash` instead of `defer` to stop after a CRM write but before its completion
+event is saved. The next run repeats the effect with the same idempotency key,
+and the CRM returns the existing record.
 
-Use `crash` in place of `defer` to stop after the CRM write and before its
-completion event. The next run repeats the effect with the same idempotency
-key, and the CRM returns the existing record.
+To follow the code, read `SyncEvent`, the `CustomerSync` implementation of
+`Fold`, and `CrmSync` in [customer_sync.rs](examples/customer_sync.rs).
 
 ### Webhook relay
 
-`webhook_relay.rs` adds HTTP retries, dead-lettering, and projection snapshots.
-It starts a local endpoint for the delivery attempts.
+The [webhook relay](examples/webhook_relay.rs) adds HTTP retries, dead-lettering,
+and snapshots. It starts a local endpoint that rejects ordinary webhooks twice
+before accepting the third attempt. A poison payload fails all four attempts
+and is moved to the dead-letter queue.
 
 ```sh
 cargo run -q -p durable-kernel --example webhook_relay -- reset
 cargo run -q -p durable-kernel --example webhook_relay
 ```
 
-The endpoint rejects each ordinary webhook twice and accepts the third attempt.
-It rejects the poison payload four times, so the relay dead-letters it. The
-journal and endpoint state are stored separately under
-`target/webhook_relay_demo`.
+The journal and endpoint state are stored separately under
+`target/webhook_relay_demo`. Use `crash` on the second command to stop after the
+endpoint accepts a delivery but before its completion event is saved. The next
+run repeats the effect with the same key, and the endpoint returns the stored
+result.
 
-Read `RelayEvent`, then the `RelayQueue` implementation of `Fold`, then
-`HttpDeliverer`. These types define the delivery history, pending queue,
-planned attempts, and HTTP requests.
-
-Use `crash` on the second command to stop after the endpoint accepts a delivery
-and before its completion event. The next run repeats the effect with the same
-idempotency key. The endpoint returns the existing result.
+Read `RelayEvent`, the `RelayQueue` implementation of `Fold`, and `HttpDeliverer`
+to follow the delivery history, pending work, and HTTP requests.

@@ -1,14 +1,11 @@
-//! The kernel records events in object storage and rebuilds application state
-//! from that history after a restart. Snapshots save the state so recovery can
-//! begin partway through the journal. Each shard has one writer, and opening
-//! a replacement writer prevents the earlier writer from appending.
+//! Persists application events and rebuilds state from them after a restart.
 //!
-//! A domain implements the user-facing traits in [`domain`]. Domains that need
-//! control over record encoding and recovery implement [`port::Domain`] and
-//! use the command loop in [`shard_log`]. The [`runtime`] module runs domains
-//! built with [`domain::SimpleDomain`].
-//! Storage layout is derived in [`keyspace`]. Record codecs register through
-//! [`registry`]. Append and recovery are implemented in [`shard_log`].
+//! Each shard has one writer. Opening a replacement writer prevents the old writer from
+//! appending. Snapshots let recovery start from saved state and replay the remaining events.
+//!
+//! Implement [`domain::SimpleDomain`] to use the [`runtime`], or [`port::Domain`] to supply
+//! record formats and recovery logic to the [`shard_log`] command loop. [`keyspace`] defines
+//! storage paths; [`registry`] checks record declarations and codecs.
 
 extern crate alloc;
 

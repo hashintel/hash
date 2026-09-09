@@ -4260,6 +4260,7 @@ version = "0.1.0"
 dependencies = [
  "bytes",
  "chrono",
+ "derive_more",
  "error-stack",
  "hex",
  "opendata-common",

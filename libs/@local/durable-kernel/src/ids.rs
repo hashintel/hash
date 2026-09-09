@@ -1,5 +1,4 @@
-//! The kernel identity vocabulary contains SHA-256 digest identities and the
-//! canonical digest function used to compute every content-derived identity.
+//! SHA-256 event and record IDs, with validation and content hashing.
 
 use core::fmt;
 
@@ -29,8 +28,7 @@ impl fmt::Display for InvalidId {
 
 impl core::error::Error for InvalidId {}
 
-/// Defines a validated lowercase-hex SHA-256 identity type. Exported so a
-/// domain crate can mint its own digest identities with identical validation.
+/// Defines a SHA-256 ID type that accepts exactly 64 lowercase hexadecimal characters.
 #[macro_export]
 macro_rules! digest_id {
     ($name:ident, $label:literal) => {
@@ -97,15 +95,14 @@ macro_rules! digest_id {
 digest_id!(EventId, "event ID");
 digest_id!(JournalRecordDigest, "journal-record digest");
 
-/// Computes a domain-separated canonical content digest by hashing the label, a zero byte, and the
-/// canonical JSON in that order.
+/// Hashes the domain label, a zero byte, and the serialized JSON, in that order.
 ///
-/// The serialized-JSON bytes are the identity, so field order and formatting of the serialized
-/// value are part of the wire contract.
+/// Field order and JSON formatting affect the digest. Keep them stable for identities stored in
+/// existing records.
 ///
 /// # Errors
 ///
-/// Returns an error when the value cannot be serialized as JSON.
+/// Returns an error if the value cannot be serialized as JSON.
 pub fn canonical_digest<T: Serialize>(
     domain: &str,
     projection: &T,

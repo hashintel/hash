@@ -1,8 +1,7 @@
-//! One canonical `OpenData` log per stable routing shard.
+//! Stores one `OpenData` journal per shard.
 //!
-//! The append-capable handle stays private to this module. Appends go
-//! through the command loop, and read-only access goes through the scan
-//! functions and the recovery reader.
+//! The command loop owns the writer. Use [`read_journal`] to inspect stored events through a
+//! read-only handle.
 use core::{fmt, ops::Bound, time::Duration};
 
 use bytes::Bytes;
@@ -39,9 +38,8 @@ const EVENTS_KEY: &[u8] = b"events";
 const PROJECTION_SNAPSHOTS_KEY: &[u8] = b"projection-snapshots";
 const APPEND_TIMEOUT: Duration = Duration::from_secs(30);
 const DURABILITY_TIMEOUT: Duration = Duration::from_secs(60);
-/// Watermark-wait attempts before an append is declared ambiguous. Ambiguity
-/// is shard-fatal under a lease, so one stalled subscription gets bounded
-/// retries first.
+/// Retries a stalled durability subscription before reporting an uncertain append result. A
+/// leased shard stops on that result and must reacquire its lease.
 const DURABILITY_WAIT_ATTEMPTS: u32 = 3;
 const PINNED_FENCE_MESSAGE: &str = "detected newer db client";
 
@@ -82,8 +80,7 @@ pub struct ShardLogLocation {
     durability_timeout: Duration,
 }
 
-/// Describes where a shard log lives. It can use a real storage configuration
-/// or a simulated journal owned by the deterministic simulation harness.
+/// Selects object storage or an in-memory test journal.
 #[derive(Debug, Clone)]
 #[cfg_attr(
     any(test, feature = "test-util"),
@@ -154,12 +151,11 @@ impl ShardLogLocation {
         }
     }
 
-    /// Location for a kernel-hosted shard log with explicit storage inputs and
-    /// no environment coupling.
+    /// Builds a shard location from explicit storage options.
     ///
     /// # Errors
     ///
-    /// Returns an error when storage configuration or local directory creation fails.
+    /// Returns an error if the storage options are invalid or local directory creation fails.
     pub fn for_kernel(
         shard: crate::routing::Shard,
         log_path: &str,
@@ -201,8 +197,7 @@ impl ShardLogLocation {
     }
 }
 
-/// Explicit storage inputs for a shard log, so a library embedding never
-/// reads process environment.
+/// Storage options supplied by the caller, including the URL, AWS region, and cache sizes.
 #[derive(Debug, Clone)]
 pub struct LogStorageOptions {
     pub blob_url: String,
@@ -283,14 +278,11 @@ pub fn storage_for_path(
     }))
 }
 
-/// Scans one shard's complete journal through a read-only `LogDb` handle.
-///
-/// Offline inspection must never open a writer, advance a `SlateDB` epoch, acquire a lease, or
-/// mutate the shard it reads.
+/// Reads a shard’s complete journal without acquiring a writer or changing its epoch.
 ///
 /// # Errors
 ///
-/// Returns an error when opening, scanning, decoding, or validating the journal fails.
+/// Returns an error if opening, scanning, decoding, or sequence validation fails.
 pub async fn read_journal<T: UntrimmedJournalRecord>(
     location: &ShardLogLocation,
 ) -> Result<Vec<(u64, T)>, Report<DurableError>> {
@@ -322,7 +314,7 @@ impl ShardLogLocation {
     }
 }
 
-/// The only type that owns a shard's append-capable log.
+/// Owns the writer for one shard.
 struct ShardLogWriter {
     backend: WriterBackend,
     durability_timeout: Duration,
@@ -334,8 +326,7 @@ enum WriterBackend {
     Sim(crate::sim::SimWriter),
 }
 
-/// Decodes ground-truth entries from the simulated journal with the same
-/// typed-codec discipline as a real scan.
+/// Decodes simulated journal entries with the record type’s codec.
 #[cfg(any(test, feature = "test-util"))]
 fn decode_sim_entries<T: DurableRecord>(
     entries: Vec<(u64, Bytes)>,
@@ -370,9 +361,6 @@ pub enum AppendFault {
 }
 
 impl ShardLogWriter {
-    /// # Errors
-    ///
-    /// Returns an error when the shard storage cannot be opened before its timeout.
     async fn open(location: &ShardLogLocation) -> Result<Self, Report<DurableError>> {
         let durability_timeout = location.durability_timeout;
         #[cfg(any(test, feature = "test-util"))]
@@ -387,10 +375,8 @@ impl ShardLogWriter {
             LogDb::open(Config {
                 storage: location.source.storage()?.clone(),
                 read_visibility: ReadVisibility::Remote,
-                // Remote sequential scans are request-bound with SlateDB's
-                // 4 KiB default. Control records are append-only and replayed
-                // in order, so 64 KiB blocks substantially reduce S3 range
-                // GETs without changing the durable encoding contract.
+                // Larger blocks reduce S3 range requests during sequential replay. SlateDB
+                // defaults to 4 KiB; journal scans use 64 KiB.
                 sst_block_size: Some(slatedb::SstBlockSize::Block64Kib),
                 ..Config::default()
             }),
@@ -408,9 +394,6 @@ impl ShardLogWriter {
         })
     }
 
-    /// # Errors
-    ///
-    /// Returns an error when record validation, append, or durable flush fails.
     async fn append<T: UntrimmedJournalRecord + Sync>(
         &self,
         value: &T,
@@ -418,9 +401,6 @@ impl ShardLogWriter {
         self.append_with_fault(value, AppendFault::None).await
     }
 
-    /// # Errors
-    ///
-    /// Returns an error when snapshot validation, append, or durable flush fails.
     async fn append_projection_snapshot<T: DurableRecord + Sync>(
         &self,
         value: &T,
@@ -440,9 +420,6 @@ impl ShardLogWriter {
         }
     }
 
-    /// # Errors
-    ///
-    /// Returns an error when journal scanning, decoding, or sequence validation fails.
     async fn scan_suffix<T: UntrimmedJournalRecord>(
         &self,
         through_log_sequence: Option<u64>,
@@ -518,9 +495,8 @@ impl ShardLogWriter {
                     ));
                 }
 
-                // From this call onward, absence of an acknowledgement cannot prove
-                // absence from durable history. Only the pinned SlateDB fence result
-                // has a stronger classification.
+                // After invoking append, an error can leave the commit status unknown. A
+                // writer-fenced response is terminal; other errors require recovery.
                 #[cfg(any(test, feature = "test-util"))]
                 if fault == AppendFault::AfterInvocation {
                     return Err(post_invocation_message(
@@ -594,8 +570,6 @@ impl ShardLogWriter {
         }
     }
 
-    /// The real backing log whose watermark the durability wait tests poll
-    /// directly instead of going through a command handle.
     #[cfg(test)]
     fn raw_log(&self) -> &LogDb {
         match &self.backend {
@@ -604,9 +578,6 @@ impl ShardLogWriter {
         }
     }
 
-    /// # Errors
-    ///
-    /// Returns an error when the shard writer cannot be closed.
     async fn close(self) -> Result<(), Report<DurableError>> {
         let durability_timeout = self.durability_timeout;
         match self.backend {
@@ -624,10 +595,8 @@ impl ShardLogWriter {
     }
 }
 
-/// Read-only recovery handle.
-///
-/// It cannot advance the writer epoch or append. Tests use it to inspect durable history without
-/// competing for the writer epoch. Production recovery reads through its fenced writer.
+/// Reads journal records without acquiring a writer. Production recovery uses the active
+/// writer’s view of the log.
 #[cfg(any(test, feature = "test-util"))]
 pub struct ShardLogRecovery {
     reader: LogDbReader,
@@ -677,9 +646,7 @@ impl ShardLogRecovery {
         scan_records(&self.reader, range.bounds, Some(range.window)).await
     }
 
-    /// # Errors
-    ///
-    /// Returns an error when the shard writer cannot be closed.
+    /// Closes the reader, waiting up to the durability timeout. Close errors are discarded.
     pub async fn close(self) {
         let _: Result<_, _> = tokio::time::timeout(DURABILITY_TIMEOUT, self.reader.close()).await;
     }
@@ -715,9 +682,7 @@ fn recovery_range(
     })
 }
 
-/// Scans and decodes one shard's journal suffix. Generic over the journal
-/// record type, so every domain replays its own vocabulary through one
-/// recovery path.
+/// Reads and decodes the requested journal range, checking its sequence bounds.
 async fn scan_records<T, R>(
     reader: &R,
     range: (Bound<Sequence>, Bound<Sequence>),
@@ -929,10 +894,7 @@ async fn wait_until_durable_with(
     )))
 }
 
-/// Test-only raw append access to one shard log, bypassing the command loop.
-///
-/// Downstream test suites seed journals and stage competing writers with it. Production appends go
-/// exclusively through the command loop.
+/// Provides direct append access for tests that seed journals or open competing writers.
 #[cfg(any(test, feature = "test-util"))]
 pub struct RawShardLog(ShardLogWriter);
 

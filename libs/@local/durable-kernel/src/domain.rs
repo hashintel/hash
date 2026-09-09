@@ -1,19 +1,16 @@
-//! This module defines the user-facing domain layer.
+//! Application events, state, and external operations.
 //!
-//! The types in this module map onto the internal [`Domain`] port in
-//! [`crate::port`] through one blanket implementation. A domain author writes
-//! an event type, a fold, and an effect executor. The kernel takes care of
-//! deduplication, sequencing, prefix validation, snapshots, and recovery in
-//! [`KernelProjection`].
-//! The loop that folds events and executes effects is [`crate::runtime`].
+//! Implement [`DomainEvent`] for events, [`Fold`] for state updates, and [`Executor`] for
+//! external work. [`SimpleDomain`] connects the event and state types. The [`crate::runtime`]
+//! runs the executor; [`Hosted`] adapts these types to the lower-level [`Domain`] API.
 //!
-//! There is no separate signal channel. A caller publishes through `submit`,
-//! which validates the event and either writes it durably to the journal or
-//! rejects it.
+//! The kernel handles event IDs, duplicate detection, journal sequencing, snapshots, and
+//! recovery. Submit events through [`crate::runtime::RunningKernel::submit`].
 
 use alloc::collections::BTreeMap;
-use core::{any::Any, fmt, marker::PhantomData};
+use core::{any::Any, error::Error, fmt, marker::PhantomData};
 
+use error_stack::Report;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::json;
 use sha2::{Digest as _, Sha256};
@@ -33,61 +30,61 @@ use crate::{
 pub const MAX_PARTITION_KEY_BYTES: usize = 1024;
 const MAX_EVENT_RECORD_BYTES: usize = 1024 * 1024;
 
-/// Serialization must be deterministic because a nondeterministic encoding would make retries look
-/// like new events.
+/// An application event stored in the journal.
 ///
-/// Two byte-identical events are one event, and the second is deduplicated. An action that can
-/// happen twice, such as two equal payments or two equal increments, must carry a distinguishing
-/// field such as a request ID.
+/// Event IDs are derived from serialized contents, so serialization must be deterministic.
+/// Repeated submissions of the same event are deduplicated. Give distinct actions with
+/// identical payloads a request ID or another distinguishing field.
 ///
-/// Payload evolution is the consumer's concern because journal history never
-/// retires. A type whose shape changes must keep decoding every stored
-/// shape, for example a versioned serde enum like the kernel's own
-/// envelope.
+/// Keep decoding all stored event versions when changing this type. A versioned serde enum is
+/// one way to retain that compatibility.
 pub trait DomainEvent: Serialize + DeserializeOwned + Clone + Send + Sync + 'static {
-    /// Frozen wire name. Renaming it orphans stored history.
+    /// The event name stored in journal records. Keep this stable so existing records remain
+    /// readable.
     fn name() -> &'static str;
 
-    /// The aggregate this event belongs to. Shard routing, per-key
-    /// state-changes, and startup key discovery all derive from it.
+    /// The partition used for shard routing, state-change notifications, and startup key
+    /// discovery.
     fn partition(&self) -> PartitionKey;
 }
 
-/// Maintains the domain state for all partitions on one shard.
+/// Maintains application state for all partitions on one shard.
 ///
-/// `validate` performs command-time checking. It may reject a proposed event and
-/// is never consulted again once the event is durable. `apply` performs the
-/// event-time fold. Recorded events are facts, so it is infallible and is
-/// the only thing replay runs. A validation bug therefore cannot affect
-/// replay of history that was already accepted.
+/// [`validate`](Self::validate) checks new submissions before they are appended.
+/// [`apply`](Self::apply) updates state after an append and during recovery. It must be
+/// deterministic and accept every stored event, including events accepted under older
+/// validation rules.
 ///
-/// The serde bounds exist for snapshots because the kernel periodically
-/// embeds the fold state in a snapshot record. Recovery can then replay a
-/// suffix instead of the whole journal. Serialization must be deterministic,
-/// like event serialization.
+/// State is serialized into snapshots. Its serialization must also be deterministic.
 pub trait Fold<E>: Default + Clone + Send + Sync + Serialize + DeserializeOwned + 'static {
+    /// The application error reported when validation rejects an event.
+    type Rejection: Error + Send + Sync + 'static;
+
     /// # Errors
     ///
     /// Returns a rejection when the event violates the domain’s validation rules.
-    fn validate(&self, event: &E) -> Result<(), Rejection>;
+    fn validate(&self, event: &E) -> Result<(), Report<Self::Rejection>>;
     fn apply(&mut self, event: &E);
 }
 
-/// A domain consists of its event vocabulary and its folded state. The effect
-/// executor attaches at [`Kernel::start`](crate::runtime::Kernel::start).
+/// Connects an application’s event and state types.
+///
+/// Pass an [`Executor`] to [`Kernel::start`](crate::runtime::Kernel::start) to run external
+/// operations.
 pub trait SimpleDomain: Send + Sync + 'static {
     type Event: DomainEvent;
     type Projection: Fold<Self::Event>;
 }
 
-/// At-least-once effect execution against external systems.
+/// Plans and executes external operations from application state.
 ///
-/// `plan` is a pure function of the fold state. The events returned by
-/// `execute` are the effect's durable completion. Once they are folded,
-/// `plan` must stop emitting that effect. Pass [`effect_id`] to the external
-/// system as an idempotency key. That system must remember the key and return
-/// the earlier result when an execution repeats. The kernel can repeat an
-/// effect after a crash between the external write and its completion event.
+/// [`plan`](Self::plan) must be a pure function of the state. [`execute`](Self::execute)
+/// returns completion events; after those events are applied, the next plan must exclude the
+/// completed effect.
+///
+/// A crash after an external write but before its completion event is saved can cause the
+/// effect to run again. Pass [`effect_id`] as an idempotency key to a system that stores the
+/// result and returns it for repeated requests.
 pub trait Executor<S: SimpleDomain>: Send + Sync + 'static {
     type Effect: Serialize + Clone + Send + Sync + 'static;
 
@@ -107,32 +104,13 @@ pub struct Retry {
     pub after: Option<core::time::Duration>,
 }
 
-/// Computes the content-derived identity used to identify an external side effect.
+/// Computes an idempotency key from an effect’s serialized contents.
 ///
 /// # Errors
 ///
-/// Returns an error when the effect cannot be serialized as JSON.
+/// Returns an error if the effect cannot be serialized as JSON.
 pub fn effect_id<T: Serialize>(effect: &T) -> Result<String, serde_json::Error> {
     canonical_digest("domain-effect:v1", effect)
-}
-
-/// Explains why `validate` refused a proposed event. The text reaches the submitter.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Rejection(String);
-
-impl Rejection {
-    /// # Errors
-    ///
-    /// Returns an error when the event cannot be serialized to derive its identity.
-    pub fn new(reason: impl Into<String>) -> Self {
-        Self(reason.into())
-    }
-}
-
-impl fmt::Display for Rejection {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(&self.0)
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -163,6 +141,8 @@ impl fmt::Display for InvalidPartitionKey {
 impl core::error::Error for InvalidPartitionKey {}
 
 impl PartitionKey {
+    /// Parses a partition key of at most 1024 bytes.
+    ///
     /// # Errors
     ///
     /// Returns an error for an empty key, a key over the byte limit, or whitespace or control
@@ -243,9 +223,9 @@ pub fn shard_of(key: &PartitionKey) -> Shard {
     .expect("a value reduced modulo the shard count should be a valid shard")
 }
 
-/// The kernel-owned wire envelope for one hosted domain's journal. Each event
-/// vocabulary is stored under its own `DomainEvent::name`, disjoint from
-/// every other.
+/// Wraps an application event with its partition and event ID.
+///
+/// Records are stored under [`DomainEvent::name`], which must be unique to the event type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "version", content = "data", rename_all = "snake_case")]
 pub enum EventRecord<E> {
@@ -282,12 +262,11 @@ fn derive_event_id<E: DomainEvent>(
 }
 
 impl<E: DomainEvent> EventRecordV1<E> {
-    /// Builds the record with its derived identity. This is the only
-    /// constructor because identities are always computed. Callers cannot supply them.
+    /// Derives an event’s identity and builds its journal record.
     ///
     /// # Errors
     ///
-    /// Returns an error when the event cannot be serialized or its record exceeds the size limit.
+    /// Returns an error if the event cannot be serialized to derive its identity.
     pub fn new(event: E) -> Result<Self, CompatError> {
         let partition = event.partition();
         let event_id = derive_event_id(&partition, &event)?;
@@ -338,8 +317,7 @@ impl<E: DomainEvent> EventRecordV1<E> {
     }
 }
 
-/// Builds the registry declaration for one hosted event vocabulary at
-/// runtime because its name comes from [`DomainEvent::name`].
+/// Builds a record declaration using [`DomainEvent::name`].
 fn event_declaration<E: DomainEvent>() -> RecordDeclaration {
     RecordDeclaration {
         name: E::name(),
@@ -409,11 +387,10 @@ impl<E: DomainEvent> VersionedRecord for EventRecord<E> {
 
 impl<E: DomainEvent> UntrimmedJournalRecord for EventRecord<E> {}
 
-/// Kernel bookkeeping wrapped around the user's fold state.
+/// Application state together with processed event IDs and journal positions.
 ///
-/// It includes duplicate detection, the durable sequence, and per-partition progress. Everything
-/// here exists so the domain author never implements duplicate detection, sequencing, or prefix
-/// validation.
+/// The kernel uses these fields to detect duplicates and check that recovery preserves
+/// acknowledged events.
 #[derive(Debug, Clone, Default)]
 pub struct KernelProjection<P> {
     seen: BTreeMap<EventId, JournalRecordDigest>,
@@ -436,13 +413,13 @@ impl<P> KernelProjection<P> {
     }
 }
 
-/// A fold rejection surfaced to the proposer.
-/// `Display` output becomes the candidate-rejection message.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum FoldError {
+/// A rejected record or state update. Application validation reports retain their typed
+/// context and attachments in [`Self::Rejected`].
+#[derive(Debug)]
+pub enum FoldError<R> {
     Rejected {
         event_id: EventId,
-        rejection: Rejection,
+        rejection: Report<R>,
     },
     ForeignShard {
         event_id: EventId,
@@ -456,7 +433,7 @@ pub enum FoldError {
     },
 }
 
-impl fmt::Display for FoldError {
+impl<R: fmt::Display> fmt::Display for FoldError<R> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Rejected {
@@ -481,7 +458,7 @@ impl fmt::Display for FoldError {
     }
 }
 
-impl core::error::Error for FoldError {}
+impl<R: Error> Error for FoldError<R> {}
 
 /// A read-only closure executed against the projection inside the loop. It is
 /// built by [`ShardCommandHandle::read`].
@@ -491,14 +468,14 @@ type BoxedRead<P> = Box<dyn for<'a> FnOnce(&'a KernelProjection<P>) -> Box<dyn A
 
 pub type ReadResult = Box<dyn Any + Send>;
 
-/// Structurally absent capability for a domain without signals or runtime work.
+/// An uninhabited type for control requests and work items that [`Hosted`] does not produce.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Never {}
 
-/// One shared registry declaration for every hosted domain's snapshots.
+/// The record declaration for [`Hosted`] snapshots.
 ///
-/// The codec shape is identical and each domain owns its own shard log, so the name never collides
-/// across domains.
+/// All application domains use the same snapshot format. Their separate shard logs allow them
+/// to share this record name.
 static DOMAIN_SNAPSHOT_DECLARATION: RecordDeclaration = RecordDeclaration {
     name: "domain_projection_snapshot",
     owning_module: "kernel::domain",
@@ -511,10 +488,10 @@ static DOMAIN_SNAPSHOT_DECLARATION: RecordDeclaration = RecordDeclaration {
 
 const MAX_SNAPSHOT_BYTES: usize = 15 * 1024 * 1024;
 
-/// Committed snapshot record.
+/// Stores application state and the journal position it includes.
 ///
-/// The projection is embedded inline in the log and is bounded by `MAX_SNAPSHOT_BYTES`. A
-/// projection over that limit skips snapshotting and recovery replays the full journal instead.
+/// The state is stored inline, up to `MAX_SNAPSHOT_BYTES`. Larger states skip snapshotting;
+/// recovery uses an earlier snapshot or replays the full journal.
 #[derive(Serialize, Deserialize)]
 #[serde(
     tag = "version",
@@ -537,8 +514,8 @@ pub struct ProjectionSnapshotV1<S: SimpleDomain> {
     pub domain: S::Projection,
 }
 
-/// A projection captured inside the loop and stamped into a committable record
-/// by the driver. The clock stays outside the loop.
+/// State captured by the command loop for a snapshot. The driver adds the timestamp outside the
+/// loop.
 pub struct ProjectionSnapshotPayload<S: SimpleDomain> {
     shard: Shard,
     through_log_sequence: u64,
@@ -632,8 +609,7 @@ impl<S: SimpleDomain> DurableRecord for ProjectionSnapshot<S> {
     }
 }
 
-/// The blanket adapter presents one hosted domain to the kernel loop as a full
-/// [`Domain`]. Users never see this type or the port behind it.
+/// Adapts [`SimpleDomain`] to the [`Domain`] interface used by the command loop.
 pub struct Hosted<S>(PhantomData<fn() -> S>);
 
 impl<S> fmt::Debug for Hosted<S> {
@@ -650,12 +626,12 @@ impl<S> Clone for Hosted<S> {
 
 impl<S> Copy for Hosted<S> {}
 
-/// Registers the domain's event and snapshot wire names. This must run
-/// before the first append. `Kernel::register` calls this.
+/// Registers the application’s event and snapshot record names before the first append.
 ///
 /// # Errors
 ///
-/// Returns an error when record names conflict or a declaration is invalid.
+/// Returns an error if a record name conflicts with an existing declaration or a declaration is
+/// invalid.
 pub fn register<S: SimpleDomain>() -> Result<(), DeclarationError> {
     registry::intern_declaration(event_declaration::<S::Event>())?;
     registry::intern_declaration(DOMAIN_SNAPSHOT_DECLARATION)?;
@@ -668,7 +644,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
     type ControlRequest = Never;
     type ControlSnapshot = Never;
     type Delta = EventRecordV1<S::Event>;
-    type FoldError = FoldError;
+    type FoldError = FoldError<<S::Projection as Fold<S::Event>>::Rejection>;
     type Projection = KernelProjection<S::Projection>;
     type Query = ReadQuery<S::Projection>;
     type QueryResult = ReadResult;
@@ -684,7 +660,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         shard_of(&record.partition)
     }
 
-    fn reject_foreign_shard(record: &Self::RecordCurrent) -> FoldError {
+    fn reject_foreign_shard(record: &Self::RecordCurrent) -> Self::FoldError {
         FoldError::ForeignShard {
             event_id: record.event_id.clone(),
             partition: record.partition.clone(),
@@ -706,7 +682,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
     fn prepare(
         projection: &Self::Projection,
         record: &Self::RecordCurrent,
-    ) -> Result<Prepared<Self::Delta>, FoldError> {
+    ) -> Result<Prepared<Self::Delta>, Self::FoldError> {
         record.verify().map_err(|error| FoldError::Invalid {
             message: error.to_string(),
         })?;
@@ -736,7 +712,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         projection: &mut Self::Projection,
         delta: Self::Delta,
         shard_sequence: u64,
-    ) -> Result<(), FoldError> {
+    ) -> Result<(), Self::FoldError> {
         if projection
             .through_log_sequence
             .is_some_and(|through| shard_sequence <= through)
@@ -795,7 +771,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         _projection: &Self::Projection,
         _request: &Never,
         _preflight_rejection: Option<Never>,
-    ) -> Result<Self::RecordCurrent, FoldError> {
+    ) -> Result<Self::RecordCurrent, Self::FoldError> {
         unreachable!("hosted domains have no control requests")
     }
 
@@ -888,8 +864,8 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
             .digest()
             .map_err(|error| format!("digest domain record at sequence {sequence}: {error}"))?;
         match projection.seen.get(&record.event_id) {
-            // A lost acknowledgement retry may durably append the same record twice. The
-            // second copy advances the sequence and folds nothing.
+            // A retry after a lost acknowledgement can store the same record twice. Advance the
+            // sequence for the duplicate without applying it again.
             Some(seen) if *seen == digest => {
                 projection.through_log_sequence = Some(sequence);
                 Ok(())
@@ -904,8 +880,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
                     .partitions
                     .insert(record.partition.clone(), sequence);
                 projection.through_log_sequence = Some(sequence);
-                // Recorded events are facts. Replay never validates them again, so a
-                // validation change cannot poison accepted history.
+                // Replay uses the validation decision made when the event was accepted.
                 projection.domain.apply(&record.event);
                 Ok(())
             }
@@ -945,13 +920,12 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
 }
 
 impl<S: SimpleDomain> ShardCommandHandle<Hosted<S>> {
-    /// Runs a read-only closure against the projection inside the serialized
-    /// loop and returns its result. The projection never escapes, and the
-    /// closure must not block.
+    /// Runs a closure against the shard’s state inside the command loop. The closure must not
+    /// block.
     ///
     /// # Errors
     ///
-    /// Returns an error when the command loop is closed or the read result has an unexpected type.
+    /// Returns an error if the loop closes or the read result has an unexpected type.
     pub async fn read<R, F>(&self, read: F) -> Result<R, ShardCommandError>
     where
         R: Send + 'static,
@@ -1013,19 +987,29 @@ mod tests {
         totals: BTreeMap<String, u64>,
     }
 
+    #[derive(Debug, derive_more::Display, derive_more::Error)]
+    enum CounterRejection {
+        #[display("increment must be nonzero")]
+        ZeroIncrement,
+        #[display("adding {increment} to {current} would overflow the counter")]
+        Overflow { current: u64, increment: u64 },
+    }
+
     impl Fold<CounterEvent> for Counters {
-        /// # Errors
-        ///
-        /// Returns a rejection when the event violates the domain’s validation rules.
-        fn validate(&self, event: &CounterEvent) -> Result<(), Rejection> {
+        type Rejection = CounterRejection;
+
+        fn validate(&self, event: &CounterEvent) -> Result<(), Report<Self::Rejection>> {
             match event {
                 CounterEvent::Incremented { amount: 0, .. } => {
-                    Err(Rejection::new("increment must be nonzero"))
+                    Err(Report::new(CounterRejection::ZeroIncrement))
                 }
                 CounterEvent::Incremented { counter, amount } => {
                     let current = self.totals.get(counter).copied().unwrap_or(0);
                     if current.checked_add(*amount).is_none() {
-                        Err(Rejection::new("counter overflow"))
+                        Err(Report::new(CounterRejection::Overflow {
+                            current,
+                            increment: *amount,
+                        }))
                     } else {
                         Ok(())
                     }
@@ -1120,8 +1104,8 @@ mod tests {
 
     #[test]
     fn event_records_decode_at_the_size_boundary() {
-        // The limit is wire contract. A test written against the constant
-        // would follow a drifted value, so this pins the literal.
+        // Use a literal here so changing the size-limit constant cannot silently change the
+        // tested storage format.
         assert_eq!(MAX_EVENT_RECORD_BYTES, 0x0010_0000);
         let encoded = EventRecord::V1(incremented("orders", 5))
             .encode()
@@ -1257,9 +1241,8 @@ mod tests {
         .expect_err("a non-advancing sequence should be rejected");
         assert!(error.contains("does not advance"));
 
-        // `normalize` blocks identity forgeries, so the reuse arm can fire
-        // only when a stored digest no longer matches the record's bytes.
-        // Rewriting the stored digest stands in for that condition.
+        // `normalize` rejects forged identities. Changing the stored digest simulates a
+        // conflict between the digest and the record bytes.
         let other_digest = incremented("orders", 7)
             .digest()
             .expect("digest should compute");
@@ -1328,8 +1311,17 @@ mod tests {
         let rejection = handle
             .propose(incremented("orders", 0))
             .await
-            .expect_err("validation should reject the record");
-        assert!(rejection.message.contains("increment must be nonzero"));
+            .expect("proposal should return its validation outcome");
+        let ShardCommandOutcome::Rejected {
+            rejection: FoldError::Rejected { rejection, .. },
+        } = rejection
+        else {
+            panic!("zero increment should return a domain rejection");
+        };
+        assert!(matches!(
+            rejection.current_context(),
+            CounterRejection::ZeroIncrement
+        ));
 
         handle.shutdown().await.expect("shutdown should succeed");
         started
@@ -1343,7 +1335,6 @@ mod tests {
     async fn crash_replay_rebuilds_state_and_still_dedupes() {
         register::<ToyDomain>().expect("toy name should register");
         let root = tempfile::tempdir().expect("object store root tempdir should be created");
-        // Both counters must route to the same shard for a test with one shard.
         let first = incremented("orders", 5);
         let shard = shard_of(&first.partition);
         let second = incremented("orders", 7);
@@ -1383,8 +1374,8 @@ mod tests {
             .expect("loop should stop cleanly");
 
         let (handle, started) = start(location).await;
-        // Log sequences are not dense per record. Only their ordering is
-        // contractual. The recovered fold must sit below the durable end.
+        // Journal sequence numbers may have gaps. The check depends on ordering, not
+        // consecutive values.
         let through = handle
             .read(KernelProjection::through_log_sequence)
             .await
@@ -1445,8 +1436,13 @@ mod tests {
         let error = handle
             .propose(foreign)
             .await
-            .expect_err("foreign partition should be refused");
-        assert!(error.message.contains("routes to a different shard"));
+            .expect("proposal should return its validation outcome");
+        assert!(matches!(
+            error,
+            ShardCommandOutcome::Rejected {
+                rejection: FoldError::ForeignShard { .. }
+            }
+        ));
         handle.shutdown().await.expect("shutdown should succeed");
         started
             .task

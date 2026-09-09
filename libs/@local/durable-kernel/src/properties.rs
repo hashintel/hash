@@ -1,17 +1,11 @@
-//! The checkable-property catalog.
+//! Safety and coverage checks for kernel tests.
 //!
-//! Each property is a stable, named claim about the kernel. Safety
-//! properties must hold at every evaluation point. Coverage properties
-//! name the failure windows a test campaign must actually produce for the
-//! safety checks to have been tested.
+//! Safety properties must hold each time they are checked. Coverage properties identify failure
+//! cases that must occur at least once across a set of schedules. Property-based tests check
+//! safety and shrink failing schedules; seeded tests also check coverage.
 //!
-//! The deterministic-simulation harness evaluates the catalog in two ways.
-//! Property-based tests use generated schedules and shrink a failure to a
-//! minimal action sequence while checking every safety property. The seeded
-//! campaign additionally accounts for coverage.
-//!
-//! IDs are frozen because documentation, TLA+ cross-references, and triage
-//! notes use them as keys. Retire a property instead of renaming it.
+//! Keep property IDs stable so recorded failures and specification references remain useful.
+//! Retire an ID rather than rename it.
 
 use core::fmt;
 
@@ -19,7 +13,7 @@ use core::fmt;
 pub enum PropertyClass {
     /// Must hold at every evaluation point.
     Safety,
-    /// Must occur at least once per campaign.
+    /// Must occur at least once across the schedules.
     Coverage,
 }
 
@@ -27,19 +21,16 @@ pub enum PropertyClass {
 pub struct Property {
     pub id: &'static str,
     pub class: PropertyClass,
-    /// One sentence, present tense, checkable. For a `Safety` property
-    /// this is the invariant. For a `Coverage` property, this is the situation
-    /// a campaign must produce.
+    /// The condition that must hold, or the failure case the schedules must exercise.
     pub statement: &'static str,
 }
 
-// Safety properties. KRN-A1 through KRN-A5 are the executable image of
-// the `specs/LogCursor.tla` invariants, which are checked by TLC. The
-// axiom-to-contract mapping appears in `specs/README.md`. Each statement here
-// and its specification invariant must remain word-for-word identical.
+// KRN-A1 through KRN-A5 mirror the integration framework’s `specs/LogCursor.tla`. Keep their
+// statements identical to the corresponding specification predicates.
 
-/// See also `validate_recovered_prefix`, which enforces the same claim
-/// inside the production loop. This property checks it from outside.
+/// Checks acknowledged events against journal contents.
+/// [`Domain::validate_recovered_prefix`](crate::port::Domain::validate_recovered_prefix) makes
+/// the same check during recovery.
 pub const ACK_IMPLIES_DURABLE: Property = Property {
     id: "KRN-A1-ACK-IMPLIES-DURABLE",
     class: PropertyClass::Safety,
@@ -77,10 +68,6 @@ pub const REJECTED_NEVER_DURABLE: Property = Property {
     statement: "an event the fold rejected never appears in the durable prefix",
 };
 
-// Effect execution has an at-least-once safety contract. An external ledger
-// records every execution, including repeats, so the hosted executor can be
-// checked.
-
 pub const EFFECT_REPLAYS_ARE_IDENTICAL: Property = Property {
     id: "KRN-A7-EFFECT-REPLAY-IDENTICAL",
     class: PropertyClass::Safety,
@@ -106,9 +93,6 @@ pub const DURABLE_EVENTS_HAVE_PROVENANCE: Property = Property {
     class: PropertyClass::Safety,
     statement: "every event in the durable prefix was proposed by a client of the loop",
 };
-
-// Coverage properties name the failure windows that a schedule campaign must
-// produce before the safety properties have been exercised.
 
 pub const ADOPTED_AMBIGUOUS_DURABLE_APPEND: Property = Property {
     id: "KRN-S1-AMBIGUOUS-DURABLE-ADOPTED",
@@ -190,16 +174,17 @@ pub const CATALOG: &[Property] = &[
     EFFECT_EXECUTED_MORE_THAN_ONCE,
 ];
 
-/// Sink for coverage observations. The harness owns one per campaign and
-/// checks it against [`CATALOG`] when the campaign ends.
+/// Collects coverage observations across schedules. Check the results against [`CATALOG`] at
+/// the end of the test.
 pub trait CoverageSink {
     fn observe(&mut self, property: &Property);
 }
 
-/// Asserts a safety property at one evaluation point.
+/// Checks a safety property. Failures include the property ID, statement, and supplied detail.
 ///
-/// A violation panics with the property ID, statement, and caller-supplied detail. The harness
-/// attaches either a shrunk schedule or a seed and action trace so the run can be replayed.
+/// # Panics
+///
+/// Panics when `condition` is false.
 #[track_caller]
 /// # Panics
 ///
@@ -213,8 +198,8 @@ pub fn check(property: &Property, condition: bool, detail: impl fmt::Display) {
     );
 }
 
-/// Records that a coverage property occurred here. Never fails a single
-/// run. The campaign fails if the property never occurs.
+/// Records a coverage observation. The test checks for missing observations after all schedules
+/// finish.
 pub fn covered(sink: &mut dyn CoverageSink, property: &Property, condition: bool) {
     debug_assert_eq!(property.class, PropertyClass::Coverage);
     if condition {

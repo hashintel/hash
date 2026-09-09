@@ -12,6 +12,7 @@ test-util = []
 [dependencies]
 tokio = { workspace = true, public = true, features = ["macros", "rt", "sync", "time"] }
 tokio-util = { workspace = true, features = ["rt"] }
+derive_more = { workspace = true, features = ["display", "error"] }
 bytes = { workspace = true, public = true }
 error-stack = { workspace = true, public = true, features = ["std"] }
 serde = { workspace = true, public = true, features = ["derive", "std"] }

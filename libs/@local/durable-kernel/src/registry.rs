@@ -79,15 +79,14 @@ impl core::error::Error for DeclarationError {}
 static DECLARATIONS: std::sync::RwLock<BTreeMap<&'static str, &'static RecordDeclaration>> =
     std::sync::RwLock::new(BTreeMap::new());
 
-/// Interns a domain's record declaration, leaking one canonical copy per name.
+/// Registers a record declaration and retains one copy for the lifetime of the process.
 ///
-/// The operation is idempotent for an identical declaration. A different declaration under an
-/// interned name is refused, preserving the property that one name means one codec.
+/// Registering an identical declaration again returns the existing copy.
 ///
 /// # Errors
 ///
-/// Returns an error for conflicting record names or a journal declaration that permits decoder
-/// retirement.
+/// Returns an error if the name already has a different declaration or a journal declaration
+/// permits decoder retirement.
 pub fn intern_declaration(
     declaration: RecordDeclaration,
 ) -> Result<&'static RecordDeclaration, DeclarationError> {
@@ -131,22 +130,28 @@ pub trait DurableRecord: Sized {
     fn declaration() -> &'static RecordDeclaration;
     const MIGRATION_POLICY: MigrationPolicy;
 
+    /// Encodes the record in its declared wire format.
+    ///
     /// # Errors
     ///
     /// Returns an error when the record cannot be encoded under its declared format.
     fn encode(&self) -> Result<Vec<u8>, CompatError>;
 
+    /// Decodes bytes into a supported wire record.
+    ///
     /// # Errors
     ///
     /// Returns an error when the bytes are malformed or use an unsupported record format.
     fn decode(bytes: &[u8]) -> Result<Self, CompatError>;
 }
 
-/// A versioned wire record with one validated domain shape used by the engine.
-/// Adding a supported wire variant must extend this normalization boundary.
+/// Converts supported wire versions to one validated record type. Add a conversion here for
+/// each new wire version.
 pub trait VersionedRecord: DurableRecord {
     type Current;
 
+    /// Converts a wire record to its validated current representation.
+    ///
     /// # Errors
     ///
     /// Returns an error when the wire record cannot be converted to a valid current record.
@@ -160,14 +165,18 @@ pub trait PureUpcastRecord: VersionedRecord {}
 /// corresponding sequence range remains replayable.
 pub trait UntrimmedJournalRecord: VersionedRecord {}
 
-/// Mutable records are upgraded by normalizing observed bytes and conditionally
-/// replacing exactly the observed CAS version with current canonical bytes.
+/// Upgrades mutable records to the current format. Writes must use compare-and-swap against the
+/// version that was read.
 pub trait MutableCasRecord: VersionedRecord + Send + Sync {
+    /// Builds a wire record from the current representation.
+    ///
     /// # Errors
     ///
     /// Returns an error when the current record cannot be represented in the emitted format.
     fn from_current(current: Self::Current) -> Result<Self, CompatError>;
 
+    /// Converts a record to the format used for new writes.
+    ///
     /// # Errors
     ///
     /// Returns an error when normalization or conversion to the emitted format fails.
@@ -179,15 +188,12 @@ pub trait MutableCasRecord: VersionedRecord + Send + Sync {
 /// Derived records may be discarded and rebuilt from authoritative state.
 pub trait RebuildableRecord: DurableRecord {}
 
-/// Shard-log storage paths call this before scanning or appending a generic record.
-///
-/// The record's declaration must be interned when its shard recovers and must remain consistent
-/// with the type's declared migration policy.
+/// Checks that the record type has a matching registered declaration.
 ///
 /// # Errors
 ///
-/// Returns an error when the declaration is absent, conflicts with the registry, or has an
-/// inconsistent migration policy.
+/// Returns an error if the declaration is absent, differs from the registered declaration, or
+/// disagrees with the type’s migration policy.
 pub fn require_interned<T: DurableRecord>() -> Result<(), DeclarationError> {
     if T::MIGRATION_POLICY != T::declaration().migration {
         return Err(DeclarationError::Invalid {
@@ -241,14 +247,13 @@ impl fmt::Display for CompatError {
 
 impl core::error::Error for CompatError {}
 
-/// Rejects undeclared fields without relying on parsing Serde error strings.
+/// Checks a JSON object against an explicit set of field names.
 ///
-/// Version codecs call this for the envelope and every nested object before deserializing the
-/// validated value.
+/// Call this for the envelope and each nested object before deserializing.
 ///
 /// # Errors
 ///
-/// Returns an error when the object contains a field outside the allowed set.
+/// Returns an error if the value is not an object or contains an undeclared field.
 pub fn reject_unknown_fields(
     name: &'static str,
     path: &str,

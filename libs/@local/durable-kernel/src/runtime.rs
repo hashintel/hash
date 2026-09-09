@@ -1,19 +1,17 @@
-//! The kernel runtime opens a configured [`Kernel`], registers a domain, and
-//! starts its executor. The resulting [`RunningKernel`] accepts submissions,
-//! serves reads, and supports an orderly shutdown.
+//! Runs application domains and their external operations.
 //!
-//! All shards recover before any executor starts. Each shard driver reads its
-//! projection, plans work, executes it, and appends the returned events. Those
-//! events record completion so the next plan can omit completed work. A set of
-//! executed effect IDs also prevents repeated execution within a session.
-//! A retry delay applies to one effect, allowing the driver to process the rest
-//! of the plan while that effect waits.
+//! [`Kernel`] validates configuration and registers record types. [`Kernel::start`] recovers
+//! every owned shard before starting an effect driver for each shard. [`RunningKernel`] accepts
+//! events and reads state.
 //!
-//! Run one process per shard set. Opening a second `SlateDB` writer invalidates
-//! the first writer. Call [`RunningKernel::shutdown`] to finish the active
-//! effects and close storage. Dropping the kernel cancels its effect tasks and
-//! asks its command loops to close. An external write may already have succeeded
-//! when its task is cancelled, so recovery can repeat that effect.
+//! Drivers plan operations from state, execute them, and record completion events. An effect ID
+//! runs once per session after successful execution. Failed effects can wait for a retry while
+//! the driver handles other work.
+//!
+//! Run one process per shard set. Opening a replacement writer invalidates the old one.
+//! [`RunningKernel::shutdown`] waits for active effects and closes storage. Dropping it cancels
+//! effect tasks and asks command loops to close; recovery may repeat an external write whose
+//! completion was not recorded.
 
 use alloc::{
     collections::{BTreeMap, BTreeSet},
@@ -36,14 +34,14 @@ use crate::{
     },
 };
 
-#[derive(Debug)]
+#[derive(Debug, derive_more::Error)]
+#[error(ignore)]
 pub enum KernelError {
     Config(String),
     Registration(String),
     InvalidEvent(String),
     Storage(String),
     NotOwned { shard: u16 },
-    Rejected { message: String },
     Internal(String),
 }
 
@@ -60,13 +58,10 @@ impl fmt::Display for KernelError {
                 formatter,
                 "partition routes to shard {shard}, which this kernel does not own"
             ),
-            Self::Rejected { message } => write!(formatter, "event rejected: {message}"),
             Self::Internal(message) => write!(formatter, "kernel internal failure: {message}"),
         }
     }
 }
-
-impl core::error::Error for KernelError {}
 
 #[derive(Debug, Clone)]
 pub struct KernelConfig {
@@ -105,7 +100,7 @@ impl KernelConfig {
     }
 }
 
-/// Validates the namespace and shard selection before storage opens in `start`.
+/// A validated configuration ready to open shard storage with [`start`](Self::start).
 pub struct Kernel {
     config: KernelConfig,
     keyspace: Keyspace,
@@ -113,6 +108,8 @@ pub struct Kernel {
 }
 
 impl Kernel {
+    /// Validates the namespace and shard selection without opening storage.
+    ///
     /// # Errors
     ///
     /// Returns an error for an invalid namespace, an empty shard selection, or an invalid shard
@@ -227,8 +224,10 @@ impl Kernel {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Submitted {
+#[derive(Debug)]
+pub enum Submitted<R> {
+    /// Validation refused the event; it was not appended.
+    Rejected(error_stack::Report<R>),
     Applied,
     AlreadyDurable,
 }
@@ -254,23 +253,30 @@ impl<S: SimpleDomain> RunningKernel<S> {
             })
     }
 
-    /// Validates and durably appends one event. Submitting the same event again
-    /// returns `AlreadyDurable`. A rejection includes the fold's reason.
+    /// Submits an event and waits for it to become durable.
+    ///
+    /// An identical event returns [`Submitted::AlreadyDurable`]. Validation failures return
+    /// [`Submitted::Rejected`] with the original report from
+    /// [`Fold::validate`](crate::domain::Fold::validate), including its context and attachments.
     ///
     /// # Errors
     ///
-    /// Returns an error when the event cannot be encoded, its shard is not owned, or the command
-    /// loop fails.
-    pub async fn submit(&self, event: S::Event) -> Result<Submitted, KernelError> {
+    /// Returns an error if encoding fails, the process does not own the event’s shard, or the
+    /// command loop fails.
+    pub async fn submit(
+        &self,
+        event: S::Event,
+    ) -> Result<Submitted<<S::Projection as domain::Fold<S::Event>>::Rejection>, KernelError> {
         let record = EventRecordV1::new(event).map_err(|error| invalid_event(&error))?;
         let handle = self.handle_for(&record.partition)?;
         match handle.propose(record).await {
             Ok(ShardCommandOutcome::Applied { .. }) => Ok(Submitted::Applied),
             Ok(ShardCommandOutcome::AlreadyDurable { .. }) => Ok(Submitted::AlreadyDurable),
-            Err(error) if error.kind == ShardCommandErrorKind::InvalidCandidate => {
-                Err(KernelError::Rejected {
-                    message: error.message,
-                })
+            Ok(ShardCommandOutcome::Rejected {
+                rejection: domain::FoldError::Rejected { rejection, .. },
+            }) => Ok(Submitted::Rejected(rejection)),
+            Ok(ShardCommandOutcome::Rejected { rejection }) => {
+                Err(KernelError::InvalidEvent(rejection.to_string()))
             }
             Err(error) => Err(command_failure(&error)),
         }
@@ -325,8 +331,6 @@ impl<S: SimpleDomain> RunningKernel<S> {
             }
         }
         for handle in self.shards.values() {
-            // A loop that already stopped reports Closed here, which is an
-            // expected outcome.
             let _: Result<_, _> = handle.shutdown().await;
         }
         for task in &mut self.loops {
@@ -436,13 +440,16 @@ where
                         let record =
                             EventRecordV1::new(event).map_err(|error| invalid_event(&error))?;
                         match handle.propose(record).await {
-                            Ok(_outcome) => {}
-                            Err(error) if error.kind == ShardCommandErrorKind::InvalidCandidate => {
-                                // Completion events must validate as part of
-                                // the executor contract.
-                                // The session set stops hot re-execution until the next restart.
+                            Ok(
+                                ShardCommandOutcome::Applied { .. }
+                                | ShardCommandOutcome::AlreadyDurable { .. },
+                            ) => {}
+                            Ok(ShardCommandOutcome::Rejected { rejection }) => {
+                                // Completion events must pass validation. Remember this
+                                // execution for the rest of the session to avoid repeating it
+                                // immediately.
                                 tracing::warn!(
-                                    error = %error,
+                                    error = %rejection,
                                     "effect completion event was rejected"
                                 );
                             }
@@ -480,8 +487,8 @@ where
     }
 }
 
-/// Snapshotting is best effort because a failed or skipped snapshot only
-/// means longer replay.
+/// A failed snapshot increases the work needed for recovery; the journal still contains the
+/// events.
 async fn maybe_snapshot<S: SimpleDomain>(
     handle: &ShardCommandHandle<Hosted<S>>,
     every_events: u64,
@@ -510,7 +517,7 @@ mod tests {
     use serde::{Deserialize, Serialize};
 
     use super::*;
-    use crate::domain::{DomainEvent, Fold, Rejection, Retry};
+    use crate::domain::{DomainEvent, Fold, Retry};
 
     #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
     #[serde(tag = "kind", rename_all = "snake_case")]
@@ -545,12 +552,34 @@ mod tests {
         archived: Vec<u64>,
     }
 
+    #[derive(Debug, derive_more::Display, derive_more::Error)]
+    enum CounterRejection {
+        #[display("increment for {counter} must be nonzero")]
+        ZeroIncrement { counter: String },
+    }
+
+    #[derive(Debug, derive_more::Display, derive_more::Error)]
+    #[display("invalid increment amount: {amount}")]
+    struct InvalidAmount {
+        amount: u64,
+    }
+
+    #[derive(Debug, derive_more::Display)]
+    #[display("counter: {_0}")]
+    struct RejectedCounter(String);
+
     impl Fold<RtEvent> for RtCounters {
-        fn validate(&self, event: &RtEvent) -> Result<(), Rejection> {
+        type Rejection = CounterRejection;
+
+        fn validate(&self, event: &RtEvent) -> Result<(), error_stack::Report<Self::Rejection>> {
             match event {
-                RtEvent::Incremented { amount: 0, .. } => {
-                    Err(Rejection::new("increment must be nonzero"))
-                }
+                RtEvent::Incremented {
+                    counter, amount: 0, ..
+                } => Err(error_stack::Report::new(InvalidAmount { amount: 0 })
+                    .change_context(CounterRejection::ZeroIncrement {
+                        counter: counter.clone(),
+                    })
+                    .attach(RejectedCounter(counter.clone()))),
                 RtEvent::Incremented { .. } | RtEvent::Archived { .. } => Ok(()),
             }
         }
@@ -662,8 +691,7 @@ mod tests {
         exercise_end_to_end(&format!("file://{}", blob.path().display())).await;
     }
 
-    /// Runs the same sequence over an S3-compatible endpoint. The `SlateDB` shard
-    /// log, snapshots, and artifact store all use object storage.
+    /// Checks recovery using an S3-compatible endpoint.
     #[tokio::test]
     #[ignore = "requires an S3-compatible endpoint and \
                 INTEGRATIONS_KERNEL_S3_URL=s3://bucket/scratch-prefix"]
@@ -700,20 +728,20 @@ mod tests {
             .await
             .expect("kernel should start");
 
-        assert_eq!(
+        assert!(matches!(
             running
                 .submit(increment("orders", 1, 6))
                 .await
                 .expect("submit should succeed"),
             Submitted::Applied
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             running
                 .submit(increment("orders", 2, 5))
                 .await
                 .expect("submit should succeed"),
             Submitted::Applied
-        );
+        ));
         wait_until(async || {
             running
                 .read(&orders, |projection| projection.archived.clone())
@@ -735,22 +763,15 @@ mod tests {
             BTreeMap::new(),
             "archiving resets the counter"
         );
-        assert_eq!(
+        assert!(matches!(
             running
                 .submit(increment("orders", 1, 6))
                 .await
                 .expect("resubmit should succeed"),
             Submitted::AlreadyDurable
-        );
-        let rejection = running
-            .submit(increment("orders", 9, 0))
-            .await
-            .expect_err("zero increment should be rejected");
-        assert!(rejection.to_string().contains("increment must be nonzero"));
+        ));
         running.shutdown().await.expect("shutdown should succeed");
 
-        // A fresh executor starts with state recovered through the snapshot.
-        // The archived counter plans no work, so nothing executes again.
         let external_after = Arc::new(Mutex::new(Vec::new()));
         let kernel = Kernel::open(config(blob_url, shard.get()))
             .expect("kernel should reopen")
@@ -786,6 +807,78 @@ mod tests {
             .shutdown()
             .await
             .expect("shutdown after restart should succeed");
+    }
+
+    #[tokio::test]
+    async fn rejection_preserves_context_and_attachments() {
+        let blob = tempfile::tempdir().expect("blob directory should be created");
+        let key = PartitionKey::parse("orders").expect("partition key should be valid");
+        let kernel = Kernel::open(config(
+            &format!("file://{}", blob.path().display()),
+            domain::shard_of(&key).get(),
+        ))
+        .expect("kernel configuration should be valid")
+        .register::<RtDomain>()
+        .expect("domain should register");
+        let running = kernel
+            .start(ArchiveExecutor {
+                threshold: 10,
+                external: Arc::new(Mutex::new(Vec::new())),
+            })
+            .await
+            .expect("kernel should start");
+
+        for _attempt in 0..2 {
+            let outcome = running
+                .submit(increment("orders", 1, 0))
+                .await
+                .expect("validation should return a submission outcome");
+            let Submitted::Rejected(report) = outcome else {
+                panic!("zero increment should be rejected");
+            };
+            assert!(
+                matches!(report.current_context(), CounterRejection::ZeroIncrement { counter } if counter == "orders")
+            );
+            assert_eq!(
+                report
+                    .downcast_ref::<InvalidAmount>()
+                    .expect("original error should survive submission")
+                    .amount,
+                0
+            );
+            assert_eq!(
+                report
+                    .downcast_ref::<RejectedCounter>()
+                    .expect("typed attachment should survive submission")
+                    .0,
+                "orders"
+            );
+        }
+        let through = running
+            .handle_for(&key)
+            .expect("shard should be owned")
+            .read(domain::KernelProjection::through_log_sequence)
+            .await
+            .expect("read should succeed");
+        assert_eq!(
+            through, None,
+            "rejections should not append journal records"
+        );
+        assert!(
+            running
+                .read(&key, |state| state.totals.is_empty())
+                .await
+                .expect("read should succeed"),
+            "rejections should leave state unchanged"
+        );
+        assert!(matches!(
+            running
+                .submit(increment("orders", 2, 1))
+                .await
+                .expect("valid submission should succeed"),
+            Submitted::Applied
+        ));
+        running.shutdown().await.expect("shutdown should succeed");
     }
 
     #[tokio::test]
