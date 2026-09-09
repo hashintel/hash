@@ -31,7 +31,6 @@ const placeBoxStyle = css({
   borderRadius: "[50%]",
   // Wider than the transition's, to keep the name clear of the curve.
   padding: "[8px 20px]",
-  gap: "[4px]",
 });
 
 const placeRowStyle = css({
