@@ -24,7 +24,6 @@ import {
   type BrunchTurnTool,
 } from "../src/evaluations/persona/brunch-turn.ts";
 import { openPersonaConversation } from "../src/evaluations/persona/launch.ts";
-import { assertExternalDenied } from "../src/evaluations/real-provider-a5/network-guard.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
 import {
@@ -32,7 +31,6 @@ import {
   type NativeRequestCapture,
 } from "./native-schema-provider.ts";
 
-await assertExternalDenied();
 const output = mkdtempSync(join(tmpdir(), "m7-persona-browser-"));
 const save = (name: string, value: unknown) =>
   writeFileSync(join(output, `${name}.json`), JSON.stringify(value, null, 2), {

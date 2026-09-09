@@ -24,9 +24,6 @@ vi.mock("../src/evaluations/runbook/load-built-application.ts", () => ({
     stop: controls.stop,
   }),
 }));
-vi.mock("../src/evaluations/real-provider-a5/network-guard.ts", () => ({
-  assertExternalDenied: async () => {},
-}));
 vi.mock("../src/evaluations/install-faux-provider.ts", () => ({
   installFauxProvider: () => {},
 }));

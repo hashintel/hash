@@ -57,6 +57,10 @@ packages/plugin-gherkin            TARGET POLICY + Flue-native contribution bund
 packages/plugin-dafny              STUB contribution bundle (topology pressure test; not composed)
 ├─ prompts/APPEND_SYSTEM.md, skills/dafny-verification/SKILL.md, flue.ts — placeholder homes only
 
+packages/plugin-claims             STUB contribution bundle (normative-source interference probe; not composed)
+├─ index.ts, flue.ts, skills/claims-formalization/ — pairing identity, append, and job skill;
+│                        no ledger API or application mount
+
 packages/plugin-sdcpn              TARGET POLICY + Flue-native production contribution
 ├─ index.ts           ✓  pairing identity only (YAML definition removed 2026-09-02)
 ├─ prompts/APPEND_SYSTEM.md ✓ compact always-on SDCPN append

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { connect } from "node:net";
 
-/** Fail closed if launched without an effective process IP policy. This is a
+/** Fail closed if launched without an effective process IP policy. For hermetic
+ * A5 / replay claims only — not ordinary faux-provider tests. This is a
  * negative control, not proof that macOS can filter hostnames or that an allowed
  * provider IP is Anthropic. TLS/SNI and the exact endpoint supply those layers. */
 export const assertExternalDenied = async () => {

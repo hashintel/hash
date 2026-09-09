@@ -7579,6 +7579,21 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@hashintel/brunch-agent-plugin-claims@workspace:libs/@hashintel/brunch-agent/packages/plugin-claims":
+  version: 0.0.0-use.local
+  resolution: "@hashintel/brunch-agent-plugin-claims@workspace:libs/@hashintel/brunch-agent/packages/plugin-claims"
+  dependencies:
+    "@flue/runtime": "npm:2.0.3"
+    "@hashintel/brunch-agent": "workspace:*"
+    "@types/node": "npm:22.18.13"
+    "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
+    oxlint: "npm:1.63.0"
+    oxlint-tsgolint: "npm:0.22.1"
+    vite: "npm:8.2.2"
+    vitest: "npm:4.1.10"
+  languageName: unknown
+  linkType: soft
+
 "@hashintel/brunch-agent-plugin-dafny@workspace:libs/@hashintel/brunch-agent/packages/plugin-dafny":
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-plugin-dafny@workspace:libs/@hashintel/brunch-agent/packages/plugin-dafny"
