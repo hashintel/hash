@@ -349,6 +349,7 @@ const connectBrowserOptimization = (options: {
           state: event.state,
           best: event.best,
           ...(constraints ? { constraints } : {}),
+          ...(event.importances ? { importances: event.importances } : {}),
         });
         return;
       }
@@ -365,6 +366,9 @@ const connectBrowserOptimization = (options: {
               prunedTrials: summary.prunedTrials,
               failedTrials: summary.failedTrials,
               best: summary.best,
+              ...(summary.importances
+                ? { importances: summary.importances }
+                : {}),
             },
             "finished-resumable",
           );

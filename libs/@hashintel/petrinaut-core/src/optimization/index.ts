@@ -652,6 +652,15 @@ export const petrinautOptimizationTrialConstraintsSchema = z
     description: "Constraint results of one trial, browser runtime only.",
   });
 
+/** PED-ANOVA importances, normalised to sum to 1, keyed by optimized parameter identifier. */
+export const petrinautOptimizationImportancesSchema = z
+  .strictObject({
+    values: z.record(z.string(), z.number().min(0).max(1)),
+    /** Completed trials the estimate was fitted on. */
+    completedTrials: z.number().int().positive(),
+  })
+  .meta({ description: "Parameter importances, browser runtime only." });
+
 export const petrinautOptimizationTrialEventSchema = z
   .strictObject({
     type: z.literal("trial"),
@@ -662,6 +671,8 @@ export const petrinautOptimizationTrialEventSchema = z
     best: optimizationBestSchema.nullable(),
     /** Present on the trials of a study evaluated in the browser with constraints declared. */
     constraints: petrinautOptimizationTrialConstraintsSchema.optional(),
+    /** Present at the importance cadence on the trials of a study evaluated in the browser. */
+    importances: petrinautOptimizationImportancesSchema.optional(),
     seq: optimizationEventSeqSchema,
   })
   .meta({ description: "One completed Optuna trial and the running best." });
@@ -683,6 +694,8 @@ export const petrinautOptimizationCompleteEventSchema = z
     failedTrials: z.number().int().nonnegative(),
     best: optimizationBestSchema.nullable(),
     resumable: optimizationResumableSchema,
+    /** The final estimate of a study evaluated in the browser, when one could be made. */
+    importances: petrinautOptimizationImportancesSchema.optional(),
     seq: optimizationEventSeqSchema,
   })
   .meta({ description: "The final optimization summary." });
@@ -776,6 +789,9 @@ export type PetrinautOptimizationStateConstraintResult = z.infer<
 >;
 export type PetrinautOptimizationTrialConstraints = z.infer<
   typeof petrinautOptimizationTrialConstraintsSchema
+>;
+export type PetrinautOptimizationImportances = z.infer<
+  typeof petrinautOptimizationImportancesSchema
 >;
 
 /**
