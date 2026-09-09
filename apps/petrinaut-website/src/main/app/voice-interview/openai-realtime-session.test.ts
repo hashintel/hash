@@ -420,6 +420,13 @@ describe("OpenAIRealtimeSession", () => {
       };
       if (phase === "generated") {
         channel.receive(cleared);
+        expect(harness.events).toContainEqual({
+          connectionEpoch: 1,
+          responseId: "question-response",
+          speechRequestId: (pendingResponse.metadata as Record<string, unknown>)
+            .petrinaut_request_id,
+          type: "output-interrupted",
+        });
       } else {
         channel.receive(phase === "playing" ? terminal : cleared);
         channel.receive(phase === "playing" ? cleared : terminal);

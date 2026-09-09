@@ -733,6 +733,46 @@ describe("VoiceTurnController", () => {
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
   });
 
+  test("restores capture when generated speech is interrupted before playback", async () => {
+    const harness = createHarness();
+    harness.controller.setInterruptionBySpeaking(true);
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-generated",
+      type: "canonical-speech-requested",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-generated",
+      speechRequestId: "speech-generated",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      interruptionBySpeaking: true,
+      itemId: "interrupting-answer",
+      type: "input-speech-started",
+    });
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-generated",
+      speechRequestId: "speech-generated",
+      type: "output-interrupted",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: true,
+      output: "interrupted",
+    });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledOnce();
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledWith(true);
+  });
+
   test("restores capture when cancelled settlement arrives after interrupted early speech", async () => {
     const harness = createHarness();
     await harness.controller.start();

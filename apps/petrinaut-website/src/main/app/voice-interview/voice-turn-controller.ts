@@ -837,7 +837,21 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "output-interrupted") {
-      if (event.responseId !== this.#activeSpeechResponseId) return;
+      const interruptedPendingSpeech =
+        event.speechRequestId !== undefined &&
+        this.#pendingSpeechRequestIds.delete(event.speechRequestId);
+      if (event.speechRequestId !== undefined) {
+        this.#terminalSpeechRequestIds.delete(event.speechRequestId);
+      }
+      if (event.responseId !== this.#activeSpeechResponseId) {
+        if (interruptedPendingSpeech) {
+          this.#update({
+            output: this.#outputAfterPlaybackEnds("interrupted"),
+          });
+          this.#restoreMicrophoneIfCaptureAvailable();
+        }
+        return;
+      }
       this.#activeSpeechOutputEnded = true;
       if (this.#activeSpeechResponseTerminal) {
         this.#clearSettledSpeech();

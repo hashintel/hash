@@ -63,6 +63,8 @@ export type OpenAIRealtimeSessionEvent =
   | {
       readonly connectionEpoch: number;
       readonly responseId: string;
+      /** Present when interruption ends a request before playback starts. */
+      readonly speechRequestId?: string;
       readonly type: "output-interrupted";
     }
   | {
@@ -1017,6 +1019,12 @@ export class OpenAIRealtimeSession {
     }
     const wasSpeaking = this.#speakingResponseId === responseId;
     const wasCleared = event.type === "output_audio_buffer.cleared";
+    const speechRequestId = this.#speechRequestIds.get(responseId);
+    const interruptedBeforePlayback =
+      wasCleared &&
+      !wasSpeaking &&
+      speechRequestId !== undefined &&
+      this.#cancelledCanonicalResponseIds.has(responseId);
     this.#finishSpeech(
       responseId,
       wasCleared || this.#cancelledCanonicalResponseIds.has(responseId)
@@ -1033,6 +1041,13 @@ export class OpenAIRealtimeSession {
         connectionEpoch,
         responseId,
         type: wasCleared ? "output-interrupted" : "output-stopped",
+      });
+    } else if (interruptedBeforePlayback) {
+      this.#emit({
+        connectionEpoch,
+        responseId,
+        speechRequestId,
+        type: "output-interrupted",
       });
     }
     if (wasCleared && this.#cancelOutputAwaitingOutputBufferClear) {

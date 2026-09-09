@@ -490,6 +490,12 @@ export class RealtimeBrunchBridge {
       event.type === "output-stopped" ||
       event.type === "output-interrupted"
     ) {
+      if (
+        event.type === "output-interrupted" &&
+        event.speechRequestId !== undefined
+      ) {
+        this.#pendingSpeechRequestIds.delete(event.speechRequestId);
+      }
       this.#activePlaybackText.delete(event.responseId);
       return;
     }

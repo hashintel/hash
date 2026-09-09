@@ -571,9 +571,11 @@ describe("RealtimeBrunchBridge", () => {
       };
       if (order === "stop-before-cancellation") {
         harness.bridge.updateChat(stoppedChat);
+        expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
         harness.bridge.completeTurnHandoff();
       } else {
         harness.bridge.completeTurnHandoff();
+        expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
         harness.bridge.updateChat(stoppedChat);
       }
 
@@ -585,6 +587,45 @@ describe("RealtimeBrunchBridge", () => {
       );
     },
   );
+
+  test("releases generated output ownership after interruption before playback", async () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.emit({
+      type: "canonical-speech-requested",
+      connectionEpoch: 3,
+      speechRequestId: "speech-generated",
+    });
+    harness.emit({
+      type: "response-terminal",
+      connectionEpoch: 3,
+      responseId: "response-generated",
+      speechRequestId: "speech-generated",
+      status: "completed",
+    });
+    harness.emit({
+      type: "output-interrupted",
+      connectionEpoch: 3,
+      responseId: "response-generated",
+      speechRequestId: "speech-generated",
+    });
+
+    harness.emit({
+      type: "input-speech-started",
+      connectionEpoch: 3,
+      itemId: "ordinary-answer",
+    });
+    harness.emit(
+      completedTranscript(3, "A fresh ordinary answer", "ordinary-answer"),
+    );
+
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "A fresh ordinary answer" }),
+    );
+  });
 
   test("drains a retained interruption once the panel reopens voice input", async () => {
     const harness = createHarness();
