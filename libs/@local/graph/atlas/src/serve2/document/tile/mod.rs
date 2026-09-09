@@ -2,6 +2,9 @@
 //!
 //! Construction gathers delivery rows and optional display payloads before serialization.
 
+#[cfg(test)]
+mod tests;
+
 use core::{error::Error, fmt};
 
 use error_stack::Report;

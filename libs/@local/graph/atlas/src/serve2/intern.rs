@@ -12,6 +12,7 @@ newtype! {
     pub(crate) struct TableIndex<T>(u32)
 }
 
+#[derive(Debug)]
 pub(crate) struct InternTable<T> {
     hasher: FastHasher,
     table: IdVec<TableIndex<T>, T>,

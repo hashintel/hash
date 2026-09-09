@@ -46,6 +46,7 @@ use super::{
 use crate::{
     bitset::DenseBitSlice,
     dataset::auxiliary::{Icon, Label},
+    file::generation::GenerationId,
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
@@ -666,7 +667,7 @@ fn g6_edges() -> Fixture {
     ]);
 
     let response = EdgesResponse {
-        generation: Sha256Digest::from_bytes_unchecked([0x66; 32]),
+        generation: GenerationId::from_digest(Sha256Digest::from_bytes_unchecked([0x66; 32])),
         variant: 0,
         complete: false,
         edges: &edges,

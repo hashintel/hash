@@ -13,7 +13,7 @@ use hash_graph_store::{
 };
 use hashql_core::{
     collections::FastHashMap,
-    id::{Id as _, IdSlice, IdVec, bit_vec::DenseBitSet},
+    id::{Id as _, IdSlice, IdVec},
 };
 use tokio::{runtime::Handle, try_join};
 use tokio_postgres::GenericClient;
@@ -28,15 +28,13 @@ use type_system::{
 use super::{
     columns::{EdgeSlot, NodeSlot, TypeSlot},
     locate::{
-        LocateLinkResponse, LocateNodeResponse, LocateRequest, LocateResolver, LocateResponse,
+        LocateEntity, LocateLink, LocateNode, LocateProperties, LocateRequest, LocateResolver,
     },
     ontology::OntologyResolver,
-    scalar::ScalarProperties,
     statements::{DetailColumns, TypeColumns, TypeUrlColumns, identity_filter},
     type_urls::TypeUrlResolver,
 };
 use crate::{
-    bitset::DenseBitSlice,
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     serve2::visibility::VisibilityActor,
 };
@@ -68,10 +66,10 @@ impl core::error::Error for HydrateError {}
 
 async fn read_types(
     client: &impl GenericClient,
-    ids: &IdSlice<NodeSlot, ArchivedEntityId>,
+    nodes: &mut IdSlice<NodeSlot, LocateEntity<LocateNode>>,
     temporal_axes: &QueryTemporalAxes,
-) -> Result<(DenseBitSet<NodeSlot>, IdVec<NodeSlot, Vec<VersionedUrl>>), Report<HydrateError>> {
-    let filter = identity_filter(ids.iter().copied().map(EntityId::from));
+) -> Result<(), Report<HydrateError>> {
+    let filter = identity_filter(nodes.iter().map(|node| EntityId::from(node.identity)));
 
     let mut compiler = SelectCompiler::new(Some(temporal_axes), false);
     compiler
@@ -86,24 +84,23 @@ async fn read_types(
         .await
         .change_context(HydrateError::Query)?;
 
-    let lookup: FastHashMap<_, _> = ids
-        .iter_enumerated()
-        .map(|(slot, &id)| (id, slot))
+    let lookup: FastHashMap<_, _> = nodes
+        .iter_enumerated_mut()
+        .map(|(slot, node)| {
+            node.details = None;
+            (node.identity, slot)
+        })
         .collect();
-
-    let mut resolved = DenseBitSet::new_empty(ids.len());
-    let mut type_urls: IdVec<_, _> = IdVec::from_elem(Vec::new(), ids.len());
 
     let mut rows = pin!(rows);
     while let Some(row) = rows.try_next().await.change_context(HydrateError::Query)? {
         let slot = lookup[&columns.entity_id(&row)];
-
-        if resolved.insert(slot) {
-            type_urls[slot].extend(columns.direct_type_urls(&row));
-        }
+        nodes[slot].details.get_or_insert_with(|| LocateNode {
+            type_urls: columns.direct_type_urls(&row),
+        });
     }
 
-    Ok((resolved, type_urls))
+    Ok(())
 }
 
 async fn read_detail(
@@ -112,7 +109,7 @@ async fn read_detail(
     protection: Option<&PropertyProtectionFilter<'_, '_>>,
     cap: usize,
     temporal_axes: &QueryTemporalAxes,
-) -> Result<(Option<ScalarProperties>, bool), Report<HydrateError>> {
+) -> Result<Option<LocateProperties>, Report<HydrateError>> {
     let filter = identity_filter([source.into()]);
 
     let mut compiler = SelectCompiler::new(Some(temporal_axes), false);
@@ -134,7 +131,7 @@ async fn read_detail(
         .await
         .change_context(HydrateError::Query)?
     else {
-        return Ok((None, false));
+        return Ok(None);
     };
 
     if stream
@@ -146,8 +143,8 @@ async fn read_detail(
         return Err(Report::new(HydrateError::TooManyRows));
     }
 
-    let (properties, complete) = columns.capped_properties(&row, cap);
-    Ok((Some(properties), complete))
+    let (values, complete) = columns.capped_properties(&row, cap);
+    Ok(Some(LocateProperties { values, complete }))
 }
 
 /// Live detail reads over the serving store pool.
@@ -174,12 +171,7 @@ impl GraphDatabaseClient {
             .change_context(HydrateError::Connect)
     }
 
-    /// Answers the node half of one locate order.
-    ///
-    /// Every resolved node reads its resolution flag and direct-type URLs. The source, the first
-    /// delivered identity, also reads its capped scalar-valued properties and their completeness,
-    /// masked for `masking`'s actor. Entities the store no longer serves read `false` flags and
-    /// empty columns.
+    /// Resolves node types and the source's actor-masked properties.
     ///
     /// # Errors
     ///
@@ -190,16 +182,17 @@ impl GraphDatabaseClient {
     /// This panics when the store answers rows outside the request domain, when a column does
     /// not decode at its assigned position, or when a stored URL does not parse as its domain
     /// type.
-    #[tracing::instrument(skip_all, fields(points = ids.len()))]
+    #[tracing::instrument(skip_all, fields(points = nodes.len()))]
     async fn read_locate_nodes(
         &self,
-        ids: &IdSlice<NodeSlot, ArchivedEntityId>,
+        nodes: &mut IdSlice<NodeSlot, LocateEntity<LocateNode>>,
         properties: u32,
         masking: VisibilityActor,
-    ) -> Result<LocateNodeResponse, Report<HydrateError>> {
-        if ids.is_empty() {
-            return Ok(LocateNodeResponse::empty(0));
+    ) -> Result<Option<LocateProperties>, Report<HydrateError>> {
+        if nodes.is_empty() {
+            return Ok(None);
         }
+        let source = nodes[NodeSlot::MIN].identity;
 
         let connection = self.connection().await?;
         let client = connection.as_client();
@@ -207,30 +200,21 @@ impl GraphDatabaseClient {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
         let protection = masking.protection(&self.pool.settings.filter_protection);
 
-        let ((resolved, type_urls), (source_properties, source_properties_complete)) = try_join!(
-            read_types(client, ids, &temporal_axes),
+        let ((), source_properties) = try_join!(
+            read_types(client, nodes, &temporal_axes),
             read_detail(
                 client,
-                ids[NodeSlot::MIN],
+                source,
                 protection.as_ref(),
                 properties as usize,
                 &temporal_axes,
             ),
         )?;
 
-        Ok(LocateNodeResponse {
-            resolved,
-            type_urls,
-            source_properties,
-            source_properties_complete,
-        })
+        Ok(source_properties)
     }
 
-    /// Answers the link half of one locate order.
-    ///
-    /// Every resolved edge reads capped direct-type URLs and capped scalar-valued properties,
-    /// masked for `masking`'s actor, and a completeness flag accompanies each cap. Links the
-    /// store no longer serves read `None` properties, empty types, and `false` flags.
+    /// Resolves capped link types and actor-masked properties.
     ///
     /// # Errors
     ///
@@ -241,16 +225,16 @@ impl GraphDatabaseClient {
     /// This panics when the store answers rows outside the request domain, when a column does
     /// not decode at its assigned position, or when a stored URL does not parse as its domain
     /// type.
-    #[tracing::instrument(skip_all, fields(edges = ids.len()))]
+    #[tracing::instrument(skip_all, fields(edges = links.len()))]
     async fn read_locate_links(
         &self,
-        ids: &IdSlice<EdgeSlot, ArchivedEntityId>,
+        links: &mut IdSlice<EdgeSlot, LocateEntity<LocateLink>>,
         type_ids: u32,
         properties: u32,
         masking: VisibilityActor,
-    ) -> Result<LocateLinkResponse, Report<HydrateError>> {
-        if ids.is_empty() {
-            return Ok(LocateLinkResponse::empty(0));
+    ) -> Result<(), Report<HydrateError>> {
+        if links.is_empty() {
+            return Ok(());
         }
 
         let connection = self.connection().await?;
@@ -258,7 +242,7 @@ impl GraphDatabaseClient {
 
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
 
-        let filter = identity_filter(ids.iter().copied().map(EntityId::from));
+        let filter = identity_filter(links.iter().map(|link| EntityId::from(link.identity)));
         let protection = masking.protection(&self.pool.settings.filter_protection);
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
         compiler
@@ -273,39 +257,31 @@ impl GraphDatabaseClient {
             .await
             .change_context(HydrateError::Query)?;
 
-        let lookup: FastHashMap<_, _> = ids
-            .iter_enumerated()
-            .map(|(slot, &id)| (id, slot))
+        let lookup: FastHashMap<_, _> = links
+            .iter_enumerated_mut()
+            .map(|(slot, link)| {
+                link.details = None;
+                (link.identity, slot)
+            })
             .collect();
-
-        let mut type_url_columns: IdVec<_, _> = IdVec::from_elem(Vec::new(), ids.len());
-        let mut type_urls_complete = DenseBitSlice::new_empty(ids.len());
-
-        let mut properties_columns: IdVec<_, _> = IdVec::from_elem(None, ids.len());
-        let mut properties_complete = DenseBitSlice::new_empty(ids.len());
 
         let mut rows = pin!(rows);
         while let Some(row) = rows.try_next().await.change_context(HydrateError::Query)? {
             let slot = lookup[&columns.entity_id(&row)];
 
             let mut type_urls = columns.direct_type_urls(&row);
-            type_urls_complete.set(slot, type_urls.len() <= (type_ids as usize));
-
+            let type_urls_complete = type_urls.len() <= type_ids as usize;
             type_urls.truncate(type_ids as usize);
-            type_url_columns[slot].extend(type_urls);
 
-            let (survivors, complete) = columns.capped_properties(&row, properties as usize);
-
-            properties_columns.insert(slot, survivors);
-            properties_complete.set(slot, complete);
+            let (values, complete) = columns.capped_properties(&row, properties as usize);
+            links[slot].details = Some(LocateLink {
+                type_urls,
+                type_urls_complete,
+                properties: LocateProperties { values, complete },
+            });
         }
 
-        Ok(LocateLinkResponse {
-            type_urls: type_url_columns,
-            type_urls_complete,
-            properties: properties_columns,
-            properties_complete,
-        })
+        Ok(())
     }
 
     #[tracing::instrument(skip_all, fields(types))]
@@ -361,19 +337,24 @@ impl TypeUrlResolver for GraphDatabaseClient {
 }
 
 impl LocateResolver for GraphDatabaseClient {
-    fn resolve(&self, request: LocateRequest<'_>) -> Result<LocateResponse, Report<HydrateError>> {
+    fn resolve(
+        &self,
+        LocateRequest {
+            actor,
+            nodes,
+            links,
+            properties,
+            link_type_ids,
+            link_properties,
+        }: LocateRequest<'_>,
+    ) -> Result<Option<LocateProperties>, Report<HydrateError>> {
         self.runtime.block_on(async {
-            let (nodes, links) = try_join!(
-                self.read_locate_nodes(request.nodes, request.properties, request.actor),
-                self.read_locate_links(
-                    request.links,
-                    request.link_type_ids,
-                    request.link_properties,
-                    request.actor,
-                ),
+            let (source_properties, ()) = try_join!(
+                self.read_locate_nodes(nodes, properties, actor),
+                self.read_locate_links(links, link_type_ids, link_properties, actor),
             )?;
 
-            Ok(LocateResponse { nodes, links })
+            Ok(source_properties)
         })
     }
 }
@@ -421,7 +402,7 @@ mod tests {
         math::nz,
         serve2::hydrate::{
             TypeUrlResolver,
-            locate::{LocateLinkResponse, LocateNodeResponse, LocateRequest, LocateResolver},
+            locate::{LocateRequest, LocateResolver},
             ontology::OntologyResolver,
         },
     };
@@ -502,16 +483,15 @@ mod tests {
                 &client,
                 LocateRequest {
                     actor: masking(11, false),
-                    nodes: IdSlice::from_raw(&[]),
-                    links: IdSlice::from_raw(&[]),
+                    nodes: IdSlice::from_raw_mut(&mut []),
+                    links: IdSlice::from_raw_mut(&mut []),
                     properties: 10,
                     link_type_ids: 5,
                     link_properties: 10,
                 },
             )
             .expect("should resolve an empty locate request without a connection");
-            assert_eq!(response.nodes, LocateNodeResponse::empty(0));
-            assert_eq!(response.links, LocateLinkResponse::empty(0));
+            assert_eq!(response, None);
         })
         .await
         .expect("the blocking worker should finish without a nested-runtime panic");
@@ -535,8 +515,7 @@ mod tests {
         assert!(masking(11, true).protection(&config).is_none());
     }
 
-    /// A plain actor reads under the deployment's protection, with the self-access clause bound
-    /// to that actor and to no other.
+    /// Property protection binds self-access to the reading actor.
     #[test]
     fn protection_plain_actor() {
         let config = PropertyProtectionFilterConfig::hash_default();

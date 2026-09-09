@@ -17,8 +17,11 @@ use crate::{
     file::generation::GenerationId,
     offload,
     serve2::{
-        delta::epoch::Epoch, density::ViewOccupancy, schedule::ViewSchedule,
-        visibility::VisibilityMask, world::World,
+        delta::{DeltaId, epoch::Epoch},
+        density::ViewOccupancy,
+        schedule::ViewSchedule,
+        visibility::VisibilityMask,
+        world::World,
     },
 };
 
@@ -143,12 +146,28 @@ impl CacheEntry {
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub(crate) struct CacheKey {
     generation: GenerationId,
+    delta: DeltaId,
     actor: ActorId,
     filter: Option<FilterDigest>,
 }
 
+impl CacheKey {
+    pub(crate) fn new(epoch: &Epoch, actor: ActorId, filter: Option<FilterDigest>) -> Self {
+        Self {
+            generation: epoch.generation(),
+            delta: epoch.reference().id,
+            actor,
+            filter,
+        }
+    }
+
+    fn matches(&self, epoch: &Epoch) -> bool {
+        self.generation == epoch.generation() && self.delta == epoch.reference().id
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct VisibilityLimits {
+pub(crate) struct VisibilityLimits {
     pub bytes: u64,
     pub soft: Duration,
     pub hard: Duration,
@@ -186,7 +205,7 @@ impl VisibilityCache {
         R: AsyncFnOnce(&Epoch) -> Result<PendingCacheEntry, E>,
         E: Send + Sync + 'static,
     {
-        let key_generation = key.generation;
+        let eligible = key.matches(epoch);
         self.entries
             .entry(key)
             .and_try_compute_with(async |held| {
@@ -194,7 +213,7 @@ impl VisibilityCache {
                     return Ok::<_, E>(Op::Nop);
                 }
 
-                if key_generation != epoch.generation() {
+                if !eligible {
                     return Ok(Op::Remove);
                 }
 
@@ -233,12 +252,11 @@ impl VisibilityCache {
             return self.get_or_insert_with(epoch, key, now, resolver).await;
         }
 
-        if entry.is_stale(now, self.limits.soft) && entry.claim_refresh() {
-            // Entries from another generation expire without renewal.
-            if key.generation != epoch.generation() {
-                return Ok(Some(entry));
-            }
+        if !key.matches(epoch) {
+            return Ok(Some(entry));
+        }
 
+        if entry.is_stale(now, self.limits.soft) && entry.claim_refresh() {
             let entries = self.entries.clone();
             let publications = Arc::clone(&self.publications);
             let refreshed = Arc::clone(&entry);

@@ -857,7 +857,10 @@ mod edges {
     use hashql_core::id::IdSlice;
 
     use super::{EdgesResponse, EdgesTrailer, Label, Sha256Digest, identity_of, section};
-    use crate::serve::{TableIndex, neighbourhood::EdgeColumns};
+    use crate::{
+        file::generation::GenerationId,
+        serve::{TableIndex, neighbourhood::EdgeColumns},
+    };
 
     /// The three-edge columns behind the minimal response.
     static EDGES: LazyLock<EdgeColumns> = LazyLock::new(|| {
@@ -871,7 +874,7 @@ mod edges {
     /// A three-edge response without a trailer.
     fn minimal() -> EdgesResponse<'static> {
         EdgesResponse {
-            generation: Sha256Digest::from_bytes_unchecked([0xCD; 32]),
+            generation: GenerationId::from_digest(Sha256Digest::from_bytes_unchecked([0xCD; 32])),
             variant: 1,
             complete: false,
             edges: &EDGES,

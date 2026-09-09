@@ -7,17 +7,16 @@ mod statements;
 mod type_urls;
 pub(crate) mod visibility;
 
-// The hydration column constructors are test-only inputs for a fixture store's all-unresolved
-// answer. No production caller constructs a hydration by hand.
+// Locate document fixtures construct typed resolver answers.
 #[cfg(test)]
-pub(crate) use self::locate::{LocateLinkResponse, LocateNodeResponse};
+pub(crate) use self::locate::{LocateLink, LocateNode, LocateProperties};
 pub(crate) use self::{
     client::{GraphDatabaseClient, HydrateError},
     columns::{
         EdgeLinkColumns, EdgeSlot, LocateLinkColumns, LocateNodeColumns, NodeSlot,
         NodeTrailerColumns, TypeSlot,
     },
-    locate::{LocateRequest, LocateResolver, LocateResponse},
+    locate::{LocateEntity, LocateRequest, LocateResolver, LocateResponse},
     ontology::OntologyResolver,
     type_urls::{CachedTypeUrlResolver, TypeUrlResolver},
 };

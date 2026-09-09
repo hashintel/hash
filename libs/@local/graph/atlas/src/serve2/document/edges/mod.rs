@@ -1,12 +1,15 @@
+use alloc::alloc::Allocator;
 use core::{error::Error, fmt};
 
 use error_stack::{Report, ResultExt as _};
 use hashql_core::id::IdVec;
 use type_system::ontology::{VersionedUrl, id::OntologyTypeUuid};
 
+use super::{Document, codec::Envelope};
 use crate::{
     bitset::CompressedBitSet,
     dataset::auxiliary::Label,
+    file::generation::GenerationId,
     identity::NodeRowId,
     math::Log2,
     morton::{MortonCell, MortonTile, Zoom},
@@ -20,6 +23,7 @@ use crate::{
     },
 };
 
+mod codec;
 #[cfg(test)]
 mod tests;
 
@@ -78,6 +82,7 @@ pub(crate) struct EdgesDocumentOptions<R> {
     pub resolver: R,
 }
 
+#[derive(Debug)]
 pub(crate) struct EdgesTrailer<'details> {
     labels: IdVec<EdgeSlot, &'details Label>,
     representative_type_urls: IdVec<EdgeSlot, Option<TableIndex<VersionedUrl>>>,
@@ -140,11 +145,16 @@ impl<'details> EdgesTrailer<'details> {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct EdgesDocument<'details> {
+    generation: GenerationId,
+
     ids: IdVec<EdgeSlot, ArchivedEntityId>,
     sources: IdVec<EdgeSlot, EncodedRowId<NodeRowId>>,
     targets: IdVec<EdgeSlot, EncodedRowId<NodeRowId>>,
+
     trailer: Option<EdgesTrailer<'details>>,
+
     complete: bool,
 }
 
@@ -199,6 +209,7 @@ impl<'details> EdgesDocument<'details> {
         };
 
         let mut this = Self {
+            generation: world.generation().id(),
             ids: IdVec::with_capacity(length),
             sources: IdVec::with_capacity(length),
             targets: IdVec::with_capacity(length),
@@ -218,5 +229,16 @@ impl<'details> EdgesDocument<'details> {
         }
 
         Ok(this)
+    }
+}
+
+impl Document for EdgesDocument<'_> {
+    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Envelope {
+        self::codec::EdgesResponse {
+            generation: self.generation,
+            variant: 0,
+            document: self,
+        }
+        .encode_into(buffer)
     }
 }

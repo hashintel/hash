@@ -52,6 +52,7 @@ hashql_core::id::newtype! {
     Clone,
     PartialEq,
     Eq,
+    Hash,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::Unaligned,

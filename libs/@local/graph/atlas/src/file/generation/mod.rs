@@ -1,19 +1,13 @@
 //! Generation directories: staging, atomic publish, activation, and open.
 //!
-//! A [`GenerationRoot`] holds published generations, one directory per generation, named by the
-//! SHA-256 of the generation's metadata document. Beside them sits the `current` pointer file
-//! naming the active generation. [`GenerationRoot::stage`] assembles a generation in a dot-prefixed
-//! staging directory. [`StagedGeneration::seal`] writes the metadata document and renames the
-//! directory into place, and [`GenerationRoot::activate`] replaces the pointer atomically. Readers
-//! resolve the pointer ([`GenerationRoot::current`]) and open the named generation
-//! ([`GenerationRoot::open`]), which verifies the document against the hash that names the
-//! directory.
+//! A [`GenerationRoot`] stores generations in directories named by the SHA-256 of their metadata
+//! document. [`GenerationRoot::current`] resolves the active generation, and
+//! [`GenerationRoot::open`] verifies its metadata against that identity.
 //!
-//! Every visible entry of the root is a complete generation or the pointer. Dot prefixes mark
-//! staging directories and the pointer's replacement file, and the rename into place is atomic, so
-//! a failed or interrupted publish leaves only dot-prefixed transients behind, never a partial
-//! generation. Sealing syncs the staged files before the rename and the root directory after it, so
-//! a generation that is visible is also durable.
+//! [`StagedGeneration::seal`] atomically publishes a complete staging directory and syncs the root
+//! before returning. Staging directories and pointer replacement files use dot prefixes.
+//! [`GenerationRoot::activate`] and [`GenerationRoot::remove`] serialize through a persistent root
+//! lock.
 
 use alloc::collections::BTreeSet;
 use core::{error::Error, fmt, str::FromStr};
@@ -33,6 +27,7 @@ use super::{
 };
 use crate::integrity::{ParseHexError, Sha256Digest};
 
+mod lock;
 mod open;
 #[cfg(test)]
 mod tests;
@@ -136,7 +131,7 @@ impl Error for CurrentError {
 pub(crate) enum ActivateError {
     /// The generation is not published in this root.
     Unpublished(GenerationId),
-    /// Replacing the pointer failed.
+    /// Locking the root or replacing the pointer failed.
     Io(io::Error),
 }
 
@@ -146,10 +141,7 @@ impl fmt::Display for ActivateError {
             Self::Unpublished(id) => {
                 write!(fmt, "generation {id} is not published in this root")
             }
-            Self::Io(error) => write!(
-                fmt,
-                "the current-generation pointer failed to replace: {error}",
-            ),
+            Self::Io(error) => write!(fmt, "generation activation failed: {error}"),
         }
     }
 }
@@ -163,11 +155,15 @@ impl Error for ActivateError {
     }
 }
 
+impl From<io::Error> for ActivateError {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
 /// The identity of one published generation, the SHA-256 of its metadata document.
 ///
-/// The canonical lowercase hexadecimal form names the generation's directory, so the directory name
-/// is verifiable against the document it holds. It is also the serialized form, so a metadata
-/// document naming a prior generation names a checkable directory.
+/// The canonical lowercase hexadecimal form is both the directory name and serialized identity.
 #[derive(
     Debug,
     Copy,
@@ -192,6 +188,12 @@ impl Error for ActivateError {
 pub struct GenerationId(Sha256Digest);
 
 impl GenerationId {
+    #[inline]
+    #[cfg(test)]
+    pub const fn from_digest(digest: Sha256Digest) -> Self {
+        Self(digest)
+    }
+
     /// Returns the digest of the generation's metadata document.
     #[inline]
     #[must_use]
@@ -251,9 +253,8 @@ impl GenerationRoot {
 
     /// Creates a scratch directory for one run's transient state.
     ///
-    /// Search-backend environments and other non-artifact working state live here: inside the root,
-    /// so the space is on the filesystem sized for generations, and dot-prefixed, so no listing
-    /// mistakes it for one. Dropping the handle removes the directory and everything inside.
+    /// Scratch storage uses the root's filesystem and a dot-prefixed directory name. Dropping the
+    /// handle removes the directory and everything inside.
     ///
     /// # Errors
     ///
@@ -303,14 +304,17 @@ impl GenerationRoot {
 
     /// Points `current` at the given published generation.
     ///
-    /// This replaces the pointer atomically, so a concurrent [`current`](Self::current) reads the
-    /// previous generation or this one, never a torn value.
+    /// Concurrent [`current`](Self::current) reads observe the previous generation or this one,
+    /// never a torn value. Activation and [`remove`](Self::remove) serialize through the root's
+    /// exclusive lock.
     ///
     /// # Errors
     ///
-    /// Returns an error when this root has not published the generation or when replacing the
-    /// pointer fails.
+    /// Returns an error when locking the root fails, this root has not published the generation, or
+    /// replacing the pointer fails.
+    #[tracing::instrument(skip_all, err, fields(generation = %id))]
     pub(crate) fn activate(&self, id: GenerationId) -> Result<(), ActivateError> {
+        let _lock = self.lock()?;
         if !self.generation_path(id).is_dir() {
             return Err(ActivateError::Unpublished(id));
         }
@@ -322,7 +326,8 @@ impl GenerationRoot {
             drop(fs::remove_file(&temporary));
         }
 
-        result.map_err(ActivateError::Io)
+        result?;
+        Ok(())
     }
 
     fn replace_pointer(&self, temporary: impl AsRef<Utf8Path>, id: GenerationId) -> io::Result<()> {
@@ -341,8 +346,7 @@ impl GenerationRoot {
 
 /// A dot-prefixed directory for one run's transient working state.
 ///
-/// Nothing here is an artifact. The run that creates the contents also consumes them, and dropping
-/// the handle removes the whole directory.
+/// Dropping the handle removes the whole directory.
 #[derive(Debug)]
 #[clippy::has_significant_drop]
 pub(crate) struct ScratchDirectory {
@@ -390,8 +394,7 @@ impl Drop for ScratchDirectory {
 
 /// Drops the write permission on a file about to publish.
 ///
-/// A published file is immutable, so rewriting one becomes an OS error, while removal keeps
-/// working through the containing directory's permissions.
+/// Published files reject write handles. Removal uses the containing directory's permissions.
 fn make_readonly(file: &File) -> io::Result<()> {
     let mut permissions = file.metadata()?.permissions();
     permissions.set_readonly(true);
@@ -400,9 +403,7 @@ fn make_readonly(file: &File) -> io::Result<()> {
 
 /// A generation under assembly in a staging directory.
 ///
-/// Stages write their artifacts directly into the staging directory through
-/// [`create`](Self::create) and map them back through [`path_of`](Self::path_of), so sealing
-/// renames files already in place and never copies. Dropping an unsealed staging removes it.
+/// Staged files publish by rename without copying. Dropping an unsealed staging removes it.
 #[derive(Debug)]
 #[clippy::has_significant_drop]
 pub(crate) struct StagedGeneration {
@@ -426,7 +427,7 @@ impl StagedGeneration {
         self.path.join(name.as_str())
     }
 
-    /// Stages one value as the artifact it is admitted to write.
+    /// Writes a value through its artifact's [`WriteAs`] implementation.
     ///
     /// The value writes itself into the artifact's pinned staged file through one buffered pass,
     /// and the written bytes' digest binds to the artifact as the typed entry the seal
@@ -455,9 +456,6 @@ impl StagedGeneration {
 
     /// Runs `write` against the artifact's buffered staged file and binds the digest it returns.
     ///
-    /// The streaming escape for artifacts whose bytes no single value serializes, so the binding
-    /// stays typed while the write stays free.
-    ///
     /// # Errors
     ///
     /// Returns an error when creating or flushing the staged file fails or when `write` fails.
@@ -478,13 +476,9 @@ impl StagedGeneration {
 
     /// Seals the staging into a published generation.
     ///
-    /// The staged file set must match the manifest exactly. Sealing writes the metadata document
-    /// beside the staged files and syncs every file and the directory. Every file drops its write
-    /// permission before the rename, so rewriting a published path fails with an OS error while
-    /// removal keeps working through the directory's own permissions. It then renames the
-    /// directory into place under the document's SHA-256 and syncs the root directory after the
-    /// rename. The returned generation is therefore visible and durable, and a failure leaves the
-    /// staging as it was.
+    /// The staged file set must match the manifest exactly. Every file drops its write permission
+    /// before publication. A successful seal syncs every file and the staging directory before the
+    /// rename, then syncs the root directory. The returned generation is visible and durable.
     ///
     /// # Errors
     ///
@@ -495,14 +489,9 @@ impl StagedGeneration {
         self,
         repository: &SaltRepository,
     ) -> Result<PublishedGeneration, SealError> {
-        // Typed bindings pin every manifest name: the artifact set holds the names distinct
-        // and off the metadata document's own, so the expected set is the manifest's names
-        // verbatim and the seal re-checks neither fact.
+        // Artifact names are distinct and exclude the metadata document's name.
         let expected: BTreeSet<FileName> = repository.files.files().map(|file| file.name).collect();
 
-        // Manifest names are valid `FileName`s by construction, so this
-        // loop reports a staged name that is not one as unlisted before
-        // any comparison.
         let mut staged = BTreeSet::<FileName>::new();
         for entry in fs::read_dir(&self.path).map_err(SealError::Io)? {
             let name = entry.map_err(SealError::Io)?.file_name();
@@ -568,8 +557,6 @@ impl StagedGeneration {
 
 impl Drop for StagedGeneration {
     fn drop(&mut self) {
-        // Sealing renames the staging away, so removing the stale
-        // staging path is then a no-op.
         drop(fs::remove_dir_all(&self.path));
     }
 }

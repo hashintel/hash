@@ -22,11 +22,12 @@ use alloc::borrow::Cow;
 
 use hashql_core::id::{Id as _, IdSlice};
 use type_system::ontology::id::VersionedUrl;
+use zerocopy::IntoBytes as _;
 
 use super::{Kind, cbor::CborWriter, envelope::EnvelopeWriter, tile::encode_details};
 use crate::{
     dataset::auxiliary::Label,
-    integrity::Sha256Digest,
+    file::generation::GenerationId,
     postgres::id::ArchivedEntityId,
     serve::{TableIndex, WireRow, hydrate::EdgeSlot, neighbourhood::EdgeColumns},
 };
@@ -35,7 +36,7 @@ use crate::{
 #[derive(Debug)]
 pub(crate) struct EdgesResponse<'doc> {
     /// `HEAD` key 0: the generation identity, echoing the route.
-    pub generation: Sha256Digest,
+    pub generation: GenerationId,
     /// `HEAD` key 1: the variant index, echoing the route.
     pub variant: u64,
     /// `HEAD` key 3: `false` when the rank-ordered cap truncated the set.
@@ -93,7 +94,7 @@ impl EdgesResponse<'_> {
         cbor.map(5);
 
         cbor.uint(0);
-        cbor.bytes(&self.generation.to_bytes());
+        cbor.bytes(self.generation.as_bytes());
         cbor.uint(1);
         cbor.uint(self.variant);
         cbor.uint(2);

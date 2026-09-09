@@ -377,7 +377,7 @@ impl Atlas {
             });
 
         EdgesResponse {
-            generation: self.generation.id().digest(),
+            generation: self.generation.id(),
             variant: 0,
             complete: document.complete,
             edges: &document.edges,
