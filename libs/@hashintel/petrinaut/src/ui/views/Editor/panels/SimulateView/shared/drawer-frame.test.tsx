@@ -1,7 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -11,44 +17,54 @@ import {
   FrameStat,
   FrameStatusPill,
 } from "./drawer-frame";
+import {
+  frameHeader as header,
+  scrollFrameBody as scrollBodyTo,
+} from "./drawer-frame/frame-test-helpers";
+
+import type { ReactNode } from "react";
 
 afterEach(cleanup);
 
+/** The computing chip's shape: a button in the stats line, disabled once nothing computes. */
+const computingChip = (computing: boolean) => (
+  <button type="button" disabled={!computing}>
+    {computing ? "1 computing" : "0 computing"}
+  </button>
+);
+
+const frame = ({
+  note = null,
+  stats,
+}: {
+  note?: { content: string; tone: "error" } | null;
+  stats?: ReactNode;
+} = {}) => (
+  <DrawerFrame
+    title="SIR transmission sweep · Seasonal Flu · 100 runs · dt 1"
+    headline={<span>Step 3 of 30</span>}
+    stats={
+      <>
+        <FrameStatusPill tone="active" minChars={14}>
+          Running
+        </FrameStatusPill>
+        <FrameStat label="Runs" minChars={12}>
+          100 complete
+        </FrameStat>
+        {stats}
+      </>
+    }
+    badge={<span>CPU</span>}
+    progress={40}
+    note={note}
+    footer={<button type="button">Close</button>}
+  >
+    <div style={{ height: 2000 }} />
+  </DrawerFrame>
+);
+
 const renderFrame = (note: { content: string; tone: "error" } | null = null) =>
-  render(
-    <DrawerFrame
-      title="SIR transmission sweep · Seasonal Flu · 100 runs · dt 1"
-      headline={<span>Step 3 of 30</span>}
-      stats={
-        <>
-          <FrameStatusPill tone="active" minChars={14}>
-            Running
-          </FrameStatusPill>
-          <FrameStat label="Runs" minChars={12}>
-            100 complete
-          </FrameStat>
-        </>
-      }
-      badge={<span>CPU</span>}
-      progress={40}
-      note={note}
-      footer={<button type="button">Close</button>}
-    >
-      <div style={{ height: 2000 }} />
-    </DrawerFrame>,
-  );
-
-const header = () =>
-  document.querySelector<HTMLElement>("[data-frame-header]")!;
-const body = () => document.querySelector<HTMLElement>("[data-frame-body]")!;
-
-const scrollBodyTo = (top: number) => {
-  Object.defineProperty(body(), "scrollTop", {
-    configurable: true,
-    value: top,
-  });
-  fireEvent.scroll(body());
-};
+  render(frame({ note }));
 
 describe("DrawerFrame", () => {
   it("renders the title, the stats with their labels, the badge, the bar and the footer at rest", () => {
@@ -103,6 +119,30 @@ describe("DrawerFrame", () => {
 
     scrollBodyTo(0);
     expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
+  });
+
+  it("holds its height while a control inside it has the focus, and condenses once that control lost it without a blur", () => {
+    const view = render(frame({ stats: computingChip(true) }));
+    const chip = screen.getByRole("button", { name: "1 computing" });
+    act(() => chip.focus());
+
+    // Keyboard focus on a header control holds the header open.
+    scrollBodyTo(48);
+    expect(header().style.height).toBe(`${FRAME_HEADER_HEIGHT}px`);
+
+    // The chip goes idle under the focus: disabled, so it fires no blur.
+    view.rerender(frame({ stats: computingChip(false) }));
+    scrollBodyTo(60);
+    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
+    expect(header().dataset.condensed).toBe("true");
+    view.unmount();
+
+    // The same when the focused control is unmounted.
+    const removed = render(frame({ stats: computingChip(true) }));
+    act(() => screen.getByRole("button", { name: "1 computing" }).focus());
+    removed.rerender(frame());
+    scrollBodyTo(60);
+    expect(header().style.height).toBe(`${FRAME_HEADER_CONDENSED_HEIGHT}px`);
   });
 
   it("keeps the note row mounted at one height whether or not there is a note", () => {

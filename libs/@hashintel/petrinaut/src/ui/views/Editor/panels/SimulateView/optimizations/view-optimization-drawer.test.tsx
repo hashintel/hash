@@ -1,7 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { cloneElement, use, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -12,7 +18,14 @@ import {
   type OptimizationsContextValue,
 } from "../../../../../../react/optimizations/context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
-import { frameLayoutSignature } from "../shared/drawer-frame";
+import {
+  FRAME_HEADER_CONDENSED_HEIGHT,
+  frameLayoutSignature,
+} from "../shared/drawer-frame";
+import {
+  frameHeader,
+  scrollFrameBody,
+} from "../shared/drawer-frame/frame-test-helpers";
 import {
   fakeConstrainedStudyInput,
   fakeConstrainedStudyTrials,
@@ -563,6 +576,65 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     fireEvent.change(steps, { target: { value: "4" } });
     fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
     expect(extendOptimization).toHaveBeenCalledWith(stopped.id, 4);
+  });
+
+  it("condenses the header once the body scrolls, also after the focused computing chip went idle", () => {
+    const view = renderDrawer(connected);
+
+    scrollFrameBody(80);
+    expect(frameHeader().style.height).toBe(
+      `${FRAME_HEADER_CONDENSED_HEIGHT}px`,
+    );
+    scrollFrameBody(0);
+
+    // Focus lands on the chip while a batch computes, then the batch ends and
+    // the chip is disabled under the focus without a blur.
+    const computing = {
+      ...connected,
+      connected: {
+        ...following,
+        activity: [
+          {
+            id: 3,
+            kind: "trial" as const,
+            trial: 2,
+            runCount: 1,
+            completedRuns: 0,
+          },
+        ],
+      },
+    };
+    view.rerender(
+      <OptimizationsContext
+        value={makeOptimizationsContextValue(computing, {})}
+      >
+        <SurfaceSetting enabled={false}>
+          <ViewOptimizationDrawer
+            open
+            onClose={() => {}}
+            optimization={computing}
+          />
+        </SurfaceSetting>
+      </OptimizationsContext>,
+    );
+    act(() => screen.getByRole("button", { name: /1 computing/ }).focus());
+    view.rerender(
+      <OptimizationsContext
+        value={makeOptimizationsContextValue(connected, {})}
+      >
+        <SurfaceSetting enabled={false}>
+          <ViewOptimizationDrawer
+            open
+            onClose={() => {}}
+            optimization={connected}
+          />
+        </SurfaceSetting>
+      </OptimizationsContext>,
+    );
+    scrollFrameBody(80);
+    expect(frameHeader().style.height).toBe(
+      `${FRAME_HEADER_CONDENSED_HEIGHT}px`,
+    );
   });
 
   it("lists the batches computing from the computing chip", () => {

@@ -7,6 +7,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
+import { FRAME_HEADER_CONDENSED_HEIGHT } from "../shared/drawer-frame";
+import {
+  frameHeader,
+  scrollFrameBody,
+} from "../shared/drawer-frame/frame-test-helpers";
 import { OptimizationFullView } from "./optimization-full-view";
 import {
   makeConnectedStudyState,
@@ -162,6 +167,16 @@ describe("OptimizationFullView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Show in drawer/u }));
     expect(setSimulatePresentation).toHaveBeenCalledWith("drawer");
+  });
+
+  it("condenses the header once the body scrolls", () => {
+    renderFullView(running);
+
+    scrollFrameBody(80);
+    expect(frameHeader().style.height).toBe(
+      `${FRAME_HEADER_CONDENSED_HEIGHT}px`,
+    );
+    expect(frameHeader().dataset.condensed).toBe("true");
   });
 
   it("shows the results once the study settled: no verdict, no live titles", () => {
