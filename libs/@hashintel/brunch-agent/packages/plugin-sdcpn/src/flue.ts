@@ -20,7 +20,6 @@ import {
 } from "./skills/sdcpn-modelling/skill";
 import {
   petrinautConstructionTools,
-  petrinautFixtureTools,
   petrinautFixtureToolNames,
 } from "./tools/petrinaut-construction";
 import {
@@ -62,6 +61,7 @@ Use the returned live state as machine evidence. Do not say the canvas or net is
   const isPreparedFixture = initialData?.mode === validatedFixtureMutationMode;
   const isPreparedFixtureInitialization =
     delivery.kind === "signal" && delivery.type === preparedWorkpieceSignalType;
+  const fixtureToolNameSet = new Set<string>(petrinautFixtureToolNames);
 
   if (isValidatedConstruction) {
     useInstruction(
@@ -80,9 +80,7 @@ This is a visibly labelled prepared-fixture conversation. Treat its tagged prepa
   for (const constructionTool of petrinautConstructionTools) {
     const isCurrentNetRead =
       constructionTool.name === getLatestNetDefinitionToolName;
-    const isFixtureMutation = new Set<string>(petrinautFixtureToolNames).has(
-      constructionTool.name,
-    );
+    const isFixtureMutation = fixtureToolNameSet.has(constructionTool.name);
     if (
       isCurrentNetRead ||
       isValidatedConstruction ||
@@ -101,6 +99,5 @@ export {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   petrinautFixtureToolNames,
   petrinautConstructionTools,
-  petrinautFixtureTools,
   type PetrinautConstructionToolName,
 } from "./tools/petrinaut-construction";
