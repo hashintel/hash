@@ -508,13 +508,12 @@ export const explainRootArc = async (input: {
         ? change.callId === answer.originToolCallId
         : affects(change, query.field) || affects(change, query.field, true),
     );
-    // State aggregates expose current children, not just their original container.
+    // Aggregates expose current children, not just their original container.
     // A later descendant effect cannot inherit that container's selected basis.
     // Conservatively refuse; choosing the latest child would misattribute its siblings.
     if (
       governing &&
       "kind" in target &&
-      ["type", "type-element", "scenario"].includes(target.kind) &&
       typeof target.value === "object" &&
       target.value !== null &&
       targetChanges
@@ -533,7 +532,7 @@ export const explainRootArc = async (input: {
     ) {
       answer.disposition = "refused";
       answer.reason =
-        "This current state aggregate contains later descendant changes. A single governing basis for its current parts is unavailable; neither the original container nor the latest changed child can supply support for the whole aggregate. Query individual fields. Origin and applied-change history remain available.";
+        "This current aggregate contains later descendant changes. A single governing basis for its current parts is unavailable; neither the original container nor the latest changed child can supply support for the whole aggregate. Query individual fields. Origin and applied-change history remain available.";
       return answer;
     }
     if (

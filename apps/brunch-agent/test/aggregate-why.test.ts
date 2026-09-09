@@ -10,7 +10,10 @@ import {
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { retainedSettledRevision } from "../src/conversation/root-arc.ts";
-import { explainRootArc } from "../src/conversation/why.ts";
+import {
+  explainRootArc,
+  type RootArcExplanation,
+} from "../src/conversation/why.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
@@ -125,6 +128,50 @@ test("does not refuse an unchanged aggregate or primitive merely because sibling
     expect(answer.recordedChange?.toolCallId).toBe("typed-scenario");
     expect(answer.governing?.revisionId).toBe("typed-revision-one");
   }
+});
+
+test("existing transition arc aggregates cannot inherit their empty creation basis", async () => {
+  const directory = new URL(
+    "../../../libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/root-creation-post-capacity/browser-final/",
+    import.meta.url,
+  );
+  const rootSnapshot = JSON.parse(
+    gunzipSync(readFileSync(new URL("history.json.gz", directory))).toString(
+      "utf8",
+    ),
+  ) as FlueConversationSnapshot;
+  const [prior] = JSON.parse(
+    gunzipSync(readFileSync(new URL("why.json.gz", directory))).toString(
+      "utf8",
+    ),
+  ) as RootArcExplanation[];
+  if (!prior) throw new Error("Missing actual root explanation fixture");
+  const explainField = (field: string) =>
+    explainRootArc({
+      snapshot: rootSnapshot,
+      current: prior.currentWorkpiece,
+      browser: { binding: prior.binding, construction: true },
+      query: parseConstructionWhyInput({
+        kind: "transition",
+        name: "Test operation",
+        field,
+      }),
+    });
+  const aggregates = await Promise.all(
+    ["inputArcs", "outputArcs"].map(explainField),
+  );
+  for (const answer of aggregates) {
+    expect(answer.originToolCallId).toBe("creation-step");
+    expect(answer.disposition).toBe("refused");
+    expect(answer.reason).toMatch(/aggregate.*descendant/iu);
+    expect(answer.governing).toBeUndefined();
+    expect(answer.recordedChange).toBeUndefined();
+    expect(answer.target?.value).toHaveLength(1);
+  }
+  const scalar = await explainField("lambdaCode");
+  expect(scalar.originToolCallId).toBe("creation-step");
+  expect(scalar.disposition).toBe("partially-supported");
+  expect(scalar.recordedChange?.toolCallId).toBe("creation-pause");
 });
 
 test("preserves exact live observation reconciliation while refusing aggregate basis", async () => {

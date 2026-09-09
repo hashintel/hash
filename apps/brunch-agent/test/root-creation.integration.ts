@@ -532,6 +532,36 @@ try {
       const answer = toolOutput(context, "brunch_why");
       answers.push(answer);
       assert.equal(answer.originToolCallId, "creation-queue");
+      assert.equal(answer.disposition, "refused");
+      assert.equal(answer.governing, undefined);
+      return tool(
+        "brunch_why",
+        { kind: "transition", name: step.name, field: "inputArcs" },
+        "creation-why-input-arcs",
+      );
+    }),
+    checked((context) => {
+      const answer = toolOutput(context, "brunch_why");
+      answers.push(answer);
+      assert.equal(answer.disposition, "refused");
+      assert.match(String(answer.reason), /aggregate.*descendant/iu);
+      assert.equal(answer.originToolCallId, "creation-step");
+      assert.equal(answer.governing, undefined);
+      assert.equal(answer.recordedChange, undefined);
+      return tool(
+        "brunch_why",
+        { kind: "transition", name: step.name, field: "outputArcs" },
+        "creation-why-output-arcs",
+      );
+    }),
+    checked((context) => {
+      const answer = toolOutput(context, "brunch_why");
+      answers.push(answer);
+      assert.equal(answer.disposition, "refused");
+      assert.match(String(answer.reason), /aggregate.*descendant/iu);
+      assert.equal(answer.originToolCallId, "creation-step");
+      assert.equal(answer.governing, undefined);
+      assert.equal(answer.recordedChange, undefined);
       return text("Native correction and ordinary-name why completed.");
     }),
   ]);
@@ -539,7 +569,7 @@ try {
     "TEST synthetic correction: the waiting limit is three, not two, and the operation is paused for this test. Timing and actual inventory remain unknown.",
     "Native correction and ordinary-name why completed.",
   );
-  assert.equal(completed, 24);
+  assert.equal(completed, 26);
   const history = await client.history();
   save("history", history);
   save("why", answers);
@@ -1082,7 +1112,7 @@ try {
     });
     save(`${variant}-result-history`, await client.history());
   }
-  assert.equal(completed, 36, "Every planned callback assertion must complete");
+  assert.equal(completed, 38, "Every planned callback assertion must complete");
   assert.deepEqual(errors, []);
   assert.deepEqual(blocked, []);
   assert.deepEqual(callbackErrors, []);

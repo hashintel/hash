@@ -513,12 +513,18 @@ for (const ceiling of ["calls", "usd"] as const) {
 
 test("historical five-call authority is compatible only in a disposable copy; prior rows are preserved", async () => {
   const fixture = setup();
+  // Freeze the historical premise; the live authority now contains an unknown r2 call.
+  // Exact source: f2b9bfd040:.../fe-1573-step-a/usage-ledger.json.
   const path = new URL(
-    "../../../libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/usage-ledger.json",
+    "../../../libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/landing-20260909/historical-five-call-ledger.json",
     import.meta.url,
   );
   const original = readFileSync(path, "utf8");
   const historical = JSON.parse(original) as typeof fixture.ledger;
+  expect(historical.calls).toHaveLength(5);
+  expect(historical.calls.every((call) => call.status === "complete")).toBe(
+    true,
+  );
   const historicalCalls = structuredClone(historical.calls);
   historical.reservation = fixture.ledger.reservation;
   writeFileSync(fixture.ledgerPath, JSON.stringify(historical));
