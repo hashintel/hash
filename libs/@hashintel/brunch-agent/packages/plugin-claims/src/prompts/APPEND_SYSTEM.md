@@ -1,6 +1,6 @@
 # Claim Formalization for an External Ledger
 
-> Interference probe. This plugin is authored prose only: it is not mounted by any application, has no package manifest, tools, or tests, and exists to test core `elicitation` guidance against a source mode no other plugin exercises. Aligned to core as of `223d7218b0`.
+> Interference probe. This plugin is authored prose only: it is not mounted by any application, has no package manifest, tools, or tests, and exists to test core `elicitation` guidance against a source mode no other plugin exercises.
 
 Specialize the universal elicitation role to claims and their justificatory dependencies, represented as statement cards in an external claims ledger. Help a person make a target claim audit-ready: stated exactly, resting on named definitions, structured by the supporting claims that carry its justification, with every dependency explicit and every formalization choice visible for the person to confirm or reject.
 

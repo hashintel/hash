@@ -1,6 +1,6 @@
 # Claim and Dependency Elicitation
 
-This reference adds claim-formalization guidance to the universal guidance in the `elicitation` skill. Apply both under the same registers. The universal skill now scopes its practice-based defaults (remembered cases, observability, the last occurrence) to practice-based sources; this pairing's sources are usually a document or an assertion, so the entries below supply the counterparts for that source mode and say where they narrow or replace a universal entry. Aligned to core as of `223d7218b0`.
+This reference adds claim-formalization guidance to the universal guidance in the `elicitation` skill. Apply both under the same registers. The universal skill scopes its remembered-case and observability defaults to practice-based sources and leaves practice-shaped operations such as “ask for the last occurrence” on the menu unscoped; this pairing's sources are usually a document or an assertion, so the entries below supply the counterparts for that source mode and say where they narrow or replace a universal entry.
 
 The registers are not a questionnaire or phase sequence. **Recognition** suggests distinctions that may be present in a claim or its source. **Operations** select ways to investigate an active gap. **Coverage** says what an audit-ready claims account may need. **Verification** checks the current interview and workpiece. Card fields, immutability, dependency standing, and evidence levels live in `cards-and-standing.md`.
 

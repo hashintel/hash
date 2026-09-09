@@ -81,7 +81,7 @@ Brunch's position relative to that shape, as the probe reveals it:
 
 ## Freshness
 
-All three plugin resources carry `Aligned to core as of \`223d7218b0\``. On the next core change, re-read `claims-elicitation.md` Directives (each states which core entry it counterparts, narrows, or replaces) and the table above; reclassify each entry as unchanged, generalized into core, or stale. `rg -n "Aligned to core as of" packages/plugin-claims/src` should hit exactly three times.
+`SKILL.md` carries the plugin's single marker, `Aligned to core as of \`223d721\``, matching the one-per-plugin rule the other roughed-in plugins follow. On the next core change, re-read `claims-elicitation.md` Directives and Operations (each states which core entry it counterparts, narrows, or replaces) and the table above; reclassify each entry as unchanged, generalized into core, or stale. `rg -n "Aligned to core as of" packages/plugin-claims/src` should hit exactly once.
 
 ## Limits
 

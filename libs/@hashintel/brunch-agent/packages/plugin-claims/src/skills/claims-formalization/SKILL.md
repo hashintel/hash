@@ -5,7 +5,7 @@ description: Elicit or transcribe a target claim and the definitions and support
 
 # Capability-aware formalization lifecycle
 
-Use one conceptual lifecycle: orient, elicit or transcribe claims, maintain the workpiece, prepare cards when useful, check, deliver, and explain standing when asked. Card preparation is a projection and correction surface, not a second modelling world. The current conversation may expose only part of the lifecycle; do not claim an unavailable check occurred. Aligned to core as of `223d7218b0`.
+Use one conceptual lifecycle: orient, elicit or transcribe claims, maintain the workpiece, prepare cards when useful, check, deliver, and explain standing when asked. Card preparation is a projection and correction surface, not a second modelling world. The current conversation may expose only part of the lifecycle; do not claim an unavailable check occurred. Aligned to core as of `223d721`.
 
 ## Select the runtime branch
 
