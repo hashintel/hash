@@ -20,6 +20,7 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
+  axisDisplayName,
   axisStep,
   axisValueAt,
 } from "../../../../../../react/experiments/parameter-grid";
@@ -125,7 +126,7 @@ const AxisControl = ({
     <>
       <SegmentedControl
         size="xs"
-        aria-label={`${axis.identifier} selection mode`}
+        aria-label={`${axisDisplayName(axis)} selection mode`}
         items={[
           { value: "range", label: "Range" },
           { value: "point", label: "Point" },
@@ -151,7 +152,7 @@ const AxisControl = ({
           max={axis.stepCount}
           step={1}
           value={selected.from}
-          aria-label={axis.identifier}
+          aria-label={axisDisplayName(axis)}
           onChange={commitPoint}
         />
       ) : (
@@ -161,7 +162,7 @@ const AxisControl = ({
           max={axis.stepCount}
           step={1}
           value={[selected.from, selected.to]}
-          aria-label={axis.identifier}
+          aria-label={axisDisplayName(axis)}
           onChange={commitRange}
         />
       )}
@@ -223,8 +224,8 @@ export const SweepNavigator = ({
     <div className={navigatorStyle}>
       {axes.map((axis) => (
         <div className={rowStyle} key={axis.identifier}>
-          <span className={nameStyle} title={axis.identifier}>
-            {axis.identifier}
+          <span className={nameStyle} title={axisDisplayName(axis)}>
+            {axisDisplayName(axis)}
           </span>
           <AxisControl
             axis={axis}

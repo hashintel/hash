@@ -39,7 +39,11 @@ import {
 import { CodeEditor } from "../../monaco/code-editor";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
 import { sameAdHocFocusTarget } from "./dependency-highlight";
-import { AdHocFormContext, adHocSelectionText } from "./form-context";
+import {
+  AdHocFormContext,
+  adHocSelectionApplies,
+  adHocSelectionText,
+} from "./form-context";
 import {
   cellButtonStyle,
   cellErrorUnderlineStyle,
@@ -482,10 +486,13 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   // so a reopened slab always presents a new button to select.
   const minSelectedElementRef = useRef<HTMLButtonElement | null>(null);
 
-  // Value slots carry Optimize toggles only in optimize mode; expose mode
-  // marks whole top-level Variables (in their own rows), never value slots.
-  const selectable = selection === "optimize";
+  // Value slots carry a toggle in optimize mode, and in sweep mode when the
+  // value is a number; expose mode marks whole top-level Variables (in their
+  // own rows), never value slots.
+  const selectable = adHocSelectionApplies(selection, kind);
   const optimized = selectable && value.optimize !== null;
+  // A sweep declares an interval and nothing else: no step, no scale.
+  const sweeping = selection === "sweep";
   // Closing the slab commits the expression, and a valid one is re-printed
   // canonically (worker-side, from the lowered tree) — normalized spacing,
   // minimal parentheses, literals preserved. The nonce discards a response
@@ -783,11 +790,14 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const boundFields: { key: "min" | "max" | "step"; fieldLabel: string }[] = [
     { key: "min", fieldLabel: "Min" },
     { key: "max", fieldLabel: "Max" },
-    ...(kind === "integer"
+    ...(kind === "integer" && !sweeping
       ? [{ key: "step" as const, fieldLabel: "Step" }]
       : []),
   ];
-  const boundOrder = [...boundFields.map((field) => field.key), "scale"];
+  const boundOrder = [
+    ...boundFields.map((field) => field.key),
+    ...(sweeping ? [] : ["scale"]),
+  ];
   const navigateBound = (from: string, delta: -1 | 1) => {
     const next = boundOrder[boundOrder.indexOf(from) + delta];
     if (next) {
@@ -974,57 +984,61 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                         />
                       </div>
                     ))}
-                    <div
-                      ref={(element) => {
-                        const trigger =
-                          element?.querySelector<HTMLButtonElement>(
+                    {sweeping ? null : (
+                      <div
+                        ref={(element) => {
+                          const trigger =
+                            element?.querySelector<HTMLButtonElement>(
+                              "[data-part='trigger']",
+                            ) ?? null;
+                          if (trigger) {
+                            boundRefs.current.set("scale", trigger);
+                          } else {
+                            boundRefs.current.delete("scale");
+                          }
+                        }}
+                        className={cx(
+                          boundsColumnStyle,
+                          boundsScaleColumnStyle,
+                          cellSelectStyle,
+                        )}
+                        onKeyDownCapture={(event) => {
+                          const trigger = event.currentTarget.querySelector(
                             "[data-part='trigger']",
-                          ) ?? null;
-                        if (trigger) {
-                          boundRefs.current.set("scale", trigger);
-                        } else {
-                          boundRefs.current.delete("scale");
-                        }
-                      }}
-                      className={cx(
-                        boundsColumnStyle,
-                        boundsScaleColumnStyle,
-                        cellSelectStyle,
-                      )}
-                      onKeyDownCapture={(event) => {
-                        const trigger = event.currentTarget.querySelector(
-                          "[data-part='trigger']",
-                        );
-                        if (trigger?.getAttribute("aria-expanded") === "true") {
-                          return;
-                        }
-                        if (event.key === "ArrowLeft") {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          navigateBound("scale", -1);
-                        }
-                      }}
-                    >
-                      <div className={boundsLabelStyle}>Scale</div>
-                      <Select
-                        required
-                        size="sm"
-                        aria-label={`Scale of ${label}`}
-                        value={value.optimize!.scale}
-                        onChange={(scale) =>
-                          dispatch({
-                            type: "setDomainField",
-                            target,
-                            field: "scale",
-                            value: scale,
-                          })
-                        }
-                        items={[
-                          { value: "linear", text: "Linear" },
-                          { value: "log", text: "Log" },
-                        ]}
-                      />
-                    </div>
+                          );
+                          if (
+                            trigger?.getAttribute("aria-expanded") === "true"
+                          ) {
+                            return;
+                          }
+                          if (event.key === "ArrowLeft") {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            navigateBound("scale", -1);
+                          }
+                        }}
+                      >
+                        <div className={boundsLabelStyle}>Scale</div>
+                        <Select
+                          required
+                          size="sm"
+                          aria-label={`Scale of ${label}`}
+                          value={value.optimize!.scale}
+                          onChange={(scale) =>
+                            dispatch({
+                              type: "setDomainField",
+                              target,
+                              field: "scale",
+                              value: scale,
+                            })
+                          }
+                          items={[
+                            { value: "linear", text: "Linear" },
+                            { value: "log", text: "Log" },
+                          ]}
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className={expressionRowStyle}>

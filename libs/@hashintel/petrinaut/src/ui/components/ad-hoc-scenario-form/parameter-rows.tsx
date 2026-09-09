@@ -10,7 +10,11 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { emptyAdHocValue } from "@hashintel/petrinaut-core";
 
 import { useFocusGrid } from "../../worksheet/use-focus-grid";
-import { AdHocFormContext, adHocSelectionText } from "./form-context";
+import {
+  AdHocFormContext,
+  adHocSelectionApplies,
+  adHocSelectionText,
+} from "./form-context";
 import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
 import {
   cellStyle,
@@ -112,9 +116,9 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
                   onTriggerKeyDown={onKeyDown(parameterIndex, 0)}
                 />
               </td>
-              {/* Optimize only: a net parameter cannot be exposed — the
-                  Scenario Parameter toggle belongs to Variables alone. */}
-              {selection === "optimize" ? (
+              {/* Optimize and Sweep only: a net parameter cannot be exposed —
+                  the Scenario Parameter toggle belongs to Variables alone. */}
+              {selection === "optimize" || selection === "sweep" ? (
                 <td
                   className={cx(
                     cellStyle,
@@ -125,16 +129,18 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
                   onFocus={() => setFocusedValue(target)}
                   onBlur={() => setFocusedValue(null)}
                 >
-                  <OptimizeToggle
-                    text={adHocSelectionText(selection)}
-                    label={`${adHocSelectionText(selection)} ${parameter.name}`}
-                    value={entry.optimize !== null}
-                    buttonRef={register(parameterIndex, 1)}
-                    onKeyDown={onKeyDown(parameterIndex, 1)}
-                    onChange={(on) =>
-                      dispatch({ type: "toggleSelection", target, on })
-                    }
-                  />
+                  {adHocSelectionApplies(selection, parameter.type) ? (
+                    <OptimizeToggle
+                      text={adHocSelectionText(selection)}
+                      label={`${adHocSelectionText(selection)} ${parameter.name}`}
+                      value={entry.optimize !== null}
+                      buttonRef={register(parameterIndex, 1)}
+                      onKeyDown={onKeyDown(parameterIndex, 1)}
+                      onChange={(on) =>
+                        dispatch({ type: "toggleSelection", target, on })
+                      }
+                    />
+                  ) : null}
                 </td>
               ) : null}
             </tr>

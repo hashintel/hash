@@ -464,7 +464,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       input,
       scenarioName:
         scenario?.name ?? (input.adHocScenario ? "Ad-hoc scenario" : null),
-      axes,
+      axes: compiled.axes,
     });
     setExperiments((prev) => [experiment, ...prev]);
     setSelectedExperimentId(experimentId);
@@ -499,10 +499,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           });
         };
 
-        if (axes.length > 0 && compiled.sweptCompiler) {
+        if (compiled.axes.length > 0 && compiled.sweptCompiler) {
           startSweepSession({
             experiment,
-            axes,
+            axes: compiled.axes,
             registrations,
             buildRequest,
             compiler: compiled.sweptCompiler,

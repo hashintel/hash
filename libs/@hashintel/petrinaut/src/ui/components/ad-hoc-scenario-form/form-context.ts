@@ -26,14 +26,43 @@ import type {
 
 /**
  * What selecting a value means in this consumer: nothing, marking a value
- * for the optimizer (with bounds), or exposing a top-level Variable as a
- * scenario parameter the saved scenario's users can tune.
+ * for the optimizer (with bounds), sweeping a value over an interval in an
+ * experiment (bounds only, no scale or step), or exposing a top-level
+ * Variable as a scenario parameter the saved scenario's users can tune.
  */
-export type AdHocFormSelection = "none" | "optimize" | "expose";
+export type AdHocFormSelection = "none" | "optimize" | "sweep" | "expose";
 
 /** The visible name of the selection toggle. */
-export const adHocSelectionText = (selection: AdHocFormSelection): string =>
-  selection === "expose" ? "Scenario Parameter" : "Optimize";
+export const adHocSelectionText = (selection: AdHocFormSelection): string => {
+  switch (selection) {
+    case "expose":
+      return "Scenario Parameter";
+    case "sweep":
+      return "Sweep";
+    default:
+      return "Optimize";
+  }
+};
+
+/**
+ * Whether a value of this domain can carry a selection in this consumer.
+ * Optimization tries booleans as a two-way choice; a sweep is an interval,
+ * so it needs a number. Text values never carry a selection: synthesis
+ * reports them at the slot when a stale toggle is on.
+ */
+export const adHocSelectionApplies = (
+  selection: AdHocFormSelection,
+  kind: "real" | "integer" | "boolean" | "string" | "uuid" | "count",
+): boolean => {
+  switch (selection) {
+    case "optimize":
+      return true;
+    case "sweep":
+      return kind === "real" || kind === "integer" || kind === "count";
+    default:
+      return false;
+  }
+};
 
 /**
  * What the form lets the user change. "author" is the full editor. "run"

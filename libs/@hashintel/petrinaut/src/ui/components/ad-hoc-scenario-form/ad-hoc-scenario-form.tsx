@@ -7,12 +7,14 @@
  * `synthesizeAdHocOptimization` (optimization). The generated scenario is
  * never persisted; this component only edits `AdHocScenarioState`.
  *
- * Three consumers share it: Quick Simulation and plain experiment creation
- * render it with `selection` "none"; optimization experiments render it
- * with "optimize", which grows an Optimize toggle on every value slot; the
- * scenario creation form renders it with "expose", which offers a
- * "Scenario Parameter" toggle on each top-level Variable — the saved
- * scenario exposes those Variables as its tunable parameters.
+ * Four consumers share it: Quick Simulation renders it with `selection`
+ * "none"; experiment creation renders it with "sweep", which grows a Sweep
+ * toggle on every numeric value slot — each selection becomes a swept
+ * parameter of the experiment; optimizations render it with "optimize",
+ * which grows an Optimize toggle on every value slot; the scenario creation
+ * form renders it with "expose", which offers a "Scenario Parameter" toggle
+ * on each top-level Variable — the saved scenario exposes those Variables
+ * as its tunable parameters.
  *
  * The form runs its own ad-hoc LSP session, so every expression is
  * type-checked live: open editors are Monaco documents with inline markers,

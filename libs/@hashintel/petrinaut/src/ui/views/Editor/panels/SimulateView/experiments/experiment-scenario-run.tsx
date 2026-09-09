@@ -13,7 +13,6 @@ import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  classicRunParameterValues,
   classicRunVariables,
   classicScenarioRunState,
   compileScenario,
@@ -26,7 +25,9 @@ import {
   FormLayoutColumn,
 } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { Section } from "../../../../../components/section";
+import { scenarioRunInputs } from "./experiment-scenario-inputs";
 
+import type { ScenarioRunInput } from "./experiment-scenario-inputs";
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
@@ -91,16 +92,22 @@ export interface ExperimentScenarioRunProps {
   scenario: Scenario;
   /** The net the scenario compiles and renders against. */
   context: AdHocSynthesisContext;
-  /** The experiment's scenario parameter values, keyed by identifier. */
+  /** The experiment's fixed scenario parameter values, keyed by identifier. */
   values: Readonly<Record<string, string>>;
-  onValuesChange: (updates: { identifier: string; value: string }[]) => void;
+  /**
+   * Whether numeric scenario parameters carry a Sweep toggle: a swept one
+   * reports a range instead of a fixed value.
+   */
+  sweepable: boolean;
+  onInputsChange: (updates: ScenarioRunInput[]) => void;
 }
 
 export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
   scenario,
   context,
   values,
-  onValuesChange,
+  sweepable,
+  onInputsChange,
 }) => {
   const hirState = useScenarioHir(scenario, { adHocContext: context });
   const [computedOpen, setComputedOpen] = useState(false);
@@ -129,9 +136,9 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
 
   const onFormChange = (next: AdHocScenarioState) => {
     setRun((current) => current && { ...current, variables: next.variables });
-    const updates = classicRunParameterValues(next, scenario);
+    const updates = scenarioRunInputs(next, scenario, context);
     if (updates.length > 0) {
-      onValuesChange(updates);
+      onInputsChange(updates);
     }
   };
 
@@ -220,7 +227,7 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
       state={renderState}
       onChange={onFormChange}
       context={context}
-      selection="none"
+      selection={sweepable ? "sweep" : "none"}
       mode="run"
       renderLayout={({ variables, parameters, places }) => (
         <FormLayoutColumn>

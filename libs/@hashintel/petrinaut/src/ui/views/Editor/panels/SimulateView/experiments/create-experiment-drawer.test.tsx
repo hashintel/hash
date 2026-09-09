@@ -109,11 +109,13 @@ function makeLanguageClient(): LanguageClientContextValue {
 const TestProviders = ({
   webGpuEnabled,
   enableParameterSweeps = false,
+  enableAdHocScenarios = false,
   sdcpnContextValue = sirSdcpnContextValue,
   createExperiment = () => Promise.resolve("experiment-test"),
 }: {
   webGpuEnabled: boolean;
   enableParameterSweeps?: boolean;
+  enableAdHocScenarios?: boolean;
   sdcpnContextValue?: SDCPNContextValue;
   createExperiment?: (input: CreateExperimentInput) => Promise<string>;
 }) => {
@@ -122,6 +124,7 @@ const TestProviders = ({
     ...defaultUserSettings,
     webGpuEnabled,
     enableParameterSweeps,
+    enableAdHocScenarios,
     setShowAnimations: () => {},
     setKeepPanelsMounted: () => {},
     setCompactNodes: () => {},
@@ -375,5 +378,53 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
     expect(
       await screen.findByLabelText("Sweep transmission_rate"),
     ).toBeInstanceOf(HTMLElement);
+  });
+});
+
+/** A net with a parameter and no saved scenario, so the drawer opens on the ad-hoc form. */
+const adHocContextValue: SDCPNContextValue = {
+  ...sirSdcpnContextValue,
+  petriNetDefinition: {
+    ...sirSdcpnContextValue.petriNetDefinition,
+    scenarios: [],
+    parameters: [
+      {
+        id: "param__rate",
+        name: "Rate",
+        variableName: "rate",
+        type: "real",
+        defaultValue: "1",
+      },
+    ],
+  },
+};
+
+describe("CreateExperimentDrawer ad-hoc sweeps", () => {
+  it("offers a Sweep toggle on the ad-hoc form's values when both settings are on", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableAdHocScenarios
+        enableParameterSweeps
+        sdcpnContextValue={adHocContextValue}
+      />,
+    );
+
+    expect(await screen.findByLabelText("Sweep Rate")).toBeInstanceOf(
+      HTMLElement,
+    );
+  });
+
+  it("offers no Sweep toggle on the ad-hoc form while sweeps are off", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableAdHocScenarios
+        sdcpnContextValue={adHocContextValue}
+      />,
+    );
+
+    await screen.findByText("Rate");
+    expect(screen.queryByLabelText(/^Sweep /)).toBeNull();
   });
 });

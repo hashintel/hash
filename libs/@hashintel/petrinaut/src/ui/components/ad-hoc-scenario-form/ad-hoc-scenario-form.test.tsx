@@ -1436,3 +1436,56 @@ describe("AdHocScenarioForm", () => {
     expect(screen.queryByRole("textbox", { name: "Expression" })).toBeNull();
   });
 });
+
+describe("sweep selection", () => {
+  const SWEEP_STATE: AdHocScenarioState = {
+    variables: [
+      {
+        name: "altitude",
+        type: "real",
+        expression: "400",
+        optimize: null,
+        exposed: true,
+      },
+      {
+        name: "armed",
+        type: "boolean",
+        expression: "true",
+        optimize: null,
+        exposed: true,
+      },
+    ],
+    netParameters: [],
+    places: {},
+  };
+
+  it("run mode offers a Sweep toggle on numeric scenario parameters only", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        selection="sweep"
+        mode="run"
+        initial={SWEEP_STATE}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Sweep armed" })).toBe(null);
+    fireEvent.click(screen.getByRole("button", { name: "Sweep altitude" }));
+    expect(latest?.variables[0]?.optimize).toEqual({
+      min: "0",
+      max: "1",
+      scale: "linear",
+    });
+  });
+
+  it("authoring offers Sweep on numeric values and Parameters, never on booleans", () => {
+    render(<Harness selection="sweep" initial={SWEEP_STATE} />);
+
+    expect(screen.getByRole("button", { name: "Sweep Rate" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sweep altitude" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Sweep armed" })).toBe(null);
+  });
+});

@@ -16,6 +16,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   EMPTY_AD_HOC_STATE,
   isWebGpuAvailable,
+  synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
 
 import {
@@ -23,6 +24,8 @@ import {
   type ExperimentMetricSpecInput,
 } from "../../../../../../react/experiments/context";
 import {
+  axisDisplayName,
+  buildAdHocSweepAxes,
   buildParameterAxis,
   type ExperimentParameterAxis,
   type ExperimentParameterInput,
@@ -959,6 +962,18 @@ export const CreateExperimentDrawer = ({
     }
   }
 
+  // The net the ad-hoc form resolves names and types against, shared by the
+  // form and by the sweep summary that reads its selections.
+  const adHocFormContext = {
+    netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
+    places: petriNetDefinition.places,
+    types: extensions.colors ? petriNetDefinition.types : [],
+  };
+  const adHocSweeping =
+    enableAdHocScenarios &&
+    enableParameterSweeps &&
+    effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
+
   const sweepSummary = ((): {
     text: string;
     tone: "neutral" | "warning" | "error";
@@ -976,10 +991,25 @@ export const CreateExperimentDrawer = ({
       }
       axes.push(outcome.axis);
     }
+    if (adHocSweeping && adHocState) {
+      // A definition that does not synthesize reports at its slots and
+      // refuses to run on submit; the summary only speaks for its sweeps.
+      const synthesized = synthesizeAdHocOptimization(
+        adHocState,
+        adHocFormContext,
+      );
+      if (synthesized.ok) {
+        const outcome = buildAdHocSweepAxes(synthesized.output.optimizedFields);
+        if (!outcome.ok) {
+          return { text: outcome.error, tone: "error", error: true };
+        }
+        axes.push(...outcome.axes);
+      }
+    }
     if (axes.length === 0) {
       return null;
     }
-    const names = axes.map((axis) => axis.identifier).join(", ");
+    const names = axes.map(axisDisplayName).join(", ");
     return {
       text: `${axes.length === 1 ? `${names} swept over its interval` : `${names} swept over their intervals`} — the whole selection computes progressively, and the navigator narrows it to regions or points`,
       tone: "neutral",
@@ -1123,6 +1153,7 @@ export const CreateExperimentDrawer = ({
           effectiveSelectedScenarioId === NO_SCENARIO_VALUE
             ? adHocState
             : null,
+        adHocSweeps: adHocSweeping,
         runCount: Number(runCount),
         seed: Number(seed),
         dt: Number(dt),
@@ -1268,22 +1299,14 @@ export const CreateExperimentDrawer = ({
                 // and tokens each run starts with.
                 <ExperimentScenarioRun
                   scenario={selectedScenario}
-                  context={{
-                    netParameters: extensions.parameters
-                      ? petriNetDefinition.parameters
-                      : [],
-                    places: petriNetDefinition.places,
-                    types: extensions.colors ? petriNetDefinition.types : [],
-                  }}
+                  context={adHocFormContext}
                   values={fixedParamValues}
-                  onValuesChange={(updates) =>
+                  sweepable={enableParameterSweeps}
+                  onInputsChange={(updates) =>
                     setParamInputs((prev) => {
                       const next = { ...prev };
                       for (const update of updates) {
-                        next[update.identifier] = {
-                          mode: "fixed",
-                          value: update.value,
-                        };
+                        next[update.identifier] = update.input;
                       }
                       return next;
                     })
@@ -1332,14 +1355,8 @@ export const CreateExperimentDrawer = ({
               <AdHocScenarioForm
                 state={adHocState ?? EMPTY_AD_HOC_STATE}
                 onChange={setAdHocState}
-                context={{
-                  netParameters: extensions.parameters
-                    ? petriNetDefinition.parameters
-                    : [],
-                  places: petriNetDefinition.places,
-                  types: extensions.colors ? petriNetDefinition.types : [],
-                }}
-                selection="none"
+                context={adHocFormContext}
+                selection={enableParameterSweeps ? "sweep" : "none"}
               />
             ) : null}
           </Section>

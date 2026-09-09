@@ -87,7 +87,8 @@ describe("ExperimentScenarioRun", () => {
           scenario={scenario}
           context={context}
           values={{}}
-          onValuesChange={() => {}}
+          sweepable={false}
+          onInputsChange={() => {}}
         />
       </LanguageClientContext>,
     );

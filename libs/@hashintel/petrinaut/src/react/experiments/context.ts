@@ -68,6 +68,13 @@ export type CreateExperimentInput = {
    * `scenarioId` is set.
    */
   adHocScenario?: AdHocScenarioState | null;
+  /**
+   * Whether the definition's Sweep selections become sweep axes: each
+   * selected value turns into a generated scenario parameter swept over its
+   * bounds. Off, the definition runs at its fixed values and any selection
+   * left in it is ignored, as the form no longer shows one.
+   */
+  adHocSweeps?: boolean;
   /** Number of runs per parameter combination. */
   runCount: number;
   seed: number;

@@ -61,7 +61,8 @@ export const SurfaceAxisControls = ({
   onYAxisIdChange,
   children,
 }: {
-  axes: readonly { identifier: string }[];
+  /** `label` is the name shown for a generated identifier. */
+  axes: readonly { identifier: string; label?: string }[];
   xAxisId: string;
   yAxisId: string;
   onXAxisIdChange: (axisId: string) => void;
@@ -70,7 +71,7 @@ export const SurfaceAxisControls = ({
 }) => {
   const options = axes.map((axis) => ({
     value: axis.identifier,
-    text: axis.identifier,
+    text: axis.label ?? axis.identifier,
   }));
   return (
     <div className={controlsStyle}>
