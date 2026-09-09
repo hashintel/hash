@@ -3580,6 +3580,209 @@ describe("AiAssistantPanel composer submissions", () => {
     });
   });
 
+  test.each(["first-then-second", "second-then-first"] as const)(
+    "removes both failed voice origins when overlapping outputs reject %s",
+    async (rejectionOrder) => {
+      let latestMessages = [
+        {
+          id: "assistant-voice-questions",
+          parts: [
+            {
+              input: { question: "Who approves it?" },
+              state: "input-available",
+              toolCallId: "voice-question-1",
+              toolName: "answerQuestion",
+              type: "dynamic-tool",
+            },
+            {
+              input: { question: "Who acts next?" },
+              state: "input-available",
+              toolCallId: "voice-question-2",
+              toolName: "answerQuestion",
+              type: "dynamic-tool",
+            },
+          ],
+          role: "assistant",
+        },
+      ] as unknown as PetrinautAiMessage[];
+      const updateMessages = (
+        updater: (messages: PetrinautAiMessage[]) => PetrinautAiMessage[],
+      ) => {
+        latestMessages = updater(latestMessages);
+      };
+      let rejectFirstSubmission: ((reason?: unknown) => void) | undefined;
+      let rejectSecondSubmission: ((reason?: unknown) => void) | undefined;
+      const addToolOutput = vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((_resolve, reject) => {
+              rejectFirstSubmission = reject;
+            }),
+        )
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((_resolve, reject) => {
+              rejectSecondSubmission = reject;
+            }),
+        );
+
+      const firstSubmission = addMappedToolOutput({
+        addToolOutput,
+        currentMessages: latestMessages,
+        params: {
+          output: { answer: "The shift lead" },
+          tool: "answerQuestion",
+          toolCallId: "voice-question-1",
+        },
+        source: "voice",
+        updateMessages,
+      });
+      const firstSubmissionRejection = expect(firstSubmission).rejects.toThrow(
+        "First voice tool output rejected.",
+      );
+      const secondSubmission = addMappedToolOutput({
+        addToolOutput,
+        currentMessages: latestMessages,
+        params: {
+          output: { answer: "The release manager" },
+          tool: "answerQuestion",
+          toolCallId: "voice-question-2",
+        },
+        source: "voice",
+        updateMessages,
+      });
+      const secondSubmissionRejection = expect(
+        secondSubmission,
+      ).rejects.toThrow("Second voice tool output rejected.");
+
+      if (rejectionOrder === "first-then-second") {
+        rejectFirstSubmission?.(new Error("First voice tool output rejected."));
+        await firstSubmissionRejection;
+        rejectSecondSubmission?.(
+          new Error("Second voice tool output rejected."),
+        );
+        await secondSubmissionRejection;
+      } else {
+        rejectSecondSubmission?.(
+          new Error("Second voice tool output rejected."),
+        );
+        await secondSubmissionRejection;
+        rejectFirstSubmission?.(new Error("First voice tool output rejected."));
+        await firstSubmissionRejection;
+      }
+
+      expect(latestMessages[0]?.metadata).toBeUndefined();
+    },
+  );
+
+  test("preserves independent voice provenance and concurrent message updates on rejection", async () => {
+    let latestMessages = [
+      {
+        id: "assistant-voice-question",
+        metadata: { source: "voice" },
+        parts: [
+          {
+            input: { question: "Who approves it?" },
+            state: "input-available",
+            toolCallId: "voice-question",
+            toolName: "answerQuestion",
+            type: "dynamic-tool",
+          },
+        ],
+        role: "assistant",
+      },
+    ] as unknown as PetrinautAiMessage[];
+    const updateMessages = (
+      updater: (messages: PetrinautAiMessage[]) => PetrinautAiMessage[],
+    ) => {
+      latestMessages = updater(latestMessages);
+    };
+    const addToolOutput = vi.fn().mockImplementationOnce(async () => {
+      latestMessages = latestMessages.map((message) => ({
+        ...message,
+        metadata: { ...message.metadata, stopped: true },
+        parts: [
+          ...message.parts,
+          { text: "Unrelated concurrent update", type: "text" },
+        ],
+      })) as PetrinautAiMessage[];
+      throw new Error("Voice tool output rejected.");
+    });
+
+    await expect(
+      addMappedToolOutput({
+        addToolOutput,
+        currentMessages: latestMessages,
+        params: {
+          output: { answer: "The shift lead" },
+          tool: "answerQuestion",
+          toolCallId: "voice-question",
+        },
+        source: "voice",
+        updateMessages,
+      }),
+    ).rejects.toThrow("Voice tool output rejected.");
+
+    expect(latestMessages[0]?.metadata).toEqual({
+      source: "voice",
+      stopped: true,
+    });
+    expect(latestMessages[0]?.parts).toContainEqual({
+      text: "Unrelated concurrent update",
+      type: "text",
+    });
+  });
+
+  test("preserves pre-existing voice attribution for a rejected tool", async () => {
+    let latestMessages = [
+      {
+        id: "assistant-voice-question",
+        metadata: {
+          source: "voice",
+          voiceToolCallIds: ["voice-question"],
+        },
+        parts: [
+          {
+            input: { question: "Who approves it?" },
+            state: "input-available",
+            toolCallId: "voice-question",
+            toolName: "answerQuestion",
+            type: "dynamic-tool",
+          },
+        ],
+        role: "assistant",
+      },
+    ] as unknown as PetrinautAiMessage[];
+    const updateMessages = (
+      updater: (messages: PetrinautAiMessage[]) => PetrinautAiMessage[],
+    ) => {
+      latestMessages = updater(latestMessages);
+    };
+    const addToolOutput = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Voice tool output rejected."));
+
+    await expect(
+      addMappedToolOutput({
+        addToolOutput,
+        currentMessages: latestMessages,
+        params: {
+          output: { answer: "The shift lead" },
+          tool: "answerQuestion",
+          toolCallId: "voice-question",
+        },
+        source: "voice",
+        updateMessages,
+      }),
+    ).rejects.toThrow("Voice tool output rejected.");
+
+    expect(latestMessages[0]?.metadata).toEqual({
+      source: "voice",
+      voiceToolCallIds: ["voice-question"],
+    });
+  });
+
   test("rolls back failed tool provenance before a typed retry", async () => {
     let latestMessages = [
       {
