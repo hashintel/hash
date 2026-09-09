@@ -27,6 +27,7 @@ import {
   observedNodeInputSchema,
   observedNodeMutationNames,
   verifyArcTransitionAttempt,
+  verifyDefinitionObservation,
   type ConstructionTransitionRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
@@ -608,7 +609,6 @@ try {
   );
   // A real preceding read is retained for each refusal; no synthetic success/base IDs.
   let envelope: Record<string, unknown> | undefined;
-  let lastReadDefinition: SDCPN | undefined;
   const readEnvelope = (id: string) => [
     tool("getLatestNetDefinition", {}, id),
     checked((context) => {
@@ -620,7 +620,6 @@ try {
         observationToolCallId: observation.toolCallId,
         requestedBaseHash: observation.observed.sha256,
       };
-      lastReadDefinition = observation.observed.definition;
       save(id, observation);
       return text(`${id} complete.`);
     }),
@@ -699,9 +698,22 @@ try {
     "TEST read before external edit.",
     "creation-pre-edit-read complete.",
   );
-  save("reopen-history", await client.history());
+  const reopenedHistory = await client.history();
+  save("reopen-history", reopenedHistory);
+  const rawReopenResult = clientToolHistoryFrom(
+    reopenedHistory.messages,
+  ).results.find((entry) => entry.toolCallId === "creation-pre-edit-read");
+  assert(rawReopenResult);
+  save("raw-reopen-result", rawReopenResult);
+  const rawObservation = (rawReopenResult.metadata as BrowserResult["metadata"])
+    ?.observation;
+  assert(rawObservation);
+  const verifiedReopen = await verifyDefinitionObservation(
+    rawObservation.observed,
+  );
   assert.equal(
-    lastReadDefinition?.places.find((entry) => entry.id === queue.id)?.capacity,
+    verifiedReopen.definition.places.find((entry) => entry.id === queue.id)
+      ?.capacity,
     3,
     "Reopen must preserve the canonically created/corrected capacity before any deliberate hand edit",
   );
