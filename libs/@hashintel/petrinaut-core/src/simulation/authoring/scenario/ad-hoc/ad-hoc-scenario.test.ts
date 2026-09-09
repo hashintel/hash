@@ -1087,6 +1087,33 @@ describe("resolveAdHocPlaceTotal", () => {
       total: 0,
     });
   });
+
+  it("resolves only the literals the expression language accepts", () => {
+    // The numeric fast path must agree with the evaluator: `00` is not a
+    // strict-mode literal, and a digit string past Number's range is
+    // Infinity, which no run could start from. Both stay unresolved.
+    const withCount = (expression: string) => {
+      const state = baseState();
+      state.places["place-queue"] = {
+        kind: "uncoloured",
+        count: { expression, optimize: null },
+      };
+      return state;
+    };
+    const huge = "9".repeat(400);
+    expect(
+      resolveAdHocPlaceTotal(withCount("00"), context, "place-queue"),
+    ).toEqual({ resolved: false, text: "00" });
+    expect(
+      resolveAdHocPlaceTotal(withCount(huge), context, "place-queue"),
+    ).toEqual({ resolved: false, text: huge });
+    expect(
+      resolveAdHocPlaceTotal(withCount("0"), context, "place-queue"),
+    ).toEqual({ resolved: true, total: 0 });
+    expect(
+      resolveAdHocPlaceTotal(withCount(" 0.5 "), context, "place-queue"),
+    ).toEqual({ resolved: true, total: 1 });
+  });
 });
 
 describe("slot keys and labels", () => {

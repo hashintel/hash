@@ -865,8 +865,12 @@ function withNeutralAdHocExpressions(
   };
 }
 
-/** A plain number literal, optionally signed; whitespace around it allowed. */
-const NUMERIC_LITERAL_PATTERN = /^\s*-?(?:\d+(?:\.\d*)?|\.\d+)\s*$/;
+/**
+ * A plain number literal, optionally signed; whitespace around it allowed.
+ * The integer part is `0` or starts with a non-zero digit: `00` and `07` are
+ * not strict-mode literals, and the expression language rejects them.
+ */
+const NUMERIC_LITERAL_PATTERN = /^\s*-?(?:(?:0|[1-9]\d*)(?:\.\d*)?|\.\d+)\s*$/;
 
 /**
  * Resolves the token totals of one form state's places: the sum of every
@@ -919,7 +923,12 @@ export function createAdHocPlaceTotalResolver(
       return `${count.optimize.min} … ${count.optimize.max}`;
     }
     if (NUMERIC_LITERAL_PATTERN.test(count.expression)) {
-      return Math.max(0, Math.round(Number(count.expression)));
+      const literal = Number(count.expression);
+      // A digit string past Number's range is Infinity: no total to report,
+      // so it falls through to the evaluator, which leaves it unresolved.
+      if (Number.isFinite(literal)) {
+        return Math.max(0, Math.round(literal));
+      }
     }
     for (const name of referencedNames(count.expression)) {
       if (optimizedNames.has(name)) {
