@@ -23,7 +23,6 @@ const containerStyle = css({
 
 const transitionBoxStyle = css({
   padding: "2",
-  borderRadius: "xl",
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
