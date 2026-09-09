@@ -1,0 +1,33 @@
+[package]
+name = "durable-kernel"
+version = "0.1.0"
+license.workspace = true
+edition = "2021"
+rust-version = "1.85"
+
+[features]
+# Exposes the fault-injection harness and unleased test constructors
+test-util = []
+
+[dependencies]
+tokio = { workspace = true, public = true, features = ["macros", "rt", "sync", "time"] }
+tokio-util = { workspace = true, features = ["rt"] }
+bytes = { workspace = true, public = true }
+error-stack = { workspace = true, public = true, features = ["std"] }
+serde = { workspace = true, public = true, features = ["derive", "std"] }
+serde_core = { workspace = true, public = true }
+serde_json = { workspace = true, public = true, features = ["preserve_order"] }
+sha2 = { workspace = true }
+hex = "0.4"
+chrono = { version = "0.4", public = true, default-features = false, features = ["clock", "std"] }
+tracing = { workspace = true, features = ["attributes", "std"] }
+opendata_log = { package = "opendata-log", version = "1.0.0" }
+opendata_common = { package = "opendata-common", public = true, version = "0.1.17" }
+slatedb = "0.13.1"
+
+[dev-dependencies]
+proptest = { workspace = true, features = ["fork", "timeout", "bit-set"] }
+tempfile = "3"
+
+[lints]
+workspace = true

@@ -1,0 +1,9 @@
+{
+  "name": "@rust/durable-kernel",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3",
+  "dependencies": {
+    "@rust/error-stack": "workspace:*"
+  }
+}
