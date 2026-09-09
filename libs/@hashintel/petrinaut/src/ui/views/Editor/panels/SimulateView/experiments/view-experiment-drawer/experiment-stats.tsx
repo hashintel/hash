@@ -108,6 +108,9 @@ export const ExperimentStats = ({
   const status = STATUS_DISPLAY[experiment.status];
   const runCount = formatCount(experiment.runCount);
   const maxTime = formatFixed(experiment.maxTime);
+  // The widest time readout: a fraction just under the maximum, which prints
+  // its three decimals, over the maximum.
+  const widestTime = `${formatFixed(Math.max(0, experiment.maxTime - 0.001))} / ${maxTime}`;
 
   return (
     <>
@@ -127,7 +130,7 @@ export const ExperimentStats = ({
       <FrameStat label="Errors" widest={runCount}>
         {formatCount(progress?.erroredRuns ?? 0)}
       </FrameStat>
-      <FrameStat label="Time" widest={`${maxTime} / ${maxTime}`}>
+      <FrameStat label="Time" widest={widestTime}>
         {formatFixed(progress?.time ?? settledTime(experiment))} / {maxTime}
       </FrameStat>
       {/* Wall-clock, as distinct from the simulated time; it stops once the
