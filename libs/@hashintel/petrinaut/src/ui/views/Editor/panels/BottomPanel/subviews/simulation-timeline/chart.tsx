@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 
 import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
@@ -6,6 +6,7 @@ import "uplot/dist/uPlot.min.css";
 
 import { useLatest } from "../../../../../../../react/hooks/use-latest";
 import { useStableCallback } from "../../../../../../../react/hooks/use-stable-callback";
+import { createRunDataBuilder, createStackedDataBuilder } from "./chart-data";
 import {
   tooltipDotStyle,
   tooltipLabelStyle,
@@ -16,49 +17,6 @@ import {
 import type { TimelineChartType } from "../../../../../../../react/state/editor-context";
 import type { StreamingStore, TimelineSeriesMeta } from "./types";
 import type { FC, RefObject } from "react";
-
-function buildRunData(
-  store: StreamingStore,
-  hiddenSeries: Set<string>,
-  length = store.length,
-): uPlot.AlignedData {
-  const result: (number | null | undefined)[][] = [store.columns[0]!];
-  for (let i = 0; i < store.series.length; i++) {
-    if (hiddenSeries.has(store.series[i]!.seriesId)) {
-      result.push(new Array(length).fill(null));
-    } else {
-      result.push(store.columns[i + 1]!);
-    }
-  }
-  return result as uPlot.AlignedData;
-}
-
-function buildStackedData(
-  store: StreamingStore,
-  hiddenSeries: Set<string>,
-  length = store.length,
-): uPlot.AlignedData {
-  const visible = store.series
-    .map((p, i) => ({ ...p, colIdx: i + 1 }))
-    .filter((p) => !hiddenSeries.has(p.seriesId));
-
-  const cumulative = new Float64Array(length);
-  const series: number[][] = [];
-
-  for (const p of visible) {
-    const col = store.columns[p.colIdx]!;
-    const stacked = new Array<number>(length);
-    for (let i = 0; i < length; i++) {
-      cumulative[i]! += col[i] ?? 0;
-      stacked[i] = cumulative[i]!;
-    }
-    series.push(stacked);
-  }
-
-  series.reverse();
-
-  return [store.columns[0]!, ...series] as uPlot.AlignedData;
-}
 
 interface TooltipNodes {
   root: HTMLDivElement;
@@ -476,6 +434,11 @@ export const UPlotChart: FC<{
   currentFrameIndex: number;
   onScrub: (frameIndex: number) => void;
   className?: string;
+  /**
+   * Hold the chart as it stands. Data and playhead updates are skipped and
+   * applied together when it resumes, so an off-screen chart costs nothing.
+   */
+  paused?: boolean;
 }> = ({
   store,
   chartType,
@@ -484,6 +447,7 @@ export const UPlotChart: FC<{
   currentFrameIndex,
   onScrub,
   className,
+  paused = false,
 }) => {
   "use no memo";
 
@@ -491,6 +455,10 @@ export const UPlotChart: FC<{
   const chartRef = useRef<uPlot | null>(null);
   const playheadFrameRef = useRef(currentFrameIndex);
   const storeRef = useLatest(store);
+
+  // One builder per chart: each keeps the columns it has already made.
+  const [buildRunData] = useState(createRunDataBuilder);
+  const [buildStackedData] = useState(createStackedDataBuilder);
 
   const size = useElementSize(wrapperRef);
   const hasSize = size != null;
@@ -545,6 +513,8 @@ export const UPlotChart: FC<{
       chartRef.current = null;
     };
   }, [
+    buildRunData,
+    buildStackedData,
     chartType,
     hiddenSeries,
     store,
@@ -561,18 +531,32 @@ export const UPlotChart: FC<{
   }, [size]);
 
   useEffect(() => {
+    if (paused) {
+      return;
+    }
+
     const data =
       chartType === "stacked"
         ? buildStackedData(store, hiddenSeries, dataLength)
         : buildRunData(store, hiddenSeries, dataLength);
 
     chartRef.current?.setData(data);
-  }, [chartType, dataLength, hiddenSeries, store]);
+  }, [
+    buildRunData,
+    buildStackedData,
+    chartType,
+    dataLength,
+    hiddenSeries,
+    paused,
+    store,
+  ]);
 
   useEffect(() => {
     playheadFrameRef.current = currentFrameIndex;
-    chartRef.current?.redraw(false, false);
-  }, [currentFrameIndex]);
+    if (!paused) {
+      chartRef.current?.redraw(false, false);
+    }
+  }, [currentFrameIndex, paused]);
 
   return <div ref={wrapperRef} className={className} />;
 };
