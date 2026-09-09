@@ -27,9 +27,8 @@ const containerStyle = css({
 });
 
 const placeBoxStyle = css({
-  // Fully rounded, so each end is a semicircle rather than an ellipse: the
-  // radius clamps to half the shorter side.
-  borderRadius: "full",
+  // A circle, since the node is square.
+  borderRadius: "[50%]",
   // Wider than the transition's, to keep the name clear of the curve.
   padding: "[8px 20px]",
 });
