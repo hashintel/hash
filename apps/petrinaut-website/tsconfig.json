@@ -13,7 +13,8 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "types": []
   },
-  "include": ["api", "src", "router-codegen-config.ts"]
+  "include": ["src", "router-codegen-config.ts"]
 }

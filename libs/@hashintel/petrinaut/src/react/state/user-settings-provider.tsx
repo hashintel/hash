@@ -127,6 +127,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
         ),
       }));
     },
+    setEnableInBrowserOptimization: (value: boolean) =>
+      setState((prev) => ({ ...prev, enableInBrowserOptimization: value })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,

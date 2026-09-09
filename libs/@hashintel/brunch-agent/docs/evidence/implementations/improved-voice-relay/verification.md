@@ -2,11 +2,11 @@
 
 ## Status
 
-Implemented as a bounded experiment under the separately committed [live mission](../../../../MISSION.md), including Kostandin's explicitly approved [local Flue 2.0.3 context patch](flue-context-patch.md). This is **not upstream-supported functionality**. The credential/routing blockers below are historical. Real local before/after observations and an inspected audible demonstration now exist. Post-merge preview inspection is blocked by the same Voice configuration HTTP 500 on this PR and the parent preview; human acceptance remains outstanding.
+Implemented as a bounded experiment under the separately committed [historical branch contract](mission.md), including Kostandin's explicitly approved [local Flue 2.0.3 context patch](flue-context-patch.md). This is **not upstream-supported functionality**. The credential/routing blockers below are historical. Real local before/after observations and an inspected audible demonstration now exist. Post-merge preview inspection is blocked by the same Voice configuration HTTP 500 on this PR and the parent preview; human acceptance remains outstanding.
 
 **Recommendation: the relay still fails for short local follow-ups; use this evidence to reconsider #9571.** The final clarification remained 151 words and required the Brunch round trip before even a non-substantive notice (7.437 seconds after completed transcription). Bounded delivery fixed automatic report reading and the observed Realtime preamble, not conversational responsiveness. This recommendation does not authorize or establish the correctness of split ownership; the long-report/tool-stall findings alone do not select it.
 
-- Issue: [FE-1630 — Optimize and measure the Brunch Voice relay](https://linear.app/hash/issue/FE-1630/optimize-and-measure-the-brunch-voice-relay) _(internal)_, created in FE / brunch-agent, Todo, assigned to Kostandin Angjellari.
+- Issue: [FE-1630 — Optimize and measure the Brunch Voice relay](https://linear.app/hash/issue/FE-1630/optimize-and-measure-the-brunch-voice-relay) _(internal)_, created in FE / brunch-agent and assigned to Kostandin Angjellari.
 - Branch: `kostandin/fe-1630-improved-voice-relay`.
 - Dedicated worktree: `/Users/kostandin/Projects/hashdev/worktrees/fe-improved-voice-relay`. It already existed, clean, on a placeholder branch; only that branch was renamed. CORS, donor, and ownership worktrees were not modified.
 - Foundation: [#9564](https://github.com/hashintel/hash/pull/9564), pinned at [bfd99d38fe53baa2ec15045dadf585f4c7890ffc](https://github.com/hashintel/hash/commit/bfd99d38fe53baa2ec15045dadf585f4c7890ffc).
@@ -34,6 +34,8 @@ The latest subsequently available head was [743c3c89c1f11309f49fe97ab97f93b3437a
 
 #9564 then merged at **2026-09-08 16:29:59 UTC**, as [fb96f213188da885becd3248fdbe6e84abb65877](https://github.com/hashintel/hash/commit/fb96f213188da885becd3248fdbe6e84abb65877). GitHub retargeted #9585 to main. A normal merge of `origin/main` at [94dff8e33c](https://github.com/hashintel/hash/commit/94dff8e33c) reconciled ancestry without rewriting remote history. Every conflicted main-side file was byte-identical to the pinned foundation; the experiment's existing version was retained. The merge changed no Brunch/Voice/transport product file, patch, package resolution, or lockfile. All 258 targeted tests passed again afterward. No parent or sibling was changed.
 
+A later normal merge of `origin/main` at [ef0f444987](https://github.com/hashintel/hash/commit/ef0f4449876d63d82657147fb4e29cdf024e9f79) retained the current repository `MISSION.md` and preserved this experiment's unaccepted contract beside its evidence as [`mission.md`](mission.md). That was the only content conflict; no experiment product file conflicted.
+
 ### No supported per-turn Voice hint on canonical user deliveries
 
 At baseline, both installed `@flue/sdk` and `@flue/runtime` were unpatched 2.0.3. Their upstream public `DeliveredMessage` contracts allow `kind: "user"`, `body`, and optional image attachments. Only `kind: "signal"` supports attributes. `send` admits a message, creation-only `initialData`, `uid`, and an idempotency key; it has no per-turn instruction/context option. `useDelivery()` exposes the message, not its idempotency key or HTTP request context. `useInitialData()` is immutable and cannot distinguish later typed and Voice turns in the same conversation.
@@ -45,7 +47,7 @@ Authoritative 2.0.3 source: release [bf86b8726f5ba189844185fdbeca0e194344ded1](h
 - [HTTP admission validation](https://github.com/withastro/flue/blob/ac610378741d879a9d12d3f927ff9634e0b4f7ae/packages/runtime/src/runtime/schemas.ts).
 - [Delivery hook](https://github.com/withastro/flue/blob/ac610378741d879a9d12d3f927ff9634e0b4f7ae/packages/runtime/src/hooks/use-delivery.ts) and [instruction hook](https://github.com/withastro/flue/blob/ac610378741d879a9d12d3f927ff9634e0b4f7ae/packages/runtime/src/hooks/use-instruction.ts).
 
-Changing Voice users into signals, adding a separate admission, carrying mode in user text, or storing an application-side mode map would not establish the requested supported per-turn system-context contract. None was implemented. Kostandin subsequently approved the version-pinned dependency-patch exception, recorded separately in the live mission and patch maintenance note. It adds delivery-scoped JSON context and recovery in existing records, without a new store or provenance claim.
+Changing Voice users into signals, adding a separate admission, carrying mode in user text, or storing an application-side mode map would not establish the requested supported per-turn system-context contract. None was implemented. Kostandin subsequently approved the version-pinned dependency-patch exception, recorded separately in the historical branch contract and patch maintenance note. It adds delivery-scoped JSON context and recovery in existing records, without a new store or provenance claim.
 
 ### Real local baseline blocked by provider authentication
 
@@ -146,7 +148,7 @@ yarn workspace @apps/petrinaut-website exec vitest run \
   src/main/app/voice-interview src/server/voice/openai-voice-policy.test.ts
 ```
 
-Results: Brunch **4 files / 33 tests**, transport **4 / 49**, website **10 / 176**. The session budget regression also passed **41 tests** after the 256-token correction. Builds passed for Brunch, transport, and website. `lint:tsc` and `lint:eslint` passed for all three affected workspaces, with zero errors; transport retains two existing sequential-await warnings and website one existing set-state-in-effect warning. Changed TypeScript/JSON Oxfmt and `git diff --check` complete the packet checks. Selecting `boundaries.integration.ts` directly found no tests; the correct wrapper `boundaries.test.ts` subsequently passed.
+Results: Brunch **4 files / 33 tests**, transport **4 / 49**, website **10 / 176**. The session budget regression also passed **41 tests** after the 256-token correction. Builds passed for Brunch, transport, and website. `lint:tsc` and `lint:eslint` passed for all three affected workspaces, with zero errors; transport retains two existing sequential-await warnings and website one existing set-state-in-effect warning. Changed TypeScript/JSON Oxfmt and `git diff --check` outside the version-pinned patch fixtures complete the packet checks; the patch files preserve upstream tab-indented context that Git's outer whitespace check reports as space-before-tab. Selecting `boundaries.integration.ts` directly found no tests; the correct wrapper `boundaries.test.ts` subsequently passed.
 
 The root package commit hook attempted an unrelated Rust `task-dependencies` build and exhausted local disk. Only that attempt's generated `target/` was removed; the dependency patch commit excluded that hook, retaining other hooks. No full monorepo clean-build claim is made.
 
@@ -158,4 +160,4 @@ The same request to the [#9564 preview](https://petrinaut-git-ln-fe-1580-reconci
 
 ## Remaining gate and decision
 
-Reconsider #9571 using the failed short-follow-up experience and its current Brunch round trip; do not describe the optimized relay as adequate. Bounded delivery is independently useful, but a notice is not an answer, Voice prompting is unreliable, and long reports remain slow. This is a scoped recommendation, not architecture approval or human acceptance. Keep #9571 untouched. Full preview verification and owner review remain outstanding; the parent merge gate is now open and ancestry reconciled. The live mission is not marked accepted.
+Reconsider #9571 using the failed short-follow-up experience and its current Brunch round trip; do not describe the optimized relay as adequate. Bounded delivery is independently useful, but a notice is not an answer, Voice prompting is unreliable, and long reports remain slow. This is a scoped recommendation, not architecture approval or human acceptance. Keep #9571 untouched. Full preview verification and owner review remain outstanding; the parent merge gate is now open and ancestry reconciled. The experiment's historical branch contract is not marked accepted.

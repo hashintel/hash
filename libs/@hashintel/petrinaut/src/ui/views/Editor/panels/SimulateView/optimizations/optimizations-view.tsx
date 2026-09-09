@@ -1,3 +1,7 @@
+/**
+ * @layerRoot ui.views.editor.optimizations
+ * @role The Optimizations tab: the create and view drawers, the study surface and the steps table over the optimizations provider
+ */
 import { use } from "react";
 
 import { Button, Chip, Icon, LoadingSpinner } from "@hashintel/ds-components";
@@ -8,23 +12,10 @@ import {
 } from "../../../../../../react/optimizations/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../components/table";
+import { formatNumber } from "../shared/format-value";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
+import { describeOptimizationStatus } from "./optimization-status";
 import { ViewOptimizationDrawer } from "./view-optimization-drawer";
-
-function formatStatus(status: OptimizationRecord["status"]): string {
-  switch (status) {
-    case "initializing":
-      return "Initializing";
-    case "running":
-      return "Running";
-    case "complete":
-      return "Complete";
-    case "error":
-      return "Error";
-    case "cancelled":
-      return "Cancelled";
-  }
-}
 
 const OptimizationStatusBadge = ({
   optimization,
@@ -51,14 +42,10 @@ const OptimizationStatusBadge = ({
             : undefined
       }
     >
-      {formatStatus(optimization.status)}
+      {describeOptimizationStatus(optimization)}
     </Chip>
   );
 };
-
-function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toPrecision(5);
-}
 
 const optimizationColumns = [
   {

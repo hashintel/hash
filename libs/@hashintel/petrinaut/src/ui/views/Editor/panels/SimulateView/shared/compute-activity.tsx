@@ -1,21 +1,32 @@
 /**
- * The summary's compute readout: the selected combination's progress bar plus
- * a compact, toggleable list of every batch computing right now — a sweep
- * runs the selection's ladder, surface chunks, and cell refinements in
- * parallel, and the list shows that parallelism. Collapsed, it is one line
- * ("N computing"); nothing renders when nothing computes.
+ * A summary's compute readout: the progress bar for the thing the drawer
+ * shows, an optional thinner bar for the batch feeding it, and a compact,
+ * toggleable list of every batch computing right now — a sweep runs the
+ * selection's ladder, surface chunks and cell refinements in parallel, a
+ * study its steps and the navigated point's refinement — so the list shows
+ * that parallelism. Collapsed, it is one line ("N computing"); the toggle
+ * hides when nothing computes.
  */
 import { useState } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { experimentProgressPercent } from "../../../../../shared/experiment-progress";
+/** One computing batch, for the expanded list. */
+export type ComputeActivityBatch = {
+  id: string;
+  label: string;
+  /** Priority work draws in blue; background work in grey. */
+  tone: "priority" | "background";
+  runCount: number;
+  completedRuns: number;
+};
 
-import type {
-  ExperimentRecord,
-  SweepBatchStatus,
-} from "../../../../../../../../react/experiments/context";
+/** A progress bar's fill and the label under it; no label leaves the slot empty. */
+export type ComputeActivityBar = {
+  percent: number;
+  label?: string;
+};
 
 const barTrackStyle = css({
   height: "[6px]",
@@ -32,12 +43,35 @@ const barFillStyle = css({
   transition: "[width 160ms ease-out]",
 });
 
+const secondaryTrackStyle = css({
+  height: "[3px]",
+  width: "full",
+  marginTop: "[3px]",
+  backgroundColor: "neutral.s20",
+  borderRadius: "full",
+  overflow: "hidden",
+});
+
+const secondaryFillStyle = css({
+  height: "full",
+  borderRadius: "full",
+  backgroundColor: "blue.s100",
+  transition: "[width 160ms ease-out]",
+});
+
 const metaRowStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: "2",
   marginTop: "1",
+});
+
+const metaLabelsStyle = css({
+  display: "flex",
+  alignItems: "baseline",
+  gap: "2",
+  minWidth: "[0]",
 });
 
 // The toggle stays in the row while nothing computes so the row keeps its
@@ -51,6 +85,13 @@ const metaLabelStyle = css({
   fontSize: "[11px]",
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
+});
+
+const secondaryLabelStyle = css({
+  fontSize: "[11px]",
+  color: "blue.s100",
+  fontVariantNumeric: "tabular-nums",
+  whiteSpace: "nowrap",
 });
 
 const toggleStyle = css({
@@ -91,7 +132,7 @@ const batchListStyle = css({
 
 const batchRowStyle = css({
   display: "grid",
-  gridTemplateColumns: "[76px minmax(0, 1fr) 88px]",
+  gridTemplateColumns: "[minmax(76px, auto) minmax(0, 1fr) 88px]",
   alignItems: "center",
   gap: "2",
   minHeight: "[16px]",
@@ -104,6 +145,9 @@ const batchLabelStyle = css({
   fontSize: "[11px]",
   color: "neutral.s100",
   whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: "[220px]",
 });
 
 const batchDotStyle = css({
@@ -138,17 +182,7 @@ const batchCountStyle = css({
   whiteSpace: "nowrap",
 });
 
-const BATCH_KIND_META: Record<
-  SweepBatchStatus["kind"],
-  { label: string; tone: "priority" | "background" }
-> = {
-  selection: { label: "Selection", tone: "priority" },
-  surface: { label: "Surface", tone: "background" },
-  refine: { label: "Refine", tone: "background" },
-};
-
-const BatchRow = ({ batch }: { batch: SweepBatchStatus }) => {
-  const meta = BATCH_KIND_META[batch.kind];
+const BatchRow = ({ batch }: { batch: ComputeActivityBatch }) => {
   const percent =
     batch.runCount > 0
       ? Math.min(100, (batch.completedRuns / batch.runCount) * 100)
@@ -156,14 +190,14 @@ const BatchRow = ({ batch }: { batch: SweepBatchStatus }) => {
 
   return (
     <div className={batchRowStyle}>
-      <span className={batchLabelStyle}>
-        <span className={batchDotStyle} data-tone={meta.tone} />
-        {meta.label}
+      <span className={batchLabelStyle} title={batch.label}>
+        <span className={batchDotStyle} data-tone={batch.tone} />
+        {batch.label}
       </span>
       <div className={batchTrackStyle}>
         <div
           className={batchFillStyle}
-          data-tone={meta.tone}
+          data-tone={batch.tone}
           style={{ width: `${percent}%` }}
         />
       </div>
@@ -176,54 +210,60 @@ const BatchRow = ({ batch }: { batch: SweepBatchStatus }) => {
 };
 
 export const ComputeActivity = ({
-  sweepBatches,
-  sweep,
-  progress,
-  runCount,
-  maxTime,
-}: Pick<
-  ExperimentRecord,
-  "sweepBatches" | "sweep" | "progress" | "runCount" | "maxTime"
->) => {
+  bar,
+  secondaryBar = null,
+  batches,
+}: {
+  bar: ComputeActivityBar;
+  /** A thinner bar beneath the main one; null hides it. */
+  secondaryBar?: ComputeActivityBar | null;
+  batches: readonly ComputeActivityBatch[];
+}) => {
   const [expanded, setExpanded] = useState(false);
-  const percent = experimentProgressPercent({
-    sweep,
-    progress,
-    runCount,
-    maxTime,
-  });
-  const barLabel = sweep
-    ? `Selection · ${sweep.runsSampled.toLocaleString("en-US")} / ${runCount.toLocaleString("en-US")} runs`
-    : `Time · ${(progress?.time ?? 0).toLocaleString("en-US")} / ${maxTime.toLocaleString("en-US")}`;
 
   return (
     <div>
       <div className={barTrackStyle}>
-        <div className={barFillStyle} style={{ width: `${percent}%` }} />
+        <div className={barFillStyle} style={{ width: `${bar.percent}%` }} />
       </div>
+      {secondaryBar ? (
+        <div className={secondaryTrackStyle}>
+          <div
+            className={secondaryFillStyle}
+            style={{ width: `${secondaryBar.percent}%` }}
+          />
+        </div>
+      ) : null}
       <div className={metaRowStyle}>
-        <span className={metaLabelStyle}>{barLabel}</span>
+        <span className={metaLabelsStyle}>
+          {bar.label === undefined ? null : (
+            <span className={metaLabelStyle}>{bar.label}</span>
+          )}
+          {secondaryBar ? (
+            <span className={secondaryLabelStyle}>{secondaryBar.label}</span>
+          ) : null}
+        </span>
         <span
           className={toggleSlotStyle}
-          data-idle={sweepBatches.length === 0}
-          aria-hidden={sweepBatches.length === 0}
+          data-idle={batches.length === 0}
+          aria-hidden={batches.length === 0}
         >
           <button
             type="button"
             className={toggleStyle}
             aria-expanded={expanded}
-            disabled={sweepBatches.length === 0}
+            disabled={batches.length === 0}
             onClick={() => setExpanded((previous) => !previous)}
           >
             <span className={computingDotStyle} />
-            {sweepBatches.length} computing
+            {batches.length} computing
             <Icon name={expanded ? "chevronUp" : "chevronDown"} size="xxs" />
           </button>
         </span>
       </div>
-      {expanded && sweepBatches.length > 0 ? (
+      {expanded && batches.length > 0 ? (
         <div className={batchListStyle}>
-          {sweepBatches.map((batch) => (
+          {batches.map((batch) => (
             <BatchRow key={batch.id} batch={batch} />
           ))}
         </div>

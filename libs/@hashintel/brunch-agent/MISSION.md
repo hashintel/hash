@@ -1,52 +1,159 @@
-# FE-1630 — Optimize and measure the Brunch Voice relay
+# Brunch remote browser-origin policy
 
 ## Status
 
-**Live.** Kostandin authorized this bounded experiment and, on 2026-09-08, explicitly approved the outlined version-pinned Flue dependency-patch exception: “do now - but note it”. This is a maintained local extension to Flue 2.0.3, not upstream-supported functionality. The exception is limited to delivery-scoped response-style context and its reliable recovery; it does not authorize a provenance or persistence redesign.
+**Live as of 2026-09-08** for
+[SRE-1042](https://linear.app/hash/issue/SRE-1042/configure-petrinauts-deployment-variables-for-the-brunch-agent-chat)
+on `t/sre-1042-allow-wildcard-origins-for-brunch-previews`, cut from `main` after
+[FE-1626](https://github.com/hashintel/hash/pull/9583) established the exact-origin allow-list for
+`/agents/*`. This file is the branch's sole execution authority.
 
-Implementation, local before/after evidence, and an audible demonstration are available in [the evidence packet](docs/evidence/implementations/improved-voice-relay/verification.md). Bounded long-report delivery works in the recorded run; concise clarification does not. The recommendation is to reconsider #9571, not declare this relay adequate. #9564 has merged and main has been integrated without changing the experiment's product files. Human acceptance and full preview verification remain outstanding; this mission is not accepted.
-
-[FE-1630](https://linear.app/hash/issue/FE-1630/optimize-and-measure-the-brunch-voice-relay) _(internal)_ / `kostandin/fe-1630-improved-voice-relay` / [draft #9585](https://github.com/hashintel/hash/pull/9585). Foundation: [#9564](https://github.com/hashintel/hash/pull/9564), pinned at [bfd99d38fe53baa2ec15045dadf585f4c7890ffc](https://github.com/hashintel/hash/commit/bfd99d38fe53baa2ec15045dadf585f4c7890ffc). Its accepted authority is preserved verbatim in [the Mission 6b archive](docs/mission-archive/6b-voice-resumable-reconciliation.md); its limitations and Deferred items remain inherited, not silently closed. No future draft is consumed by this separate experiment.
+Exact origins alone do not fit the deployment: every Petrinaut preview has its own
+`https://petrinaut-git-<branch>.stage.hash.ai` origin, so the allow-list additionally accepts a
+wildcard for exactly one leading host label. CORS governs whether a conforming browser exposes a cross-origin response
+to client code; it does not authenticate or restrict non-browser callers, authorize a
+conversation, or make public exposure safe by itself.
 
 ## Imperative
 
-Determine whether Voice-mode Brunch prompting and bounded Realtime delivery make the existing relay sufficiently natural, without transferring domain authority. Deliver implementation, comparable before/after findings, and a short demonstration video. The visible advance is concise spoken clarification and a complete on-screen report that is read only on request.
+Let a deployed Petrinaut website use the Brunch `/agents/*` Flue routes from an explicitly trusted
+browser origin while causing browsers to withhold cross-origin access from unlisted origins. Do
+this now because the deployed website and Brunch service are separate origins and
+[SRE-1042](https://linear.app/hash/issue/SRE-1042/configure-petrinauts-deployment-variables-for-the-brunch-agent-chat)
+cannot point the browser at the deployed Brunch route until preflight and response headers work.
 
 ## Throughline
 
-Existing panel Voice input → shared AI SDK transport → one Flue user admission with unchanged text and optional `context.responseMode: "voice"` → Brunch's fixed effective-system-context instruction → canonical visible response → bounded Realtime speech. Typed messages omit context. Browser-tool continuations carry the originating response preference through their existing result admission; no global mode or additional signal admission.
+```text
+Petrinaut browser at one configured exact origin
+→ OPTIONS /agents/<agent>/<instance> with requested method and headers
+→ route-scoped Hono CORS middleware before ownership middleware
+→ 204 preflight carrying the matching origin, GET/POST/OPTIONS, and Flue request headers
+→ browser FlueClient GET/POST with x-brunch-principal + x-brunch-conversation
+→ existing agentOwnershipGuard and createAgentRouter
+→ response exposes the Flue/Durable Streams headers the browser SDK reads
+```
 
-### Ordered implementation and verification
+`BRUNCH_CORS_ALLOWED_ORIGINS` is read once at startup as a comma-separated list of HTTP(S)
+origins, each either exact or with a wildcard as the whole leading host label in front of a domain
+with at least two labels (`https://*.stage.hash.ai`). A wildcard matches exactly one label, like a
+wildcard TLS certificate. Parsing trims whitespace, normalizes an optional trailing slash through
+`URL.origin`, and deduplicates values. Credentials, non-root paths, queries, fragments, wildcards in
+any other position, opaque origins, and non-HTTP(S) schemes are startup configuration errors. Missing or blank configuration means an
+empty allowlist: same-origin and non-browser callers continue through the existing route, but
+browser code at another origin receives no CORS grant. See the
+[Brunch application README](../../../apps/brunch-agent/README.md#production-container) for
+operator configuration details.
 
-1. **Dependency contract first.** Add failing real-runtime tests under `apps/brunch-agent/test/` for delivery context, idempotent retries/conflicts, input recovery, and absence from model/user text. Patch the exact published runtime/SDK 2.0.3 packages using Yarn; persist opaque JSON context in existing submission and private canonical records, restore it through `useDelivery`, and leave public history/model projection unchanged. Keep the patch isolated in its own commit and document removal on adoption of an upstream equivalent.
-2. **Brunch wiring.** Extend `packages/transport-aisdk/src/index.ts` to derive the preference from existing live message/tool-result Voice metadata. Add tests in `test/chat-transport.test.ts`. Add fixed Voice instructions in the app's `ChatAgent` and test effective prompt inclusion/exclusion with the real runtime. No browser-supplied arbitrary instruction text.
-3. **Bounded delivery.** Test and change website `voice-interview/{realtime-brunch-bridge,openai-realtime-session,voice-turn-controller}` and `server/voice/openai-voice-policy`. Only application-selected fixed non-substantive bridging/offer text may be spoken outside canonical Brunch text. Keep diagnostics distinguishable, exact replay, and `semantic_vad.create_response: false`. Hold automatic delivery until response length can be classified; long reports remain complete on screen with an offer to read.
-4. **Combined proof.** Run targeted unit/runtime tests, affected TypeScript/lint checks, formatting, and `git diff --check`. Repeat the recorded short/long local inputs without changing their substance. Inspect rendered results, capture the demonstration, and report uncertainty rather than manufacture a naturalness verdict.
+The middleware applies only to `/agents/*` and runs before `agentOwnershipGuard`, so a valid
+preflight does not need conversation headers. It permits `GET`, `POST`, and `OPTIONS`; permits
+`Content-Type`, `x-brunch-principal`, and `x-brunch-conversation`; does not permit credentials; and
+uses a 600-second preflight cache. It exposes the non-safelisted response headers read by the
+installed Flue 2.0.3 and Durable Streams 0.2.6 clients:
+
+- `flue-error-ref`
+- `Stream-Next-Offset`
+- `Stream-Cursor`
+- `Stream-Up-To-Date`
+- `Stream-Closed`
+- `stream-sse-data-encoding`
+
+Hono's maintained CORS middleware owns header emission, `Vary` handling, and the `OPTIONS` response.
+Non-browser callers can still send requests and receive ordinary HTTP responses because CORS is
+enforced by browsers, not by the service as caller authentication. A response to an unlisted
+browser origin carries no `Access-Control-Allow-Origin`, so the browser withholds that response
+from client code.
 
 ## Proof
 
-- **Baseline oracle:** [recorded synthetic-speech baseline](docs/evidence/implementations/improved-voice-relay/baseline-2026-09-08.json) and [method/findings](docs/evidence/implementations/improved-voice-relay/verification.md). The real local providers returned a 192-word clarification and automatically delivered a 1,178-word report; Realtime also inserted an unsolicited preamble. This establishes neither human naturalness nor first-audible latency.
-- **Context oracle:** real Flue admission/runtime tests must distinguish Voice, typed, and causally linked tool continuations; unchanged retries deduplicate, changed context conflicts, and recovered input retains context without leaking it into public/model text. Existing no-context inputs remain valid. No new SQL store or sidecar is permitted.
-- **Speech oracle:** bridge/session/controller tests prove short output delivery, long-report withholding, exact requested reading, fixed bounded bridging without tools, interruption versus durable Stop, and no autoplay/duplicate content on reopen. Inspect corresponding browser states rather than count passing tests as audible proof.
-- **Product oracle:** comparable local before/after observations and an inspected demonstration video. Human-audible evidence is required for a naturalness judgment. Explicitly document latency, repetition, long-report, and interruption limitations. A synthetic run is labelled as such.
-- **Repository oracle:** affected `test:unit`, `lint:tsc`, `lint:eslint`, changed-file Oxfmt, and `git diff --check`; record failed or unavailable checks honestly. Preview testing remains gated on #9564 merging. No paid evaluation campaign is authorized.
+This mission establishes the application-side CORS contract required by the deployed browser
+transport. It does **not** establish authentication, authorization, rate limiting, infrastructure
+configuration, a deployed endpoint, or end-to-end remote verification.
+
+1. **Configuration is exact and fail-closed.** Missing and blank configuration produce no allowed
+   origins; whitespace, trailing slashes, duplicates, and multiple exact origins normalize
+   deterministically; malformed or broader-than-origin entries fail with the offending variable
+   named. Oracle: focused unit cases in `apps/brunch-agent/test/cors.test.ts`.
+2. **Allowed browser traffic receives the complete grant.** An allowed origin receives its exact
+   value on an `/agents/*` response. Its preflight receives 204 before ownership, the three allowed
+   methods, the three allowed request headers, the six exposed response headers, no credentials
+   grant, and the required `Vary` values. Oracle: in-process Hono requests in
+   `apps/brunch-agent/test/cors.test.ts`.
+3. **Rejected origins receive no grant.** An unlisted origin's preflight and ordinary response omit
+   `Access-Control-Allow-Origin`; an allowed origin does not make another origin pass. Oracle:
+   focused negative cases in `apps/brunch-agent/test/cors.test.ts`.
+4. **The policy cannot widen unrelated routes.** `/health`, `/`, and `/assets/*` carry no Brunch
+   CORS grant. Existing ownership checks still return 401/403 for actual agent requests with
+   missing or mismatched identity. Oracle: CORS route-scope tests plus the existing
+   `apps/brunch-agent/test/agent-ownership.test.ts`.
+5. **The shipped artifact and operator contract agree.** Brunch's README documents the variable,
+   exact-origin configuration, empty-list behavior, and the fact that CORS governs browser access
+   rather than authenticating or restricting non-browser callers. Oracle:
+   `yarn workspace @apps/brunch-agent test:unit`,
+   `yarn workspace @apps/brunch-agent lint:tsc`,
+   `yarn workspace @apps/brunch-agent lint:eslint`, and
+   `yarn workspace @apps/brunch-agent build`.
 
 ## Constraints
 
-- Brunch owns domain meaning, questions, conclusions, workpiece state, and tools. Realtime has no domain tools or authority. Bridging never interprets evidence, confirms changes, asks domain follow-ups, or alters qualifications.
-- Voice instructions ask for concise conversational answers, necessary conclusion/question first, no unnecessary preambles/repetition, consequential qualifications preserved, and complete detailed canonical reports on screen. Typed effective instructions remain unchanged.
-- Context is a response-style preference, not verified Voice provenance, identity, permission, or tool authority. It is snapshotted with each admitted delivery, not mutable conversation state. Direct-user Voice attribution on hydration remains outside this experiment.
-- Preserve admission/correlation, existing tool-order fixes, interruption/Stop distinctions, canonical text, exact reading, and shared conversation routing. Do not reimplement the parent's tool-order fix.
-- Do not change CORS/donor/ownership worktrees, FE-1624, or #9571. No delegation/`clarify_by_voice`, client-tool handback, sidecar conversation storage, persistence-only extension, workpiece redesign, or unrelated Linear write.
+- Use Hono's built-in CORS middleware; do not create a parallel HTTP server or hand-maintain generic
+  CORS response logic.
+- Keep one Flue product route and the existing ownership guard. CORS must not add, proxy, rename, or
+  reinterpret an agent route.
+- The origin list is explicit: exact origins or one-label wildcards, matched by scheme, host and
+  port. Do not hard-code Petrinaut domains, reflect arbitrary `Origin` values, or silently skip
+  malformed entries.
+- Keep credentials disabled. The current browser client uses explicit ownership headers, not
+  cookies, and those headers are not authentication.
+- Answer preflight before ownership while preserving ownership enforcement on every non-preflight
+  agent request.
+- Read configuration once at startup. Dynamic policy storage or hot reload is not earned by this
+  deployment.
+- Preserve local same-origin proxying when the variable is unset.
+- No implementation begins until this authority cut is committed separately. Material changes to
+  this contract require owner review and another focused authority commit.
+
+### Expected touched paths
+
+```text
+~ libs/@hashintel/brunch-agent/MISSION.md      branch authority
+~ apps/brunch-agent/src/http/cors.ts           exact and one-label wildcard origins, Hono middleware
+~ apps/brunch-agent/src/app.ts                 mount CORS before ownership on /agents/*
++ apps/brunch-agent/test/cors.test.ts          parser, allowed, rejected, preflight, route-scope tests
+~ apps/brunch-agent/README.md                  deployment variable and security boundary
+~ apps/brunch-agent/turbo.json                 pass the variable into the local dev task
+```
 
 ## Fog-line
 
-The delivery context patch must carry joined-input recovery as well as initial submission JSON; public history is not a new provenance API. If this demands broader persistence architecture, stop and return to the owner. Prompt constraints cannot guarantee Realtime will emit only allowed strings: the baseline violated verbatim-only instructions, so compare provider output with requested text and retain violations in evidence. Response-length threshold and speech naturalness are experimental choices, not architectural acceptance.
+- Infrastructure repository access is unavailable in this worktree, so this branch can prove only
+  the application contract. Runtime deployment configuration must supply the chosen origins before
+  remote verification.
+- A one-label wildcard admits every host directly under the configured domain, not only Petrinaut
+  previews. Narrow the deployed pattern or return to exact origins if that breadth becomes a
+  problem in practice.
+- The allowed and exposed headers are pinned to the installed Flue and Durable Streams clients.
+  Re-evaluate them from client source when either dependency changes.
 
 ## Stop or reorient
 
-Stop if context leaks into user/model text, retries gain another admission, recovery loses the preference, typed behavior inherits Voice mode, or the patch needs another store/authority. Reorient on observed delivery failures rather than expanding tools or ownership. If #9564 moves, restack/re-pin and rerun affected evidence before review; no parent/sibling rewrite. Neither baseline verbosity nor missing context alone selects #9571.
+Stop if the real browser client emits a request method or non-safelisted request header outside the
+pinned contract, reads another non-safelisted response header, or needs cookie credentials. Bring
+that evidence back to the contract before broadening the grant.
+
+Stop if middleware ordering bypasses ownership for a non-`OPTIONS` request, if an invalid
+configuration widens access or is ignored, if an unlisted origin receives
+`Access-Control-Allow-Origin`, or if `/health`, `/`, or `/assets/*` inherit the policy.
+
+Do not represent a green CORS test as permission for unauthenticated public exposure. Authentication,
+per-conversation authorization, rate/spend controls, and the infrastructure ingress boundary remain
+separate release gates.
 
 ## Deferred
 
-[The future spine](MISSION.next.md) and the archived Mission 6b Deferred section retain all prior owners, gates, and limitations. Split ownership and local domain follow-ups remain future design in [#9571](https://github.com/hashintel/hash/pull/9571), untouched. Final recommendation must be evidence-led: adequate optimized relay → defer #9571; persistent local-follow-up round-trip failure → reconsider #9571, without implementing it here.
+- SRE-1013 owns injection of the allowlist into the Brunch runtime deployment. SRE-1042 owns
+  `VITE_BRUNCH_CHAT_ENDPOINT`, Voice deployment variables, and the deployed browser verification
+  after this application contract lands.
+- FE-1615 and FE-1616 retain authentication and rate-limit work. CORS does not discharge either.
+- A same-origin Petrinaut proxy stays deferred; the one-label wildcard covers the preview
+  deployments the exact list could not.

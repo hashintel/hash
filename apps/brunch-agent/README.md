@@ -46,18 +46,36 @@ liveness only; it does not query Postgres or Anthropic.
 
 Production database configuration uses dedicated fields:
 
-| Variable                      | Required when | Purpose                                                                                                 |
-| ----------------------------- | ------------- | ------------------------------------------------------------------------------------------------------- |
-| `BRUNCH_POSTGRES_AUTH_MODE`   | Always        | `iam` or `password`                                                                                     |
-| `BRUNCH_POSTGRES_HOST`        | Always        | Exact RDS endpoint used for TLS and IAM signing                                                         |
-| `BRUNCH_POSTGRES_PORT`        | Always        | PostgreSQL port                                                                                         |
-| `BRUNCH_POSTGRES_DATABASE`    | Always        | Flue database                                                                                           |
-| `BRUNCH_POSTGRES_USER`        | Always        | PostgreSQL role                                                                                         |
-| `BRUNCH_POSTGRES_TLS_CA_PATH` | Always        | Trusted RDS CA bundle; the image sets it to the bundled AWS global bundle, override only for another CA |
-| `BRUNCH_POSTGRES_AWS_REGION`  | IAM only      | Region used by the RDS signer; rejected in password mode                                                |
-| `BRUNCH_POSTGRES_PASSWORD`    | Password only | Runtime-injected database password; rejected in IAM mode                                                |
-| `HASH_OTLP_ENDPOINT`          | Always        | HASH OTLP/gRPC collector endpoint                                                                       |
-| `OTEL_SERVICE_NAME`           | Optional      | OTel service name; defaults to `Brunch Agent`                                                           |
+| Variable                      | Required when | Purpose                                                                                                   |
+| ----------------------------- | ------------- | --------------------------------------------------------------------------------------------------------- |
+| `BRUNCH_POSTGRES_AUTH_MODE`   | Always        | `iam` or `password`                                                                                       |
+| `BRUNCH_POSTGRES_HOST`        | Always        | Exact RDS endpoint used for TLS and IAM signing                                                           |
+| `BRUNCH_POSTGRES_PORT`        | Always        | PostgreSQL port                                                                                           |
+| `BRUNCH_POSTGRES_DATABASE`    | Always        | Flue database                                                                                             |
+| `BRUNCH_POSTGRES_USER`        | Always        | PostgreSQL role                                                                                           |
+| `BRUNCH_POSTGRES_TLS_CA_PATH` | Always        | Trusted RDS CA bundle; the image sets it to the bundled AWS global bundle, override only for another CA   |
+| `BRUNCH_POSTGRES_AWS_REGION`  | IAM only      | Region used by the RDS signer; rejected in password mode                                                  |
+| `BRUNCH_POSTGRES_PASSWORD`    | Password only | Runtime-injected database password; rejected in IAM mode                                                  |
+| `HASH_OTLP_ENDPOINT`          | Always        | HASH OTLP/gRPC collector endpoint                                                                         |
+| `OTEL_SERVICE_NAME`           | Optional      | OTel service name; defaults to `Brunch Agent`                                                             |
+| `BRUNCH_CORS_ALLOWED_ORIGINS` | Optional      | Browser JavaScript allowlist for `/agents/*`: exact origins or `https://*.domain`; blank grants no access |
+
+`BRUNCH_CORS_ALLOWED_ORIGINS` is a comma-separated list of origins whose browser JavaScript may
+read cross-origin responses from `/agents/*`. An entry is either an exact origin or a wildcard for
+exactly one leading host label, which covers per-branch preview deployments. For example:
+
+```sh
+BRUNCH_CORS_ALLOWED_ORIGINS=https://app.example.com,https://*.preview.example.com
+```
+
+`https://*.preview.example.com` admits `https://feature-x.preview.example.com` but not
+`https://preview.example.com`, `https://a.b.preview.example.com`, or another scheme or port. The
+wildcard must be the whole first label in front of a domain with at least two labels. Non-root
+paths, queries, fragments, credentials, and non-HTTP(S) schemes are rejected. Missing or blank
+configuration grants no cross-origin browser access while preserving same-origin requests. CORS
+controls browser JavaScript access; it is not a server-side access gate and does not restrict
+non-browser callers. The deployment still requires its separate identity, authorization, ingress,
+and rate-limit gates.
 
 `DATABASE_URL`, `BRUNCH_DEV_DB_PATH`, and `BRUNCH_CHAT_DB_PATH` are rejected in production.
 TLS verification is always enabled, and connection acquisition fails after 10 seconds rather than
@@ -76,28 +94,17 @@ rather than a message. On SIGTERM Flue drains active work for up to 30 seconds, 
 Postgres runner, whose close hook shuts the OpenTelemetry providers down; a 60-second outer timer
 force-exits. Give the ECS task a stop timeout above 60 seconds.
 
-Only `/api/chat` should be reachable by the restricted diagnostic caller. The load balancer or
-access boundary must not expose `/`, `/assets/*`, or `/agents/chat/:id`; caller-supplied principals,
-CORS, and conversation hashes are not authentication. Desired count remains one until
-same-conversation ownership across replicas is separately proven.
+Brunch does not mount the retired `/api/chat` path; requests to it return 404.
+`/agents/chat/:instanceId` is the sole product route required by Petrinaut. Releasing that route to
+production browser ingress requires separate authentication, authorization, ingress, and
+rate/spend gates. Do not expose `/`, `/assets/*`, or other unrelated routes through browser
+ingress. CORS, caller-supplied principals, and conversation hashes are not authentication. Desired
+count remains one until same-conversation ownership across replicas is separately proven.
 
 The deployed chat path stores Flue conversations, submissions, compaction records, attachments,
 claims, leases, and settlement state in Postgres. The separate Brunch capture store is not used by
 that path and remains local-development machinery; enabling capture in a deployment requires a new
 durability decision.
-
-For a restricted remote turn, provide `BRUNCH_SMOKE_BASE_URL`,
-`BRUNCH_SMOKE_PRINCIPAL`, and a stable `BRUNCH_SMOKE_CONVERSATION_ID`;
-`BRUNCH_SMOKE_PROMPT` and `BRUNCH_SMOKE_REQUEST_ID` are optional overrides. The
-turn must stream assistant text and finish within two minutes. Reuse the
-conversation ID for the post-replacement history check and set
-`BRUNCH_SMOKE_EXPECTED_TEXT` to text persisted by the turn; history mode fails
-unless that text is present.
-
-```sh
-yarn workspace @apps/brunch-agent smoke:deployment
-BRUNCH_SMOKE_MODE=history yarn workspace @apps/brunch-agent smoke:deployment
-```
 
 ## Panel and Voice conversation route
 

@@ -10,7 +10,7 @@ import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
-import { formatNumber } from "../shared/format-number";
+import { formatFixed } from "../../shared/format-value";
 import { BinHistogramCanvas } from "./frame-popover/bin-histogram-canvas";
 import { sampleCountFromBins } from "./shared/distribution-math";
 
@@ -148,7 +148,7 @@ const DistributionFrameHistogram = ({
   return (
     <div className={detailStyle}>
       <div className={detailHeaderStyle}>
-        <span className={detailTitleStyle}>{formatNumber(frame.time)}s</span>
+        <span className={detailTitleStyle}>{formatFixed(frame.time)}s</span>
         <span className={detailMetaStyle}>
           Frame {frame.frameNumber} - {sampleCount} sample
           {sampleCount === 1 ? "" : "s"} - {frame.bins.length} bin
@@ -163,14 +163,14 @@ const DistributionFrameHistogram = ({
 const ScalarFrameDetail = ({ frame }: { frame: ScalarMetricFrame }) => (
   <div className={detailStyle}>
     <div className={detailHeaderStyle}>
-      <span className={detailTitleStyle}>{formatNumber(frame.time)}s</span>
+      <span className={detailTitleStyle}>{formatFixed(frame.time)}s</span>
       <span className={detailMetaStyle}>
         Frame {frame.frameNumber} - {frame.runSampleCount} run
         {frame.runSampleCount === 1 ? "" : "s"}
       </span>
     </div>
     <div className={scalarValueStyle}>
-      {frame.value === null ? "n/a" : formatNumber(frame.value)}
+      {frame.value === null ? "n/a" : formatFixed(frame.value)}
     </div>
   </div>
 );
@@ -229,8 +229,8 @@ export const FramePopover = ({
         role="dialog"
         aria-label={
           frame.outputType === "distribution"
-            ? `Distribution at ${formatNumber(frame.time)}s`
-            : `Value at ${formatNumber(frame.time)}s`
+            ? `Distribution at ${formatFixed(frame.time)}s`
+            : `Value at ${formatFixed(frame.time)}s`
         }
         style={
           {

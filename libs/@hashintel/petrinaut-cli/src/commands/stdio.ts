@@ -2,13 +2,13 @@ import { resolve } from "node:path";
 import { createInterface } from "node:readline";
 
 import { compilePetrinautModel } from "@hashintel/petrinaut-core/compiled-model";
+import { parseOptimizationManifest } from "@hashintel/petrinaut-core/optimization";
 
 import { loadSdcpnModel, parseSdcpnModel } from "../runtime/load-model";
 import { createNodeSimulationWorkerFactory } from "../runtime/node-simulation-worker";
 import {
   createOptimizationProtocol,
   loadOptimizationManifest,
-  parseOptimizationManifest,
 } from "../runtime/optimization";
 import {
   handleProtocolLine,

@@ -119,3 +119,66 @@ export function optimizationAxisMidpoint(
 ): number {
   return Math.round(axis.stepCount / 2);
 }
+
+/** The optimized boolean parameters, in binding order; they toggle rather than slide. */
+export function optimizationBooleanIdentifiers(
+  input: PetrinautOptimizationInput,
+): string[] {
+  return Object.entries(input.scenario.parameterBindings)
+    .filter(
+      ([, binding]) =>
+        binding.kind === "optimize" && binding.domain.kind === "boolean",
+    )
+    .map(([identifier]) => identifier);
+}
+
+type NavigationPoint = {
+  positions: Readonly<Record<string, number>>;
+  booleans: Readonly<Record<string, boolean>>;
+};
+
+/** One point as a cache key: positions in axis order, then booleans in binding order. */
+export function optimizationNavigationKey(
+  axes: readonly OptimizationSurfaceAxis[],
+  booleanIdentifiers: readonly string[],
+  point: NavigationPoint,
+): string {
+  return [
+    ...axes.map(
+      (axis) => `${axis.identifier}=${point.positions[axis.identifier] ?? 0}`,
+    ),
+    ...booleanIdentifiers.map(
+      (identifier) => `${identifier}=${point.booleans[identifier] ?? false}`,
+    ),
+  ].join("|");
+}
+
+/**
+ * Every scenario parameter's value at one point: the fixed bindings, each
+ * axis's value at its position, and each boolean as toggled.
+ */
+export function optimizationNavigationValues(
+  input: PetrinautOptimizationInput,
+  axes: readonly OptimizationSurfaceAxis[],
+  booleanIdentifiers: readonly string[],
+  point: NavigationPoint,
+): Record<string, number | boolean> {
+  const values: Record<string, number | boolean> = {};
+  for (const [identifier, binding] of Object.entries(
+    input.scenario.parameterBindings,
+  )) {
+    if (binding.kind === "fixed") {
+      values[identifier] = binding.value;
+    }
+  }
+  for (const axis of axes) {
+    values[axis.identifier] = optimizationAxisValueAt(
+      axis,
+      point.positions[axis.identifier] ?? 0,
+    );
+  }
+  for (const identifier of booleanIdentifiers) {
+    values[identifier] = point.booleans[identifier] ?? false;
+  }
+  return values;
+}

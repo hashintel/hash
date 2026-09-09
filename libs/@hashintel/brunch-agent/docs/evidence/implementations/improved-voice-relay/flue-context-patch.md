@@ -1,6 +1,6 @@
 # FE-1630 local Flue delivery-context extension
 
-Kostandin explicitly approved this exception on 2026-09-08 after reviewing the per-turn context approach: “do now - but note it”. **This is a maintained local patch to Flue 2.0.3, not an upstream-supported API.** It exists only to test the Improved Relay without encoding mode in user text or introducing a second admission/store. The live scope is in [MISSION.md](../../../../MISSION.md).
+Kostandin explicitly approved this exception on 2026-09-08 after reviewing the per-turn context approach: “do now - but note it”. **This is a maintained local patch to Flue 2.0.3, not an upstream-supported API.** It exists only to test the Improved Relay without encoding mode in user text or introducing a second admission/store. The experiment scope is preserved in its [historical branch contract](mission.md).
 
 ## Contract
 

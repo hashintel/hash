@@ -64,30 +64,6 @@ class StubbornModel(FakeModel):
         raise PetrinautClientError("session closed")
 
 
-def test_maps_float_integer_step_and_boolean_descriptors_to_optuna(
-    optimization_description: dict,
-) -> None:
-    model = FakeModel(optimization_description)
-    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
-    trial = optuna.trial.FixedTrial({"rate": 0.5, "count": 6, "enabled": False})
-
-    assert optimizer.suggest(trial) == {
-        "rate": 0.5,
-        "count": 6,
-        "enabled": False,
-    }
-    distributions = trial.distributions
-    assert isinstance(distributions["rate"], optuna.distributions.FloatDistribution)
-    assert distributions["rate"].log is True
-    assert isinstance(distributions["count"], optuna.distributions.IntDistribution)
-    assert distributions["count"].step == 2
-    assert distributions["count"].log is False
-    assert isinstance(
-        distributions["enabled"], optuna.distributions.CategoricalDistribution
-    )
-    assert distributions["enabled"].choices == (False, True)
-
-
 def test_objective_sends_only_flat_suggested_values(
     optimization_description: dict,
 ) -> None:
@@ -134,57 +110,18 @@ def test_objective_propagates_transport_errors(
         optimizer.objective(trial)
 
 
-def test_uses_the_session_supplied_seed_for_deterministic_sampling(
-    optimization_description: dict,
-) -> None:
-    first = PetrinautOptimizer(  # type: ignore[arg-type]
-        FakeModel(optimization_description)
-    )
-    second = PetrinautOptimizer(  # type: ignore[arg-type]
-        FakeModel(optimization_description)
-    )
-
-    assert first.suggest(first.study.ask()) == second.suggest(second.study.ask())
-
-
 @pytest.mark.parametrize(
     "change",
     [
+        # A shape the protocol schema rejects before the shared core sees it.
         {"direction": "up"},
-        {"study": {"trials": 0, "sampler": "random", "seed": 42}},
-        # The service-side trial cap bounds every run's event log even when
-        # the reported study is huge.
+        # A rule the shared core enforces; its own suite covers the full matrix.
         {
             "study": {
                 "trials": petrinaut_optimizer.MAX_STUDY_TRIALS + 1,
                 "sampler": "random",
                 "seed": 42,
             }
-        },
-        {"study": {"trials": 1, "sampler": "unknown", "seed": 42}},
-        {"study": {"trials": 1, "sampler": "random", "seed": -1}},
-        {
-            "parameters": [
-                {
-                    "identifier": "rate",
-                    "type": "float",
-                    "minimum": 0,
-                    "maximum": 1,
-                    "scale": "log",
-                }
-            ]
-        },
-        {
-            "parameters": [
-                {
-                    "identifier": "count",
-                    "type": "int",
-                    "minimum": 1,
-                    "maximum": 10,
-                    "step": 2,
-                    "scale": "log",
-                }
-            ]
         },
     ],
 )

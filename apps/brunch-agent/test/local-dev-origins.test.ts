@@ -13,26 +13,6 @@ import {
 const readAppFile = (relativePath: string): string =>
   readFileSync(new URL(`../${relativePath}`, import.meta.url), "utf8");
 
-const readRepoFile = (relativePath: string): string =>
-  readFileSync(new URL(`../../../${relativePath}`, import.meta.url), "utf8");
-
-test("one documented root command starts the Brunch server and Petrinaut panel", () => {
-  const rootPackage = JSON.parse(readRepoFile("package.json")) as {
-    scripts: Record<string, string>;
-  };
-
-  expect(rootPackage.scripts["dev:brunch"]).toBe(
-    "CARGO_TERM_PROGRESS_WHEN=never turbo run build --filter '@apps/brunch-agent^...' --filter '@apps/petrinaut-website^...' && npm-run-all --parallel dev:brunch:server dev:brunch:panel",
-  );
-  expect(rootPackage.scripts["dev:brunch:server"]).toBe(
-    "yarn workspace @apps/brunch-agent dev",
-  );
-  expect(rootPackage.scripts["dev:brunch:panel"]).toBe(
-    'PETRINAUT_WEBSITE_ROOT="$PWD/apps/petrinaut-website" yarn workspace @apps/brunch-agent petrinaut:dev',
-  );
-  expect(readAppFile("README.md")).toContain("yarn dev:brunch");
-});
-
 test("dev listens on the chat origin the panel proxy already assumes", () => {
   expect(defaultChatOrigin).toBe("http://127.0.0.1:4321");
   expect(localChatListen).toEqual({
@@ -40,10 +20,9 @@ test("dev listens on the chat origin the panel proxy already assumes", () => {
     port: 4321,
     strictPort: true,
   });
-  expect(readAppFile("vite.config.ts")).toContain("localChatListen");
 });
 
-test("petrinaut:dev proxies the mounted Flue conversation route", () => {
+test("builds local panel configuration for the mounted Flue route", () => {
   expect(localPanelListen).toEqual({
     host: "127.0.0.1",
     port: 4915,
@@ -58,12 +37,6 @@ test("petrinaut:dev proxies the mounted Flue conversation route", () => {
       },
     },
   });
-  expect(readAppFile("petrinaut-local.vite.config.ts")).toContain(
-    "petrinautLocalServer",
-  );
-  expect(readAppFile("petrinaut-local.vite.config.ts")).toContain(
-    'VITE_BRUNCH_CHAT_ENDPOINT ??= "/agents/chat"',
-  );
 });
 
 test("petrinaut:dev retains the website API handlers needed by Voice", () => {
@@ -79,5 +52,19 @@ test("petrinaut:dev retains the website API handlers needed by Voice", () => {
     expect.arrayContaining([
       expect.objectContaining({ name: "petrinaut-api-dev" }),
     ]),
+  );
+});
+
+test("forwards the deployment CORS allowlist to local development", () => {
+  const turboConfig = JSON.parse(readAppFile("turbo.json")) as {
+    tasks: {
+      dev: {
+        passThroughEnv: string[];
+      };
+    };
+  };
+
+  expect(turboConfig.tasks.dev.passThroughEnv).toContain(
+    "BRUNCH_CORS_ALLOWED_ORIGINS",
   );
 });

@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
+import {
+  createReadableStore,
+  DEFAULT_PETRINAUT_EXTENSIONS,
+} from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
   type CreateExperimentInput,
+  type DetachedObjectiveRunOutcome,
   ExperimentsActionsContext,
   type ExperimentsActionsValue,
   ExperimentsContext,
@@ -21,6 +25,10 @@ import {
 } from "../../../../../../react/state/editor-context";
 
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
+import type {
+  MonteCarloUserDefinedMetricFrame,
+  MonteCarloWorkerProgress,
+} from "@hashintel/petrinaut-core";
 
 export const sirSdcpnContextValue: SDCPNContextValue = {
   createNewNet: () => {},
@@ -397,6 +405,85 @@ export function makeFakeSurfaceSampler(
     });
 }
 
+/**
+ * The fake of a streaming objective batch: ten frames of the synthetic bump
+ * at the request's parameter values, one every 60 ms, then the result.
+ */
+export const fakeRunDetachedObjective: ExperimentsActionsValue["runDetachedObjective"] =
+  (request) => {
+    const values = Object.values(request.scenarioParameterValues).filter(
+      (entry): entry is number => typeof entry === "number",
+    );
+    const objective = syntheticSweepObjective(values[0] ?? 0, values[1] ?? 0);
+    const frames = createReadableStore<
+      readonly MonteCarloUserDefinedMetricFrame[]
+    >([]);
+    const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
+    let cancelled = false;
+    const completion = new Promise<DetachedObjectiveRunOutcome>((resolve) => {
+      const totalTicks = 10;
+      let tick = 0;
+      const step = () => {
+        if (cancelled) {
+          resolve({ ok: false, cancelled: true, reason: "cancelled" });
+          return;
+        }
+        tick += 1;
+        const fraction = tick / totalTicks;
+        const time = request.maxTime * fraction;
+        frames.set([
+          ...frames.get(),
+          {
+            metricId: request.metric.id,
+            label: request.metric.label,
+            outputType: "distribution",
+            frameNumber: Math.round(time / request.dt),
+            time,
+            bins: [
+              [Math.round(objective * fraction * 100) / 100, request.runCount],
+            ],
+            value: null,
+            frameValue: null,
+            timeValue: null,
+            runSampleCount: request.runCount,
+            timeSampleCount: request.runCount,
+          },
+        ]);
+        progress.set({
+          activeRuns: tick < totalTicks ? request.runCount : 0,
+          advancedRuns: request.runCount,
+          allFinished: tick >= totalTicks,
+          completedRuns: tick < totalTicks ? 0 : request.runCount,
+          erroredRuns: 0,
+          frameNumber: Math.round(time / request.dt),
+          runCount: request.runCount,
+          time,
+        });
+        if (tick < totalTicks) {
+          setTimeout(step, 60);
+          return;
+        }
+        resolve({
+          ok: true,
+          runsCompleted: request.runCount,
+          metricFrames: frames.get(),
+          runResults: new Map(),
+          computeBackend: request.computeBackend,
+          computeBackendFallbackReason: null,
+        });
+      };
+      setTimeout(step, 60);
+    });
+    return {
+      frames,
+      progress,
+      completion,
+      cancel: () => {
+        cancelled = true;
+      },
+    };
+  };
+
 export function FakeExperimentsProvider({
   children,
   initialExperiments,
@@ -413,7 +500,7 @@ export function FakeExperimentsProvider({
   overrides?: Partial<
     Pick<
       ExperimentsContextValue,
-      "sampleSurfaceCells" | "sampleDetachedObjective"
+      "sampleSurfaceCells" | "sampleDetachedObjective" | "runDetachedObjective"
     >
   >;
   /**
@@ -607,6 +694,7 @@ export function FakeExperimentsProvider({
         );
       });
     },
+    runDetachedObjective: fakeRunDetachedObjective,
     ...overrides,
   }));
 

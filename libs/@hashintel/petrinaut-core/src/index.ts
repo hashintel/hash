@@ -2,7 +2,8 @@
  * Public surface for `@hashintel/petrinaut-core` — the headless engine.
  *
  * No React, no DOM, no Monaco. Stateful handles, streams, and pure logic for
- * SDCPN documents, simulation, LSP, and playback.
+ * SDCPN documents, simulation, LSP, and playback, and an in-browser
+ * optimization runtime (Optuna under Pyodide in a worker).
  *
  * @layerRoot core
  * @role SDCPN document model, compiler, simulation runtimes and LSP, with no UI framework
@@ -52,7 +53,7 @@ export {
   type PetrinautHistory,
   type PetrinautPatch,
 } from "./handle";
-export type { ReadableStore } from "./store";
+export { createReadableStore, type ReadableStore } from "./store";
 export {
   DEFAULT_PETRINAUT_EXTENSIONS,
   PETRINAUT_EXTENSION_NAMES,

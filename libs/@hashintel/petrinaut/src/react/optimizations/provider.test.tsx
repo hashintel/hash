@@ -7,68 +7,56 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
-  petrinautOptimizationInputSchema,
   type PetrinautOptimization,
+  type PetrinautOptimizationEvent,
 } from "@hashintel/petrinaut-core";
-import { sirModel } from "@hashintel/petrinaut-core/examples";
+import {
+  type PetrinautConnectedOptimization,
+  resolveTrialScenarioParameterValues,
+} from "@hashintel/petrinaut-core/optimization";
 
+import {
+  ExperimentsActionsContext,
+  type ExperimentsActionsValue,
+} from "../experiments/context";
 import {
   PetrinautNavigationProvider,
   usePetrinautNavigation,
 } from "../navigation";
 import { PetrinautOptimizationContext } from "../optimization-context";
+import { UserSettingsContext } from "../state/user-settings-context";
 import {
   OptimizationsContext,
   type OptimizationsContextValue,
 } from "./context";
+import {
+  completedRunResult,
+  createFakeDetachedObjectiveRuns,
+  distributionFrame,
+} from "./fake-detached-objective-runs.fixtures";
 import { OptimizationsProvider } from "./provider";
+import {
+  sirOptimizationInput,
+  sirOptimizationMetric,
+} from "./sir-optimization-input.fixtures";
+import {
+  buildOptimizationSurfaceAxes,
+  optimizationAxisPositionFor,
+} from "./surface-grid";
 
 import type { PetrinautNavigationState } from "../navigation";
+import type { PropsWithChildren } from "react";
 
-const scenario = sirModel.petriNetDefinition.scenarios?.find(
-  (candidate) => candidate.id === "scenario__seasonal_flu",
-);
-const metric = sirModel.petriNetDefinition.metrics?.find(
-  (candidate) => candidate.id === "metric__infected_fraction",
-);
-if (!scenario || !metric) {
-  throw new Error("The SIR optimization fixtures are incomplete");
-}
+const input = sirOptimizationInput;
+const metricId = sirOptimizationMetric.id;
+const infectedRatioAxis = buildOptimizationSurfaceAxes(input)[0]!;
 
-const input = petrinautOptimizationInputSchema.parse({
-  kind: "petrinaut-optimization",
-  version: 1,
-  name: "SIR optimization",
-  model: {
-    title: sirModel.title,
-    definition: {
-      ...sirModel.petriNetDefinition,
-      scenarios: [scenario],
-      metrics: [metric],
-    },
-  },
-  scenario: {
-    id: scenario.id,
-    parameterBindings: {
-      population: { kind: "fixed", value: 1_000 },
-      infected_ratio: {
-        kind: "optimize",
-        domain: {
-          kind: "continuous",
-          minimum: 0.001,
-          maximum: 0.2,
-          scale: "log",
-        },
-      },
-    },
-  },
-  objective: {
-    metricId: "metric__infected_fraction",
-    direction: "minimize",
-  },
-  execution: { seed: 1, dt: 1, maxTime: 180 },
-  study: { trials: 2, sampler: "tpe" },
-});
+/** An event before a fake log stamps its `seq`, each variant on its own. */
+type UnsequencedEvent = PetrinautOptimizationEvent extends infer Event
+  ? Event extends unknown
+    ? Omit<Event, "seq">
+    : never
+  : never;
 
 const CaptureContext = ({
   onValue,
@@ -86,6 +74,177 @@ const CaptureNavigation = ({
 }) => {
   onValue(usePetrinautNavigation().state);
   return null;
+};
+
+/** Overrides the In-browser optimization setting below the default context. */
+const InBrowserOptimizationSetting = ({
+  enabled,
+  children,
+}: PropsWithChildren<{ enabled: boolean }>) => {
+  const value = use(UserSettingsContext);
+  return (
+    <UserSettingsContext
+      value={{ ...value, enableInBrowserOptimization: enabled }}
+    >
+      {children}
+    </UserSettingsContext>
+  );
+};
+
+/** Routes the provider's detached objective runs to a fake. */
+const ExperimentsActionsOverride = ({
+  runDetachedObjective,
+  children,
+}: PropsWithChildren<{
+  runDetachedObjective: ExperimentsActionsValue["runDetachedObjective"];
+}>) => {
+  const value = use(ExperimentsActionsContext);
+  return (
+    <ExperimentsActionsContext value={{ ...value, runDetachedObjective }}>
+      {children}
+    </ExperimentsActionsContext>
+  );
+};
+
+/**
+ * A connected source whose runs stay quiet until aborted, counting connections
+ * and disposals so tests can observe what the setting gates.
+ */
+const createQuietConnectedSource = () => {
+  const calls = { connect: 0, dispose: 0 };
+  const source: PetrinautConnectedOptimization = {
+    kind: "connected",
+    connect: () => {
+      calls.connect += 1;
+      return {
+        createOptimizationRun: () =>
+          Promise.resolve({ runId: "run-quiet-connected" }),
+        // eslint-disable-next-line require-yield -- the run stays quiet until aborted
+        async *attachOptimizationRun(_runId, options) {
+          options?.onAttached?.();
+          await new Promise<void>((resolve) => {
+            options?.signal?.addEventListener("abort", resolve, {
+              once: true,
+            });
+          });
+        },
+        cancelOptimizationRun: () => Promise.resolve(),
+        extendOptimizationRun: () => Promise.resolve(),
+        releaseOptimizationRun: () => Promise.resolve(),
+        dispose: () => {
+          calls.dispose += 1;
+        },
+      };
+    },
+  };
+  return { source, calls };
+};
+
+/**
+ * A connected source whose study evaluates one trial per value through the
+ * channel, in order, then completes — the shape of the in-browser optimizer.
+ */
+const createEvaluatingSource = (infectedRatios: readonly number[]) => {
+  const calls = { connect: 0, dispose: 0, release: [] as string[] };
+  const source: PetrinautConnectedOptimization = {
+    kind: "connected",
+    connect: (channel) => {
+      calls.connect += 1;
+      return {
+        createOptimizationRun: () =>
+          Promise.resolve({ runId: "run-connected" }),
+        async *attachOptimizationRun(runId, options) {
+          options?.onAttached?.();
+          let seq = 0;
+          for (const [trial, infectedRatio] of infectedRatios.entries()) {
+            const suggestedValues = { infected_ratio: infectedRatio };
+            const outcome = await channel.evaluateTrial({
+              runId,
+              trial,
+              manifest: input,
+              suggestedValues,
+              scenarioParameterValues: resolveTrialScenarioParameterValues(
+                input,
+                suggestedValues,
+              ),
+              seeds: [1, 2, 3],
+              signal: options?.signal ?? new AbortController().signal,
+            });
+            seq += 1;
+            yield {
+              type: "trial",
+              trial,
+              parameters: suggestedValues,
+              objective:
+                outcome.kind === "objective" ? outcome.objective : null,
+              state: outcome.kind === "objective" ? "complete" : "pruned",
+              best: null,
+              seq,
+            };
+          }
+          seq += 1;
+          yield {
+            type: "complete",
+            requestedTrials: infectedRatios.length,
+            completedTrials: infectedRatios.length,
+            prunedTrials: 0,
+            failedTrials: 0,
+            best: null,
+            resumable: true,
+            seq,
+          };
+        },
+        cancelOptimizationRun: () => Promise.resolve(),
+        extendOptimizationRun: () => Promise.resolve(),
+        releaseOptimizationRun: (runId) => {
+          calls.release.push(runId);
+          return Promise.resolve();
+        },
+        dispose: () => {
+          calls.dispose += 1;
+        },
+      };
+    },
+  };
+  return { source, calls };
+};
+
+const renderConnectedProvider = ({
+  source,
+  runDetachedObjective,
+  enabled = true,
+}: {
+  source: PetrinautConnectedOptimization;
+  runDetachedObjective: ExperimentsActionsValue["runDetachedObjective"];
+  enabled?: boolean;
+}) => {
+  let latest: OptimizationsContextValue | null = null;
+  const tree = (isEnabled: boolean) => (
+    <InBrowserOptimizationSetting enabled={isEnabled}>
+      <PetrinautOptimizationContext value={source}>
+        <ExperimentsActionsOverride runDetachedObjective={runDetachedObjective}>
+          <OptimizationsProvider>
+            <CaptureContext
+              onValue={(value) => {
+                latest = value;
+              }}
+            />
+          </OptimizationsProvider>
+        </ExperimentsActionsOverride>
+      </PetrinautOptimizationContext>
+    </InBrowserOptimizationSetting>
+  );
+  const { rerender, unmount } = render(tree(enabled));
+  return {
+    getValue: () => {
+      if (!latest) {
+        throw new Error("Optimization context was not captured");
+      }
+      return latest;
+    },
+    setEnabled: (isEnabled: boolean) => rerender(tree(isEnabled)),
+    unmount,
+  };
 };
 
 function renderProvider(capability: PetrinautOptimization) {
@@ -951,5 +1110,632 @@ describe("OptimizationsProvider", () => {
     expect(optimization.connectionState).toBe("streaming");
     expect(optimization.status).toBe("running");
     expect(optimization.error).toBeNull();
+  });
+
+  it("treats a connected source as absent while In-browser optimization is off", async () => {
+    const { source, calls } = createQuietConnectedSource();
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+      enabled: false,
+    });
+
+    await expect(getValue().createOptimization(input)).rejects.toThrow(
+      "Optimization is unavailable",
+    );
+    expect(calls.connect).toBe(0);
+    expect(getValue().optimizations).toHaveLength(0);
+  });
+
+  it("connects and disposes a connected source as In-browser optimization is toggled", async () => {
+    const { source, calls } = createQuietConnectedSource();
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue, setEnabled } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    await act(async () => {
+      await getValue().createOptimization(input);
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("running"),
+    );
+    expect(calls).toEqual({ connect: 1, dispose: 0 });
+    expect(getValue().optimizations[0]?.connected?.navigation).toEqual({
+      positions: { infected_ratio: 25 },
+      booleans: {},
+      followTrials: true,
+    });
+    expect(
+      sessionStorage.getItem("petrinaut:active-optimization-runs"),
+      "a run in this page cannot be re-attached to after a reload",
+    ).toBeNull();
+
+    setEnabled(false);
+    expect(calls).toEqual({ connect: 1, dispose: 1 });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("cancelled"),
+    );
+    await expect(getValue().createOptimization(input)).rejects.toThrow(
+      "Optimization is unavailable",
+    );
+
+    setEnabled(true);
+    await act(async () => {
+      await getValue().createOptimization(input);
+    });
+    expect(calls).toEqual({ connect: 2, dispose: 1 });
+  });
+
+  it("does not re-attach stored runs through a connected source", async () => {
+    sessionStorage.setItem(
+      "petrinaut:active-optimization-runs",
+      JSON.stringify({ "run-stale": { input, createdAt: 1 } }),
+    );
+    const { source, calls } = createQuietConnectedSource();
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(calls.connect).toBe(0);
+    expect(getValue().optimizations).toHaveLength(0);
+    expect(
+      sessionStorage.getItem("petrinaut:active-optimization-runs"),
+    ).not.toBeNull();
+  });
+
+  it("uses a remote capability regardless of the In-browser optimization setting, and never continues its runs", async () => {
+    const capability: PetrinautOptimization = {
+      createOptimizationRun: () => Promise.resolve({ runId: "run-remote" }),
+      async *attachOptimizationRun(_runId, options) {
+        options?.onAttached?.();
+        yield { type: "started", requestedTrials: 2, seq: 1 };
+      },
+      cancelOptimizationRun: () => Promise.resolve(),
+    };
+    let latest: OptimizationsContextValue | null = null;
+    render(
+      <InBrowserOptimizationSetting enabled={false}>
+        <PetrinautOptimizationContext value={capability}>
+          <OptimizationsProvider>
+            <CaptureContext
+              onValue={(value) => {
+                latest = value;
+              }}
+            />
+          </OptimizationsProvider>
+        </PetrinautOptimizationContext>
+      </InBrowserOptimizationSetting>,
+    );
+    const getValue = () => {
+      if (!latest) {
+        throw new Error("Optimization context was not captured");
+      }
+      return latest;
+    };
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input, {
+        computeBackend: "webgpu",
+      });
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.runId).toBe("run-remote"),
+    );
+    // A remote study computes nothing locally: no backend choice, no local state.
+    expect(getValue().optimizations[0]).toMatchObject({
+      computeBackend: "cpu",
+      connected: null,
+      axes: [expect.objectContaining({ identifier: "infected_ratio" })],
+    });
+    await expect(
+      getValue().extendOptimization(optimizationId, 1),
+    ).rejects.toThrow("cannot be continued");
+  });
+
+  it("wires a connected study through the channel: trials run on the study's backend, the record carries the local state, removal releases the study", async () => {
+    const { source, calls } = createEvaluatingSource([0.05]);
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue, unmount } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input, {
+        computeBackend: "webgpu",
+        parallelism: 2,
+      });
+    });
+
+    // Trial 0 runs on the study's backend with its seeds pinned, on a queue
+    // of its own, under the study's own cache key so the refinement below
+    // reuses its compiled snapshot, and the study follows it.
+    await waitFor(() => expect(fake.runs).toHaveLength(1));
+    expect(fake.runs[0]!.request).toMatchObject({
+      cacheKey: optimizationId,
+      queueKey: "run-connected:trial:0",
+      seed: 1,
+      runCount: 3,
+      runSeeds: [1, 2, 3],
+      computeBackend: "webgpu",
+      scenarioParameterValues: { population: 1_000, infected_ratio: 0.05 },
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.connected?.selection?.key).toBe(
+        "trial:0",
+      ),
+    );
+    expect(getValue().optimizations[0]).toMatchObject({
+      computeBackend: "webgpu",
+      connected: {
+        parallelism: 2,
+        resumable: false,
+        computeBackendFallbackReason: null,
+        navigation: {
+          positions: {
+            infected_ratio: optimizationAxisPositionFor(
+              infectedRatioAxis,
+              0.05,
+            ),
+          },
+          followTrials: true,
+        },
+        inFlight: [
+          { trial: 0, parameters: { infected_ratio: 0.05 }, objective: null },
+        ],
+        activity: [
+          expect.objectContaining({ kind: "trial", trial: 0, runCount: 3 }),
+        ],
+      },
+    });
+    expect(
+      sessionStorage.getItem("petrinaut:active-optimization-runs"),
+      "a run in this page cannot be re-attached to after a reload",
+    ).toBeNull();
+
+    // The outcome reaches Optuna; the first trial that ran elsewhere than
+    // asked records where, and why, on the record.
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.25, 3]])],
+        runValues: [0.25, 0.25, 0.25],
+        computeBackend: "cpu",
+        fallbackReason: "no adapter",
+      }),
+    );
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("complete"),
+    );
+    expect(getValue().optimizations[0]).toMatchObject({
+      computeBackend: "cpu",
+      trials: [
+        expect.objectContaining({
+          trial: 0,
+          objective: 0.25,
+          state: "complete",
+        }),
+      ],
+      best: { trial: 0, objective: 0.25 },
+      connected: {
+        resumable: true,
+        computeBackendFallbackReason: "no adapter",
+        inFlight: [],
+        navigation: { followTrials: false },
+      },
+    });
+    // Complete: the point the study settled on refines through the same
+    // backend the trials asked for.
+    await waitFor(() => expect(fake.runs).toHaveLength(2));
+    expect(fake.runs[1]!.request).toMatchObject({
+      cacheKey: optimizationId,
+      computeBackend: "webgpu",
+      runCount: 8,
+    });
+
+    act(() => getValue().removeOptimization(optimizationId));
+    expect(fake.runs[1]!.cancelled).toBe(true);
+    expect(calls.release).toEqual(["run-connected"]);
+    expect(getValue().optimizations).toHaveLength(0);
+    expect(calls.dispose).toBe(0);
+    unmount();
+    expect(calls.dispose).toBe(1);
+  });
+});
+
+/**
+ * A connected source shaped like the in-browser optimizer's lifecycle: a run
+ * log in segments, each begun by `started` and ended by a terminal event,
+ * which a settled study continues with more trials. A stop tells the trial in
+ * flight failed without an event, then ends the segment. Segment `n`
+ * evaluates `ratiosBySegment[n]`, one trial per value, through the channel.
+ */
+const createResumableSource = (
+  ratiosBySegment: readonly (readonly number[])[],
+  { rejectExtension }: { rejectExtension?: string } = {},
+) => {
+  const calls = { extend: [] as number[], cancel: 0 };
+  // The cancelled terminal is the worker's own message, sent once the steps
+  // in flight have been resolved; a test decides when it arrives, before or
+  // after the segment gets there.
+  let closeRequested = false;
+  let closeStoppedSegment: () => void = () => {
+    closeRequested = true;
+  };
+  // Read through a call so the flag is re-checked after the awaits (a plain
+  // property read would be control-flow-narrowed to `false`).
+  const isCloseRequested = () => closeRequested;
+  const source: PetrinautConnectedOptimization = {
+    kind: "connected",
+    connect: (channel) => {
+      const events: PetrinautOptimizationEvent[] = [];
+      const listeners = new Set<() => void>();
+      let controller = new AbortController();
+      let segment = 0;
+      let trial = 0;
+      let requested = 0;
+      let running = false;
+      let cancelled = false;
+      // Read through a call so the flag is re-checked after each await (a
+      // plain property read would be control-flow-narrowed to `false`).
+      const isCancelled = () => cancelled;
+      const append = (event: UnsequencedEvent) => {
+        events.push({
+          ...event,
+          seq: events.length + 1,
+        } as PetrinautOptimizationEvent);
+        for (const listener of listeners) {
+          listener();
+        }
+      };
+      const runSegment = async (ratios: readonly number[]) => {
+        running = true;
+        cancelled = false;
+        closeRequested = false;
+        for (const ratio of ratios) {
+          if (isCancelled()) {
+            break;
+          }
+          const suggestedValues = { infected_ratio: ratio };
+          const evaluated = trial;
+          trial += 1;
+          const outcome = await channel.evaluateTrial({
+            runId: "run-resumable",
+            trial: evaluated,
+            manifest: input,
+            suggestedValues,
+            scenarioParameterValues: resolveTrialScenarioParameterValues(
+              input,
+              suggestedValues,
+            ),
+            seeds: [1, 2, 3],
+            signal: controller.signal,
+          });
+          if (isCancelled()) {
+            // Told failed without an event; its number stays consumed.
+            break;
+          }
+          append({
+            type: "trial",
+            trial: evaluated,
+            parameters: suggestedValues,
+            objective: outcome.kind === "objective" ? outcome.objective : null,
+            state: outcome.kind === "objective" ? "complete" : "pruned",
+            best: null,
+          });
+        }
+        if (isCancelled() && !isCloseRequested()) {
+          await new Promise<void>((resolve) => {
+            closeStoppedSegment = () => {
+              closeRequested = true;
+              resolve();
+            };
+          });
+        }
+        running = false;
+        append(
+          isCancelled()
+            ? {
+                type: "error",
+                code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
+                message: "optimization cancelled",
+                retryable: false,
+                resumable: true,
+              }
+            : {
+                type: "complete",
+                requestedTrials: requested,
+                completedTrials: trial,
+                prunedTrials: 0,
+                failedTrials: 0,
+                best: null,
+                resumable: true,
+              },
+        );
+      };
+      return {
+        createOptimizationRun: () => {
+          const ratios = ratiosBySegment[0] ?? [];
+          requested = ratios.length;
+          append({ type: "started", requestedTrials: requested });
+          // The worker asks for its first evaluation a task after the run
+          // is created, once the provider knows the run id.
+          setTimeout(() => void runSegment(ratios), 0);
+          return Promise.resolve({ runId: "run-resumable" });
+        },
+        extendOptimizationRun: (_runId, trials) => {
+          if (rejectExtension !== undefined) {
+            return Promise.reject(new Error(rejectExtension));
+          }
+          if (running) {
+            return Promise.reject(new Error("still running"));
+          }
+          calls.extend.push(trials);
+          segment += 1;
+          requested += trials;
+          controller = new AbortController();
+          append({ type: "started", requestedTrials: requested });
+          const ratios = ratiosBySegment[segment] ?? [];
+          setTimeout(() => void runSegment(ratios), 0);
+          return Promise.resolve();
+        },
+        async *attachOptimizationRun(_runId, options) {
+          options?.onAttached?.();
+          let index = options?.cursor ?? 0;
+          for (;;) {
+            const event = events[index];
+            if (event) {
+              index += 1;
+              yield event;
+              if (event.type === "complete" || event.type === "error") {
+                return;
+              }
+              continue;
+            }
+            await new Promise<void>((resolve) => {
+              const wake = () => {
+                listeners.delete(wake);
+                resolve();
+              };
+              listeners.add(wake);
+              options?.signal?.addEventListener("abort", wake, { once: true });
+            });
+            if (options?.signal?.aborted) {
+              return;
+            }
+          }
+        },
+        cancelOptimizationRun: () => {
+          calls.cancel += 1;
+          cancelled = true;
+          controller.abort();
+          return Promise.resolve();
+        },
+        releaseOptimizationRun: () => Promise.resolve(),
+        dispose: () => {},
+      };
+    },
+  };
+  return { source, calls, closeStoppedSegment: () => closeStoppedSegment() };
+};
+
+describe("OptimizationsProvider lifecycle of a connected study", () => {
+  it("stops a study without dropping its attachment, so the segment's terminal event lands before a continuation", async () => {
+    const { source, calls, closeStoppedSegment } = createResumableSource([
+      [0.05, 0.02],
+      [0.01],
+    ]);
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input);
+    });
+    await waitFor(() => expect(fake.runs).toHaveLength(1));
+
+    act(() => getValue().cancelOptimization(optimizationId));
+    expect(calls.cancel).toBe(1);
+    expect(fake.runs[0]!.cancelled).toBe(true);
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "cancelled",
+      connected: { resumable: false },
+    });
+    // The trial in flight is told failed without an event: nothing lands
+    // until the worker acknowledges the stop with the segment's terminal.
+    closeStoppedSegment();
+    await waitFor(() => expect(getValue().optimizations[0]?.lastSeq).toBe(2));
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "cancelled",
+      trials: [],
+      prunedTrials: 0,
+      failedTrials: 0,
+      connected: { resumable: true },
+    });
+
+    await act(async () => {
+      await getValue().extendOptimization(optimizationId, 1);
+    });
+    expect(calls.extend).toEqual([1]);
+    await waitFor(() =>
+      expect(getValue().optimizations[0]).toMatchObject({
+        status: "running",
+        requestedTrials: 3,
+        lastSeq: 3,
+        connected: { resumable: false, navigation: { followTrials: true } },
+      }),
+    );
+    // The stop settled the study on a point, which began refining (the
+    // second run); the continuation cancels that and runs the new trial,
+    // numbered after the one the stop consumed.
+    await waitFor(() => expect(fake.runs).toHaveLength(3));
+    expect(fake.runs[1]!.request.cacheKey).toBe(optimizationId);
+    expect(fake.runs[1]!.cancelled).toBe(true);
+    expect(fake.runs[2]!.request).toMatchObject({
+      queueKey: "run-resumable:trial:1",
+      scenarioParameterValues: { infected_ratio: 0.01 },
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.connected?.selection?.key).toBe(
+        "trial:1",
+      ),
+    );
+  });
+
+  it("puts a refused continuation on the record and leaves the study resumable", async () => {
+    const { source } = createResumableSource([[0.05]], {
+      rejectExtension: "An optimization may run at most 1,000 trials in total",
+    });
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input);
+    });
+    await waitFor(() => expect(fake.runs).toHaveLength(1));
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.25, 3]])],
+        runValues: [0.25, 0.25, 0.25],
+      }),
+    );
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.connected?.resumable).toBe(true),
+    );
+
+    await expect(
+      getValue().extendOptimization(optimizationId, 999),
+    ).rejects.toThrow("at most 1,000 trials");
+    // The refusal's state update landed outside an act scope; flush it.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "complete",
+      error: "An optimization may run at most 1,000 trials in total",
+      connected: { resumable: true },
+    });
+  });
+  it("cancels a connected study stopped before its run has an id, once creation resolves", async () => {
+    const calls = { cancel: [] as string[], attach: 0 };
+    let resolveCreation: (value: { runId: string }) => void = () => {};
+    const source: PetrinautConnectedOptimization = {
+      kind: "connected",
+      connect: () => ({
+        createOptimizationRun: () =>
+          new Promise<{ runId: string }>((resolve) => {
+            resolveCreation = resolve;
+          }),
+        async *attachOptimizationRun() {
+          calls.attach += 1;
+          yield* [];
+        },
+        cancelOptimizationRun: (runId) => {
+          calls.cancel.push(runId);
+          return Promise.resolve();
+        },
+        extendOptimizationRun: () => Promise.resolve(),
+        releaseOptimizationRun: () => Promise.resolve(),
+        dispose: () => {},
+      }),
+    };
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input);
+    });
+    act(() => getValue().cancelOptimization(optimizationId));
+    expect(getValue().optimizations[0]).toMatchObject({ status: "cancelled" });
+
+    // The run id arrives after the stop: the run is cancelled where it was
+    // made, nothing attaches, and a `started` event cannot revive the record.
+    await act(async () => {
+      resolveCreation({ runId: "run-late" });
+      await Promise.resolve();
+    });
+    expect(calls.cancel).toEqual(["run-late"]);
+    expect(calls.attach).toBe(0);
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "cancelled",
+      connected: { resumable: false },
+    });
+  });
+  it("offers no continuation for a study stopped before its segment reached the worker", async () => {
+    let cancelled: () => void = () => {};
+    const stopped = new Promise<void>((resolve) => {
+      cancelled = resolve;
+    });
+    const source: PetrinautConnectedOptimization = {
+      kind: "connected",
+      connect: () => ({
+        createOptimizationRun: () => Promise.resolve({ runId: "run-queued" }),
+        async *attachOptimizationRun(_runId, options) {
+          options?.onAttached?.();
+          yield { type: "started", requestedTrials: 3, seq: 1 };
+          await stopped;
+          // The runtime never created a study for a segment cancelled while
+          // it waited for the worker, and its terminal event says so.
+          yield {
+            type: "error",
+            code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
+            message: "optimization cancelled",
+            retryable: false,
+            resumable: false,
+            seq: 2,
+          };
+        },
+        cancelOptimizationRun: () => {
+          cancelled();
+          return Promise.resolve();
+        },
+        extendOptimizationRun: () => Promise.resolve(),
+        releaseOptimizationRun: () => Promise.resolve(),
+        dispose: () => {},
+      }),
+    };
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input);
+    });
+    await waitFor(() => expect(getValue().optimizations[0]?.lastSeq).toBe(1));
+
+    act(() => getValue().cancelOptimization(optimizationId));
+    await waitFor(() => expect(getValue().optimizations[0]?.lastSeq).toBe(2));
+    expect(getValue().optimizations[0]).toMatchObject({
+      status: "cancelled",
+      connected: { resumable: false },
+    });
+    await expect(
+      getValue().extendOptimization(optimizationId, 1),
+    ).rejects.toThrow("cannot be continued");
   });
 });
