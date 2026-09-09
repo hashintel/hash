@@ -1561,6 +1561,18 @@ function resolveOptimized(
     } catch {
       // Not a constant (it references `i`, a per-place Variable, …).
     }
+    // The manifest rejects a ratio parameter whose default leaves 0..1, and
+    // the bounds check above cannot see the kept value; reporting it at the
+    // expression fails the form instead of the creation that follows.
+    if (entity.type === "ratio" && (defaultValue < 0 || defaultValue > 1)) {
+      plan.errors.push({
+        source: "variable",
+        itemId: entity.itemId,
+        slot: { target: entity.target, part: "expression" },
+        message: `"${entity.itemId}" is a ratio, so its value must stay between 0 and 1 (got ${defaultValue}).`,
+      });
+      continue;
+    }
 
     scenarioParameters.push({
       type: entity.type,

@@ -781,14 +781,15 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       : value.expression || triggerPlaceholder);
 
   const expressionSlot = { target, part: "expression" as const };
-  const error = optimized
+  const boundsError = optimized
     ? (errorFor({ target, part: "min" }) ??
       errorFor({ target, part: "max" }) ??
       errorFor({ target, part: "step" }))
-    : errorFor(expressionSlot);
+    : undefined;
+  // An optimized slot's kept value can fail too (a ratio outside 0..1
+  // behind valid bounds); the trigger carries that after any bound error.
+  const error = boundsError ?? errorFor(expressionSlot);
   const showTriggerError = error !== undefined && !open;
-
-  const boundsError = optimized ? error : undefined;
 
   const boundFields: { key: "min" | "max" | "step"; fieldLabel: string }[] = [
     { key: "min", fieldLabel: "Min" },

@@ -30,6 +30,24 @@ describe("stepAdHocValue", () => {
     expect(stepAdHocValue("1e3", true, false, "number")).toBeNull();
     expect(stepAdHocValue('"a"', false, false, "number")).toBeNull();
   });
+
+  it("ignores surrounding whitespace in every mode", () => {
+    expect(stepAdHocValue("  true ", false, false, "boolean")).toBe("false");
+    expect(stepAdHocValue(" 0.5 ", true, false, "ratio")).toBe("0.6");
+    expect(stepAdHocValue(" 2.50 ", true, false, "number")).toBe("3.50");
+  });
+
+  it("answers a long run of spaces at once", () => {
+    // The former `^\s*(true|false)?\s*$` took a minute on this input; the
+    // test's own timeout is the bound.
+    const long = `${" ".repeat(200_000)}x`;
+    expect(stepAdHocValue(long, true, false, "boolean")).toBeNull();
+    expect(stepAdHocValue(long, true, false, "ratio")).toBeNull();
+    expect(stepAdHocValue(long, true, false, "number")).toBeNull();
+    expect(stepAdHocValue(" ".repeat(200_000), true, false, "number")).toBe(
+      "1",
+    );
+  });
 });
 
 describe("stepAdHocValue for ratios", () => {

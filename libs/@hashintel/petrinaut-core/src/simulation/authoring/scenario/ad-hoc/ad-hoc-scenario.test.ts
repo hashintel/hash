@@ -1493,6 +1493,25 @@ describe("ratio Variables", () => {
     expect(outcome.errors[0]!.message).toMatch(/between 0 and 1/);
   });
 
+  it("rejects an optimized ratio whose kept value leaves the range", () => {
+    // Valid bounds, but the value the generated parameter defaults to is
+    // 1.5: the manifest would refuse it at creation, so the form must.
+    const outcome = synthesizeAdHocOptimization(
+      withFill({
+        expression: "1.5",
+        optimize: { min: "0", max: "1", scale: "linear" },
+      }),
+      context,
+    );
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors).toHaveLength(1);
+    expect(outcome.errors[0]!.slot.part).toBe("expression");
+    expect(outcome.errors[0]!.message).toMatch(/between 0 and 1 \(got 1\.5\)/);
+  });
+
   it("keeps an optimized ratio's bounds within the range", () => {
     const outOfRange = synthesizeAdHocOptimization(
       withFill({ optimize: { min: "0", max: "2", scale: "linear" } }),
