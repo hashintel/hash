@@ -217,9 +217,10 @@ try {
     "TEST simulated testimony: one operator handles each item. Timing is unknown.";
   const second =
     "TEST simulated correction: two operators are needed for each item, not one. Timing is still unknown.";
+  const displayTail = `\n\n${"TEST preserved content for a long workpiece.\n".repeat(80)}`;
   const markdowns = [
-    "# TEST simulated account\n\nOne operator handles each item.\n\nTiming is unknown.",
-    "# TEST simulated account\n\nTwo operators are needed for each item, not one.\n\nTiming is unknown.",
+    `# TEST simulated account\n\nOne operator handles each item.\n\nTiming is unknown.${displayTail}`,
+    `# TEST simulated account\n\nTwo operators are needed for each item, not one.\n\nTiming is unknown.${displayTail}`,
   ];
   for (const [index, utterance] of [first, second].entries()) {
     const markdown = markdowns[index];
@@ -308,6 +309,8 @@ try {
   assert.equal((await client.history()).messages.length, beforeNegative);
   // Stop persona driving; reopen the same browser profile/document and continue
   // through the ordinary composer. No seeded workpiece, direct state write or new ID.
+  // A long workpiece must not cover the assistant opener on a short desktop viewport.
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page.reload();
   await page
     .getByRole("button", { name: "Show AI assistant", exact: true })

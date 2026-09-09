@@ -104,7 +104,8 @@ export const BrunchWorkpiecePane = ({
         left: "calc(20vw + 16px)",
         top: 210,
         width: 390,
-        maxHeight: "65vh",
+        // Leave the editor's bottom controls reachable on short desktop windows.
+        maxHeight: "calc(100vh - 290px)",
         overflow: "auto",
         overflowWrap: "anywhere",
         padding: 16,
