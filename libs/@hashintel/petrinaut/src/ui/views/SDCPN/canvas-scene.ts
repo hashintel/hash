@@ -58,6 +58,8 @@ export type CanvasPlaceNode = CanvasNodeBase & {
   hasColorType: boolean;
   /** Whether the place defines custom visualizer code. */
   hasVisualizer: boolean;
+  /** Whether its visualizer is pinned open, so it shows without a hover. */
+  visualizerPinned: boolean;
   /** Display colour of the place's token type, when it has one. */
   typeColor: string | undefined;
 };
@@ -122,6 +124,8 @@ export type CanvasSceneInput = {
   /** The node under the pointer, once the hover has settled. */
   hoveredId: string | null;
   focus: CanvasFocus;
+  /** Places whose state visualizer is pinned open. */
+  pinnedVisualizerIds: ReadonlySet<string>;
 };
 
 const positionOf = (
@@ -143,6 +147,7 @@ export const buildCanvasScene = ({
   isSelected,
   hoveredId,
   focus,
+  pinnedVisualizerIds,
 }: CanvasSceneInput): CanvasScene => {
   const interaction = (id: string) => ({
     selected: isSelected(id),
@@ -170,6 +175,7 @@ export const buildCanvasScene = ({
         extensions.colors && extensions.dynamics && place.dynamicsEnabled,
       hasColorType: (placeType?.elements.length ?? 0) > 0,
       hasVisualizer: !!place.visualizerCode,
+      visualizerPinned: pinnedVisualizerIds.has(place.id),
       typeColor: placeType?.displayColor,
     });
   }

@@ -58,9 +58,13 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   const tokenCount = usePlaceTokenCount(id);
   const framesAvailable = useFramesAvailable();
 
-  // Show the visualizer on hover for places with a visualizer during simulation.
+  // Show the visualizer on hover for places with a visualizer during
+  // simulation, and keep it up for as long as it is pinned.
   const showStateTooltip =
-    data.hasColorType && data.hasVisualizer && framesAvailable && data.hovered;
+    data.hasColorType &&
+    data.hasVisualizer &&
+    framesAvailable &&
+    (data.hovered || data.visualizerPinned);
 
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.

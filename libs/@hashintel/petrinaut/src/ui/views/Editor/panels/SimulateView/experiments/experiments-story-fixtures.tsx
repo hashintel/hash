@@ -757,6 +757,7 @@ export function FakeEditorProvider({
       clearSelection: () => {},
       setHoveredItem: () => {},
       clearHoveredItem: () => {},
+      toggleVisualizerPin: () => {},
       setDraggingStateByNodeId: () => {},
       updateDraggingStateByNodeId: () => {},
       simulateDrawer,

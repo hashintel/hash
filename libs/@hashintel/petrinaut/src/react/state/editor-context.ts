@@ -94,6 +94,12 @@ export type EditorState = {
   hasSelection: boolean;
   /** The item currently being hovered, if any. */
   hoveredItem: SelectionItem | null;
+  /**
+   * Places whose state visualizer is pinned open on the canvas. A pinned
+   * visualizer stays up when the pointer leaves the place, so it can be
+   * watched while the timeline is scrubbed or the initial state edited.
+   */
+  pinnedVisualizerPlaceIds: Set<string>;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   /**
@@ -150,6 +156,8 @@ export type EditorActions = {
   clearSelection: () => void;
   setHoveredItem: (item: SelectionItem) => void;
   clearHoveredItem: () => void;
+  /** Pin a place's state visualizer open, or release it. */
+  toggleVisualizerPin: (placeId: string) => void;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
@@ -188,6 +196,7 @@ export const initialEditorState: EditorState = {
   selection: new Map(),
   hasSelection: false,
   hoveredItem: null,
+  pinnedVisualizerPlaceIds: new Set<string>(),
   draggingStateByNodeId: {},
   timelineChartType: "run",
   timelineView: { kind: "per-place" },
@@ -223,6 +232,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   clearSelection: () => {},
   setHoveredItem: () => {},
   clearHoveredItem: () => {},
+  toggleVisualizerPin: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},

@@ -428,6 +428,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, hoveredItem: item })),
     clearHoveredItem: () =>
       setState((prev) => ({ ...prev, hoveredItem: null })),
+    toggleVisualizerPin: (placeId: string) =>
+      setState((prev) => {
+        const pinnedVisualizerPlaceIds = new Set(prev.pinnedVisualizerPlaceIds);
+        if (!pinnedVisualizerPlaceIds.delete(placeId)) {
+          pinnedVisualizerPlaceIds.add(placeId);
+        }
+        return { ...prev, pinnedVisualizerPlaceIds };
+      }),
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),
     updateDraggingStateByNodeId: (updater) =>

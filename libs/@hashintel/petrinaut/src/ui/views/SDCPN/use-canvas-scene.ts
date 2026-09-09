@@ -23,8 +23,13 @@ export const useCanvasScene = (
 ): CanvasScene => {
   const { activeNet } = use(ActiveNetContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
-  const { draggingStateByNodeId, isSelected, selection, hoveredItem } =
-    use(EditorContext);
+  const {
+    draggingStateByNodeId,
+    isSelected,
+    selection,
+    hoveredItem,
+    pinnedVisualizerPlaceIds,
+  } = use(EditorContext);
   const { compactNodes, highlightOnHover } = use(UserSettingsContext);
 
   /*
@@ -59,5 +64,6 @@ export const useCanvasScene = (
       hoveredId: highlightOnHover ? settledHoverId : null,
       selectedIds: new Set(selection.keys()),
     }),
+    pinnedVisualizerIds: pinnedVisualizerPlaceIds,
   });
 };

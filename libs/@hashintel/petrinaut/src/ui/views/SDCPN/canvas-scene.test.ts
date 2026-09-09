@@ -68,6 +68,7 @@ const input: CanvasSceneInput = {
     hoveredId: null,
     selectedIds: new Set(),
   }),
+  pinnedVisualizerIds: new Set(),
 };
 
 describe("buildCanvasScene", () => {
@@ -119,6 +120,30 @@ describe("buildCanvasScene", () => {
     expect(nodes.find((node) => node.id === "p2")?.focus).toBe("downstream");
     expect(arcs.find((arc) => arc.id === inputArcId)?.focus).toBe("incoming");
     expect(arcs.find((arc) => arc.id === outputArcId)?.focus).toBe("outgoing");
+  });
+
+  it("marks the hovered node even where nothing is focused", () => {
+    // The hover highlight can be turned off, which leaves the focus empty
+    // while the pointer still rests on a node — the state visualizer and the
+    // rest of the hover-driven surfaces still have to see it.
+    const { nodes } = buildCanvasScene({ ...input, hoveredId: "p1" });
+
+    expect(nodes.find((node) => node.id === "p1")?.hovered).toBe(true);
+    expect(nodes.find((node) => node.id === "p1")?.focus).toBe("none");
+  });
+
+  it("marks a place whose state visualizer is pinned", () => {
+    const { nodes } = buildCanvasScene({
+      ...input,
+      pinnedVisualizerIds: new Set(["p1"]),
+    });
+
+    expect(nodes.find((node) => node.id === "p1")).toMatchObject({
+      visualizerPinned: true,
+    });
+    expect(nodes.find((node) => node.id === "p2")).toMatchObject({
+      visualizerPinned: false,
+    });
   });
 
   it("builds one arc per input and output arc, oriented through the transition", () => {

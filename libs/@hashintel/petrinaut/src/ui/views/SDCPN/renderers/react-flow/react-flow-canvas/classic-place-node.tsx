@@ -90,9 +90,13 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   const tokenCount = usePlaceTokenCount(id);
   const framesAvailable = useFramesAvailable();
 
-  // Show the visualizer on hover for places with a visualizer during simulation.
+  // Show the visualizer on hover for places with a visualizer during
+  // simulation, and keep it up for as long as it is pinned.
   const showStateTooltip =
-    data.hasColorType && data.hasVisualizer && framesAvailable && data.hovered;
+    data.hasColorType &&
+    data.hasVisualizer &&
+    framesAvailable &&
+    (data.hovered || data.visualizerPinned);
 
   // Add zero width space to labels between pascal case points as text-wrapping breakpoints
   const label = splitPascalCase(data.label).join("\u200B");

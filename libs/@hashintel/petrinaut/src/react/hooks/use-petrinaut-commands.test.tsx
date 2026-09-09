@@ -60,6 +60,7 @@ const editorContextValue = (
   clearSelection: () => {},
   setHoveredItem: () => {},
   clearHoveredItem: () => {},
+  toggleVisualizerPin: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},
