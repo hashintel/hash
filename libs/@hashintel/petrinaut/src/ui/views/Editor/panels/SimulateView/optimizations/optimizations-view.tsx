@@ -1,6 +1,6 @@
 /**
  * @layerRoot ui.views.editor.optimizations
- * @role The Optimizations tab: the create and view drawers, the study surface and the steps table over the optimizations provider
+ * @role The Optimizations tab: the create drawer, one study's body in a drawer or as the whole section, the study surface and the steps table over the optimizations provider
  */
 import { use } from "react";
 
@@ -14,6 +14,7 @@ import { EditorContext } from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { formatNumber } from "../shared/format-value";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
+import { OptimizationFullView } from "./optimization-full-view";
 import { describeOptimizationStatus } from "./optimization-status";
 import { ViewOptimizationDrawer } from "./view-optimization-drawer";
 
@@ -105,13 +106,20 @@ const optimizationColumns = [
 ] satisfies readonly TableColumn<OptimizationRecord>[];
 
 export const OptimizationsView = () => {
-  const { setSimulateDrawer } = use(EditorContext);
+  const { setSimulateDrawer, simulatePresentation } = use(EditorContext);
   const {
     optimizations,
     selectedOptimization,
     selectedOptimizationId,
     setSelectedOptimizationId,
   } = use(OptimizationsContext);
+
+  // The full presentation gives the section to the open record; with no
+  // record open (a fresh load of a `present=full` URL) the list shows, and
+  // the next row opened takes the whole section.
+  if (simulatePresentation === "full" && selectedOptimization !== null) {
+    return <OptimizationFullView optimization={selectedOptimization} />;
+  }
 
   return (
     <SimulateSubviewFrame
