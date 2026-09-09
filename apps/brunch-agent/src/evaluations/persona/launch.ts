@@ -130,11 +130,32 @@ const runPersona = async (run: string) => {
   });
 };
 
-const responds = async (url: string, signal: AbortSignal) => {
+const record = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isLoadingRuntimeUnavailable = (body: unknown) =>
+  record(body) &&
+  record(body.error) &&
+  body.error.type === "runtime_unavailable" &&
+  record(body.error.meta) &&
+  body.error.meta.state === "loading";
+
+export const responds = async (
+  url: string,
+  signal: AbortSignal,
+  options: { allowLoading?: boolean } = {},
+) => {
   try {
     const response = await fetch(url, { signal });
-    if (!response.ok) throw new Error(`${url} returned ${response.status}`);
-    return true;
+    if (response.ok) return true;
+    if (
+      options.allowLoading &&
+      response.status === 503 &&
+      response.headers.get("content-type")?.startsWith("application/json") &&
+      isLoadingRuntimeUnavailable(await response.json().catch(() => undefined))
+    )
+      return false;
+    throw new Error(`${url} returned ${response.status}`);
   } catch (error) {
     signal.throwIfAborted();
     // Only a refused connection means a local service needs starting.
@@ -236,7 +257,9 @@ export const launchPersona = async (
       });
       await log.close();
       // Readiness polling has no invented execution deadline; Ctrl-C cancels it.
-      while (!(await responds(service.url, stop.signal))) {
+      while (
+        !(await responds(service.url, stop.signal, { allowLoading: true }))
+      ) {
         if (startError) throw startError;
         if (child.exitCode !== null || child.signalCode !== null)
           throw new Error(`${service.script} exited; see ${run}`);

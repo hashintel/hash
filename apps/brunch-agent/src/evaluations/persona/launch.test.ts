@@ -2,9 +2,22 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 
-import { paneIdFrom, personaArguments, readPersonaCase } from "./launch.ts";
+import {
+  paneIdFrom,
+  personaArguments,
+  readPersonaCase,
+  responds,
+} from "./launch.ts";
+
+const loadingRuntimeUnavailable = {
+  error: { type: "runtime_unavailable", meta: { state: "loading" } },
+};
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 test.each([true, false])(
   "reads a generic case and separates the public opening (header: %s)",
@@ -41,6 +54,65 @@ test("launches a fresh restricted persona using input files, not prior session o
   expect(args).not.toContain("--session");
   expect(args).not.toContain("--continue");
   expect(args).not.toContain("--api-key");
+});
+
+test("treats only Flue's loading runtime-unavailable response as not ready while polling an owned service", async () => {
+  const fetch = vi.fn<() => Promise<Response>>().mockResolvedValue(
+    new Response(JSON.stringify(loadingRuntimeUnavailable), {
+      status: 503,
+      headers: { "content-type": "application/json" },
+    }),
+  );
+  vi.stubGlobal("fetch", fetch);
+
+  await expect(
+    responds("http://127.0.0.1:4321/health", new AbortController().signal, {
+      allowLoading: true,
+    }),
+  ).resolves.toBe(false);
+  expect(fetch).toHaveBeenCalledOnce();
+});
+
+test("refuses a loading response from a pre-existing service", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<() => Promise<Response>>().mockResolvedValue(
+      new Response(JSON.stringify(loadingRuntimeUnavailable), {
+        status: 503,
+        headers: { "content-type": "application/json" },
+      }),
+    ),
+  );
+
+  await expect(
+    responds("http://127.0.0.1:4321/health", new AbortController().signal),
+  ).rejects.toThrow("returned 503");
+});
+
+test.each([
+  {
+    body: { error: { type: "runtime_unavailable", meta: { state: "failed" } } },
+    status: 503,
+  },
+  { body: { error: { type: "runtime_unavailable" } }, status: 503 },
+  { body: { error: { type: "other" } }, status: 503 },
+  { body: {}, status: 500 },
+])("refuses unhealthy startup response %#", async ({ body, status }) => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<() => Promise<Response>>().mockResolvedValue(
+      new Response(JSON.stringify(body), {
+        status,
+        headers: { "content-type": "application/json" },
+      }),
+    ),
+  );
+
+  await expect(
+    responds("http://127.0.0.1:4321/health", new AbortController().signal, {
+      allowLoading: true,
+    }),
+  ).rejects.toThrow(`returned ${status}`);
 });
 
 test("reads the pane id from herdr's split result", () => {
