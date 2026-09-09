@@ -56,6 +56,12 @@ import {
 } from "../metrics/metric-picker-options";
 import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
+import { ConstraintDraftList } from "./create-optimization-drawer/constraint-draft-list";
+import {
+  type ConstraintDraft,
+  describeConstraint,
+  summarizeConstraintLspErrors,
+} from "./create-optimization-drawer/constraint-lsp";
 import {
   createOptimizationParameterDraft,
   type OptimizationParameterDraft,
@@ -73,6 +79,7 @@ import type {
 import type {
   AdHocScenarioState,
   AdHocSynthesisError,
+  Constraint,
   Metric,
   PetrinautOptimizationInput,
   PetrinautOptimizationParameterBinding,
@@ -185,6 +192,7 @@ const errorsStyle = css({
 });
 
 type Direction = "maximize" | "minimize";
+
 type MetricSource = "saved" | "custom";
 type ParameterDrafts = Record<string, OptimizationParameterDraft>;
 
@@ -366,6 +374,27 @@ function adHocHasOptimizeSelection(
   });
 }
 
+const NO_SCENARIO_PARAMETERS: ScenarioParameter[] = [];
+
+/**
+ * The scenario parameters an ad-hoc study exposes as `scenario.*`, or none
+ * while the definition does not synthesize.
+ */
+function getSynthesizedScenarioParameters(
+  state: AdHocScenarioState,
+  definition: SDCPN,
+  parametersEnabled: boolean,
+): ScenarioParameter[] {
+  const synthesized = synthesizeAdHocOptimization(state, {
+    netParameters: parametersEnabled ? definition.parameters : [],
+    places: definition.places,
+    types: definition.types,
+  });
+  return synthesized.ok
+    ? synthesized.output.scenario.scenarioParameters
+    : NO_SCENARIO_PARAMETERS;
+}
+
 function formatAdHocSynthesisErrors(errors: AdHocSynthesisError[]): string {
   return errors
     .map((error) => `${error.source}:${error.itemId} ${error.message}`)
@@ -501,6 +530,7 @@ export function buildPetrinautOptimizationInput({
   seed,
   dt,
   maxTime,
+  constraints,
 }: {
   name: string;
   title: string;
@@ -514,6 +544,7 @@ export function buildPetrinautOptimizationInput({
   seed: number;
   dt: number;
   maxTime: number;
+  constraints?: Constraint[];
 }): PetrinautOptimizationInput {
   // Keyed by scenario parameter identifiers from the net definition: no
   // prototype.
@@ -573,6 +604,7 @@ export function buildPetrinautOptimizationInput({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
+    ...(constraints ? { constraints } : {}),
     execution: { seed, dt, maxTime, seedsPerTrial },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
@@ -597,6 +629,7 @@ export function buildAdHocPetrinautOptimizationInput({
   seed,
   dt,
   maxTime,
+  constraints,
 }: {
   name: string;
   title: string;
@@ -610,6 +643,7 @@ export function buildAdHocPetrinautOptimizationInput({
   seed: number;
   dt: number;
   maxTime: number;
+  constraints?: Constraint[];
 }): PetrinautOptimizationInput {
   return petrinautOptimizationInputSchema.parse({
     kind: "petrinaut-optimization",
@@ -625,6 +659,7 @@ export function buildAdHocPetrinautOptimizationInput({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
+    ...(constraints ? { constraints } : {}),
     execution: { seed, dt, maxTime, seedsPerTrial },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
@@ -638,7 +673,9 @@ export const CreateOptimizationDrawer = ({
   onClose: () => void;
 }) => {
   const { extensions, petriNetDefinition, title } = use(SDCPNContext);
-  const { requestHirArtifacts } = use(LanguageClientContext);
+  const { diagnosticsByUri, requestHirArtifacts, requestConstraint } = use(
+    LanguageClientContext,
+  );
   const { createOptimization } = use(OptimizationsContext);
   const { enableAdHocScenarios, webGpuEnabled } = use(UserSettingsContext);
   const source = useOptimizationSource();
@@ -674,6 +711,15 @@ export const CreateOptimizationDrawer = ({
   const [maxTime, setMaxTime] = useState<number | null>(180);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Boolean conditions embedded in the manifest as source + lowered HIR.
+  // Declarative for now: carried and readable (Python included), not
+  // enforced by the study.
+  const [parameterConstraintDrafts, setParameterConstraintDrafts] = useState<
+    ConstraintDraft[]
+  >([]);
+  const [stateConstraintDrafts, setStateConstraintDrafts] = useState<
+    ConstraintDraft[]
+  >([]);
 
   const isAdHoc =
     enableAdHocScenarios && selectedScenarioId === AD_HOC_SCENARIO_VALUE;
@@ -782,6 +828,8 @@ export const CreateOptimizationDrawer = ({
     setMaxTime(180);
     setError(null);
     setIsSubmitting(false);
+    setParameterConstraintDrafts([]);
+    setStateConstraintDrafts([]);
   };
 
   const resetState = () => {
@@ -883,6 +931,42 @@ export const CreateOptimizationDrawer = ({
         }
       }
 
+      // Lower each authored constraint against the study's parameters; a
+      // failing one blocks submission with its first diagnostic.
+      const constraintContext = {
+        netParameters: extensions.parameters
+          ? petriNetDefinition.parameters
+          : [],
+        scenarioParameters: scenarioForRun.scenarioParameters,
+        sdcpn: petriNetDefinition,
+        extensions,
+      };
+      const constraints: Constraint[] = [];
+      for (const [space, drafts_] of [
+        ["parameters", parameterConstraintDrafts],
+        ["state", stateConstraintDrafts],
+      ] as const) {
+        for (const [index, draft] of drafts_.entries()) {
+          if (draft.code.trim() === "") {
+            continue;
+          }
+          const lowered = await requestConstraint(
+            { space, id: draft.id, code: draft.code },
+            constraintContext,
+          );
+          if (!lowered.ok) {
+            setIsSubmitting(false);
+            setError(
+              `${describeConstraint(space, index)}: ${lowered.diagnostics[0]?.message ?? "does not compile"}`,
+            );
+            return;
+          }
+          constraints.push(lowered.constraint);
+        }
+      }
+      const manifestConstraints =
+        constraints.length > 0 ? constraints : undefined;
+
       const input = adHocBindings
         ? buildAdHocPetrinautOptimizationInput({
             name,
@@ -897,6 +981,7 @@ export const CreateOptimizationDrawer = ({
             seed,
             dt,
             maxTime,
+            constraints: manifestConstraints,
           })
         : buildPetrinautOptimizationInput({
             name,
@@ -911,6 +996,7 @@ export const CreateOptimizationDrawer = ({
             seed,
             dt,
             maxTime,
+            constraints: manifestConstraints,
           });
       await createOptimization(input, { computeBackend, parallelism });
       resetState();
@@ -1002,6 +1088,22 @@ export const CreateOptimizationDrawer = ({
           maxTime,
         })
       : "Select a scenario";
+  // The constraint rows type-check as typed against the scenario the study
+  // will run: the selected one, or the one the ad-hoc definition synthesizes
+  // (its Variables and generated `adhoc_*` parameters). While the ad-hoc
+  // definition does not synthesize, the rows see no scenario parameters.
+  const constraintScenarioParameters = isAdHoc
+    ? getSynthesizedScenarioParameters(
+        adHocState ?? EMPTY_AD_HOC_STATE,
+        petriNetDefinition,
+        extensions.parameters,
+      )
+    : (selectedScenario?.scenarioParameters ?? NO_SCENARIO_PARAMETERS);
+  const constraintLspError = summarizeConstraintLspErrors(diagnosticsByUri, [
+    { space: "parameters", drafts: parameterConstraintDrafts },
+    { space: "state", drafts: stateConstraintDrafts },
+  ]);
+  const runBlocker = configurationError ?? constraintLspError;
 
   const handleClose = () => {
     if (submissionInProgress) {
@@ -1276,6 +1378,36 @@ export const CreateOptimizationDrawer = ({
                 </Section>
               )}
 
+              <Section
+                title="Constraints"
+                tooltip="Boolean conditions carried with the study. They are recorded in the manifest and readable by every consumer; nothing enforces them yet."
+                collapsible
+                defaultOpen
+              >
+                <span className={hintStyle}>
+                  Parameter constraints are expressions over the study's
+                  parameters (scenario.*, parameters.*), e.g. scenario.min_load
+                  &lt; scenario.max_load.
+                </span>
+                <ConstraintDraftList
+                  space="parameters"
+                  drafts={parameterConstraintDrafts}
+                  onChange={setParameterConstraintDrafts}
+                  scenarioParameters={constraintScenarioParameters}
+                />
+                <span className={hintStyle}>
+                  State constraints read the simulation state like a metric body
+                  and must return a boolean, e.g. return
+                  state.places.Queue.count &lt;= 10;
+                </span>
+                <ConstraintDraftList
+                  space="state"
+                  drafts={stateConstraintDrafts}
+                  onChange={setStateConstraintDrafts}
+                  scenarioParameters={constraintScenarioParameters}
+                />
+              </Section>
+
               <Section title="Objective" collapsible defaultOpen>
                 <span className={hintStyle}>
                   Choose a saved metric or write custom code for this run.
@@ -1326,13 +1458,13 @@ export const CreateOptimizationDrawer = ({
       <Drawer.Footer
         secondaryActions={
           error ||
-          (selectedScenario || isAdHoc ? configurationError : null) ||
+          (selectedScenario || isAdHoc ? runBlocker : null) ||
           visibleCustomMetricError ? (
             <Form.Field.Errors
               className={errorsStyle}
               errors={[
                 error ??
-                  (selectedScenario || isAdHoc ? configurationError : null) ??
+                  (selectedScenario || isAdHoc ? runBlocker : null) ??
                   visibleCustomMetricError,
               ]}
               size="sm"
@@ -1356,10 +1488,10 @@ export const CreateOptimizationDrawer = ({
               size="sm"
               disabled={
                 submissionInProgress ||
-                configurationError !== null ||
+                runBlocker !== null ||
                 visibleCustomMetricError !== undefined
               }
-              tooltip={configurationError ?? visibleCustomMetricError}
+              tooltip={runBlocker ?? visibleCustomMetricError}
               prefix={
                 submissionInProgress ? (
                   <LoadingSpinner size="sm" variant="bars" />

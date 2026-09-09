@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   filePathToUri,
+  getConstraintDocumentUri,
   getDocumentUri,
+  parseConstraintDocumentUri,
   parseDocumentUri,
   uriToFilePath,
 } from "./document-uris";
@@ -129,4 +131,25 @@ describe("roundtrip", () => {
       expect(getDocumentUri(parsed!.itemType, parsed!.itemId)).toBe(uri);
     },
   );
+});
+
+describe("constraint document URIs", () => {
+  const uri = "inmemory://sdcpn/_temp/constraints/draft-1/code.ts";
+  const filePath = "/_temp/constraints/draft-1/code.ts";
+
+  it("builds the URI from the session id", () => {
+    expect(getConstraintDocumentUri("draft-1")).toBe(uri);
+  });
+
+  it("parses the session id back from the URI", () => {
+    expect(parseConstraintDocumentUri(uri)).toEqual({ sessionId: "draft-1" });
+    expect(
+      parseConstraintDocumentUri("inmemory://sdcpn/_temp/metrics/m1/code.ts"),
+    ).toBeNull();
+  });
+
+  it("round-trips through the virtual file path", () => {
+    expect(uriToFilePath(uri)).toBe(filePath);
+    expect(filePathToUri(filePath)).toBe(uri);
+  });
 });

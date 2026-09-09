@@ -165,11 +165,18 @@
           "items": {
             "$ref": "#/$defs/OptimizationDescribeParameter"
           }
+        },
+        "constraints": {
+          "description": "The manifest's constraints, passed through verbatim so protocol clients (the Python binding) can evaluate their HIR. Absent means unconstrained.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Constraint"
+          }
         }
       },
       "required": ["direction", "study", "parameters"],
       "additionalProperties": false,
-      "description": "The `optimization.describe` result: direction, study settings, and the parameters that are not fixed."
+      "description": "The `optimization.describe` result: direction, study settings, the parameters that are not fixed, and the study's constraints."
     },
     "OptimizationEvaluateResult": {
       "type": "object",
@@ -187,6 +194,1067 @@
       "required": ["objective"],
       "additionalProperties": false,
       "description": "The `optimization.evaluate` result. `objective` is the mean of the per-seed objectives (identical to the sole run's objective when the trial runs one seed); `replicates` reports the per-seed values whenever a trial runs more than one."
+    },
+    "Constraint": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ParameterConstraint"
+        },
+        {
+          "$ref": "#/$defs/StateConstraint"
+        }
+      ],
+      "description": "One boolean condition, discriminated by the space it ranges over.",
+      "discriminator": {
+        "propertyName": "space"
+      }
+    },
+    "ParameterConstraint": {
+      "type": "object",
+      "properties": {
+        "space": {
+          "type": "string",
+          "const": "parameters"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "description": "Optional display name shown wherever the constraint is reported.",
+          "type": "string",
+          "minLength": 1
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The authored TypeScript source, the editable text of record. `hir` is its lowered form; regenerating `hir` from `code` must be a no-op."
+        },
+        "hir": {
+          "$ref": "#/$defs/ParameterConstraintHir"
+        }
+      },
+      "required": ["space", "id", "code", "hir"],
+      "additionalProperties": false,
+      "description": "One boolean condition over the parameter space: an expression over `scenario.*` and `parameters.*`, e.g. `scenario.min_load < scenario.max_load`. Checkable before a run starts."
+    },
+    "ParameterConstraintHir": {
+      "type": "object",
+      "properties": {
+        "hirVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "surface": {
+          "type": "string",
+          "const": "scenario-expression"
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HirNamedSpan"
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        }
+      },
+      "required": ["hirVersion", "surface", "params", "body", "span"],
+      "additionalProperties": false,
+      "description": "The lowered condition: a `scenario-expression` surface function with no declared parameters; `scenario.*` and `parameters.*` are ambient reads."
+    },
+    "HirNamedSpan": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        }
+      },
+      "required": ["name", "span"],
+      "additionalProperties": false,
+      "description": "A declared name (a parameter or a binding) and where it is spelled."
+    },
+    "HirSpan": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": ["start", "length"],
+      "additionalProperties": false,
+      "description": "Half-open span into the user-visible source text, in UTF-16 code units."
+    },
+    "HirExpr": {
+      "description": "One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/HirNumberLit"
+        },
+        {
+          "$ref": "#/$defs/HirBoolLit"
+        },
+        {
+          "$ref": "#/$defs/HirStringLit"
+        },
+        {
+          "$ref": "#/$defs/HirStringCall"
+        },
+        {
+          "$ref": "#/$defs/HirUuidGenerate"
+        },
+        {
+          "$ref": "#/$defs/HirUuidFrom"
+        },
+        {
+          "$ref": "#/$defs/HirConstant"
+        },
+        {
+          "$ref": "#/$defs/HirLocalRef"
+        },
+        {
+          "$ref": "#/$defs/HirParamRef"
+        },
+        {
+          "$ref": "#/$defs/HirScenarioRef"
+        },
+        {
+          "$ref": "#/$defs/HirRangeCall"
+        },
+        {
+          "$ref": "#/$defs/HirFieldAccess"
+        },
+        {
+          "$ref": "#/$defs/HirIndexAccess"
+        },
+        {
+          "$ref": "#/$defs/HirLength"
+        },
+        {
+          "$ref": "#/$defs/HirUnary"
+        },
+        {
+          "$ref": "#/$defs/HirBinary"
+        },
+        {
+          "$ref": "#/$defs/HirCond"
+        },
+        {
+          "$ref": "#/$defs/HirLet"
+        },
+        {
+          "$ref": "#/$defs/HirMathCall"
+        },
+        {
+          "$ref": "#/$defs/HirRecordLit"
+        },
+        {
+          "$ref": "#/$defs/HirArrayLit"
+        },
+        {
+          "$ref": "#/$defs/HirArrayMap"
+        },
+        {
+          "$ref": "#/$defs/HirArrayReduce"
+        },
+        {
+          "$ref": "#/$defs/HirArrayConcat"
+        },
+        {
+          "$ref": "#/$defs/HirDistribution"
+        },
+        {
+          "$ref": "#/$defs/HirDistributionMap"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "kind"
+      }
+    },
+    "HirNumberLit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "numberLit"
+        },
+        "value": {
+          "type": "number"
+        },
+        "raw": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "span", "kind", "value", "raw"],
+      "additionalProperties": false
+    },
+    "HirBoolLit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "boolLit"
+        },
+        "value": {
+          "type": "boolean"
+        }
+      },
+      "required": ["id", "span", "kind", "value"],
+      "additionalProperties": false
+    },
+    "HirStringLit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "stringLit"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "span", "kind", "value"],
+      "additionalProperties": false
+    },
+    "HirStringCall": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "stringCall"
+        },
+        "fn": {
+          "$ref": "#/$defs/HirStringFn"
+        },
+        "target": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "argument": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": ["id", "span", "kind", "fn", "target", "argument"],
+      "additionalProperties": false
+    },
+    "HirStringFn": {
+      "type": "string",
+      "enum": ["startsWith", "endsWith", "includes"]
+    },
+    "HirUuidGenerate": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "uuidGenerate"
+        }
+      },
+      "required": ["id", "span", "kind"],
+      "additionalProperties": false
+    },
+    "HirUuidFrom": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "uuidFrom"
+        },
+        "operand": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": ["id", "span", "kind", "operand"],
+      "additionalProperties": false
+    },
+    "HirConstant": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "constant"
+        },
+        "name": {
+          "$ref": "#/$defs/HirConstantName"
+        }
+      },
+      "required": ["id", "span", "kind", "name"],
+      "additionalProperties": false
+    },
+    "HirConstantName": {
+      "type": "string",
+      "enum": ["PI", "E", "Infinity", "NaN"]
+    },
+    "HirLocalRef": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "localRef"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "span", "kind", "name"],
+      "additionalProperties": false
+    },
+    "HirParamRef": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "paramRef"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "span", "kind", "name"],
+      "additionalProperties": false
+    },
+    "HirScenarioRef": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "scenarioRef"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "span", "kind", "name"],
+      "additionalProperties": false
+    },
+    "HirRangeCall": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "rangeCall"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HirExpr"
+          }
+        }
+      },
+      "required": ["id", "span", "kind", "args"],
+      "additionalProperties": false
+    },
+    "HirFieldAccess": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "fieldAccess"
+        },
+        "target": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "field": {
+          "type": "string"
+        },
+        "fieldSpan": {
+          "$ref": "#/$defs/HirSpan"
+        }
+      },
+      "required": ["id", "span", "kind", "target", "field", "fieldSpan"],
+      "additionalProperties": false
+    },
+    "HirIndexAccess": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "indexAccess"
+        },
+        "target": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "index": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": ["id", "span", "kind", "target", "index"],
+      "additionalProperties": false
+    },
+    "HirLength": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "length"
+        },
+        "target": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": ["id", "span", "kind", "target"],
+      "additionalProperties": false
+    },
+    "HirUnary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "unary"
+        },
+        "op": {
+          "$ref": "#/$defs/HirUnaryOp"
+        },
+        "operand": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": ["id", "span", "kind", "op", "operand"],
+      "additionalProperties": false
+    },
+    "HirUnaryOp": {
+      "type": "string",
+      "enum": ["-", "+", "!"]
+    },
+    "HirBinary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "binary"
+        },
+        "op": {
+          "$ref": "#/$defs/HirBinaryOp"
+        },
+        "left": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "right": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": ["id", "span", "kind", "op", "left", "right"],
+      "additionalProperties": false
+    },
+    "HirBinaryOp": {
+      "type": "string",
+      "enum": [
+        "+",
+        "-",
+        "*",
+        "/",
+        "%",
+        "**",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "==",
+        "!=",
+        "&&",
+        "||"
+      ]
+    },
+    "HirCond": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "cond"
+        },
+        "condition": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "thenBranch": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "elseBranch": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": [
+        "id",
+        "span",
+        "kind",
+        "condition",
+        "thenBranch",
+        "elseBranch"
+      ],
+      "additionalProperties": false
+    },
+    "HirLet": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "let"
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HirLetBinding"
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": ["id", "span", "kind", "bindings", "body"],
+      "additionalProperties": false
+    },
+    "HirLetBinding": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "nameSpan": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "value": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": ["name", "nameSpan", "value"],
+      "additionalProperties": false
+    },
+    "HirMathCall": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "mathCall"
+        },
+        "fn": {
+          "$ref": "#/$defs/HirMathFn"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HirExpr"
+          }
+        }
+      },
+      "required": ["id", "span", "kind", "fn", "args"],
+      "additionalProperties": false
+    },
+    "HirMathFn": {
+      "type": "string",
+      "enum": [
+        "abs",
+        "acos",
+        "asin",
+        "atan",
+        "atan2",
+        "cbrt",
+        "ceil",
+        "cos",
+        "cosh",
+        "exp",
+        "floor",
+        "hypot",
+        "log",
+        "log10",
+        "log2",
+        "max",
+        "min",
+        "pow",
+        "random",
+        "round",
+        "sign",
+        "sin",
+        "sinh",
+        "sqrt",
+        "tan",
+        "tanh",
+        "trunc"
+      ]
+    },
+    "HirRecordLit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "recordLit"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HirRecordEntry"
+          }
+        }
+      },
+      "required": ["id", "span", "kind", "entries"],
+      "additionalProperties": false
+    },
+    "HirRecordEntry": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "keySpan": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "value": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": ["key", "keySpan", "value"],
+      "additionalProperties": false
+    },
+    "HirArrayLit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "arrayLit"
+        },
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HirExpr"
+          }
+        }
+      },
+      "required": ["id", "span", "kind", "elements"],
+      "additionalProperties": false
+    },
+    "HirArrayMap": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "arrayMap"
+        },
+        "target": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "param": {
+          "$ref": "#/$defs/HirNamedSpan"
+        },
+        "indexParam": {
+          "$ref": "#/$defs/HirNamedSpan"
+        },
+        "body": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": ["id", "span", "kind", "target", "param", "body"],
+      "additionalProperties": false
+    },
+    "HirArrayReduce": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "arrayReduce"
+        },
+        "target": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "accParam": {
+          "$ref": "#/$defs/HirNamedSpan"
+        },
+        "param": {
+          "$ref": "#/$defs/HirNamedSpan"
+        },
+        "indexParam": {
+          "$ref": "#/$defs/HirNamedSpan"
+        },
+        "body": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "initial": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": [
+        "id",
+        "span",
+        "kind",
+        "target",
+        "accParam",
+        "param",
+        "body",
+        "initial"
+      ],
+      "additionalProperties": false
+    },
+    "HirArrayConcat": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "arrayConcat"
+        },
+        "left": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "right": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": ["id", "span", "kind", "left", "right"],
+      "additionalProperties": false
+    },
+    "HirDistribution": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "distribution"
+        },
+        "dist": {
+          "$ref": "#/$defs/HirDistributionKind"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HirExpr"
+          }
+        }
+      },
+      "required": ["id", "span", "kind", "dist", "args"],
+      "additionalProperties": false
+    },
+    "HirDistributionKind": {
+      "type": "string",
+      "enum": ["gaussian", "uniform", "lognormal"]
+    },
+    "HirDistributionMap": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        },
+        "kind": {
+          "type": "string",
+          "const": "distributionMap"
+        },
+        "base": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "param": {
+          "$ref": "#/$defs/HirNamedSpan"
+        },
+        "body": {
+          "$ref": "#/$defs/HirExpr"
+        }
+      },
+      "required": ["id", "span", "kind", "base", "param", "body"],
+      "additionalProperties": false
+    },
+    "StateConstraint": {
+      "type": "object",
+      "properties": {
+        "space": {
+          "type": "string",
+          "const": "state"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "description": "Optional display name shown wherever the constraint is reported.",
+          "type": "string",
+          "minLength": 1
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The authored TypeScript source, the editable text of record. `hir` is its lowered form; regenerating `hir` from `code` must be a no-op."
+        },
+        "hir": {
+          "$ref": "#/$defs/StateConstraintHir"
+        }
+      },
+      "required": ["space", "id", "code", "hir"],
+      "additionalProperties": false,
+      "description": "One boolean condition over the simulation state, authored like a metric body but returning boolean, e.g. `return state.places.Queue.count <= 10;`. Observed while a run goes."
+    },
+    "StateConstraintHir": {
+      "type": "object",
+      "properties": {
+        "hirVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "surface": {
+          "type": "string",
+          "const": "metric"
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HirNamedSpan"
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        }
+      },
+      "required": ["hirVersion", "surface", "params", "body", "span"],
+      "additionalProperties": false,
+      "description": "The lowered condition: a `metric` surface function whose first declared parameter is the simulation `state`; `parameters.*` is ambient."
+    },
+    "HirSurfaceKind": {
+      "type": "string",
+      "enum": [
+        "dynamics",
+        "lambda",
+        "kernel",
+        "metric",
+        "scenario-expression",
+        "scenario-code"
+      ]
+    },
+    "HirFunction": {
+      "type": "object",
+      "properties": {
+        "hirVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "surface": {
+          "$ref": "#/$defs/HirSurfaceKind"
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HirNamedSpan"
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/HirExpr"
+        },
+        "span": {
+          "$ref": "#/$defs/HirSpan"
+        }
+      },
+      "required": ["hirVersion", "surface", "params", "body", "span"],
+      "additionalProperties": false,
+      "description": "A lowered user function (see hir/hir.ts for the grammar). `params[0]` is the input parameter when the surface declares one; `parameters.*` and `scenario.*` reads are dedicated node kinds, never locals."
     }
   }
 }

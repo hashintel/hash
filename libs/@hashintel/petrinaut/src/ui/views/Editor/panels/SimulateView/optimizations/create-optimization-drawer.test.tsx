@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { use, useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -14,6 +15,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { PortalContainerContext } from "@hashintel/ds-components";
 import {
   adHocOptimizationBindings,
+  DiagnosticSeverity,
+  getConstraintDocumentUri,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
 
@@ -45,12 +48,15 @@ import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-cont
 import type { OptimizationParameterDraft } from "./optimization-parameter-row";
 import type {
   AdHocScenarioState,
+  ConstraintSource,
+  LowerConstraintResult,
   Metric,
   PetrinautOptimizationInput,
   Scenario,
   SDCPN,
 } from "@hashintel/petrinaut-core";
 import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
+import type { ConstraintSessionParams } from "@hashintel/petrinaut-core/workers/lsp";
 import type { ReactNode } from "react";
 
 const { addMetricMock } = vi.hoisted(() => ({ addMetricMock: vi.fn() }));
@@ -336,6 +342,30 @@ function makeSuccessfulLanguageClient(): LanguageClientContextValue {
     ),
     requestHover: vi.fn(() => Promise.resolve(null)),
     requestSignatureHelp: vi.fn(() => Promise.resolve(null)),
+    requestConstraint: vi.fn((source: ConstraintSource) =>
+      Promise.resolve({
+        ok: true,
+        constraint: {
+          ...source,
+          hir: {
+            hirVersion: 1,
+            surface:
+              source.space === "parameters" ? "scenario-expression" : "metric",
+            params:
+              source.space === "parameters"
+                ? []
+                : [{ name: "state", span: { start: 0, length: 0 } }],
+            body: {
+              kind: "boolLit",
+              id: 0,
+              span: { start: 0, length: 0 },
+              value: true,
+            },
+            span: { start: 0, length: 0 },
+          },
+        },
+      } as LowerConstraintResult),
+    ),
     requestScenarioHir: vi.fn(() =>
       Promise.resolve({
         version: 1 as const,
@@ -368,11 +398,14 @@ function makeSuccessfulLanguageClient(): LanguageClientContextValue {
     initializeAdHocSession: vi.fn(),
     updateAdHocSession: vi.fn(),
     killAdHocSession: vi.fn(),
+    initializeConstraintSession: vi.fn(),
+    updateConstraintSession: vi.fn(),
+    killConstraintSession: vi.fn(),
   };
 }
 
 const openConfiguration = (props: TestProviderProps = {}) => {
-  render(<TestProviders {...props} />);
+  const rendered = render(<TestProviders {...props} />);
 
   fireEvent.change(
     screen.getByRole("combobox", { name: "Select a scenario" }),
@@ -380,6 +413,34 @@ const openConfiguration = (props: TestProviderProps = {}) => {
   );
 
   expect(screen.getByText("Parameters")).toBeTruthy();
+  return rendered;
+};
+
+/** Selects the saved metric, one optimized parameter and a direction, so Run
+ * is enabled before the constraint under test enters the picture. */
+const completeSeasonalFluConfiguration = () => {
+  const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
+  fireEvent.change(screen.getByRole("combobox", { name: "Select a metric" }), {
+    target: { value: `${MODEL_METRIC_VALUE_PREFIX}${savedMetric!.id}` },
+  });
+  fireEvent.click(
+    screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
+};
+
+const runButton = () =>
+  screen.getByRole("button", { name: /Run/ }) as HTMLButtonElement;
+
+const firstConstraintSession = (
+  languageClient: LanguageClientContextValue,
+): ConstraintSessionParams => {
+  const params = vi.mocked(languageClient.initializeConstraintSession).mock
+    .calls[0]?.[0];
+  if (!params) {
+    throw new Error("expected a constraint session to have been initialized");
+  }
+  return params;
 };
 
 describe("CreateOptimizationDrawer", () => {
@@ -684,6 +745,209 @@ describe("CreateOptimizationDrawer", () => {
       (screen.getByRole("button", { name: /Run/ }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+  });
+
+  it("lowers authored constraints and embeds them in the manifest", async () => {
+    const languageClient = makeSuccessfulLanguageClient();
+    const createOptimization = vi.fn(
+      async (_input: PetrinautOptimizationInput) => "optimization-constrained",
+    );
+    const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
+    openConfiguration({ createOptimization, languageClient });
+
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}${savedMetric!.id}` },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
+
+    // Author one parameter constraint.
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: "Metric code" }), {
+      target: { value: "scenario.infected_ratio < 0.9" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Run/ }));
+    await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
+
+    expect(
+      vi.mocked(languageClient.requestConstraint).mock.calls[0]?.[0],
+    ).toMatchObject({
+      space: "parameters",
+      code: "scenario.infected_ratio < 0.9",
+    });
+    const submittedInput = createOptimization.mock.calls[0]![0];
+    expect(submittedInput.constraints).toHaveLength(1);
+    expect(submittedInput.constraints?.[0]).toMatchObject({
+      space: "parameters",
+      code: "scenario.infected_ratio < 0.9",
+      hir: { surface: "scenario-expression" },
+    });
+  });
+
+  it("runs one language session per constraint row, keyed by the row", () => {
+    const languageClient = makeSuccessfulLanguageClient();
+    openConfiguration({ languageClient });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    const session = firstConstraintSession(languageClient);
+    expect(session).toMatchObject({
+      space: "parameters",
+      code: "",
+      scenarioParameters: [
+        { type: "integer", identifier: "population", default: 1000 },
+        { type: "ratio", identifier: "infected_ratio", default: 0.01 },
+      ],
+    });
+
+    const row = screen.getByRole("group", { name: "Parameter constraint 1" });
+    fireEvent.change(within(row).getByRole("textbox"), {
+      target: { value: "scenario.population > 100" },
+    });
+    expect(languageClient.updateConstraintSession).toHaveBeenCalledWith({
+      ...session,
+      code: "scenario.population > 100",
+    });
+    expect(languageClient.initializeConstraintSession).toHaveBeenCalledOnce();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add state constraint" }),
+    );
+    expect(
+      vi.mocked(languageClient.initializeConstraintSession).mock.calls[1]?.[0],
+    ).toMatchObject({ space: "state", code: "" });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove parameter constraint 1" }),
+    );
+    expect(languageClient.killConstraintSession).toHaveBeenCalledWith(
+      session.sessionId,
+    );
+    expect(
+      screen.queryByRole("group", { name: "Parameter constraint 1" }),
+    ).toBeNull();
+  });
+
+  it("shows a row's error diagnostic under it and blocks Run", () => {
+    const languageClient = makeSuccessfulLanguageClient();
+    const { rerender } = openConfiguration({ languageClient });
+    completeSeasonalFluConfiguration();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    expect(runButton().disabled).toBe(false);
+
+    const { sessionId } = firstConstraintSession(languageClient);
+    const range = {
+      start: { line: 0, character: 0 },
+      end: { line: 0, character: 1 },
+    };
+    rerender(
+      <TestProviders
+        languageClient={{
+          ...languageClient,
+          diagnosticsByUri: new Map([
+            [
+              getConstraintDocumentUri(sessionId),
+              [
+                {
+                  range,
+                  message: "only a lint",
+                  severity: DiagnosticSeverity.Warning,
+                },
+                {
+                  range,
+                  message: "Type 'number' is not assignable to type 'boolean'.",
+                  severity: DiagnosticSeverity.Error,
+                },
+              ],
+            ],
+            [
+              getConstraintDocumentUri("another-drawer"),
+              [
+                {
+                  range,
+                  message: "elsewhere",
+                  severity: DiagnosticSeverity.Error,
+                },
+              ],
+            ],
+          ]),
+        }}
+      />,
+    );
+
+    const row = screen.getByRole("group", { name: "Parameter constraint 1" });
+    expect(
+      within(row).getByText(
+        "Type 'number' is not assignable to type 'boolean'.",
+      ),
+    ).toBeTruthy();
+    expect(runButton().disabled).toBe(true);
+    expect(
+      screen.getByText(
+        "Parameter constraint 1: Type 'number' is not assignable to type 'boolean'.",
+      ),
+    ).toBeTruthy();
+
+    rerender(
+      <TestProviders
+        languageClient={{
+          ...languageClient,
+          diagnosticsByUri: new Map([
+            [
+              getConstraintDocumentUri("another-drawer"),
+              [
+                {
+                  range,
+                  message: "elsewhere",
+                  severity: DiagnosticSeverity.Error,
+                },
+              ],
+            ],
+          ]),
+        }}
+      />,
+    );
+    expect(runButton().disabled).toBe(false);
+    expect(screen.queryByText(/elsewhere/)).toBeNull();
+  });
+
+  it("gives an ad-hoc study's constraint rows the synthesized scenario parameters", () => {
+    const languageClient = makeSuccessfulLanguageClient();
+    render(
+      <TestProviders enableAdHocScenarios languageClient={languageClient} />,
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a scenario" }),
+      { target: { value: "__adhoc__" } },
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Add a variable (Top-level variables)",
+      }),
+    );
+    // Only an exposed or optimized Variable becomes a scenario parameter; a
+    // plain one is inlined into the generated scenario.
+    fireEvent.click(screen.getByRole("button", { name: "Optimize variable1" }));
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    const session = firstConstraintSession(languageClient);
+    expect(session.space).toBe("parameters");
+    expect(
+      session.scenarioParameters.map((parameter) => parameter.identifier),
+    ).toEqual([expect.stringContaining("variable1")]);
   });
 
   it("submits a transient custom metric without persisting it", async () => {

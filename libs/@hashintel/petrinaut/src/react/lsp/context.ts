@@ -4,6 +4,9 @@ import type {
   AdHocSynthesisContext,
   CompileHirArtifactsOptions,
   CompletionList,
+  ConstraintSource,
+  LowerConstraintContext,
+  LowerConstraintResult,
   Diagnostic,
   DocumentUri,
   HirCompileResult,
@@ -17,6 +20,7 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type {
   AdHocSessionParams,
+  ConstraintSessionParams,
   MetricSessionParams,
   ScenarioSessionParams,
 } from "@hashintel/petrinaut-core/workers/lsp";
@@ -73,6 +77,14 @@ export interface LanguageClientContextValue {
    * code does not lower — keep the user's text in that case.
    */
   requestFormatExpression: (code: string) => Promise<string | null>;
+  /**
+   * Lower one constraint's source to HIR (in the language worker) and check
+   * it produces a boolean.
+   */
+  requestConstraint: (
+    source: ConstraintSource,
+    context: LowerConstraintContext,
+  ) => Promise<LowerConstraintResult>;
   /** Initialize a temporary scenario editing session. */
   initializeScenarioSession: (params: ScenarioSessionParams) => void;
   /** Update a scenario editing session. */
@@ -91,6 +103,12 @@ export interface LanguageClientContextValue {
   updateMetricSession: (params: MetricSessionParams) => void;
   /** Kill a metric editing session. */
   killMetricSession: (sessionId: string) => void;
+  /** Starts a constraint editing session for one constraint's source. */
+  initializeConstraintSession: (params: ConstraintSessionParams) => void;
+  /** Updates a constraint editing session. */
+  updateConstraintSession: (params: ConstraintSessionParams) => void;
+  /** Ends a constraint editing session. */
+  killConstraintSession: (sessionId: string) => void;
 }
 
 /** The inert default: no worker wired — requests resolve to empty results. */
@@ -121,6 +139,18 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
       placeExpressions: {},
     }),
   requestFormatExpression: () => Promise.resolve(null),
+  requestConstraint: () =>
+    Promise.resolve({
+      ok: false as const,
+      diagnostics: [
+        {
+          code: "hir:no-language-client",
+          message: "No language client is wired; constraints cannot compile.",
+          severity: "error" as const,
+          span: { start: 0, length: 0 },
+        },
+      ],
+    }),
   initializeScenarioSession: () => {},
   updateScenarioSession: () => {},
   killScenarioSession: () => {},
@@ -130,6 +160,9 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
   killAdHocSession: () => {},
   updateMetricSession: () => {},
   killMetricSession: () => {},
+  initializeConstraintSession: () => {},
+  updateConstraintSession: () => {},
+  killConstraintSession: () => {},
 };
 
 export const LanguageClientContext = createContext<LanguageClientContextValue>(
