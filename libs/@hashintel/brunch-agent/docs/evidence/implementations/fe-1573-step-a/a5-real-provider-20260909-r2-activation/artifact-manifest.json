@@ -14,5 +14,49 @@
   "preflight-integration.log.gz": {
     "sourceSha256": "e59de78947d7b1fcf497556ea63cb80acfdbea50ce4cbdb17d2060748396afc3",
     "artifactSha256": "d49ced197a9a306baf5099e593deb44af047e5221fa39ce0f99af9249662e0fd"
+  },
+  "reservation-ready.json.gz": {
+    "sourceSha256": "fdfcaf5267928622045fa41b311e25d5dd26a184d04abfcd1b5f6b293abd3fb8",
+    "artifactSha256": "53cd2a68f7006ec9e2db7c1bfaa38c11bc4e1f7efa40ebad01b31f8cf8a449bb"
+  },
+  "connection-controller.mjs.gz": {
+    "sourceSha256": "b29699a79768486cc4b76e48305f0f3c564a2cf15e938dbeabe88ea0e8452b89",
+    "artifactSha256": "d124efcd2f9dbb611ef9438e9cfe67f22f858513d85b261f7cf217e1739234bc"
+  },
+  "connection-check.mjs.gz": {
+    "sourceSha256": "b6406ec3859e581856c57c025a8b66103c759637e9f1376b05c3cf36779365ee",
+    "artifactSha256": "7dafc94bbdc08cce302c2369a0eb5df0b483bb2b0004208929a1fa015bc44ae7"
+  },
+  "connection-controller.json.gz": {
+    "sourceSha256": "bc37454e3b836e45a5804413f96e24b4366f425e1b0a33e528ce24e165380f0f",
+    "artifactSha256": "7e336f80c32207e30289629a7791d15d8aa3f9d08161e3af6eda546c1cbffd38"
+  },
+  "connection-check.json.gz": {
+    "sourceSha256": "d6ed0d73b5ed747fa170ffa42754055302bc2d4fee2e810a294374354f16aa62",
+    "artifactSha256": "baf0d8b240531951d903fc35e5215f5d86752810e55bb872a6a1b02029d3d860"
+  },
+  "connection.stdout.gz": {
+    "sourceSha256": "ad9c501e15756fa3c337750749b7da08584b63c25719e41d3faf3d1a5e9cea17",
+    "artifactSha256": "a3ca3a030ea0f73d772b30e12c3f4c4b34dceab8594228d1eb6f67e0a5b3f377"
+  },
+  "connection.stderr.gz": {
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  "connection.exit.gz": {
+    "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "artifactSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  "provider-address.json.gz": {
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  "provider-address.stderr.gz": {
+    "sourceSha256": "63aa913058f91124008edb68e31c3747d2de776ee97b85de48849dd4167ccc62",
+    "artifactSha256": "90f63098b8111b91f7a4255c3915828c46f41e3dd52f28ffd422120415289678"
+  },
+  "dns-only.sb.gz": {
+    "sourceSha256": "3f9b5614f38fe2b464a628016c79ef5f035c7569c2abdf71809f82503151e776",
+    "artifactSha256": "db67ae97bc1a1e7133fb64a083a1a63f79b9e2a92bce474426afc5a8cab0ebbd"
   }
 }
