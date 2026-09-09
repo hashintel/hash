@@ -77,7 +77,7 @@ const paneStyle = css({
   // token count and handles together, so nothing of it stays at full strength
   // while the neighbourhood carries the colour.
   "&[data-focus-active] .react-flow__node:not(.canvas-focus-role)": {
-    opacity: "[0.5]",
+    opacity: "[0.4]",
   },
   // An arc outside the neighbourhood recedes from here, so a hover leaves
   // every arc it did not touch alone. Only the strokes fade: an arc's weight

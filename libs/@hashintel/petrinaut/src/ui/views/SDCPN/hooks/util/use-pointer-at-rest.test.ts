@@ -55,7 +55,7 @@ describe("usePointerAtRest", () => {
     expect(result.current).toBe(false);
 
     movePointer(140, 100);
-    wait(40);
+    wait(140);
     expect(result.current).toBe(false);
   });
 
@@ -63,7 +63,7 @@ describe("usePointerAtRest", () => {
     const { result } = renderAtRest();
 
     movePointer(100, 100);
-    wait(50);
+    wait(150);
 
     expect(result.current).toBe(true);
   });
@@ -72,7 +72,7 @@ describe("usePointerAtRest", () => {
     const { result } = renderAtRest();
 
     movePointer(100, 100);
-    wait(50);
+    wait(150);
     expect(result.current).toBe(true);
 
     movePointer(101, 101);
@@ -84,7 +84,7 @@ describe("usePointerAtRest", () => {
     const { result } = renderAtRest();
 
     movePointer(100, 100);
-    wait(50);
+    wait(150);
 
     // Each step is under the threshold, but they are measured from the last
     // position that counted, so together they are a move.
@@ -99,9 +99,9 @@ describe("usePointerAtRest", () => {
     const { result } = renderAtRest();
 
     movePointer(100, 100);
-    wait(40);
+    wait(140);
     movePointer(200, 100);
-    wait(40);
+    wait(140);
 
     expect(result.current).toBe(false);
 

@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 const MOVEMENT_THRESHOLD_PX = 2;
 
 /** How long the pointer has to hold still before it counts as at rest. */
-const REST_DELAY_MS = 50;
+const REST_DELAY_MS = 150;
 
 /**
  * Whether the pointer has stopped moving over `ref`'s element.
