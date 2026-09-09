@@ -102,7 +102,7 @@ const loadingStyle = css({
   color: "fg.muted",
   bg: "bg.subtle",
   fontSize: "base",
-  opacity: "[0.5]",
+  opacity: "[0.3]",
 });
 
 // Inline editors left-align the label where the text will land, so it does
@@ -116,7 +116,7 @@ const singleLineLoadingStyle = css({
   paddingLeft: "[12px]",
   color: "neutral.s80",
   fontSize: "sm",
-  opacity: "[0.5]",
+  opacity: "[0.3]",
 });
 
 const placeholderStyle = css({
