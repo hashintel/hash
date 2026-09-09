@@ -25,14 +25,19 @@ struct Entry {
 
 const PREFIX: usize = size_of::<Prefix>();
 const ENTRY: usize = size_of::<Entry>();
+const BINARY_CONTENT_TYPE: &str = "application/vnd.hash.saltile-v1";
 
-/// Completion of a document writer.
+/// Response metadata from a completed document writer.
 #[derive(Debug)]
 pub(crate) struct Envelope {
-    _marker: (),
+    content_type: &'static str,
 }
 
 impl Envelope {
+    pub(crate) const fn content_type(&self) -> &'static str {
+        self.content_type
+    }
+
     /// Replaces `bytes` with JSON and returns completion after serialization succeeds.
     ///
     /// # Errors
@@ -45,7 +50,9 @@ impl Envelope {
     ) -> Result<Self, Report<serde_json::Error>> {
         bytes.clear();
         serde_json::to_writer(bytes, value).map_err(Report::new)?;
-        Ok(Self { _marker: () })
+        Ok(Self {
+            content_type: "application/json",
+        })
     }
 }
 
@@ -116,7 +123,9 @@ impl<'bytes, A: Allocator> EnvelopeWriter<'bytes, A> {
             "the envelope declares {} slots",
             self.slots,
         );
-        Envelope { _marker: () }
+        Envelope {
+            content_type: BINARY_CONTENT_TYPE,
+        }
     }
 
     pub(crate) fn finish_with_trailer(self, write: impl FnOnce(&mut Vec<u8, A>)) -> Envelope {
@@ -127,7 +136,9 @@ impl<'bytes, A: Allocator> EnvelopeWriter<'bytes, A> {
         );
 
         write(self.bytes);
-        Envelope { _marker: () }
+        Envelope {
+            content_type: BINARY_CONTENT_TYPE,
+        }
     }
 
     /// Backfills the directory entry for the most recently written slot.
@@ -157,7 +168,29 @@ mod tests {
     };
 
     use super::{Envelope, EnvelopeWriter};
-    use crate::serve2::document::codec::Kind;
+    use crate::serve2::document::codec::{Kind, WIRE_VERSION};
+
+    #[test]
+    fn binary_content_type() {
+        let expected = format!("application/vnd.hash.saltile-v{WIRE_VERSION}");
+        for kind in [Kind::TILE, Kind::EDGES, Kind::LOCATE] {
+            for trailer in [false, true] {
+                let mut bytes = Vec::new();
+                let mut writer = EnvelopeWriter::new(kind, 1, &mut bytes);
+                writer.slot(|bytes| bytes.push(0xA0));
+                let envelope = if trailer {
+                    writer.finish_with_trailer(|bytes| bytes.push(0xA0))
+                } else {
+                    writer.finish()
+                };
+                assert_eq!(
+                    envelope.content_type(),
+                    expected,
+                    "both finalizers should report the binary envelope version for every kind",
+                );
+            }
+        }
+    }
 
     #[expect(
         clippy::little_endian_bytes,
@@ -206,9 +239,14 @@ mod tests {
     fn json_buffer_reuse() {
         let mut bytes = Vec::new_in(&Global);
         bytes.extend_from_slice(b"previous document");
-        let _completed =
+        let envelope =
             Envelope::encode_json(&serde_json::json!({"nodes": {}, "edges": {}}), &mut bytes)
                 .expect("should complete JSON serialization");
+        assert_eq!(
+            envelope.content_type(),
+            "application/json",
+            "should report the media type of the completed JSON document",
+        );
         assert_eq!(
             serde_json::from_slice::<serde_json::Value>(&bytes)
                 .expect("should parse one complete document"),
