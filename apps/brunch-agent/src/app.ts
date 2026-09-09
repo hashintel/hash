@@ -10,6 +10,7 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
 import {
+  observedConstructionBrowserToolNames,
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   READ_PETRINAUT_DOC_TOOL_NAME,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
@@ -62,6 +63,7 @@ setProvider(
     () => admissionScope.getStore() === true,
     new Set([
       ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+      ...observedConstructionBrowserToolNames,
       READ_PETRINAUT_DOC_TOOL_NAME,
     ]),
   ),
