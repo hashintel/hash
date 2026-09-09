@@ -637,7 +637,7 @@ describe("ViewOptimizationDrawer for a connected study with constraints", () => 
   });
 });
 
-describe("ViewOptimizationDrawer's Parameter importance card", () => {
+describe("ViewOptimizationDrawer's Sensitivity analysis card", () => {
   const settledLong = makeOptimizationRecord({
     input: fakeLongStudyInput,
     trials: fakeLongStudyTrials.trials,
@@ -651,7 +651,7 @@ describe("ViewOptimizationDrawer's Parameter importance card", () => {
 
   const importanceCard = () =>
     screen
-      .getByText("Parameter importance")
+      .getByText("Sensitivity analysis")
       .closest<HTMLElement>("[data-chart-card]")!;
 
   it("ranks the optimized parameters with a bar each above the floor, the count in the subtitle and a Correlation column", () => {
@@ -661,7 +661,9 @@ describe("ViewOptimizationDrawer's Parameter importance card", () => {
     expect(card.getAttribute("data-tone")).toBe("default");
     expect(
       card.querySelector("[data-chart-card-subtitle]")?.textContent,
-    ).toMatch(/^estimated from \d+ completed steps · PED-ANOVA/u);
+    ).toMatch(
+      /^PED-ANOVA importance estimated from \d+ completed steps · how much/u,
+    );
     expect(card.textContent).not.toContain("floor");
     const rows = card.querySelectorAll<HTMLElement>("[data-importance-row]");
     expect([...rows].map((row) => row.dataset.importanceRow)).toEqual([
@@ -730,6 +732,6 @@ describe("ViewOptimizationDrawer's Parameter importance card", () => {
     renderDrawer(
       makeOptimizationRecord({ input, trials, best, status: "complete" }),
     );
-    expect(screen.queryByText("Parameter importance")).toBeNull();
+    expect(screen.queryByText("Sensitivity analysis")).toBeNull();
   });
 });

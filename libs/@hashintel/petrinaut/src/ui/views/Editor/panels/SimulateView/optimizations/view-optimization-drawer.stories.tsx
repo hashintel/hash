@@ -83,12 +83,12 @@ export const ConnectedWithConstraintsRunning: Story = {
 };
 
 export const ConnectedWithImportance: Story = {
-  name: "Connected study with importance",
+  name: "Connected study with sensitivity analysis",
   parameters: {
     docs: {
       description: {
         story:
-          "A complete 60-step study, past the 50-step floor, with the PED-ANOVA estimate the optimizer attached at the end: the Parameter importance card ranks the three optimized parameters with a bar each, the line under the title says how many completed steps the estimate is fitted on, and the Correlation column gives each parameter's signed Pearson correlation with the objective, computed from the steps.",
+          "A complete 60-step study, past the 50-step floor, with the PED-ANOVA estimate the optimizer attached at the end: the Sensitivity analysis card ranks the three optimized parameters with a bar each, the line under the title says how many completed steps the estimate is fitted on, and the Correlation column gives each parameter's signed Pearson correlation with the objective, computed from the steps.",
       },
     },
   },
@@ -96,7 +96,7 @@ export const ConnectedWithImportance: Story = {
 };
 
 export const ConnectedBelowImportanceFloor: Story = {
-  name: "Connected study below the importance floor",
+  name: "Connected study below the sensitivity analysis floor",
   parameters: {
     docs: {
       description: {

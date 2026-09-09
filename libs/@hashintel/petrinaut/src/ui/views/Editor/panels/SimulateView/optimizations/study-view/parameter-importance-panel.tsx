@@ -1,5 +1,5 @@
 /**
- * The Parameter importance card: one row per optimized parameter with a bar
+ * The Sensitivity analysis card: one row per optimized parameter with a bar
  * for the PED-ANOVA share the optimizer last reported and a column for the
  * signed correlation computed here from the steps. Below the study's floor the
  * card is muted and the bars fade, so a confident chart never sits on a
@@ -132,7 +132,7 @@ export const ParameterImportancePanel = ({
 
   return (
     <ChartCard
-      title="Parameter importance"
+      title="Sensitivity analysis"
       subtitle={describeImportance(view)}
       help={HELP}
       bodyHeight={plotHeight}
@@ -145,7 +145,7 @@ export const ParameterImportancePanel = ({
       >
         <div className={cx(columnsStyle, headerRowStyle)}>
           <span className={headerCellStyle}>Parameter</span>
-          <span className={headerCellStyle}>Importance</span>
+          <span className={headerCellStyle}>Share</span>
           <span className={headerCellStyle} data-align="right">
             Correlation
           </span>

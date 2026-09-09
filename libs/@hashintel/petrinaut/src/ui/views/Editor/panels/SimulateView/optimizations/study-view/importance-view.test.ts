@@ -185,7 +185,7 @@ describe("importanceRows", () => {
 });
 
 describe("the card's copy", () => {
-  it("leads with the count, names the floor only below it, and ends with PED-ANOVA's question", () => {
+  it("names the statistic and the count, the floor only below it, and ends with the question the bars answer", () => {
     const rows: never[] = [];
     expect(
       describeImportance({
@@ -197,7 +197,7 @@ describe("the card's copy", () => {
         barScale: 0.5,
       }),
     ).toBe(
-      "estimated from 54 completed steps · PED-ANOVA: how much of the objective's variance each parameter explains",
+      "PED-ANOVA importance estimated from 54 completed steps · how much of the objective's variance each parameter explains",
     );
     expect(
       describeImportance({
@@ -209,7 +209,7 @@ describe("the card's copy", () => {
         barScale: 1,
       }),
     ).toBe(
-      "estimated from 27 completed steps · below the 50-step floor, treat as a hint · PED-ANOVA: how much of the objective's variance each parameter explains",
+      "PED-ANOVA importance estimated from 27 completed steps · below the 50-step floor, treat as a hint · how much of the objective's variance each parameter explains",
     );
     expect(
       describeImportance({
@@ -220,7 +220,7 @@ describe("the card's copy", () => {
         belowFloor: true,
         barScale: 1,
       }),
-    ).toContain("estimated from 1 completed step ·");
+    ).toContain("importance estimated from 1 completed step ·");
     expect(
       describeImportance({
         rows,
@@ -231,7 +231,7 @@ describe("the card's copy", () => {
         barScale: 1,
       }),
     ).toMatch(
-      /^no estimate yet · 12 completed steps · below the 50-step floor/u,
+      /^no PED-ANOVA importance yet · 12 completed steps · below the 50-step floor/u,
     );
   });
 

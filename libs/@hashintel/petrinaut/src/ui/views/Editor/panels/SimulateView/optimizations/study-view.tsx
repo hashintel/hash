@@ -294,7 +294,7 @@ const RemoteStudyBody = ({
  * A study evaluated in this browser: the header and the summary, the
  * parameter controls with their state line, the chart cards (the surface, the
  * objective at the point, the objective by step, Constraints when the study
- * declares any, and Parameter importance), and the steps filling what is
+ * declares any, and Sensitivity analysis), and the steps filling what is
  * left. The navigation drives the surface and the objective's timeline,
  * following each step while the study runs.
  */

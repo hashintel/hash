@@ -90,7 +90,7 @@ prunes an infeasible draw before any simulation and runs state constraints as
 `auxiliaryMetrics` on the detached objective request, 0/1 indicators
 aggregated with `min` over each run's frames.
 
-Parameter importance travels the other way. The optimizer core's
+Sensitivity analysis travels the other way. The optimizer core's
 `importance.py` estimates PED-ANOVA importances (the one Optuna evaluator that
 needs numpy alone) and `pyodide_entry.py` attaches them to the summary and, at
 `importance_cadence` past `importance_floor`, to trial events; the worker's
@@ -98,7 +98,8 @@ needs numpy alone) and `pyodide_entry.py` attaches them to the summary and, at
 browser capability copies the block onto the `trial` and `complete` log events
 as `importances`. `OptimizationsProvider` keeps the latest on
 `record.importance`. `ParameterImportancePanel`
-(`study-view/parameter-importance-panel.tsx`) renders it from the pure
+(`study-view/parameter-importance-panel.tsx`), the **Sensitivity analysis**
+card, renders it from the pure
 `importance-view.ts`: rows sorted by share, a signed Pearson correlation per
 parameter computed from `record.trials`, and the fade rule (`tone="muted"`,
 bars at a quarter opacity that no longer set the scale) below
