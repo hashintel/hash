@@ -28,7 +28,9 @@ const containerStyle = css({
 });
 
 const transitionBoxStyle = css({
-  padding: "[6px 10px]",
+  // Tighter than the circle's, so four lines of a name and the two rows
+  // around them fit the square with room to spare.
+  padding: "[2px 10px]",
   // The flat box leaves less room for a name than a circle does, so its
   // three lines are set smaller.
   fontSize: "[13px]",
