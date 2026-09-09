@@ -18,6 +18,7 @@ import { ActiveNetContext } from "../../../../../../../react/state/active-net-co
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { DescriptionTextArea } from "../../../../../../components/description-field";
+import { PropertyValue } from "../../../../../../components/property-value";
 import { Section, SectionList } from "../../../../../../components/section";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
@@ -116,6 +117,9 @@ const PlaceMainContent: React.FC = () => {
     }
   };
 
+  const placeTypeName =
+    types.find((candidate) => candidate.id === place.colorId)?.name ?? "None";
+
   // Filter differential equations by place type
   const availableDiffEqs = place.colorId
     ? differentialEquations.filter((eq) => eq.colorId === place.colorId)
@@ -125,29 +129,31 @@ const PlaceMainContent: React.FC = () => {
     <div ref={rootDivRef}>
       <SectionList>
         <Section title="Name">
-          <Tooltip
-            content={UI_MESSAGES.READ_ONLY_MODE}
-            disableTooltip={!isReadOnly}
-          >
-            <TextInput
-              size="sm"
-              inputRef={nameInputRef}
-              value={nameField.value}
-              onChange={(name) => {
-                nameField.setValue(name);
-                if (nameField.error) {
-                  nameField.setError(null);
-                }
-              }}
-              onFocus={() => setIsNameInputFocused(true)}
-              onBlur={() => {
-                setIsNameInputFocused(false);
-                handleNameBlur();
-              }}
-              disabled={isReadOnly}
-              invalid={!!nameField.error}
-            />
-          </Tooltip>
+          <PropertyValue text={place.name}>
+            <Tooltip
+              content={UI_MESSAGES.READ_ONLY_MODE}
+              disableTooltip={!isReadOnly}
+            >
+              <TextInput
+                size="sm"
+                inputRef={nameInputRef}
+                value={nameField.value}
+                onChange={(name) => {
+                  nameField.setValue(name);
+                  if (nameField.error) {
+                    nameField.setError(null);
+                  }
+                }}
+                onFocus={() => setIsNameInputFocused(true)}
+                onBlur={() => {
+                  setIsNameInputFocused(false);
+                  handleNameBlur();
+                }}
+                disabled={isReadOnly}
+                invalid={!!nameField.error}
+              />
+            </Tooltip>
+          </PropertyValue>
           {nameField.error && (
             <div className={errorMessageStyle}>{nameField.error}</div>
           )}
@@ -177,51 +183,53 @@ const PlaceMainContent: React.FC = () => {
                 : ""
             } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
           >
-            <Tooltip
-              content={UI_MESSAGES.READ_ONLY_MODE}
-              disableTooltip={!isReadOnly}
-            >
-              <Select
-                required
-                size="sm"
-                value={place.colorId ?? ""}
-                onChange={(colorId) => {
-                  const nextColorId = colorId === "" ? null : colorId;
-                  updatePlace({
-                    placeId: place.id,
-                    update: {
-                      colorId: nextColorId,
-                      dynamicsEnabled:
-                        nextColorId === null && place.dynamicsEnabled
-                          ? false
-                          : place.dynamicsEnabled,
-                    },
-                  });
-                }}
-                items={[
-                  { value: "", text: "None" },
-                  ...types.map((type) => ({
-                    value: type.id,
-                    text: type.name,
-                  })),
-                ]}
-                renderItem={(value) => {
-                  const type = types.find((tp) => tp.id === value);
-                  return (
-                    <div className={arcStyle}>
-                      {type?.displayColor && (
-                        <div
-                          className={typeColorDotStyle}
-                          style={{ backgroundColor: type.displayColor }}
-                        />
-                      )}
-                      {type?.name ?? "None"}
-                    </div>
-                  );
-                }}
-                disabled={isReadOnly}
-              />
-            </Tooltip>
+            <PropertyValue text={placeTypeName}>
+              <Tooltip
+                content={UI_MESSAGES.READ_ONLY_MODE}
+                disableTooltip={!isReadOnly}
+              >
+                <Select
+                  required
+                  size="sm"
+                  value={place.colorId ?? ""}
+                  onChange={(colorId) => {
+                    const nextColorId = colorId === "" ? null : colorId;
+                    updatePlace({
+                      placeId: place.id,
+                      update: {
+                        colorId: nextColorId,
+                        dynamicsEnabled:
+                          nextColorId === null && place.dynamicsEnabled
+                            ? false
+                            : place.dynamicsEnabled,
+                      },
+                    });
+                  }}
+                  items={[
+                    { value: "", text: "None" },
+                    ...types.map((type) => ({
+                      value: type.id,
+                      text: type.name,
+                    })),
+                  ]}
+                  renderItem={(value) => {
+                    const type = types.find((tp) => tp.id === value);
+                    return (
+                      <div className={arcStyle}>
+                        {type?.displayColor && (
+                          <div
+                            className={typeColorDotStyle}
+                            style={{ backgroundColor: type.displayColor }}
+                          />
+                        )}
+                        {type?.name ?? "None"}
+                      </div>
+                    );
+                  }}
+                  disabled={isReadOnly}
+                />
+              </Tooltip>
+            </PropertyValue>
 
             {place.colorId && (
               <div className={jumpButtonContainerStyle}>
