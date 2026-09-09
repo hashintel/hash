@@ -15186,7 +15186,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-migrations@workspace:*, @rust/hash-graph-migrations@workspace:libs/@local/graph/migrations":
+"@rust/hash-graph-migrations@workspace:libs/@local/graph/migrations":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-migrations@workspace:libs/@local/graph/migrations"
   dependencies:
@@ -15205,7 +15205,6 @@ __metadata:
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-graph-authorization": "workspace:*"
     "@rust/hash-graph-embeddings": "workspace:*"
-    "@rust/hash-graph-migrations": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"
     "@rust/hash-graph-test-data": "workspace:*"
