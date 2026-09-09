@@ -151,10 +151,23 @@ const pinStyle = cva({
     border: "[1px solid rgba(255, 255, 255, 0.5)]",
     boxShadow: "[0 1px 3px rgba(0, 0, 0, 0.14)]",
     backdropFilter: "[blur(8px) saturate(140%)]",
-    // Keeps the button's ink and the blur inside the disc.
-    overflow: "hidden",
-    color: "neutral.s120",
     transition: "[opacity 120ms ease, background-color 150ms ease]",
+    /*
+     * The focus ring belongs to the disc, not to the button inside it. The
+     * button draws its own at no offset, which is inside the disc's rim and
+     * indistinguishable from it, and clipping the disc to keep the button's
+     * ink round erased it altogether. Round the button instead, and ring the
+     * disc from outside.
+     */
+    "&:has(:focus-visible)": {
+      // Two tones, because the ring floats over the visualizer's artwork:
+      // the light one carries a dark picture, the dark halo beyond it carries
+      // a pale one, and neither can go missing.
+      outline: "[2px solid rgba(255, 255, 255, 0.95)]",
+      outlineOffset: "[1px]",
+      boxShadow:
+        "[0 0 0 5px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.14)]",
+    },
   },
   variants: {
     pinned: {
@@ -282,6 +295,9 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
           <Button
             size="xxs"
             variant="ghost"
+            // Round, so its hover and pressed ink stay inside the disc
+            // without the disc having to clip anything.
+            shape="round"
             prefix={<PinIcon />}
             aria-label={
               pinned ? "Unpin state visualizer" : "Pin state visualizer"
