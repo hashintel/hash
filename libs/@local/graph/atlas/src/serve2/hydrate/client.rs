@@ -490,11 +490,10 @@ mod tests {
 
         // The async runtime continues polling while its blocking worker drives synchronous reads.
         tokio::task::spawn_blocking(move || {
-            let urls: Vec<_> = TypeUrlResolver::resolve(&client, [])
+            let mut urls = TypeUrlResolver::resolve(&client, [])
                 .expect("should resolve no URLs without a database connection")
-                .into_iter()
-                .collect();
-            assert!(urls.is_empty(), "should return no unrequested URLs");
+                .into_iter();
+            assert!(urls.next().is_none(), "should return no unrequested URLs");
             assert!(
                 OntologyResolver::resolve(&client, IdSlice::from_raw(&[]))
                     .expect("should resolve no ontology rows without a connection")

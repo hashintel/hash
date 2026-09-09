@@ -1,3 +1,5 @@
+use core::ops::Range;
+
 use crate::{
     bitset::DenseBitSlice,
     identity::BasePosition,
@@ -15,22 +17,34 @@ pub(crate) enum OntologyMembership<'ontology> {
 impl<'ontology> OntologyMembership<'ontology> {
     pub(crate) fn new(ontology: &'ontology Ontology, id: ArchivedOntologyTypeUuid) -> Self {
         let Some(id) = ontology.identity().row_of(id) else {
-            tracing::info!("todo");
             return Self::Unresolved;
         };
 
         ontology.closure().membership(id).map_or_else(
             || {
-                ontology.postings().membership(id).map_or_else(
-                    || {
-                        tracing::warn!("todo");
-                        Self::Unresolved
-                    },
-                    Self::Direct,
-                )
+                ontology
+                    .postings()
+                    .membership(id)
+                    .map_or(Self::Unresolved, Self::Direct)
             },
             Self::Closure,
         )
+    }
+
+    /// Yields matching fitted positions in ascending order within `range`.
+    pub(crate) fn positions_in(
+        &self,
+        range: Range<BasePosition>,
+    ) -> impl Iterator<Item = BasePosition> + '_ {
+        let (direct, closure) = match self {
+            Self::Direct(membership) => (Some(membership.positions_in(range)), None),
+            Self::Closure(membership) => (None, Some(membership.iter_in(range))),
+            Self::Unresolved => (None, None),
+        };
+        direct
+            .into_iter()
+            .flatten()
+            .chain(closure.into_iter().flatten())
     }
 }
 
@@ -45,7 +59,21 @@ pub(crate) struct OntologyMemberships<'context> {
     memberships: Vec<OntologyMembership<'context>>,
 }
 
+impl<'context> OntologyMemberships<'context> {
+    pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = &OntologyMembership<'context>> {
+        self.memberships.iter()
+    }
+}
+
 impl OntologySelection {
+    pub(crate) const fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub(crate) const fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub(crate) fn new(ontology: &[ArchivedOntologyTypeUuid]) -> &Self {
         zerocopy::transmute_ref!(ontology)
     }

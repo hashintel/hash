@@ -122,7 +122,10 @@ impl TranslateDocument {
                         position,
                     },
                 );
-            } else if let Some(row) = world.topology.row_of(epoch, key)
+                continue;
+            }
+
+            if let Some(row) = world.topology.row_of(epoch, key)
                 && let Some(edge) = scene.provide_edge(row)
             {
                 let [source, target] = edge.endpoints;

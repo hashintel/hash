@@ -111,7 +111,7 @@ pub(crate) struct NodeTrailerColumns<'details> {
     pub icons: Vec<&'details Icon>,
 }
 
-impl<'details> NodeTrailerColumns<'details> {
+impl NodeTrailerColumns<'_> {
     /// All-`null` details covering `count` points, the result when no id can resolve.
     #[must_use]
     #[cfg(test)] // The serve tests build unresolved-detail fixtures.

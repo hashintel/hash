@@ -89,6 +89,7 @@ where
                 known.insert(uuid, url.clone());
                 found.push((uuid, url));
             }
+            drop(known);
         }
 
         Ok(found)

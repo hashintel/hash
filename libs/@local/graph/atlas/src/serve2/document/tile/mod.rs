@@ -1,0 +1,281 @@
+//! Aligned tile columns over a captured scene.
+//!
+//! Construction gathers delivery rows and optional display payloads before serialization.
+
+use core::{error::Error, fmt};
+
+use error_stack::Report;
+use hashql_core::id::{Id as _, IdVec};
+
+use crate::{
+    dataset::auxiliary::{Icon, Label},
+    identity::{BasePosition, NodeRowId},
+    integrity::Sha256Digest,
+    math::{Log2, Vec2},
+    morton::{Depth, MortonCell, MortonTile, Zoom},
+    salt::wire::{Mode, tile::GlobalHead},
+    serve2::{codec::EncodedRowId, membership::OntologySelection, scene::Scene, walk::Walk},
+};
+
+hashql_core::id::newtype! {
+    pub(crate) struct TileSlot(u32)
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct TileLimits {
+    /// Most requested types, including duplicates. The default is 32.
+    pub colored_type_ids: u32 = 32,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum TileDocumentDetailLevel {
+    Minimal,
+    Auxiliary,
+}
+
+pub(crate) struct TileDocumentOptions<'selection> {
+    pub mode: Mode,
+    pub detail: TileDocumentDetailLevel,
+    /// Mask bits in request order, including duplicate types.
+    pub types: &'selection OntologySelection,
+    pub limits: TileLimits,
+}
+
+#[derive(Debug)]
+pub(crate) enum TileDocumentError {
+    /// The request exceeds the configured type-count limit.
+    Types { count: usize, maximum: u32 },
+    /// The zoom exceeds the generation's deepest served tile.
+    Zoom { zoom: Zoom, maximum: Zoom },
+    /// The coordinate lies outside its zoom's grid.
+    Coordinate { tile: MortonTile },
+    /// A delivered row has no position in the captured scene.
+    Position { row: NodeRowId },
+    /// A delivered row has no display payload in the captured scene.
+    Display { row: NodeRowId },
+}
+
+impl fmt::Display for TileDocumentError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Types { count, maximum } => write!(
+                fmt,
+                "the request lists {count} colored type ids, exceeding the limit of {maximum}"
+            ),
+            Self::Zoom { zoom, maximum } => write!(
+                fmt,
+                "tile zoom {zoom} exceeds the maximum served zoom {maximum}"
+            ),
+            Self::Coordinate {
+                tile: MortonTile { z, x, y },
+            } => {
+                write!(fmt, "tile {}/{x}/{y} lies outside its zoom's grid", z.get())
+            }
+            Self::Position { row } => write!(fmt, "delivered node {row} has no position"),
+            Self::Display { row } => write!(fmt, "delivered node {row} has no display payload"),
+        }
+    }
+}
+
+impl Error for TileDocumentError {}
+
+/// Row-major masks with one LSB-first bit per requested type.
+struct TileMasks {
+    bytes: Vec<u8>,
+}
+
+impl TileMasks {
+    fn new(
+        Scene { world, epoch, .. }: Scene<'_>,
+        rows: impl IntoIterator<Item = NodeRowId, IntoIter: ExactSizeIterator>,
+        types: &OntologySelection,
+    ) -> Self {
+        let rows = rows.into_iter();
+        let stride = types.len().div_ceil(8);
+        let mut bytes = vec![
+            0;
+            rows.len()
+                .checked_mul(stride)
+                .expect("the mask column should fit usize")
+        ];
+        let mut positions: Vec<_> = rows
+            .enumerate()
+            .filter_map(|(slot, row)| {
+                world
+                    .layout
+                    .index
+                    .reverse(epoch, row)
+                    .map(|position| (slot, position))
+            })
+            .collect();
+        // Membership positions ascend in fitted order. Retain each row's delivery slot when
+        // sorting.
+        positions.sort_unstable_by_key(|&(_, position)| position);
+
+        if let Some(&(_, lowest)) = positions.first()
+            && let Some(&(_, highest)) = positions.last()
+        {
+            let end: BasePosition = highest
+                .next()
+                .expect("the fitted position bound should fit its domain");
+            let memberships = types.resolve(&world.ontology);
+            for (bit, membership) in memberships.iter().enumerate() {
+                let mut cursor = 0;
+                for position in membership.positions_in(lowest..end) {
+                    while cursor < positions.len() && positions[cursor].1 < position {
+                        cursor += 1;
+                    }
+                    if cursor == positions.len() {
+                        break;
+                    }
+                    let (slot, candidate) = positions[cursor];
+                    if candidate == position {
+                        bytes[slot * stride + (bit >> 3)] |= 1_u8 << (bit & 7);
+                    }
+                }
+            }
+        }
+
+        Self { bytes }
+    }
+}
+
+pub(crate) struct TileTrailer<'details> {
+    labels: IdVec<TileSlot, &'details Label>,
+    icons: IdVec<TileSlot, &'details Icon>,
+}
+
+impl<'details> TileTrailer<'details> {
+    fn new(capacity: usize) -> Self {
+        Self {
+            labels: IdVec::with_capacity(capacity),
+            icons: IdVec::with_capacity(capacity),
+        }
+    }
+
+    fn push(
+        &mut self,
+        Scene { world, epoch, .. }: Scene<'details>,
+        row: NodeRowId,
+    ) -> Result<(), Report<TileDocumentError>> {
+        let legend = world
+            .layout
+            .index
+            .payload(epoch, row)
+            .ok_or_else(|| Report::new(TileDocumentError::Display { row }))?;
+        self.labels.push(legend.label());
+        self.icons.push(
+            world
+                .ontology
+                .icon(epoch, legend.representative_ontology())
+                .unwrap_or(Icon::empty()),
+        );
+        Ok(())
+    }
+}
+
+/// One tile's geometry and optional details in bucket-major delivery order.
+pub(crate) struct TileDocument<'details> {
+    generation: Sha256Digest,
+    coordinate: MortonTile,
+    mode: Mode,
+    first_bucket: Depth,
+    runs: Vec<usize>,
+    positions: IdVec<TileSlot, Vec2>,
+    ids: IdVec<TileSlot, EncodedRowId<NodeRowId>>,
+    type_masks: Option<TileMasks>,
+    global: Option<GlobalHead>,
+    children: u8,
+    trailer: Option<TileTrailer<'details>>,
+}
+
+impl<'details> TileDocument<'details> {
+    /// Gathers one tile from the scene's delivery schedule.
+    ///
+    /// Type masks use the generation's captured ontology memberships. Unknown types and rows
+    /// outside the fitted position domain have zero bits. An empty type selection omits the mask
+    /// column. A nonempty selection over an empty tile keeps an empty column.
+    ///
+    /// Auxiliary detail borrows each row's label and resolves the representative type's icon
+    /// through the captured ontology. Missing icons use an empty value.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TileDocumentError`] for invalid request bounds or a delivered row without a
+    /// position or display payload.
+    pub(crate) fn new(
+        scene @ Scene {
+            world,
+            epoch,
+            delivery,
+            schedule,
+            ..
+        }: Scene<'details>,
+        coordinate: MortonTile,
+        TileDocumentOptions {
+            mode,
+            detail,
+            types,
+            limits,
+        }: &TileDocumentOptions<'_>,
+    ) -> Result<Self, Report<TileDocumentError>> {
+        if types.len() > limits.colored_type_ids as usize {
+            return Err(Report::new(TileDocumentError::Types {
+                count: types.len(),
+                maximum: limits.colored_type_ids,
+            }));
+        }
+        let zoom = coordinate.z.zoom(Log2::ZERO);
+        let maximum = world.schedule().max_tile_depth();
+        if zoom > maximum {
+            return Err(Report::new(TileDocumentError::Zoom { zoom, maximum }));
+        }
+        let cell = MortonCell::from_tile(coordinate)
+            .ok_or_else(|| Report::new(TileDocumentError::Coordinate { tile: coordinate }))?;
+        let walk = Walk {
+            schedule: delivery,
+            index: &world.layout.index,
+        };
+        let delivered = match mode {
+            Mode::Delta => walk.delta(epoch, zoom, cell),
+            Mode::Total => walk.total(epoch, zoom, cell),
+        };
+        let count = delivered.rows.len();
+        let type_masks = (!types.is_empty())
+            .then(|| TileMasks::new(scene, delivered.rows.iter().copied(), types));
+        let global = (coordinate.z == Depth::MIN).then(|| GlobalHead {
+            visible: delivery.root_delivered() as u64,
+            bounds: schedule.bounds(),
+            min_resolution: u64::from(delivery.min_resolution().get()),
+        });
+        let trailer = match detail {
+            TileDocumentDetailLevel::Minimal => None,
+            TileDocumentDetailLevel::Auxiliary => Some(TileTrailer::new(count)),
+        };
+        let mut this = Self {
+            generation: world.generation().id().digest(),
+            coordinate,
+            mode: *mode,
+            first_bucket: delivered.first_bucket,
+            runs: delivered.runs,
+            positions: IdVec::with_capacity(count),
+            ids: IdVec::with_capacity(count),
+            type_masks,
+            global,
+            children: delivery.children(zoom, cell),
+            trailer,
+        };
+        for row in delivered.rows {
+            let position = world
+                .layout
+                .position(epoch, row)
+                .ok_or_else(|| Report::new(TileDocumentError::Position { row }))?;
+            this.positions.push(position);
+            this.ids.push(world.layout.index.encode(row));
+            if let Some(trailer) = &mut this.trailer {
+                trailer.push(scene, row)?;
+            }
+        }
+        Ok(this)
+    }
+}
