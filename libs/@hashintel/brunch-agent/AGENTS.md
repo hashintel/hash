@@ -125,6 +125,7 @@ These rules exist because Mission 4 lost its design between the owner conversati
   branch mission remains the execution authority. Follow
   [`docs/agents/git-workflow.md`](docs/agents/git-workflow.md) when creating, rebasing, or
   submitting a branch or connecting it to an issue or PR.
+- **Interactive delegation:** before preparing, placing, reusing or closing Herdr-hosted subagents, read [`docs/agents/interactive-work.md`](docs/agents/interactive-work.md) for checkout/configuration readiness, readable layout, lifecycle and cleanup. `MISSION.md` retains network and paid authority.
 - **Linear project posture:** Brunch issues live on team `FE`, project `brunch-agent`, whose mixed
   inherited issue history is evidence and inbox rather than an authoritative plan. Follow
   [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) before creating, reusing, relating,
