@@ -253,3 +253,5 @@ Parent allocates at most 160 combined underlying calls / USD85, including the un
 - Request accounting v1: run vestera-persona-20260909-r1, sequence 25, request flue:turn_01M235WN214XC6FYNCZ8K3FW18, complete, invocation started, reserved USD 7, catalogue estimate USD 0.00682605. JSON usage-ledger.json is authoritative.
 
 - vestera-persona-20260909-r1 stopped by parent for persona factual invention and observed context discontinuity; 19 requests complete, catalogue USD0.35302395. No new unknown or journal uncertainty. Original sequence6 remains unknown/USD7 held. Allocation blocked; no automatic retry. Original Postgres/session/browser material retained.
+
+- Owner disposition, 2026-09-09: Lu explicitly cleared sequence 6’s USD7 hold as a constraint. Reserved amount is now zero with original USD7 recorded in ownerDisposition; status/usage remain unknown, not fabricated complete or zero-cost. Future allocations may accept sequence 6 without a budget hold. New unknown requests remain fail-stop.

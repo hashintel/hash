@@ -30,7 +30,7 @@
     "remainingCalls": 175,
     "remainingUsd": 99.5558407,
     "outstandingReservedCalls": 1,
-    "outstandingReservedUsd": 7
+    "outstandingReservedUsd": 0
   },
   "calls": [
     {
@@ -151,7 +151,7 @@
     {
       "sequence": 6,
       "status": "unknown",
-      "reservedUsd": 7,
+      "reservedUsd": 0,
       "usage": {
         "input": 0,
         "output": 0,
@@ -200,6 +200,12 @@
             "total": 0
           }
         }
+      },
+      "ownerDisposition": {
+        "at": "2026-09-09T13:59:03.862031+00:00",
+        "owner": "Lu",
+        "decision": "Release and ignore the USD7 hold as a future execution constraint; usage remains unknown, not settled at zero.",
+        "originalReservedUsd": 7
       }
     },
     {
