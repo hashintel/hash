@@ -74,6 +74,12 @@ Implementation ownership remains core for revision/query semantics, plugin for S
 
 ## Proof
 
+### Accepted continuation cadence proof — P7a/P7b, 2026-09-09
+
+Lu accepted the side quest's split and native-ID timing before execution. P7a uses the retained persona/browser session: freeze the guidance commit, pre-window history snapshot and 11 existing question markers before dispatch; the window starts with the first new true-user message under revised guidance, whose actual message/submission IDs are recorded upon native admission. Verify the revised cadence sentence in the actual dispatched request or activation briefing; source text or rebuild alone is not that evidence. The first post-window assistant turn must settle a workpiece revision before any new question marker, followed by at least one further revision before explicit stop or construction. Asking first fails the first-turn condition; later updates cannot repair that verdict. Preserve the whole pre-window history and the failed technical submission; do not replay or coach the persona to request the workpiece. Readback and browser visibility are inspected separately. P7a shows mid-interview catch-up only, not content fidelity or useful elicitation.
+
+P7b retains the original fresh-interview criterion: first revision before the majority of question markers and a further revision before stop/construction. It remains unestablished by this continuation and requires a separately authorized fresh Mission 7 session. This split adds no side-quest provider allocation; P7a is the already-authorized unmetered local persona continuation, under the identity/submission/information-wall and safety constraints below. Retain scoped failed-precondition or failed-cadence outcomes honestly rather than building another proving campaign.
+
 ### Next observation, not another readiness portfolio
 
 For the next authorized use, retain the actual conversation, settled workpiece revisions, raw tool inputs/results and independently observed net changes that occur. Inspect acquisition, conservation, construction and explanation separately. Name missing operational facts, unsupported assumptions, lost distinctions and interaction strain; distinguish interviewee nondisclosure from agent failure. Do not manufacture a successful net or force all adversarial cases into the initial conversation before learning from it.
