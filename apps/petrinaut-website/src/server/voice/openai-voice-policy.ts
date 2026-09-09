@@ -8,15 +8,11 @@ interface VoiceEnvironment {
   readonly VERCEL_ENV?: string;
 }
 
-const isNonProductionRuntime = (environment: VoiceEnvironment): boolean =>
-  environment.VERCEL_ENV === "preview" ||
-  environment.VERCEL_ENV === "development" ||
-  (environment.VERCEL_ENV === undefined &&
-    environment.NODE_ENV !== "production");
-
+/**
+ * This operational provider switch is not caller authentication.
+ */
 export const getOpenAIVoiceAvailability = (environment: VoiceEnvironment) => ({
   available:
-    isNonProductionRuntime(environment) &&
     environment.PETRINAUT_OPENAI_VOICE_ENABLED === "true" &&
     Boolean(environment.OPENAI_VOICE_API_KEY?.trim()),
   connectionTimeoutMs: OPENAI_REALTIME_CONNECTION_TIMEOUT_MS,
