@@ -107,9 +107,7 @@ These rules exist because Mission 4 lost its design between the owner conversati
 - When things accumulate, subtract before you extend.
 - No imperative and proof means it is not a mission yet — do not start it.
 - Censor noise; keep consequential doubt visible.
-- Checking is proportional to consequence and reversibility. Within that budget, a commitment is
-  warranted when the premises it depends on are either observed at the real boundary or
-  explicitly accepted as risk.
+- Checking is proportional to consequence and reversibility: use the narrowest falsifying check, the actual product boundary for an integration claim, and the affected package checks before integrating code. Reuse earned regression tests; a documentation or lane handoff does not itself require another full browser/crash campaign. Within that budget, a commitment is warranted when its premises are observed or explicitly accepted as risk. Evidence retention and reuse follow [evidence economy](evaluations/README.md#evidence-economy).
 - Low confidence must change the next move — build the smallest real path that reveals more,
   inspect, choose the reversible option, or flag it — or go unsaid.
 - At close, update the PR description: what each proof item established, the observed answer to

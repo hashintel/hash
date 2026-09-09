@@ -49,11 +49,7 @@ The potential envelope remains root places/transitions/arcs, types/elements, sce
 
 ### Work selection and delegation
 
-The integration owner keeps one current product question and names the next observation that can change the decision. Decompose execution within this mission as needed; do not turn responsibility boundaries into independently completing missions.
-
-A delegated task states: **the current question it serves; the concrete consumer or observed failure; its bounded change/probe; the discriminator; and where it returns control.** Parallel work is justified by independent dependencies of that same next observation, not by available workers or empty matrix cells. When a task finishes, return to the product question rather than dispatching its natural successor.
-
-Close a gap now when it blocks the next attempt or makes a current visible claim false or unsafe. Otherwise retain its limitation and a concrete re-entry trigger. Broad stratum closure requires an identified current consumer and an owner decision; exposure of a seam alone is insufficient. A useful refusal is a safety result, not explanation utility.
+No lane is active. Apply [standing delegation practice](AGENTS.md#mission-current-throughline-and-delegated-work): any next task must name the genuine Vestera observation it enables or the observed failure preventing it. Historical class-table completion is not that observation.
 
 Implementation ownership remains core for revision/query semantics, plugin for SDCPN admission/effects/locators, app/binding for authorized acquisition and why composition, transport for correlations/projections, and browser for bound canonical execution and observation. Petrinaut owns schemas, validation, actions, compilation and document state, not Brunch provenance. Coordinate shared production files, registration, runtime patches, scripts and paid ledgers serially. No new lane is dispatched by this document.
 
@@ -81,11 +77,9 @@ Step A still requires the genuine adversarial throughline: two distinguishable p
 
 **Owner gate:** `gate-packet.md` reports each obligation, its evidence and limit, four probe verdicts (compaction, materialization, passage, carrier), cadence/basis and utility measurements, inventory, budget and proposed disposition. Lu records `owner-gate.md`. Safe results meeting the requirements are eligible for a separate Step B amendment; permitted Partial outcomes require named rework. Unpreventable false attribution, unverifiable effects or no genuine reopen invalidate this shape. Basis remaining absent/circular after the permitted rework, or no admitted class yielding useful explanations, withholds explanation success. A stop verdict is a valid investigation outcome, not product acceptance.
 
-### Verification and evidence economy
+### Current verification and evidence
 
-Reuse the landed tests and named original reds. Select the narrowest check that can falsify the changed claim, exercise the actual mount for an integration claim, and run the affected package portfolio before integrating code. Do not repeat full Chrome/crash campaigns or freeze unchanged dependencies for every documentation or lane handoff. No weaker assertion, false-green callback, stale build or simulated result earns a real-boundary claim.
-
-The [landing audit](docs/evidence/implementations/fe-1573-step-a/landing-20260909/integration.md) points to the current regression commands, scoped results and protected inputs. For a reached boundary, read its source and relevant packet—not all historical packets as a universal cold-start gate. Preserve raw call/result/basis evidence and original counterexamples; reference unchanged artifacts by commit and path rather than copying another packet. New run-specific evidence and required paid-instrument pins remain explicit. Existing archives are retained; their deletion, relocation or test consolidation is a separate owner decision, not part of this recut.
+Apply [standing verification practice](AGENTS.md#correctives) and [evidence economy](evaluations/README.md#evidence-economy). The [landing audit](docs/evidence/implementations/fe-1573-step-a/landing-20260909/integration.md) identifies this checkpoint's regression commands, scoped results, original counterexamples and protected inputs. Mission 7's raw call/result/basis evidence remains available; no archive retirement or test consolidation is authorized by this guidance change. The named paid driver's instrument requirements remain in its execution limits below.
 
 ## Constraints
 
@@ -140,8 +134,8 @@ Lu performs semantic/utility and Step A acceptance. No subagent review, implemen
 
 - **Demand-triggered capability gaps:** historical root/class, passage and host parity tables remain diagnostic records. Their re-entry is an actual accepted-region action or false/unsafe current claim, not automatic completion. Unused removals/arc variants/parameters/title-layout, general concurrency, expanded passage identity and generic recovery remain carried until that trigger. This changes scheduling authority, not the region or final explanation denominator.
 - **Step B:** [existing amendment packet](docs/mission-drafts/7-explainable-construction.md) retains full-region release/demo, lineage and product/lifecycle closure, list/diff, migration/rollback/dual-read removal, external import and broader refusal controls, subtraction, and genuine typed/Voice/stopped two-tab and final behaviour/utility gates. Requires Lu's Step A decision and separate authority amendment.
-- **Future missions:** [MISSION.next.md](MISSION.next.md) and its linked drafts retain Mission 8 deployment, Missions 9/10 repeat/change/concurrency/scenario/reviewer breadth, Mission 11 optimisation and the uncut fast-preview/teaching hypotheses. They remain provisional, not work authorized here. `SIDE_QUEST.md` remains separately owner-authorized and untouched.
-- **Evidence/test reduction and guidance revision:** this recut retains existing files. Archive pruning, witness consolidation and repository-wide rule changes are separate decisions; none is an implicit prerequisite for the next product use.
+- **Future missions:** [MISSION.next.md](MISSION.next.md) and its linked drafts retain Mission 8 deployment, Missions 9/10 repeat/change/concurrency/scenario/reviewer breadth, Mission 11 optimisation and the uncut fast-preview/teaching hypotheses. They remain provisional, not work authorized here. `SIDE_QUEST.md` remains a separately owner-authorized documentation remediation.
+- **Evidence/test reduction:** archive retirement and witness consolidation remain separate work, using the accepted distinction between future trajectory fixtures and completed contract-establishment material. They are not prerequisites for the next product use. Standing delegation and execution guidance is now in `AGENTS.md` and its linked procedures, not deferred work.
 
 ### Recut provenance and disposition
 

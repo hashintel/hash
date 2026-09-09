@@ -70,6 +70,12 @@ Before invocation, require an owner-authorized bounded allocation, an explicit m
 
 Record actual request identity and usage once, independently of whether product admission accepts the response. Distinguish completed, rejected, not-started and partial/unknown outcomes. Unknown spend or unresolved journal state blocks further paid dispatch until explicit disposition; normalized zeros do not prove zero cost. Catalogue estimates are not invoices. No automatic replay, guessed settlement or top-up follows a failure. The mission owns numeric ceilings, operation-attempt limits and any delegated allocation permission. Preserve unresolved accounting material until disposition, regardless of later evidence retirement.
 
+## Evidence economy
+
+Read the source and evidence relevant to the reached boundary, not every historical packet as a universal cold-start gate. Reference unchanged artifacts by durable commit/path or accepted content identity rather than copying packets or refreezing unchanged dependencies at each handoff. Retain the run-specific inputs, outputs and counterexamples needed to discriminate the claim; weaker assertions, swallowed callback failures, stale builds and synthetic results cannot establish an actual product-boundary result.
+
+Retain fixture material for a named larger-trajectory proof and state how that proof will consume it. Material created only to establish a now-settled contract is eligible for retirement; past certification alone does not justify indefinite retention. Distinguish retiring that packet from deleting a useful executable regression. Preserve unresolved accounting and the sole surviving rationale for an active decision until explicitly disposed. A retention criterion is not deletion authority: inspect ownership and references and obtain the applicable cleanup authorization before removing material.
+
 ## Evidence identity across restacks
 
 A campaign's durable instrument identity is its manifest SHA-256 and ordered path/content hashes. Commit SHAs in manifests and run records are informational execution-time provenance, not primary keys or current-ancestry requirements. After a rebase or stack realignment, verify content against the accepted manifest and optionally record a patch-equivalent navigation map; do not refreeze solely because commit identities changed, and do not require historical Git objects to remain reachable. If permanent commit retention is genuinely required, name an explicit durable ref or archived bundle.

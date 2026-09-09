@@ -72,4 +72,4 @@ Close resolved session-owned panes promptly; leave unrelated/user-owned occupant
 
 Before authorized worktree removal, check tracked edits, untracked **and ignored** files, integration disposition and retained branch heads. Preserve needed raw runs, SQLite sidecars and local configuration outside the checkout with verified bytes/permissions; a clean Git status does not prove these are absent. Remove only the named worktree without force, preserve branches by default, and verify both checkout removal and ref preservation. Record where outstanding material went. Relocated stores are retained evidence, not proof of supported state restoration.
 
-This cleanup is not evidence retirement. Retain fixtures for a named larger-trajectory proof; contract-establishment packets can be considered for retirement separately from useful executable regressions. Unresolved accounting material remains live until its disposition is settled. Do not archive another whole build merely to close a pane.
+This cleanup is not evidence retirement; apply [evidence economy](../../evaluations/README.md#evidence-economy) separately. Do not archive another whole build merely to close a pane.
