@@ -3,12 +3,23 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
  * @vitest-environment jsdom
  */
 import { use } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { UserSettingsContext } from "./user-settings-context";
 import { UserSettingsProvider } from "./user-settings-provider";
 
 afterEach(cleanup);
+
+// The provider persists every change, so a test's toggle would otherwise seed
+// the next test's initial state. Guarded: some Node versions expose a global
+// `localStorage` whose methods are missing.
+beforeEach(() => {
+  try {
+    localStorage.removeItem("petrinaut:user-settings");
+  } catch {
+    // No storage to reset.
+  }
+});
 
 const DemoModeProbe = ({ name }: { name: string }) => {
   const { brunchDemoMode, setBrunchDemoMode } = use(UserSettingsContext);
