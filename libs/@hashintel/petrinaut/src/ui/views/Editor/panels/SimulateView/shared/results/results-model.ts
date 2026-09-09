@@ -7,7 +7,12 @@
  */
 import type { ChartCardTone } from "../chart-card";
 import type { ComputeBackendSummary } from "../compute-backend-badge";
-import type { ComputeBatch, FrameNote, FrameStatusTone } from "../drawer-frame";
+import type {
+  ComputeBatch,
+  FrameCardMore,
+  FrameNote,
+  FrameStatusTone,
+} from "../drawer-frame";
 import type { MetricTile } from "../metric-tiles";
 import type { ReactNode } from "react";
 
@@ -52,16 +57,23 @@ export type ResultsHeader = {
   note: FrameNote | null;
 };
 
-/** A titled band across the body: parameter controls, or a remote study's best parameters. */
+/**
+ * A titled card across the body, above the columns: the parameter controls,
+ * or a remote study's best parameters. `more` is a part the card keeps
+ * folded away behind a footer button, the parameters held fixed; null gives
+ * the card no footer.
+ */
 export type ResultsBand = {
   /** The band's key; it carries the record's id so a fold never survives an in-place swap to another record. */
   id: string;
   title: string;
+  /** One line under the title: what the card holds, e.g. `2 optimized · 3 fixed`. */
+  subtitle: string;
   help?: string;
-  collapsible: boolean;
-  /** The title row's right side: a state line, a switch. */
+  /** The header's right side: a state line, a switch. */
   trailing: ReactNode | null;
   content: ReactNode;
+  more: FrameCardMore | null;
 };
 
 /** The metric cards grid: the timelines, then whatever cards follow them, all one height. */
@@ -85,7 +97,7 @@ export type ResultsMetrics = {
 
 export type ResultsModel = {
   header: ResultsHeader;
-  /** Bands across the body, above the columns, in order. */
+  /** Cards across the body, above the columns, in order. */
   bands: readonly ResultsBand[];
   /** The surface card, in the primary column; null gives the cards the width. */
   surface: ReactNode | null;

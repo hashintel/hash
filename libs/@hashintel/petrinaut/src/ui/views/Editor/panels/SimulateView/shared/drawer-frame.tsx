@@ -6,7 +6,7 @@
  * changes the body's available height and never its scroll offset. The body
  * is a size container: a `note` row always mounted, empty when there is
  * nothing to say, so an error or a resume note appearing moves nothing; then
- * the adopter's parameter band across the width, then `FrameColumns`, which
+ * the adopter's parameter card across the width, then `FrameColumns`, which
  * arranges the surface and the cards by the body's width. In a drawer the
  * body takes the opening focus, so wheel and arrow keys scroll it at once and
  * no control in the header holds the header open.
@@ -32,6 +32,7 @@ export {
 } from "./drawer-frame/frame-header";
 export { FrameColumns } from "./drawer-frame/frame-columns";
 export { FrameBand } from "./drawer-frame/frame-band";
+export { FrameCard, type FrameCardMore } from "./drawer-frame/frame-card";
 export {
   type FrameLayoutSignature,
   frameLayoutSignature,
@@ -106,10 +107,11 @@ const drawerBodyStyle = css({
   overflow: "hidden",
 });
 
+// The body is a tinted ground the white cards sit on.
 const bodyStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "3",
+  gap: "4",
   flex: "[1]",
   minHeight: "[0]",
   minWidth: "[0]",
@@ -120,6 +122,7 @@ const bodyStyle = css({
   scrollbarGutter: "stable",
   paddingX: "5",
   paddingBottom: "4",
+  backgroundColor: "neutral.s05",
   containerType: "inline-size",
   containerName: "drawer-frame-body",
 });

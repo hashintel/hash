@@ -17,6 +17,7 @@ import {
   FRAME_HEADER_CONDENSED_HEIGHT,
   FRAME_HEADER_HEIGHT,
   FrameBand,
+  FrameCard,
   FrameColumns,
   FrameStat,
   FrameStatusPill,
@@ -260,6 +261,47 @@ describe("DrawerFrame", () => {
     fireEvent.click(screen.getByRole("button", { name: "Expand Parameters" }));
     expect(content.hasAttribute("inert")).toBe(false);
     expect(screen.getByRole("textbox", { name: "population" })).toBeTruthy();
+  });
+
+  it("keeps a card's fixed part folded until its footer button opens it, mounted throughout", () => {
+    render(
+      <FrameCard
+        title="Parameters"
+        subtitle="1 optimized · 1 fixed"
+        more={{
+          show: "Show 1 fixed parameter",
+          hide: "Hide fixed parameters",
+          content: <input aria-label="population" defaultValue="1000" />,
+        }}
+      >
+        <input aria-label="infection_rate" defaultValue="0.3" />
+      </FrameCard>,
+    );
+
+    expect(screen.getByText("1 optimized · 1 fixed")).toBeTruthy();
+    const more = document.querySelector<HTMLElement>("[data-frame-card-more]")!;
+    expect(more.hasAttribute("inert")).toBe(true);
+    expect(more.getAttribute("aria-hidden")).toBe("true");
+    expect(more.querySelector("input")?.value).toBe("1000");
+    expect(
+      screen.getByRole("textbox", { name: "infection_rate" }),
+    ).toBeTruthy();
+
+    // The button's name ends in the icon's zero-width joiner.
+    const toggle = screen.getByRole("button", {
+      name: /^Show 1 fixed parameter/u,
+    });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(toggle);
+
+    expect(more.hasAttribute("inert")).toBe(false);
+    expect(more.getAttribute("aria-hidden")).toBeNull();
+    expect(screen.getByRole("textbox", { name: "population" })).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: /^Hide fixed parameters/u })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
   });
 
   it("gives the secondary column the whole width when there is no primary", () => {

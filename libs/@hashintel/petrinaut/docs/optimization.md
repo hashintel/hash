@@ -153,9 +153,10 @@ compact chips; move the pointer over it and it grows back. The line under the
 header is reserved for a note (the error when a study failed, the resume note
 while it is paused), so nothing moves when one appears.
 
-The body arranges its parts by its width. The **Parameters** band spans the
-body under the header; the chevron before its title folds the controls away
-and back without losing their positions. Beneath it, in the drawer at its full
+The body arranges its parts by its width. The **Parameters** card spans the
+body under the header; the line under its title counts the optimized and the
+fixed parameters, and **Show N fixed parameters** in its footer lists the ones
+the study holds fixed. Beneath it, in the drawer at its full
 width and in the full view, the **Objective surface** sits on the left and the
 other chart cards on the right, as many 320 px cards per row as fit (two at
 the extra-large drawer's width); in a narrower drawer the chart cards come
@@ -183,8 +184,8 @@ in the view claims to still be following a step.
 
 ### On the optimization service
 
-A study run on the optimization service adds a **Best parameters** band
-beside the Objective by step card: the best step's value for every scenario
+A study run on the optimization service adds a **Best parameters** card
+above the Objective by step card: the best step's value for every scenario
 parameter. **Cancel** ends the run on the server, and its status reads
 **Cancelled**.
 
@@ -208,9 +209,11 @@ in view on a laptop screen while the study streams:
   reason. The chip counts the batches running right now (the steps in flight
   and the picked point's refinement), **0 computing** when nothing does, and
   opens a compact list with one row per batch and its own progress.
-- A **Parameters** band with one slider per optimized numeric parameter and a
-  switch per optimized boolean parameter, two to a row when they fit. Its
-  heading carries the state line and the **Follow steps** switch. While the
+- A **Parameters** card with one slider per optimized numeric parameter and a
+  switch per optimized boolean parameter, two to a row when they fit; the
+  parameters held fixed stay folded behind **Show N fixed parameters** in its
+  footer. Its header carries the state line and the **Follow steps** switch.
+  While the
   study runs, **Follow steps** is on: the controls move to each step's values
   as it is evaluated, disabled while they follow, and the line reads
   **Following step N**. Turn **Follow steps** off to take over early, or wait
@@ -222,7 +225,7 @@ in view on a laptop screen while the study streams:
   state line reads **Could not compute** followed by the reason, and the
   objective's chart stays empty; a step that fails this way is pruned. Moving
   to another point, or back to this one, tries again.
-- The **Objective surface** card, below the band, whenever two
+- The **Objective surface** card, below the Parameters card, whenever two
   or more numeric parameters are optimized (the **Optimization surface**
   setting applies to studies on the service only). It draws the study's
   steps: each step is a dot at its parameters, the best emphasized, pruned
@@ -234,7 +237,7 @@ in view on a laptop screen while the study streams:
   header explains the marks. While the
   study runs with **Follow steps** on, the plot only displays. Once the study
   is over, or **Follow steps** is off, the ringed dot is the point the
-  Parameters band holds: click or drag the plot to move it, and the point's
+  Parameters card holds: click or drag the plot to move it, and the point's
   value enters the field as it refines.
 - The objective metric's chart, in a card of the same height beside the
   surface: its distribution over simulation time at that position. The card
@@ -337,7 +340,7 @@ experiments.
 - **Parallel steps** (1 to 4, default 1) sets how many steps the optimizer
   evaluates at once. Above 1, the optimizer accounts for the steps still
   running when it picks the next values, so the proposals differ from a
-  one-at-a-time study. The Parameters band follows the most recently started
+  one-at-a-time study. The Parameters card follows the most recently started
   step, and the Surface rings every step in flight with its running value.
 - Once the study is finished, the controls move to the best step's point (if
   a step completed) and that point refines up to 100 runs; a point you had
@@ -345,7 +348,7 @@ experiments.
   record's lifetime, so returning to one is instant. A point that cannot beat
   the best stops refining after a rung (8 or 25 runs) once its mean sits more
   than 2.5 standard errors on the wrong side of the best value, and the
-  Parameters band says so, e.g. **8 runs · cannot beat the best**. The best
+  Parameters card says so, e.g. **8 runs · cannot beat the best**. The best
   step's own point always refines to 100 runs.
 - **Pause** asks the optimizer for no more steps. The steps already running
   finish, land in the steps table and count like any other, and the study

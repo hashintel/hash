@@ -82,11 +82,12 @@ describe("experimentResultsModel for a running sweep", () => {
     );
   });
 
-  it("lays the Parameters band, the surface and one tile per metric out, with no steps", () => {
+  it("lays the Parameters card, the surface and one tile per metric out, with no steps", () => {
     expect(result.bands.map((band) => band.title)).toEqual(["Parameters"]);
     expect(result.bands[0]).toMatchObject({
-      collapsible: true,
+      subtitle: `${sweep.parameterAxes.length} swept`,
       trailing: null,
+      more: null,
     });
     expect(isValidElement(result.surface)).toBe(true);
     expect(result.metrics).toMatchObject({

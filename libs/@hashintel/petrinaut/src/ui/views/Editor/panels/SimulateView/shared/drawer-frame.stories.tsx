@@ -13,7 +13,7 @@ import { ChartCard, ChartCardGrid, chartCardHeight } from "./chart-card";
 import {
   ComputeBatchesChip,
   DrawerFrame,
-  FrameBand,
+  FrameCard,
   FrameColumns,
   FrameStat,
   FrameStatusPill,
@@ -114,9 +114,18 @@ const Frame = ({ cards }: { cards: number }) => (
       progress={61}
       footer={<span>Actions</span>}
     >
-      <FrameBand title="Parameters" help="Placeholder controls." collapsible>
+      <FrameCard
+        title="Parameters"
+        subtitle="2 swept · 3 fixed"
+        help="Placeholder controls."
+        more={{
+          show: "Show 3 fixed parameters",
+          hide: "Hide fixed parameters",
+          content: <div className={placeholderStyle} style={{ height: 40 }} />,
+        }}
+      >
         <div className={placeholderStyle} style={{ height: 60 }} />
-      </FrameBand>
+      </FrameCard>
       <FrameColumns
         primary={
           <ChartCard

@@ -81,8 +81,7 @@ const rowStyle = css({
 
 const nameStyle = css({
   fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s120",
+  color: "neutral.s110",
   width: "[120px]",
   flexShrink: 0,
   overflow: "hidden",
@@ -106,8 +105,9 @@ const toggleSlotStyle = css({
 
 const readoutStyle = css({
   fontSize: "xs",
+  fontWeight: "medium",
   fontVariantNumeric: "tabular-nums",
-  color: "neutral.s100",
+  color: "neutral.s120",
   width: "[96px]",
   flexShrink: 0,
   textAlign: "right",
