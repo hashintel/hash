@@ -3,6 +3,9 @@
     reason = "CBOR arguments are network byte order (RFC 8949 section 3)"
 )]
 
+#[cfg(test)]
+mod tests;
+
 use core::{
     alloc::Allocator,
     fmt::{self, Display},

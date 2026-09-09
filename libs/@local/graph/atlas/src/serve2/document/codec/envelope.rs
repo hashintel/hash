@@ -4,16 +4,6 @@ use zerocopy::{IntoBytes as _, LE, U16, U32};
 
 use super::{Kind, WIRE_VERSION};
 
-/// Prefix size in bytes, pinned to the layout it measures.
-const PREFIX: usize = size_of::<Prefix>();
-/// Directory entry size in bytes, pinned to the layout it measures.
-const ENTRY: usize = size_of::<Entry>();
-
-/// Rounds `length` up to the next multiple of 8.
-const fn align8(length: usize) -> usize {
-    length.next_multiple_of(8)
-}
-
 /// The 16-byte envelope prefix.
 #[derive(zerocopy::IntoBytes, zerocopy::Immutable)]
 #[repr(C)]
@@ -32,6 +22,11 @@ struct Entry {
     end: U32<LE>,
 }
 
+const PREFIX: usize = size_of::<Prefix>();
+const ENTRY: usize = size_of::<Entry>();
+
+/// Completion of a document writer.
+#[derive(Debug)]
 pub(crate) struct Envelope {
     _marker: (),
 }
@@ -44,10 +39,7 @@ pub(crate) struct EnvelopeWriter<'bytes, A: Allocator> {
 }
 
 impl<'bytes, A: Allocator> EnvelopeWriter<'bytes, A> {
-    /// Opens an envelope of `kind` with `slots` directory entries.
-    ///
-    /// `slots` is at least the kind's v1 table size at every call site; appended slots beyond the
-    /// table are legal by the evolution rule.
+    /// Initializes the envelope prefix and its empty directory.
     pub(crate) fn new(kind: Kind, slots: u16, bytes: &'bytes mut Vec<u8, A>) -> Self {
         let prefix = Prefix {
             kind,
@@ -57,6 +49,7 @@ impl<'bytes, A: Allocator> EnvelopeWriter<'bytes, A> {
             reserved: U16::ZERO,
         };
 
+        bytes.clear();
         bytes.extend_from_slice(prefix.as_bytes());
         bytes.resize(PREFIX + ENTRY * slots as usize, 0);
 
@@ -79,11 +72,11 @@ impl<'bytes, A: Allocator> EnvelopeWriter<'bytes, A> {
         );
 
         let start = self.bytes.len();
-        write(&mut self.bytes);
+        write(self.bytes);
         let end = self.bytes.len();
         assert!(end >= start, "a slot writer must only append");
 
-        self.bytes.resize(align8(end), 0);
+        self.bytes.resize(end.next_multiple_of(8), 0);
 
         self.record(start, end);
     }
@@ -108,14 +101,14 @@ impl<'bytes, A: Allocator> EnvelopeWriter<'bytes, A> {
         Envelope { _marker: () }
     }
 
-    pub(crate) fn finish_with_trailer(mut self, write: impl FnOnce(&mut Vec<u8, A>)) -> Envelope {
+    pub(crate) fn finish_with_trailer(self, write: impl FnOnce(&mut Vec<u8, A>)) -> Envelope {
         assert_eq!(
             self.recorded, self.slots,
             "the envelope declares {} slots",
             self.slots,
         );
 
-        write(&mut self.bytes);
+        write(self.bytes);
         Envelope { _marker: () }
     }
 
@@ -133,5 +126,80 @@ impl<'bytes, A: Allocator> EnvelopeWriter<'bytes, A> {
         let at = PREFIX + ENTRY * self.recorded as usize;
         self.bytes[at..at + ENTRY].copy_from_slice(zerocopy::IntoBytes::as_bytes(&entry));
         self.recorded += 1;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::alloc::Global;
+
+    use super::EnvelopeWriter;
+    use crate::serve2::document::codec::Kind;
+
+    #[expect(
+        clippy::little_endian_bytes,
+        reason = "the test decodes the envelope directory"
+    )]
+    #[test]
+    fn buffer_reuse() {
+        let mut bytes = Vec::new_in(&Global);
+        bytes.resize(128, 0xDD);
+        let mut writer = EnvelopeWriter::new(Kind::EDGES, 4, &mut bytes);
+        writer.slot(|bytes| bytes.push(0xA0));
+        writer.slot(|_| {});
+        writer.skip();
+        writer.slot(|bytes| bytes.extend_from_slice(&[1, 2, 3]));
+        let _completed = writer.finish_with_trailer(|bytes| bytes.push(0xF6));
+
+        assert_eq!(&bytes[..16], b"SALTILEE\x01\x00\x00\x00\x04\x00\x00\x00");
+        for (slot, expected) in [(48, 49), (56, 56), (0, 0), (56, 59)]
+            .into_iter()
+            .enumerate()
+        {
+            let at = 16 + slot * 8;
+            let start = u32::from_le_bytes(
+                bytes[at..at + 4]
+                    .try_into()
+                    .expect("should contain a start offset"),
+            );
+            let end = u32::from_le_bytes(
+                bytes[at + 4..at + 8]
+                    .try_into()
+                    .expect("should contain an end offset"),
+            );
+            assert_eq!(
+                (start, end),
+                expected,
+                "directory slot {slot} should retain its extent"
+            );
+        }
+        assert_eq!(
+            &bytes[48..],
+            &[0xA0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 0, 0, 0, 0xF6]
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "the envelope declares 4 slots")]
+    fn finish_incomplete() {
+        let mut bytes = Vec::new();
+        let writer = EnvelopeWriter::new(Kind::EDGES, 4, &mut bytes);
+        let _completed = writer.finish();
+    }
+
+    #[test]
+    #[should_panic(expected = "the envelope declares 4 slots")]
+    fn trailer_incomplete() {
+        let mut bytes = Vec::new();
+        let writer = EnvelopeWriter::new(Kind::EDGES, 4, &mut bytes);
+        let _completed = writer.finish_with_trailer(|bytes| bytes.push(0xA0));
+    }
+
+    #[test]
+    #[should_panic(expected = "slot 0 (HEAD) is always present")]
+    fn head_absent() {
+        let mut bytes = Vec::new();
+        let mut writer = EnvelopeWriter::new(Kind::EDGES, 4, &mut bytes);
+        writer.skip();
     }
 }

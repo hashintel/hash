@@ -1314,11 +1314,10 @@ fn trailer_completeness() {
         response.nodes[NodeSlot::MIN] = Some(LocateNode {
             type_urls: source_types,
         });
-        response
-            .source_properties
-            .as_mut()
-            .expect("should have source properties")
-            .complete = properties_complete;
+        response.source_properties = Some(LocateProperties {
+            values: ScalarProperties::EMPTY,
+            complete: properties_complete,
+        });
         for (slot, link) in response.links.iter_enumerated_mut() {
             let link = link.as_mut().expect("should have link details");
             link.type_urls_complete = slot == EdgeSlot::MIN;
