@@ -65,7 +65,7 @@ export const ConnectedWithConstraints: Story = {
     docs: {
       description: {
         story:
-          "The complete study with a parameter constraint (production rate under 350) and a state constraint (finished goods under 500): the Constraints card with the steps clear across the study and one bar per state constraint, a Steps clear stat in the strip, a Runs passed column in the steps table, and the draws that broke the rate cap greyed as infeasible everywhere a step is drawn.",
+          "The complete study with a parameter constraint (production rate under 320) and a state constraint (finished goods under 500): the Constraints card with the steps clear across the study and one bar per state constraint, a Steps clear stat in the strip, a Runs passed column in the steps table, and the draws that broke the rate cap greyed as infeasible everywhere a step is drawn.",
       },
     },
   },
