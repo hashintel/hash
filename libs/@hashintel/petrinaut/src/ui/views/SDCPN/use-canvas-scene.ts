@@ -14,8 +14,14 @@ import { buildCanvasScene, type CanvasScene } from "./canvas-scene";
 import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 import { useStableItems } from "./use-stable-items";
 
-/** The scene for the active net, as the editor currently shows it. */
-export const useCanvasScene = (): CanvasScene => {
+/**
+ * The scene for the active net, as the editor currently shows it. Takes the
+ * canvas element so the highlight can wait for the pointer to stop moving
+ * over it.
+ */
+export const useCanvasScene = (
+  canvasRef: React.RefObject<HTMLElement | null>,
+): CanvasScene => {
   const { activeNet } = use(ActiveNetContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { draggingStateByNodeId, isSelected, selection, hoveredItem } =
@@ -29,7 +35,7 @@ export const useCanvasScene = (): CanvasScene => {
    * crossed to get there.
    */
   const hoveredId = hoveredItem?.id ?? null;
-  const pointerAtRest = usePointerAtRest();
+  const pointerAtRest = usePointerAtRest(canvasRef);
   const [settledHoverId, setSettledHoverId] = useState(hoveredId);
   if (pointerAtRest && settledHoverId !== hoveredId) {
     setSettledHoverId(hoveredId);

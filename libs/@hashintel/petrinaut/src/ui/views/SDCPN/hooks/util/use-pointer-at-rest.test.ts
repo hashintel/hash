@@ -6,13 +6,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePointerAtRest } from "./use-pointer-at-rest";
 
+let canvas: HTMLDivElement;
+
 /** jsdom has no `PointerEvent`, and the listener only reads the position. */
 const movePointer = (x: number, y: number) => {
   act(() => {
-    window.dispatchEvent(
+    canvas.dispatchEvent(
       new MouseEvent("pointermove", { clientX: x, clientY: y }),
     );
   });
+};
+
+const renderAtRest = () => {
+  // Held across renders, as the component's own `useRef` would be: a new ref
+  // object each render would re-run the effect and lose the pending wait.
+  const ref = { current: canvas };
+  return renderHook(() => usePointerAtRest(ref));
 };
 
 const wait = (ms: number) => {
@@ -24,20 +33,23 @@ const wait = (ms: number) => {
 describe("usePointerAtRest", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    canvas = document.createElement("div");
+    document.body.append(canvas);
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    canvas.remove();
   });
 
   it("starts at rest, before the pointer has moved at all", () => {
-    const { result } = renderHook(() => usePointerAtRest());
+    const { result } = renderAtRest();
 
     expect(result.current).toBe(true);
   });
 
   it("is not at rest while the pointer is moving", () => {
-    const { result } = renderHook(() => usePointerAtRest());
+    const { result } = renderAtRest();
 
     movePointer(100, 100);
     expect(result.current).toBe(false);
@@ -48,7 +60,7 @@ describe("usePointerAtRest", () => {
   });
 
   it("comes to rest once the pointer has held still", () => {
-    const { result } = renderHook(() => usePointerAtRest());
+    const { result } = renderAtRest();
 
     movePointer(100, 100);
     wait(50);
@@ -57,7 +69,7 @@ describe("usePointerAtRest", () => {
   });
 
   it("ignores a jitter of a pixel or two", () => {
-    const { result } = renderHook(() => usePointerAtRest());
+    const { result } = renderAtRest();
 
     movePointer(100, 100);
     wait(50);
@@ -69,7 +81,7 @@ describe("usePointerAtRest", () => {
   });
 
   it("counts a drift that adds up past the threshold", () => {
-    const { result } = renderHook(() => usePointerAtRest());
+    const { result } = renderAtRest();
 
     movePointer(100, 100);
     wait(50);
@@ -84,7 +96,7 @@ describe("usePointerAtRest", () => {
   });
 
   it("restarts the wait when the pointer moves again", () => {
-    const { result } = renderHook(() => usePointerAtRest());
+    const { result } = renderAtRest();
 
     movePointer(100, 100);
     wait(40);
@@ -94,6 +106,17 @@ describe("usePointerAtRest", () => {
     expect(result.current).toBe(false);
 
     wait(10);
+    expect(result.current).toBe(true);
+  });
+  it("ignores movement outside its element", () => {
+    const { result } = renderAtRest();
+
+    act(() => {
+      document.body.dispatchEvent(
+        new MouseEvent("pointermove", { clientX: 500, clientY: 500 }),
+      );
+    });
+
     expect(result.current).toBe(true);
   });
 });

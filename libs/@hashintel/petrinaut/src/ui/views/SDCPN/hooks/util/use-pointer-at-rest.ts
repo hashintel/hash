@@ -11,16 +11,25 @@ const MOVEMENT_THRESHOLD_PX = 2;
 const REST_DELAY_MS = 50;
 
 /**
- * Whether the pointer has stopped moving.
+ * Whether the pointer has stopped moving over `ref`'s element.
  *
  * Anything that follows the pointer can hold still while a gesture is in
  * flight and act once it lands, rather than firing for every position the
- * pointer passes through.
+ * pointer passes through. Movement elsewhere on the page is not this
+ * element's business, and a pointer that leaves it comes to rest like any
+ * other pointer that has stopped arriving.
  */
-export const usePointerAtRest = (): boolean => {
+export const usePointerAtRest = (
+  ref: React.RefObject<HTMLElement | null>,
+): boolean => {
   const [atRest, setAtRest] = useState(true);
 
   useEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+
     let lastCounted: { x: number; y: number } | null = null;
     let moving = false;
     let restTimer: ReturnType<typeof setTimeout> | undefined;
@@ -54,13 +63,13 @@ export const usePointerAtRest = (): boolean => {
       restTimer = setTimeout(settle, REST_DELAY_MS);
     };
 
-    window.addEventListener("pointermove", onPointerMove, { passive: true });
+    element.addEventListener("pointermove", onPointerMove, { passive: true });
 
     return () => {
-      window.removeEventListener("pointermove", onPointerMove);
+      element.removeEventListener("pointermove", onPointerMove);
       clearTimeout(restTimer);
     };
-  }, []);
+  }, [ref]);
 
   return atRest;
 };
