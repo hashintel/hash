@@ -235,11 +235,13 @@ impl<'details> LocateDocument<'details> {
 }
 
 impl Document for LocateDocument<'_> {
-    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Envelope {
-        self::codec::LocateResponse {
+    type Error = !;
+
+    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Result<Envelope, Self::Error> {
+        Ok(self::codec::LocateResponse {
             variant: 0,
             document: self,
         }
-        .encode_into(buffer)
+        .encode_into(buffer))
     }
 }

@@ -236,11 +236,13 @@ impl<'details> TileDocument<'details> {
 }
 
 impl Document for TileDocument<'_> {
-    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Envelope {
-        self::codec::TileResponse {
+    type Error = !;
+
+    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Result<Envelope, Self::Error> {
+        Ok(self::codec::TileResponse {
             variant: 0,
             document: self,
         }
-        .encode_into(buffer)
+        .encode_into(buffer))
     }
 }

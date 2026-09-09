@@ -1,5 +1,7 @@
 use alloc::alloc::Allocator;
 
+use error_stack::Report;
+
 use super::{Document, codec::Envelope};
 use crate::file::generation::GenerationId;
 
@@ -16,9 +18,10 @@ impl CurrentDocument {
 }
 
 impl Document for CurrentDocument {
-    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Envelope {
+    type Error = Report<serde_json::Error>;
+
+    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Result<Envelope, Self::Error> {
         Envelope::encode_json(self, buffer)
-            .expect("the generation identity should serialize as JSON")
     }
 }
 

@@ -29,6 +29,8 @@ pub(crate) use self::{
 };
 
 pub(crate) trait Document {
+    type Error;
+
     /// Replaces `buffer` and returns its writer's completion token.
-    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Envelope;
+    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Result<Envelope, Self::Error>;
 }

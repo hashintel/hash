@@ -146,8 +146,9 @@ impl TranslateDocument {
 }
 
 impl Document for TranslateDocument {
-    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Envelope {
+    type Error = Report<serde_json::Error>;
+
+    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Result<Envelope, Self::Error> {
         Envelope::encode_json(&self::codec::TranslateResponse::new(self), buffer)
-            .expect("entity-id keys and geometry should serialize as JSON")
     }
 }

@@ -233,12 +233,14 @@ impl<'details> EdgesDocument<'details> {
 }
 
 impl Document for EdgesDocument<'_> {
-    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Envelope {
-        self::codec::EdgesResponse {
+    type Error = !;
+
+    fn encode<A: Allocator>(&self, buffer: &mut Vec<u8, A>) -> Result<Envelope, Self::Error> {
+        Ok(self::codec::EdgesResponse {
             generation: self.generation,
             variant: 0,
             document: self,
         }
-        .encode_into(buffer)
+        .encode_into(buffer))
     }
 }
