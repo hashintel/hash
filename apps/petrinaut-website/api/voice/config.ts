@@ -1,4 +1,4 @@
-import { createOpenAIVoiceConfigHandler } from "../../src/server/voice/openai-voice-config";
+import { createOpenAIVoiceConfigHandler } from "../../src/server/voice/openai-voice-config.js";
 
 declare const process: {
   env: Record<string, string | undefined>;

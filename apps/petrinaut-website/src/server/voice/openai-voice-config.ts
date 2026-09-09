@@ -1,4 +1,4 @@
-import { getOpenAIVoiceAvailability } from "./openai-voice-policy";
+import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
 
 interface VoiceEnvironment {
   readonly OPENAI_VOICE_API_KEY?: string;

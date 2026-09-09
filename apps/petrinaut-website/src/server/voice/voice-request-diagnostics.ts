@@ -8,7 +8,7 @@ import {
   type VoiceDiagnosticReporter,
   type VoiceErrorCode,
   type VoiceOperation,
-} from "../../voice-diagnostics";
+} from "../../voice-diagnostics.js";
 
 interface VoiceRequestDiagnosticDependencies {
   readonly createRequestId?: () => string;

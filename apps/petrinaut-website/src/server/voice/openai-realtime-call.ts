@@ -2,13 +2,13 @@ import {
   voiceErrorMessage,
   type VoiceDiagnosticReporter,
   type VoiceErrorCode,
-} from "../../voice-diagnostics";
+} from "../../voice-diagnostics.js";
 import {
   createOpenAIRealtimeSession,
   getOpenAIVoiceAvailability,
   OPENAI_REALTIME_CONNECTION_TIMEOUT_MS,
-} from "./openai-voice-policy";
-import { createVoiceRequestDiagnostics } from "./voice-request-diagnostics";
+} from "./openai-voice-policy.js";
+import { createVoiceRequestDiagnostics } from "./voice-request-diagnostics.js";
 
 const OPENAI_REALTIME_CALLS_ENDPOINT =
   "https://api.openai.com/v1/realtime/calls";
