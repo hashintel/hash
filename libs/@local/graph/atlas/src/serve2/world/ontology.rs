@@ -125,6 +125,18 @@ impl Ontology {
             .into_payload_of_row_at(row, epoch.revision())
     }
 
+    pub(crate) fn icon<'scene>(
+        &'scene self,
+        epoch: &'scene Epoch,
+        row: OntologyRowId,
+    ) -> Option<&'scene Icon> {
+        let source = self
+            .closure
+            .icon_source(row)
+            .map_or(row, |icon| icon.source);
+        self.payload(epoch, source)
+    }
+
     pub(crate) const fn identity(
         &self,
     ) -> &IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId> {

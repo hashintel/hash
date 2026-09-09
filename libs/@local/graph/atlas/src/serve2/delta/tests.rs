@@ -436,6 +436,7 @@ fn ontology_icon_replacement() {
             .expect("should borrow the captured icon")
     });
     assert!(world.ontology.payload(&before, added_row).is_none());
+    assert!(world.ontology.icon(&before, added_row).is_none());
     delta.revision.increment_by(1);
     for (key, row) in [fitted, added].into_iter().zip(rows) {
         assert_eq!(
@@ -447,15 +448,101 @@ fn ontology_icon_replacement() {
     drop(delta);
     for ((row, icon), expected) in rows.into_iter().zip(held).zip(["changed", "added"]) {
         assert_eq!(icon.as_ref(), expected);
+        assert!(
+            ptr::eq(
+                icon,
+                world
+                    .ontology
+                    .icon(&captured, row)
+                    .expect("should borrow the captured icon")
+            ),
+            "should resolve the same captured payload"
+        );
         assert_eq!(
             world
                 .ontology
-                .payload(&replaced, row)
+                .icon(&replaced, row)
                 .expect("should borrow the replaced icon")
                 .as_ref(),
             "latest"
         );
     }
+    assert!(world.ontology.icon(&replaced, OntologyRowId::MAX).is_none());
+}
+
+#[test]
+fn ontology_icon_inherited() {
+    let (_fixture, mut delta) = fixture("delta-ontology-icon-inherited");
+    let world = Arc::clone(&delta.world);
+    let ancestor = OntologyRowId::MIN;
+    let child = OntologyRowId::new(1);
+    delta.revision.increment_by(1);
+    for (row, label) in [(ancestor, "ancestor"), (child, "direct")] {
+        let key = world
+            .ontology
+            .identity
+            .key_of(row)
+            .expect("should resolve the base type");
+        assert_eq!(
+            delta.register_ontology(key, OwnedIcon::from(label)),
+            Some((row, true))
+        );
+    }
+    let captured = epoch(&delta);
+    let inherited = world
+        .ontology
+        .icon(&captured, child)
+        .expect("should borrow the ancestor icon");
+    assert_eq!(inherited.as_ref(), "ancestor");
+    assert_eq!(
+        world
+            .ontology
+            .payload(&captured, child)
+            .expect("should retain the distinct direct icon")
+            .as_ref(),
+        "direct"
+    );
+    assert!(
+        ptr::eq(
+            inherited,
+            world
+                .ontology
+                .payload(&captured, ancestor)
+                .expect("should borrow the source payload")
+        ),
+        "should borrow the ancestor's captured payload"
+    );
+
+    delta.revision.increment_by(1);
+    let key = world
+        .ontology
+        .identity
+        .key_of(ancestor)
+        .expect("should resolve the ancestor");
+    assert_eq!(
+        delta.register_ontology(key, OwnedIcon::from("latest")),
+        Some((ancestor, true))
+    );
+    let replaced = epoch(&delta);
+    drop(delta);
+    assert_eq!(
+        world
+            .ontology
+            .icon(&replaced, child)
+            .expect("should borrow the replaced ancestor icon")
+            .as_ref(),
+        "latest"
+    );
+    assert_eq!(inherited.as_ref(), "ancestor");
+}
+
+#[test]
+#[should_panic(expected = "ontology must belong to the epoch's world")]
+fn ontology_icon_foreign_world() {
+    let (_left_files, left) = fixture("delta-ontology-icon-foreign-left");
+    let (_right_files, right) = fixture("delta-ontology-icon-foreign-right");
+    let foreign = epoch(&right);
+    let _icon = left.world.ontology.icon(&foreign, OntologyRowId::MIN);
 }
 
 /// Base payload queries borrow the mapped legend without copying it.
