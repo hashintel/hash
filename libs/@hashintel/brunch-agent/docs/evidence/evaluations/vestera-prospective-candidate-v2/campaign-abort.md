@@ -14,4 +14,4 @@ Both observed failures have immutable nonce-bearing JSON records. Replication 2 
 
 ## Reorientation
 
-The owner narrowed the Mission 4 comparison to the selected architecture's workpiece quality against the latest two valid flat-prompt baseline workpieces. [`prospective-runbook-v3`](../../../../evaluations/protocols/prospective-runbook-v3/protocol.md) freezes that question, hashes the exact controls, keeps runtime accounting separate from quality scores, and adds credential preflight outside campaign membership.
+The owner narrowed the Mission 4 comparison to the selected architecture's workpiece quality against the latest two valid flat-prompt baseline workpieces. That later instrument has itself been retired; this abort remains the v2 conclusion.

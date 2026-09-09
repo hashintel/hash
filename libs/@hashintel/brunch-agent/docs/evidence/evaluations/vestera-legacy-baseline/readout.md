@@ -1,14 +1,11 @@
 # Baseline control — read-out (FE-1361)
 
-Scored 2026-08-13, against the transcripts in [`transcripts/`](transcripts/). Design and
-mechanics are in the executable
-[protocol](../../../../evaluations/protocols/legacy-baseline/protocol.md).
-All conditions ran `claude-opus-5` as interviewer against the same simulated master scheduler,
-single-shot each — every claim below is existence evidence, not a rate estimate. The sections
-through the first condition-4 review are the 2026-08-13 / 2026-08-25 read-out unchanged.
-Cycle-one live-arm artifacts are archived under [`transcripts/cycle-1/`](transcripts/cycle-1/);
-the current condition-4 and condition-5 artifacts are the cycle-two runs from 2026-08-26. Their
-catalogue verdict is appended at the end.
+Scored 2026-08-13, against the retained transcripts in [`transcripts/`](transcripts/).
+The executable protocol has been retired. All conditions ran `claude-opus-5` as interviewer
+against the same simulated master scheduler, single-shot each — every claim below is existence
+evidence, not a rate estimate. The sections through the first condition-4 review are the
+2026-08-13 / 2026-08-25 read-out unchanged. Cycle-one live-arm artifacts and unused raw
+captures are not retained. Their catalogue verdict is appended at the end.
 
 ## Headline findings
 

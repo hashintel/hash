@@ -21,7 +21,7 @@ Terms kept distinct (`CONTEXT.md`):
 
 **Condition 5** is the tripwire named throughout: typed mapping, in-loop LLM judgment, and
 ordinary question turns on the order of minutes (`MISSION.next.md`;
-`docs/evidence/evaluations/vestera-legacy-baseline/condition-5-turn-latency.md`).
+[`vestera-legacy-baseline/readout.md`](../../../evidence/evaluations/vestera-legacy-baseline/readout.md)).
 
 ---
 
@@ -96,14 +96,14 @@ kinds, slots, proposal types, precision grades, fold rules, or typed completion 
 with four supporting resources. Headless drive is `createFlueClient` → `send` → `wait` →
 `history()`. Tools on the interview path: `activate_skill`, `read_skill_resource` only.
 `wroteCaptureStore: false`
-(`docs/evidence/implementations/fe-1525-headless-runbook-pn.md`).
+(historical `fe-1525-headless-runbook-pn` implementation note).
 
 **Observed.** The filled IR is recovered by scraping the last `runbook-ir` fence from assistant
 text in Flue history. There is no `usePersistentState` and no capture store. The model sometimes
 omits the closing fence before `pn-json`; scrape still finds a block. The skill tells the agent:
 “The block is the full current document, not a delta. That block is how the conversation recovers
 the IR — there is no other store” (`fe-1525-headless-runbook-pn.md`; skill body quoted in
-`docs/evidence/evaluations/vestera-runbook-headless/runbook-headless-2026-08-28T11-03-53-683Z.md`).
+the historical headless transcript for that run).
 
 **Observed.** Both real-run IRs contain unknowns / not-yet-asked / assumptions / omissions. Run
 2’s IR names inferences, unknowns, unrepresentable commercial weights, and VW-02 dark-tint loss.
@@ -154,7 +154,7 @@ and emitted 152,204 output tokens, of which roughly 4,300 were the interview and
 were extraction: 267 typed captures across 8 applied sweeps, plus three refused sweep batches
 re-emitted after repair. About 97% of interviewer generation was the capture store, generated on
 the critical path between the expert’s answer and the next question
-(`docs/evidence/evaluations/vestera-legacy-baseline/condition-5-turn-latency.md`).
+([`vestera-legacy-baseline/readout.md`](../../../evidence/evaluations/vestera-legacy-baseline/readout.md)).
 Per-call wall-clock was not recorded; timing claims are derived from the run window and token
 counts.
 
@@ -172,7 +172,7 @@ exchange-rate objective; entity types, policies, constraints, and activities sho
 naming drift
 (`docs/evidence/evaluations/vestera-legacy-baseline/readout.md` Cycle 2). Typed
 payloads carried `kind`, `node`, `slot`, `precision`, `sourceRegime`, and an assertion value
-(`docs/evidence/evaluations/vestera-legacy-baseline/transcripts/condition-5-captures.json`).
+([`vestera-legacy-baseline/readout.md`](../../../evidence/evaluations/vestera-legacy-baseline/readout.md)).
 
 **Observed.** Completion-as-model-self-report failed across baseline conditions: Condition 1
 declared the interview complete at turn 5 and never delivered until forced wrap; Condition 4

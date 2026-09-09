@@ -469,9 +469,7 @@ each successor performs.
   and [delivered model](../../evidence/evaluations/vestera-legacy-baseline/transcripts/condition-2-model.txt).
 - [Baseline readout](../../evidence/evaluations/vestera-legacy-baseline/readout.md),
   including the single-run limitation, scored instruments, coverage comparison, silent-assumption
-  audit, output inspection, and residual requirements.
-- [Baseline protocol](../../../evaluations/protocols/legacy-baseline/protocol.md)
-  and its information-wall account.
+  audit, output inspection, and residual requirements. The executable baseline protocol is retired.
 - [Indexed interviewing source catalogue](interviewing-literature-source-catalog.md) and
   [elicitation strategy synthesis](elicitation-strategy-literature.md).
 - [Research-patterns audit](../../evidence/audits/research-patterns-audit.md), which

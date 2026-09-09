@@ -1,7 +1,0 @@
-# Packet packaging correction
-
-> Historical result; raw contract-establishment payloads were retired in the [bounded reduction](../../landing-20260909/evidence-reduction.md). Original commands, manifests and payload links below describe the recorded run, not a maintained replay or a claim that those bytes remain local.
-
-The first packet commit `a144b353805c0ab36598fff909c63a7d814a0cd2` did not include the intended command logs because the repository ignores directories named `logs`. Its commit hook also formatted eleven small uncompressed summary/verdict JSON files, changing their bytes after the first manifest had been generated. No canonical pre/post definition, request, result, history or native capture changed: those artifacts were already gzip-compressed.
-
-The follow-up packet commit explicitly adds only the intended literal compressed log paths, updates the manifest to the committed summary bytes, and adds each affected summary's original untouched bytes as a sibling `.raw.json.gz`. The original raw hash is retained with that pair in the manifest. Each formatted summary was checked for exact parsed-JSON equality against its raw original. This is evidence packaging only, not an observation/hash alias, mutation-base exception or historical proof rewrite. Consume the two packet commits together. Runtime, product/test source and original temporary stores remain unchanged.

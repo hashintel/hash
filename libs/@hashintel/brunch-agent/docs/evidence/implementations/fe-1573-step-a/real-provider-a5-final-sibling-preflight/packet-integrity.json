@@ -1,8 +1,0 @@
-{
-  "passed": true,
-  "originalRetainedPairsVerified": 219,
-  "allPrimaryExitsZero": true,
-  "instrumentPinsVerified": 3916,
-  "manifestSha256": "1c71ed054d89a7a0183df5b8877faba042982638a58c6696151fc119df439586",
-  "verificationOnly": "No new instrument generated, credentials resolved or live accounting accessed"
-}
