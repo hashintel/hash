@@ -1,8 +1,15 @@
 import { useMemo } from "react";
 
 import { type MenuItem } from "../Menu/menu";
-import { type ItemOrGroup } from "../Menu/SelectableList/selectable-list";
-import { groupedItems } from "../Menu/SelectableList/selectable-list.fixtures";
+import {
+  type Item,
+  type ItemOrGroup,
+} from "../Menu/SelectableList/selectable-list";
+import { getItemId } from "../Menu/SelectableList/selectable-list-util";
+import {
+  defaultSelected,
+  groupedItems,
+} from "../Menu/SelectableList/selectable-list.fixtures";
 import { RightClickMenu } from "./right-click-menu";
 
 import type { Story, StoryDefault } from "@ladle/react";
@@ -48,8 +55,24 @@ const dropTargetStyle: React.CSSProperties = {
   userSelect: "none",
 };
 
+function withSelectedFlags(entry: ItemOrGroup<Item>): ItemOrGroup<MenuItem> {
+  if ("items" in entry) {
+    return {
+      ...entry,
+      items: entry.items.map((item) => withSelectedFlags(item) as MenuItem),
+    };
+  }
+  if ("custom" in entry) {
+    return entry as MenuItem;
+  }
+  return {
+    ...entry,
+    selected: defaultSelected.includes(getItemId(entry)),
+  } as MenuItem;
+}
+
 export const Default: Story<RightClickMenuProps> = (args) => {
-  const items = useMemo(() => groupedItems as Array<ItemOrGroup<MenuItem>>, []);
+  const items = useMemo(() => groupedItems.map(withSelectedFlags), []);
   return (
     <RightClickMenu {...args} items={items}>
       <div style={dropTargetStyle}>Right click anywhere in this area</div>
