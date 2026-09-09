@@ -383,7 +383,7 @@ Prove one genuine conversation can become an authorized live fixture before the 
 - [`../../../packages/binding-flue/src/history-reader.ts`](../../../packages/binding-flue/src/history-reader.ts)
 - [`../../../packages/transport-aisdk/src/client-tool-history.ts`](../../../packages/transport-aisdk/src/client-tool-history.ts)
 - [`../../../../../../apps/brunch-agent/src/agents/chat-agent/agent.ts`](../../../../../../apps/brunch-agent/src/agents/chat-agent/agent.ts)
-- [`../implementations/fe-1575-outer-browser-witness-2026-09-04-r2/witness.md`](../implementations/fe-1575-outer-browser-witness-2026-09-04-r2/witness.md)
+- Historical `fe-1575-outer-browser-witness-2026-09-04-r2/witness.md`, inspected for this review and subsequently retired.
 - Installed Flue 2.0.3 documentation for agent hooks, public conversation history, compaction, streaming, and conversation persistence under `node_modules/@flue/runtime/docs/` and `node_modules/@flue/sdk/docs/`
 - Petrinaut canonical AI, action, entity, and file-format schemas under `libs/@hashintel/petrinaut-core/src/`
 

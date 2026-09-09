@@ -258,11 +258,7 @@ What one page of guidance demonstrably cannot fix, each observed in the stronges
 
 ## Condition 4 — the teaching layer as prompt only (scored 2026-08-25)
 
-Scored against [`transcripts/cycle-1/condition-4.md`](transcripts/cycle-1/condition-4.md) (22 interviewer
-turns, stop reason `delivered-after-forced-wrap`), the assembled system prompt
-[`transcripts/cycle-1/condition-4-system.md`](transcripts/cycle-1/condition-4-system.md) (the condition-4
-framing + the rendered `repertoire.yaml` + `plugin-sdcpn/plugin.yaml`, ≈280 lines), and the
-delivered model [`transcripts/cycle-1/condition-4-model.txt`](transcripts/cycle-1/condition-4-model.txt).
+Scored against the historical `transcripts/cycle-1/condition-4.md` (22 interviewer turns, stop reason `delivered-after-forced-wrap`), the assembled system prompt `transcripts/cycle-1/condition-4-system.md` (the condition-4 framing + the rendered `repertoire.yaml` + `plugin-sdcpn/plugin.yaml`, ≈280 lines), and the delivered model `transcripts/cycle-1/condition-4-model.txt`. Those three artifacts were subsequently retired; the line references below describe the original scoring, not files retained in this tree.
 Interviewer `claude-opus-5`, same simulated master scheduler, single shot — existence evidence
 from one run, not a rate. Line references are `cycle-1/condition-4.md:LINE`; interviewer turns are
 numbered T1–T22 (T1 at line 22, T9 at 202, T10 at 236, T11–T20 at 462–598, T21 at 610, T22 at
@@ -679,37 +675,36 @@ strain; the last group lists what fired as designed, so the next cycle does not 
 
 ## Cycle 2 live-arm review and catalogue verdict (2026-08-26)
 
-Cycle two reran both live arms against `sdcpn/2026-08-26.2` and
-`repertoire/2026-08-26.2`.
+Cycle two reran both live arms against `sdcpn/2026-08-26.2` and `repertoire/2026-08-26.2`. Its condition-4 and condition-5 transcripts and model outputs were subsequently retired. The source filenames and line references below identify the historical observations, not currently available artifacts.
 
 ### What the runs established
 
 - **Condition 4 exercised the revised teaching but retained the known prompt-only stop defect.**
   It ran all 24 turns and stopped at the hard limit
-  ([transcript](transcripts/condition-4.md):1–8), despite delivering a gap-declaring model more
+  (`transcripts/condition-4.md:1–8`), despite delivering a gap-declaring model more
   than once. Its 1,006,344 input and 57,851 output tokens across 67 calls make the cost of that
   classifier false negative material, but do not identify a missing plugin key.
 - **Condition 5 stopped honestly with an incomplete engagement.** The expert left after ten
   turns; the interviewer delivered `expert-stopped, partial-with-open-slots`, named the source
   for each deferred item, and did not claim to have built a net
-  ([transcript](transcripts/condition-5.md):275–316). The folded store contains 166 active
+  (`transcripts/condition-5.md:275–316`). The folded store contains 166 active
   captures, 51 nodes, 0 unmapped captures, and 93 unsatisfied demands
-  ([model](transcripts/condition-5-model.md):7–10). The unsatisfied rows are visible rather than
+  (`transcripts/condition-5-model.md:7–10`). The unsatisfied rows are visible rather than
   silently filled.
 - **The evidence boundary held.** Five sweep attempts were refused when quotations were not
   verbatim or occurred only in non-user entries
-  ([transcript](transcripts/condition-5.md):255, 379–384); the closing sweep admitted only two
+  (`transcripts/condition-5.md:255, 379–384`); the closing sweep admitted only two
   deposits grounded in the expert's words (`:420–422`). This cost turns, but it did not corrupt
   the store.
 - **Node identity remains the dominant harness defect.** One wash-versus-idle question became
   six near-duplicate objective nodes plus a separate exchange-rate objective
-  ([model](transcripts/condition-5-model.md):163–196); entity types, policies, constraints, and
+  (`transcripts/condition-5-model.md:163–196`); entity types, policies, constraints, and
   activities show the same naming drift. The interviewer itself identified duplicate
-  changeover nodes ([transcript](transcripts/condition-5.md):369–373). This is register
+  changeover nodes (`transcripts/condition-5.md:369–373`). This is register
   identity/deduplication in the sweep/fold path, not vocabulary a plugin key can supply.
 - **Session termination remains harness control.** After the expert accepted the handover, the
   runner dispatched two more non-question turns and classified the result as `stalled`
-  ([transcript](transcripts/condition-5.md):318–422). Guidance correctly described the stopping
+  (`transcripts/condition-5.md:318–422`). Guidance correctly described the stopping
   outcome; the runtime lacks a terminal act for an incomplete, expert-stopped engagement.
 
 ### Catalogue decision

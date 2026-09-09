@@ -1,4 +1,12 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 
 import { expect, test } from "vitest";
@@ -9,12 +17,51 @@ const evidenceRoot = join(CONTEXT_ROOT, "docs/evidence");
 const allowlistedMachineFiles = new Set(["accounting/usage-ledger.json"]);
 const allowedExtensions = new Set([".md", ".txt"]);
 
-const walkFiles = (directory: string): string[] =>
-  readdirSync(directory).flatMap((entry) => {
-    if (entry === ".gitignore") return [];
-    const path = join(directory, entry);
-    return statSync(path).isDirectory() ? walkFiles(path) : [path];
-  });
+const evidencePath = relative(HASH_ROOT, evidenceRoot);
+const trackedEvidenceFiles = (repositoryRoot: string): string[] =>
+  execFileSync("git", ["ls-files", "-z", "--", evidencePath], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter(Boolean)
+    .map((path) => relative(evidencePath, path));
+
+const files = trackedEvidenceFiles(HASH_ROOT);
+
+test("the evidence inventory ignores local files but includes force-added artifacts", () => {
+  const repositoryRoot = mkdtempSync(join(tmpdir(), "brunch-evidence-index-"));
+  try {
+    const directory = join(repositoryRoot, evidencePath);
+    mkdirSync(join(directory, "implementations"), { recursive: true });
+    writeFileSync(join(directory, ".gitignore"), "*.log\n");
+    writeFileSync(join(directory, "README.md"), "# Retained conclusion\n");
+    writeFileSync(join(directory, "local.md"), "Untracked notes\n");
+    writeFileSync(
+      join(directory, "implementations/local.log"),
+      "Ignored output\n",
+    );
+    execFileSync("git", ["init", "--quiet"], { cwd: repositoryRoot });
+    execFileSync("git", ["add", "--", `${evidencePath}/README.md`], {
+      cwd: repositoryRoot,
+    });
+    expect(trackedEvidenceFiles(repositoryRoot)).toEqual(["README.md"]);
+
+    execFileSync(
+      "git",
+      ["add", "--force", "--", `${evidencePath}/implementations/local.log`],
+      {
+        cwd: repositoryRoot,
+      },
+    );
+    expect(trackedEvidenceFiles(repositoryRoot)).toEqual([
+      "README.md",
+      "implementations/local.log",
+    ]);
+  } finally {
+    rmSync(repositoryRoot, { recursive: true, force: true });
+  }
+});
 
 test("supported runners do not default output under docs/evidence", () => {
   const construction = readFileSync(
@@ -37,14 +84,15 @@ test("supported runners do not default output under docs/evidence", () => {
 });
 
 test("implementation-evidence packets are not a repository category", () => {
-  expect(existsSync(join(evidenceRoot, "implementations"))).toBe(false);
+  expect(files.filter((path) => path.startsWith("implementations/"))).toEqual(
+    [],
+  );
 });
 
-test("tracked evidence is markdown except the allowlisted ledger", () => {
-  const files = walkFiles(evidenceRoot);
+test("tracked evidence is text except the allowlisted ledger", () => {
   const unexpected = files.filter((path) => {
-    const relativePath = relative(evidenceRoot, path);
-    if (allowlistedMachineFiles.has(relativePath)) return false;
+    if (path === ".gitignore" || path.endsWith("/.gitignore")) return false;
+    if (allowlistedMachineFiles.has(path)) return false;
     const extension = path.slice(path.lastIndexOf("."));
     return !allowedExtensions.has(extension);
   });

@@ -21,7 +21,7 @@ Terms kept distinct (`CONTEXT.md`):
 
 **Condition 5** is the tripwire named throughout: typed mapping, in-loop LLM judgment, and
 ordinary question turns on the order of minutes (`MISSION.next.md`;
-[`vestera-legacy-baseline/readout.md`](../../../evidence/evaluations/vestera-legacy-baseline/readout.md)).
+[`vestera-legacy-baseline/readout.md`](../../../../evidence/evaluations/vestera-legacy-baseline/readout.md)).
 
 ---
 
@@ -154,7 +154,7 @@ and emitted 152,204 output tokens, of which roughly 4,300 were the interview and
 were extraction: 267 typed captures across 8 applied sweeps, plus three refused sweep batches
 re-emitted after repair. About 97% of interviewer generation was the capture store, generated on
 the critical path between the expert’s answer and the next question
-([`vestera-legacy-baseline/readout.md`](../../../evidence/evaluations/vestera-legacy-baseline/readout.md)).
+([`vestera-legacy-baseline/readout.md`](../../../../evidence/evaluations/vestera-legacy-baseline/readout.md)).
 Per-call wall-clock was not recorded; timing claims are derived from the run window and token
 counts.
 
@@ -172,7 +172,7 @@ exchange-rate objective; entity types, policies, constraints, and activities sho
 naming drift
 (`docs/evidence/evaluations/vestera-legacy-baseline/readout.md` Cycle 2). Typed
 payloads carried `kind`, `node`, `slot`, `precision`, `sourceRegime`, and an assertion value
-([`vestera-legacy-baseline/readout.md`](../../../evidence/evaluations/vestera-legacy-baseline/readout.md)).
+([`vestera-legacy-baseline/readout.md`](../../../../evidence/evaluations/vestera-legacy-baseline/readout.md)).
 
 **Observed.** Completion-as-model-self-report failed across baseline conditions: Condition 1
 declared the interview complete at turn 5 and never delivered until forced wrap; Condition 4

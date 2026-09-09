@@ -10,6 +10,8 @@ This campaign establishes Mission 3's elicitation/workpiece control and closes n
 
 ## Campaign membership
 
+The underlying run artifacts, transcripts, and grader reports were subsequently retired. Run IDs and filenames below identify the historical observations; the retained control is this adjudicated range, not a locally replayable or regradable corpus.
+
 | Replication | Run id / evidence | Runtime outcome | Omniscient | Cold utility | Readiness | Gates |
 | --- | --- | --- | ---: | ---: | --- | --- |
 | 1 | `replication-1-runtime-failure.md` | Invalid: simulated expert returned no text; frozen runner persisted no normal artifact | Not gradable | Not gradable | Not gradable | Runtime-validity failure |

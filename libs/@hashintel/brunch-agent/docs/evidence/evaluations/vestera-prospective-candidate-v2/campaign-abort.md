@@ -10,7 +10,7 @@ Preserve v2 as an aborted operational campaign. Do not run replication 3, replac
 | 2 | Simulated expert returned `stop_reason: refusal` with no text after three ordinary exchanges | Expert-simulator/provider boundary | None; no workpiece |
 | 3 | Not run | Owner stopped the confounded campaign | None |
 
-Both observed failures have immutable nonce-bearing JSON records. Replication 2 also retains the exact partial Flue snapshot and expert exchange. Neither failure establishes a defect in the Mission 4 workpiece architecture, and neither supplies a gradeable workpiece.
+Both observed failures were captured in nonce-bearing JSON records, with an exact partial Flue snapshot and expert exchange for replication 2. Those raw records were subsequently retired; this adjudication retains the outcomes, not a replayable bundle. Neither failure establishes a defect in the Mission 4 workpiece architecture, and neither supplies a gradeable workpiece.
 
 ## Reorientation
 
