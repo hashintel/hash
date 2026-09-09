@@ -1,4 +1,4 @@
-use core::ops::Range;
+use hashql_core::id::IdVec;
 
 use crate::{
     bitset::DenseBitSlice,
@@ -31,21 +31,18 @@ impl<'ontology> OntologyMembership<'ontology> {
         )
     }
 
-    /// Yields matching fitted positions in ascending order within `range`.
-    pub(crate) fn positions_in(
-        &self,
-        range: Range<BasePosition>,
-    ) -> impl Iterator<Item = BasePosition> + '_ {
-        let (direct, closure) = match self {
-            Self::Direct(membership) => (Some(membership.positions_in(range)), None),
-            Self::Closure(membership) => (None, Some(membership.iter_in(range))),
-            Self::Unresolved => (None, None),
-        };
-        direct
-            .into_iter()
-            .flatten()
-            .chain(closure.into_iter().flatten())
+    pub(crate) fn contains(&self, position: BasePosition) -> bool {
+        match self {
+            Self::Direct(membership) => membership.contains(position),
+            Self::Closure(membership) => membership.contains(position),
+            Self::Unresolved => false,
+        }
     }
+}
+
+hashql_core::id::newtype! {
+    /// A requested type's position, with duplicate requests occupying distinct slots.
+    pub(crate) struct SelectionSlot(u32)
 }
 
 #[derive(
@@ -56,12 +53,14 @@ pub(crate) struct OntologySelection([ArchivedOntologyTypeUuid]);
 
 pub(crate) struct OntologyMemberships<'context> {
     selection: &'context OntologySelection,
-    memberships: Vec<OntologyMembership<'context>>,
+    memberships: IdVec<SelectionSlot, OntologyMembership<'context>>,
 }
 
 impl<'context> OntologyMemberships<'context> {
-    pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = &OntologyMembership<'context>> {
-        self.memberships.iter()
+    pub(crate) fn iter_enumerated(
+        &self,
+    ) -> impl ExactSizeIterator<Item = (SelectionSlot, &OntologyMembership<'context>)> {
+        self.memberships.iter_enumerated()
     }
 }
 

@@ -14,8 +14,8 @@ pub(crate) use self::locate::{LocateLinkResponse, LocateNodeResponse};
 pub(crate) use self::{
     client::{GraphDatabaseClient, HydrateError},
     columns::{
-        EdgeLinkColumns, EdgeSlot, LocateLinkColumns, LocateNodeColumns, NodeRequestColumns,
-        NodeSlot, NodeTrailerColumns, TypeSlot,
+        EdgeLinkColumns, EdgeSlot, LocateLinkColumns, LocateNodeColumns, NodeSlot,
+        NodeTrailerColumns, TypeSlot,
     },
     locate::{LocateRequest, LocateResolver, LocateResponse},
     ontology::OntologyResolver,

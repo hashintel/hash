@@ -8,9 +8,7 @@ use error_stack::Report;
 use hashql_core::id::{IdSlice, IdVec, bit_vec::DenseBitSet};
 use type_system::ontology::VersionedUrl;
 
-use super::{
-    EdgeSlot, NodeRequestColumns, NodeSlot, client::HydrateError, scalar::ScalarProperties,
-};
+use super::{EdgeSlot, NodeSlot, client::HydrateError, scalar::ScalarProperties};
 use crate::{
     bitset::DenseBitSlice, postgres::id::ArchivedEntityId, serve2::visibility::VisibilityActor,
 };
@@ -20,7 +18,7 @@ pub(crate) struct LocateRequest<'doc> {
     /// The resolved actor the store masks properties for.
     pub actor: VisibilityActor,
     /// The delivered node identities, source first.
-    pub nodes: NodeRequestColumns<'doc>,
+    pub nodes: &'doc IdSlice<NodeSlot, ArchivedEntityId>,
     /// The delivered link-entity identities, ascending identity bytes.
     pub links: &'doc IdSlice<EdgeSlot, ArchivedEntityId>,
     /// Most properties the source's map delivers.

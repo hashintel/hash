@@ -4,16 +4,13 @@
 //! off the store rows, assembly documents and encoders read them. An entity the store no longer
 //! serves reads `null` in every column and stays outside every completeness set.
 
-use hashql_core::id::{IdSlice, IdVec};
+use hashql_core::id::IdVec;
 use type_system::ontology::id::VersionedUrl;
 
 use super::scalar::ScalarProperties;
 use crate::{
     bitset::DenseBitSlice,
     dataset::auxiliary::{Icon, Label},
-    identity::{BasePosition, NodeRowId},
-    postgres::id::ArchivedEntityId,
-    serve::schedule::{ArrivalIndex, ArrivalRow, ViewRow}, // TODO: replace
 };
 
 hashql_core::id::newtype! {
@@ -42,64 +39,6 @@ hashql_core::id::newtype! {
     /// aligns to this domain. A slot is valid only against the response that required it,
     /// because two responses share no slot vocabulary.
     pub(crate) struct TypeSlot(u32)
-}
-
-/// The node identities behind one delivered set, viewed in slot order.
-///
-/// The hydration request's node subject. The view joins the delivered rows to their identities
-/// on demand - a fitted row through the generation's identity column, a placed arrival through
-/// the view's arrival table - and building one therefore allocates nothing. The transport that
-/// must own the identities collects the iterator, which is the one copy the boundary pays.
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct NodeRequestColumns<'request> {
-    /// The generation's identity column, row order.
-    pub ids: &'request IdSlice<NodeRowId, ArchivedEntityId>,
-    /// The generation's row column, base order.
-    pub rows: &'request IdSlice<BasePosition, NodeRowId>,
-    /// The delivered rows, slot order, each in the domain that publishes it.
-    pub delivered: &'request IdSlice<NodeSlot, ViewRow>,
-    /// The view's arrival table, which the delivered arrival vessels address.
-    pub arrivals: &'request IdSlice<ArrivalIndex, ArrivalRow>,
-}
-
-impl<'doc> NodeRequestColumns<'doc> {
-    /// Returns the delivered count the details must cover.
-    #[inline]
-    #[must_use]
-    #[cfg(test)] // The serve tests size expected trailers from delivered columns.
-    pub(crate) const fn count(&self) -> usize {
-        self.delivered.len()
-    }
-
-    /// Iterates the delivered identities, in slot order.
-    ///
-    /// # Panics
-    ///
-    /// Iteration panics on a delivered row outside the identity column, which open's
-    /// cross-artifact validation rules out.
-    pub(crate) fn iter(&self) -> impl Iterator<Item = ArchivedEntityId> + 'doc {
-        let Self {
-            ids,
-            rows,
-            delivered,
-            arrivals,
-        } = *self;
-
-        delivered.iter().map(move |&vessel| match vessel {
-            ViewRow::Base(position) => ids[rows[position]],
-            ViewRow::Arrival(index) => arrivals[index].identity,
-        })
-    }
-}
-
-impl IntoIterator for &NodeRequestColumns<'_> {
-    type Item = ArchivedEntityId;
-
-    type IntoIter = impl Iterator<Item = ArchivedEntityId>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
 }
 
 /// Hydrated per-point tile details, aligned to the delivered order.

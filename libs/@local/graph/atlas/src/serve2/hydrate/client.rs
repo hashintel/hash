@@ -362,11 +362,9 @@ impl TypeUrlResolver for GraphDatabaseClient {
 
 impl LocateResolver for GraphDatabaseClient {
     fn resolve(&self, request: LocateRequest<'_>) -> Result<LocateResponse, Report<HydrateError>> {
-        let nodes: IdVec<NodeSlot, ArchivedEntityId> = request.nodes.iter().collect();
-
         self.runtime.block_on(async {
             let (nodes, links) = try_join!(
-                self.read_locate_nodes(&nodes, request.properties, request.actor),
+                self.read_locate_nodes(request.nodes, request.properties, request.actor),
                 self.read_locate_links(
                     request.links,
                     request.link_type_ids,
@@ -422,7 +420,7 @@ mod tests {
     use crate::{
         math::nz,
         serve2::hydrate::{
-            NodeRequestColumns, TypeUrlResolver,
+            TypeUrlResolver,
             locate::{LocateLinkResponse, LocateNodeResponse, LocateRequest, LocateResolver},
             ontology::OntologyResolver,
         },
@@ -504,12 +502,7 @@ mod tests {
                 &client,
                 LocateRequest {
                     actor: masking(11, false),
-                    nodes: NodeRequestColumns {
-                        ids: IdSlice::from_raw(&[]),
-                        rows: IdSlice::from_raw(&[]),
-                        delivered: IdSlice::from_raw(&[]),
-                        arrivals: IdSlice::from_raw(&[]),
-                    },
+                    nodes: IdSlice::from_raw(&[]),
                     links: IdSlice::from_raw(&[]),
                     properties: 10,
                     link_type_ids: 5,

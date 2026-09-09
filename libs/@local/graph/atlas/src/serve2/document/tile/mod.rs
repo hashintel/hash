@@ -7,9 +7,10 @@ use core::{error::Error, fmt};
 use error_stack::Report;
 use hashql_core::id::{Id as _, IdVec};
 
+use super::masks::TypeMasks;
 use crate::{
     dataset::auxiliary::{Icon, Label},
-    identity::{BasePosition, NodeRowId},
+    identity::NodeRowId,
     integrity::Sha256Digest,
     math::{Log2, Vec2},
     morton::{Depth, MortonCell, MortonTile, Zoom},
@@ -79,67 +80,6 @@ impl fmt::Display for TileDocumentError {
 
 impl Error for TileDocumentError {}
 
-/// Row-major masks with one LSB-first bit per requested type.
-struct TileMasks {
-    bytes: Vec<u8>,
-}
-
-impl TileMasks {
-    fn new(
-        Scene { world, epoch, .. }: Scene<'_>,
-        rows: impl IntoIterator<Item = NodeRowId, IntoIter: ExactSizeIterator>,
-        types: &OntologySelection,
-    ) -> Self {
-        let rows = rows.into_iter();
-        let stride = types.len().div_ceil(8);
-        let mut bytes = vec![
-            0;
-            rows.len()
-                .checked_mul(stride)
-                .expect("the mask column should fit usize")
-        ];
-        let mut positions: Vec<_> = rows
-            .enumerate()
-            .filter_map(|(slot, row)| {
-                world
-                    .layout
-                    .index
-                    .reverse(epoch, row)
-                    .map(|position| (slot, position))
-            })
-            .collect();
-        // Membership positions ascend in fitted order. Retain each row's delivery slot when
-        // sorting.
-        positions.sort_unstable_by_key(|&(_, position)| position);
-
-        if let Some(&(_, lowest)) = positions.first()
-            && let Some(&(_, highest)) = positions.last()
-        {
-            let end: BasePosition = highest
-                .next()
-                .expect("the fitted position bound should fit its domain");
-            let memberships = types.resolve(&world.ontology);
-            for (bit, membership) in memberships.iter().enumerate() {
-                let mut cursor = 0;
-                for position in membership.positions_in(lowest..end) {
-                    while cursor < positions.len() && positions[cursor].1 < position {
-                        cursor += 1;
-                    }
-                    if cursor == positions.len() {
-                        break;
-                    }
-                    let (slot, candidate) = positions[cursor];
-                    if candidate == position {
-                        bytes[slot * stride + (bit >> 3)] |= 1_u8 << (bit & 7);
-                    }
-                }
-            }
-        }
-
-        Self { bytes }
-    }
-}
-
 pub(crate) struct TileTrailer<'details> {
     labels: IdVec<TileSlot, &'details Label>,
     icons: IdVec<TileSlot, &'details Icon>,
@@ -183,7 +123,7 @@ pub(crate) struct TileDocument<'details> {
     runs: Vec<usize>,
     positions: IdVec<TileSlot, Vec2>,
     ids: IdVec<TileSlot, EncodedRowId<NodeRowId>>,
-    type_masks: Option<TileMasks>,
+    type_masks: Option<TypeMasks<TileSlot>>,
     global: Option<GlobalHead>,
     children: u8,
     trailer: Option<TileTrailer<'details>>,
@@ -242,7 +182,7 @@ impl<'details> TileDocument<'details> {
         };
         let count = delivered.rows.len();
         let type_masks = (!types.is_empty())
-            .then(|| TileMasks::new(scene, delivered.rows.iter().copied(), types));
+            .then(|| TypeMasks::new(scene, delivered.rows.iter().copied(), types));
         let global = (coordinate.z == Depth::MIN).then(|| GlobalHead {
             visible: delivery.root_delivered() as u64,
             bounds: schedule.bounds(),
