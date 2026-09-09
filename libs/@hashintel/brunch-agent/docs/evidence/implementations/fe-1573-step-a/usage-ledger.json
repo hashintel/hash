@@ -9,7 +9,8 @@
     "runId": "a5-real-provider-20260909-r1",
     "usd": 15,
     "calls": 20,
-    "status": "active",
+    "status": "released",
+    "releasedAt": "2026-09-09T02:36:38Z",
     "perCall": {
       "maxOutputTokens": 4096,
       "reservedUsd": 7
@@ -18,7 +19,7 @@
     "manifestSha256": "8a47d3335bf5cd032b5f25efab5a53973d185e2f2c81ce1e691dc61fd4937381",
     "codeCommit": "3f86c1461c2654b80b5eca0e7b5e65580146a9e0",
     "allocatedAt": "2026-09-09T02:24:25Z",
-    "reason": "Named synthetic-user current-A5 run only; independent final pins verified. Invocation awaits parent standalone-profile/TLS checks and explicit activation handoff. No other shared-ledger writer is authorized."
+    "reason": "Released before any provider invocation: macOS refused paid-profile to stricter-loopback profile nesting. No DNS, TLS, HTTP or model request occurred; original five call rows/totals are unchanged and no writer lock was acquired. Revised browser process topology and a new freeze require owner review before reallocation."
   },
   "totals": {
     "spentUsd": 0.09113535,
