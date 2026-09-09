@@ -210,6 +210,18 @@ describe("classicRunParameterValues", () => {
     expect(values).toContainEqual({ identifier: "night_mode", value: "0" });
   });
 
+  it("skips a ratio outside 0 and 1 so the previous value stands", () => {
+    // The form marks such a value; the run must not take what it marks.
+    const values = classicRunParameterValues(
+      stateWith({ mix: "1.5" }),
+      SCENARIO,
+    );
+    expect(values.find((value) => value.identifier === "mix")).toBeUndefined();
+    expect(
+      classicRunParameterValues(stateWith({ mix: "0.75" }), SCENARIO),
+    ).toContainEqual({ identifier: "mix", value: "0.75" });
+  });
+
   it("skips non-literal expressions so the previous value stands", () => {
     const values = classicRunParameterValues(
       stateWith({ initialAltitude: "42 +", night_mode: "maybe" }),
