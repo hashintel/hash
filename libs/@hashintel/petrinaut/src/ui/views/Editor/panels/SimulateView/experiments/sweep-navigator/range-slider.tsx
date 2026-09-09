@@ -4,20 +4,17 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 const THUMB_SIZE = 12;
 
+// The same plain thumb as the ds Slider's `plain` variant: one fixed size,
+// no swell while dragged.
 const thumbStyles = css({
   outline: "none",
   display: "block",
   width: `[${THUMB_SIZE}px]`,
   height: `[${THUMB_SIZE}px]`,
   borderRadius: "full",
-  border: "[1px solid rgba(255,255,255,0.45)]",
-  background:
-    "[linear-gradient(180deg, rgba(59,130,246,0.95) 0%, rgba(37,99,235,0.98) 100%)]",
-  boxShadow: "[0 1px 6px rgba(37,99,235,0.28)]",
-  transition: "[transform 0.15s ease]",
-  "&[data-dragging]": {
-    transform: "scale(1.3)",
-  },
+  border: "[1px solid rgba(255,255,255,0.6)]",
+  backgroundColor: "blue.s90",
+  boxShadow: "[0 1px 3px rgba(37,99,235,0.3)]",
   "&[data-focus]": {
     boxShadow: "[0 0 0 3px rgba(59,130,246,0.3)]",
   },
@@ -39,8 +36,9 @@ export interface RangeSliderProps {
 }
 
 /**
- * A two-thumb slider selecting an inclusive range. The thumbs may occupy the
- * same position, which callers treat as a single-point selection.
+ * A two-thumb slider selecting an inclusive range, drawn like the ds Slider's
+ * plain variant. The thumbs may occupy the same position, which callers treat
+ * as a single-point selection.
  */
 export const RangeSlider: React.FC<RangeSliderProps> = ({
   className,
@@ -66,6 +64,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
       step={step}
       value={[value[0], value[1]]}
       minStepsBetweenThumbs={0}
+      thumbSize={{ width: THUMB_SIZE, height: THUMB_SIZE }}
       disabled={disabled}
       aria-label={
         ariaLabel ? [`${ariaLabel} minimum`, `${ariaLabel} maximum`] : undefined
@@ -93,6 +92,7 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
           position: "relative",
           display: "flex",
           alignItems: "center",
+          width: "full",
           height: `[${THUMB_SIZE + 4}px]`,
         })}
       >
