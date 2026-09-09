@@ -1,0 +1,1754 @@
+[
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/TEST-usage-ledger.json",
+    "originalMode": "0o600",
+    "bytes": 4698,
+    "sha256": "30f7bc2efd78827f183e06f8374802ad9f8b1daaa3bce87568a72db38820377d",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/TEST-usage-ledger.json.gz",
+    "retainedSha256": "47c24c2894d68130868c548ba1708fe3e18d6ccb0a6c084006aa3684071f480d"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/attempt-ledger.md",
+    "originalMode": "0o644",
+    "bytes": 2506,
+    "sha256": "332380b145c15b462ca0da99f6edd136776815040518ba57280f7a5c56f0a3a3",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/attempt-ledger.md.gz",
+    "retainedSha256": "9f7f81eeb4c100020a43e25a6c5b28cc438d067b32f64fd04ebfaf0919122918"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/complete-first.json",
+    "originalMode": "0o644",
+    "bytes": 4137,
+    "sha256": "8ef4fe481afc57ebfce0c505a2bc4ec8fb1b8ace1fee4574fc8eb1dee6a2fe56",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/complete-first.json.gz",
+    "retainedSha256": "bf41a4cdf7bbf6b0e922e8da12df33a744b7f756f0840ffd69188045907b2f42"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/complete-initial-five-minute-first.json",
+    "originalMode": "0o644",
+    "bytes": 4166,
+    "sha256": "f37fd09d63ae22428f319c8a57e9d00a11c8300865ebeb1002b4e47ee3035deb",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/complete-initial-five-minute-first.json.gz",
+    "retainedSha256": "a388475f8d50ec2f67e8c6abeb32ec612325d6ee1764723717a32cdd45fae4af"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/complete-initial-mixed-first.json",
+    "originalMode": "0o644",
+    "bytes": 4193,
+    "sha256": "c1172ba78b990e1fb59253d3855fd7d02d739347dcba64023d78efeb5322cfbe",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/complete-initial-mixed-first.json.gz",
+    "retainedSha256": "e7222e41fa9bd5e890cc69f10bfbafcadc65f2675307d059562f45c23fa7790e"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/complete-initial-one-hour-first.json",
+    "originalMode": "0o644",
+    "bytes": 4164,
+    "sha256": "568de389a23fd18e4340f210f4269478ba920bead228756e3c3fa9e09b186d37",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/complete-initial-one-hour-first.json.gz",
+    "retainedSha256": "8ee77a4056d03f28d397530ef7ababe1120aae71895128450bb1bff0452bc271"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/complete-input-reclassification-first.json",
+    "originalMode": "0o644",
+    "bytes": 4071,
+    "sha256": "a0bba34ff81e38014e7715b699a9d10f2b90422892de211b62305e69282e2bae",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/complete-input-reclassification-first.json.gz",
+    "retainedSha256": "c37c9b6c1ca00fbf35eb74f438ed417f8201a943625e523c5b94a16eb2afd931"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/complete-late-five-minute-first.json",
+    "originalMode": "0o644",
+    "bytes": 4166,
+    "sha256": "ffbf38c1dd08bf4652b6424f519ef20365f24d1fcdbab8e02488b6616cfc04b0",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/complete-late-five-minute-first.json.gz",
+    "retainedSha256": "c77325c5e38b064690728c69e976929cc8bcd7f5856cf472189916a5bdff5983"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/complete-mixed-nullable-first.json",
+    "originalMode": "0o644",
+    "bytes": 4193,
+    "sha256": "519eb19ebc7e0d7276b9617c6f070f435dd5594a719a416796e68608f0da7941",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/complete-mixed-nullable-first.json.gz",
+    "retainedSha256": "9fcf6a5c75568ce1e65dd1bcc4f7a9fed8c58e2b83b9914851f22fc418988b09"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/complete-multiline-first.json",
+    "originalMode": "0o644",
+    "bytes": 4137,
+    "sha256": "f55105cb87ae69d798f0f7c99079b96d84b22f38f4f15ab360ad50f74a8f9c96",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/complete-multiline-first.json.gz",
+    "retainedSha256": "5828e4ef07d852fc4c7a37686894bad82d31ab099a2ea7fd8c6e31691b4b1c03"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/complete-supported-update-first.json",
+    "originalMode": "0o644",
+    "bytes": 4134,
+    "sha256": "644200d028e9c9c850e2859c5bc79cfff5ba9eab122a325dd43a2f07539716ec",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/complete-supported-update-first.json.gz",
+    "retainedSha256": "aa0315e0c2a2c8d092a6b9842a83d49ebde2909b2ac0635b9355dac3639a69e3"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/conversation.db",
+    "originalMode": "0o644",
+    "bytes": 958464,
+    "sha256": "04784d0e54823fad2ca89ea48a626aeead7e690416865aba0eb27af0f974fcf6",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/conversation.db.gz",
+    "retainedSha256": "19217fe2691304ce501e0606ae68825223c5c39a99bbc67508199cb922016831"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/created-missing-terminal-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "e0f84e3c0027c5f56b26b74bd101615e987ac9c7eabb62f2a59c19f22a3e397d",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/created-missing-terminal-first.json.gz",
+    "retainedSha256": "1f79c443ee96ad9f8ea4c44f57804d8a0b5df443d1a279a901bedfa393b376f3"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/fraction-output-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "42a8ba67e6f468cee6cd45a8e3bb43ec7191b861c05cf8605343f4e2a5a160a9",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/fraction-output-first.json.gz",
+    "retainedSha256": "2228a222f3b6bce2e9bfd4aee0ffbcfeb752cc46ffbd3246a9d71f32f5a51f87"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/incoming-retention-error-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "c80c80f6624f9deb2f5a693ec25cb721d41fd4adcafdb0cc4c79482900dd0a62",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/incoming-retention-error-first.json.gz",
+    "retainedSha256": "4311baa2371e9eb35c2f8db415c4e59d66eaf6c3e0f7077389669362690cc326"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/initial-partition-mismatch-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "cf07a2ada00433370c9d280bde4ade94600721a2c7c2252b2ba476400a4921c7",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/initial-partition-mismatch-first.json.gz",
+    "retainedSha256": "5e278f19faf1a26b450d170862958945f478cfe6b3b38504001457bd75cdd65f"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/input-loss-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "af5a668765354327a53af64059d4288cbfc34e59d3f05b29e7399851e0f954e9",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/input-loss-first.json.gz",
+    "retainedSha256": "2dd78abbb5db7d136766dac8aa6fe4678efcedab61d9dc6a5442971132400672"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/late-one-hour-decrease-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "5dbe6af59bdc3d899531e8fdc71fee529c451fbbe2d3dce90d71d53651125505",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/late-one-hour-decrease-first.json.gz",
+    "retainedSha256": "ead89fe0d652242a22946e2d7859dcaa8bcc71d264254bee3096ec371d7a78a0"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/late-one-hour-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "b41d8a3b5ee9abe25c1aae2a378f08232b2d5c25b1d3e27fd8a6eaa2b95f337b",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/late-one-hour-first.json.gz",
+    "retainedSha256": "8298c9aac28b8223e7d87008445cd201ffef16c4a7f179a8a88664b0ae67d3bc"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/late-partition-mismatch-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "b26a48fa6bb975b7f2ee56e3fc2c60caa4525d8fdb622c7282362b80248499f4",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/late-partition-mismatch-first.json.gz",
+    "retainedSha256": "8f9c5d3557b825e12b9cf06117af03bdff52c4cd860d0a43c20ecb3ebda01340"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/missing-output-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "1d105ff2eec5e277cc65d02c10a284d0025a1d1ac72b3639d1a8103a59c9f554",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/missing-output-first.json.gz",
+    "retainedSha256": "cd048b70169df8ca03193fce263d72162cdc2d71723095ba14670c32450588e8"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/missing-stop-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "9fc44ed031c2eb49a971e4d578e8910ed2e935af3e58bc5d858194e288c18ace",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/missing-stop-first.json.gz",
+    "retainedSha256": "a5a9af5e1e20039ecdddf67d542580a1bde8ff954449bdbfc8588da48b88b7cc"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/missing-terminal-usage-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "98d3dc10e285406585201132b0b4786e3fff58f4e4940f0ae5ae2b475acd48af",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/missing-terminal-usage-first.json.gz",
+    "retainedSha256": "521a1dcd2aecc9468ee69bad0888f3db026a17fd8494f7e56a890a29336f8b8c"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/negative-output-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "56c43f47c64b36e095b3360a919923a539b10e665c18b2fb379a3c12d0646c3a",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/negative-output-first.json.gz",
+    "retainedSha256": "748106e96bb2c9471149402797650b43d406e279f801218634029d26f09d9565"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/null-output-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "7e5d31ed5190c44deaddcc7769771dc0d0c78778ef95d75743bd73015afec713",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/null-output-first.json.gz",
+    "retainedSha256": "1642cebb742984e397f02c4e9a17e203257e6cf9243d6b4ba241cab36ef55cdd"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/outgoing-retention-error-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "3a8812589742e7d424e5452469cded3ae32d87afb5223f794d941c9ac84faeb1",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/outgoing-retention-error-first.json.gz",
+    "retainedSha256": "ca53e13bb69745167a4a8a2ffe7d47713de095bfa942c3387b12168dc90bcaa1"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/regressed-output-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "065245f11fa08750b05e8433d131c4aaa897dd2a6d40e334193c237df6fe3497",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/regressed-output-first.json.gz",
+    "retainedSha256": "a0bc4a7c1f7915a1b5fa873ef3cff4093d347bb01068bbfe82e99a51a0376e27"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/result.json",
+    "originalMode": "0o644",
+    "bytes": 106527,
+    "sha256": "1193942e87bb4afd718416bd6c33479e6879f7e6145cc4ed8b26f736cb202c34",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/result.json.gz",
+    "retainedSha256": "7f33d63d670e108b815f9356daa51d0339afd5ee63f865b01ef3624a82478fcc"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/retained-native.json",
+    "originalMode": "0o644",
+    "bytes": 35832,
+    "sha256": "6eec7871c1e13281826db73f7c8c581cae7090c10135e5b7aee6cb8358843752",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/retained-native.json.gz",
+    "retainedSha256": "57d6538607ca09d4cc94db6efb21eadf184c057e6702bf39c612b609671a73fc"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/TEST-a5-terminal-d4HRRr/string-output-first.json",
+    "originalMode": "0o644",
+    "bytes": 3595,
+    "sha256": "7e96106902ce0dd85953e10fe459f64dcc83bf5636046bb1f6b9e32daea71ae1",
+    "retained": "observations/TEST-a5-terminal-d4HRRr/string-output-first.json.gz",
+    "retainedSha256": "80b9d79f8d79236ed7aecfb637150422d91db44deb3dbc45b30e167d1509f2cb"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/authorized-jar-copy.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/authorized-jar-copy.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/authorized-jar-copy.log",
+    "originalMode": "0o644",
+    "bytes": 700,
+    "sha256": "fe7d58cedfca532fb0e0f14b6299b0cf7fddd505f0b7c24b5579f615d1b80e16",
+    "retained": "observations/authorized-jar-copy.log.gz",
+    "retainedSha256": "e84806be3eab96decc7c52c6fde7c20baa87a847a583396bbb158418f49c2023"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-7DePlQ/binding.json",
+    "originalMode": "0o600",
+    "bytes": 1153,
+    "sha256": "dcd0c56dd2771c49374795c919d8f627633763fb17125d0e667ea99466fadf0d",
+    "retained": "observations/brunch-a5-browser-7DePlQ/binding.json.gz",
+    "retainedSha256": "9b5001eebdbf9acf018dfc55d5935d429df14f69c1280c2da89b133dbbe54be2"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-7DePlQ/cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 562,
+    "sha256": "af96960000d357abcb36f90f9126018bb43a1dddea40f582de74807d5847ab8b",
+    "retained": "observations/brunch-a5-browser-7DePlQ/cleanup.json.gz",
+    "retainedSha256": "a67c70983f237a073f8a769fc464a94e52b2780951cc1f6b6739dfccca7cd9df"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-7DePlQ/session.json",
+    "originalMode": "0o600",
+    "bytes": 968,
+    "sha256": "000e6c3d9152e1076f02bb396d78193bf233caed71e6a55d9efbecbc950cc529",
+    "retained": "observations/brunch-a5-browser-7DePlQ/session.json.gz",
+    "retainedSha256": "ae8a8054a721c9e7ff8ab60c5b550ba35f900aaa07bd9ad0432cc70d25dff328"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-7DePlQ/stop",
+    "originalMode": "0o600",
+    "bytes": 10,
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "retained": "observations/brunch-a5-browser-7DePlQ/stop.gz",
+    "retainedSha256": "9266d768cf3c9e4404b8b7d97243fffc6cb63de659596a835a0f1548e4421a71"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-FV4XVK/TEST-close-called.json",
+    "originalMode": "0o600",
+    "bytes": 43,
+    "sha256": "f6954713bb2e904425cb147a01190bb9c882f9c9fd347ed676861b856013ad07",
+    "retained": "observations/brunch-a5-browser-FV4XVK/TEST-close-called.json.gz",
+    "retainedSha256": "64fc79de45f43e83a771e2ece00a970e445b9f344245bae404ba91206afcd697"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-FV4XVK/TEST-kill-called.json",
+    "originalMode": "0o600",
+    "bytes": 44,
+    "sha256": "50a31b4126ac2e811daf9807145a772f0b1f71f9913a5e1eca807390049b01c0",
+    "retained": "observations/brunch-a5-browser-FV4XVK/TEST-kill-called.json.gz",
+    "retainedSha256": "3dd27b393f7b75c18eb94b41140d9c436cc9e2725765f7dd3c3a754451744953"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-FV4XVK/TEST-shutdown-fault.json",
+    "originalMode": "0o600",
+    "bytes": 33,
+    "sha256": "ec2a9b0f59dce6398b427a2b7b830b35135701b8895c0f7a029376c7715e097e",
+    "retained": "observations/brunch-a5-browser-FV4XVK/TEST-shutdown-fault.json.gz",
+    "retainedSha256": "7b296e10f220bfd04c014f6dec615261d6dde6c7536ac8055316e83ba687201d"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-FV4XVK/cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 562,
+    "sha256": "956d61e45eb71559bd5e4d30df546ebd729974179596e876f615e9731ec834c7",
+    "retained": "observations/brunch-a5-browser-FV4XVK/cleanup.json.gz",
+    "retainedSha256": "365432359afac060f649007a90cdc5d3cdbc8674909f497251f14d5861180ea3"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-FV4XVK/session.json",
+    "originalMode": "0o600",
+    "bytes": 972,
+    "sha256": "058cda6aea77bdf6f3900761805f333e2a56c544339d9d4ed752429a5aafcfd6",
+    "retained": "observations/brunch-a5-browser-FV4XVK/session.json.gz",
+    "retainedSha256": "d21cbf72402f3b44117917c27671786c657bf5c5b520106ed6d681a3fce8ad87"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-FV4XVK/stop",
+    "originalMode": "0o600",
+    "bytes": 10,
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "retained": "observations/brunch-a5-browser-FV4XVK/stop.gz",
+    "retainedSha256": "9266d768cf3c9e4404b8b7d97243fffc6cb63de659596a835a0f1548e4421a71"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-JdyDwg/cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 562,
+    "sha256": "ac1f658b16d98fc8bae7d7f7eff9b37ec1e8791dad71ebe6c15b9d39882d44c9",
+    "retained": "observations/brunch-a5-browser-JdyDwg/cleanup.json.gz",
+    "retainedSha256": "695c6d31caee047a870a178dfc042f885ef1eb5a7de52b45aff0cb69752c94e1"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-JdyDwg/controller-claim.json",
+    "originalMode": "0o600",
+    "bytes": 86,
+    "sha256": "a1bb62ab1096aa1b49cf4b105fba618e5ed7e831dcd97c5365b45f5f72e02434",
+    "retained": "observations/brunch-a5-browser-JdyDwg/controller-claim.json.gz",
+    "retainedSha256": "13f772875d4c59372bbcdbd0b20c7ef4f15a0aa40e44766e912c2d90d5154e68"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-JdyDwg/driver.stderr",
+    "originalMode": "0o600",
+    "bytes": 169,
+    "sha256": "63cbd03cc06789594038f43f68d4b9d1a9ab5b0ee58ebc039ef1ed3a8a9f3195",
+    "retained": "observations/brunch-a5-browser-JdyDwg/driver.stderr.gz",
+    "retainedSha256": "deb3b848573f851a35d5284f0802b6d084dae6b6396b0972b0d0963274c00698"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-JdyDwg/driver.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/brunch-a5-browser-JdyDwg/driver.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-JdyDwg/owner.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/brunch-a5-browser-JdyDwg/owner.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-JdyDwg/owner.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/brunch-a5-browser-JdyDwg/owner.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-JdyDwg/session.json",
+    "originalMode": "0o600",
+    "bytes": 968,
+    "sha256": "f1e5cb1247acad70432e8204c59abf9faa90079a6c9e05f383812c74bf3bf9ae",
+    "retained": "observations/brunch-a5-browser-JdyDwg/session.json.gz",
+    "retainedSha256": "b5a64e57bc19404a60647fda2e5cdf8fa1843aa6021a82476e303b6e5f631270"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-JdyDwg/stop",
+    "originalMode": "0o600",
+    "bytes": 5,
+    "sha256": "a11c3d917a2149a4b548217038bc8f2dd2130a1966e0c7af5c4225d81f25a8c3",
+    "retained": "observations/brunch-a5-browser-JdyDwg/stop.gz",
+    "retainedSha256": "c26461e7110c7ae2489478b0a9f830a9c0b69fdf7d9c8d171b95813dddccc0ca"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-NFllG9/binding.json",
+    "originalMode": "0o600",
+    "bytes": 1153,
+    "sha256": "dca75bd951f1988083d64570eef8ee8e95ed362da9492c46111dc6482b93efe6",
+    "retained": "observations/brunch-a5-browser-NFllG9/binding.json.gz",
+    "retainedSha256": "6158fe0ef0da3f6325ef278c7bfd30417efbd04e904d8f7add56e1f455e191cb"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-NFllG9/cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 554,
+    "sha256": "7c579d380b60a63f5dd855312e5fa8050934d4fe0217736ae5897814e91c8b59",
+    "retained": "observations/brunch-a5-browser-NFllG9/cleanup.json.gz",
+    "retainedSha256": "eb4d64f81545d3d3666354f0210ac6f9eb276c0a62cd706495198e8d41d3a3a3"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-NFllG9/session.json",
+    "originalMode": "0o600",
+    "bytes": 968,
+    "sha256": "b18a14b538570521df319abdccb711ada024312165cc181a285ee55001008557",
+    "retained": "observations/brunch-a5-browser-NFllG9/session.json.gz",
+    "retainedSha256": "8a58faaa9152a06157633b68e1a2a66a92f5ec55baa4b0f2a55ba98d7da67c8f"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-NFllG9/stop",
+    "originalMode": "0o600",
+    "bytes": 10,
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "retained": "observations/brunch-a5-browser-NFllG9/stop.gz",
+    "retainedSha256": "9266d768cf3c9e4404b8b7d97243fffc6cb63de659596a835a0f1548e4421a71"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-as0T4T/TEST-close-called.json",
+    "originalMode": "0o600",
+    "bytes": 42,
+    "sha256": "92de9e5d65895d5223d136cc7de5adc40088fc63e92db8dff7f7ffdd6f3d9548",
+    "retained": "observations/brunch-a5-browser-as0T4T/TEST-close-called.json.gz",
+    "retainedSha256": "552b9be5f4c530875ca1a6492cf23f34f0ae2eaed5d5cb1877902d3eadaa6cfc"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-as0T4T/TEST-kill-called.json",
+    "originalMode": "0o600",
+    "bytes": 43,
+    "sha256": "49fa6d09095aec026d3c78f1420a09c6c662e7650578b1b2c841dd671fb3b4c0",
+    "retained": "observations/brunch-a5-browser-as0T4T/TEST-kill-called.json.gz",
+    "retainedSha256": "db94f00c8d20521f51cd802c2822e4dda4b5d879deaa09d4567baf0e62cd3553"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-as0T4T/TEST-shutdown-fault.json",
+    "originalMode": "0o600",
+    "bytes": 35,
+    "sha256": "bedee94e5e83af204dac0077eac514c2f786d5e1404fa7f7f0f0669cb332e5db",
+    "retained": "observations/brunch-a5-browser-as0T4T/TEST-shutdown-fault.json.gz",
+    "retainedSha256": "c2c5d3535d50632c53d5966cce11b3c2d355be29bf72774ba42f71dc5074560c"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-as0T4T/cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 1521,
+    "sha256": "441b843808755374d92181352c6e37c8cf0d71c37ce621ca15de086c89b15544",
+    "retained": "observations/brunch-a5-browser-as0T4T/cleanup.json.gz",
+    "retainedSha256": "d4f224e52ddd6da466929ef12d7dd1932b0a77b72a4a05cabc142aeaddc207ca"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-as0T4T/session.json",
+    "originalMode": "0o600",
+    "bytes": 974,
+    "sha256": "5bdbc9f4da18c51addbc8fb3ed51298b49e6ed0d01e7b8d1032e1b55f4d7d9b6",
+    "retained": "observations/brunch-a5-browser-as0T4T/session.json.gz",
+    "retainedSha256": "1c757a3939e2ffe63fead9af049579e72027e530259c034eb46d99f515204185"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-as0T4T/stop",
+    "originalMode": "0o600",
+    "bytes": 10,
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "retained": "observations/brunch-a5-browser-as0T4T/stop.gz",
+    "retainedSha256": "9266d768cf3c9e4404b8b7d97243fffc6cb63de659596a835a0f1548e4421a71"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-otjtHv/TEST-close-called.json",
+    "originalMode": "0o600",
+    "bytes": 43,
+    "sha256": "5a86adc9958ab5a28da5aa1cab95507814de3a649729d973464245b83273672e",
+    "retained": "observations/brunch-a5-browser-otjtHv/TEST-close-called.json.gz",
+    "retainedSha256": "0f4711ed914f78e646e8a4194d2bfd45c75df0afcb949c789f359e09926fa66e"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-otjtHv/TEST-kill-called.json",
+    "originalMode": "0o600",
+    "bytes": 43,
+    "sha256": "ceebc4f1aff20ccc950f2fbc541200c451fa45a2f8f6b6d2007ae77854732faf",
+    "retained": "observations/brunch-a5-browser-otjtHv/TEST-kill-called.json.gz",
+    "retainedSha256": "3f466d76880a27c1580ef50b3c583253e99cd2084acc090d6d3c71d9bdc6a45f"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-otjtHv/TEST-rescue-called.json",
+    "originalMode": "0o600",
+    "bytes": 21,
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "retained": "observations/brunch-a5-browser-otjtHv/TEST-rescue-called.json.gz",
+    "retainedSha256": "2f433a57578e4da2a0a097aed1efa1772786df0f7d31a453b43916371b629e08"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-otjtHv/TEST-shutdown-fault.json",
+    "originalMode": "0o600",
+    "bytes": 34,
+    "sha256": "4f8645e33b12e4687e22a31365af28c0c03e23950166bf83995985fbe0381cb3",
+    "retained": "observations/brunch-a5-browser-otjtHv/TEST-shutdown-fault.json.gz",
+    "retainedSha256": "fecf9e0e6c35cb3b9bd54508d37499c0103d2e8e84db46c57619cb39711a3e67"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-otjtHv/cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 2473,
+    "sha256": "77ca8136e1d4aa12a456fef546db4f64e4bac553f5ea244a922a3ecfe4a00a92",
+    "retained": "observations/brunch-a5-browser-otjtHv/cleanup.json.gz",
+    "retainedSha256": "4fd31f8a7719f989d03c54f9fd1a6da52f9f29b46b6fc15129794347cd944e84"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-otjtHv/owner-failure.json",
+    "originalMode": "0o600",
+    "bytes": 533,
+    "sha256": "8894c2c374acd48964a4eec6684d0ace95fd0c86a3d90125f44b5d04949f6454",
+    "retained": "observations/brunch-a5-browser-otjtHv/owner-failure.json.gz",
+    "retainedSha256": "b16fea42864941d3bbb72edb2e829356f1abac76ca113067695a6feffb2bf700"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-otjtHv/session.json",
+    "originalMode": "0o600",
+    "bytes": 973,
+    "sha256": "2d3f214a3239b3c24c908d4deb858de5b9f3e9179b57c203704693da5023e2f6",
+    "retained": "observations/brunch-a5-browser-otjtHv/session.json.gz",
+    "retainedSha256": "de55b7dfacc9a01f61461bc299019ce1e975b03842069ab7583694c7ccb6d6c6"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-otjtHv/stop",
+    "originalMode": "0o600",
+    "bytes": 10,
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "retained": "observations/brunch-a5-browser-otjtHv/stop.gz",
+    "retainedSha256": "9266d768cf3c9e4404b8b7d97243fffc6cb63de659596a835a0f1548e4421a71"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-sXD1eu/TEST-close-called.json",
+    "originalMode": "0o600",
+    "bytes": 43,
+    "sha256": "9e7389212df152e8cc2be5f6d969877add726a6e32fd46ff9017e93c348fcf4e",
+    "retained": "observations/brunch-a5-browser-sXD1eu/TEST-close-called.json.gz",
+    "retainedSha256": "d5ff399bdbf6d9e2ff90e5fc275060a8bf7a7f5338fb1c46e0781e1e15af6d8e"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-sXD1eu/TEST-kill-called.json",
+    "originalMode": "0o600",
+    "bytes": 43,
+    "sha256": "7d82c0e2eca0c694d9c2d48940362cfecf6aa7403d4529a35068e737f58c677d",
+    "retained": "observations/brunch-a5-browser-sXD1eu/TEST-kill-called.json.gz",
+    "retainedSha256": "565eebe93ab964fbe34884c3c011b50194a1c007c7c5064da45a626c2d6c335c"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-sXD1eu/TEST-rescue-called.json",
+    "originalMode": "0o600",
+    "bytes": 21,
+    "sha256": "c97c2aa8623c05a5e12c14e112580210d9053236d3b976390fe9bf91dc75fa4b",
+    "retained": "observations/brunch-a5-browser-sXD1eu/TEST-rescue-called.json.gz",
+    "retainedSha256": "2f433a57578e4da2a0a097aed1efa1772786df0f7d31a453b43916371b629e08"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-sXD1eu/TEST-shutdown-fault.json",
+    "originalMode": "0o600",
+    "bytes": 32,
+    "sha256": "9829741542be4ec6c84156cead3e5a5f7010bf1ef7a6eef81986fd1337caa703",
+    "retained": "observations/brunch-a5-browser-sXD1eu/TEST-shutdown-fault.json.gz",
+    "retainedSha256": "806324859ba1b75def3f11c30eb6fc0d7a373c24cc1cf68094c6e0651b4fcbef"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-sXD1eu/cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 1515,
+    "sha256": "8a0449c7d2a966b3f4afee0253515e41356f6f688652fbf8069fefdf4045de48",
+    "retained": "observations/brunch-a5-browser-sXD1eu/cleanup.json.gz",
+    "retainedSha256": "fa79cb36158c32e670d15bb39f6ec256ad2d163a4f825fd56827b5c357a08967"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-sXD1eu/owner-failure.json",
+    "originalMode": "0o600",
+    "bytes": 533,
+    "sha256": "8894c2c374acd48964a4eec6684d0ace95fd0c86a3d90125f44b5d04949f6454",
+    "retained": "observations/brunch-a5-browser-sXD1eu/owner-failure.json.gz",
+    "retainedSha256": "b16fea42864941d3bbb72edb2e829356f1abac76ca113067695a6feffb2bf700"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-sXD1eu/session.json",
+    "originalMode": "0o600",
+    "bytes": 971,
+    "sha256": "2bf01c581ad7821dc31658ba71cb79c9e527751ec6b00a47fe85dafbec6b34f4",
+    "retained": "observations/brunch-a5-browser-sXD1eu/session.json.gz",
+    "retainedSha256": "846a609461e31fd06a204368ffbb3f3bee118b19b3e7296a61f9de25dd4b210c"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-sXD1eu/stop",
+    "originalMode": "0o600",
+    "bytes": 10,
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "retained": "observations/brunch-a5-browser-sXD1eu/stop.gz",
+    "retainedSha256": "9266d768cf3c9e4404b8b7d97243fffc6cb63de659596a835a0f1548e4421a71"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-uHJ6PG/binding.json",
+    "originalMode": "0o600",
+    "bytes": 1153,
+    "sha256": "66168e73d8161a4689457340a93de9a1b21dfab25abfaf21ae605399d6c61774",
+    "retained": "observations/brunch-a5-browser-uHJ6PG/binding.json.gz",
+    "retainedSha256": "af2c1f65199da77c857144c745f7c0dbcc98037f0cffee78e8242aad4a8d5fba"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-uHJ6PG/cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 562,
+    "sha256": "2981eb2a59f1e34a736231b30eef5c55f6ba95d5437d204f2d896d9e652f88b5",
+    "retained": "observations/brunch-a5-browser-uHJ6PG/cleanup.json.gz",
+    "retainedSha256": "8c13b0f66ba129ee5c82cd407002845b102262c7d96ad1626200f88a8cb61a99"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-uHJ6PG/controller-claim.json",
+    "originalMode": "0o600",
+    "bytes": 86,
+    "sha256": "f94e35971099483049145e8fd4d3eeb8cb0dd332d30f7fec53b36eec04370ca9",
+    "retained": "observations/brunch-a5-browser-uHJ6PG/controller-claim.json.gz",
+    "retainedSha256": "c7a3f0d7afc755023316866b541becc935ef66cf543b5b5f1d3c646daf4ca786"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-uHJ6PG/session.json",
+    "originalMode": "0o600",
+    "bytes": 968,
+    "sha256": "ff0b85bbede05572282de2bf4e0f209b8d61e2ff0c5ac6ea86ec917c20c8554a",
+    "retained": "observations/brunch-a5-browser-uHJ6PG/session.json.gz",
+    "retainedSha256": "b0e41bd6c1630654f91b41272a87a548c4e770c0fc16e076e237f14fe139dcf9"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-uHJ6PG/stop",
+    "originalMode": "0o600",
+    "bytes": 10,
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "retained": "observations/brunch-a5-browser-uHJ6PG/stop.gz",
+    "retainedSha256": "9266d768cf3c9e4404b8b7d97243fffc6cb63de659596a835a0f1548e4421a71"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-vUaN3T/binding.json",
+    "originalMode": "0o600",
+    "bytes": 1153,
+    "sha256": "ccae6d553e8533252ebc4889311a70e88afc1ebc8944e740b47c74af1302eb3f",
+    "retained": "observations/brunch-a5-browser-vUaN3T/binding.json.gz",
+    "retainedSha256": "38c2349dcec4e87911603dee3ee2e354580b400c4afb0eb54bf9a46cdcff6a14"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-vUaN3T/cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 558,
+    "sha256": "2afdb3f9ea70c87efc20c4ec90547f8d60498c9e038bf67e8b172ec3750a5508",
+    "retained": "observations/brunch-a5-browser-vUaN3T/cleanup.json.gz",
+    "retainedSha256": "a0c989e95ca69348a5241335110cc5b98176be74a108bc17045a55244a08b6a3"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-vUaN3T/session.json",
+    "originalMode": "0o600",
+    "bytes": 881,
+    "sha256": "a3d4fac062ef7e87ce59222c55d9e23c4cc6a5e3d209f0b914a22cf1e4bdab00",
+    "retained": "observations/brunch-a5-browser-vUaN3T/session.json.gz",
+    "retainedSha256": "eac3b428ef602412f77ba55f638ddbf9b13729abe9f71c2cd9ec50bd3e944b64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/brunch-a5-browser-vUaN3T/stop",
+    "originalMode": "0o600",
+    "bytes": 10,
+    "sha256": "e36f2ad95891b8dc92b5e75d937c8cda66b5d6d3296212fa54ce240798704b1c",
+    "retained": "observations/brunch-a5-browser-vUaN3T/stop.gz",
+    "retainedSha256": "9266d768cf3c9e4404b8b7d97243fffc6cb63de659596a835a0f1548e4421a71"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/TEST-usage-ledger.json",
+    "originalMode": "0o600",
+    "bytes": 11124,
+    "sha256": "0c7276edda774db15680a6a1447fcdceb67dc5f4f4d35d5c303f986057034ddb",
+    "retained": "observations/dry5/TEST-usage-ledger.json.gz",
+    "retainedSha256": "35ff315e738f4970dfd1df12db4c9966cdb12de85215d8b1176e10d99ff3b3b9"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/accounting-observations.json",
+    "originalMode": "0o600",
+    "bytes": 10941,
+    "sha256": "87c2149cfa6a32228fd8f8fa679bd5bb781da1114abd88503ce36fb21e0c3885",
+    "retained": "observations/dry5/accounting-observations.json.gz",
+    "retainedSha256": "7d164ffd2747955cdfaa252a794a7f66bf323412259014f3f8005ef82c5a6bfe"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/attempt-ledger.md",
+    "originalMode": "0o644",
+    "bytes": 6571,
+    "sha256": "4330e35191ef7998a422b7136f37c9a3da4374f950522ba63f4df25bec84f2d0",
+    "retained": "observations/dry5/attempt-ledger.md.gz",
+    "retainedSha256": "7217b1f2f6fa5d9c24dfdb03b7908e95030b8dc332aff2efbde716fbafa83a38"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/browser-driver.stderr",
+    "originalMode": "0o600",
+    "bytes": 169,
+    "sha256": "63cbd03cc06789594038f43f68d4b9d1a9ab5b0ee58ebc039ef1ed3a8a9f3195",
+    "retained": "observations/dry5/browser-driver.stderr.gz",
+    "retainedSha256": "deb3b848573f851a35d5284f0802b6d084dae6b6396b0972b0d0963274c00698"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/browser-driver.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/dry5/browser-driver.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/browser-lifecycle.json",
+    "originalMode": "0o600",
+    "bytes": 1964,
+    "sha256": "0a3b7dd1b413e1437972fdb77a9228507366ba2368ba85ebf2a3bd2a504d9f32",
+    "retained": "observations/dry5/browser-lifecycle.json.gz",
+    "retainedSha256": "589e3aaceb43771cbce1aad1e05198b0865def3a1ab1c484450018ec9c25df69"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/browser-owner.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/dry5/browser-owner.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/browser-owner.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/dry5/browser-owner.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/browser-session-observation.json",
+    "originalMode": "0o600",
+    "bytes": 935,
+    "sha256": "907dc18fa7cceb58e52b19e1c353a54fdfd693748982c1ce6e96d928ff77cb5f",
+    "retained": "observations/dry5/browser-session-observation.json.gz",
+    "retainedSha256": "c0a0a80aaa1b3ab34a2f3f8437fb7604aa720074fedcf8498271f4bc551911de"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/conversation.db",
+    "originalMode": "0o644",
+    "bytes": 204800,
+    "sha256": "3a8cfa12c3acf477f0d7c064481513483b577a3a4d2dcb5de9a0cdce84fab451",
+    "retained": "observations/dry5/conversation.db.gz",
+    "retainedSha256": "50af354277367b47c8486281039df8cb94bbdb9287e1bf17290ccab893cce957"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/driver-result.json",
+    "originalMode": "0o600",
+    "bytes": 649,
+    "sha256": "5e93c291a43ad5c014f1a3e05e3877cebad4421e65b0f71e5bd541ef02c19c4b",
+    "retained": "observations/dry5/driver-result.json.gz",
+    "retainedSha256": "49e0c2a672e4fa9d6b2e99d902263a450bc8beafce401a18536811f8b768ed3d"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/final-browser-document.json",
+    "originalMode": "0o600",
+    "bytes": 2718,
+    "sha256": "1237274db4012f5f608d2edece388331bb1ea696c3936600f2196f90caf38ab5",
+    "retained": "observations/dry5/final-browser-document.json.gz",
+    "retainedSha256": "adc362c82c7e7f0544e25a34001c53b79c54d1920754987a05a537aa0d89666e"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/final-history.json",
+    "originalMode": "0o600",
+    "bytes": 17085,
+    "sha256": "ce267cbcfa41a6a66bf94e80af7a959aaffa5107de22fc3915a4f4970d3b39a3",
+    "retained": "observations/dry5/final-history.json.gz",
+    "retainedSha256": "ddefc04586e00028fea15f535551774c5c7d57277730e3993caee6df3907d7f8"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/history-0.json",
+    "originalMode": "0o600",
+    "bytes": 14660,
+    "sha256": "b7a322cd90364863cb5e21772f3e1b285f1999890eda73ffdaf0df9fe2f07115",
+    "retained": "observations/dry5/history-0.json.gz",
+    "retainedSha256": "b1c67a2658203e53699e2634ea8a569c98165f9d855edf7ca95ab4e527fb571f"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/history-1.json",
+    "originalMode": "0o600",
+    "bytes": 17085,
+    "sha256": "ce267cbcfa41a6a66bf94e80af7a959aaffa5107de22fc3915a4f4970d3b39a3",
+    "retained": "observations/dry5/history-1.json.gz",
+    "retainedSha256": "ddefc04586e00028fea15f535551774c5c7d57277730e3993caee6df3907d7f8"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/http-deliveries.json",
+    "originalMode": "0o600",
+    "bytes": 9095,
+    "sha256": "0a58d3a97723a7485bc46ff4b68c7e0e46b279d6c5a183df0c685a2820ed2e9b",
+    "retained": "observations/dry5/http-deliveries.json.gz",
+    "retainedSha256": "6a33e301adb0dc2a15026181ba4ce0ba545e542a36bc9c5cd6cf788c042b394e"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/initial-browser-document.json",
+    "originalMode": "0o600",
+    "bytes": 2463,
+    "sha256": "72c57d012055892892b9ea77f5c457daa9a0d462b188a64356b96653d6153813",
+    "retained": "observations/dry5/initial-browser-document.json.gz",
+    "retainedSha256": "532e51101d44aa7c704a35d67ae0796b9f697c3dbeee55cdcdd9378c88be490b"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/native-1-request.json",
+    "originalMode": "0o600",
+    "bytes": 15970,
+    "sha256": "3116eef71307df5f7dc62552d5ad812037adace6f4bd95d889a44e71bc1f77a2",
+    "retained": "observations/dry5/native-1-request.json.gz",
+    "retainedSha256": "1549b61963cb9661be873ae9c3a3e258b1a01357a65edf7b36c14803bd175aae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/native-2-request.json",
+    "originalMode": "0o600",
+    "bytes": 17403,
+    "sha256": "ac302db181c97ead438d7042509e66d55aa5aead41736c420357015310f74346",
+    "retained": "observations/dry5/native-2-request.json.gz",
+    "retainedSha256": "28a560042a169909c537d45c87e621a9ad42f475eeed8033a43f422a6ef361b0"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/native-3-request.json",
+    "originalMode": "0o600",
+    "bytes": 23720,
+    "sha256": "c521ba0d4a37f8d0abff09f80ce6288025067a364a997c6f689cde8533d2d2ec",
+    "retained": "observations/dry5/native-3-request.json.gz",
+    "retainedSha256": "c810f7bdd947f5578c21b1b1f4f35d81337ab7fc435f543aa2f9232277dfa327"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/native-4-request.json",
+    "originalMode": "0o600",
+    "bytes": 28420,
+    "sha256": "71061ee6db5d63855a0fd6af5c16c367b0bb42b3b1247833dad9277d3c82ee9f",
+    "retained": "observations/dry5/native-4-request.json.gz",
+    "retainedSha256": "0e37da83f486e8701c70c2c98f5e9602901d23ec82be429bcb98b82cbc8e4b2d"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/native-5-request.json",
+    "originalMode": "0o600",
+    "bytes": 29791,
+    "sha256": "176dc4f6c273896e8f21cb1a533b69a4486c86748d459302c043eb02c5911cc3",
+    "retained": "observations/dry5/native-5-request.json.gz",
+    "retainedSha256": "c9921eb789a0a626cdfd37aa7f395a98097b9eadda5dc7a0eb455ce5fcdb6219"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/pane-0.png",
+    "originalMode": "0o644",
+    "bytes": 202711,
+    "sha256": "9263a855e2a22207724dbb10ed5552ddc8051feafa67a47c7a5f64a6a442938c",
+    "retained": "observations/dry5/pane-0.png",
+    "retainedSha256": "9263a855e2a22207724dbb10ed5552ddc8051feafa67a47c7a5f64a6a442938c"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/pane-1.png",
+    "originalMode": "0o644",
+    "bytes": 239155,
+    "sha256": "af11e70d1bcf7d41af36e95bbe96c9070967de637d992a531d8663e5e66edb76",
+    "retained": "observations/dry5/pane-1.png",
+    "retainedSha256": "af11e70d1bcf7d41af36e95bbe96c9070967de637d992a531d8663e5e66edb76"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/preparation-receipt.json",
+    "originalMode": "0o600",
+    "bytes": 275,
+    "sha256": "d30c563799c1047c173083bdabce25b3f102a71ebb43bb849f55c0ffd17659bc",
+    "retained": "observations/dry5/preparation-receipt.json.gz",
+    "retainedSha256": "0ef5d7ee53cad93cbeffdadaa63f7f5c084df60f3f9aea2d381ff740f7e2f12c"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/retained-history-on-exit.json",
+    "originalMode": "0o600",
+    "bytes": 17085,
+    "sha256": "ce267cbcfa41a6a66bf94e80af7a959aaffa5107de22fc3915a4f4970d3b39a3",
+    "retained": "observations/dry5/retained-history-on-exit.json.gz",
+    "retainedSha256": "ddefc04586e00028fea15f535551774c5c7d57277730e3993caee6df3907d7f8"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/user-0-receipt.json",
+    "originalMode": "0o600",
+    "bytes": 275,
+    "sha256": "103b72f9c8284d0a530322c3e18d7d7bdaaef10ea31ba76e0e72bdf3bad0d05f",
+    "retained": "observations/dry5/user-0-receipt.json.gz",
+    "retainedSha256": "741a2320a808464aca1ec37654cc7dddfca2601aaf33f08eecd9d69353fb159f"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5/user-1-receipt.json",
+    "originalMode": "0o600",
+    "bytes": 275,
+    "sha256": "c8f34009d3f86ca32a717b36dca781d2bd7e2004af127bc36969c583e54e4f22",
+    "retained": "observations/dry5/user-1-receipt.json.gz",
+    "retainedSha256": "7ee39cefdb7e818a51acb758da1a170ab2beb3428ebbb2facb2eaf31c01a51b9"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/dry5.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/dry5.log",
+    "originalMode": "0o644",
+    "bytes": 64,
+    "sha256": "655262c8f1ab6cf7323c204f95e05fdd0cd267ffd8a6ad7694cb424081126a96",
+    "retained": "observations/dry5.log.gz",
+    "retainedSha256": "4690d99adcb5aa5ab4f31386781275f902d6d3384319532051cddece388f0599"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/final-verification.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/final-verification.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/final-verification.log",
+    "originalMode": "0o644",
+    "bytes": 1370,
+    "sha256": "61a15e968d203d3b21a2d043d3a793a21168e51b6511f43594ed1b05f3d5d8e3",
+    "retained": "observations/final-verification.log.gz",
+    "retainedSha256": "c5d3cc620363d4e743a5d4eabafa7e26367addbfef4d784a22f70a49d18516ac"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/install.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/install.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/install.log",
+    "originalMode": "0o644",
+    "bytes": 13104,
+    "sha256": "d316b616f609f8b8e2e3fd799964a048db5f04ad2735f5125b6bad86f99fe371",
+    "retained": "observations/install.log.gz",
+    "retainedSha256": "77f9574b2ed67053f5286ab78f194e1155a466174a07eafb213f1fd80462a20a"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/audit.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/attach-failure/audit.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/audit.stdout",
+    "originalMode": "0o600",
+    "bytes": 34,
+    "sha256": "86e6c86b8148f3a06d5c85657c50fe8775f6ec74d5b65fc02e4d82ced753258c",
+    "retained": "observations/lifecycle/attach-failure/audit.stdout.gz",
+    "retainedSha256": "eea0cdbd95cb00fbef33c913c84529246317cc85399fbd020e29d67943960018"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/driver-output/TEST-usage-ledger.json",
+    "originalMode": "0o600",
+    "bytes": 499,
+    "sha256": "9f97f2a82684c17a538f07f0cd3a942b436620a27f9aae1f1192d2d4e40cebae",
+    "retained": "observations/lifecycle/attach-failure/driver-output/TEST-usage-ledger.json.gz",
+    "retainedSha256": "f5edb0b0fac42ae83d20653df1d0d7c6d081da39f5bdc760aa6e714459739737"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/driver-output/accounting-observations.json",
+    "originalMode": "0o600",
+    "bytes": 316,
+    "sha256": "b6debc8f0a5a69e8a9c3f6d4776d67de7105108d76a84a01365e1132f4f7267f",
+    "retained": "observations/lifecycle/attach-failure/driver-output/accounting-observations.json.gz",
+    "retainedSha256": "9921ccf7725dc1d64967d96b6a8823bea74d93414203f67acb9bdd7d02e4e265"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/driver-output/attempt-ledger.md",
+    "originalMode": "0o644",
+    "bytes": 36,
+    "sha256": "300a3cfe4d6cf476e69e5bc0d844f73c6576d287ece0806c167c3e5a326eec7f",
+    "retained": "observations/lifecycle/attach-failure/driver-output/attempt-ledger.md.gz",
+    "retainedSha256": "a06c8c83c938438df9383b2f7b2943ba10a6076195dad62c3e081ded6cd3c5bd"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/driver-output/browser-session-observation.json",
+    "originalMode": "0o600",
+    "bytes": 935,
+    "sha256": "146bfb6eee7095836b06d2a8f9ea85c048109e52ba1c72da6a63097e229399d9",
+    "retained": "observations/lifecycle/attach-failure/driver-output/browser-session-observation.json.gz",
+    "retainedSha256": "fc87ed755e6d59141994936b33a30d8a6be3ae0953de276ea9fec9b307a6c6ef"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/driver-output/driver-result.json",
+    "originalMode": "0o600",
+    "bytes": 642,
+    "sha256": "d3469b53c7efbc11f7e930e02de65c212b7bd651a6e91217f1dee089daae9c69",
+    "retained": "observations/lifecycle/attach-failure/driver-output/driver-result.json.gz",
+    "retainedSha256": "391aff20e587260c56ce4acecdaa4fa8352f0a127334545d94bae779691fc1d9"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/driver-output/http-deliveries.json",
+    "originalMode": "0o600",
+    "bytes": 3,
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "retained": "observations/lifecycle/attach-failure/driver-output/http-deliveries.json.gz",
+    "retainedSha256": "abc129be8d26e8d4afe9ce45f9d5a73c8ed9aa62810ca24ee789fe4581dc4a80"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/driver.stderr",
+    "originalMode": "0o600",
+    "bytes": 420,
+    "sha256": "03ec1b9e1b880444a7bcf6b42fd8acc1f9a4bbfbf71ee111c0c98f5d05779307",
+    "retained": "observations/lifecycle/attach-failure/driver.stderr.gz",
+    "retainedSha256": "12001e2d331be815c482c4fe56dc3bf57c98dbdf636e9dd421afacd2119a95af"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/driver.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/attach-failure/driver.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/owner.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/attach-failure/owner.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/owner.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/attach-failure/owner.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/attach-failure/result.json",
+    "originalMode": "0o600",
+    "bytes": 977,
+    "sha256": "d2d1360aee3e64127d2817405924d08881176e35074cc504581d396c9ba736c7",
+    "retained": "observations/lifecycle/attach-failure/result.json.gz",
+    "retainedSha256": "f4eed33b3c5a76936b4d665c6c7fcce629a19e13bf3c54a1e896f15dd544c740"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/foreign-execution/audit.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/foreign-execution/audit.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/foreign-execution/audit.stdout",
+    "originalMode": "0o600",
+    "bytes": 34,
+    "sha256": "86e6c86b8148f3a06d5c85657c50fe8775f6ec74d5b65fc02e4d82ced753258c",
+    "retained": "observations/lifecycle/foreign-execution/audit.stdout.gz",
+    "retainedSha256": "eea0cdbd95cb00fbef33c913c84529246317cc85399fbd020e29d67943960018"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/foreign-execution/driver-output/TEST-usage-ledger.json",
+    "originalMode": "0o600",
+    "bytes": 499,
+    "sha256": "9f97f2a82684c17a538f07f0cd3a942b436620a27f9aae1f1192d2d4e40cebae",
+    "retained": "observations/lifecycle/foreign-execution/driver-output/TEST-usage-ledger.json.gz",
+    "retainedSha256": "f5edb0b0fac42ae83d20653df1d0d7c6d081da39f5bdc760aa6e714459739737"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/foreign-execution/driver-output/attempt-ledger.md",
+    "originalMode": "0o644",
+    "bytes": 36,
+    "sha256": "300a3cfe4d6cf476e69e5bc0d844f73c6576d287ece0806c167c3e5a326eec7f",
+    "retained": "observations/lifecycle/foreign-execution/driver-output/attempt-ledger.md.gz",
+    "retainedSha256": "a06c8c83c938438df9383b2f7b2943ba10a6076195dad62c3e081ded6cd3c5bd"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/foreign-execution/driver.stderr",
+    "originalMode": "0o600",
+    "bytes": 838,
+    "sha256": "d669b5e9d8a87f8c8aaee1e6b4acf2fcfaf7047f1357bdb5d0327ccb462dfab9",
+    "retained": "observations/lifecycle/foreign-execution/driver.stderr.gz",
+    "retainedSha256": "386589a310c5a3440700e8e559f2f6f6447876bc1a481eecd8caf0ea0218de8a"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/foreign-execution/driver.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/foreign-execution/driver.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/foreign-execution/owner.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/foreign-execution/owner.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/foreign-execution/owner.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/foreign-execution/owner.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/foreign-execution/result.json",
+    "originalMode": "0o600",
+    "bytes": 980,
+    "sha256": "09c07a90a694bba5c13c33f18180322ea46a9998ea6dc392dae5d76e2926e4ba",
+    "retained": "observations/lifecycle/foreign-execution/result.json.gz",
+    "retainedSha256": "ae5f8c3f3adf5e52afaf2c236287e67551ad819c612b93fa21cb3cf33be51e2c"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/interrupt/audit.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/interrupt/audit.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/interrupt/audit.stdout",
+    "originalMode": "0o600",
+    "bytes": 34,
+    "sha256": "86e6c86b8148f3a06d5c85657c50fe8775f6ec74d5b65fc02e4d82ced753258c",
+    "retained": "observations/lifecycle/interrupt/audit.stdout.gz",
+    "retainedSha256": "eea0cdbd95cb00fbef33c913c84529246317cc85399fbd020e29d67943960018"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/interrupt/owner.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/interrupt/owner.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/interrupt/owner.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/interrupt/owner.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/interrupt/result.json",
+    "originalMode": "0o600",
+    "bytes": 923,
+    "sha256": "22a03230a3f4906c1bb0e06b933238eda6569fa621e9506a9734c5ba8034e496",
+    "retained": "observations/lifecycle/interrupt/result.json.gz",
+    "retainedSha256": "0e615a113103ea2bd4d5b2a9fac58dc2baf4a0891609ea29aea9304dfd7ebb86"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/launcher-interrupt/driver-output/browser-lifecycle.json",
+    "originalMode": "0o600",
+    "bytes": 1927,
+    "sha256": "fefaecd1dd35bfa1e219aa75a2d4e8ee80cf5aeaa68dd94f56fe0c992a6ec111",
+    "retained": "observations/lifecycle/launcher-interrupt/driver-output/browser-lifecycle.json.gz",
+    "retainedSha256": "8251a0983e570ebf0ca98f6483a2edc05dbdeabedf459463c6e9b5b94337ada3"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/launcher-interrupt/driver-output/browser-orchestration-failure.json",
+    "originalMode": "0o600",
+    "bytes": 1203,
+    "sha256": "20f69f151bf65e8a7ca30baf78132c37ba3fb2bcb56acd9502ad1e3ef7e002e9",
+    "retained": "observations/lifecycle/launcher-interrupt/driver-output/browser-orchestration-failure.json.gz",
+    "retainedSha256": "d4d2c41a907a3d9712bc16025537014dbd96527ac164dee91e5cea7b2f49e800"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/launcher-interrupt/driver-output/browser-owner.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/launcher-interrupt/driver-output/browser-owner.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/launcher-interrupt/driver-output/browser-owner.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/launcher-interrupt/driver-output/browser-owner.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/launcher-interrupt/launcher.stderr",
+    "originalMode": "0o600",
+    "bytes": 87,
+    "sha256": "3400789fd79160b165a1bbee1ef850c9572703849796d1955e09746090e88a34",
+    "retained": "observations/lifecycle/launcher-interrupt/launcher.stderr.gz",
+    "retainedSha256": "54d2f7f6e86cbdf1effdcded1582101ea8062a62b72204e6abd06d4298ca3ccb"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/launcher-interrupt/launcher.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/launcher-interrupt/launcher.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-13xNtQ/cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 595,
+    "sha256": "5f131c19d0461f54f06f5b02647795b4abc97de7242a2c861ccd376aad70586a",
+    "retained": "observations/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-13xNtQ/cleanup.json.gz",
+    "retainedSha256": "0058285f42ec713476ccc200ecfafdbaae4b6723966afce7284cab2d9d15fc32"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-13xNtQ/owner.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-13xNtQ/owner.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-13xNtQ/owner.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-13xNtQ/owner.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-13xNtQ/session.json",
+    "originalMode": "0o600",
+    "bytes": 1001,
+    "sha256": "f94bc617fb14843c9e7275191726b47710841597522dcd3ac89e6a8a45cede4a",
+    "retained": "observations/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-13xNtQ/session.json.gz",
+    "retainedSha256": "bc5ea9f3e0b57712355228da357165b3d015dd8a6cd3489b5044672e223b2e16"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-13xNtQ/stop",
+    "originalMode": "0o600",
+    "bytes": 5,
+    "sha256": "a11c3d917a2149a4b548217038bc8f2dd2130a1966e0c7af5c4225d81f25a8c3",
+    "retained": "observations/lifecycle/launcher-interrupt/tmp/brunch-a5-browser-13xNtQ/stop.gz",
+    "retainedSha256": "c26461e7110c7ae2489478b0a9f830a9c0b69fdf7d9c8d171b95813dddccc0ca"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/lease-expired/audit.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/lease-expired/audit.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/lease-expired/audit.stdout",
+    "originalMode": "0o600",
+    "bytes": 34,
+    "sha256": "86e6c86b8148f3a06d5c85657c50fe8775f6ec74d5b65fc02e4d82ced753258c",
+    "retained": "observations/lifecycle/lease-expired/audit.stdout.gz",
+    "retainedSha256": "eea0cdbd95cb00fbef33c913c84529246317cc85399fbd020e29d67943960018"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/lease-expired/owner.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/lease-expired/owner.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/lease-expired/owner.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/lifecycle/lease-expired/owner.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/lease-expired/result.json",
+    "originalMode": "0o600",
+    "bytes": 931,
+    "sha256": "d4ffe71df91eeba97eef1e79646e36c793f4f25fae8e82e9d04986833279f62c",
+    "retained": "observations/lifecycle/lease-expired/result.json.gz",
+    "retainedSha256": "e79bdf467a921e166a5913d4aa35b346bef3f324c7f6d9a2e24853de62ae1ba2"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle/result.json",
+    "originalMode": "0o600",
+    "bytes": 6572,
+    "sha256": "aa9c94d6b682576b4d83e7de2ec33d852e07b184b8dee7ad8c5e21c8f1e72789",
+    "retained": "observations/lifecycle/result.json.gz",
+    "retainedSha256": "a0622d748ad44999e4014b4faa11f2d81d19de0b904c697a49f7da9214895b18"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/lifecycle.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/lifecycle.log",
+    "originalMode": "0o644",
+    "bytes": 95,
+    "sha256": "b68b8e1466f1143c0c03aa7d4f59b318ac3fab2c1551fce76652fd399121ae19",
+    "retained": "observations/lifecycle.log.gz",
+    "retainedSha256": "ce26360d69a3a1b0b32348841940e77e5f8906f0e10fcf936b6fa5da233667c8"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/network-guard.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/network-guard.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/network-guard.log",
+    "originalMode": "0o644",
+    "bytes": 578,
+    "sha256": "271d807dcdbbc518e60403cea832908ec409759f9e603586673d9a3eae6ebc06",
+    "retained": "observations/network-guard.log.gz",
+    "retainedSha256": "819ca6758725d984050f90249079ce03fd86a318e074750051c1b3b5303307ee"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/portfolio.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/portfolio.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/portfolio.log",
+    "originalMode": "0o644",
+    "bytes": 219590,
+    "sha256": "0e8dc762ac380f12dd1be0be2e093e02fc34c7ca8e2ac2aed4cd883424f76249",
+    "retained": "observations/portfolio.log.gz",
+    "retainedSha256": "67e04363e921191a3ea9a7f4a7e97804e0690dd42c370234c12cbc55da276a50"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/preflight.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/preflight.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/preflight.log",
+    "originalMode": "0o644",
+    "bytes": 209,
+    "sha256": "47f79d5ead6497cb0ac44e035dee27049edf5cd0f00723513063dc545bdeac5a",
+    "retained": "observations/preflight.log.gz",
+    "retainedSha256": "058111483944834c6997a8c6fcaa55480f19c04af6178a60f9e65ddc6a584811"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/protected-base-check.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/protected-base-check.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/protected-base-check.log",
+    "originalMode": "0o644",
+    "bytes": 701,
+    "sha256": "4937fed7002f94ff4ab6feb261d89b4534725e410e4352fee65269e97f9e1b14",
+    "retained": "observations/protected-base-check.log.gz",
+    "retainedSha256": "9f2091668f77e50ce2f7a44af484e0a4e583b442c49eed4fa70c36127e95a021"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/resource-audit.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/resource-audit.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/resource-audit.json",
+    "originalMode": "0o644",
+    "bytes": 5024,
+    "sha256": "be9f6dd51a28cc674b020886124e0e595af7f751eb6155230e72488437b81625",
+    "retained": "observations/resource-audit.json.gz",
+    "retainedSha256": "5336f64497f5d87fead0fef3d7ee4bafef107a0b5ff7bd0cf15c12a179644d97"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/resource-audit.log",
+    "originalMode": "0o644",
+    "bytes": 1119,
+    "sha256": "b515481174b3e25dd9be7fd222ab445df45dd13b31266e526783f25addcc715e",
+    "retained": "observations/resource-audit.log.gz",
+    "retainedSha256": "5f5eeb172cc336299344cad7354191f96d20d2e40cb8d9568e0553e6f13701fd"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-rejection/endpoint-after-rescue.json",
+    "originalMode": "0o600",
+    "bytes": 24,
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "retained": "observations/shutdown/close-rejection/endpoint-after-rescue.json.gz",
+    "retainedSha256": "5166c0370a95ecf3fb0ffcecd4baaca0b3423dc55e71b08582bdee50e912eee3"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-rejection/endpoint-after-rescue.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/close-rejection/endpoint-after-rescue.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-rejection/endpoint-before-rescue.json",
+    "originalMode": "0o600",
+    "bytes": 24,
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "retained": "observations/shutdown/close-rejection/endpoint-before-rescue.json.gz",
+    "retainedSha256": "5166c0370a95ecf3fb0ffcecd4baaca0b3423dc55e71b08582bdee50e912eee3"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-rejection/endpoint-before-rescue.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/close-rejection/endpoint-before-rescue.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-rejection/identity.json",
+    "originalMode": "0o600",
+    "bytes": 1195,
+    "sha256": "390b21f94fa759a6a2f15c84a2a216fd4c680838aa65416649e9b942345f930a",
+    "retained": "observations/shutdown/close-rejection/identity.json.gz",
+    "retainedSha256": "0a4b435d92ba11d31df7a79901dd5b90f9efd37af21e9149c97e5a7481d77c14"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-rejection/owner.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/close-rejection/owner.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-rejection/owner.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/close-rejection/owner.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-rejection/production-observation.json",
+    "originalMode": "0o600",
+    "bytes": 2030,
+    "sha256": "8fb8fb1e32043b313de580a5b19ad6d258ca9bdc730ef90041df71f1ad4652c2",
+    "retained": "observations/shutdown/close-rejection/production-observation.json.gz",
+    "retainedSha256": "da4c88a73a65bc5f85a3fae0f595448ef7a4a37bcd9fa6ef6b78f32521eba933"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-rejection/test-cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 198,
+    "sha256": "069f70d20166246888e08cb63ac61c64836be1cb36971b6d94feb6bc3a867c68",
+    "retained": "observations/shutdown/close-rejection/test-cleanup.json.gz",
+    "retainedSha256": "d52295e2b5a6948649ab58960fcb80432641e12ca89cf7d10a839e5619fb3f75"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-timeout/endpoint-after-rescue.json",
+    "originalMode": "0o600",
+    "bytes": 24,
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "retained": "observations/shutdown/close-timeout/endpoint-after-rescue.json.gz",
+    "retainedSha256": "5166c0370a95ecf3fb0ffcecd4baaca0b3423dc55e71b08582bdee50e912eee3"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-timeout/endpoint-after-rescue.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/close-timeout/endpoint-after-rescue.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-timeout/endpoint-before-rescue.json",
+    "originalMode": "0o600",
+    "bytes": 24,
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "retained": "observations/shutdown/close-timeout/endpoint-before-rescue.json.gz",
+    "retainedSha256": "5166c0370a95ecf3fb0ffcecd4baaca0b3423dc55e71b08582bdee50e912eee3"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-timeout/endpoint-before-rescue.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/close-timeout/endpoint-before-rescue.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-timeout/identity.json",
+    "originalMode": "0o600",
+    "bytes": 1193,
+    "sha256": "a5f111fcbade066d38e6448dc689c737e130602d6806f21c47244a83dde8e4a5",
+    "retained": "observations/shutdown/close-timeout/identity.json.gz",
+    "retainedSha256": "e7bceb21b1acac9a17f83935fe621810e95aace976500755bc2a587a114c45e0"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-timeout/owner.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/close-timeout/owner.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-timeout/owner.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/close-timeout/owner.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-timeout/production-observation.json",
+    "originalMode": "0o600",
+    "bytes": 1053,
+    "sha256": "8dadfaeb29142c914a106479dbc71938a57c42eca364c6276e18521c3ef198bd",
+    "retained": "observations/shutdown/close-timeout/production-observation.json.gz",
+    "retainedSha256": "1df7608cad7408de39942649bae9e9ac08ffe9b7b89de5ff8e9979f9225421c0"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/close-timeout/test-cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 198,
+    "sha256": "069f70d20166246888e08cb63ac61c64836be1cb36971b6d94feb6bc3a867c68",
+    "retained": "observations/shutdown/close-timeout/test-cleanup.json.gz",
+    "retainedSha256": "d52295e2b5a6948649ab58960fcb80432641e12ca89cf7d10a839e5619fb3f75"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-rejection/endpoint-after-rescue.json",
+    "originalMode": "0o600",
+    "bytes": 24,
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "retained": "observations/shutdown/kill-rejection/endpoint-after-rescue.json.gz",
+    "retainedSha256": "5166c0370a95ecf3fb0ffcecd4baaca0b3423dc55e71b08582bdee50e912eee3"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-rejection/endpoint-after-rescue.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/kill-rejection/endpoint-after-rescue.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-rejection/endpoint-before-rescue.json",
+    "originalMode": "0o600",
+    "bytes": 21,
+    "sha256": "32e4fdf646579b329a08aa75753990ed36a92d3ef58d8ace5b2312efb001719f",
+    "retained": "observations/shutdown/kill-rejection/endpoint-before-rescue.json.gz",
+    "retainedSha256": "eff00a73031c9c0716fb06c371f7cd73c383e6d1f3e3f47828e506aaa89f398f"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-rejection/endpoint-before-rescue.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/kill-rejection/endpoint-before-rescue.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-rejection/identity.json",
+    "originalMode": "0o600",
+    "bytes": 1194,
+    "sha256": "d633253885cf40db5488ce67780192e52a34b83f190a39ead52e82ae3ed0be67",
+    "retained": "observations/shutdown/kill-rejection/identity.json.gz",
+    "retainedSha256": "a2d7d781ecde1c27d09b45cb3f70f42fbf3b49f3947e5591efb6fa37d2cd42af"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-rejection/owner.stderr",
+    "originalMode": "0o600",
+    "bytes": 61,
+    "sha256": "8c680a6253abf260fb8a94e09587b46a9644a0a948a08d9a8a1337e35ce6ef5a",
+    "retained": "observations/shutdown/kill-rejection/owner.stderr.gz",
+    "retainedSha256": "f6231e0081c0df43005f8703a25c79e41e99da4ca14de74cff458041816ae436"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-rejection/owner.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/kill-rejection/owner.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-rejection/production-observation.json",
+    "originalMode": "0o600",
+    "bytes": 3486,
+    "sha256": "7303035adbcc802e73afbb69cd0f25407b489a6571aa8e9bb1fb9914d2db79b8",
+    "retained": "observations/shutdown/kill-rejection/production-observation.json.gz",
+    "retainedSha256": "06238834a60294abd4b2c138308118556743991e04cbf71db658f25b8f7b4bff"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-rejection/test-cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 197,
+    "sha256": "0e41791cdf1f5f9eb9fd5ab5f025e6c9f4656e5e432a7d1aba09e7ee320cad81",
+    "retained": "observations/shutdown/kill-rejection/test-cleanup.json.gz",
+    "retainedSha256": "6bc07572871550d39c1cce953a14540226ae9a57baf9a29af66e5da5f75b32d1"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-timeout/endpoint-after-rescue.json",
+    "originalMode": "0o600",
+    "bytes": 24,
+    "sha256": "413efdaa37f1ed86aacb967b3269dd4fefaff245dd126b333cc0b7dc3a14e745",
+    "retained": "observations/shutdown/kill-timeout/endpoint-after-rescue.json.gz",
+    "retainedSha256": "5166c0370a95ecf3fb0ffcecd4baaca0b3423dc55e71b08582bdee50e912eee3"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-timeout/endpoint-after-rescue.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/kill-timeout/endpoint-after-rescue.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-timeout/endpoint-before-rescue.json",
+    "originalMode": "0o600",
+    "bytes": 21,
+    "sha256": "32e4fdf646579b329a08aa75753990ed36a92d3ef58d8ace5b2312efb001719f",
+    "retained": "observations/shutdown/kill-timeout/endpoint-before-rescue.json.gz",
+    "retainedSha256": "eff00a73031c9c0716fb06c371f7cd73c383e6d1f3e3f47828e506aaa89f398f"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-timeout/endpoint-before-rescue.stderr",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/kill-timeout/endpoint-before-rescue.stderr.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-timeout/identity.json",
+    "originalMode": "0o600",
+    "bytes": 1190,
+    "sha256": "35a4b2a04d1e3a41d980e7622590d025abb80a17299abfc1ccb83c54a75f98bf",
+    "retained": "observations/shutdown/kill-timeout/identity.json.gz",
+    "retainedSha256": "d193ea15d52009178b2475145dff73c720ee45d71ed53a8461889d6516309c84"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-timeout/owner.stderr",
+    "originalMode": "0o600",
+    "bytes": 61,
+    "sha256": "8c680a6253abf260fb8a94e09587b46a9644a0a948a08d9a8a1337e35ce6ef5a",
+    "retained": "observations/shutdown/kill-timeout/owner.stderr.gz",
+    "retainedSha256": "f6231e0081c0df43005f8703a25c79e41e99da4ca14de74cff458041816ae436"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-timeout/owner.stdout",
+    "originalMode": "0o600",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained": "observations/shutdown/kill-timeout/owner.stdout.gz",
+    "retainedSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-timeout/production-observation.json",
+    "originalMode": "0o600",
+    "bytes": 2514,
+    "sha256": "519e0d76844e8352afc30b758cc7ff4119df0ca43e9aa9d49c688a741f9d735a",
+    "retained": "observations/shutdown/kill-timeout/production-observation.json.gz",
+    "retainedSha256": "f4bea682bf186cba2ee2330d969d1f756610203f0d4693f322632bbdeb897993"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/kill-timeout/test-cleanup.json",
+    "originalMode": "0o600",
+    "bytes": 197,
+    "sha256": "0e41791cdf1f5f9eb9fd5ab5f025e6c9f4656e5e432a7d1aba09e7ee320cad81",
+    "retained": "observations/shutdown/kill-timeout/test-cleanup.json.gz",
+    "retainedSha256": "6bc07572871550d39c1cce953a14540226ae9a57baf9a29af66e5da5f75b32d1"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown/result.json",
+    "originalMode": "0o600",
+    "bytes": 9852,
+    "sha256": "821d7ab481c1161a6f7a882e2f8a7c79d354c7af62a05bfed6a443a6fbf00a28",
+    "retained": "observations/shutdown/result.json.gz",
+    "retainedSha256": "262228a34cc1d6fe1014cc1dacc2fe56b98611ba853b15d99bf46f0547ed0a44"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/shutdown.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/shutdown.log",
+    "originalMode": "0o644",
+    "bytes": 90,
+    "sha256": "9420baebae94b9bbdffa286a04ace22efd02f2880b0cac1b279eda0ede7140db",
+    "retained": "observations/shutdown.log.gz",
+    "retainedSha256": "c1a7947def18b8c40132023d8e9c7da84ed005b75cb2f9e81f58819974428b62"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/terminal-25.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/terminal-25.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/terminal-25.log",
+    "originalMode": "0o644",
+    "bytes": 49513,
+    "sha256": "58143fcec2480f7ae1469877520f66e5da91c4c5465bf8bd03df50658b247705",
+    "retained": "observations/terminal-25.log.gz",
+    "retainedSha256": "39f2c4db04169321dce10120da637049ac80fa043e95aa74d7596eddc3932ee9"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/toolchain-versions.exit",
+    "originalMode": "0o644",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "retained": "observations/toolchain-versions.exit.gz",
+    "retainedSha256": "89ed3b723e0e40d8957a2df55fcb04d57b6d95fa665c5fe67b098df7f29694ae"
+  },
+  {
+    "original": "/private/tmp/m7-sibling-freeze.cmMvyS/toolchain-versions.log",
+    "originalMode": "0o644",
+    "bytes": 318,
+    "sha256": "c9a5e6c1b42c10bd18df72f0ce8c6cd689cabbbe8144b9a4838725207e3f3e93",
+    "retained": "observations/toolchain-versions.log.gz",
+    "retainedSha256": "f025ac9ea5e80505c8f9af446ff248adf603bb9c99a657fd073a65658a955a4d"
+  }
+]
