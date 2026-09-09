@@ -1,6 +1,6 @@
 ---
 title: The Optimizations tab
-description: "The list of studies, the create drawer, and one study shown in a drawer or as the whole section through the shared results view: the frame header with its stat columns, the Parameters band, the surface, the objective's timeline and the chart cards, and the steps table."
+description: "The list of studies, the create drawer, and one study shown in a drawer or as the whole section through the shared results view: the frame header with its stat columns, the Parameters card, the surface, the objective's timeline and the chart cards, and the steps table."
 sidebar_order: 40
 attachTo: ui.views.editor.optimizations
 ---
@@ -138,7 +138,9 @@ parameter computed from `record.trials`, and the fade rule (`tone="muted"`,
 bars at a quarter opacity that no longer set the scale) below
 `importanceFloor(requestedTrials)`. A remote study has no panel.
 
-The Parameters band's state line is `describeSelection` (`Following step 4`,
+The Parameters card (`FrameCard`, the chart card's chrome with the parameters
+held fixed folded behind its footer button) carries the state line,
+`describeSelection` (`Following step 4`,
 `12 of 25 runs — refining`, `Could not compute: …`, or the refinement note)
 with the **Follow steps** switch while the study runs; the navigator is a
 slider per numeric axis and a toggle per boolean parameter. The controls are

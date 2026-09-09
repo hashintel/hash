@@ -715,11 +715,14 @@ describe("ViewOptimizationDrawer for a paused connected study", () => {
     expect(
       screen.getByText(/Resuming continues the study's history/u),
     ).toBeTruthy();
-    const cards = document.querySelectorAll<HTMLElement>("[data-chart-card]");
-    expect(cards.length).toBeGreaterThanOrEqual(3);
-    expect([...cards].every((card) => card.dataset.tone === "paused")).toBe(
-      true,
+    // The Parameters card stays live: its controls navigate a paused study.
+    const cards = [
+      ...document.querySelectorAll<HTMLElement>("[data-chart-card]"),
+    ].filter(
+      (card) => card.querySelector("span")?.textContent !== "Parameters",
     );
+    expect(cards.length).toBeGreaterThanOrEqual(3);
+    expect(cards.every((card) => card.dataset.tone === "paused")).toBe(true);
     expect(screen.getByText("Objective at the selected point")).toBeTruthy();
     expect(screen.getByText("Objective by step")).toBeTruthy();
     expect(screen.getByRole("table")).toBeTruthy();
@@ -1086,6 +1089,7 @@ describe("ViewOptimizationDrawer holds every box still across states", () => {
     expect(signatures[0]!.note).toBe("20px");
     expect(signatures[0]!.steps).toBe("320px");
     expect(signatures[0]!.cards.map(([title]) => title)).toEqual([
+      "Parameters",
       "Objective at the step in flight",
       "Objective by step",
       "Sensitivity analysis",

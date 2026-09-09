@@ -13,12 +13,12 @@ import type { ComponentProps, ReactNode } from "react";
 /** How a card reads its state. `paused` is a frozen look, `muted` a below-floor look. */
 export type ChartCardTone = "default" | "paused" | "muted";
 
-/** The header's height in pixels: its padding, the title line and the subtitle line. */
-export const CHART_CARD_HEADER_HEIGHT = 49;
-/** The body's padding on each side, in pixels (the `3` spacing token). */
-export const CHART_CARD_BODY_PADDING = 12;
+/** The header's height in pixels: its padding, the title line, the subtitle line and its hairline. */
+export const CHART_CARD_HEADER_HEIGHT = 53;
+/** The body's padding on each side, in pixels (the `4` spacing token). */
+export const CHART_CARD_BODY_PADDING = 16;
 /** The footer's vertical padding on each side plus its hairline, in pixels. */
-export const CHART_CARD_FOOTER_CHROME = 13;
+export const CHART_CARD_FOOTER_CHROME = 17;
 /** The card's top and bottom border, in pixels. */
 const CHART_CARD_BORDER = 2;
 
@@ -48,7 +48,7 @@ const rootStyle = css({
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
-  borderRadius: "lg",
+  borderRadius: "xl",
   backgroundColor: "neutral.s00",
   "&[data-tone=paused]": { borderColor: "neutral.s60" },
 });
@@ -59,8 +59,8 @@ const headerStyle = css({
   justifyContent: "space-between",
   gap: "2",
   flexShrink: "0",
-  paddingX: "3",
-  paddingY: "1.5",
+  paddingX: "4",
+  paddingY: "2",
   borderBottomWidth: "[1px]",
   borderBottomStyle: "solid",
   borderBottomColor: "neutral.bd.subtle",
@@ -82,7 +82,7 @@ const titleRowStyle = css({
 
 const titleStyle = css({
   fontSize: "sm",
-  fontWeight: "semibold",
+  fontWeight: "medium",
   lineHeight: "[20px]",
   color: "neutral.s120",
   overflow: "hidden",
@@ -101,17 +101,19 @@ const subtitleStyle = css({
   whiteSpace: "nowrap",
 });
 
+// The right side yields before the heading does: a state line in it
+// ellipsizes, while a menu button is never narrower than itself.
 const actionsStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1",
-  flexShrink: "0",
+  minWidth: "[0]",
 });
 
 const bodyStyle = css({
   position: "relative",
   minHeight: "[0]",
-  padding: "3",
+  padding: "4",
   overflow: "hidden",
   "[data-tone=muted] &": { opacity: "[0.6]" },
 });
@@ -133,8 +135,8 @@ const footerStyle = css({
   justifyContent: "space-between",
   gap: "2",
   flexShrink: "0",
-  paddingX: "3",
-  paddingY: "1.5",
+  paddingX: "4",
+  paddingY: "2",
   borderTopWidth: "[1px]",
   borderTopStyle: "solid",
   borderTopColor: "neutral.bd.subtle",
@@ -253,7 +255,7 @@ export const CHART_CARD_MIN_WIDTH = 320;
 const gridStyle = css({
   display: "grid",
   alignItems: "stretch",
-  gap: "3",
+  gap: "4",
 });
 
 export type ChartCardGridProps = {

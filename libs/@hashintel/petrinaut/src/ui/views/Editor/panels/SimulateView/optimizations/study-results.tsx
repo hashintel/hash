@@ -3,7 +3,7 @@
  * drawer and the full view alike: the one-line title with the progress line
  * beside it, the status and the stat columns (steps, steps clear, the best
  * step so far), the computing chip and the compute badge of a study
- * evaluated here, the Parameters band, the surface, the chart cards (the
+ * evaluated here, the Parameters card, the surface, the chart cards (the
  * objective at the point, the objective by step, Constraints when the study
  * declares any, Sensitivity analysis), the steps table, and the actions.
  * A study run elsewhere shows its best parameters, the objective by step,
@@ -50,7 +50,6 @@ import {
   NavigatedOptimizationSurface,
   OptimizationSurface,
 } from "./optimization-surface";
-import { BestParameters } from "./study-results/best-parameters";
 import { ConstraintSummaryCard } from "./study-results/constraint-summary";
 import { ObjectiveHistoryCard } from "./study-results/objective-history-chart";
 import {
@@ -58,6 +57,7 @@ import {
   OptimizationNavigatorStatus,
 } from "./study-results/optimization-navigator";
 import { ParameterImportancePanel } from "./study-results/parameter-importance-panel";
+import { ParameterValues } from "./study-results/parameter-values";
 import {
   activityBatches,
   finishedStepCount,
@@ -75,6 +75,7 @@ import type {
   ResultsStat,
   ResultsStatus,
 } from "../shared/results";
+import type { OptimizationScalar } from "@hashintel/petrinaut-core/optimization";
 
 export { studyPhase, type StudyPhase } from "./study-results/study-phase";
 export { describeStudyProgress } from "./study-results/study-header";
@@ -326,35 +327,74 @@ const studyMetrics = (
   };
 };
 
-/** The Parameters band of a connected study: the navigator's status line in the title row, the controls beneath. */
+/** The parameters the manifest holds fixed, in the scenario's order. */
+export const fixedParameters = (
+  input: OptimizationRecord["input"],
+): Record<string, OptimizationScalar> =>
+  Object.fromEntries(
+    Object.entries(input.scenario.parameterBindings).flatMap(
+      ([identifier, binding]) =>
+        binding.kind === "fixed" ? [[identifier, binding.value]] : [],
+    ),
+  );
+
+/** The card's subtitle: `2 optimized · 3 fixed`, the fixed part left out when there are none. */
+export const describeParameterCounts = (
+  optimized: number,
+  fixed: number,
+): string =>
+  fixed > 0
+    ? `${optimized} optimized · ${fixed} fixed`
+    : `${optimized} optimized`;
+
+/**
+ * The Parameters card of a connected study: the controls for the optimized
+ * parameters, the navigator's status line in the header, and the parameters
+ * held fixed folded away behind the footer button.
+ */
 const parametersBand = (
   optimization: OptimizationRecord,
   connected: ConnectedStudyState,
   running: boolean,
   onNavigationChange: StudyResultsDependencies["onNavigationChange"],
-): ResultsBand => ({
-  id: `parameters-${optimization.id}`,
-  title: "Parameters",
-  help: PARAMETERS_HELP,
-  collapsible: true,
-  trailing: (
-    <OptimizationNavigatorStatus
-      navigation={connected.navigation}
-      selection={connected.selection}
-      running={running}
-      onNavigationChange={onNavigationChange}
-    />
-  ),
-  content: (
-    <OptimizationNavigator
-      axes={optimization.axes}
-      booleanParameters={optimizationBooleanIdentifiers(optimization.input)}
-      navigation={connected.navigation}
-      running={running}
-      onNavigationChange={onNavigationChange}
-    />
-  ),
-});
+): ResultsBand => {
+  const fixed = fixedParameters(optimization.input);
+  const fixedCount = Object.keys(fixed).length;
+  const optimizedCount =
+    Object.keys(optimization.input.scenario.parameterBindings).length -
+    fixedCount;
+  return {
+    id: `parameters-${optimization.id}`,
+    title: "Parameters",
+    subtitle: describeParameterCounts(optimizedCount, fixedCount),
+    help: PARAMETERS_HELP,
+    trailing: (
+      <OptimizationNavigatorStatus
+        navigation={connected.navigation}
+        selection={connected.selection}
+        running={running}
+        onNavigationChange={onNavigationChange}
+      />
+    ),
+    content: (
+      <OptimizationNavigator
+        axes={optimization.axes}
+        booleanParameters={optimizationBooleanIdentifiers(optimization.input)}
+        navigation={connected.navigation}
+        running={running}
+        onNavigationChange={onNavigationChange}
+      />
+    ),
+    more:
+      fixedCount === 0
+        ? null
+        : {
+            show: `Show ${fixedCount} fixed ${fixedCount === 1 ? "parameter" : "parameters"}`,
+            hide: "Hide fixed parameters",
+            content: <ParameterValues values={fixed} />,
+          },
+  };
+};
 
 const studySurface = (
   optimization: OptimizationRecord,
@@ -433,9 +473,12 @@ export const studyResultsModel = (
             {
               id: "best-parameters",
               title: "Best parameters",
-              collapsible: false,
+              subtitle: `Step ${optimization.best.trial + 1} · ${formatNumber(optimization.best.objective)}`,
               trailing: null,
-              content: <BestParameters best={optimization.best} />,
+              content: (
+                <ParameterValues values={optimization.best.parameters} />
+              ),
+              more: null,
             },
           ]
         : [],
