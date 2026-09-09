@@ -113,19 +113,51 @@ const run = async () => {
     clearTimeout(deadline);
     clearInterval(poll);
     if (existsSync(readyPath)) unlinkSync(readyPath);
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      await Promise.race([
-        server.close(),
-        new Promise<void>((resolve, reject) => {
-          timer = setTimeout(() => {
-            closeMethod = "kill";
-            void server.kill().then(resolve, reject);
-          }, 5_000);
-        }),
-      ]);
-    } finally {
-      clearTimeout(timer);
+    type ShutdownOutcome = {
+      status: "complete" | "rejected" | "timeout";
+      error?: { name: string; message: string; stack?: string };
+    };
+    // Return rejection as an observed outcome, not an escaping race rejection
+    // that cancels the only fallback. Bound public kill as well as public close.
+    const settleShutdown = async (
+      operation: () => Promise<void>,
+    ): Promise<ShutdownOutcome> => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          Promise.resolve()
+            .then(operation)
+            .then(
+              (): ShutdownOutcome => ({ status: "complete" }),
+              (error: unknown): ShutdownOutcome => ({
+                status: "rejected",
+                error: {
+                  name: error instanceof Error ? error.name : typeof error,
+                  message:
+                    error instanceof Error
+                      ? error.message
+                      : typeof error === "string"
+                        ? error
+                        : "Non-Error shutdown rejection",
+                  stack: error instanceof Error ? error.stack : undefined,
+                },
+              }),
+            ),
+          new Promise<ShutdownOutcome>((resolve) => {
+            timer = setTimeout(() => resolve({ status: "timeout" }), 5_000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+    const gracefulClose = await settleShutdown(() => server.close());
+    let killFallback: ShutdownOutcome | { status: "not-needed" } = {
+      status: "not-needed",
+    };
+    if (gracefulClose.status !== "complete") {
+      closeMethod = "kill";
+      killFallback = await settleShutdown(() => server.kill());
     }
     let chromeGone = false;
     try {
@@ -162,6 +194,14 @@ const run = async () => {
       endpointClosed = await refusal();
     }
     const profileRemoved = !existsSync(profilePath);
+    const readinessRemoved = !existsSync(readyPath);
+    const cleanupComplete =
+      chromeGone &&
+      profileRemoved &&
+      readinessRemoved &&
+      endpointClosed === "ECONNREFUSED" &&
+      (gracefulClose.status === "complete" ||
+        killFallback.status === "complete");
     privateJson(join(session.directory, "cleanup.json"), {
       runId: session.runId,
       executionId: session.executionId,
@@ -170,15 +210,15 @@ const run = async () => {
       profilePath,
       stopReason,
       closeMethod,
+      gracefulClose,
+      killFallback,
+      cleanupComplete,
       chromeGone,
       profileRemoved,
       endpointClosed,
-      readinessRemoved: !existsSync(readyPath),
+      readinessRemoved,
     });
-    assert(
-      chromeGone && profileRemoved && endpointClosed === "ECONNREFUSED",
-      "Browser cleanup failed",
-    );
+    assert(cleanupComplete, "Browser cleanup failed");
   }
   if (failure) throw failure;
 };
