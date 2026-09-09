@@ -60,7 +60,14 @@ acknowledged **Your turn** handoff.
 5. **User control.** Shared Petrinaut tests prove the preference is default-on,
    browser-saved, exposed in the existing playback menu, and controls whether
    **Your turn** is visible.
-6. **Package integrity.** Focused Voice unit tests, Petrinaut unit tests,
+6. **Durable origin and Stop continuity.**
+   `local-storage-demo/voice-history-continuity.integration.test.tsx` runs one
+   typed-origin plus direct-Voice-origin conversation through durable composer
+   **Stop**, closes it, and reopens it as a second mounted client. The reopened
+   panel must preserve per-message typed/Voice provenance, render the aborted
+   assistant entry as stopped rather than ordinary truncated content, and
+   prove local **Exit voice mode** does not issue durable **Stop**.
+7. **Package integrity.** Focused Voice unit tests, Petrinaut unit tests,
    TypeScript checks, ESLint, the website and library builds, architecture-doc
    lint, repository formatting, and `git diff --check` distinguish a working
    recut from code presence alone.
@@ -73,6 +80,7 @@ classifier accuracy.
 
 ```text
 ~ apps/petrinaut-website/src/main/app/voice-interview/  session, bridge, controller, preference, tests
+~ apps/petrinaut-website/src/main/app/local-storage-demo/ durable history reopen integration proof
 ~ apps/petrinaut-website/src/server/voice/              Realtime VAD and transcription policy
 ~ apps/petrinaut-website/src/shared/                    shared transcription vocabulary
 ~ apps/petrinaut-website/README.md                      website behavior
