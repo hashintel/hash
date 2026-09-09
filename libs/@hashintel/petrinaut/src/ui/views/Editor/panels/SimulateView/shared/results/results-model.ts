@@ -11,6 +11,7 @@ import type {
   ComputeBatch,
   FrameCardMore,
   FrameNote,
+  FrameStatShort,
   FrameStatusTone,
 } from "../drawer-frame";
 import type { MetricTile } from "../metric-tiles";
@@ -37,10 +38,12 @@ export type ResultsStat = {
   value: ResultsStatValue;
   /** The widest text the value can show; it sizes the column invisibly. */
   widest: string;
+  /** A shorter form for a narrow header, with its own widest text; absent, the value shows whole. */
+  short?: FrameStatShort;
 };
 
 export type ResultsHeader = {
-  /** One line: `SIR transmission sweep · Seasonal Flu · 100 runs · dt 1`. */
+  /** One line: `SIR transmission sweep · Seasonal Flu · 100 runs`. */
   title: string;
   /** The title line's right side while at rest: a study's progress line. */
   headline: ReactNode | null;

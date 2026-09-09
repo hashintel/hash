@@ -107,7 +107,7 @@ Two things to know before comparing results:
 
 ### Reading the header
 
-Open an experiment's drawer and its header names the experiment in one line: the name, the scenario (or **Default scenario**), the run count and the time step, for example **SIR transmission sweep · Seasonal Flu · 100 runs · dt 1**. Beneath it, a strip of labelled columns divided by hairlines:
+Open an experiment's drawer and its header names the experiment in one line: the name, the scenario (or **Default scenario**) and the run count, for example **SIR transmission sweep · Seasonal Flu · 100 runs**. Beneath it, a strip of labelled columns divided by hairlines, always on one line: in a narrow drawer the labels become tooltips and the columns read as chips, **Runs** and **Selection** shorten to their counts, and whatever still does not fit scrolls sideways under a fade at the edge.
 
 | Column        | Meaning                                                                                                                                                                 |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

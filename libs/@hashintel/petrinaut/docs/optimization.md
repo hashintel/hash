@@ -147,9 +147,12 @@ one), and **Best step so far**, the best value seen so far (hover it for the
 best step's parameters). A progress bar for the steps runs along the header's
 bottom edge. The value is named for what it is: the best of the steps tried,
 not a confirmed result at that configuration. Every column is as wide as its
-widest value, so nothing in the header moves as the numbers change. Once the
-body has scrolled the header condenses to one line, the columns folded in as
-compact chips; move the pointer over it and it grows back. The line under the
+widest value, so nothing in the header moves as the numbers change. The
+strip is always one line: in a narrow drawer the labels become tooltips and
+the columns read as chips, **Steps** shortens to its count, and whatever
+still does not fit scrolls sideways under a fade at the edge. Once the body
+has scrolled the header condenses to one line, the columns folded in as
+compact chips; move the pointer over it and it grows back. The gap under the
 header is reserved for a note (the error when a study failed, the resume note
 while it is paused), so nothing moves when one appears.
 

@@ -190,6 +190,11 @@ export const studyStats = (optimization: OptimizationRecord): ResultsStat[] => {
         failedTrials: 0,
       }),
       value: { text: describeStepProgress(optimization) },
+      // Narrow, the count alone: the runs per step and the parallelism go.
+      short: {
+        text: `${finishedStepCount(optimization)} / ${optimization.requestedTrials}`,
+        widest: `${optimization.requestedTrials} / ${optimization.requestedTrials}`,
+      },
     },
     ...(rates === null
       ? []

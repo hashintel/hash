@@ -63,14 +63,11 @@ const cancelSlotStyle = css({
   "&[data-hidden=true]": { visibility: "hidden" },
 });
 
-/** The frame's one-line title: `SIR transmission sweep · Seasonal Flu · 100 runs · dt 1`. */
+/** The frame's one-line title: `SIR transmission sweep · Seasonal Flu · 100 runs`. */
 export const describeExperiment = (
-  experiment: Pick<
-    ExperimentRecord,
-    "name" | "scenarioName" | "runCount" | "dt"
-  >,
+  experiment: Pick<ExperimentRecord, "name" | "scenarioName" | "runCount">,
 ): string =>
-  `${experiment.name} · ${experiment.scenarioName ?? "Default scenario"} · ${experiment.runCount.toLocaleString("en-US")} runs · dt ${experiment.dt}`;
+  `${experiment.name} · ${experiment.scenarioName ?? "Default scenario"} · ${experiment.runCount.toLocaleString("en-US")} runs`;
 
 /**
  * "selection" is the navigator's own ladder, the priority work; "surface"
@@ -129,6 +126,13 @@ export const experimentStats = (
           ? `${formatCount(progress.activeRuns)} active, ${formatCount(progress.completedRuns)} complete`
           : runCount,
       },
+      // Narrow, the finished count alone.
+      short: {
+        text: progress
+          ? `${formatCount(progress.completedRuns)} complete`
+          : runCount,
+        widest: `${runCount} complete`,
+      },
     },
     {
       id: "errors",
@@ -160,6 +164,10 @@ export const experimentStats = (
             widest: `${runCount} / ${runCount} runs`,
             value: {
               text: `${formatCount(experiment.sweep.runsSampled)} / ${runCount} runs`,
+            },
+            short: {
+              text: `${formatCount(experiment.sweep.runsSampled)} / ${runCount}`,
+              widest: `${runCount} / ${runCount}`,
             },
           },
         ]

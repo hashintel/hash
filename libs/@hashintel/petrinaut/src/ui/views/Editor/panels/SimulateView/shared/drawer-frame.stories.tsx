@@ -108,7 +108,7 @@ const Cards = ({ count }: { count: number }) => (
 const Frame = ({ cards }: { cards: number }) => (
   <div className={sectionStyle}>
     <DrawerFrame
-      title="SIR transmission sweep · Seasonal Flu · 100 runs · dt 1"
+      title="SIR transmission sweep · Seasonal Flu · 100 runs"
       stats={<Stats />}
       badge={<span>CPU</span>}
       progress={61}
