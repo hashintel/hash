@@ -4,13 +4,18 @@ import {
   canonicalContent,
   parseJoinedRootArcInput,
   parseObservedArcInput,
+  parseObservedNodeInput,
+  isObservedNodeMutation,
+  assertNodeIdentity,
+  type ConstructionMutationRequest,
   type DefinitionObservation,
   reconcileArcTransitionAttempts,
   verifyArcTransitionAttempt,
   type ArcMutationRequest,
-  type ArcTransitionAttempt,
+  type ConstructionTransitionAttempt as ArcTransitionAttempt,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import { mutationActionInputSchemas } from "@hashintel/petrinaut-core";
 
 import { isAwaitingClient } from "./client-tools.ts";
 
@@ -83,7 +88,7 @@ export const assertArcNotRetired = async (
       (arc) => "placeId" in arc && arc.placeId === input.placeId,
     )
   )
-    return;
+    throw new Error("Duplicate root arc identity cannot be created.");
   const results = clientToolHistoryFrom(snapshot.messages).results;
   for (const result of results) {
     if (
@@ -100,10 +105,13 @@ export const assertArcNotRetired = async (
     );
     const reconciled = reconcileArcTransitionAttempts(verified);
     for (const attempt of verified) {
+      const previousInput = mutationActionInputSchemas.addArc.parse(
+        attempt.request.input,
+      );
       const sameTarget =
-        attempt.request.input.transitionId === input.transitionId &&
-        attempt.request.input.placeId === input.placeId &&
-        attempt.request.input.arcDirection === input.arcDirection;
+        previousInput.transitionId === input.transitionId &&
+        previousInput.placeId === input.placeId &&
+        previousInput.arcDirection === input.arcDirection;
       if (
         sameTarget &&
         (reconciled.outcome === "unknown" ||
@@ -116,17 +124,80 @@ export const assertArcNotRetired = async (
         throw new Error(
           "Unknown or conflicting arc attempts cannot establish an identity lifecycle; creation is unavailable.",
         );
-      if (
-        reconciled.outcome === "applied" &&
-        attempt.request.input.transitionId === input.transitionId &&
-        attempt.request.input.placeId === input.placeId &&
-        attempt.request.input.arcDirection === input.arcDirection
-      )
+      if (reconciled.outcome === "applied" && sameTarget)
         throw new Error(
           "Retired root arc identity cannot be reused; deletion/recreation is unavailable.",
         );
     }
   }
+};
+
+/** Every retained identity source is verified against this conversation's binding/call. */
+export const assertConstructionIdentity = async (
+  snapshot: FlueConversationSnapshot,
+  observed: DefinitionObservation,
+  mutation: Pick<ConstructionMutationRequest, "toolName" | "input">,
+  binding: ArcMutationRequest["binding"],
+  read: (id: string) => Promise<DefinitionObservation>,
+): Promise<void> => {
+  if (mutation.toolName === "addArc") {
+    const parsed = mutationActionInputSchemas.addArc.parse(mutation.input);
+    await assertArcNotRetired(snapshot, observed, parsed);
+    return;
+  }
+  if (!isObservedNodeMutation(mutation.toolName)) return;
+  const earlier: DefinitionObservation[] = [];
+  for (const message of snapshot.messages) {
+    if (message.role !== "assistant" || message.purpose !== "assistant")
+      continue;
+    for (const call of message.parts) {
+      if (
+        call.type !== "dynamic-tool" ||
+        call.state !== "output-available" ||
+        !isAwaitingClient(call.output)
+      )
+        continue;
+      if (call.toolName === "getLatestNetDefinition")
+        earlier.push(await read(call.toolCallId));
+    }
+  }
+  const results = clientToolHistoryFrom(snapshot.messages).results;
+  for (const result of results) {
+    if (
+      !isObservedNodeMutation(result.toolName) &&
+      result.toolName !== "addArc" &&
+      result.toolName !== "updateArcWeight"
+    )
+      continue;
+    await verifyRootArcResults({
+      body: JSON.stringify([result]),
+      snapshot,
+      binding,
+      observationFor: async (id) => read(id),
+    });
+    if (
+      !record(result.metadata) ||
+      !record(result.metadata.transitionRecord) ||
+      !Array.isArray(result.metadata.transitionRecord.attempts)
+    )
+      throw new Error("Missing identity history.");
+    for (const raw of result.metadata.transitionRecord.attempts) {
+      const attempt = await verifyArcTransitionAttempt(
+        raw as ArcTransitionAttempt,
+      );
+      if (result.metadata.transitionRecord.outcome === "unknown")
+        throw new Error(
+          "Unknown construction history cannot establish safe identity reuse.",
+        );
+      earlier.push(attempt.pre);
+      if (attempt.post) earlier.push(attempt.post);
+    }
+  }
+  assertNodeIdentity(
+    mutation,
+    observed.definition,
+    earlier.map((entry) => entry.definition),
+  );
 };
 
 /** Verify the incoming sidecar against this instance's issued canonical call before model continuation. */
@@ -171,12 +242,18 @@ export const verifyRootArcResults = async (input: {
         );
       if (
         call.toolName !== "addArc" &&
-        !(input.observationFor && call.toolName === "updateArcWeight")
+        !(
+          input.observationFor &&
+          (call.toolName === "updateArcWeight" ||
+            isObservedNodeMutation(call.toolName))
+        )
       )
         return;
-      const name = call.toolName as "addArc" | "updateArcWeight";
+      const name = call.toolName as ConstructionMutationRequest["toolName"];
       const { brunch, ...canonicalInput } = input.observationFor
-        ? parseObservedArcInput(name, call.input)
+        ? isObservedNodeMutation(name)
+          ? parseObservedNodeInput(name, call.input)
+          : parseObservedArcInput(name, call.input)
         : parseJoinedRootArcInput(call.input);
       const observationToolCallId =
         "observationToolCallId" in brunch
@@ -192,7 +269,7 @@ export const verifyRootArcResults = async (input: {
             "Mutation does not cite its earlier verified raw browser base.",
           );
       }
-      const expected: ArcMutationRequest = {
+      const expected: ConstructionMutationRequest = {
         toolCallId: call.toolCallId,
         toolName: name,
         input: canonicalInput,

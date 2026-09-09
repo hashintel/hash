@@ -16,6 +16,11 @@ export const observedConstructionBrowserToolNames = [
   "getLatestNetDefinition",
   "addArc",
   "updateArcWeight",
+  "addPlace",
+  "updatePlace",
+  "addTransition",
+  "updateTransition",
+  "getNetCompilationErrors",
 ] as const;
 
 /** Names are conveniences; ambiguous names refuse rather than choosing an occurrence. */

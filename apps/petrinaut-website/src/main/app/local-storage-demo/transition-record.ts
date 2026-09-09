@@ -10,8 +10,12 @@ import {
   parseObservedArcInput,
   reconcileArcTransitionAttempts,
   verifyArcTransitionAttempt,
-  type ArcMutationRequest,
-  type ArcTransitionAttempt,
+  type ConstructionMutationRequest,
+  isObservedNodeMutation,
+  parseObservedNodeInput,
+  expectedNodeDefinition,
+  assertNodeIdentity,
+  type ConstructionTransitionAttempt as ArcTransitionAttempt,
   type DefinitionObservation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 
@@ -47,8 +51,8 @@ export const createBrowserTransitionRecorder = ({
   requestFor,
 }: {
   handle: PetrinautDocHandle;
-  binding: ArcMutationRequest["binding"];
-  requestFor: (toolCallId: string) => ArcMutationRequest;
+  binding: ConstructionMutationRequest["binding"];
+  requestFor: (toolCallId: string) => ConstructionMutationRequest;
 }) => {
   const binding = structuredClone(suppliedBinding);
   if (binding.documentId !== handle.id)
@@ -56,7 +60,11 @@ export const createBrowserTransitionRecorder = ({
   const attemptsByCall = new Map<string, ArcTransitionAttempt[]>();
   const results = new Map<
     string,
-    { request: ArcMutationRequest; output?: MutationOutput; error?: unknown }
+    {
+      request: ConstructionMutationRequest;
+      output?: MutationOutput;
+      error?: unknown;
+    }
   >();
 
   const retain = (attempt: ArcTransitionAttempt) => {
@@ -134,6 +142,23 @@ export const createBrowserTransitionRecorder = ({
         });
         return output;
       }
+      if (isObservedNodeMutation(request.toolName)) {
+        if (handle.capabilities?.disabledExtensions?.length)
+          throw new Error(
+            "Construction observation is unavailable for disabled extensions.",
+          );
+        assertNodeIdentity(
+          request,
+          pre.definition,
+          [...attemptsByCall.values()].flatMap((attempts) =>
+            attempts.flatMap((entry) => [
+              entry.pre.definition,
+              ...(entry.post ? [entry.post.definition] : []),
+            ]),
+          ),
+        );
+        expectedNodeDefinition(request, pre.definition);
+      }
       const output = call.execute();
       attempt.post = observeBrowserDefinition(handle);
       attempt.effects = deriveArcEffects(
@@ -203,7 +228,7 @@ export const createBrowserTransitionRecorder = ({
 /** Production adapter for the opt-in prepared root-arc lane; issued identities are immutable. */
 export const createJoinedBrowserTransitionRecorder = (input: {
   handle: PetrinautDocHandle;
-  binding: ArcMutationRequest["binding"];
+  binding: ConstructionMutationRequest["binding"];
   requestedBaseHash?: string;
   construction?: true;
 }) => {
@@ -215,7 +240,7 @@ export const createJoinedBrowserTransitionRecorder = (input: {
   const observedReads = new Map<string, string>();
   const issued = new Map<
     string,
-    { request: ArcMutationRequest; envelope: unknown }
+    { request: ConstructionMutationRequest; envelope: unknown }
   >();
   const recorder = createBrowserTransitionRecorder({
     handle: input.handle,
@@ -243,16 +268,22 @@ export const createJoinedBrowserTransitionRecorder = (input: {
     }
     if (
       call.toolName !== "addArc" &&
-      !(input.construction && call.toolName === "updateArcWeight")
+      !(
+        input.construction &&
+        (call.toolName === "updateArcWeight" ||
+          isObservedNodeMutation(call.toolName))
+      )
     )
       return call.input;
-    const name = call.toolName as "addArc" | "updateArcWeight";
+    const name = call.toolName as ConstructionMutationRequest["toolName"];
     const { brunch, ...canonicalInput } = input.construction
-      ? parseObservedArcInput(name, call.input)
+      ? isObservedNodeMutation(name)
+        ? parseObservedNodeInput(name, call.input)
+        : parseObservedArcInput(name, call.input)
       : parseJoinedRootArcInput(call.input);
     if (!input.construction && brunch.requestedBaseHash !== requestedBaseHash)
       throw new Error("Root arc cites another issued base.");
-    const request: ArcMutationRequest = {
+    const request: ConstructionMutationRequest = {
       toolCallId: call.toolCallId,
       toolName: name,
       input: canonicalInput,
@@ -294,7 +325,11 @@ export const createJoinedBrowserTransitionRecorder = (input: {
     }
     if (
       result.toolName !== "addArc" &&
-      !(input.construction && result.toolName === "updateArcWeight")
+      !(
+        input.construction &&
+        (result.toolName === "updateArcWeight" ||
+          isObservedNodeMutation(result.toolName))
+      )
     )
       return undefined;
     const transitionRecord = recorder
@@ -314,7 +349,16 @@ export const createJoinedBrowserTransitionRecorder = (input: {
     mapClientToolInput,
     clientToolResultMetadata,
     validatedClientToolNames: new Set(
-      input.construction ? ["addArc", "updateArcWeight"] : ["addArc"],
+      input.construction
+        ? [
+            "addArc",
+            "updateArcWeight",
+            "addPlace",
+            "updatePlace",
+            "addTransition",
+            "updateTransition",
+          ]
+        : ["addArc"],
     ),
   };
 };

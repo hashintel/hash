@@ -33,7 +33,7 @@ import { CLIENT_TOOL_RESULT_SIGNAL } from "../../conversation/client-tools.ts";
 import {
   retainedSettledRevision,
   verifyRootArcResults,
-  assertArcNotRetired,
+  assertConstructionIdentity,
 } from "../../conversation/root-arc.ts";
 import {
   createRootArcWhyTool,
@@ -115,7 +115,10 @@ export function ChatAgent({ id }: AgentProps) {
           ? {
               observationFor: async (
                 callId: string,
-                creation?: import("@hashintel/brunch-agent-plugin-sdcpn").ArcMutationRequest["input"],
+                mutation?: Pick<
+                  import("@hashintel/brunch-agent-plugin-sdcpn").ConstructionMutationRequest,
+                  "toolName" | "input"
+                >,
               ) => {
                 const snapshot = await history();
                 const observed = await recordedBrowserObservation(
@@ -123,8 +126,19 @@ export function ChatAgent({ id }: AgentProps) {
                   initialData.construction!,
                   callId,
                 );
-                if (creation)
-                  await assertArcNotRetired(snapshot, observed, creation);
+                if (mutation)
+                  await assertConstructionIdentity(
+                    snapshot,
+                    observed,
+                    mutation,
+                    initialData.construction!.binding,
+                    (id) =>
+                      recordedBrowserObservation(
+                        snapshot,
+                        initialData.construction!,
+                        id,
+                      ),
+                  );
                 return observed;
               },
             }

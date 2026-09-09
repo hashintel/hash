@@ -84,7 +84,7 @@ test("refuses recreation of a recorded arc identity after it disappears from a f
   ).rejects.toThrow(/Retired/u);
   await expect(
     assertArcNotRetired(snapshot, actual.post, actual.request.input),
-  ).resolves.toBeUndefined();
+  ).rejects.toThrow(/Duplicate/u);
   await expect(
     assertArcNotRetired(
       { ...snapshot, messages: [] },

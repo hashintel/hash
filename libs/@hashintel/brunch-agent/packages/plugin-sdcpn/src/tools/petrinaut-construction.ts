@@ -9,10 +9,12 @@ import {
 
 import { validateDeclaredBasis } from "../declared-basis";
 import { joinedRootArcInputSchema, observedArcInputSchema } from "../root-arc";
+import { isObservedNodeMutation, observedNodeInputSchema } from "../root-node";
 
 import type {
   DefinitionObservation,
   ArcMutationRequest,
+  ConstructionMutationRequest,
 } from "../transition-record";
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
@@ -57,21 +59,33 @@ export const observedDefinitionReadTool = defineTool({
   },
 });
 
+export const observedCompilationReadTool = defineTool({
+  name: "getNetCompilationErrors",
+  description: petrinautAiTools.getNetCompilationErrors.description,
+  input: petrinautAiTools.getNetCompilationErrors.inputSchema,
+  output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+  run() {
+    return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+  },
+});
+
 export const createObservedArcTool = (
-  name: "addArc" | "updateArcWeight",
+  name: ConstructionMutationRequest["toolName"],
   options: {
     currentRevision: WorkpieceRevision | null;
     retainedRevisionFor: (id: string) => Promise<WorkpieceRevision | undefined>;
     observationFor: (
       id: string,
-      creation?: ArcMutationRequest["input"],
+      mutation?: Pick<ConstructionMutationRequest, "toolName" | "input">,
     ) => Promise<DefinitionObservation>;
   },
 ) =>
   defineTool({
     name,
-    description: `${petrinautAiTools[name].description}\nRoot place arcs only. Cite an earlier verified browser result's observationToolCallId and exact raw requestedBaseHash, and explicit settled brunch.basis.`,
-    input: observedArcInputSchema(name),
+    description: `${petrinautAiTools[name].description}\nRoot construction only. Cite an earlier verified browser result's observationToolCallId and exact raw requestedBaseHash, and explicit settled brunch.basis.`,
+    input: isObservedNodeMutation(name)
+      ? observedNodeInputSchema(name)
+      : observedArcInputSchema(name),
     prepareArguments: (input) => normalizePetrinautAiToolInput(name, input),
     output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
     async run({ data }) {
@@ -85,7 +99,7 @@ export const createObservedArcTool = (
       const { brunch, ...input } = data;
       const observed = await options.observationFor(
         brunch.observationToolCallId,
-        name === "addArc" ? input : undefined,
+        { toolName: name, input },
       );
       if (observed.sha256 !== data.brunch.requestedBaseHash)
         throw new Error(

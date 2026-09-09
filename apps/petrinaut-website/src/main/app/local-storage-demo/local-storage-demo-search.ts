@@ -18,7 +18,7 @@ const optionalSearchStringSchema = z.string().optional().catch(undefined);
 const fixtureSearchSchema = z.object({
   [crewReservationFixtureQuery]: optionalSearchStringSchema,
   brunchTracer: z
-    .enum(["root-arc", "construction"])
+    .enum(["root-arc", "construction", "root-creation"])
     .optional()
     .catch(undefined),
 });
@@ -67,7 +67,9 @@ export const isRootArcTracerSelected = (
 
 export const isConstructionSelected = (
   search: LocalStorageDemoSearch,
-): boolean => search.brunchTracer === "construction";
+): boolean =>
+  search.brunchTracer === "construction" ||
+  search.brunchTracer === "root-creation";
 
 /** Identity of the stateful editor selected by the route's fixture mode. */
 export const localStorageDemoRouteIdentity = (
@@ -76,11 +78,14 @@ export const localStorageDemoRouteIdentity = (
   | "ordinary"
   | "root-arc-tracer"
   | "construction-candidate"
+  | "root-creation-candidate"
   | typeof crewReservationFixtureId =>
-  isConstructionSelected(search)
-    ? "construction-candidate"
-    : isRootArcTracerSelected(search)
-      ? "root-arc-tracer"
-      : isCrewReservationFixtureSelected(search)
-        ? crewReservationFixtureId
-        : "ordinary";
+  search.brunchTracer === "root-creation"
+    ? "root-creation-candidate"
+    : isConstructionSelected(search)
+      ? "construction-candidate"
+      : isRootArcTracerSelected(search)
+        ? "root-arc-tracer"
+        : isCrewReservationFixtureSelected(search)
+          ? crewReservationFixtureId
+          : "ordinary";

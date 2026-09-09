@@ -1,12 +1,19 @@
 import {
   mutationActionInputSchemas,
+  createPetrinautActions,
   parseSDCPNFile,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import {
+  assertNodeIdentity,
+  isObservedNodeMutation,
+  type ObservedNodeMutationName,
+} from "./root-node";
+
 import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 
-/** First observation contract: the already-mounted, root-net addArc operation only. */
+/** Retained arc request contract; root node requests extend it without changing legacy consumers. */
 export type ArcMutationRequest = {
   toolCallId: string;
   toolName: "addArc" | "updateArcWeight";
@@ -19,6 +26,16 @@ export type ArcMutationRequest = {
   requestedBaseHash: string;
   /** Required only in the distinct conversation-bound mode; legacy history is unchanged. */
   observationToolCallId?: string;
+};
+
+export type ConstructionMutationRequest = Omit<
+  ArcMutationRequest,
+  "toolName" | "input"
+> & {
+  toolName: ArcMutationRequest["toolName"] | ObservedNodeMutationName;
+  input:
+    | ArcMutationRequest["input"]
+    | PetrinautAiToolInput<ObservedNodeMutationName>;
 };
 
 export type DefinitionObservation = { definition: SDCPN; sha256: string };
@@ -40,8 +57,8 @@ export type ArcEffects = {
   derived: DefinitionChange[];
 };
 
-export type ArcTransitionAttempt = {
-  request: ArcMutationRequest;
+export type ConstructionTransitionAttempt = {
+  request: ConstructionMutationRequest;
   binding: ArcMutationRequest["binding"];
   pre: DefinitionObservation;
   post?: DefinitionObservation;
@@ -50,10 +67,18 @@ export type ArcTransitionAttempt = {
   error?: string;
 };
 
-export type ArcTransitionRecord = {
-  attempts: ArcTransitionAttempt[];
-  outcome: ArcTransitionAttempt["outcome"];
+export type ArcTransitionAttempt = Omit<
+  ConstructionTransitionAttempt,
+  "request"
+> & { request: ArcMutationRequest };
+export type ConstructionTransitionRecord = {
+  attempts: ConstructionTransitionAttempt[];
+  outcome: ConstructionTransitionAttempt["outcome"];
 };
+export type ArcTransitionRecord = Omit<
+  ConstructionTransitionRecord,
+  "attempts"
+> & { attempts: ArcTransitionAttempt[] };
 
 const objectValue = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -101,12 +126,14 @@ const definitionChanges = (
   return [{ path, kind: "updated", before, after }];
 };
 
-/** No operation portfolio: only identify the requested root arc; everything else stays unmapped. */
+/** Partition the named root operation; unrequested fields remain derived, never inherited basis. */
 export const deriveArcEffects = (
-  request: ArcMutationRequest,
+  request: ConstructionMutationRequest,
   pre: SDCPN,
   post: SDCPN,
 ): ArcEffects => {
+  if (isObservedNodeMutation(request.toolName))
+    return deriveNodeEffects(request, pre, post);
   const input = mutationActionInputSchemas[request.toolName].parse(
     request.input,
   );
@@ -145,7 +172,141 @@ export const deriveArcEffects = (
   return effects;
 };
 
-export const assertArcEffects = (attempt: ArcTransitionAttempt): void => {
+/** Canonical action on a detached definition, not a reported effect or a second document store.
+ * The bound construction host enables all extensions and disables post-mutation global stripping.
+ * Comparing this prediction with independent actual pre/post observations earns only that exact footprint.
+ */
+export const expectedNodeDefinition = (
+  request: ConstructionMutationRequest,
+  pre: SDCPN,
+): SDCPN => {
+  assertNodeIdentity(request, pre, []);
+  const expected = structuredClone(pre);
+  const actions = createPetrinautActions(
+    (mutate) => mutate(expected),
+    undefined,
+    { sanitizeAfterMutation: false },
+  );
+  switch (request.toolName) {
+    case "addPlace":
+      actions.addPlace(
+        mutationActionInputSchemas.addPlace.parse(request.input),
+      );
+      break;
+    case "updatePlace":
+      actions.updatePlace(
+        mutationActionInputSchemas.updatePlace.parse(request.input),
+      );
+      break;
+    case "addTransition":
+      actions.addTransition(
+        mutationActionInputSchemas.addTransition.parse(request.input),
+      );
+      break;
+    case "updateTransition":
+      actions.updateTransition(
+        mutationActionInputSchemas.updateTransition.parse(request.input),
+      );
+      break;
+    default:
+      throw new Error("Not an admitted root node operation.");
+  }
+  if (
+    canonicalContent(expected.subnets) !== canonicalContent(pre.subnets) ||
+    canonicalContent(expected.componentInstances) !==
+      canonicalContent(pre.componentInstances)
+  )
+    throw new Error("Nested construction effects are unavailable.");
+  return expected;
+};
+
+/** A creation is partitioned by canonical field so generated fields cannot inherit its basis. */
+const deriveNodeEffects = (
+  request: ConstructionMutationRequest,
+  pre: SDCPN,
+  post: SDCPN,
+): ArcEffects => {
+  if (!isObservedNodeMutation(request.toolName))
+    throw new Error("Not a node mutation.");
+  const input = mutationActionInputSchemas[request.toolName].parse(
+    request.input,
+  );
+  if (input.targetSubnetId) throw new Error("Only root nodes are observed.");
+  const collection = request.toolName.endsWith("Place")
+    ? "places"
+    : "transitions";
+  const id =
+    "id" in input
+      ? input.id
+      : "placeId" in input
+        ? input.placeId
+        : input.transitionId;
+  const creating = "id" in input;
+  const index = (creating ? post : pre)[collection].findIndex(
+    (entry) => entry.id === id,
+  );
+  const path = `/${collection}/${index}`;
+  const expected =
+    "update" in input
+      ? input.update
+      : Object.fromEntries(
+          Object.entries(input).filter(([key]) => key !== "targetSubnetId"),
+        );
+  const effects: ArcEffects = {
+    created: [],
+    updated: [],
+    deleted: [],
+    derived: [],
+  };
+  const changes = definitionChanges(
+    JSON.parse(JSON.stringify(pre)),
+    JSON.parse(JSON.stringify(post)),
+  );
+  for (const change of changes) {
+    // Keep the complete creation, but partition its fields rather than overlap a parent with derived children.
+    const partition =
+      creating &&
+      change.path === path &&
+      change.kind === "created" &&
+      objectValue(change.after)
+        ? Object.entries(change.after).map(
+            ([field, after]): DefinitionChange => ({
+              kind: "created",
+              path: `${path}/${field.replaceAll("~", "~0").replaceAll("/", "~1")}`,
+              after,
+            }),
+          )
+        : [change];
+    for (const effect of partition) {
+      const field = effect.path
+        .slice(path.length + 1)
+        .split("/")[0]
+        ?.replaceAll("~1", "/")
+        .replaceAll("~0", "~");
+      const expectedField =
+        field === undefined
+          ? undefined
+          : (expected as Record<string, unknown>)[field];
+      const actualNode = post[collection][index];
+      const actualField =
+        field === undefined || !actualNode
+          ? undefined
+          : (actualNode as unknown as Record<string, unknown>)[field];
+      const direct =
+        index >= 0 &&
+        effect.path.startsWith(`${path}/`) &&
+        field !== undefined &&
+        Object.hasOwn(expected, field) &&
+        canonicalContent(expectedField) === canonicalContent(actualField);
+      effects[direct ? effect.kind : "derived"].push(effect);
+    }
+  }
+  return effects;
+};
+
+export const assertArcEffects = (
+  attempt: ConstructionTransitionAttempt,
+): void => {
   const expected = attempt.post
     ? deriveArcEffects(
         attempt.request,
@@ -160,10 +321,10 @@ export const assertArcEffects = (attempt: ArcTransitionAttempt): void => {
   }
 };
 
-/** Only the expected root-arc insertion earns an applied result in this first contract. */
+/** Observed effect, not canonical void success: only the verified bounded footprint earns applied. */
 export const observedArcOutcome = (
-  attempt: Omit<ArcTransitionAttempt, "outcome">,
-): ArcTransitionAttempt["outcome"] => {
+  attempt: Omit<ConstructionTransitionAttempt, "outcome">,
+): ConstructionTransitionAttempt["outcome"] => {
   if (!attempt.post) return "unknown";
   const unchanged =
     canonicalContent(attempt.pre.definition) ===
@@ -178,6 +339,17 @@ export const observedArcOutcome = (
     return unchanged ? "stale" : "unknown";
   if (unchanged) return "no-op";
   const effects = attempt.effects;
+  if (isObservedNodeMutation(attempt.request.toolName)) {
+    try {
+      return canonicalContent(
+        expectedNodeDefinition(attempt.request, attempt.pre.definition),
+      ) === canonicalContent(attempt.post.definition)
+        ? "applied"
+        : "unknown";
+    } catch {
+      return "unknown";
+    }
+  }
   if (attempt.request.toolName === "updateArcWeight") {
     const change = effects.updated[0];
     const input = mutationActionInputSchemas.updateArcWeight.parse(
@@ -272,13 +444,16 @@ export const reconcileDefinitionObservations = async (
 };
 
 /** Recompute observation hashes at a receiving boundary, not from the request's base. */
-export const verifyArcTransitionAttempt = async (
-  delivery: ArcTransitionAttempt,
-): Promise<ArcTransitionAttempt> => {
+export const verifyArcTransitionAttempt = async <
+  Attempt extends ConstructionTransitionAttempt,
+>(
+  delivery: Attempt,
+): Promise<Attempt> => {
   // Validate a detached delivery: callers cannot change the content while hashes settle.
   const attempt = structuredClone(delivery);
   if (
-    !["addArc", "updateArcWeight"].includes(attempt.request.toolName) ||
+    (!["addArc", "updateArcWeight"].includes(attempt.request.toolName) &&
+      !isObservedNodeMutation(attempt.request.toolName)) ||
     !/^[a-f0-9]{64}$/u.test(attempt.request.requestedBaseHash) ||
     [
       attempt.request.toolCallId,
@@ -312,9 +487,14 @@ export const verifyArcTransitionAttempt = async (
 };
 
 /** Inputs must first pass verifyArcTransitionAttempt at an external receiving boundary. */
-export const reconcileArcTransitionAttempts = (
-  attempts: ArcTransitionAttempt[],
-): ArcTransitionRecord => {
+export const reconcileArcTransitionAttempts = <
+  Attempt extends ConstructionTransitionAttempt,
+>(
+  attempts: Attempt[],
+): {
+  attempts: Attempt[];
+  outcome: ConstructionTransitionAttempt["outcome"];
+} => {
   const first = attempts[0];
   if (!first) throw new Error("A transition record requires an attempt.");
   if (

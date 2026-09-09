@@ -121,7 +121,7 @@ const preparedCrewReservationStoredSDCPN: SDCPNInLocalStorage = {
   lastUpdated: new Date(0).toISOString(),
 };
 
-const constructionDocumentId = "synthetic-construction-substrate-v1";
+const legacyConstructionDocumentId = "synthetic-construction-substrate-v1";
 const constructionClientToolNames = new Set(
   observedConstructionBrowserToolNames,
 );
@@ -376,6 +376,11 @@ export const LocalStorageDemoApp = ({
    */
   const constructionSelected =
     brunchPreviewConfig.isBrunchConfigured && isConstructionSelected(search);
+  const rootCreationSelected =
+    constructionSelected && search.brunchTracer === "root-creation";
+  const constructionDocumentId = rootCreationSelected
+    ? "synthetic-root-creation-v1"
+    : legacyConstructionDocumentId;
   const tracerDocumentId = constructionSelected
     ? constructionDocumentId
     : rootArcTracerDocumentId;
@@ -388,9 +393,14 @@ export const LocalStorageDemoApp = ({
   const [initialTracerDocument] = useState(() => ({
     ...createRootArcTracerDocument(),
     id: tracerDocumentId,
-    ...(constructionSelected
-      ? { title: "Synthetic construction substrate — no prepared workpiece" }
-      : {}),
+    ...(rootCreationSelected
+      ? {
+          title: "Synthetic root creation — empty document",
+          sdcpn: structuredClone(emptySDCPN),
+        }
+      : constructionSelected
+        ? { title: "Synthetic construction substrate — no prepared workpiece" }
+        : {}),
   }));
   const fixtureDocumentId = rootArcTracerSelected
     ? tracerDocumentId
@@ -527,7 +537,7 @@ export const LocalStorageDemoApp = ({
         });
       });
     });
-  }, [activeHandle, setStoredSDCPNs]);
+  }, [activeHandle, setStoredSDCPNs, constructionDocumentId]);
 
   const existingNets: MinimalNetMetadata[] = Object.values(
     storedSDCPNsForDisplay,
@@ -636,7 +646,7 @@ export const LocalStorageDemoApp = ({
     currentNetId === null
       ? null
       : tracerIsCurrent && activeHandle?.fallbackNet.incarnationId
-        ? `${constructionSelected ? "construction-candidate-v1" : "prepared-root-arc"}:${activeHandle.fallbackNet.incarnationId}`
+        ? `${rootCreationSelected ? "root-creation-candidate-v1" : constructionSelected ? "construction-candidate-v1" : "prepared-root-arc"}:${activeHandle.fallbackNet.incarnationId}`
         : (fixtureConfiguration?.conversationId ??
           getOrCreateBrunchConversationId(currentNetId));
   const flueClientPromise = useMemo(
@@ -880,8 +890,11 @@ export const LocalStorageDemoApp = ({
             padding: 8,
           }}
         >
-          Synthetic construction candidate · prepared net substrate only · no
-          prepared workpiece · root arc/weight mechanics, not genuine or
+          Synthetic construction candidate ·{" "}
+          {rootCreationSelected
+            ? "empty starting document"
+            : "prepared net substrate only"}{" "}
+          · no prepared workpiece · root construction mechanics, not genuine or
           provider admission
         </div>
       )}

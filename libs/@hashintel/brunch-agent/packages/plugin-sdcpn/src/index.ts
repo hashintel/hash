@@ -14,6 +14,7 @@ export {
   assertArcEffects,
   canonicalContent,
   deriveArcEffects,
+  expectedNodeDefinition,
   observedArcOutcome,
   reconcileArcTransitionAttempts,
   verifyArcTransitionAttempt,
@@ -21,6 +22,9 @@ export {
   reconcileDefinitionObservations,
   type ArcEffects,
   type ArcMutationRequest,
+  type ConstructionMutationRequest,
+  type ConstructionTransitionAttempt,
+  type ConstructionTransitionRecord,
   type ArcTransitionAttempt,
   type ArcTransitionRecord,
   type DefinitionObservation,
@@ -40,6 +44,19 @@ export {
   type RootArcWhyInput,
 } from "./root-arc";
 export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";
+export {
+  constructionWhyInputSchema,
+  parseConstructionWhyInput,
+  rootNodeWhyInputSchema,
+  type RootNodeWhyInput,
+  observedNodeMutationNames,
+  isObservedNodeMutation,
+  observedNodeInputSchema,
+  parseObservedNodeInput,
+  locateRootNode,
+  assertNodeIdentity,
+  type ObservedNodeMutationName,
+} from "./root-node";
 
 export const SDCPN_DOMAIN_TYPOLOGY = "operational processes";
 export const SDCPN_TARGET_FORMALISM = "sdcpn";

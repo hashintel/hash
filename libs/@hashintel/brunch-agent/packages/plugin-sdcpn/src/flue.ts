@@ -25,6 +25,7 @@ import {
   createJoinedRootArcTool,
   createObservedArcTool,
   observedDefinitionReadTool,
+  observedCompilationReadTool,
   observedConstructionBrowserToolNames,
   petrinautConstructionTools,
   petrinautFixtureTools,
@@ -79,7 +80,10 @@ export function useSdcpnPlugin(options?: {
   currentRevision: WorkpieceRevision | null;
   observationFor?: (
     id: string,
-    creation?: import("./transition-record").ArcMutationRequest["input"],
+    mutation?: Pick<
+      import("./transition-record").ConstructionMutationRequest,
+      "toolName" | "input"
+    >,
   ) => Promise<import("./transition-record").DefinitionObservation>;
   retainedRevisionFor: (
     revisionId: string,
@@ -106,16 +110,18 @@ export function useSdcpnPlugin(options?: {
       }),
     );
     useInstruction(
-      "This is a synthetic candidate conversation-bound construction path, not provider-class or genuine construction admission. No prepared workpiece is supplied. Elicit and settle the actual workpiece via update_workpiece. Use brunch_workpiece to obtain source IDs and settled passage locators. Before each mutation obtain getLatestNetDefinition and cite its result metadata.observation.toolCallId and metadata.observation.observed.sha256 as brunch.observationToolCallId and brunch.requestedBaseHash, alongside explicit settled basis. Never infer a latest/sibling base or reconstruct one at execution. Only root addArc and updateArcWeight are currently available; other required operations must be disclosed as unavailable, never silently replaced. Submit one browser call per proposal and wait for its result; stale, unknown, conflicting, failed and no-op attempts are not causes and must not be reapplied.",
+      "This is a synthetic candidate conversation-bound construction path, not provider-class or genuine construction admission. No prepared workpiece is supplied. Elicit and settle the actual workpiece via update_workpiece. Use brunch_workpiece to obtain source IDs and settled passage locators. Before each mutation obtain getLatestNetDefinition and cite its result metadata.observation.toolCallId and metadata.observation.observed.sha256 as brunch.observationToolCallId and brunch.requestedBaseHash, alongside explicit settled basis. Never infer a latest/sibling base or reconstruct one at execution. Root places and transitions can be created/corrected with addPlace/updatePlace/addTransition/updateTransition, connected with addArc and corrected with updateArcWeight; getNetCompilationErrors checks canonical compilation. Other required operations remain unavailable and must be disclosed, never silently replaced. Duplicate and known-retired identities are refused from verified document/history. Generated or sanitized fields are recorded as derived, not automatically supported by the request basis. Preserve unknown operational quantities; do not invent rates to satisfy compilation. Submit one browser call per proposal and wait for its result; stale, unknown, conflicting, failed and no-op attempts are not causes and must not be reapplied.",
     );
     for (const name of observedConstructionBrowserToolNames)
       useTool(
         name === "getLatestNetDefinition"
           ? observedDefinitionReadTool
-          : createObservedArcTool(name, {
-              ...options,
-              observationFor: options.observationFor,
-            }),
+          : name === "getNetCompilationErrors"
+            ? observedCompilationReadTool
+            : createObservedArcTool(name, {
+                ...options,
+                observationFor: options.observationFor,
+              }),
       );
   } else if (initialData?.mode === VALIDATED_CONSTRUCTION_MODE) {
     useInstruction(
