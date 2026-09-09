@@ -1,9 +1,12 @@
 import { Menu } from "@ark-ui/react/menu";
+import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../../util/form-shared";
 import { type Item, type ItemOrGroup, SelectableList } from "./selectable-list";
+import { SelectableListSearch } from "./selectable-list-search";
+import { SelectableListSelectionSummary } from "./selectable-list-selection-summary";
 import {
   defaultSelected,
   groupedItems,
@@ -153,6 +156,67 @@ export const HeaderAndFooter: Story<SelectableListProps> = (args) => (
     </StaticMenu>
   </div>
 );
+
+const searchableFruits = [
+  "Apple",
+  "Banana",
+  "Cherry",
+  "Dragonfruit",
+  "Elderberry",
+  "Fig",
+  "Grape",
+  "Honeydew",
+];
+
+export const SearchWithSelectionSummary: Story<SelectableListProps> = (
+  args,
+) => {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<string[]>(["Apple", "Cherry"]);
+
+  const toggle = (id: string) =>
+    setSelected((current) =>
+      current.includes(id)
+        ? current.filter((selectedId) => selectedId !== id)
+        : [...current, id],
+    );
+
+  const visibleFruits = searchableFruits.filter((fruit) =>
+    fruit.toLowerCase().includes(search.trim().toLowerCase()),
+  );
+
+  return (
+    <StaticMenu>
+      <SelectableList
+        {...args}
+        items={visibleFruits.map((fruit) => ({
+          id: fruit,
+          text: fruit,
+          selectedStyle: "checkbox",
+          onClick: toggle,
+        }))}
+        selected={selected}
+        emptyState={<span>No matches</span>}
+        header={
+          <SelectableListSearch
+            value={search}
+            onChange={setSearch}
+            aria-label="Search fruits"
+          />
+        }
+        footer={
+          <SelectableListSelectionSummary
+            size={args.size}
+            selectedCount={selected.length}
+            totalCount={searchableFruits.length}
+            onSelectAll={() => setSelected(searchableFruits)}
+            onClearAll={() => setSelected([])}
+          />
+        }
+      />
+    </StaticMenu>
+  );
+};
 
 export const Disabled: Story<SelectableListProps> = (args) => (
   <StaticMenu>
