@@ -142,7 +142,14 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
             }
             aria-pressed={pinned}
             tooltip={pinned ? "Unpin" : "Keep open while you work"}
-            onClick={() => toggleVisualizerPin(nodeId)}
+            // The box is a portal but still a child of the node in the React
+            // tree, so without this a click on the pin also selects the place
+            // and opens its properties.
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              toggleVisualizerPin(nodeId);
+            }}
           />
         </div>
       </div>
