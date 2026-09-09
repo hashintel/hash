@@ -44,6 +44,7 @@ import type {
   ContourSurfaceSampleMarks,
   ContourSurfaceValues,
 } from "../../../../../../components/contour-surface";
+import type { ChartCardTone } from "../../shared/chart-card";
 import type { OptimizationSurfaceView } from "./navigation-slice";
 import type { PetrinautOptimizationTrialEvent } from "@hashintel/petrinaut-core";
 
@@ -306,6 +307,7 @@ export const OptimizationSurfacePlot = ({
   caption,
   actions,
   fixedHeight = false,
+  tone,
   children,
 }: {
   axes: readonly OptimizationSurfaceAxis[];
@@ -333,6 +335,8 @@ export const OptimizationSurfacePlot = ({
    * of the same height. Off when `children` add rows of their own.
    */
   fixedHeight?: boolean;
+  /** How the card reads: `paused` while the study is paused. */
+  tone?: ChartCardTone;
   /** Rows under the plot. */
   children?: ReactNode;
 }) => {
@@ -370,6 +374,7 @@ export const OptimizationSurfacePlot = ({
       })}
       actions={actions}
       bodyHeight={fixedHeight ? SURFACE_PLOT_HEIGHT : undefined}
+      tone={tone}
       footer={
         <SurfaceAxisControls
           axes={axes}

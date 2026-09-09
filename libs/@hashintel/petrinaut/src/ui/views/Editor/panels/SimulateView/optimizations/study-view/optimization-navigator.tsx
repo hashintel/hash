@@ -28,12 +28,16 @@ import type {
 } from "../../../../../../../react/optimizations/context";
 import type { OptimizationSurfaceAxis } from "../../../../../../../react/optimizations/surface-grid";
 
-/** The status line under the controls. */
+/**
+ * The status line under the controls. A settled study with nothing computed
+ * at its point says so: nothing is coming until it is asked for.
+ */
 export const describeSelection = (
   selection: OptimizationSelectionStream | null,
+  running = true,
 ): string => {
   if (selection === null) {
-    return "waiting for compute";
+    return running ? "waiting for compute" : "nothing computed at this point";
   }
   if (selection.error !== null) {
     return `Could not compute: ${selection.error}`;
@@ -244,7 +248,7 @@ export const OptimizationNavigatorStatus = ({
         selection !== null && selection.error !== null ? "error" : undefined
       }
     >
-      {describeSelection(selection)}
+      {describeSelection(selection, running)}
     </span>
     {running ? (
       <Toggle

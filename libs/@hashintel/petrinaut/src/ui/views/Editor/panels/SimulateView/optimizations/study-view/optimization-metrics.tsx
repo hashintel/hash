@@ -13,7 +13,11 @@ import {
   ExperimentMetricTimeline,
   MetricViewMenu,
 } from "../../experiments/experiment-metric-timeline";
-import { CHART_CARD_FOOTER_CHROME, ChartCard } from "../../shared/chart-card";
+import {
+  CHART_CARD_FOOTER_CHROME,
+  ChartCard,
+  type ChartCardTone,
+} from "../../shared/chart-card";
 import {
   SURFACE_FOOTER_HEIGHT,
   SURFACE_PLOT_HEIGHT,
@@ -36,11 +40,14 @@ export const OptimizationMetrics = ({
   optimization,
   selection,
   title,
+  tone,
 }: {
   optimization: OptimizationRecord;
   selection: OptimizationSelectionStream | null;
   /** The card's title: what point the chart describes. */
   title: string;
+  /** How the card reads: `paused` while the study is paused. */
+  tone?: ChartCardTone;
 }) => {
   const [settings, setSettings] = useState(DEFAULT_METRIC_VIEW_SETTINGS);
   const input = optimization.input;
@@ -63,6 +70,7 @@ export const OptimizationMetrics = ({
         />
       }
       bodyHeight={OBJECTIVE_PLOT_HEIGHT}
+      tone={tone}
     >
       <ExperimentMetricTimeline
         frames={

@@ -772,6 +772,9 @@ export const fakeConstrainedStudyTrials = makeConstrainedTrials(
 /** The refinement ladder a navigated point climbs in the stories, one rung per 900 ms. */
 const REFINEMENT_LADDER = [8, 25, 100];
 
+/** How many steps the paused stories have landed before the pause. */
+export const PAUSED_LANDED_STEPS = 12;
+
 /**
  * A connected study for the drawer and full-view stories: while `running`,
  * one step lands every 1.2 s and the navigation follows the next; otherwise
@@ -800,6 +803,7 @@ const FAKE_STUDIES: Record<
 
 export function useFakeConnectedStudy({
   running,
+  paused = false,
   constrained = false,
   study = constrained ? "constrained" : "base",
   importance = false,
@@ -807,6 +811,11 @@ export function useFakeConnectedStudy({
   refinementError = null,
 }: {
   running: boolean;
+  /**
+   * The study paused after `PAUSED_LANDED_STEPS` steps: drained, resumable,
+   * parked at its best step with nothing computed there.
+   */
+  paused?: boolean;
   /** Use the study with two constraints and constraint results on its trials. */
   constrained?: boolean;
   /** The fake study to mount; `constrained` picks the constrained one when unset. */
@@ -823,18 +832,31 @@ export function useFakeConnectedStudy({
     ticksPerStep: 8,
     tickMs: 150,
   });
-  const landed = running ? clock.landed : allTrials.trials.length;
+  const landed = running
+    ? clock.landed
+    : paused
+      ? PAUSED_LANDED_STEPS
+      : allTrials.trials.length;
   const trials = allTrials.trials.slice(0, landed);
   const inFlight = running ? allTrials.trials[landed] : undefined;
+  const best = trials.at(-1)?.best ?? null;
 
   const [chosen, setChosen] = useState<OptimizationNavigation>(() =>
     navigationAtTrial(input, allTrials.trials[0]!, true),
   );
   // While following, the navigation is wherever the optimizer is evaluating;
-  // once every step has landed it holds at the last one.
-  const navigation = chosen.followTrials
-    ? navigationAtTrial(input, inFlight ?? allTrials.trials.at(-1)!, true)
-    : chosen;
+  // once every step has landed it holds at the last one. A paused study is
+  // parked at its best step, not following, until a control is moved.
+  const parkedAtBest = paused && chosen.followTrials;
+  const navigation = parkedAtBest
+    ? navigationAtTrial(
+        input,
+        allTrials.trials[best?.trial ?? 0] ?? allTrials.trials[0]!,
+        false,
+      )
+    : chosen.followTrials
+      ? navigationAtTrial(input, inFlight ?? allTrials.trials.at(-1)!, true)
+      : chosen;
   const key = navigationKey(input, navigation);
 
   const [refinement, setRefinement] = useState({ key, rung: 0 });
@@ -856,8 +878,9 @@ export function useFakeConnectedStudy({
   }, [key, refinement.rung]);
 
   const rung = refinement.key === key ? refinement.rung : 0;
-  const selection =
-    inFlight && navigation.followTrials
+  const selection = parkedAtBest
+    ? null
+    : inFlight && navigation.followTrials
       ? makeSelectionStream({
           input,
           navigation,
@@ -884,8 +907,8 @@ export function useFakeConnectedStudy({
   const optimization = makeOptimizationRecord({
     input,
     trials,
-    best: trials.at(-1)?.best ?? null,
-    status: inFlight ? "running" : "complete",
+    best,
+    status: inFlight ? "running" : paused ? "paused" : "complete",
     importance: importance && !inFlight ? makeImportance(input, trials) : null,
     connected: makeConnectedStudyState(input, {
       navigation,

@@ -10,7 +10,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import "uplot/dist/uPlot.min.css";
 
 import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
-import { ChartCard } from "../../shared/chart-card";
+import { ChartCard, type ChartCardTone } from "../../shared/chart-card";
 import {
   buildObjectiveHistory,
   toObjectiveHistoryData,
@@ -210,10 +210,13 @@ export const ObjectiveHistoryCard = ({
   optimization,
   plotHeight,
   infeasibleColor,
+  tone,
 }: {
   optimization: Pick<OptimizationRecord, "trials" | "input" | "best">;
   plotHeight: number;
   infeasibleColor?: string;
+  /** How the card reads: `paused` while the study is paused. */
+  tone?: ChartCardTone;
 }) => {
   const { input } = optimization;
   const metric = input.model.definition.metrics?.find(
@@ -229,6 +232,7 @@ export const ObjectiveHistoryCard = ({
       subtitle={`${metricName} per step · best so far as a line · ${completed} completed`}
       help="Each dot is one step's objective value; the line is the best value found up to that step. Pruned and failed steps have no dot."
       bodyHeight={plotHeight}
+      tone={tone}
     >
       <ObjectiveHistoryChart
         optimization={optimization}
