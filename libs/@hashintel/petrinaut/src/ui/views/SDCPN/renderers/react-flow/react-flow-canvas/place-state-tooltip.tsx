@@ -13,6 +13,7 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { PinIcon } from "../../../../../components/pin-icon";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 
@@ -38,29 +39,40 @@ const TOP_BAR_SAFE_ZONE_PX = 72;
  */
 const PIN_CLASS = "place-visualizer-pin";
 
-const wrapperStyle = cva({
-  base: {
-    display: "flex",
-    position: "relative",
-    "&:hover .place-visualizer-pin": {
-      opacity: "[1]",
-    },
-    // Reaching the pin by keyboard has to bring it up too, or its focus ring
-    // arrives at a third of its strength.
-    "&:focus-within .place-visualizer-pin": {
-      opacity: "[1]",
+/**
+ * The box grows out of the node it belongs to.
+ *
+ * It has to be measured before it can be placed, so it starts hidden either
+ * way; opening from just under full size turns that first frame into the
+ * start of a movement rather than a flash. The origin is the edge nearest the
+ * node, set by the caller, so the box appears to come from the place rather
+ * than from its own middle.
+ */
+const wrapperStyle = css({
+  display: "flex",
+  position: "relative",
+  opacity: "[0]",
+  transform: "[scale(0.96)]",
+  pointerEvents: "none",
+  "&[data-open='true']": {
+    opacity: "[1]",
+    transform: "[scale(1)]",
+    pointerEvents: "auto",
+  },
+  "&[data-animated='true']": {
+    transition:
+      "[opacity 120ms ease-out, transform 160ms cubic-bezier(0.2, 0.9, 0.25, 1)]",
+    "@media (prefers-reduced-motion: reduce)": {
+      transition: "[none]",
     },
   },
-  variants: {
-    // Hidden until measured, so a tall box near the top never flashes behind
-    // the top bar before the above/below decision settles.
-    measured: {
-      true: {},
-      false: {
-        opacity: "[0]",
-        pointerEvents: "none",
-      },
-    },
+  // Pointing anywhere at the box brings its pin forward, and so does reaching
+  // it by keyboard.
+  "&:hover .place-visualizer-pin": {
+    opacity: "[1]",
+  },
+  "&:focus-within .place-visualizer-pin": {
+    opacity: "[1]",
   },
 });
 
@@ -86,16 +98,20 @@ const tooltipStyle = css({
 
 /**
  * The pin sits over the visualizer's top-right corner rather than beside it,
- * so the box stays the size of the artwork. It holds back until the pointer
- * arrives, and stays at full strength while pinned, which is when it has to
- * be found again to release it.
+ * so the box stays the size of the artwork.
  *
- * This is a surface of its own around the button, not the button's own: a
+ * A disc of frosted glass around the button, not the button's own surface: a
  * visualizer draws whatever it likes underneath — black, in the satellites
  * example — and every button variant in the system paints in translucent ink
  * meant for the app's own background, so a bare glyph disappears into the
- * artwork. An opaque chip with a border reads over anything, and leaves the
- * button's hover and pressed ink to sit on top of it as designed.
+ * artwork. Blurring what is behind it and tinting that pale gives the disc
+ * the artwork's own colour while lifting it enough for a dark glyph to read
+ * over anything, and leaves the button's hover and pressed ink to sit on top
+ * of the disc as designed.
+ *
+ * Held back until the pointer or the keyboard reaches the box, and at full
+ * strength while pinned, which is when it has to be found again to release
+ * it.
  *
  * Anchored on the wrapper rather than inside the box, so it keeps its corner
  * while a tall visualizer scrolls underneath.
@@ -109,16 +125,27 @@ const pinStyle = cva({
     top: "[17px]",
     right: "[5px]",
     display: "flex",
-    borderRadius: "md",
-    border: "[1px solid {colors.neutral.bd.solid}]",
-    // Keeps the button's hover ink inside the rounded corners.
+    borderRadius: "full",
+    // A rim of light rather than a drawn border: it reads against a dark
+    // artwork and dissolves into a pale one.
+    border: "[1px solid rgba(255, 255, 255, 0.5)]",
+    boxShadow: "[0 1px 3px rgba(0, 0, 0, 0.14)]",
+    backdropFilter: "[blur(8px) saturate(140%)]",
+    // Keeps the button's ink and the blur inside the disc.
     overflow: "hidden",
-    transition: "[opacity 120ms ease]",
+    color: "neutral.s120",
+    transition: "[opacity 120ms ease, background-color 150ms ease]",
   },
   variants: {
     pinned: {
-      true: { opacity: "[1]", backgroundColor: "neutral.s20" },
-      false: { opacity: "[0.3]", backgroundColor: "neutral.s00" },
+      true: {
+        opacity: "[1]",
+        backgroundColor: "[rgba(255, 255, 255, 0.86)]",
+      },
+      false: {
+        opacity: "[0.72]",
+        backgroundColor: "[rgba(255, 255, 255, 0.46)]",
+      },
     },
   },
 });
@@ -134,6 +161,7 @@ const pinStyle = cva({
 export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
   const presentation = usePetrinautPresentation();
   const { petriNetDefinition } = use(SDCPNContext);
+  const { showAnimations } = use(UserSettingsContext);
   const {
     pinnedVisualizerPlaceIds,
     toggleVisualizerPin,
@@ -185,10 +213,16 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
       offset={0}
     >
       <div
-        className={wrapperStyle({ measured: boxSize !== null })}
-        // The gap between node and box is the wrapper's own padding, so the
-        // pointer crosses it without touching the canvas.
-        style={{ padding: `${TOOLTIP_OFFSET_PX}px 0` }}
+        className={wrapperStyle}
+        data-animated={showAnimations}
+        data-open={boxSize !== null}
+        style={{
+          // The gap between node and box is the wrapper's own padding, so the
+          // pointer crosses it without touching the canvas.
+          padding: `${TOOLTIP_OFFSET_PX}px 0`,
+          // Grows from whichever edge faces the node.
+          transformOrigin: placeBelow ? "top center" : "bottom center",
+        }}
         // The box counts as part of the place while the pointer is on it:
         // without this, reaching for the pin would end the hover and take the
         // box with it.
