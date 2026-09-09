@@ -44,7 +44,17 @@ Record paths and safe status labels, never credentials, authorization headers or
 
 A configuration checker must use the same resolver/loading path as the intended application and report: configured source, local override present/absent, actual selection matching that source, non-placeholder credential, expected model, and whether authentication was tested. Safe default result: **configuration verified; credential validity untested**. Synthetic tests should cover missing local configuration, tracked dummy, overriding process dummy and valid local selection without real secrets or requests.
 
-**No reusable checker command is introduced by this document.** Until implemented against the real loader, perform the scoped inspection and do not invent a passing preflight command or claim mere file presence meets this check.
+For a fresh `yarn dev:brunch:server`, run from the repository root:
+
+```sh
+sandbox-exec -p '(version 1) (allow default) (deny network*)' \
+  env BRUNCH_CHAT_MODEL=claude-sonnet-4-6 \
+  node --experimental-strip-types apps/brunch-agent/src/dev-configuration-preflight.ts
+```
+
+The checker uses Vite's development loader, the shared ChatAgent model selector and public request-free provider resolution. It reports safe declaration/selection provenance, rejects placeholders and refuses unverified higher-priority auth sources. `DEBUG` must be unset so loader diagnostics cannot expose values. The command's model selection is explicit; use the mission's required model, not an assumed default.
+
+This dev-server loader uses `apps/brunch-agent` as its environment directory; root `.env.local` is not loaded by this path. Process variables win. A PASS applies to this fresh dev-server configuration only: it does not prove a different launcher, an already-running process or the separately configured Pi persona. Provision the actual loader's configuration or its launch environment rather than assuming a copied root file suffices. Credential validity remains untested, and the check grants no provider allocation.
 
 For an optional authenticated check, follow [evaluation authentication rules](../../evaluations/README.md#authentication-is-not-inference-or-accounting). Local configuration inspection alone must continue to report validity untested.
 

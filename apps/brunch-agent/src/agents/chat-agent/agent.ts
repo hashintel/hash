@@ -29,6 +29,7 @@ import {
   useBrunchAgent,
 } from "@hashintel/brunch-agent/flue";
 
+import { selectChatModel } from "../../chat-model.ts";
 import { CLIENT_TOOL_RESULT_SIGNAL } from "../../conversation/client-tools.ts";
 import {
   retainedSettledRevision,
@@ -45,8 +46,7 @@ import { ping } from "./tools/ping.ts";
 
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
-export const CHAT_MODEL_ID =
-  process.env["BRUNCH_CHAT_MODEL"] || "claude-haiku-4-5";
+export const CHAT_MODEL_ID = selectChatModel();
 
 export const RUNBOOK_SKILL_NAME = SDCPN_MODELLING_SKILL_NAME;
 
