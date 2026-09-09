@@ -4,6 +4,15 @@
 
 This spine and its four linked drafts form one future-planning record. Keep each consequential meaning in one authoritative planning home: shared contracts and unallocated concerns live here; mission-specific detail lives in its draft. A spine pointer is not a second contract. Material omitted from a future cut returns to this record at full fidelity, and the consumed draft is removed.
 
+The owner-authorized separate-speech follow-up now owns this branch's `MISSION.md`; no future
+draft was consumed. The inherited CORS contract remains historical, not newly accepted, in
+[sre-1042-browser-origin-policy.md](docs/mission-archive/sre-1042-browser-origin-policy.md).
+Its Deferred section preserves SRE-1013 deployment configuration, SRE-1042 deployed verification,
+FE-1615 authentication, FE-1616 rate limits, and the deferred same-origin proxy. None is closed
+by local Voice evidence. Earlier speech delivery re-enters after this experiment only if content
+succeeds but measured delay is unacceptable; safety and audible benefit require a separately
+approved follow-up. Alternative architecture selection remains owner-held.
+
 The record was recut on 2026-09-04 around provenance by lineage with declared basis; the [2026-09-04 migration disposition](#2026-09-04-provenance-replanning-migration-disposition) maps every prior planning item to its surviving home.
 
 ## Current authority and accepted spine
