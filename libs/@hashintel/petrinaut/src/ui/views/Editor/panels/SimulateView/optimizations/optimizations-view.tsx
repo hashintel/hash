@@ -25,12 +25,19 @@ const OptimizationStatusBadge = ({
 }) => {
   const isActive =
     optimization.status === "initializing" || optimization.status === "running";
+  const paused = optimization.status === "paused";
 
   return (
     <Chip
       variant="soft"
       color={
-        isActive ? "blue" : optimization.status === "complete" ? "green" : "red"
+        isActive
+          ? "blue"
+          : paused
+            ? "grey"
+            : optimization.status === "complete"
+              ? "green"
+              : "red"
       }
       prefix={
         isActive
@@ -38,9 +45,11 @@ const OptimizationStatusBadge = ({
               variant: "naked",
               children: <LoadingSpinner size="xs" variant="bars" />,
             }
-          : optimization.status === "error"
-            ? { variant: "naked", iconName: "error" }
-            : undefined
+          : paused
+            ? { variant: "naked", iconName: "pause" }
+            : optimization.status === "error"
+              ? { variant: "naked", iconName: "error" }
+              : undefined
       }
     >
       {describeOptimizationStatus(optimization)}
