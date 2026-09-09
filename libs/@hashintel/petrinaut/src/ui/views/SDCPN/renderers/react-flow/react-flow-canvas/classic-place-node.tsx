@@ -4,6 +4,10 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { splitPascalCase } from "../../../../../lib/split-pascal-case";
+import {
+  useFramesAvailable,
+  usePlaceTokenCount,
+} from "../../../canvas-frame-store";
 import { nodeFocusStyle } from "../../../styles/focus";
 import { handleStyling } from "../../../styles/styling";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
@@ -82,10 +86,10 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  // The token count and whether any frame exists ride on the node: a place
-  // that read them from the frame source would re-render on every playback
-  // frame, whether or not its own count moved.
-  const { tokenCount, framesAvailable } = data;
+  // Subscribed rather than carried on the node, so a frame re-renders this
+  // place only when its own count moves.
+  const tokenCount = usePlaceTokenCount(id);
+  const framesAvailable = useFramesAvailable();
 
   // Show the visualizer on hover for places with a visualizer during simulation.
   const showStateTooltip =

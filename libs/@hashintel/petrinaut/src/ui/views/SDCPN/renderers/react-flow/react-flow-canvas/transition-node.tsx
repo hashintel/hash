@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useTransitionFrame } from "../../../canvas-frame-store";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import { nodeFocusStyle } from "../../../styles/focus";
 import {
@@ -99,6 +100,7 @@ function useFiringAnimation(
 }
 
 export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
+  id,
   data,
   isConnectable,
   selected,
@@ -110,7 +112,8 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   const boltRef = useRef<HTMLDivElement | null>(null);
 
   // Track firing count delta for simulation visualization
-  const firingDelta = useFiringDelta(data.frame?.firingCount ?? null);
+  const frame = useTransitionFrame(id);
+  const firingDelta = useFiringDelta(frame?.firingCount ?? null);
 
   // Animate when firing occurs
   useFiringAnimation(boxRef, boltRef, firingDelta);

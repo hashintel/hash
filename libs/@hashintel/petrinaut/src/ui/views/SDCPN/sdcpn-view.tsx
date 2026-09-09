@@ -8,6 +8,7 @@ import { use, useRef } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { CanvasFrameStoreProvider } from "./canvas-frame-store";
 import { canvasRenderers, defaultCanvasRenderer } from "./canvas-renderers";
 import { CursorTooltip } from "./components/cursor-tooltip";
 import { useContainerSize } from "./hooks/util/use-container-size";
@@ -45,12 +46,19 @@ export const SDCPNView: React.FC<{
   return (
     <div ref={canvasContainer} className={canvasContainerStyle}>
       {containerSize && (
-        <Renderer
-          key={petriNetId}
-          scene={scene}
-          containerSize={containerSize}
-          viewportActions={viewportActions}
-        />
+        /*
+          The store re-renders as frames arrive; the renderer below it does
+          not, because this element is made here and handed down unchanged.
+          That is what keeps a playback frame off the canvas's render path.
+        */
+        <CanvasFrameStoreProvider>
+          <Renderer
+            key={petriNetId}
+            scene={scene}
+            containerSize={containerSize}
+            viewportActions={viewportActions}
+          />
+        </CanvasFrameStoreProvider>
       )}
       <CursorTooltip />
     </div>
