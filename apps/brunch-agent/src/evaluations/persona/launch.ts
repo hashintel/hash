@@ -205,12 +205,15 @@ export const launchPersona = async (
     | Awaited<ReturnType<typeof chromium.launchPersistentContext>>
     | undefined;
   let pane: string | undefined;
+  let interrupted = false;
   const interrupt = () => {
+    if (interrupted) return;
+    interrupted = true;
     stop.abort();
     void browser?.close();
   };
-  process.once("SIGINT", interrupt);
-  process.once("SIGTERM", interrupt);
+  process.on("SIGINT", interrupt);
+  process.on("SIGTERM", interrupt);
   try {
     const services = [
       { url: `${defaultChatOrigin}/health`, script: "dev:brunch:server" },
@@ -366,22 +369,25 @@ export const launchPersona = async (
         stop.signal.addEventListener("abort", () => done(), { once: true }),
       );
   } finally {
-    process.removeListener("SIGINT", interrupt);
-    process.removeListener("SIGTERM", interrupt);
-    if (pane)
-      await execute("herdr", ["pane", "close", pane]).catch(() => {
-        process.stderr.write(
-          `Could not close persona pane ${pane}; inspect it in Herdr.\n`,
-        );
-      });
     try {
-      await browser?.close();
-    } finally {
-      for (const child of started) {
-        if (child.pid && child.exitCode === null && child.signalCode === null)
-          process.kill(-child.pid, "SIGTERM");
+      if (pane)
+        await execute("herdr", ["pane", "close", pane]).catch(() => {
+          process.stderr.write(
+            `Could not close persona pane ${pane}; inspect it in Herdr.\n`,
+          );
+        });
+      try {
+        await browser?.close();
+      } finally {
+        for (const child of started) {
+          if (child.pid && child.exitCode === null && child.signalCode === null)
+            process.kill(-child.pid, "SIGTERM");
+        }
+        report(`Retained run: ${run}`);
       }
-      report(`Retained run: ${run}`);
+    } finally {
+      process.removeListener("SIGINT", interrupt);
+      process.removeListener("SIGTERM", interrupt);
     }
   }
 };
