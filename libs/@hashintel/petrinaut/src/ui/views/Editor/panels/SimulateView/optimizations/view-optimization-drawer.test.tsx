@@ -15,7 +15,10 @@ import { UserSettingsContext } from "../../../../../../react/state/user-settings
 import {
   fakeConstrainedStudyInput,
   fakeConstrainedStudyTrials,
+  fakeLongStudyInput,
+  fakeLongStudyTrials,
   makeConnectedStudyState,
+  makeImportance,
   makeOptimizationInput,
   makeOptimizationRecord,
   makeOptimizationsContextValue,
@@ -631,5 +634,102 @@ describe("ViewOptimizationDrawer for a connected study with constraints", () => 
     expect(screen.queryByText("Constraints")).toBeNull();
     expect(screen.queryByText("Steps clear")).toBeNull();
     expect(screen.queryByText("Runs passed")).toBeNull();
+  });
+});
+
+describe("ViewOptimizationDrawer's Parameter importance card", () => {
+  const settledLong = makeOptimizationRecord({
+    input: fakeLongStudyInput,
+    trials: fakeLongStudyTrials.trials,
+    best: fakeLongStudyTrials.best,
+    status: "complete",
+    importance: makeImportance(fakeLongStudyInput, fakeLongStudyTrials.trials),
+    connected: makeConnectedStudyState(fakeLongStudyInput, {
+      resumable: true,
+    }),
+  });
+
+  const importanceCard = () =>
+    screen
+      .getByText("Parameter importance")
+      .closest<HTMLElement>("[data-chart-card]")!;
+
+  it("ranks the optimized parameters with a bar each above the floor, the count in the subtitle and a Correlation column", () => {
+    renderDrawer(settledLong);
+
+    const card = importanceCard();
+    expect(card.getAttribute("data-tone")).toBe("default");
+    expect(
+      card.querySelector("[data-chart-card-subtitle]")?.textContent,
+    ).toMatch(/^estimated from \d+ completed steps · PED-ANOVA/u);
+    expect(card.textContent).not.toContain("floor");
+    const rows = card.querySelectorAll<HTMLElement>("[data-importance-row]");
+    expect([...rows].map((row) => row.dataset.importanceRow)).toEqual([
+      "production_rate",
+      "selling_price",
+      "marketing_spend",
+    ]);
+    const widths = [
+      ...card.querySelectorAll<HTMLElement>("[data-importance-bar]"),
+    ].map((bar) => Number.parseFloat(bar.style.width));
+    expect(widths[0]).toBe(100);
+    expect(widths.every((width) => width > 0)).toBe(true);
+    expect(card.textContent).toContain("Correlation");
+    expect(card.textContent).toMatch(/[+−]\d\.\d\d/u);
+  });
+
+  it("mutes the card and fades the bars below the floor, and says so in the subtitle", () => {
+    renderDrawer(
+      makeOptimizationRecord({
+        input,
+        trials,
+        best,
+        status: "complete",
+        importance: makeImportance(input, trials),
+        connected: makeConnectedStudyState(input, { resumable: true }),
+      }),
+    );
+
+    const card = importanceCard();
+    expect(card.getAttribute("data-tone")).toBe("muted");
+    expect(
+      card.querySelector("[data-chart-card-subtitle]")?.textContent,
+    ).toContain("below the 50-step floor, treat as a hint");
+    expect(
+      card
+        .querySelector("[data-importance-panel]")
+        ?.getAttribute("data-below-floor"),
+    ).toBe("true");
+    // Faded bars do not set the scale: the largest bar is its raw share, not full width.
+    const widths = [
+      ...card.querySelectorAll<HTMLElement>("[data-importance-bar]"),
+    ].map((bar) => Number.parseFloat(bar.style.width));
+    expect(Math.max(...widths)).toBeLessThan(100);
+  });
+
+  it("shows dashed rows and the correlations while no estimate has arrived, and nothing for a remote study", () => {
+    renderDrawer(
+      makeOptimizationRecord({
+        input,
+        trials,
+        best,
+        status: "running",
+        connected: makeConnectedStudyState(input),
+      }),
+    );
+
+    const card = importanceCard();
+    const rows = card.querySelectorAll<HTMLElement>("[data-importance-row]");
+    expect(rows).toHaveLength(2);
+    expect([...rows].every((row) => row.dataset.estimated === "false")).toBe(
+      true,
+    );
+    expect(card.textContent).toMatch(/[+−]\d\.\d\d/u);
+    cleanup();
+
+    renderDrawer(
+      makeOptimizationRecord({ input, trials, best, status: "complete" }),
+    );
+    expect(screen.queryByText("Parameter importance")).toBeNull();
   });
 });

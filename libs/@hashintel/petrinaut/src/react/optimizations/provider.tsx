@@ -303,6 +303,7 @@ const createOptimizationRecord = (
   failedTrials: 0,
   trials: [],
   best: null,
+  importance: null,
   computeBackend: "cpu",
   axes: buildOptimizationSurfaceAxes(input),
   connected: null,
@@ -559,6 +560,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
               current.best,
               event,
             ),
+            importance: event.importances ?? current.importance,
           }));
           studiesRef.current.get(optimizationId)?.trialReported(event);
           break;
@@ -577,6 +579,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
                 // running best stay authoritative.
                 requestedTrials: event.requestedTrials,
                 best: event.best ?? current.best,
+                importance: event.importances ?? current.importance,
               },
               () => ({ resumable: resumable(event) }),
             ),
