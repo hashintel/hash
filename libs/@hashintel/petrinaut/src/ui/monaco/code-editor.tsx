@@ -184,12 +184,16 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   // Withholding `value` makes @monaco-editor/react skip its sync; the prop
   // resumes syncing external changes once focus leaves.
   const [editorFocused, setEditorFocused] = useState(false);
+  // Until Monaco mounts, its `loading` label sits where the placeholder
+  // would, so the placeholder waits for the mount rather than overlapping it.
+  const [editorMounted, setEditorMounted] = useState(false);
 
   const handleMount = (
     editorInstance: editor.IStandaloneCodeEditor,
     monacoInstance: Monaco,
   ) => {
     editorRef.current = editorInstance;
+    setEditorMounted(true);
 
     // With a `path`, @monaco-editor/react reuses the existing model and
     // ignores `value` — a reopened editor would show the model's stale text
@@ -313,7 +317,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
 
   return (
     <>
-      {singleLine && placeholder && !value && (
+      {singleLine && placeholder && !value && editorMounted && (
         <div className={placeholderStyle}>{placeholder}</div>
       )}
       <Editor
