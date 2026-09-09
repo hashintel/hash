@@ -71,3 +71,46 @@ describe("compileVisualizer", () => {
     ).toThrow(/Failed to compile/);
   });
 });
+
+describe("compileVisualizer caching", () => {
+  it("returns the component already made for the same code", () => {
+    const code = `export default Visualization(() => <div />);`;
+
+    expect(compileVisualizer(code)).toBe(compileVisualizer(code));
+  });
+
+  it("compiles code that differs", () => {
+    const first = compileVisualizer(
+      `export default Visualization(() => <span />);`,
+    );
+    const second = compileVisualizer(
+      `export default Visualization(() => <section />);`,
+    );
+
+    expect(first).not.toBe(second);
+  });
+
+  it("keeps a failure rather than recompiling it", () => {
+    const broken = `export default Visualization(() => <div />; // unbalanced`;
+
+    const first = (() => {
+      try {
+        compileVisualizer(broken);
+        return null;
+      } catch (error) {
+        return error;
+      }
+    })();
+    const second = (() => {
+      try {
+        compileVisualizer(broken);
+        return null;
+      } catch (error) {
+        return error;
+      }
+    })();
+
+    expect(first).toBeInstanceOf(Error);
+    expect(second).toBe(first);
+  });
+});
