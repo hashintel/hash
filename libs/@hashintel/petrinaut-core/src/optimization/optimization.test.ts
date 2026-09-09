@@ -517,6 +517,33 @@ describe("petrinautOptimizationEventSchema", () => {
     expect(zeroRuns.success).toBe(false);
   });
 
+  it("accepts importances on the trial and complete events, and rejects shares outside [0, 1]", () => {
+    const importances = {
+      values: { rate: 0.75, count: 0.25 },
+      completedTrials: 50,
+    };
+    expect(
+      petrinautOptimizationEventSchema.safeParse({ ...events[1], importances })
+        .success,
+    ).toBe(true);
+    expect(
+      petrinautOptimizationEventSchema.safeParse({ ...events[2], importances })
+        .success,
+    ).toBe(true);
+    expect(
+      petrinautOptimizationEventSchema.safeParse({
+        ...events[2],
+        importances: { values: { rate: 1.5 }, completedTrials: 50 },
+      }).success,
+    ).toBe(false);
+    expect(
+      petrinautOptimizationEventSchema.safeParse({
+        ...events[2],
+        importances: { values: { rate: 1 }, completedTrials: 0 },
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects negative or fractional sequence numbers", () => {
     const negative = petrinautOptimizationEventSchema.safeParse({
       type: "started",

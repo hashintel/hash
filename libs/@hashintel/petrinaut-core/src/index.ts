@@ -143,6 +143,7 @@ export type {
   PetrinautOptimizationStudy,
   PetrinautOptimizationTrialConstraints,
   PetrinautOptimizationTrialEvent,
+  PetrinautOptimizationImportances,
   PetrinautOptimizationConstraintPolicy,
   PetrinautIntegerOptimizationDomain,
 } from "./optimization";
