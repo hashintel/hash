@@ -19,6 +19,7 @@ import {
   FRAME_SECONDARY_MIN_WIDTH,
   FRAME_TWO_COLUMN_MIN_WIDTH,
   FrameBand,
+  FrameCard,
   FrameColumns,
   FrameStat,
   FrameStatusPill,
@@ -164,8 +165,8 @@ describe("DrawerFrame", () => {
   });
 
   it("gives the secondary column room for two chart cards and their gap from the two-column width up", () => {
-    // The grid's gap is the `3` spacing token, 12px.
-    expect(FRAME_SECONDARY_MIN_WIDTH).toBe(2 * CHART_CARD_MIN_WIDTH + 12);
+    // The grid's gap is the `4` spacing token, 16px.
+    expect(FRAME_SECONDARY_MIN_WIDTH).toBe(2 * CHART_CARD_MIN_WIDTH + 16);
     // The extra-large drawer's body content box is 1010px, 995px beside a
     // classic scrollbar; both are two-column widths.
     expect(FRAME_TWO_COLUMN_MIN_WIDTH).toBeLessThanOrEqual(995);
@@ -230,6 +231,47 @@ describe("DrawerFrame", () => {
     fireEvent.click(screen.getByRole("button", { name: "Expand Parameters" }));
     expect(content.hasAttribute("inert")).toBe(false);
     expect(screen.getByRole("textbox", { name: "population" })).toBeTruthy();
+  });
+
+  it("keeps a card's fixed part folded until its footer button opens it, mounted throughout", () => {
+    render(
+      <FrameCard
+        title="Parameters"
+        subtitle="1 optimized · 1 fixed"
+        more={{
+          show: "Show 1 fixed parameter",
+          hide: "Hide fixed parameters",
+          content: <input aria-label="population" defaultValue="1000" />,
+        }}
+      >
+        <input aria-label="infection_rate" defaultValue="0.3" />
+      </FrameCard>,
+    );
+
+    expect(screen.getByText("1 optimized · 1 fixed")).toBeTruthy();
+    const more = document.querySelector<HTMLElement>("[data-frame-card-more]")!;
+    expect(more.hasAttribute("inert")).toBe(true);
+    expect(more.getAttribute("aria-hidden")).toBe("true");
+    expect(more.querySelector("input")?.value).toBe("1000");
+    expect(
+      screen.getByRole("textbox", { name: "infection_rate" }),
+    ).toBeTruthy();
+
+    // The button's name ends in the icon's zero-width joiner.
+    const toggle = screen.getByRole("button", {
+      name: /^Show 1 fixed parameter/u,
+    });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(toggle);
+
+    expect(more.hasAttribute("inert")).toBe(false);
+    expect(more.getAttribute("aria-hidden")).toBeNull();
+    expect(screen.getByRole("textbox", { name: "population" })).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: /^Hide fixed parameters/u })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
   });
 
   it("gives the secondary column the whole width when there is no primary", () => {

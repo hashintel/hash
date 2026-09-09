@@ -2,7 +2,7 @@
  * An experiment record mapped onto the shared results view-model: the
  * one-line title, the status and the stat columns (runs, errors, simulated
  * time, wall-clock time, the selection's sampling for a sweep), the
- * computing chip and the compute badge, the Parameters band and the surface
+ * computing chip and the compute badge, the Parameters card and the surface
  * for a sweep, one metric card per configured metric, and Remove, Cancel and
  * Close in the footer.
  */
@@ -226,8 +226,8 @@ export const experimentResultsModel = (
           {
             id: "parameters",
             title: "Parameters",
+            subtitle: `${experiment.parameterAxes.length} swept`,
             help: PARAMETERS_HELP,
-            collapsible: true,
             trailing: null,
             content: (
               <SweepNavigator
@@ -245,6 +245,7 @@ export const experimentResultsModel = (
                 }
               />
             ),
+            more: null,
           },
         ]
       : [],

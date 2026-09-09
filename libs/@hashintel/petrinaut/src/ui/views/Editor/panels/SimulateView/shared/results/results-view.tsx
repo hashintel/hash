@@ -1,6 +1,6 @@
 /**
  * @layerRoot ui.views.editor.results
- * @role The one results surface an experiment drawer, an optimization drawer and the full study view render from a common view-model: the header stats, the bands, the surface, the metric cards and the footer in the shared frame
+ * @role The one results surface an experiment drawer, an optimization drawer and the full study view render from a common view-model: the header stats, the parameter card, the surface, the metric cards and the footer in the shared frame
  *
  * The view renders a `ResultsModel` and nothing else: it reads no record and
  * no provider. The adapters that build the model live beside the records
@@ -14,7 +14,7 @@ import { ComputeBackendBadge } from "../compute-backend-badge";
 import {
   ComputeBatchesChip,
   DrawerFrame,
-  FrameBand,
+  FrameCard,
   FrameColumns,
   FrameStat,
   FrameStatusPill,
@@ -84,15 +84,16 @@ export const ResultsView = ({
       footer={footer}
     >
       {bands.map((band) => (
-        <FrameBand
+        <FrameCard
           key={band.id}
           title={band.title}
+          subtitle={band.subtitle}
           help={band.help}
-          collapsible={band.collapsible}
           trailing={band.trailing ?? undefined}
+          more={band.more}
         >
           {band.content}
-        </FrameBand>
+        </FrameCard>
       ))}
       <FrameColumns
         primary={surface ?? undefined}

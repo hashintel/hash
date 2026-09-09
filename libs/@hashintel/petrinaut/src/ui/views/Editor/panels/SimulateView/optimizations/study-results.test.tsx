@@ -13,7 +13,9 @@ import {
   optimizedBindingSets,
 } from "./optimizations-story-fixtures";
 import {
+  describeParameterCounts,
   describeStepProgress,
+  fixedParameters,
   OBJECTIVE_PLOT_HEIGHT,
   type StudyResultsDependencies,
   studyResultsModel,
@@ -131,9 +133,20 @@ describe("studyResultsModel for a running connected study", () => {
     expect(result.header.note).toBeNull();
   });
 
-  it("lays the Parameters band, the surface, the point's timeline, the study cards and the steps out", () => {
+  it("lays the Parameters card, the surface, the point's timeline, the study cards and the steps out", () => {
     expect(result.bands.map((band) => band.title)).toEqual(["Parameters"]);
-    expect(result.bands[0]!.collapsible).toBe(true);
+    const fixed = fixedParameters(input);
+    const fixedCount = Object.keys(fixed).length;
+    const optimizedCount = Object.keys(optimizedBindingSets.base).length;
+    expect(fixedCount).toBeGreaterThan(1);
+    expect(result.bands[0]).toMatchObject({
+      subtitle: `${optimizedCount} optimized · ${fixedCount} fixed`,
+      more: {
+        show: `Show ${fixedCount} fixed parameters`,
+        hide: "Hide fixed parameters",
+      },
+    });
+    expect(isValidElement(result.bands[0]!.more?.content)).toBe(true);
     expect(isValidElement(result.bands[0]!.trailing)).toBe(true);
     expect(isValidElement(result.surface)).toBe(true);
     expect(result.metrics).toMatchObject({
@@ -217,7 +230,11 @@ describe("studyResultsModel for a remote study", () => {
     expect(result.header.compute).toBeNull();
     expect(result.header.headline).not.toBeNull();
     expect(result.bands.map((band) => band.title)).toEqual(["Best parameters"]);
-    expect(result.bands[0]!.collapsible).toBe(false);
+    expect(result.bands[0]).toMatchObject({
+      subtitle: `Step ${best!.trial + 1} · ${best!.objective.toPrecision(6)}`,
+      trailing: null,
+      more: null,
+    });
     expect(result.surface).toBeNull();
     expect(result.metrics?.tiles).toEqual([]);
     expect(isValidElement(result.metrics?.cards)).toBe(true);
@@ -268,6 +285,25 @@ describe("studyResultsModel for a constrained study", () => {
     expect(statTexts(constrained)["Steps clear"]).toMatch(
       /^\d+ \/ \d+ · \d+%$/u,
     );
+  });
+});
+
+describe("describeParameterCounts", () => {
+  it("counts the optimized and the fixed parameters, the fixed part left out at zero", () => {
+    expect(describeParameterCounts(2, 3)).toBe("2 optimized · 3 fixed");
+    expect(describeParameterCounts(1, 0)).toBe("1 optimized");
+  });
+
+  it("keeps the fixed bindings' values in the scenario's order", () => {
+    const fixed = fixedParameters(input);
+    const bindings = input.scenario.parameterBindings;
+    expect(Object.keys(fixed)).toEqual(
+      Object.keys(bindings).filter((key) => bindings[key]!.kind === "fixed"),
+    );
+    for (const [identifier, value] of Object.entries(fixed)) {
+      const binding = bindings[identifier]!;
+      expect(binding.kind === "fixed" ? binding.value : null).toBe(value);
+    }
   });
 });
 

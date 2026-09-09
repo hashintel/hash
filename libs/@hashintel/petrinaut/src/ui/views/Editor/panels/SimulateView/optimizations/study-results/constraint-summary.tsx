@@ -41,8 +41,8 @@ const headlineStyle = css({
 });
 
 const headlineValueStyle = css({
-  fontSize: "2xl",
-  fontWeight: "semibold",
+  fontSize: "xl",
+  fontWeight: "medium",
   color: "neutral.s120",
   lineHeight: "[1.1]",
 });

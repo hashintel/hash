@@ -160,12 +160,10 @@ const statStyle = css({
 });
 
 const statLabelStyle = css({
-  fontSize: "[10px]",
+  fontSize: "[11px]",
   lineHeight: "[12px]",
-  fontWeight: "medium",
-  letterSpacing: "[0.04em]",
-  textTransform: "uppercase",
-  color: "neutral.s70",
+  color: "neutral.s80",
+  whiteSpace: "nowrap",
   "&[data-density=compact]": { display: "none" },
 });
 

@@ -21,10 +21,10 @@ export const FRAME_TWO_COLUMN_MIN_WIDTH = 960;
 
 /**
  * The secondary column's minimum width in pixels: two chart cards at
- * `CHART_CARD_MIN_WIDTH` and the grid's 12px gap between them. The primary
+ * `CHART_CARD_MIN_WIDTH` and the grid's 16px gap between them. The primary
  * column yields until the body is wide enough for the 3:5 split.
  */
-export const FRAME_SECONDARY_MIN_WIDTH = 652;
+export const FRAME_SECONDARY_MIN_WIDTH = 656;
 
 // The body is the `drawer-frame-body` size container (declared in
 // drawer-frame.tsx); Panda extracts the query statically, so the threshold
@@ -38,7 +38,7 @@ const columnsStyle = css({
   gridTemplateAreas: '"secondary" "primary" "after"',
   "@container drawer-frame-body (min-width: 960px)": {
     "&[data-primary=true]": {
-      gridTemplateColumns: "minmax(0, 3fr) minmax(652px, 5fr)",
+      gridTemplateColumns: "minmax(0, 3fr) minmax(656px, 5fr)",
       gridTemplateAreas: '"primary secondary" "after after"',
     },
   },
