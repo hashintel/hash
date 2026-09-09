@@ -4,28 +4,31 @@
     "usd": 100
   },
   "reservation": {
-    "runId": "a5-real-provider-20260909-r2",
+    "runId": "vestera-persona-20260909-r1",
     "status": "blocked",
-    "blockedAt": "2026-09-09T05:26:15Z",
-    "calls": 20,
-    "usd": 15,
+    "calls": 160,
+    "usd": 85,
+    "acceptedUnknownSequences": [6],
     "perCall": {
       "maxOutputTokens": 4096,
       "reservedUsd": 7
     },
-    "owner": "m7-provider-execution",
+    "owner": "ALPHA integration parent",
     "model": "anthropic/claude-sonnet-4-6",
-    "manifestSha256": "1c71ed054d89a7a0183df5b8877faba042982638a58c6696151fc119df439586",
-    "codeCommit": "f2b9bfd040ec989f06c7b72a8973f88aab3b42ca",
-    "allocatedAt": "2026-09-09T04:59:19Z",
-    "browserTopology": "sibling-playwright-v1",
-    "reason": "Blocked after exactly one native request: Anthropic HTTP401 invalid x-api-key, req_011CesJFAm63EBk1iSmJT6xd. No reported model or terminal usage; sequence6 remains unknown with US$7 held. Actual run processes/profile/writer lock are gone; parent recovered coordination after the separate coding-worker overload failure. No retry, release of the unknown hold, guessed zero cost or further invocation is authorized."
+    "codeCommit": "43a9763",
+    "allocatedAt": "2026-09-09T13:23:12.255223+00:00",
+    "participants": [
+      "local ChatAgent including browser opening and continuation",
+      "restricted Pi persona including underlying compaction"
+    ],
+    "reason": "Parent stopped after unsupported persona testimony (invented dated order/SKU/quantity) and observed native conversation-root change dropping browser opening from projected history. All run requests complete; no new unknown. No automatic retry. Diagnose continuity and correct no-invention instruction before new allocation.",
+    "blockedAt": "2026-09-09T13:34:42.783664+00:00"
   },
   "totals": {
-    "spentCalls": 6,
-    "spentUsd": 0.09113534999999999,
-    "remainingCalls": 194,
-    "remainingUsd": 99.90886465,
+    "spentCalls": 25,
+    "spentUsd": 0.4441592999999999,
+    "remainingCalls": 175,
+    "remainingUsd": 99.5558407,
     "outstandingReservedCalls": 1,
     "outstandingReservedUsd": 7
   },
@@ -44,7 +47,7 @@
         "cacheWrite1h": 0,
         "reasoning": 94,
         "cost": {
-          "input": 0.000009,
+          "input": 9e-6,
           "output": 0.00267,
           "cacheRead": 0,
           "cacheWrite": 0.03547125,
@@ -67,7 +70,7 @@
         "cacheWrite1h": 0,
         "reasoning": 0,
         "cost": {
-          "input": 0.000003,
+          "input": 3e-6,
           "output": 0.00264,
           "cacheRead": 0.0028377,
           "cacheWrite": 0.004935,
@@ -90,7 +93,7 @@
         "cacheWrite1h": 0,
         "reasoning": 106,
         "cost": {
-          "input": 0.000003,
+          "input": 3e-6,
           "output": 0.0056700000000000006,
           "cacheRead": 0.0032324999999999997,
           "cacheWrite": 0.0147675,
@@ -113,7 +116,7 @@
         "cacheWrite1h": 0,
         "reasoning": 33,
         "cost": {
-          "input": 0.000009,
+          "input": 9e-6,
           "output": 0.0011250000000000001,
           "cacheRead": 0.0044139,
           "cacheWrite": 0.00235125,
@@ -136,7 +139,7 @@
         "cacheWrite1h": 0,
         "reasoning": 35,
         "cost": {
-          "input": 0.000009,
+          "input": 9e-6,
           "output": 0.004995,
           "cacheRead": 0.004602,
           "cacheWrite": 0.00139125,
@@ -149,6 +152,20 @@
       "sequence": 6,
       "status": "unknown",
       "reservedUsd": 7,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
       "accountingVersion": 1,
       "journalPending": false,
       "runId": "a5-real-provider-20260909-r2",
@@ -183,22 +200,1425 @@
             "total": 0
           }
         }
-      },
+      }
+    },
+    {
+      "sequence": 7,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.10739775,
       "usage": {
-        "input": 0,
-        "output": 0,
+        "input": 3,
+        "output": 119,
         "cacheRead": 0,
-        "cacheWrite": 0,
-        "totalTokens": 0,
+        "cacheWrite": 28161,
+        "totalTokens": 28283,
+        "cacheWrite1h": 0,
+        "reasoning": 57,
         "cost": {
-          "input": 0,
-          "output": 0,
+          "input": 9e-6,
+          "output": 0.0017850000000000001,
           "cacheRead": 0,
-          "cacheWrite": 0,
-          "total": 0
+          "cacheWrite": 0.10560375,
+          "total": 0.10739775
+        }
+      },
+      "partialUsage": {
+        "input": 3,
+        "output": 7,
+        "cacheRead": 0,
+        "cacheWrite": 28161,
+        "totalTokens": 28171,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 9e-6,
+          "output": 0.000105,
+          "cacheRead": 0,
+          "cacheWrite": 0.10560375,
+          "total": 0.10571775
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "a71f99e894a6ef5414f723a5e8a907457659a986218f3506ee8dd8fef9d172cc",
+        "conversationId": "conv_01M235JDE2XP18N2J8NHKSG89C",
+        "submissionId": "sub_ik_5abec77504af3e253089b07b1ee40e22",
+        "operationId": "op_01M235JDG118H9AA90DR42W36N",
+        "turnId": "turn_01M235JDHM1DXNH0M4K0MPDVK7"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011CeswayKNgnhjt6K6XTV45",
+        "usage": {
+          "input": 3,
+          "output": 119,
+          "cacheRead": 0,
+          "cacheWrite": 28161,
+          "totalTokens": 28283,
+          "cacheWrite1h": 0,
+          "reasoning": 57,
+          "cost": {
+            "input": 9e-6,
+            "output": 0.0017850000000000001,
+            "cacheRead": 0,
+            "cacheWrite": 0.10560375,
+            "total": 0.10739775
+          }
         }
       }
+    },
+    {
+      "sequence": 8,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.0175863,
+      "usage": {
+        "input": 1,
+        "output": 126,
+        "cacheRead": 28161,
+        "cacheWrite": 1932,
+        "totalTokens": 30220,
+        "cacheWrite1h": 0,
+        "reasoning": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00189,
+          "cacheRead": 0.008448299999999999,
+          "cacheWrite": 0.007245,
+          "total": 0.0175863
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 24,
+        "cacheRead": 28161,
+        "cacheWrite": 1932,
+        "totalTokens": 30118,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00036,
+          "cacheRead": 0.008448299999999999,
+          "cacheWrite": 0.007245,
+          "total": 0.0160563
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "a71f99e894a6ef5414f723a5e8a907457659a986218f3506ee8dd8fef9d172cc",
+        "conversationId": "conv_01M235JDE2XP18N2J8NHKSG89C",
+        "submissionId": "sub_ik_5abec77504af3e253089b07b1ee40e22",
+        "operationId": "op_01M235JDG118H9AA90DR42W36N",
+        "turnId": "turn_01M235JQRJHA7ZZ6MCG6XTCS44"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011CeswbimYQW8iqWxCNkpSu",
+        "usage": {
+          "input": 1,
+          "output": 126,
+          "cacheRead": 28161,
+          "cacheWrite": 1932,
+          "totalTokens": 30220,
+          "cacheWrite1h": 0,
+          "reasoning": 0,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.00189,
+            "cacheRead": 0.008448299999999999,
+            "cacheWrite": 0.007245,
+            "total": 0.0175863
+          }
+        }
+      }
+    },
+    {
+      "sequence": 9,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.03598215,
+      "usage": {
+        "input": 1,
+        "output": 124,
+        "cacheRead": 30093,
+        "cacheWrite": 6691,
+        "totalTokens": 36909,
+        "cacheWrite1h": 0,
+        "reasoning": 32,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00186,
+          "cacheRead": 0.0090279,
+          "cacheWrite": 0.02509125,
+          "total": 0.03598215
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 8,
+        "cacheRead": 30093,
+        "cacheWrite": 6691,
+        "totalTokens": 36793,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00012,
+          "cacheRead": 0.0090279,
+          "cacheWrite": 0.02509125,
+          "total": 0.03424215
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "a71f99e894a6ef5414f723a5e8a907457659a986218f3506ee8dd8fef9d172cc",
+        "conversationId": "conv_01M235JDE2XP18N2J8NHKSG89C",
+        "submissionId": "sub_ik_5abec77504af3e253089b07b1ee40e22",
+        "operationId": "op_01M235JDG118H9AA90DR42W36N",
+        "turnId": "turn_01M235JYDDJEWAWCVMS26SR42A"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011CeswcEhrxvjYPEkPqFvyK",
+        "usage": {
+          "input": 1,
+          "output": 124,
+          "cacheRead": 30093,
+          "cacheWrite": 6691,
+          "totalTokens": 36909,
+          "cacheWrite1h": 0,
+          "reasoning": 32,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.00186,
+            "cacheRead": 0.0090279,
+            "cacheWrite": 0.02509125,
+            "total": 0.03598215
+          }
+        }
+      }
+    },
+    {
+      "sequence": 10,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.02127195,
+      "usage": {
+        "input": 1,
+        "output": 327,
+        "cacheRead": 36784,
+        "cacheWrite": 1421,
+        "totalTokens": 38533,
+        "cacheWrite1h": 0,
+        "reasoning": 131,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.0049050000000000005,
+          "cacheRead": 0.0110352,
+          "cacheWrite": 0.00532875,
+          "total": 0.02127195
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 8,
+        "cacheRead": 36784,
+        "cacheWrite": 1421,
+        "totalTokens": 38214,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00012,
+          "cacheRead": 0.0110352,
+          "cacheWrite": 0.00532875,
+          "total": 0.01648695
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "a71f99e894a6ef5414f723a5e8a907457659a986218f3506ee8dd8fef9d172cc",
+        "conversationId": "conv_01M235JDE2XP18N2J8NHKSG89C",
+        "submissionId": "sub_ik_5abec77504af3e253089b07b1ee40e22",
+        "operationId": "op_01M235JDG118H9AA90DR42W36N",
+        "turnId": "turn_01M235K3ZMX5CYK0M5P6F0RTJS"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011CeswcePeNV6opMrXja6Z4",
+        "usage": {
+          "input": 1,
+          "output": 327,
+          "cacheRead": 36784,
+          "cacheWrite": 1421,
+          "totalTokens": 38533,
+          "cacheWrite1h": 0,
+          "reasoning": 131,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.0049050000000000005,
+            "cacheRead": 0.0110352,
+            "cacheWrite": 0.00532875,
+            "total": 0.02127195
+          }
+        }
+      }
+    },
+    {
+      "sequence": 11,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.013530750000000001,
+      "usage": {
+        "input": 1,
+        "output": 52,
+        "cacheRead": 38205,
+        "cacheWrite": 343,
+        "totalTokens": 38601,
+        "cacheWrite1h": 0,
+        "reasoning": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00078,
+          "cacheRead": 0.0114615,
+          "cacheWrite": 0.00128625,
+          "total": 0.013530750000000001
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 1,
+        "cacheRead": 38205,
+        "cacheWrite": 343,
+        "totalTokens": 38550,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 1.5e-5,
+          "cacheRead": 0.0114615,
+          "cacheWrite": 0.00128625,
+          "total": 0.01276575
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "a71f99e894a6ef5414f723a5e8a907457659a986218f3506ee8dd8fef9d172cc",
+        "conversationId": "conv_01M235JDE2XP18N2J8NHKSG89C",
+        "submissionId": "sub_ik_5abec77504af3e253089b07b1ee40e22",
+        "operationId": "op_01M235JDG118H9AA90DR42W36N",
+        "turnId": "turn_01M235KBXVSH2WB3F41F0GPY6G"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "stop",
+        "responseId": "msg_011CeswdFF9NyBnTnRSHEQ9o",
+        "usage": {
+          "input": 1,
+          "output": 52,
+          "cacheRead": 38205,
+          "cacheWrite": 343,
+          "totalTokens": 38601,
+          "cacheWrite1h": 0,
+          "reasoning": 0,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.00078,
+            "cacheRead": 0.0114615,
+            "cacheWrite": 0.00128625,
+            "total": 0.013530750000000001
+          }
+        }
+      }
+    },
+    {
+      "sequence": 12,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.023247749999999998,
+      "usage": {
+        "input": 3,
+        "output": 278,
+        "cacheRead": 0,
+        "cacheWrite": 5085,
+        "totalTokens": 5366,
+        "cacheWrite1h": 0,
+        "reasoning": 34,
+        "cost": {
+          "input": 9e-6,
+          "output": 0.00417,
+          "cacheRead": 0,
+          "cacheWrite": 0.01906875,
+          "total": 0.023247749999999998
+        }
+      },
+      "partialUsage": {
+        "input": 3,
+        "output": 7,
+        "cacheRead": 0,
+        "cacheWrite": 5085,
+        "totalTokens": 5095,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 9e-6,
+          "output": 0.000105,
+          "cacheRead": 0,
+          "cacheWrite": 0.01906875,
+          "total": 0.01918275
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "kind": "pi",
+        "sessionId": "01a0865c-6f4a-73cb-bffb-d50ebfb20577",
+        "requestId": "f3a24bdf-c04e-47b7-97b2-40c04ac9a736"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011CeswrZWbaFt7t9U7CyEN6",
+        "usage": {
+          "input": 3,
+          "output": 278,
+          "cacheRead": 0,
+          "cacheWrite": 5085,
+          "totalTokens": 5366,
+          "cacheWrite1h": 0,
+          "reasoning": 34,
+          "cost": {
+            "input": 9e-6,
+            "output": 0.00417,
+            "cacheRead": 0,
+            "cacheWrite": 0.01906875,
+            "total": 0.023247749999999998
+          }
+        }
+      }
+    },
+    {
+      "sequence": 13,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.01295025,
+      "usage": {
+        "input": 3,
+        "output": 103,
+        "cacheRead": 0,
+        "cacheWrite": 3039,
+        "totalTokens": 3145,
+        "cacheWrite1h": 0,
+        "reasoning": 41,
+        "cost": {
+          "input": 9e-6,
+          "output": 0.001545,
+          "cacheRead": 0,
+          "cacheWrite": 0.01139625,
+          "total": 0.01295025
+        }
+      },
+      "partialUsage": {
+        "input": 3,
+        "output": 7,
+        "cacheRead": 0,
+        "cacheWrite": 3039,
+        "totalTokens": 3049,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 9e-6,
+          "output": 0.000105,
+          "cacheRead": 0,
+          "cacheWrite": 0.01139625,
+          "total": 0.01151025
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "81275b34bb42a795ad930f01377e49f6f60470c7a804e0d9d400387b0f565b76",
+        "conversationId": "conv_01M235SB35ZAH2M417GYD0XE1P",
+        "submissionId": "sub_01M235SB2SQ7K0ZD1C16TBJEAQ",
+        "operationId": "op_01M235SB3XWRZVJDZ0P55JRX3N",
+        "turnId": "turn_01M235SB4XD3A8BKCP5XD9VX2F"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011CeswsgQ7BeyybHY2JCLfk",
+        "usage": {
+          "input": 3,
+          "output": 103,
+          "cacheRead": 0,
+          "cacheWrite": 3039,
+          "totalTokens": 3145,
+          "cacheWrite1h": 0,
+          "reasoning": 41,
+          "cost": {
+            "input": 9e-6,
+            "output": 0.001545,
+            "cacheRead": 0,
+            "cacheWrite": 0.01139625,
+            "total": 0.01295025
+          }
+        }
+      }
+    },
+    {
+      "sequence": 14,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.010649700000000002,
+      "usage": {
+        "input": 1,
+        "output": 170,
+        "cacheRead": 3039,
+        "cacheWrite": 1916,
+        "totalTokens": 5126,
+        "cacheWrite1h": 0,
+        "reasoning": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00255,
+          "cacheRead": 0.0009117,
+          "cacheWrite": 0.007185,
+          "total": 0.010649700000000002
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 24,
+        "cacheRead": 3039,
+        "cacheWrite": 1916,
+        "totalTokens": 4980,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00036,
+          "cacheRead": 0.0009117,
+          "cacheWrite": 0.007185,
+          "total": 0.0084597
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "81275b34bb42a795ad930f01377e49f6f60470c7a804e0d9d400387b0f565b76",
+        "conversationId": "conv_01M235SB35ZAH2M417GYD0XE1P",
+        "submissionId": "sub_01M235SB2SQ7K0ZD1C16TBJEAQ",
+        "operationId": "op_01M235SB3XWRZVJDZ0P55JRX3N",
+        "turnId": "turn_01M235SE83TSV55QGJN52MT317"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011Ceswsv39ihod9nnuckNLR",
+        "usage": {
+          "input": 1,
+          "output": 170,
+          "cacheRead": 3039,
+          "cacheWrite": 1916,
+          "totalTokens": 5126,
+          "cacheWrite1h": 0,
+          "reasoning": 0,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.00255,
+            "cacheRead": 0.0009117,
+            "cacheWrite": 0.007185,
+            "total": 0.010649700000000002
+          }
+        }
+      }
+    },
+    {
+      "sequence": 15,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.028497,
+      "usage": {
+        "input": 1,
+        "output": 574,
+        "cacheRead": 4955,
+        "cacheWrite": 4906,
+        "totalTokens": 10436,
+        "cacheWrite1h": 0,
+        "reasoning": 392,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00861,
+          "cacheRead": 0.0014865,
+          "cacheWrite": 0.0183975,
+          "total": 0.028497
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 8,
+        "cacheRead": 4955,
+        "cacheWrite": 4906,
+        "totalTokens": 9870,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00012,
+          "cacheRead": 0.0014865,
+          "cacheWrite": 0.0183975,
+          "total": 0.020007
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "81275b34bb42a795ad930f01377e49f6f60470c7a804e0d9d400387b0f565b76",
+        "conversationId": "conv_01M235SB35ZAH2M417GYD0XE1P",
+        "submissionId": "sub_01M235SB2SQ7K0ZD1C16TBJEAQ",
+        "operationId": "op_01M235SB3XWRZVJDZ0P55JRX3N",
+        "turnId": "turn_01M235SHNQRB96FZPVNRP9NQSF"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011CeswtAzKPxcqmqooR2Atk",
+        "usage": {
+          "input": 1,
+          "output": 574,
+          "cacheRead": 4955,
+          "cacheWrite": 4906,
+          "totalTokens": 10436,
+          "cacheWrite1h": 0,
+          "reasoning": 392,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.00861,
+            "cacheRead": 0.0014865,
+            "cacheWrite": 0.0183975,
+            "total": 0.028497
+          }
+        }
+      }
+    },
+    {
+      "sequence": 16,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.0060588,
+      "usage": {
+        "input": 1,
+        "output": 59,
+        "cacheRead": 9861,
+        "cacheWrite": 590,
+        "totalTokens": 10511,
+        "cacheWrite1h": 0,
+        "reasoning": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.000885,
+          "cacheRead": 0.0029583,
+          "cacheWrite": 0.0022125,
+          "total": 0.0060588
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 1,
+        "cacheRead": 9861,
+        "cacheWrite": 590,
+        "totalTokens": 10453,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 1.5e-5,
+          "cacheRead": 0.0029583,
+          "cacheWrite": 0.0022125,
+          "total": 0.0051888
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "81275b34bb42a795ad930f01377e49f6f60470c7a804e0d9d400387b0f565b76",
+        "conversationId": "conv_01M235SB35ZAH2M417GYD0XE1P",
+        "submissionId": "sub_01M235SB2SQ7K0ZD1C16TBJEAQ",
+        "operationId": "op_01M235SB3XWRZVJDZ0P55JRX3N",
+        "turnId": "turn_01M235T4XJZ74FPSZHSX3MKHW8"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "stop",
+        "responseId": "msg_011Ceswud7E2BEFp54FhcUrq",
+        "usage": {
+          "input": 1,
+          "output": 59,
+          "cacheRead": 9861,
+          "cacheWrite": 590,
+          "totalTokens": 10511,
+          "cacheWrite1h": 0,
+          "reasoning": 0,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.000885,
+            "cacheRead": 0.0029583,
+            "cacheWrite": 0.0022125,
+            "total": 0.0060588
+          }
+        }
+      }
+    },
+    {
+      "sequence": 17,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.0063585,
+      "usage": {
+        "input": 1,
+        "output": 218,
+        "cacheRead": 5085,
+        "cacheWrite": 416,
+        "totalTokens": 5720,
+        "cacheWrite1h": 0,
+        "reasoning": 33,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00327,
+          "cacheRead": 0.0015255,
+          "cacheWrite": 0.00156,
+          "total": 0.0063585
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 8,
+        "cacheRead": 5085,
+        "cacheWrite": 416,
+        "totalTokens": 5510,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00012,
+          "cacheRead": 0.0015255,
+          "cacheWrite": 0.00156,
+          "total": 0.0032085
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "kind": "pi",
+        "sessionId": "01a0865c-6f4a-73cb-bffb-d50ebfb20577",
+        "requestId": "e24330e7-3088-4a22-bc5f-0e53c5e8ac31"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011CeswupHRmL5x7HsnzZdD3",
+        "usage": {
+          "input": 1,
+          "output": 218,
+          "cacheRead": 5085,
+          "cacheWrite": 416,
+          "totalTokens": 5720,
+          "cacheWrite1h": 0,
+          "reasoning": 33,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.00327,
+            "cacheRead": 0.0015255,
+            "cacheWrite": 0.00156,
+            "total": 0.0063585
+          }
+        }
+      }
+    },
+    {
+      "sequence": 18,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.012691800000000001,
+      "usage": {
+        "input": 3,
+        "output": 589,
+        "cacheRead": 10451,
+        "cacheWrite": 190,
+        "totalTokens": 11233,
+        "cacheWrite1h": 0,
+        "reasoning": 370,
+        "cost": {
+          "input": 9e-6,
+          "output": 0.008835,
+          "cacheRead": 0.0031352999999999997,
+          "cacheWrite": 0.0007125,
+          "total": 0.012691800000000001
+        }
+      },
+      "partialUsage": {
+        "input": 3,
+        "output": 7,
+        "cacheRead": 10451,
+        "cacheWrite": 190,
+        "totalTokens": 10651,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 9e-6,
+          "output": 0.000105,
+          "cacheRead": 0.0031352999999999997,
+          "cacheWrite": 0.0007125,
+          "total": 0.0039618
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "81275b34bb42a795ad930f01377e49f6f60470c7a804e0d9d400387b0f565b76",
+        "conversationId": "conv_01M235SB35ZAH2M417GYD0XE1P",
+        "submissionId": "sub_01M235TKYXM66F0MD5RGGQ6YDB",
+        "operationId": "op_01M235TM098108VVNVGQ0VPZPS",
+        "turnId": "turn_01M235TM0YSY26YPZ6B2W78BEY"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011CeswvmEep1PMxmpTMM1Nj",
+        "usage": {
+          "input": 3,
+          "output": 589,
+          "cacheRead": 10451,
+          "cacheWrite": 190,
+          "totalTokens": 11233,
+          "cacheWrite1h": 0,
+          "reasoning": 370,
+          "cost": {
+            "input": 9e-6,
+            "output": 0.008835,
+            "cacheRead": 0.0031352999999999997,
+            "cacheWrite": 0.0007125,
+            "total": 0.012691800000000001
+          }
+        }
+      }
+    },
+    {
+      "sequence": 19,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.00628155,
+      "usage": {
+        "input": 1,
+        "output": 54,
+        "cacheRead": 10641,
+        "cacheWrite": 607,
+        "totalTokens": 11303,
+        "cacheWrite1h": 0,
+        "reasoning": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.0008100000000000001,
+          "cacheRead": 0.0031923,
+          "cacheWrite": 0.00227625,
+          "total": 0.00628155
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 1,
+        "cacheRead": 10641,
+        "cacheWrite": 607,
+        "totalTokens": 11250,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 1.5e-5,
+          "cacheRead": 0.0031923,
+          "cacheWrite": 0.00227625,
+          "total": 0.00548655
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "81275b34bb42a795ad930f01377e49f6f60470c7a804e0d9d400387b0f565b76",
+        "conversationId": "conv_01M235SB35ZAH2M417GYD0XE1P",
+        "submissionId": "sub_01M235TKYXM66F0MD5RGGQ6YDB",
+        "operationId": "op_01M235TM098108VVNVGQ0VPZPS",
+        "turnId": "turn_01M235V20FMHAQBWJJ1A8RKQWQ"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "stop",
+        "responseId": "msg_011CeswwpoVbNkW1uhHdjqyt",
+        "usage": {
+          "input": 1,
+          "output": 54,
+          "cacheRead": 10641,
+          "cacheWrite": 607,
+          "totalTokens": 11303,
+          "cacheWrite1h": 0,
+          "reasoning": 0,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.0008100000000000001,
+            "cacheRead": 0.0031923,
+            "cacheWrite": 0.00227625,
+            "total": 0.00628155
+          }
+        }
+      }
+    },
+    {
+      "sequence": 20,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.006089550000000001,
+      "usage": {
+        "input": 1,
+        "output": 198,
+        "cacheRead": 5501,
+        "cacheWrite": 391,
+        "totalTokens": 6091,
+        "cacheWrite1h": 0,
+        "reasoning": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00297,
+          "cacheRead": 0.0016503,
+          "cacheWrite": 0.00146625,
+          "total": 0.006089550000000001
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 26,
+        "cacheRead": 5501,
+        "cacheWrite": 391,
+        "totalTokens": 5919,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00039,
+          "cacheRead": 0.0016503,
+          "cacheWrite": 0.00146625,
+          "total": 0.00350955
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "kind": "pi",
+        "sessionId": "01a0865c-6f4a-73cb-bffb-d50ebfb20577",
+        "requestId": "9eea3b44-a939-4174-a36c-c822879fa9e9"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011Ceswx1oXubqLBpiWN3PUu",
+        "usage": {
+          "input": 1,
+          "output": 198,
+          "cacheRead": 5501,
+          "cacheWrite": 391,
+          "totalTokens": 6091,
+          "cacheWrite1h": 0,
+          "reasoning": 0,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.00297,
+            "cacheRead": 0.0016503,
+            "cacheWrite": 0.00146625,
+            "total": 0.006089550000000001
+          }
+        }
+      }
+    },
+    {
+      "sequence": 21,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.01217715,
+      "usage": {
+        "input": 3,
+        "output": 536,
+        "cacheRead": 11248,
+        "cacheWrite": 201,
+        "totalTokens": 11988,
+        "cacheWrite1h": 0,
+        "reasoning": 384,
+        "cost": {
+          "input": 9e-6,
+          "output": 0.00804,
+          "cacheRead": 0.0033744,
+          "cacheWrite": 0.00075375,
+          "total": 0.01217715
+        }
+      },
+      "partialUsage": {
+        "input": 3,
+        "output": 7,
+        "cacheRead": 11248,
+        "cacheWrite": 201,
+        "totalTokens": 11459,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 9e-6,
+          "output": 0.000105,
+          "cacheRead": 0.0033744,
+          "cacheWrite": 0.00075375,
+          "total": 0.00424215
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "81275b34bb42a795ad930f01377e49f6f60470c7a804e0d9d400387b0f565b76",
+        "conversationId": "conv_01M235SB35ZAH2M417GYD0XE1P",
+        "submissionId": "sub_01M235VE0SD5KSH0YHE5TJ30TK",
+        "operationId": "op_01M235VE1D20FMJ63NJ5G9JK3W",
+        "turnId": "turn_01M235VE1V9HDTZTF06FETZTSD"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011Ceswxj6E3kaWqyCJ1F62V",
+        "usage": {
+          "input": 3,
+          "output": 536,
+          "cacheRead": 11248,
+          "cacheWrite": 201,
+          "totalTokens": 11988,
+          "cacheWrite1h": 0,
+          "reasoning": 384,
+          "cost": {
+            "input": 9e-6,
+            "output": 0.00804,
+            "cacheRead": 0.0033744,
+            "cacheWrite": 0.00075375,
+            "total": 0.01217715
+          }
+        }
+      }
+    },
+    {
+      "sequence": 22,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.0062652,
+      "usage": {
+        "input": 1,
+        "output": 50,
+        "cacheRead": 11449,
+        "cacheWrite": 554,
+        "totalTokens": 12054,
+        "cacheWrite1h": 0,
+        "reasoning": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00075,
+          "cacheRead": 0.0034346999999999997,
+          "cacheWrite": 0.0020775,
+          "total": 0.0062652
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 7,
+        "cacheRead": 11449,
+        "cacheWrite": 554,
+        "totalTokens": 12011,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.000105,
+          "cacheRead": 0.0034346999999999997,
+          "cacheWrite": 0.0020775,
+          "total": 0.0056202
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "81275b34bb42a795ad930f01377e49f6f60470c7a804e0d9d400387b0f565b76",
+        "conversationId": "conv_01M235SB35ZAH2M417GYD0XE1P",
+        "submissionId": "sub_01M235VE0SD5KSH0YHE5TJ30TK",
+        "operationId": "op_01M235VE1D20FMJ63NJ5G9JK3W",
+        "turnId": "turn_01M235VWNVMC1YHDMP3CJKQDJC"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "stop",
+        "responseId": "msg_011CeswyqLJ3BfeSkzWdZ8YS",
+        "usage": {
+          "input": 1,
+          "output": 50,
+          "cacheRead": 11449,
+          "cacheWrite": 554,
+          "totalTokens": 12054,
+          "cacheWrite1h": 0,
+          "reasoning": 0,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.00075,
+            "cacheRead": 0.0034346999999999997,
+            "cacheWrite": 0.0020775,
+            "total": 0.0062652
+          }
+        }
+      }
+    },
+    {
+      "sequence": 23,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.0055993499999999995,
+      "usage": {
+        "input": 1,
+        "output": 179,
+        "cacheRead": 5892,
+        "cacheWrite": 305,
+        "totalTokens": 6377,
+        "cacheWrite1h": 0,
+        "reasoning": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.002685,
+          "cacheRead": 0.0017675999999999998,
+          "cacheWrite": 0.00114375,
+          "total": 0.0055993499999999995
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 21,
+        "cacheRead": 5892,
+        "cacheWrite": 305,
+        "totalTokens": 6219,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.000315,
+          "cacheRead": 0.0017675999999999998,
+          "cacheWrite": 0.00114375,
+          "total": 0.0032293499999999998
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "kind": "pi",
+        "sessionId": "01a0865c-6f4a-73cb-bffb-d50ebfb20577",
+        "requestId": "a52a998f-2bfe-48c1-8ed7-2feea41a145e"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011CeswyzzDu1rocQoDUwDF2",
+        "usage": {
+          "input": 1,
+          "output": 179,
+          "cacheRead": 5892,
+          "cacheWrite": 305,
+          "totalTokens": 6377,
+          "cacheWrite1h": 0,
+          "reasoning": 0,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.002685,
+            "cacheRead": 0.0017675999999999998,
+            "cacheWrite": 0.00114375,
+            "total": 0.0055993499999999995
+          }
+        }
+      }
+    },
+    {
+      "sequence": 24,
+      "status": "complete",
+      "reservedUsd": 7,
+      "actualUsd": 0.0135624,
+      "usage": {
+        "input": 3,
+        "output": 619,
+        "cacheRead": 12003,
+        "cacheWrite": 178,
+        "totalTokens": 12803,
+        "cacheWrite1h": 0,
+        "reasoning": 436,
+        "cost": {
+          "input": 9e-6,
+          "output": 0.009285,
+          "cacheRead": 0.0036008999999999998,
+          "cacheWrite": 0.0006675,
+          "total": 0.0135624
+        }
+      },
+      "partialUsage": {
+        "input": 3,
+        "output": 7,
+        "cacheRead": 12003,
+        "cacheWrite": 178,
+        "totalTokens": 12191,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 9e-6,
+          "output": 0.000105,
+          "cacheRead": 0.0036008999999999998,
+          "cacheWrite": 0.0006675,
+          "total": 0.0043824
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "81275b34bb42a795ad930f01377e49f6f60470c7a804e0d9d400387b0f565b76",
+        "conversationId": "conv_01M235SB35ZAH2M417GYD0XE1P",
+        "submissionId": "sub_01M235W42E5BMX1KSRP278NS87",
+        "operationId": "op_01M235W437KWKRAYWC70FF1X8S",
+        "turnId": "turn_01M235W44012M24HXRMANM2QK3"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "toolUse",
+        "responseId": "msg_011CeswzPt8F2VEauzTPa4Bx",
+        "usage": {
+          "input": 3,
+          "output": 619,
+          "cacheRead": 12003,
+          "cacheWrite": 178,
+          "totalTokens": 12803,
+          "cacheWrite1h": 0,
+          "reasoning": 436,
+          "cost": {
+            "input": 9e-6,
+            "output": 0.009285,
+            "cacheRead": 0.0036008999999999998,
+            "cacheWrite": 0.0006675,
+            "total": 0.0135624
+          }
+        }
+      }
+    },
+    {
+      "sequence": 25,
+      "status": "complete",
+      "reservedUsd": 7,
+      "usage": {
+        "input": 1,
+        "output": 52,
+        "cacheRead": 12181,
+        "cacheWrite": 637,
+        "totalTokens": 12871,
+        "cacheWrite1h": 0,
+        "reasoning": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 0.00078,
+          "cacheRead": 0.0036542999999999996,
+          "cacheWrite": 0.00238875,
+          "total": 0.00682605
+        }
+      },
+      "partialUsage": {
+        "input": 1,
+        "output": 1,
+        "cacheRead": 12181,
+        "cacheWrite": 637,
+        "totalTokens": 12820,
+        "cacheWrite1h": 0,
+        "cost": {
+          "input": 3e-6,
+          "output": 1.5e-5,
+          "cacheRead": 0.0036542999999999996,
+          "cacheWrite": 0.00238875,
+          "total": 0.006061049999999999
+        }
+      },
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "vestera-persona-20260909-r1",
+      "identity": {
+        "instanceId": "81275b34bb42a795ad930f01377e49f6f60470c7a804e0d9d400387b0f565b76",
+        "conversationId": "conv_01M235SB35ZAH2M417GYD0XE1P",
+        "submissionId": "sub_01M235W42E5BMX1KSRP278NS87",
+        "operationId": "op_01M235W437KWKRAYWC70FF1X8S",
+        "turnId": "turn_01M235WN214XC6FYNCZ8K3FW18"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "stop",
+        "responseId": "msg_011Cesx1g9x1PLZfmrQxaAgW",
+        "usage": {
+          "input": 1,
+          "output": 52,
+          "cacheRead": 12181,
+          "cacheWrite": 637,
+          "totalTokens": 12871,
+          "cacheWrite1h": 0,
+          "reasoning": 0,
+          "cost": {
+            "input": 3e-6,
+            "output": 0.00078,
+            "cacheRead": 0.0036542999999999996,
+            "cacheWrite": 0.00238875,
+            "total": 0.00682605
+          }
+        }
+      },
+      "actualUsd": 0.00682605
     }
   ],
-  "authority": "MISSION.md — bounded Step A paid-work delegation"
+  "authority": "MISSION.md \u2014 bounded Step A paid-work delegation"
 }
