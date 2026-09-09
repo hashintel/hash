@@ -150,6 +150,15 @@ impl Epoch {
     }
 }
 
+impl core::fmt::Debug for Epoch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Epoch")
+            .field("generation", &self.generation())
+            .field("revision", &self.revision())
+            .finish_non_exhaustive()
+    }
+}
+
 impl From<Guard<Arc<Delta>>> for Epoch {
     fn from(delta: Guard<Arc<Delta>>) -> Self {
         Self {
