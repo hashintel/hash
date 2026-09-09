@@ -351,7 +351,7 @@ const query = (context: Context, args: Record<string, unknown>, id: string) => {
   if (initialCell !== undefined) {
     assert(
       Array.isArray(initialCell) &&
-        initialCell.length === 2 &&
+        (initialCell.length === 1 || initialCell.length === 2) &&
         initialCell.every(
           (index: unknown) =>
             typeof index === "number" && Number.isInteger(index),
@@ -677,31 +677,100 @@ try {
       field: "/initialState/content/absent/0",
       expected: "refused",
     },
+    {
+      kind: "scenario",
+      name: "TestInitial",
+      field: "initialState",
+      expected: "refused",
+      origin: "typed-scenario",
+      aggregate: true,
+    },
+    {
+      kind: "scenario",
+      name: "TestInitial",
+      field: "/initialState/content",
+      expected: "refused",
+      origin: "typed-scenario",
+      aggregate: true,
+    },
+    {
+      kind: "scenario",
+      name: "TestInitial",
+      initialCell: [1],
+      expected: "refused",
+      origin: "typed-scenario",
+      aggregate: true,
+    },
+    {
+      kind: "type",
+      name: "TestCorrectedAttributes",
+      field: "elements",
+      expected: "refused",
+      origin: "typed-type",
+      aggregate: true,
+    },
+    {
+      kind: "type",
+      name: "TestCorrectedAttributes",
+      field: "entity",
+      expected: "refused",
+      origin: "typed-type",
+      aggregate: true,
+    },
+    {
+      kind: "scenario",
+      name: "TestInitial",
+      initialCell: [1, 1],
+      expected: "refused",
+      origin: "typed-scenario",
+      change: "typed-active",
+    },
   ];
   const responses: Parameters<typeof faux.setResponses>[0] = [
     tool("getLatestNetDefinition", {}, "typed-reopened-read"),
   ];
-  queries.forEach(({ expected, change, origin: original, ...args }, index) => {
-    responses.push(
-      checked((context) => query(context, args, `typed-reopened-why-${index}`)),
-    );
-    responses.push(
-      checked((context) => {
-        const answer = toolOutput(context, "brunch_why");
-        answers.push(answer);
-        assert.equal(answer.disposition, expected);
-        if (change)
-          assert.equal(
-            (answer.recordedChange as { toolCallId: string }).toolCallId,
-            change,
-          );
-        if (original) assert.equal(answer.originToolCallId, original);
-        return index === queries.length - 1
-          ? text("Reopened typed and initial-state explanations remain scoped.")
-          : tool("getLatestNetDefinition", {}, `typed-reopened-read-${index}`);
-      }),
-    );
-  });
+  queries.forEach(
+    ({ expected, change, origin: original, aggregate, ...args }, index) => {
+      responses.push(
+        checked((context) =>
+          query(context, args, `typed-reopened-why-${index}`),
+        ),
+      );
+      responses.push(
+        checked((context) => {
+          const answer = toolOutput(context, "brunch_why");
+          answers.push(answer);
+          assert.equal(answer.disposition, expected);
+          if (change)
+            assert.equal(
+              (answer.recordedChange as { toolCallId: string }).toolCallId,
+              change,
+            );
+          if (original) assert.equal(answer.originToolCallId, original);
+          if (aggregate) {
+            assert.match(String(answer.reason), /aggregate.*descendant/iu);
+            assert.equal(answer.governing, undefined);
+            assert.equal(answer.recordedChange, undefined);
+            assert((answer.appliedChanges as unknown[]).length > 1);
+            assert.equal(
+              (answer.reconciliation as { observationScope: string })
+                .observationScope,
+              "live-observed",
+            );
+          }
+          return index === queries.length - 1
+            ? text(
+                "Reopened typed and initial-state explanations remain scoped.",
+              )
+            : tool(
+                "getLatestNetDefinition",
+                {},
+                `typed-reopened-read-${index}`,
+              );
+        }),
+      );
+    },
+  );
   faux.setResponses(responses);
   await send(
     "GENERIC TEST ask why by ordinary type, element and scenario names after reopening. Distinguish explicit corrections from migrated/default/generated cells.",
@@ -785,7 +854,7 @@ try {
         observedStateInputSchema(name).toJSONSchema({ io: "input" }),
       );
   }
-  assert.equal(completed, 43);
+  assert.equal(completed, 55);
   // Controls use the actual retained raw definition, not known factory IDs as evidence.
   const selectedType = unique(
     reopened.definition.types,
@@ -1114,7 +1183,7 @@ try {
   }
   assert.equal(
     completed,
-    52,
+    64,
     "Every planned callback assertion completes outside the faux boundary",
   );
   assert.deepEqual(callbackErrors, []);
