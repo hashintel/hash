@@ -6,7 +6,7 @@ import {
   makeOptimizationRecord,
   optimizedBindingSets,
 } from "../optimizations-story-fixtures";
-import { describeStepProgress } from "./study-summary-strip";
+import { describeStepProgress } from "./study-stats";
 
 const input = makeOptimizationInput(optimizedBindingSets.base);
 

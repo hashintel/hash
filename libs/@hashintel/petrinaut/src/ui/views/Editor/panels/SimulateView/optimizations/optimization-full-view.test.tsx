@@ -148,7 +148,7 @@ describe("OptimizationFullView", () => {
       setSimulatePresentation,
     });
 
-    expect(screen.getByText(input.name)).toBeTruthy();
+    expect(screen.getByText(new RegExp(`^${input.name} · `, "u"))).toBeTruthy();
     expect(screen.getByText(/best step so far/u)).toBeTruthy();
     expect(screen.getByText("Objective by step")).toBeTruthy();
     expect(screen.getByText("Objective at the step in flight")).toBeTruthy();
