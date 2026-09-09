@@ -22,6 +22,7 @@
     "start:test": "NODE_ENV=test PORT=3002 node dist/server.mjs",
     "start:test:healthcheck": "wait-on --timeout 600000 http-get://localhost:3002/health",
     "test:browser-tracer": "node --experimental-strip-types test/transition-records.integration.ts",
+    "test:construction-progression": "node --experimental-strip-types test/construction-progression.integration.ts",
     "test:docker": "node --experimental-strip-types test/container-smoke.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:native-schema": "node --experimental-strip-types test/native-schema-carriage.integration.ts",
