@@ -171,6 +171,28 @@ try {
       }
       return match[0];
     };
+    const firstCurrentNetSnapshot = {
+      title: "SIR epidemic model",
+      definition: {
+        places: [
+          { id: "susceptible", name: "Susceptible" },
+          { id: "infected", name: "Infected" },
+          { id: "recovered", name: "Recovered" },
+        ],
+        transitions: [],
+      },
+    };
+    const secondCurrentNetSnapshot = {
+      title: "SIR epidemic model (revised)",
+      definition: {
+        places: [
+          { id: "susceptible", name: "Susceptible" },
+          { id: "infected", name: "Infected" },
+          { id: "recovered", name: "Recovered cases" },
+        ],
+        transitions: [],
+      },
+    };
 
     faux.setResponses([
       fauxAssistantMessage(
@@ -261,17 +283,55 @@ try {
         ],
         { stopReason: "toolUse" },
       ),
-      fauxAssistantMessage([
-        fauxText(
-          `The guide says the assistant can read its own documentation pages. ${question}`,
-        ),
-      ]),
-      fauxAssistantMessage([
-        fauxText("A duplicate client-tool result ran another turn."),
-      ]),
-      fauxAssistantMessage([
-        fauxText("A duplicate delivery ran another turn."),
-      ]),
+      (context) => {
+        const modelRequest = JSON.stringify(context);
+        if (!modelRequest.includes(firstCurrentNetSnapshot.title)) {
+          throw new Error(
+            "first grounding result was not returned to the model",
+          );
+        }
+        return fauxAssistantMessage([
+          fauxText(
+            `The guide says the assistant can read its own documentation pages. ${question} The ${firstCurrentNetSnapshot.title} contains Susceptible, Infected, and Recovered.`,
+          ),
+        ]);
+      },
+      (context) => {
+        const modelRequest = JSON.stringify(context);
+        if (modelRequest.includes("Review the current SIR net again.")) {
+          return fauxAssistantMessage(
+            [
+              fauxToolCall(
+                "getLatestNetDefinition",
+                {},
+                { id: "tool-current-net-2" },
+              ),
+            ],
+            { stopReason: "toolUse" },
+          );
+        }
+        return fauxAssistantMessage([
+          fauxText("A duplicate client-tool result ran another turn."),
+        ]);
+      },
+      (context) => {
+        const modelRequest = JSON.stringify(context);
+        if (modelRequest.includes("Review the current SIR net again.")) {
+          if (!modelRequest.includes(secondCurrentNetSnapshot.title)) {
+            throw new Error(
+              "second grounding result was not returned to the model",
+            );
+          }
+          return fauxAssistantMessage([
+            fauxText(
+              `The current review uses ${secondCurrentNetSnapshot.title}, including Recovered cases.`,
+            ),
+          ]);
+        }
+        return fauxAssistantMessage([
+          fauxText("A duplicate delivery ran another turn."),
+        ]);
+      },
     ]);
 
     const userMessage = {
@@ -351,13 +411,7 @@ try {
             toolCallId: "tool-current-net-1",
             state: "output-available",
             input: {},
-            output: {
-              title: "Current net",
-              definition: {
-                places: [],
-                transitions: [],
-              },
-            },
+            output: firstCurrentNetSnapshot,
           },
           {
             type: `tool-${READ_PETRINAUT_DOC_TOOL_NAME}`,
@@ -376,6 +430,66 @@ try {
         chatId: conversationId,
         messageId: startChunk.messageId,
         messages: resumeMessages,
+        abortSignal: undefined,
+      }),
+    );
+    const secondUserMessage = {
+      id: "user-mission-2",
+      role: "user",
+      parts: [{ type: "text", text: "Review the current SIR net again." }],
+    } satisfies UIMessage;
+    const secondInitialChunks = await chunksFrom(
+      await panelTransport.sendMessages({
+        trigger: "submit-message",
+        chatId: conversationId,
+        messageId: undefined,
+        messages: [userMessage, secondUserMessage],
+        abortSignal: undefined,
+      }),
+    );
+    const secondStartChunk = secondInitialChunks.find(
+      (chunk) => chunk.type === "start",
+    );
+    const secondCurrentNetCall =
+      secondInitialChunks.find(
+        (
+          chunk,
+        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
+          chunk.type === "tool-input-available" &&
+          chunk.toolName === "getLatestNetDefinition",
+      ) ?? null;
+    if (secondStartChunk?.type !== "start" || secondCurrentNetCall === null) {
+      throw new Error(
+        "second stream did not reach the current-net client-tool pause",
+      );
+    }
+    const secondResumedChunks = await chunksFrom(
+      await panelTransport.sendMessages({
+        trigger: "submit-message",
+        chatId: conversationId,
+        messageId: secondStartChunk.messageId,
+        messages: [
+          userMessage,
+          {
+            id: startChunk.messageId,
+            role: "assistant" as const,
+            parts: resumeMessages[1]!.parts,
+          },
+          secondUserMessage,
+          {
+            id: secondStartChunk.messageId,
+            role: "assistant" as const,
+            parts: [
+              {
+                type: "tool-getLatestNetDefinition",
+                toolCallId: "tool-current-net-2",
+                state: "output-available",
+                input: {},
+                output: secondCurrentNetSnapshot,
+              },
+            ],
+          },
+        ] as UIMessage[],
         abortSignal: undefined,
       }),
     );
@@ -434,6 +548,14 @@ try {
         error instanceof FlueApiError ? error.status : -1;
     }
     const historyMessages = projectHistory(snapshot);
+    const historyUserTexts = historyMessages
+      .filter((message) => message.role === "user")
+      .map((message) =>
+        message.parts
+          .filter((part) => part.type === "text")
+          .map((part) => part.text)
+          .join(""),
+      );
     const legacyRoute = await app.fetch(
       new Request("http://brunch.test/api/chat"),
     );
@@ -461,6 +583,29 @@ try {
           ? pingOutputChunk.output
           : null,
       clientToolCall,
+      firstCurrentNetCall:
+        initialChunks.find(
+          (
+            chunk,
+          ): chunk is Extract<
+            UIMessageChunk,
+            { type: "tool-input-available" }
+          > =>
+            chunk.type === "tool-input-available" &&
+            chunk.toolName === "getLatestNetDefinition" &&
+            chunk.toolCallId === "tool-current-net-1",
+        ) ?? null,
+      firstCurrentNetSnapshot,
+      firstGroundingText: resumedChunks
+        .filter((chunk) => chunk.type === "text-delta")
+        .map((chunk) => chunk.delta)
+        .join(""),
+      secondCurrentNetCall,
+      secondCurrentNetSnapshot,
+      secondGroundingText: secondResumedChunks
+        .filter((chunk) => chunk.type === "text-delta")
+        .map((chunk) => chunk.delta)
+        .join(""),
       clientToolOutputsOnInitial: initialChunks.filter(
         (chunk) =>
           chunk.type === "tool-output-available" &&
@@ -490,6 +635,7 @@ try {
       historyClientToolResultCount: clientToolResultCount,
       historyGetStatus: 200,
       historyUserText: userTextFromHistory(historyMessages),
+      historyUserTexts,
       legacyRouteStatus: legacyRoute.status,
       unauthenticatedHistoryStatus,
       foreignAgentHistoryStatus,

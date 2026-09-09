@@ -57,6 +57,13 @@ test("the browser transport streams the mounted Flue agent through server and cl
       input: { doc: "ai-assistant" },
     });
     expect(result.clientToolCall).not.toHaveProperty("providerExecuted");
+    expect(result.firstCurrentNetCall).toMatchObject({
+      type: "tool-input-available",
+      toolName: "getLatestNetDefinition",
+      toolCallId: "tool-current-net-1",
+      input: {},
+    });
+    expect(result.firstCurrentNetCall).not.toHaveProperty("providerExecuted");
     expect(result.clientToolOutputsOnInitial).toEqual([]);
     expect(result.initialFinish).toEqual({
       type: "finish",
@@ -68,6 +75,49 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.resumedText).toContain(
       "The guide says the assistant can read its own documentation pages.",
     );
+    expect(result.firstCurrentNetSnapshot).toMatchObject({
+      title: "SIR epidemic model",
+      definition: {
+        places: expect.arrayContaining([
+          { id: "susceptible", name: "Susceptible" },
+          { id: "infected", name: "Infected" },
+          { id: "recovered", name: "Recovered" },
+        ]),
+      },
+    });
+    expect(result.firstGroundingText).toContain("SIR epidemic model");
+    expect(result.firstGroundingText).toContain(
+      "Susceptible, Infected, and Recovered",
+    );
+
+    expect(result.secondCurrentNetCall).toMatchObject({
+      type: "tool-input-available",
+      toolName: "getLatestNetDefinition",
+      toolCallId: "tool-current-net-2",
+      input: {},
+    });
+    expect(result.secondCurrentNetCall).not.toHaveProperty("providerExecuted");
+    expect(result.secondCurrentNetSnapshot).toMatchObject({
+      title: "SIR epidemic model (revised)",
+      definition: {
+        places: expect.arrayContaining([
+          { id: "susceptible", name: "Susceptible" },
+          { id: "infected", name: "Infected" },
+          { id: "recovered", name: "Recovered cases" },
+        ]),
+      },
+    });
+    expect(result.secondGroundingText).toContain(
+      "SIR epidemic model (revised)",
+    );
+    expect(result.secondGroundingText).toContain("Recovered cases");
+    expect(result.secondGroundingText).not.toContain(
+      "SIR epidemic model is unchanged",
+    );
+    expect(result.historyUserTexts).toEqual([
+      "Run the FE-1435 transport probe.",
+      "Review the current SIR net again.",
+    ]);
     expect(result.resumedFinish).toEqual({
       type: "finish",
       finishReason: "stop",
@@ -82,8 +132,8 @@ test("the browser transport streams the mounted Flue agent through server and cl
       toolCallId: "tool-question-1",
     });
     expect(result.questionToolVisibleHistory).toBe(false);
-    expect(result.historyUserEntryCount).toBe(1);
-    expect(result.historyClientToolResultCount).toBe(1);
+    expect(result.historyUserEntryCount).toBe(2);
+    expect(result.historyClientToolResultCount).toBe(2);
 
     expect(result.historyGetStatus).toBe(200);
     expect(result.historyUserText).toContain(
@@ -131,11 +181,12 @@ test("the browser transport streams the mounted Flue agent through server and cl
     ]) {
       expect(result.interviewerToolNames).not.toContain(mutationToolName);
     }
-    expect(result.captureIds.length).toBe(1);
+    expect(result.captureIds.length).toBe(2);
     expect(result.captureExcerpts).toEqual([
       "Run the FE-1435 transport probe.",
+      "Review the current SIR net again.",
     ]);
-    expect(result.capturePayloads).toEqual([{}]);
+    expect(result.capturePayloads).toEqual([{}, {}]);
     expect(result.recaptureIds).toEqual(result.captureIds);
     expect(result.skippedDedupKeys.length).toBeGreaterThan(0);
     expect(result.captureUserText).toContain(

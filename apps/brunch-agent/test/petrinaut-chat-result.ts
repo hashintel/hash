@@ -15,6 +15,18 @@ export interface PetrinautChatResult {
     UIMessageChunk,
     { type: "tool-input-available" }
   > | null;
+  readonly firstCurrentNetCall: Extract<
+    UIMessageChunk,
+    { type: "tool-input-available" }
+  > | null;
+  readonly firstCurrentNetSnapshot: unknown;
+  readonly firstGroundingText: string;
+  readonly secondCurrentNetCall: Extract<
+    UIMessageChunk,
+    { type: "tool-input-available" }
+  > | null;
+  readonly secondCurrentNetSnapshot: unknown;
+  readonly secondGroundingText: string;
   readonly clientToolOutputsOnInitial: readonly UIMessageChunk[];
   readonly initialFinish: UIMessageChunk | undefined;
   readonly pendingHistoryClientToolState: string | undefined;
@@ -29,6 +41,7 @@ export interface PetrinautChatResult {
   readonly historyClientToolResultCount: number;
   readonly historyGetStatus: number;
   readonly historyUserText: string;
+  readonly historyUserTexts: readonly string[];
   readonly legacyRouteStatus: number;
   readonly unauthenticatedHistoryStatus: number;
   readonly foreignAgentHistoryStatus: number;
