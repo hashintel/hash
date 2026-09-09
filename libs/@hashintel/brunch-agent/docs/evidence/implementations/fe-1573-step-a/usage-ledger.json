@@ -1,40 +1,39 @@
 {
-  "authority": "MISSION.md — bounded Step A paid-work delegation",
   "limits": {
-    "usd": 100,
-    "calls": 200
+    "calls": 200,
+    "usd": 100
   },
   "reservation": {
-    "owner": "m7-provider-execution",
     "runId": "a5-real-provider-20260909-r2",
-    "usd": 15,
+    "status": "blocked",
+    "blockedAt": "2026-09-09T05:26:15Z",
     "calls": 20,
-    "status": "active",
+    "usd": 15,
     "perCall": {
       "maxOutputTokens": 4096,
       "reservedUsd": 7
     },
+    "owner": "m7-provider-execution",
     "model": "anthropic/claude-sonnet-4-6",
     "manifestSha256": "1c71ed054d89a7a0183df5b8877faba042982638a58c6696151fc119df439586",
     "codeCommit": "f2b9bfd040ec989f06c7b72a8973f88aab3b42ca",
     "allocatedAt": "2026-09-09T04:59:19Z",
     "browserTopology": "sibling-playwright-v1",
-    "reason": "Named synthetic current-A5 sibling-browser run only. Final 3916 pins verified. Parent connection/TLS checks and explicit handoff still precede invocation; only m7-provider-execution may receive the sole writer lease. Prior r1 startup was released unused; historical calls/totals are preserved."
+    "reason": "Blocked after exactly one native request: Anthropic HTTP401 invalid x-api-key, req_011CesJFAm63EBk1iSmJT6xd. No reported model or terminal usage; sequence6 remains unknown with US$7 held. Actual run processes/profile/writer lock are gone; parent recovered coordination after the separate coding-worker overload failure. No retry, release of the unknown hold, guessed zero cost or further invocation is authorized."
   },
   "totals": {
-    "spentUsd": 0.09113535,
-    "spentCalls": 5,
+    "spentCalls": 6,
+    "spentUsd": 0.09113534999999999,
+    "remainingCalls": 194,
     "remainingUsd": 99.90886465,
-    "remainingCalls": 195,
-    "outstandingReservedUsd": 0,
-    "outstandingReservedCalls": 0
+    "outstandingReservedCalls": 1,
+    "outstandingReservedUsd": 7
   },
   "calls": [
     {
       "sequence": 1,
       "status": "complete",
       "reservedUsd": 1,
-      "latencyMs": 3869,
       "actualUsd": 0.038150250000000004,
       "usage": {
         "input": 3,
@@ -42,22 +41,22 @@
         "cacheRead": 0,
         "cacheWrite": 9459,
         "totalTokens": 9640,
+        "cacheWrite1h": 0,
+        "reasoning": 94,
         "cost": {
           "input": 0.000009,
           "output": 0.00267,
           "cacheRead": 0,
           "cacheWrite": 0.03547125,
           "total": 0.038150250000000004
-        },
-        "cacheWrite1h": 0,
-        "reasoning": 94
-      }
+        }
+      },
+      "latencyMs": 3869
     },
     {
       "sequence": 2,
       "status": "complete",
       "reservedUsd": 1,
-      "latencyMs": 3362,
       "actualUsd": 0.0104157,
       "usage": {
         "input": 1,
@@ -65,22 +64,22 @@
         "cacheRead": 9459,
         "cacheWrite": 1316,
         "totalTokens": 10952,
+        "cacheWrite1h": 0,
+        "reasoning": 0,
         "cost": {
           "input": 0.000003,
           "output": 0.00264,
           "cacheRead": 0.0028377,
           "cacheWrite": 0.004935,
           "total": 0.0104157
-        },
-        "cacheWrite1h": 0,
-        "reasoning": 0
-      }
+        }
+      },
+      "latencyMs": 3362
     },
     {
       "sequence": 3,
       "status": "complete",
       "reservedUsd": 1,
-      "latencyMs": 9110,
       "actualUsd": 0.023673,
       "usage": {
         "input": 1,
@@ -88,22 +87,22 @@
         "cacheRead": 10775,
         "cacheWrite": 3938,
         "totalTokens": 15092,
+        "cacheWrite1h": 0,
+        "reasoning": 106,
         "cost": {
           "input": 0.000003,
           "output": 0.0056700000000000006,
           "cacheRead": 0.0032324999999999997,
           "cacheWrite": 0.0147675,
           "total": 0.023673
-        },
-        "cacheWrite1h": 0,
-        "reasoning": 106
-      }
+        }
+      },
+      "latencyMs": 9110
     },
     {
       "sequence": 4,
       "status": "complete",
       "reservedUsd": 1,
-      "latencyMs": 2805,
       "actualUsd": 0.00789915,
       "usage": {
         "input": 3,
@@ -111,22 +110,22 @@
         "cacheRead": 14713,
         "cacheWrite": 627,
         "totalTokens": 15418,
+        "cacheWrite1h": 0,
+        "reasoning": 33,
         "cost": {
           "input": 0.000009,
           "output": 0.0011250000000000001,
           "cacheRead": 0.0044139,
           "cacheWrite": 0.00235125,
           "total": 0.00789915
-        },
-        "cacheWrite1h": 0,
-        "reasoning": 33
-      }
+        }
+      },
+      "latencyMs": 2805
     },
     {
       "sequence": 5,
       "status": "complete",
       "reservedUsd": 1,
-      "latencyMs": 10450,
       "actualUsd": 0.01099725,
       "usage": {
         "input": 3,
@@ -134,16 +133,72 @@
         "cacheRead": 15340,
         "cacheWrite": 371,
         "totalTokens": 16047,
+        "cacheWrite1h": 0,
+        "reasoning": 35,
         "cost": {
           "input": 0.000009,
           "output": 0.004995,
           "cacheRead": 0.004602,
           "cacheWrite": 0.00139125,
           "total": 0.01099725
-        },
-        "cacheWrite1h": 0,
-        "reasoning": 35
+        }
+      },
+      "latencyMs": 10450
+    },
+    {
+      "sequence": 6,
+      "status": "unknown",
+      "reservedUsd": 7,
+      "accountingVersion": 1,
+      "journalPending": false,
+      "runId": "a5-real-provider-20260909-r2",
+      "identity": {
+        "instanceId": "1eef5260e50ceca0cecede1134d5f1b361bfddc12b4d2776a2e2c0e94d6407c7",
+        "conversationId": "conv_01M229HSJJA91FT1MVXJMZHJQ5",
+        "submissionId": "sub_ik_45ed56d453143a26d9408f7ecbbd5196",
+        "operationId": "op_01M229HSKDBTS6KBQQHVMFF8EY",
+        "turnId": "turn_01M229HSKHR60CYNY9K3PW69MM"
+      },
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "maxOutputTokens": 4096,
+      "inputTokenCeiling": 1000000,
+      "invocation": "started",
+      "transport": "started",
+      "terminal": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "stopReason": "error",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        }
+      },
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
       }
     }
-  ]
+  ],
+  "authority": "MISSION.md — bounded Step A paid-work delegation"
 }

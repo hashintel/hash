@@ -1,0 +1,128 @@
+{
+  "run/accounting-observations.json.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/accounting-observations.json",
+    "sourceSha256": "fc3bca04fa5691680ee392b4df7b48410f60408b47f8ee4d5dd3240720e7e746",
+    "artifactSha256": "5d9014eae0ae78d3d62e55caf1e47b9cb39124752fdf352af1b7d664db37b66d",
+    "sourceBytes": 1836
+  },
+  "run/activation-observation.json.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/activation-observation.json",
+    "sourceSha256": "9bc736f66cdfe9d8f64bae53296cb9ddb8e4cd9b9e258123d0f09a8884a074c2",
+    "artifactSha256": "e241fcc7a5e5e588c5fd4148f47bf2e704f262064d77ccb5e28719c5589c6551",
+    "sourceBytes": 1147
+  },
+  "run/browser-driver.stderr.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/browser-driver.stderr",
+    "sourceSha256": "778f9c2008d3fba131166f40ce7b7002e36aa9ca31502c5f14bf070242a8b4eb",
+    "artifactSha256": "f36aeb499d8cd76f19f20ee314ba18e238263a265451c1cb3181ebca5f9bc4c7",
+    "sourceBytes": 2401
+  },
+  "run/browser-driver.stdout.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/browser-driver.stdout",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "sourceBytes": 0
+  },
+  "run/browser-lifecycle.json.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/browser-lifecycle.json",
+    "sourceSha256": "9f7dbf7d686a5904b79cf619ac94a4adcce477ba42737b1d6c8777b6218a6266",
+    "artifactSha256": "2bad8c8bc12eb7be96c18ac59f6cc51bb0bdde97466cb3be36e02a7be6014c91",
+    "sourceBytes": 2029
+  },
+  "run/browser-orchestration-failure.json.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/browser-orchestration-failure.json",
+    "sourceSha256": "03217529af5a202ad078f6b6733fef1fcef7441072f1aac32872046457a508f7",
+    "artifactSha256": "6c5bd7da275c1eee720661bc8ce0a153692dff3b74a9e42dd9efb5572001b75a",
+    "sourceBytes": 561
+  },
+  "run/browser-owner.stderr.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/browser-owner.stderr",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "sourceBytes": 0
+  },
+  "run/browser-owner.stdout.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/browser-owner.stdout",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "sourceBytes": 0
+  },
+  "run/browser-session-observation.json.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/browser-session-observation.json",
+    "sourceSha256": "9fcc88e06b32bc5cae8168118d84170b3fcf09beca9084adca3d23068f1c2194",
+    "artifactSha256": "7671b4b0fd313eb89e7cfd3407803492f23c70ac66f43c59a5018ff8b1266a23",
+    "sourceBytes": 949
+  },
+  "run/driver-result.json.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/driver-result.json",
+    "sourceSha256": "c7b561f7eafbcf6deea7be511d9ffb22e9bdf7b2018a423e08afb69d63201aa8",
+    "artifactSha256": "e5fa26a21ae3feb8242bf8d47fd411edc79383e014c5427b9b441b1cbcdd6df3",
+    "sourceBytes": 700
+  },
+  "run/http-deliveries.json.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/http-deliveries.json",
+    "sourceSha256": "9bad41a5a7d82780cf2819395b7201a4df6e54effcf97733233a3d2897958571",
+    "artifactSha256": "772607f57347acd2dc44aa410782b27f473866eb1292edee685b147b26070e9b",
+    "sourceBytes": 2844
+  },
+  "run/native-6-request.json.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/native-6-request.json",
+    "sourceSha256": "adeef95e55d0cc0b9a4ad8112b5204cf4ff9d33b9b9b4153bcf14daf2865a1a0",
+    "artifactSha256": "98ab62cec9b12ab8588eaf7b1d8f07b094a0f85f21688698ab0b0359060c1277",
+    "sourceBytes": 15970
+  },
+  "run/native-6-response.sse.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/native-6-response.sse",
+    "sourceSha256": "61c242be2fb82cf991df81fcceeb00907dc03a2603eab47baaec103a44e5965c",
+    "artifactSha256": "b5cbe235f7328920013b3aa4e119f155337cb74404e4dd45527d3a5650b95586",
+    "sourceBytes": 130
+  },
+  "run/native-6-transport.json.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/native-6-transport.json",
+    "sourceSha256": "22658af91f5643f45edd65d4a3b66e3716a46a92ebccee6bb82f4b5c26d91409",
+    "artifactSha256": "f32700b73167da6f6dc337a8f89916edefe5616ef8b8f840b4cce57a005a590a",
+    "sourceBytes": 148
+  },
+  "run/preparation-receipt.json.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/preparation-receipt.json",
+    "sourceSha256": "afbebdeca0204339baf384d30a264b0cef36f40c18f0c8800cba4e1c9a48ff14",
+    "artifactSha256": "c0e11163602b6e370513edf4d66589996139a16dfd13d2edc56724c4d27fbcbb",
+    "sourceBytes": 275
+  },
+  "run/verified-manifest.json.gz": {
+    "sourcePath": "/Users/lunelson/.herdr/worktrees/hash/m7-provider-execution/libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/a5-real-provider-20260909-r2/verified-manifest.json",
+    "sourceSha256": "1c71ed054d89a7a0183df5b8877faba042982638a58c6696151fc119df439586",
+    "artifactSha256": "253bd06236b295c16055cc730491ce8439a4ba9609d25d0d979e992af635765d",
+    "sourceBytes": 589030
+  },
+  "parent/post-run-pins.json.gz": {
+    "sourcePath": "/tmp/m7-r2-postmortem.6wXfAL/post-run-pins.json",
+    "sourceSha256": "2793f4853b3e4ad1062ed7ff4fcd394ea3d37482378efc588f3a819f8d20c7e4",
+    "artifactSha256": "999d4220cf6aadc222106688d87c450935b830dfd76452a5459806e2b8e300a0",
+    "sourceBytes": 31
+  },
+  "parent/credential-classification.stderr.gz": {
+    "sourcePath": "/tmp/m7-r2-postmortem.6wXfAL/credential-classification.stderr",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "sourceBytes": 0
+  },
+  "parent/post-run-pins.stderr.gz": {
+    "sourcePath": "/tmp/m7-r2-postmortem.6wXfAL/post-run-pins.stderr",
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "sourceBytes": 0
+  },
+  "parent/post-run-audit.json.gz": {
+    "sourcePath": "/tmp/m7-r2-postmortem.6wXfAL/post-run-audit.json",
+    "sourceSha256": "1f638fe6fa8067a6afae6e4c6a4fa499b04e2c5ef93b60f358bba5d0447aca77",
+    "artifactSha256": "a674be1d83e4d9ab83b120398352765229ac8cc07987a6c14d888bfdff63183d",
+    "sourceBytes": 653
+  },
+  "parent/credential-classification.json.gz": {
+    "sourcePath": "/tmp/m7-r2-postmortem.6wXfAL/credential-classification.json",
+    "sourceSha256": "202ff0dfb9a6d3668a6d10b35f4ef88cb802b44553f6a431c59135a4233f44ad",
+    "artifactSha256": "c3f5b17eb0c41062cb5e6d762a07171a19ac2984916f7308f88b25307b3c63ee",
+    "sourceBytes": 188
+  }
+}

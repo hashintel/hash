@@ -1,0 +1,10 @@
+{
+  "child": "m7-provider-execution",
+  "configuredModel": "openrouter/openai/gpt-6-astra",
+  "taskRevision": 2,
+  "outcome": "failed",
+  "error": "Our servers are currently overloaded. Please try again later.",
+  "settledAt": "2026-09-09T05:17:42.578Z",
+  "sessionFile": "/Users/lunelson/.pi/agent/sessions/--Users-lunelson-.herdr-worktrees-hash-m7-provider-execution--/2026-09-09T04-42-53-332Z_01a08479-da13-7369-acb3-0e390707549b.jsonl",
+  "interpretation": "Coding-worker failure, separate from retained native HTTP401"
+}
