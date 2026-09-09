@@ -13,6 +13,8 @@ import {
 } from "../../../../../../react/optimizations/context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import {
+  fakeConstrainedStudyInput,
+  fakeConstrainedStudyTrials,
   makeConnectedStudyState,
   makeOptimizationInput,
   makeOptimizationRecord,
@@ -553,5 +555,81 @@ describe("ViewOptimizationDrawer for a connected study", () => {
 
     expect(screen.queryByLabelText("Follow steps")).toBeNull();
     expect(screen.getByText("100 runs")).toBeTruthy();
+  });
+});
+
+describe("ViewOptimizationDrawer for a connected study with constraints", () => {
+  const constrainedInput = fakeConstrainedStudyInput;
+  const constrainedTrials = fakeConstrainedStudyTrials.trials;
+  const navigation = navigationAtTrial(
+    constrainedInput,
+    constrainedTrials.at(-1)!,
+    false,
+  );
+  const settled = makeOptimizationRecord({
+    input: constrainedInput,
+    trials: constrainedTrials,
+    best: fakeConstrainedStudyTrials.best,
+    status: "complete",
+    connected: makeConnectedStudyState(constrainedInput, {
+      navigation,
+      resumable: true,
+      selection: makeSelectionStream({
+        input: constrainedInput,
+        navigation,
+        runsCompleted: 100,
+      }),
+    }),
+  });
+
+  it("adds the Constraints card with the steps clear, the latest step's verdict and one bar per state constraint", () => {
+    renderDrawer(settled);
+
+    const card = screen
+      .getByText("Constraints")
+      .closest<HTMLElement>("[data-chart-card]")!;
+    expect(card.textContent).toContain("pass threshold 95% (alpha 0.05)");
+    expect(card.textContent).toMatch(
+      /\d+ \/ \d+ · \d+%steps clear across the study/u,
+    );
+    expect(card.textContent).toMatch(/infeasible draws?/u);
+    expect(card.textContent).toMatch(/Step 30: (clear|limited|infeasible)/u);
+    expect(card.querySelectorAll("[data-constraint-row]")).toHaveLength(1);
+    expect(card.textContent).toContain("Finished goods under 500");
+    expect(card.textContent).toContain(
+      "1 parameter constraint is checked before each step runs.",
+    );
+  });
+
+  it("puts the steps clear in the strip and a Runs passed column in the table, greying the infeasible draws", () => {
+    renderDrawer(settled);
+
+    expect(screen.getByText("Steps clear")).toBeTruthy();
+    expect(screen.getByText("Runs passed")).toBeTruthy();
+    expect(screen.getAllByText(/^\d+ \/ 60 · \d+%$/u).length).toBeGreaterThan(
+      0,
+    );
+    const infeasible = screen.getAllByTitle(/^Infeasible: /u);
+    expect(infeasible.length).toBeGreaterThan(0);
+    expect(infeasible[0]?.getAttribute("data-state")).toBe("infeasible");
+    expect(infeasible[0]?.getAttribute("title")).toBe(
+      "Infeasible: Production rate under 350",
+    );
+  });
+
+  it("shows none of it for a study without constraints", () => {
+    renderDrawer(
+      makeOptimizationRecord({
+        input,
+        trials,
+        best,
+        status: "complete",
+        connected: makeConnectedStudyState(input, { resumable: true }),
+      }),
+    );
+
+    expect(screen.queryByText("Constraints")).toBeNull();
+    expect(screen.queryByText("Steps clear")).toBeNull();
+    expect(screen.queryByText("Runs passed")).toBeNull();
   });
 });

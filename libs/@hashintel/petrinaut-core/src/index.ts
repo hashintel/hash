@@ -141,7 +141,9 @@ export type {
   PetrinautOptimizationDescribeParameter,
   PetrinautOptimizationDescribeResult,
   PetrinautOptimizationStudy,
+  PetrinautOptimizationTrialConstraints,
   PetrinautOptimizationTrialEvent,
+  PetrinautOptimizationConstraintPolicy,
   PetrinautIntegerOptimizationDomain,
 } from "./optimization";
 export { createPetrinautActions } from "./actions";

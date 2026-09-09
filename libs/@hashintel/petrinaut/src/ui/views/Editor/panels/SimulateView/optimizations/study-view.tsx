@@ -25,6 +25,7 @@ import {
   NavigatedOptimizationSurface,
   OptimizationSurface,
 } from "./optimization-surface";
+import { ConstraintSummaryCard } from "./study-view/constraint-summary";
 import {
   ContinueControl,
   remainingOptimizationSteps,
@@ -290,9 +291,10 @@ const RemoteStudyBody = ({
 
 /**
  * A study evaluated in this browser: the header and the summary, the
- * parameter controls with their state line, the three chart cards, and the
- * steps filling what is left. The navigation drives the surface and the
- * objective's timeline, following each step while the study runs.
+ * parameter controls with their state line, the three chart cards (a fourth,
+ * Constraints, when the study declares any), and the steps filling what is
+ * left. The navigation drives the surface and the objective's timeline,
+ * following each step while the study runs.
  */
 const ConnectedStudyBody = ({
   optimization,
@@ -345,6 +347,13 @@ const ConnectedStudyBody = ({
             optimization={optimization}
             plotHeight={OBJECTIVE_PLOT_HEIGHT}
           />
+          {(optimization.input.constraints ?? []).length > 0 ? (
+            <ConstraintSummaryCard
+              optimization={optimization}
+              selection={connected.selection}
+              plotHeight={OBJECTIVE_PLOT_HEIGHT}
+            />
+          ) : null}
         </div>
         <div className={connectedStepsStyle}>
           <StepsTable
