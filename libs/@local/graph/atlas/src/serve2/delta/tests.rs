@@ -24,9 +24,10 @@ use crate::{
         lod::stage::{LodConfig, WIRE_FRAME},
     },
     serve2::{
-        schedule::{BucketSchedule, DeliverySchedule, ScopeSchedule, ViewSchedule},
+        schedule::{BucketSchedule, DeliveredNodes, DeliverySchedule, ScopeSchedule, ViewSchedule},
         tests::fixture::{EDGES, ENDPOINTS, NODES, TYPES, TamperFixture, secret},
         visibility::{VisibilityActor, VisibilityMask},
+        walk::Walk,
         world::World,
     },
 };
@@ -803,6 +804,135 @@ fn schedule_base_withdrawal_dispatch() {
         Some(true)
     );
     assert_scoped_delivery(&world, &epoch(&delta), &partial);
+}
+
+fn full_mask() -> VisibilityMask {
+    VisibilityMask::full(VisibilityActor {
+        id: ActorId::new(Uuid::nil(), ActorType::Machine),
+        instance_admin: false,
+    })
+}
+
+#[track_caller]
+fn assert_partitioned(delivered: &DeliveredNodes) {
+    assert_eq!(
+        delivered.runs.iter().sum::<usize>(),
+        delivered.rows.len(),
+        "the runs should re-sum to the delivered count"
+    );
+}
+
+/// A corpus walk subtracts the publication's current withdrawals that the recorded schedule
+/// preserves, and a revival restores the recorded delivery.
+#[test]
+fn walk_corpus_withdrawal() {
+    let (_fixture, mut delta) = fixture("walk-corpus-withdrawal");
+    let world = Arc::clone(&delta.world);
+    let mask = full_mask();
+    let walk = Walk {
+        schedule: DeliverySchedule::corpus(&world),
+        index: &world.layout.index,
+        mask: &mask,
+    };
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    let zoom = world.schedule().max_tile_depth();
+    let node = NodeRowId::MIN;
+    let identity = world
+        .layout
+        .index
+        .identity
+        .key_of(node)
+        .expect("should resolve the fitted identity");
+
+    let captured = epoch(&delta);
+    let recorded = walk.schedule.total(zoom, root);
+    assert_eq!(walk.total(&captured, zoom, root), recorded);
+    assert_eq!(
+        walk.delta(&captured, Zoom::MIN, root),
+        walk.schedule.delta(Zoom::MIN, root)
+    );
+
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(identity), "should withdraw the fitted row");
+    let withdrawn = epoch(&delta);
+    assert_eq!(
+        walk.schedule.total(zoom, root),
+        recorded,
+        "the recorded schedule should preserve the withdrawn row"
+    );
+
+    let subtracted = walk.total(&withdrawn, zoom, root);
+    assert!(
+        !subtracted.rows.contains(&node),
+        "the withdrawn row should leave the delivery"
+    );
+    assert_eq!(subtracted.rows.len() + 1, recorded.rows.len());
+    assert_eq!(subtracted.first_bucket, recorded.first_bucket);
+    assert_eq!(subtracted.runs.len(), recorded.runs.len());
+    assert_partitioned(&subtracted);
+
+    let bucket = walk
+        .schedule
+        .bucket_of(node)
+        .expect("the recorded schedule should keep the withdrawn row");
+    let index = usize::from(bucket.get() - recorded.first_bucket.get());
+    assert_eq!(
+        subtracted.runs[index] + 1,
+        recorded.runs[index],
+        "the withdrawal should debit the row's own bucket"
+    );
+
+    delta.revision.increment_by(1);
+    assert_eq!(
+        delta.update_node(identity, legend("revived"), Vec2::ZERO),
+        Some(true)
+    );
+    assert_eq!(
+        walk.total(&epoch(&delta), zoom, root),
+        recorded,
+        "a revival should restore the recorded delivery"
+    );
+}
+
+/// A scoped walk subtracts a withdrawal newer than the schedule it reads.
+#[test]
+fn walk_scope_withdrawal() {
+    let (_fixture, mut delta) = fixture("walk-scope-withdrawal");
+    let world = Arc::clone(&delta.world);
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("should construct the root");
+    let zoom = world.schedule().max_tile_depth();
+    let node = NodeRowId::MIN;
+    let identity = world
+        .layout
+        .index
+        .identity
+        .key_of(node)
+        .expect("should resolve the fitted identity");
+
+    let mask = schedule_mask((0..NODES).map(NodeRowId::new));
+    let captured = epoch(&delta);
+    let view = ViewSchedule::of(Arc::clone(&world), &captured, &mask);
+    let walk = Walk {
+        schedule: view.cut(Zoom::MIN).expect("should bind the view"),
+        index: &world.layout.index,
+        mask: &mask,
+    };
+    let recorded = walk.schedule.total(zoom, root);
+    assert!(
+        recorded.rows.contains(&node),
+        "the captured schedule should deliver the row"
+    );
+    assert_eq!(walk.total(&captured, zoom, root), recorded);
+
+    delta.revision.increment_by(1);
+    assert!(delta.withdraw(identity), "should withdraw the fitted row");
+    let subtracted = walk.total(&epoch(&delta), zoom, root);
+    assert!(
+        !subtracted.rows.contains(&node),
+        "the withdrawn row should leave the captured delivery"
+    );
+    assert_eq!(subtracted.rows.len() + 1, recorded.rows.len());
+    assert_partitioned(&subtracted);
 }
 
 /// Normalization uses the fitted bounds rather than the already-normalized geometry bounds.

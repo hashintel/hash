@@ -106,6 +106,10 @@ impl World {
         self.cache.base_scope_schedule(&self.layout)
     }
 
+    pub(crate) const fn generation(&self) -> &Generation {
+        &self.generation
+    }
+
     pub(crate) const fn schedule(&self) -> BucketSchedule {
         self.schedule
     }

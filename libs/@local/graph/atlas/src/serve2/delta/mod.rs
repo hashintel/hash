@@ -7,7 +7,14 @@ pub(crate) mod layout;
 pub(crate) mod overlay;
 mod placement;
 mod projector;
+mod task;
 pub(crate) mod topology;
+
+pub(crate) use self::{
+    feed::DeltaFeedTaskOptions,
+    placement::{DeltaPlacementTaskOptions, EmbeddingWorkflow},
+    task::{DeltaReader, DeltaTask, DeltaTaskError, DeltaTaskOptions},
+};
 
 #[cfg(test)]
 mod tests;

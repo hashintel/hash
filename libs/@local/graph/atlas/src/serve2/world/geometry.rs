@@ -89,15 +89,19 @@ impl Geometry {
         errors.finish_ok(this)
     }
 
-    pub(super) const fn morton(&self) -> &MortonFile {
+    pub(crate) const fn morton_order(&self) -> &MortonFile {
         &self.morton_order
     }
 
-    pub(crate) fn position(&self, position: BasePosition) -> Option<Vec2> {
+    pub(crate) const fn spatial_index(&self) -> &QuadFile {
+        &self.spatial_index
+    }
+
+    pub(super) fn position(&self, position: BasePosition) -> Option<Vec2> {
         self.positions.view().get(position).copied()
     }
 
-    pub(crate) fn node_count(&self) -> usize {
+    pub(super) fn node_count(&self) -> usize {
         self.positions.len()
     }
 }

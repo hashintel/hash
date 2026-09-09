@@ -10,8 +10,9 @@ mod pending;
 mod tests;
 
 use alloc::sync::Arc;
-use core::{fmt, ops::ControlFlow, pin::pin, time::Duration};
+use core::{fmt, future::Future, ops::ControlFlow, pin::pin, time::Duration};
 
+use arc_swap::ArcSwap;
 use error_stack::{Report, ReportSink, ResultExt as _};
 use futures::StreamExt as _;
 use hash_graph_postgres_store::store::{EntityEvent, PostgresStorePool};
@@ -39,7 +40,10 @@ use crate::{
 };
 
 #[derive(Debug)]
-enum DeltaFeedError {
+pub(super) enum DeltaFeedError {
+    InvalidInterval,
+    InvalidSafetyLag,
+    Closed,
     Connect,
     Event,
     Classification,
@@ -50,6 +54,13 @@ enum DeltaFeedError {
 impl fmt::Display for DeltaFeedError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidInterval => fmt.write_str(
+                "the feed polling interval must be non-zero and fit the monotonic clock",
+            ),
+            Self::InvalidSafetyLag => {
+                fmt.write_str("the safety lag precedes the representable transaction-time range")
+            }
+            Self::Closed => fmt.write_str("the feed task stopped before publication"),
             Self::Connect => fmt.write_str("failed to connect to the database"),
             Self::Event => fmt.write_str("failed to read entity events"),
             Self::Classification => fmt.write_str("failed to classify entities"),
@@ -87,9 +98,68 @@ fn pump(
     ControlFlow::Continue(())
 }
 
-struct DeltaFeedTaskOptions {
-    safety_lag: Duration,
-    tick_rate: Duration,
+pub(crate) struct DeltaFeedTaskOptions {
+    pub safety_lag: Duration,
+    pub tick_rate: Duration,
+}
+
+/// The feed's ends of the placement request and completion channels.
+pub(super) struct Placement {
+    pub requests: mpsc::Sender<PendingEntry<Initial>>,
+    pub completed: mpsc::Receiver<PendingEntry<Completed>>,
+}
+
+/// A single publisher's change notification and allocation exchange.
+pub(super) struct Publication {
+    notify: Arc<Notify>,
+    update: mpsc::Sender<(Delta, oneshot::Sender<Delta>)>,
+}
+
+impl Publication {
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "Tokio select uses a remainder to traverse its branch set"
+    )]
+    pub(super) async fn next(&self, previous: Arc<Delta>) -> Result<Delta, Report<DeltaFeedError>> {
+        tokio::select! {
+            biased;
+            () = self.update.closed() => return Err(Report::new(DeltaFeedError::Closed)),
+            () = self.notify.notified() => {}
+        }
+
+        let (tx, rx) = oneshot::channel();
+        self.update
+            .send((Arc::unwrap_or_clone(previous), tx))
+            .await
+            .change_context(DeltaFeedError::Closed)?;
+
+        rx.await.change_context(DeltaFeedError::Closed)
+    }
+
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "Tokio select uses a remainder to traverse its branch set"
+    )]
+    pub(super) async fn run(
+        self,
+        current: Arc<ArcSwap<Delta>>,
+        mut previous: Arc<Delta>,
+        shutdown: impl Future<Output = ()>,
+    ) -> Result<(), Report<DeltaFeedError>> {
+        let mut shutdown = pin!(shutdown);
+
+        // We try to keep the previous in the `Arc` for as long as possible, that way we have a
+        // change to reuse it
+        loop {
+            let next = tokio::select! {
+                biased;
+                () = &mut shutdown => return Ok(()),
+                next = self.next(previous) => next?,
+            };
+
+            previous = current.swap(Arc::new(next));
+        }
+    }
 }
 
 #[derive(Default)]
@@ -101,7 +171,7 @@ struct DeltaFeedTaskScratch {
     displays: FastHashMap<EntityEditionId, Option<DisplayParts>>,
 }
 
-struct DeltaFeedTask {
+pub(super) struct DeltaFeedTask {
     delta: Delta,
     pool: Arc<PostgresStorePool>,
     options: DeltaFeedTaskOptions,
@@ -111,17 +181,78 @@ struct DeltaFeedTask {
     replayed: bool,
 
     update: mpsc::Receiver<(Delta, oneshot::Sender<Delta>)>,
-    notify: Notify,
+    notify: Arc<Notify>,
 
-    rx: mpsc::Receiver<PendingEntry<Completed>>,
-    tx: mpsc::Sender<PendingEntry<Initial>>,
+    placement: Option<Placement>,
 
     pending: Pending,
     scratch: DeltaFeedTaskScratch,
 }
 
 impl DeltaFeedTask {
-    async fn run(&mut self) -> Result<(), Report<DeltaFeedError>> {
+    /// Starts a working revision after `delta`, replaying from the base snapshot's `watermark`.
+    ///
+    /// Without placement channels, new node placements remain pending while withdrawals and
+    /// metadata updates continue. Construction starts no task and opens no database connection.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeltaFeedError::InvalidInterval`] for a zero or unrepresentable polling interval,
+    /// or [`DeltaFeedError::InvalidSafetyLag`] when the replay window precedes the timestamp range.
+    pub(super) fn new(
+        mut delta: Delta,
+        pool: Arc<PostgresStorePool>,
+        options: DeltaFeedTaskOptions,
+        watermark: Timestamp<TransactionTime>,
+        placement: Option<Placement>,
+    ) -> Result<(Self, Publication), Report<DeltaFeedError>> {
+        if options.tick_rate.is_zero()
+            || tokio::time::Instant::now()
+                .checked_add(options.tick_rate)
+                .is_none()
+        {
+            return Err(Report::new(DeltaFeedError::InvalidInterval));
+        }
+
+        let safety_lag = ::time::Duration::try_from(options.safety_lag)
+            .change_context(DeltaFeedError::InvalidSafetyLag)?;
+
+        let earliest = Timestamp::from_unix_timestamp(
+            ::time::Date::MIN.midnight().assume_utc().unix_timestamp(),
+        );
+
+        if safety_lag > watermark - earliest {
+            return Err(Report::new(DeltaFeedError::InvalidSafetyLag));
+        }
+
+        let (tx, rx) = mpsc::channel(1);
+
+        let notify = Arc::new(Notify::new());
+        let publication = Publication {
+            notify: Arc::clone(&notify),
+            update: tx,
+        };
+
+        delta.revision.increment_by(1);
+
+        let this = Self {
+            delta,
+            pool,
+            options,
+            watermark,
+            safety_lag,
+            replayed: false,
+            update: rx,
+            notify,
+            placement,
+            pending: Pending::default(),
+            scratch: DeltaFeedTaskScratch::default(),
+        };
+
+        Ok((this, publication))
+    }
+
+    pub(super) async fn run(mut self) -> Result<(), Report<DeltaFeedError>> {
         let mut interval = tokio::time::interval(self.options.tick_rate);
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
@@ -142,7 +273,11 @@ impl DeltaFeedTask {
         &mut self,
         interval: &mut Interval,
     ) -> Result<ControlFlow<(), bool>, Report<DeltaFeedError>> {
-        let tx = self.tx.clone();
+        let tx = self
+            .placement
+            .as_ref()
+            .map(|placement| placement.requests.clone());
+
         let changed = tokio::select! {
             _ = interval.tick() => match self.tick().await {
                 Ok(changed) => changed,
@@ -151,19 +286,30 @@ impl DeltaFeedTask {
                     false
                 }
             },
-            permit = tx.reserve(), if self.pending.has_placements() => {
+            permit = async {
+                match &tx {
+                    Some(tx) => tx.reserve().await,
+                    None => core::future::pending().await,
+                }
+            }, if self.pending.has_placements() => {
                 let permit = permit.change_context(DeltaFeedError::PlacementClosed)?;
-                if pump(&mut self.pending, &self.tx, Some(permit)).is_break() {
+                let tx = tx.as_ref().expect("should have a placement sender after reserving capacity");
+                if pump(&mut self.pending, tx, Some(permit)).is_break() {
                     return Err(Report::new(DeltaFeedError::PlacementClosed));
                 }
 
                 false
             },
-            result = self.rx.recv() => {
+            result = async {
+                match &mut self.placement {
+                    Some(placement) => placement.completed.recv().await,
+                    None => core::future::pending().await,
+                }
+            } => {
                 let result = result.ok_or_else(|| Report::new(DeltaFeedError::PlacementClosed))?;
-
+                let placement = self.placement.as_mut().expect("should have placement channels after receiving a result");
                 self.pending.receive(result);
-                while let Ok(result) = self.rx.try_recv() {
+                while let Ok(result) = placement.completed.try_recv() {
                     self.pending.receive(result);
                 }
 
@@ -180,7 +326,9 @@ impl DeltaFeedTask {
             },
         };
 
-        if pump(&mut self.pending, &self.tx, None).is_break() {
+        if let Some(placement) = &self.placement
+            && pump(&mut self.pending, &placement.requests, None).is_break()
+        {
             return Err(Report::new(DeltaFeedError::PlacementClosed));
         }
 

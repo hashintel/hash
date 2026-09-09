@@ -16,6 +16,7 @@ use super::{
     node_index::NodeIndex,
 };
 use crate::{
+    file::quad,
     identity::{BasePosition, ImportanceRank, NodeRowId},
     math::Vec2,
     morton::{Depth, MortonCell, MortonKey},
@@ -200,7 +201,7 @@ impl Layout {
             }
 
             let row = self.index[position];
-            let roundtrip = self.index.reverse(row);
+            let roundtrip = self.index.base_reverse(row);
             if roundtrip != Some(position) {
                 return Err(LayoutRoundtripError::RowInverse {
                     position,
@@ -219,7 +220,7 @@ impl Layout {
         bucket: Depth,
         cell: MortonCell,
     ) -> impl Iterator<Item = (MortonKey, NodeRowId)> {
-        let morton = self.geometry.morton();
+        let morton = self.geometry.morton_order();
         morton
             .run(bucket, cell)
             .map(move |position| (morton.code(position), self.index[position]))
@@ -227,14 +228,14 @@ impl Layout {
 
     /// Returns a base row's recorded bucket, independent of visibility.
     pub(crate) fn base_bucket_of(&self, node: NodeRowId) -> Option<Depth> {
-        let position = self.index.reverse(node)?;
-        Some(self.geometry.morton().bucket_of(position))
+        let position = self.index.base_reverse(node)?;
+        Some(self.geometry.morton_order().bucket_of(position))
     }
 
     /// Counts base rows in the recorded buckets through `cut`.
     pub(crate) fn base_count_through(&self, cut: Depth) -> usize {
         self.geometry
-            .morton()
+            .morton_order()
             .fenceposts()
             .segment(cut)
             .end
@@ -244,7 +245,7 @@ impl Layout {
     /// Returns the deepest occupied recorded bucket.
     pub(crate) fn base_deepest_occupied(&self) -> Option<Depth> {
         self.geometry
-            .morton()
+            .morton_order()
             .fenceposts()
             .segments()
             .into_iter()
@@ -256,12 +257,12 @@ impl Layout {
 
     /// Returns whether a recorded bucket contains a base row inside `cell`.
     pub(crate) fn base_occupied(&self, bucket: Depth, cell: MortonCell) -> bool {
-        !self.geometry.morton().run(bucket, cell).is_empty()
+        !self.geometry.morton_order().run(bucket, cell).is_empty()
     }
 
     /// Returns the deepest prefix shared with any recorded base key.
     pub(crate) fn base_shared_depth(&self, key: MortonKey) -> Option<Depth> {
-        let morton = self.geometry.morton();
+        let morton = self.geometry.morton_order();
         let codes = morton.codes();
 
         morton
@@ -279,6 +280,13 @@ impl Layout {
                     .max()
             })
             .max()
+    }
+
+    pub(crate) fn base_locate_quad(&self, cell: MortonCell) -> Option<&quad::Node> {
+        let spatial_index = self.geometry.spatial_index();
+        let index = spatial_index.locate(cell)?;
+
+        Some(&spatial_index.nodes()[index as usize])
     }
 
     /// Returns an allocated row's priority, independent of visibility.
@@ -317,7 +325,7 @@ impl Layout {
 impl ImportanceProvider for Layout {
     fn provide_priority(&self, node: NodeRowId) -> Option<NodePriority> {
         self.importance
-            .lookup(self.index.reverse(node)?)
+            .lookup(self.index.base_reverse(node)?)
             .map(NodePriority::Rank)
     }
 }
@@ -328,7 +336,7 @@ impl LayoutProvider for Layout {
     }
 
     fn provide_position(&self, node: NodeRowId) -> Option<Vec2> {
-        self.geometry.position(self.index.reverse(node)?)
+        self.geometry.position(self.index.base_reverse(node)?)
     }
 }
 

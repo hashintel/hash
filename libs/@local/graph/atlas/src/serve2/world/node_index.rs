@@ -109,13 +109,37 @@ impl NodeIndex {
     }
 
     /// Returns the row at `index`, or [`None`] outside the fitted position domain.
-    pub(super) fn lookup(&self, index: BasePosition) -> Option<NodeRowId> {
+    pub(super) fn base_lookup(&self, index: BasePosition) -> Option<NodeRowId> {
         self.lookup.view().get(index).copied()
     }
 
+    pub(crate) fn lookup(&self, epoch: &Epoch, index: BasePosition) -> Option<NodeRowId> {
+        // TODO: should `provider.permits_row` be public? I feel like it shouldn't?
+        let row = self.base_lookup(index)?;
+
+        let provider = epoch
+            .nodes(self)
+            .bind(NaiveIdentityProvider::from_ref(&self.identity));
+
+        provider
+            .permits_row(row, Some(epoch.revision()))
+            .then_some(row)
+    }
+
     /// Returns the fitted position of `index`, or [`None`] outside the fitted row domain.
-    pub(super) fn reverse(&self, index: NodeRowId) -> Option<BasePosition> {
+    pub(super) fn base_reverse(&self, index: NodeRowId) -> Option<BasePosition> {
         self.reverse.view().get(index).copied()
+    }
+
+    pub(crate) fn reverse(&self, epoch: &Epoch, index: NodeRowId) -> Option<BasePosition> {
+        let provider = epoch
+            .nodes(self)
+            .bind(NaiveIdentityProvider::from_ref(&self.identity));
+
+        provider
+            .permits_row(index, Some(epoch.revision()))
+            .then_some(index)
+            .and_then(|index| self.base_reverse(index))
     }
 
     pub(crate) fn len(&self) -> usize {

@@ -318,7 +318,7 @@ where
     K: Key + Hash + Eq,
     B: VersionedIdentityProvider<K, R>,
 {
-    fn permits_row(&self, row: R, revision: Option<DeltaRevision>) -> bool {
+    pub(crate) fn permits_row(&self, row: R, revision: Option<DeltaRevision>) -> bool {
         DeltaRowId::derive(self.base.provide_universe(), row).map_or_else(
             || {
                 self.data

@@ -10,4 +10,5 @@ mod secret;
 #[cfg(test)]
 mod tests;
 mod visibility;
+mod walk;
 mod world;

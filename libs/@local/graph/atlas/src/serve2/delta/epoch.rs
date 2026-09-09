@@ -6,7 +6,7 @@ use arc_swap::Guard;
 use super::{
     Delta, DeltaRevision,
     importance::DeltaImportanceProvider,
-    layout::LayoutDelta,
+    layout::{LayoutDelta, provider::NaiveLayoutProvider},
     overlay::{DeltaIdentityProvider, IdentityProviderResidual, NaiveIdentityProvider},
     topology::TopologyDelta,
 };
@@ -15,7 +15,9 @@ use crate::{
     identity::{EdgeRowId, NodeRowId},
     postgres::id::ArchivedEntityId,
     serve2::world::{
-        Geometry, NodeIndex, layout::Layout, node_importance::ImportanceProvider,
+        Geometry, NodeIndex,
+        layout::{Layout, LayoutProvider as _},
+        node_importance::ImportanceProvider,
         topology::Topology,
     },
 };
