@@ -581,3 +581,130 @@ class TestRunTimeShapeErrors:
         inf = self._node("mathCall", fn="exp", args=[self._num(1000)])
         result = self._eval(self._node("binary", op="%", left=inf, right=self._num(7)))
         assert isinstance(result, float) and math.isnan(result)
+
+
+class TestInterpreterParity:
+    """The evaluator mirrors the TypeScript interpreter (``hir/interpret.ts``)
+    where Python's own semantics disagree with ECMAScript: truthiness,
+    equality of composites, ``Math.min``/``Math.max``, ``Math.round``,
+    division, string length, and the operators strings are refused on."""
+
+    @staticmethod
+    def _node(kind: str, **fields: object) -> dict[str, object]:
+        node: dict[str, object] = {"kind": kind, "id": 0, "span": SPAN, **fields}
+        if kind == "fieldAccess":
+            node.setdefault("fieldSpan", SPAN)
+        return node
+
+    def _num(self, value: float) -> dict[str, object]:
+        return self._node("numberLit", value=value, raw=repr(value))
+
+    def _nan(self) -> dict[str, object]:
+        return self._node("constant", name="NaN")
+
+    def _eval(
+        self,
+        body: dict[str, object],
+        params: list[str] | None = None,
+        **locals_: object,
+    ) -> object:
+        return evaluate_hir(
+            {
+                "hirVersion": 1,
+                "surface": "metric" if params else "scenario-expression",
+                "params": [{"name": name, "span": SPAN} for name in params or []],
+                "span": SPAN,
+                "body": body,
+            },
+            locals_=locals_,
+        )
+
+    def _not(self, operand: dict[str, object]) -> dict[str, object]:
+        return self._node("unary", op="!", operand=operand)
+
+    def test_nan_is_falsy(self) -> None:
+        assert self._eval(self._not(self._nan())) is True
+        cond = self._node(
+            "cond",
+            condition=self._nan(),
+            thenBranch=self._num(1),
+            elseBranch=self._num(2),
+        )
+        assert self._eval(cond) == 2
+
+    def test_empty_composites_are_truthy(self) -> None:
+        assert self._eval(self._not(self._node("arrayLit", elements=[]))) is False
+        assert self._eval(self._not(self._node("recordLit", entries=[]))) is False
+
+    def test_composites_compare_by_identity(self) -> None:
+        one = self._node("arrayLit", elements=[self._num(1)])
+        assert self._eval(self._node("binary", op="==", left=one, right=one)) is False
+        state = self._node("localRef", name="state")
+        same = self._node("binary", op="==", left=state, right=state)
+        assert self._eval(same, params=["state"], state={"places": {}}) is True
+
+    def test_min_and_max_propagate_nan(self) -> None:
+        for fn in ("min", "max"):
+            for args in ([self._num(1), self._nan()], [self._nan(), self._num(1)]):
+                result = self._eval(self._node("mathCall", fn=fn, args=args))
+                assert isinstance(result, float) and math.isnan(result), (fn, args)
+
+    def test_min_and_max_order_signed_zeros(self) -> None:
+        negative_zero = self._node("unary", op="-", operand=self._num(0.0))
+        zeros = [self._num(0.0), negative_zero]
+        assert (
+            math.copysign(1.0, self._eval(self._node("mathCall", fn="min", args=zeros)))
+            < 0
+        )
+        assert (
+            math.copysign(1.0, self._eval(self._node("mathCall", fn="max", args=zeros)))
+            > 0
+        )
+
+    def test_round_keeps_a_negative_zero(self) -> None:
+        rounded = self._eval(self._node("mathCall", fn="round", args=[self._num(-0.3)]))
+        assert rounded == 0 and math.copysign(1.0, rounded) < 0
+        assert (
+            self._eval(self._node("mathCall", fn="round", args=[self._num(-2.5)])) == -2
+        )
+        assert (
+            self._eval(self._node("mathCall", fn="round", args=[self._num(2.5)])) == 3
+        )
+        # Just under one half: `floor(x + 0.5)` would round it up.
+        below_half = self._num(0.49999999999999994)
+        assert self._eval(self._node("mathCall", fn="round", args=[below_half])) == 0
+
+    def test_nan_over_zero_is_nan(self) -> None:
+        result = self._eval(
+            self._node("binary", op="/", left=self._nan(), right=self._num(0))
+        )
+        assert isinstance(result, float) and math.isnan(result)
+
+    def test_string_length_counts_utf16_units(self) -> None:
+        length = self._node(
+            "length", target=self._node("stringLit", value="\U0001f600")
+        )
+        assert self._eval(length) == 2
+
+    def test_strings_are_refused_by_numeric_operators(self) -> None:
+        # The interpreter coerces every `+` and ordering operand to a number,
+        # so both readings of a constraint refuse strings alike.
+        left, right = (
+            self._node("stringLit", value="a"),
+            self._node("stringLit", value="b"),
+        )
+        for op in ("+", "<"):
+            body = self._node("binary", op=op, left=left, right=right)
+            with pytest.raises(HirEvaluationError, match="expects a number"):
+                self._eval(body)
+            with pytest.raises(HirEvaluationError, match="expects a number"):
+                parameter_constraint("strings", body).margin(scenario={})
+
+    def test_negating_a_satisfied_boundary_reads_violated(self) -> None:
+        for op in ("<=", ">=", "=="):
+            boundary = self._node(
+                "binary", op=op, left=self._num(3), right=self._num(3)
+            )
+            negated = parameter_constraint("negated-boundary", self._not(boundary))
+            assert negated(scenario={}) is False, op
+            assert negated.margin(scenario={}) < 0, op

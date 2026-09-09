@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Mapping, Sequence
-from typing import TypeAlias, TypeVar
+from typing import TypeAlias
 
 from pydantic import TypeAdapter
 
@@ -109,10 +109,15 @@ def validate_hir_function(fn: HirFunction | Mapping[str, object]) -> HirFunction
 
 def _js_round(value: float) -> float:
     """ECMAScript ``Math.round``: half-up toward positive infinity (Python's
-    ``round`` is banker's)."""
+    ``round`` is banker's), keeping the sign of a negative input that rounds
+    to zero (``Math.round(-0.3)`` is ``-0``)."""
     if not math.isfinite(value):
         return value  # JS: round(±Infinity) is ±Infinity, round(NaN) is NaN
-    return math.floor(value + 0.5)
+    floored = math.floor(value)
+    rounded = floored + 1 if value - floored >= 0.5 else floored
+    if rounded == 0:
+        return math.copysign(0.0, value)
+    return float(rounded)
 
 
 def _js_sign(value: float) -> float:
@@ -201,11 +206,31 @@ def _cbrt(value: float) -> float:
 
 
 def _max(*values: float) -> float:
-    return max(values) if values else -math.inf  # JS: Math.max() is -Infinity
+    """ECMAScript ``Math.max``: NaN wins over every argument and ``+0`` over
+    ``-0``, where Python's ``max`` keeps whichever came first."""
+    if not values:
+        return -math.inf  # JS: Math.max() is -Infinity
+    if any(math.isnan(value) for value in values):
+        return math.nan
+    result = values[0]
+    for value in values[1:]:
+        if value > result or (value == result == 0 and math.copysign(1.0, value) > 0):
+            result = value
+    return result
 
 
 def _min(*values: float) -> float:
-    return min(values) if values else math.inf  # JS: Math.min() is Infinity
+    """ECMAScript ``Math.min``: NaN wins over every argument and ``-0`` over
+    ``+0``, where Python's ``min`` keeps whichever came first."""
+    if not values:
+        return math.inf  # JS: Math.min() is Infinity
+    if any(math.isnan(value) for value in values):
+        return math.nan
+    result = values[0]
+    for value in values[1:]:
+        if value < result or (value == result == 0 and math.copysign(1.0, value) < 0):
+            result = value
+    return result
 
 
 _MATH_FNS: dict[str, Callable[..., float]] = {
@@ -259,13 +284,22 @@ def _strict_slack(slack: float) -> float:
 
 def _strict_equal(left: Value, right: Value) -> bool:
     """ECMAScript strict equality on the value kinds HIR produces: booleans
-    never equal numbers (`1 === true` is false in JS, unlike Python)."""
+    never equal numbers (`1 === true` is false in JS, unlike Python), and
+    arrays and records compare by identity, not by content."""
     if isinstance(left, bool) != isinstance(right, bool):
         return False
+    if isinstance(left, (list, dict)) or isinstance(right, (list, dict)):
+        return left is right
     return left == right
 
 
 def _truthy(value: Value) -> bool:
+    """ECMAScript truthiness: NaN is falsy, an empty array or record is
+    truthy; Python's ``bool`` says the opposite for both."""
+    if isinstance(value, (list, dict)):
+        return True
+    if isinstance(value, float) and math.isnan(value):
+        return False
     return bool(value)
 
 
@@ -283,10 +317,7 @@ def _number(value: Value, context: str) -> float:
     raise HirEvaluationError(f"{context} expects a number, got {type(value).__name__}")
 
 
-_Ordered = TypeVar("_Ordered", float, str)
-
-
-def _compare(op: str, left: _Ordered, right: _Ordered) -> bool:
+def _compare(op: str, left: float, right: float) -> bool:
     if op == "<":
         return left < right
     if op == "<=":
@@ -387,7 +418,10 @@ class _Evaluator:
                 return target[index]
             case m.HirLength():
                 target = self.eval(node.target)
-                if not isinstance(target, (list, str)):
+                if isinstance(target, str):
+                    # ECMAScript counts UTF-16 code units, not code points.
+                    return len(target.encode("utf-16-le")) // 2
+                if not isinstance(target, list):
                     raise HirEvaluationError(".length target is not an array or string")
                 return len(target)
             case m.HirStringCall():
@@ -482,11 +516,8 @@ class _Evaluator:
             return _strict_equal(left, right)
         if op == "!=":
             return not _strict_equal(left, right)
-        if isinstance(left, str) and isinstance(right, str):
-            if op == "+":
-                return left + right
-            if op in _COMPARISONS:
-                return _compare(op, left, right)
+        # Every remaining operator is numeric, as in the TypeScript
+        # interpreter: strings are refused, not concatenated or ordered.
         left_number = _number(left, f'"{op}"')
         right_number = _number(right, f'"{op}"')
         if op in _COMPARISONS:
@@ -500,7 +531,7 @@ class _Evaluator:
         if op == "/":
             if right_number == 0:
                 # ECMAScript division never raises.
-                if left_number == 0:
+                if left_number == 0 or math.isnan(left_number):
                     return math.nan
                 return math.copysign(math.inf, left_number) * math.copysign(
                     1, right_number
@@ -573,7 +604,9 @@ class _Evaluator:
                 if margin is not None:
                     return margin
             case m.HirUnary() if node.op.value == "!":
-                return -self.margin(node.operand)
+                # A zero margin is a satisfied boundary; its negation is
+                # violated, so the sign must go negative there too.
+                return _strict_slack(-self.margin(node.operand))
             case m.HirCond():
                 taken = (
                     node.thenBranch
