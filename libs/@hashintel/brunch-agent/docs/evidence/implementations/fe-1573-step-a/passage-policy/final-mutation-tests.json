@@ -1,0 +1,20 @@
+{
+  "sourceSha256": "540387183ed687ef7949792816edf0472df84f5494d00f496d88ef2640746fa2",
+  "results": [
+    {
+      "label": "ordinal999",
+      "exitCode": 1,
+      "mutantSha256": "9fc52087d6a784ff99bf95b9aba6a609a484cca8f162e66cfa0434bb7d36f345"
+    },
+    {
+      "label": "carry-empty",
+      "exitCode": 1,
+      "mutantSha256": "1530c216707e33421b99abe7a9bc3d28372b5c72be7c64b0e91a1e687b22e0cb"
+    },
+    {
+      "label": "later-lookup-hash",
+      "exitCode": 1,
+      "mutantSha256": "19f177eaa010663c842b54bfed12b16e683c76a8536739cb79f23a74da8565c5"
+    }
+  ]
+}

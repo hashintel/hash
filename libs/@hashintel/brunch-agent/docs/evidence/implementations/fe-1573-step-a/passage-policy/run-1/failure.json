@@ -1,0 +1,6 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: Seed factories must complete, not just settle an errored response",
+  "stack": "AssertionError [ERR_ASSERTION]: Seed factories must complete, not just settle an errored response\n    at seed (file:///Users/lunelson/.herdr/worktrees/hash/m7-passage-policy/apps/brunch-agent/test/passage-policy.integration.ts:240:3)\n    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-passage-policy/apps/brunch-agent/test/passage-policy.integration.ts:361:21",
+  "rows": [],
+  "counterexamples": []
+}

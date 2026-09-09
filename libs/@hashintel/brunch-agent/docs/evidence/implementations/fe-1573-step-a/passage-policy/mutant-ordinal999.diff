@@ -1,0 +1,11 @@
+--- passage-policy.integration.ts
++++ passage-policy-ordinal999.temporary.ts
+@@ -275,7 +275,7 @@
+       settled = modelOutput(context, `${prefix}-read`);
+       checkLookup(settled, markdown, `${prefix}-revision`);
+       assert.deepEqual(settled.currentWorkpiece?.evidence, relations);
+-      assert.equal(settled.currentWorkpiece.ordinal, 1);
++      assert.equal(settled.currentWorkpiece.ordinal, 999);
+       return done();
+     },
+   ]);

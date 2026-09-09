@@ -1,0 +1,197 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: Synthetic response assertion failed: AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   {\n+     kind: 'elicited',\n+     locator: {\n+       end: 35,\n+       start: 18\n+     },\n+     messageIds: [\n+       'entry_direct_c3ViXzAxTTIxVFFEN1BDSFFURDJTSFRXMlhYSlpH'\n+     ]\n+   },\n+   {\n+     kind: 'formalism-constraint',\n+     locator: {\n+       end: 35,\n+       start: 18\n+     },\n+     messageIds: []\n+   },\n+   {\n+     kind: 'inference',\n+     locator: {\n+       end: 34,\n+       start: 26\n+     },\n+     messageIds: []\n+   },\n+   {\n+     kind: 'default',\n+     locator: {\n+       end: 60,\n+       start: 37\n+     },\n+     messageIds: []\n+   }\n+ ]\n- []\n\n\n1 !== 0\n",
+  "stack": "AssertionError [ERR_ASSERTION]: Synthetic response assertion failed: AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   {\n+     kind: 'elicited',\n+     locator: {\n+       end: 35,\n+       start: 18\n+     },\n+     messageIds: [\n+       'entry_direct_c3ViXzAxTTIxVFFEN1BDSFFURDJTSFRXMlhYSlpH'\n+     ]\n+   },\n+   {\n+     kind: 'formalism-constraint',\n+     locator: {\n+       end: 35,\n+       start: 18\n+     },\n+     messageIds: []\n+   },\n+   {\n+     kind: 'inference',\n+     locator: {\n+       end: 34,\n+       start: 26\n+     },\n+     messageIds: []\n+   },\n+   {\n+     kind: 'default',\n+     locator: {\n+       end: 60,\n+       start: 37\n+     },\n+     messageIds: []\n+   }\n+ ]\n- []\n\n\n1 !== 0\n\n    at Object.send (file:///Users/lunelson/.herdr/worktrees/hash/m7-passage-policy/apps/brunch-agent/test/passage-policy-carry-empty.temporary.ts:199:12)\n    at async edit (file:///Users/lunelson/.herdr/worktrees/hash/m7-passage-policy/apps/brunch-agent/test/passage-policy-carry-empty.temporary.ts:342:3)\n    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-passage-policy/apps/brunch-agent/test/passage-policy-carry-empty.temporary.ts:410:22",
+  "rows": [
+    {
+      "label": "seed-1",
+      "identity": {
+        "principalKey": "TEST-passage-owner",
+        "conversationId": "TEST-unchanged-append-590abc99-a6bd-4b3a-a5bd-d33957ba00b4"
+      },
+      "candidate": {
+        "currentWorkpiece": null,
+        "locatorLookup": {
+          "subject": {
+            "kind": "unsettled-candidate"
+          },
+          "sha256": "e841f1fa42474119bc26a3ad1ec662af306169947fc4a334a789e5dbdee6be48",
+          "utf16Length": 60,
+          "utf8Bytes": 62,
+          "queries": [
+            {
+              "text": "Reserve one crew.",
+              "occurrences": [
+                {
+                  "start": 18,
+                  "end": 35
+                }
+              ],
+              "matchedCount": 1,
+              "omittedCount": 0
+            },
+            {
+              "text": "one crew",
+              "occurrences": [
+                {
+                  "start": 26,
+                  "end": 34
+                }
+              ],
+              "matchedCount": 1,
+              "omittedCount": 0
+            },
+            {
+              "text": "Timing remains unknown.",
+              "occurrences": [
+                {
+                  "start": 37,
+                  "end": 60
+                }
+              ],
+              "matchedCount": 1,
+              "omittedCount": 0
+            },
+            {
+              "text": "# TEST account\n😀 Reserve one crew.\n\nTiming remains unknown.",
+              "occurrences": [
+                {
+                  "start": 0,
+                  "end": 60
+                }
+              ],
+              "matchedCount": 1,
+              "omittedCount": 0
+            }
+          ]
+        },
+        "state": "unknown",
+        "sources": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIxVFFEN1BDSFFURDJTSFRXMlhYSlpH",
+            "role": "user",
+            "purpose": "user",
+            "text": "TEST scripted user source: Reserve one crew. Timing remains unknown.",
+            "textTruncated": false,
+            "untrusted": true
+          }
+        ],
+        "earlierSourcesOmitted": 0,
+        "quality": "Source identity and authorship only; relevance, template completeness and utility are unassessed."
+      },
+      "settled": {
+        "currentWorkpiece": {
+          "revisionId": "seed-1-revision",
+          "sha256": "e841f1fa42474119bc26a3ad1ec662af306169947fc4a334a789e5dbdee6be48",
+          "markdown": "# TEST account\n😀 Reserve one crew.\n\nTiming remains unknown.",
+          "evidence": [
+            {
+              "locator": {
+                "start": 18,
+                "end": 35
+              },
+              "messageIds": [
+                "entry_direct_c3ViXzAxTTIxVFFEN1BDSFFURDJTSFRXMlhYSlpH"
+              ],
+              "kind": "elicited"
+            },
+            {
+              "locator": {
+                "start": 18,
+                "end": 35
+              },
+              "messageIds": [],
+              "kind": "formalism-constraint"
+            },
+            {
+              "locator": {
+                "start": 26,
+                "end": 34
+              },
+              "messageIds": [],
+              "kind": "inference"
+            },
+            {
+              "locator": {
+                "start": 37,
+                "end": 60
+              },
+              "messageIds": [],
+              "kind": "default"
+            }
+          ],
+          "evidenceValidated": true,
+          "ordinal": 1
+        },
+        "locatorLookup": {
+          "subject": {
+            "kind": "current-revision",
+            "revisionId": "seed-1-revision"
+          },
+          "sha256": "e841f1fa42474119bc26a3ad1ec662af306169947fc4a334a789e5dbdee6be48",
+          "utf16Length": 60,
+          "utf8Bytes": 62,
+          "queries": [
+            {
+              "text": "Reserve one crew.",
+              "occurrences": [
+                {
+                  "start": 18,
+                  "end": 35
+                }
+              ],
+              "matchedCount": 1,
+              "omittedCount": 0
+            },
+            {
+              "text": "one crew",
+              "occurrences": [
+                {
+                  "start": 26,
+                  "end": 34
+                }
+              ],
+              "matchedCount": 1,
+              "omittedCount": 0
+            },
+            {
+              "text": "Timing remains unknown.",
+              "occurrences": [
+                {
+                  "start": 37,
+                  "end": 60
+                }
+              ],
+              "matchedCount": 1,
+              "omittedCount": 0
+            },
+            {
+              "text": "# TEST account\n😀 Reserve one crew.\n\nTiming remains unknown.",
+              "occurrences": [
+                {
+                  "start": 0,
+                  "end": 60
+                }
+              ],
+              "matchedCount": 1,
+              "omittedCount": 0
+            }
+          ]
+        },
+        "state": "current",
+        "sources": [
+          {
+            "id": "entry_direct_c3ViXzAxTTIxVFFEN1BDSFFURDJTSFRXMlhYSlpH",
+            "role": "user",
+            "purpose": "user",
+            "text": "TEST scripted user source: Reserve one crew. Timing remains unknown.",
+            "textTruncated": false,
+            "untrusted": true
+          }
+        ],
+        "earlierSourcesOmitted": 0,
+        "quality": "Source identity and authorship only; relevance, template completeness and utility are unassessed."
+      }
+    }
+  ],
+  "counterexamples": []
+}

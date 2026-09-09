@@ -1,0 +1,6 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: Synthetic response assertion failed: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 999\n\n\n1 !== 0\n",
+  "stack": "AssertionError [ERR_ASSERTION]: Synthetic response assertion failed: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 999\n\n\n1 !== 0\n\n    at Object.send (file:///Users/lunelson/.herdr/worktrees/hash/m7-passage-policy/apps/brunch-agent/test/passage-policy-ordinal999.temporary.ts:199:12)\n    at async seed (file:///Users/lunelson/.herdr/worktrees/hash/m7-passage-policy/apps/brunch-agent/test/passage-policy-ordinal999.temporary.ts:282:3)\n    at async file:///Users/lunelson/.herdr/worktrees/hash/m7-passage-policy/apps/brunch-agent/test/passage-policy-ordinal999.temporary.ts:404:21",
+  "rows": [],
+  "counterexamples": []
+}
