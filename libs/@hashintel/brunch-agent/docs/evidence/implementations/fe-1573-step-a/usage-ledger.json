@@ -5,21 +5,21 @@
     "calls": 200
   },
   "reservation": {
-    "owner": "m7-provider-proving",
-    "runId": "a5-real-provider-20260909-r1",
+    "owner": "m7-provider-execution",
+    "runId": "a5-real-provider-20260909-r2",
     "usd": 15,
     "calls": 20,
-    "status": "released",
-    "releasedAt": "2026-09-09T02:36:38Z",
+    "status": "active",
     "perCall": {
       "maxOutputTokens": 4096,
       "reservedUsd": 7
     },
     "model": "anthropic/claude-sonnet-4-6",
-    "manifestSha256": "8a47d3335bf5cd032b5f25efab5a53973d185e2f2c81ce1e691dc61fd4937381",
-    "codeCommit": "3f86c1461c2654b80b5eca0e7b5e65580146a9e0",
-    "allocatedAt": "2026-09-09T02:24:25Z",
-    "reason": "Released before any provider invocation: macOS refused paid-profile to stricter-loopback profile nesting. No DNS, TLS, HTTP or model request occurred; original five call rows/totals are unchanged and no writer lock was acquired. Revised browser process topology and a new freeze require owner review before reallocation."
+    "manifestSha256": "1c71ed054d89a7a0183df5b8877faba042982638a58c6696151fc119df439586",
+    "codeCommit": "f2b9bfd040ec989f06c7b72a8973f88aab3b42ca",
+    "allocatedAt": "2026-09-09T04:59:19Z",
+    "browserTopology": "sibling-playwright-v1",
+    "reason": "Named synthetic current-A5 sibling-browser run only. Final 3916 pins verified. Parent connection/TLS checks and explicit handoff still precede invocation; only m7-provider-execution may receive the sole writer lease. Prior r1 startup was released unused; historical calls/totals are preserved."
   },
   "totals": {
     "spentUsd": 0.09113535,

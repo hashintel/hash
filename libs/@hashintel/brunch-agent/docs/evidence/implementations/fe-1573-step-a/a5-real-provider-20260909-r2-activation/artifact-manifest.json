@@ -1,0 +1,18 @@
+{
+  "manifest-verification.json.gz": {
+    "sourceSha256": "c08272da83f36a6ff53f5149b592dc7ae722804817c1b75ded437a9e2c6be390",
+    "artifactSha256": "6ef50935f495d1c19229d14a683e0cc8a925348feeddc47019399bb78f46bf7a"
+  },
+  "manifest-verification.stderr.gz": {
+    "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactSha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  "observations-verified.json.gz": {
+    "sourceSha256": "d351e67c79611ff5061a506574ec90e0eeda5cf32c8d485721e38de7e165629f",
+    "artifactSha256": "9895539ea85e95238ddbd12a82f9eec4db3ee902d0410f86144bd0d5473dabbf"
+  },
+  "preflight-integration.log.gz": {
+    "sourceSha256": "e59de78947d7b1fcf497556ea63cb80acfdbea50ce4cbdb17d2060748396afc3",
+    "artifactSha256": "d49ced197a9a306baf5099e593deb44af047e5221fa39ce0f99af9249662e0fd"
+  }
+}
