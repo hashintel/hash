@@ -1,8 +1,8 @@
 /**
  * One experiment in a drawer over the Experiments list, in the shared frame:
- * the one-line title and the stats in the header, then the metric cards, the
- * parameter band and the surface arranged by the drawer's width, with the
- * actions in the footer.
+ * the one-line title and the stats in the header, the Parameters band across
+ * the body, then the surface and the metric cards arranged by the drawer's
+ * width, with the actions in the footer.
  */
 import { use } from "react";
 
@@ -109,33 +109,31 @@ export const ViewExperimentDrawer = ({
         </>
       }
     >
+      {sweep ? (
+        <FrameBand title="Parameters" help={PARAMETERS_HELP} collapsible>
+          <SweepNavigator
+            axes={experiment.parameterAxes}
+            selection={sweep.selection}
+            status={{
+              computing: sweep.computing,
+              runsCompleted: sweep.runsCompleted,
+              runsSampled: sweep.runsSampled,
+              runTarget: sweep.runTarget,
+              runCount: experiment.runCount,
+            }}
+            onSelectionChange={(selection) =>
+              setSweepSelection(experiment.id, selection)
+            }
+          />
+        </FrameBand>
+      ) : null}
       <FrameColumns
         primary={
-          sweep ? (
-            <>
-              <FrameBand title="Parameters" help={PARAMETERS_HELP}>
-                <SweepNavigator
-                  axes={experiment.parameterAxes}
-                  selection={sweep.selection}
-                  status={{
-                    computing: sweep.computing,
-                    runsCompleted: sweep.runsCompleted,
-                    runsSampled: sweep.runsSampled,
-                    runTarget: sweep.runTarget,
-                    runCount: experiment.runCount,
-                  }}
-                  onSelectionChange={(selection) =>
-                    setSweepSelection(experiment.id, selection)
-                  }
-                />
-              </FrameBand>
-              {experiment.parameterAxes.length >= 2 ? (
-                // Keyed so the axis and metric pickers never carry one
-                // experiment's identifiers into another when the drawer swaps
-                // records in place.
-                <SweepSurface key={experiment.id} experiment={experiment} />
-              ) : null}
-            </>
+          sweep && experiment.parameterAxes.length >= 2 ? (
+            // Keyed so the axis and metric pickers never carry one
+            // experiment's identifiers into another when the drawer swaps
+            // records in place.
+            <SweepSurface key={experiment.id} experiment={experiment} />
           ) : undefined
         }
         secondary={

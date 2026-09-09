@@ -1,7 +1,7 @@
 /**
- * The Parameters band of a connected study: the frame band with the help
- * tooltip and the navigator's status line in its title row, then the
- * parameter controls.
+ * The Parameters band of a connected study: the collapsible frame band with
+ * the help tooltip and the navigator's status line in its title row, then the
+ * parameter controls across the body.
  */
 import { optimizationBooleanIdentifiers } from "../../../../../../../react/optimizations/surface-grid";
 import { FrameBand } from "../../shared/drawer-frame";
@@ -34,6 +34,7 @@ export const NavigatorBand = ({
   <FrameBand
     title="Parameters"
     help={PARAMETERS_HELP}
+    collapsible
     trailing={
       <OptimizationNavigatorStatus
         navigation={connected.navigation}

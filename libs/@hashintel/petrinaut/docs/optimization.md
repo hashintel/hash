@@ -141,23 +141,25 @@ completed steps (a tenth of the requested steps, five at least),
 **Converging** when that many steps passed without a better one, and **Too
 early to say** before one such window has completed.
 
-Beneath the title, the header's stats line shows the status, the steps
-finished over the steps requested (with the runs per step when above one),
-and **Best step so far**, the best value seen so far (hover it for the best
-step's parameters). A progress bar for the steps runs along the header's
+Beneath the title, the header's strip of labelled columns shows the status,
+the steps finished over the steps requested (with the runs per step when above
+one), and **Best step so far**, the best value seen so far (hover it for the
+best step's parameters). A progress bar for the steps runs along the header's
 bottom edge. The value is named for what it is: the best of the steps tried,
-not a confirmed result at that configuration. Once the body has scrolled the
-header condenses to one line, the stats folded in as compact chips; move the
-pointer over it and it grows back. The line under the header is reserved for
-a note (the error when a study failed, the resume note while it is paused),
-so nothing moves when one appears.
+not a confirmed result at that configuration. Every column is as wide as its
+widest value, so nothing in the header moves as the numbers change. Once the
+body has scrolled the header condenses to one line, the columns folded in as
+compact chips; move the pointer over it and it grows back. The line under the
+header is reserved for a note (the error when a study failed, the resume note
+while it is paused), so nothing moves when one appears.
 
-The body arranges its parts by its width. In the drawer at its full width and
-in the full view the **Parameters** band and the **Objective surface** sit on
-the left and the other chart cards on the right, two to a row; in a narrower
-drawer the chart cards come first, then **Parameters**, then the surface. The
-steps table follows at a fixed height and scrolls on its own. Every card keeps
-its height whatever it shows.
+The body arranges its parts by its width. The **Parameters** band spans the
+body under the header; the chevron before its title folds the controls away
+and back without losing their positions. Beneath it, in the drawer at its full
+width and in the full view, the **Objective surface** sits on the left and the
+other chart cards on the right, two to a row; in a narrower drawer the chart
+cards come first, then the surface. The steps table follows at a fixed height
+and scrolls on its own. Every card keeps its height whatever it shows.
 
 The **Objective by step** card draws every step's objective value as a dot
 over the step number, with the best so far as a line stepping up (or down,
@@ -197,13 +199,14 @@ browser](#running-in-the-browser)) shows more, because the machine computing
 it is yours, and lays it out so the header, the controls and the plots stay
 in view on a laptop screen while the study streams:
 
-- The header's stats line also shows the parallel steps when above one, and,
-  at its right, a badge saying where the steps run. It reads **CPU**, because
-  the GPU backend cannot compute an expression objective (see step 4 of
+- The header's strip also shows the parallel steps when above one, an
+  **Activity** column with the **N computing** chip, and a **Compute** column
+  saying where the steps run. The badge reads **CPU**, because the GPU backend
+  cannot compute an expression objective (see step 4 of
   [Creating an optimization](#creating-an-optimization)); hover it for the
-  reason. An **N computing** chip sits at the end of the stats line while
-  anything computes (the steps in flight and the picked point's refinement),
-  opening a compact list with one row per batch and its own progress.
+  reason. The chip counts the batches running right now (the steps in flight
+  and the picked point's refinement), **0 computing** when nothing does, and
+  opens a compact list with one row per batch and its own progress.
 - A **Parameters** band with one slider per optimized numeric parameter and a
   switch per optimized boolean parameter, two to a row when they fit. Its
   heading carries the state line and the **Follow steps** switch. While the
