@@ -67,6 +67,9 @@ def test_runs_a_study_from_json_with_javascript_style_callbacks(
     assert len(evaluated) == 3
     assert [event["trial"] for event in events] == [0, 1, 2]
     assert all(isinstance(event, dict) for event in events)
+    # Three completed trials over three parameters are enough for an estimate;
+    # the host fades it below the floor.
+    assert summary.pop("importances")["completedTrials"] == 3
     assert summary == {
         "requestedTrials": 3,
         "completedTrials": 3,
@@ -110,6 +113,8 @@ def test_a_stopped_study_continues_from_the_trials_it_holds(
     assert stopped["completedTrials"] == 1
     assert stopped["failedTrials"] == 0
     assert [event["trial"] for event in events] == [0, 2, 3]
+    assert "importances" not in stopped, "one completed trial supports no estimate"
+    assert resumed.pop("importances")["completedTrials"] == 3
     assert resumed == {
         "requestedTrials": 3,
         "completedTrials": 3,
@@ -163,6 +168,7 @@ def test_a_failed_segment_leaves_the_study_resumable_without_over_counting(
     )
 
     assert [event["trial"] for event in events] == [0, 2, 3]
+    assert resumed.pop("importances")["completedTrials"] == 3
     assert resumed == {
         "requestedTrials": 3,
         "completedTrials": 3,
@@ -283,3 +289,67 @@ def test_rejects_an_outcome_that_is_not_an_object(
                 handle, 3, evaluate_to_a_number, ignore_event, never_cancelled
             )
         )
+
+
+def test_importances_ride_the_trials_at_the_cadence_past_the_floor_and_the_summary(
+    optimization_description: dict[str, Any],
+) -> None:
+    optimization_description["study"]["trials"] = 60
+    handle = create_browser_study(json.dumps(optimization_description))
+    events: list[dict[str, Any]] = []
+
+    summary = asyncio.run(
+        run_browser_study(handle, 60, evaluate, events.append, never_cancelled)
+    )
+
+    carrying = [event["trial"] for event in events if "importances" in event]
+    assert carrying == [49, 59], (
+        "the 50th and 60th completed trials, floor 50, cadence 10"
+    )
+    for event in events:
+        if "importances" in event:
+            block = event["importances"]
+            assert set(block["values"]) == {"rate", "count", "enabled"}
+            assert block["completedTrials"] == event["trial"] + 1
+            assert sum(block["values"].values()) == pytest.approx(1.0)
+    assert summary["importances"]["completedTrials"] == 60
+    assert set(summary["importances"]["values"]) == {"rate", "count", "enabled"}
+
+
+def test_a_short_study_streams_no_importances_but_its_summary_still_estimates(
+    optimization_description: dict[str, Any],
+) -> None:
+    optimization_description["study"]["trials"] = 20
+    handle = create_browser_study(json.dumps(optimization_description))
+    events: list[dict[str, Any]] = []
+
+    summary = asyncio.run(
+        run_browser_study(handle, 20, evaluate, events.append, never_cancelled)
+    )
+
+    assert all("importances" not in event for event in events)
+    assert summary["importances"]["completedTrials"] == 20
+
+
+def test_a_study_whose_importances_cannot_be_estimated_still_completes(
+    optimization_description: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from petrinaut_optimizer_core import importance, pyodide_entry
+
+    def explode(*_args: object, **_kwargs: object) -> dict[str, float]:
+        raise RuntimeError("numpy went away")
+
+    monkeypatch.setattr(importance, "get_param_importances", explode)
+    optimization_description["study"]["trials"] = 60
+    handle = create_browser_study(json.dumps(optimization_description))
+    events: list[dict[str, Any]] = []
+
+    summary = asyncio.run(
+        run_browser_study(handle, 60, evaluate, events.append, never_cancelled)
+    )
+
+    assert pyodide_entry.importances_of(handle.study) is None  # type: ignore[arg-type]
+    assert all("importances" not in event for event in events)
+    assert "importances" not in summary
+    assert summary["completedTrials"] == 60
