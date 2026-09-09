@@ -20,6 +20,7 @@ from .description import (
     StudyDescription,
     parse_description,
 )
+from .importance import importance_cadence, importance_floor, parameter_importances
 from .study import Scalar, create_study, suggest
 
 __all__ = [
@@ -31,6 +32,9 @@ __all__ = [
     "Scalar",
     "StudyDescription",
     "create_study",
+    "importance_cadence",
+    "importance_floor",
+    "parameter_importances",
     "parse_description",
     "run_study",
     "suggest",
