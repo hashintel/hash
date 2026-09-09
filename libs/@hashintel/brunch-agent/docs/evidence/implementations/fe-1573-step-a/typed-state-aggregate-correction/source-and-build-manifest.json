@@ -1,0 +1,1697 @@
+{
+  "checkpointEvidence": "1031d34c1e56769453533fd85af45767438c1fdd",
+  "correctionSource": "87beb4c654926964d9012535331066ed7bfd0334",
+  "parentInventoryCommit": "8cf9690a4072b514e7e43697cb65da3df89c63fa",
+  "source": [
+    {
+      "path": "apps/brunch-agent/src/conversation/why.ts",
+      "bytes": 25530,
+      "sha256": "d98c5a77276d1a00c6cda2234b0df69e84fb6975f383ca4de148eedc4476dbf0"
+    },
+    {
+      "path": "apps/brunch-agent/test/aggregate-why.test.ts",
+      "bytes": 5385,
+      "sha256": "2cb770cc100cf6df3133fa9961c1fb9b520f72334b21ff29c38e5e76b1a5d857"
+    },
+    {
+      "path": "apps/brunch-agent/test/typed-state.integration.ts",
+      "bytes": 39517,
+      "sha256": "885e95eeedf1e42bb3b802390733c9b48fe248e7ff59c7482aa4bfbff8f36ada"
+    }
+  ],
+  "parentOwnedSource": [
+    {
+      "path": "apps/brunch-agent/test/architecture/boundaries.integration.ts",
+      "bytes": 34005,
+      "sha256": "4fb6e86222fe2c91e30987306363b591199e3b2cf7b9d95a858bac9ac1144f23"
+    }
+  ],
+  "inheritedUnchangedSource": [
+    {
+      "path": "apps/brunch-agent/package.json",
+      "bytes": 3853,
+      "sha256": "2d9b56f6d9ee5cee984a418586a2ba03ba59f5158fc3706003bcac981a7c7e35"
+    },
+    {
+      "path": "apps/brunch-agent/src/conversation/root-arc.ts",
+      "bytes": 12463,
+      "sha256": "f35dfe0e251656ccbf7861508bbf1df03cb476167de1f1327c760bf63f10c5b3"
+    },
+    {
+      "path": "apps/petrinaut-website/src/main/app/local-storage-demo/transition-record.ts",
+      "bytes": 14355,
+      "sha256": "50e0938be035ea484b4afeb041cba8e458cde7d3cfda1da5a433a01d4305f247"
+    },
+    {
+      "path": "apps/petrinaut-website/src/main/app/local-storage-demo/typed-state.test.ts",
+      "bytes": 5662,
+      "sha256": "e36c63c51fdaf3af5d8890e9cd39dfa24a0f600f98de9f5c1c0e31bc6b0ee8fb"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/flue.ts",
+      "bytes": 9796,
+      "sha256": "43b407da52bb665a41139c0625c7418f3c7004638e608cd999ecd81b70efaffd"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/index.ts",
+      "bytes": 2187,
+      "sha256": "0a198e121f3d2b54b2c6752b9d621dbb512e7a704a172655aeaa131f0615948a"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/root-arc.ts",
+      "bytes": 5167,
+      "sha256": "d977d4f109ec014f5e6d68e10227caa8562c534b3ba2a2167184c5d532a54221"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/root-node.ts",
+      "bytes": 7606,
+      "sha256": "3390acb86a224ce394a5e8fc4dae5c82e106f94f4b2d02bb78ff41e64218241f"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/root-state.ts",
+      "bytes": 12060,
+      "sha256": "62dfa8f8464ff803ec2637646c82065314178a9b8530d7edca9ca0c3268b10fe"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/petrinaut-construction.ts",
+      "bytes": 8572,
+      "sha256": "38ce71ab792306a73eebb0e973e3cfe435de7f96bd563e9140b816541c9b26c1"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/transition-record.ts",
+      "bytes": 19286,
+      "sha256": "6fd91f84d909252cedbbf546ee1008f7aa72722d3265beb60509e66b0c3a3266"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/test/root-state.test.ts",
+      "bytes": 12420,
+      "sha256": "d5e9999140c24b03ce2ccf12275ff964cddbcf98fbba69e692f2e12d43160b6f"
+    }
+  ],
+  "build": [
+    {
+      "path": "apps/brunch-agent/dist/app.mjs",
+      "bytes": 158,
+      "sha256": "bec3b3f8d2bdf3593785553ea1e2cc18866718d75f29d618f4326bfb4f4c2a71"
+    },
+    {
+      "path": "apps/brunch-agent/dist/client/assets/index.css",
+      "bytes": 2543,
+      "sha256": "a3aae2c9f488b052c6f96dd29eb88af15f907a3f9d36e2081990e26ea3c9d543"
+    },
+    {
+      "path": "apps/brunch-agent/dist/client/assets/index.js",
+      "bytes": 244667,
+      "sha256": "ce920d90f61236fe745e67b45a9cc5687e9a9ebdc1bd6d7fcc6470a20c3e7889"
+    },
+    {
+      "path": "apps/brunch-agent/dist/client/index.html",
+      "bytes": 381,
+      "sha256": "626163ab520ec02e5768256d5d8eeefe5690016a7dbdc87a4153743e073982f5"
+    },
+    {
+      "path": "apps/brunch-agent/dist/execAsync-D25bwo5l.mjs",
+      "bytes": 581,
+      "sha256": "2aa3218ffa6e86ced8194f6f089522154c7ee24eb9aa2e839b1ce04cc2286965"
+    },
+    {
+      "path": "apps/brunch-agent/dist/execAsync-D25bwo5l.mjs.map",
+      "bytes": 763,
+      "sha256": "5e381f4e18a353dafefac2971b2ab2a593b230920e05fca9639a695c2fb9f55a"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-bsd-ThF6nEVL.mjs",
+      "bytes": 1103,
+      "sha256": "1f347955329d7a66f491559c8d11e0a722c20bf01bcc578a7fcbd0fc09210268"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-bsd-ThF6nEVL.mjs.map",
+      "bytes": 1620,
+      "sha256": "8427bcf68f4765b130ef689958ca9684ed05952e44fea16f96f5b4d31954ae4b"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-darwin-C6rMMlat.mjs",
+      "bytes": 1115,
+      "sha256": "35ea46fdbfb21cbbfdd7609a6305a067f1ecc8af7d307c515de940ddd5e14183"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-darwin-C6rMMlat.mjs.map",
+      "bytes": 1683,
+      "sha256": "49511a6d3eb20411051b2692c0d11d1cd8106624db496aa18749900dfeacf675"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-linux-B5Iy_Sy7.mjs",
+      "bytes": 890,
+      "sha256": "2b320cd8b585786fe74d9bc0950666896d481620b50712947d4fd914ca4f1cff"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-linux-B5Iy_Sy7.mjs.map",
+      "bytes": 1367,
+      "sha256": "f94bbae72789f890a358dbaf54455dbb0f95f4780d6b194aeaf2948c6c84bbba"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-unsupported-QqRDr4II.mjs",
+      "bytes": 728,
+      "sha256": "e31d1f882207eaaf5c81cbc80cec1fe13a4bc3a3706050519c68515954249d5d"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-unsupported-QqRDr4II.mjs.map",
+      "bytes": 904,
+      "sha256": "43b5c2cf0d1aae3fbe0cdcafb6a9b3b6428467fefbb5df4a6eedc06e9fbd2d9d"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-win-FwyaH7b-.mjs",
+      "bytes": 1271,
+      "sha256": "fa859f727a5adeece86355bcf5b5cb5cf83b286f3662dd98e4d7869e511fbceb"
+    },
+    {
+      "path": "apps/brunch-agent/dist/getMachineId-win-FwyaH7b-.mjs.map",
+      "bytes": 1832,
+      "sha256": "0b71b5580380d956471c3f153d313fe132edd2deea6816677c9ff25d97c9a780"
+    },
+    {
+      "path": "apps/brunch-agent/dist/node-server-sAOTK1q-.mjs",
+      "bytes": 2802273,
+      "sha256": "c81d10855d5e0b87fc04bad2c06254b6af1d34a3e1b76b20e68aea82a68bdd9b"
+    },
+    {
+      "path": "apps/brunch-agent/dist/node-server-sAOTK1q-.mjs.map",
+      "bytes": 4991292,
+      "sha256": "edd50b61e3f421214e17ba20205c0846a666a27bb41a0d7ab9a036bc3bae55da"
+    },
+    {
+      "path": "apps/brunch-agent/dist/rolldown-runtime-BMI-E3GI.mjs",
+      "bytes": 1928,
+      "sha256": "efc57dcff870d1e3f2f361b3ba80eb84330c649bef8f1529736019ea7e961346"
+    },
+    {
+      "path": "apps/brunch-agent/dist/server.mjs",
+      "bytes": 905,
+      "sha256": "d47b67e17465e433803219362a3d44e99292470fed12685c64c732a9836d9f54"
+    },
+    {
+      "path": "apps/brunch-agent/dist/server.mjs.map",
+      "bytes": 1450,
+      "sha256": "383860dfb293450d31adb1753b56e4c10a8e8f6b061a4a904af42d8449f0ca1c"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/apple-touch-icon.png",
+      "bytes": 79442,
+      "sha256": "94d51d043850ef88b8d42ffd92fe83760ab74c357e1c3df9b96531169dfaf095"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/-embed-status-panel-DdI0-Cs2.js",
+      "bytes": 746,
+      "sha256": "d9efed88b0ff18f2e54508feb18cd072c6e571529a717d555ff3c2be942539dd"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/01-intro-example-BPzJPkMI.mp4",
+      "bytes": 122120,
+      "sha256": "83537a1c12af0b3f37c23e38e9231cd49494fe75371f283f9a97c227eb733d5d"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/02-experiments-example-DS2Vemgo.mp4",
+      "bytes": 210875,
+      "sha256": "2e2869b0a3d331d1a16c4c1b7cb07149e7298388aca70d05d8b2b78e7c92866e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/03-ai-example-e3UskQf0.mp4",
+      "bytes": 567646,
+      "sha256": "717d0920492c41cc01551ca8370113419fb360e146d8b4336448a8b5d135e945"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/brunch-Dyv2F2kp.js",
+      "bytes": 10737,
+      "sha256": "1205fdbc63604467e353c58b855111b6dce2e070d81420373e56d2a0cc22a25d"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/chunk-IXD63N2S-x28Lc-38.js",
+      "bytes": 20951,
+      "sha256": "44aece0c35bf76b73b2da7791ed5176d3109874d650a65cecd90d948f057fc55"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/code-editor-DLjJW5IM-CVsuo0Xx.js",
+      "bytes": 5771,
+      "sha256": "b88855da62c005881c3880463cc23b33c0d12bf5c31a57149e02ffd138a44961"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/code-field-nUSo9YgC-ClFpG0uJ.js",
+      "bytes": 1131,
+      "sha256": "d26a45cdc4f65d57f3f96909863858873ff71e8012334de691c99ec66142de5b"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/countBadge-B-pYtnum-DCxkYUmA.js",
+      "bytes": 198584,
+      "sha256": "0a4f5d1d5625109abb68e200287620f514a75ea3691ca1566e3a9cc76e1876ad"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/css-BTQ2OjM1.js",
+      "bytes": 14879,
+      "sha256": "5df0f1b5f69f6af28931f09190fdd23e09873c3025cbe5676680a31aee8db040"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/deployment-pipeline-Dac5kVTW.js",
+      "bytes": 10236,
+      "sha256": "67bac157b0e310f9d8d47f17940ca3d3f6e23ab4110dd7a9ec4d95c168993bcd"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/dist-CJz1qC8o-qWH2nz1X.js",
+      "bytes": 14211,
+      "sha256": "eea58107d00d8b1d0c894e068b558580c621b051e2f6d44430d8412e25962dcb"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/editor.api-DqR9U5xd-LOPe4g4N.js",
+      "bytes": 358,
+      "sha256": "e6253be1d99d86f7bff5ed4682b13a368cac8585d7fac952fb8aaf3a87a3f5a6"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/editor.api2-DEyDXwkV-CDCMs7Sd.js",
+      "bytes": 600595,
+      "sha256": "637a701ef9ab3fc72d3c4e3808538d8c74dc2267faddbcf44c6e61a914f14fab"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/embed.examples._slug-BzFr9tgw.js",
+      "bytes": 336,
+      "sha256": "512e8d7776249aa7e69355c9411680dbc8a6152e66a725885a657892d865a35d"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/embed.examples._slug-CEh7KHjM.js",
+      "bytes": 2769,
+      "sha256": "2eebda84798b9f00645a4766a30b0ad808479d1d081c7e52b8583f95267a1490"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/embed.examples._slug-hs5HjrHo.js",
+      "bytes": 340,
+      "sha256": "4e5ee53d773c7d6b85602ee3b4f330344ec1b15cac7e1af3122f43da826a3c03"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/embeddedCodeEditorWidget-BTb8ukYq-0GbuyN-J.js",
+      "bytes": 16468,
+      "sha256": "4faf7839629308bdec1c6593a3bd7194021db9b0244110c2985d7c9724773389"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/environment-BS97pmcA-BcWVwYPd.js",
+      "bytes": 298684,
+      "sha256": "02cfa4fd1026ea7b57403eab9564e47f1e57d4c5b1657d9316f9bbd8edfa2c40"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/example-search-BtCT3Bpx.js",
+      "bytes": 5294,
+      "sha256": "164013d2ba16b196345ce3ea55b2b892a6c850ee24ade17b00d5d7d896ae8b79"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/examples-DGDLQ1tV.js",
+      "bytes": 357,
+      "sha256": "c845aa379d543556a50c23fe23a38c2c8a73753f2b5f56409e443d32c2381f34"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/examples-ubXygPF4-De2TPTQ3.js",
+      "bytes": 133128,
+      "sha256": "095a39a256e39c1ff51e8a653ee78f9c4318af29c438a00cb9d2e5a030688702"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/examples._slug-XyigrNZY.js",
+      "bytes": 2678,
+      "sha256": "6007834e8f89037c900b7f3db21bd721df0400a2ece7e1aa28a1274b922f9e27"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/folding-BRhFCn9G-fdM279Jd.js",
+      "bytes": 43308,
+      "sha256": "b9e5ee6b0cf7a7a00ea85b967114e7f78f049b1604e94c9b1c46ed4476a9fda6"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-1-pn-Bjno91vq.js",
+      "bytes": 6748,
+      "sha256": "b6e9d73193805d5de744d2bc5bb0180b6887e4b781d22a0841f6d2c2bfa02e6e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-1-pn-BlqHDm2P.js",
+      "bytes": 12802,
+      "sha256": "7b329006f78d5a03067ba3cec5e611d3de2b389c8b1892d6ce2661d03b0abc67"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-1-pn-consumption-trigger-BXUmCY1F.js",
+      "bytes": 7040,
+      "sha256": "6a3090e37a5945a9c989eb7665a99c85a70f7d2ec9f56ccf4e3f8fb8d5402c71"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-1-pn-consumption-trigger-DKUpnlg6.js",
+      "bytes": 13310,
+      "sha256": "65f7fa5efd7cd93e58a998b3ec18ebe459a9930c66c2dcbc3fc99b7db884ffec"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-2-spn-B1zmmkCg.js",
+      "bytes": 23732,
+      "sha256": "0622162e09433707f05b0ec684ca1a5e0ed4df5d9faf5579e60197ddce05c0d3"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-2-spn-BRaSGEYh.js",
+      "bytes": 27879,
+      "sha256": "b75249a569596a14974f57398937b82bca7a4ae5b8ad14e44f5f0cb24edfe34e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-3-cpn-CSTwn4Yf.js",
+      "bytes": 38840,
+      "sha256": "0e42e1c938fff33899045d31ad2f326cf941a7f1288a0396c1d23e5e0d602be7"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-3-cpn-CYtxG_FX.js",
+      "bytes": 35032,
+      "sha256": "fabdbdb6747919610144ed96ed58420cff2f8a639021af4d98fb873bd4784080"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-4-dcpn-CA1GnJkG.js",
+      "bytes": 90672,
+      "sha256": "d993009afd56f59f3ba9721045c85d792e1868980f539d25e4e0fefcea36e488"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/gases-4-dcpn-Zdmx2TlZ.js",
+      "bytes": 58925,
+      "sha256": "8d36469c8f60681fcf703fa5675b7d71c60ee79f2fc302478eded6dd5b688e2c"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/hoverContribution-Bxu5NfPa-CSC1Aw11.js",
+      "bytes": 290448,
+      "sha256": "aedf8eabe00fc4a6486f32394087682269446e0f8040c72224e1044950923721"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/iconRegistry-CwmEmEbe-1aW3AHNZ.js",
+      "bytes": 376722,
+      "sha256": "3bddf8898cc508bae7b9652d1f825b88910ca6409ab1eb3605926e8908877749"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/index-BR5hRG0R.css",
+      "bytes": 1542091,
+      "sha256": "8c806308c3456d8d231e08c4716ddbf01390b0869b5ebee33f50d67f6e1dcdd3"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/index-D5398y7j.js",
+      "bytes": 464254,
+      "sha256": "e1381db965b9e14c0290cf7b9762443c4a9e5eaa917eca9538d3af69e17227f1"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/label-Cduwf5xB-Cyu6DHZV.js",
+      "bytes": 951685,
+      "sha256": "11fd0da40e2e6906a1923fa178f2593e82840de98ac61c0e64558f9bfe695fe9"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/language-server.worker-Diq9yLSu-DE23iacg.js",
+      "bytes": 3960716,
+      "sha256": "34f2678bfc3a5be16f5ac0f211b3e8bc8bb2ecc4074fbdd36c5aca1aab506393"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/languageFeatureDebounce-BQBNL_sV-BJ-cZJh0.js",
+      "bytes": 2158,
+      "sha256": "590271e09ae9447a1577ad677e89af85faca80f3036caf134bdb28a34feb73c9"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/local-storage-demo-app-BcgsA_av.js",
+      "bytes": 274039,
+      "sha256": "195c1758834c47ff33cc6efeed8e59cff202d6cb0d5f4f8d3270bd5d60f76432"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/logo-mark-BEnJfXfl.png",
+      "bytes": 11393,
+      "sha256": "042e05828aca1481cf578876b1b72ed5488bf96e8664d319b2ba3fcc639a1c5e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/markdownRenderer-B52Lb47K-Bs8IaznG.js",
+      "bytes": 131198,
+      "sha256": "a2180585b17bbd77656f1a3d59bc57ed8aed15d6aca803a0fd5d459c725bae00"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/monte-carlo.worker-WQ0YZbjg-QypGOLDr.js",
+      "bytes": 131271,
+      "sha256": "03aff1a1be78df89d282365b59eaf06c566a79084767c23251e0f2a3c15e95d7"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/navigation-search-BYDBj9zZ.js",
+      "bytes": 915,
+      "sha256": "6a6efbf7fba2a96e16cecc27f18341d3edd04ead157b8c60ca1448b2c9d60cdf"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/optimization-BAYm4x6u.js",
+      "bytes": 16936,
+      "sha256": "5dc55281f3f97a65f14f50396ae1adc20fdcab16abc8cee25942a147b0a4daa5"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/parameterHints-BN73WYxJ-CtOXKnUy.js",
+      "bytes": 13990,
+      "sha256": "2cc837468c18eb55ff2d238f4e2782dddaab9ed113d701ab16f35524e7b1ab79"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/petrinaut-BDmYj1Ui-CeX6YMMm.js",
+      "bytes": 1195300,
+      "sha256": "7a83a6e6042cdc981829e564af9a25fb572c81586029b1de3829caf874d120f6"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/place-state-visualization-WTmgQfki-Basi6FJO.js",
+      "bytes": 2955220,
+      "sha256": "10d88294b928d2e9530549735ff97ac2c5d7c51a8dc476cbff8ec8493963aab2"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/preview-Crvc0Gwj.js",
+      "bytes": 19741,
+      "sha256": "b779213594d1104f1c011a1bfcc0e0cb5c1a71e9d1247b9861c4fe10a9c86cac"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/probabilistic-satellite-launcher-DfadoGKp.js",
+      "bytes": 12938,
+      "sha256": "c80bb3cef634e8e07fb283888905c9315411eb33639b8c7a69f978fc617d56dd"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/production-with-machine-failure-CFdeKj8V.js",
+      "bytes": 7147,
+      "sha256": "60b993d1b96282f1e0647c6ae0527844fb78287d192e6551dd020d0eb13cd792"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/react-C4rju6ZK-BPAvGRzV.js",
+      "bytes": 2080665,
+      "sha256": "e3fa49ad144ca41b73c99e0bb8ed5e922b2a84c6e4ec298888e5948fde5508fd"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/react-CxeQWaMg.js",
+      "bytes": 8760,
+      "sha256": "9611a5059a5d98425c7e75979ab2ccd5d8dfcc70732aba9982b248125d26555e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/routes-DsZBx6ke.js",
+      "bytes": 713,
+      "sha256": "f2f559f5f4e74f18d04d7e8e5409f5140de1f396bffba654416e4bde166b8dda"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/selected-item-properties-Bo7Klph9-D5Rk8Ziy.js",
+      "bytes": 801552,
+      "sha256": "e461a9b3c98eedc72f115dc0a70352ac4f2139435661acd02105f09755bf66b0"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/semiconductor-fab-drift-BdAM2Y4l.js",
+      "bytes": 439322,
+      "sha256": "ac325b4bc86e932d3973df2187b2049b5cee7675d17ad619395154e9413d3dfb"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/semiconductor-fab-drift-CvBycVD_.js",
+      "bytes": 103584,
+      "sha256": "6b8b4a3827bbe3177954b01230cd4aa1da73b65764c80ab980d423d758697e5f"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/sentry-feedback-button-B4ygm-HU.js",
+      "bytes": 3977,
+      "sha256": "857ad07552b59bb63e26a39dcb9198d73eae5f553973f64c89cb464456b9b31e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/simulation.worker-C2Mxugw1-hyRN_4F3.js",
+      "bytes": 118220,
+      "sha256": "4e93e5ce6f1dec968f668a1373bd2c9ea33c8f49b4da66b0c7e75acd488863f9"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/sir-epidemic-model-DaMFzdUw.js",
+      "bytes": 6385,
+      "sha256": "5b46fcbd5922fdeb3f042479418f9865b673886f568fd308efcdd4f032a024b5"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/subview-CsdpicIc-B7AcT9Ji.js",
+      "bytes": 5035,
+      "sha256": "212b1eb62b6af256847a40f6a308a6ac60af29dd2247a03e11c4e8cd3af18480"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/subview-D7jObsuO-1KZfV3KV.js",
+      "bytes": 4108,
+      "sha256": "c6d36026d2589482c4b6c6b20f852589fb2b0ba3860cb8360ea25b0bb50b2028"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/subview-DvfuqL4I-k0TkSJX5.js",
+      "bytes": 3553,
+      "sha256": "2d47538aaf7b493826f3b9b46fad5d57fcb682800b0a7a14798ab38a3652cc3b"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/suggestController-D_4ueSMN-DE8E3Jxh.js",
+      "bytes": 122776,
+      "sha256": "df3802d693379154e17c405acada1ac56b659246df4e73e57b7e24122eaaa61b"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/supply-chain-profit-model-CLQtD07j.js",
+      "bytes": 7932,
+      "sha256": "f8cac8728e4112f0827399782a985d5833b2b8a45c1ac55f81ee506de1ce3d99"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/supply-chain-with-disruption-CypyWLVA.js",
+      "bytes": 36099,
+      "sha256": "4e1d718d8a3effc428b674dac6d471b78509b60e8bb41e8985d6a5b92ea19eee"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/support-QFmoRTi4-BOzIlFV0.js",
+      "bytes": 73,
+      "sha256": "c4eeec5421f896c65ac9aa287e36c57de6a85459e07531d490ef69ea8b741710"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/surface-context-BCMn0Ywq-DrQxqlbm.js",
+      "bytes": 119917,
+      "sha256": "d2fcbc902da5c6041c85883941dc3d1621ad2473c0561eb2a4e0568cdb4284be"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/truck-fleet-predictive-maintenance-BveJ7Rj3.js",
+      "bytes": 81661,
+      "sha256": "1c78caab8607f8e72307cfd8f6dbbe2c53a6542f7db3c3e7065488f9a9bc563b"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/truck-fleet-predictive-maintenance-zJ0XAy8Z.js",
+      "bytes": 150662,
+      "sha256": "72db69cb85c71f1056d68e4debf33e057f4f65424a86c17688921cd44361ed73"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/typescript-CKCsFwpQ-ZOwQLO8h.js",
+      "bytes": 4685,
+      "sha256": "a67f350f36898244c0a75364936d2556a64439de85e374da1885a954890a5caa"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/typescript.contribution-CIScJ813-CJbRMp69.js",
+      "bytes": 597390,
+      "sha256": "853f191ed8aa0dd32e7114e5850b54c965b52e615e70bd167164829ddc6fa751"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/webgpu-XQRnL8EN.js",
+      "bytes": 62127,
+      "sha256": "da8b32bb49493c453ca37a69736b6df52e901c561718598a34cef0d0f9afa504"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/with-selector-BzJ7J7_l.js",
+      "bytes": 1615,
+      "sha256": "874d652b6a8b1bf6881125e19edc16ae5fa526f4982b047bf21e9f16c19da011"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/assets/workspace-BY1e83aM-Dg_uHlIS.js",
+      "bytes": 8596,
+      "sha256": "f9602327f0a8df86c486770f70249174735d1f50b22ad5a1c133923ffe496506"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/favicon-16x16.png",
+      "bytes": 1030,
+      "sha256": "918d975b6cab7e4545d9e30e3993a4dd0e964900e8d5160f2366997209485c62"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/favicon-32x32.png",
+      "bytes": 3373,
+      "sha256": "7b21e9194a62b6f682b247d542b9b7a6238087264c9a8de6e5ad334c9996e3d0"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/favicon.ico",
+      "bytes": 11553,
+      "sha256": "f8a78f9032692475d34c786b83ae046f35e7da1048d901cc0e2bc39212aef35e"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/icon-192.png",
+      "bytes": 92784,
+      "sha256": "1e200ab84697b822882785793886d2713cda049dbcb3a3afdd19ef1f6690e4fe"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/icon-512.png",
+      "bytes": 581942,
+      "sha256": "0caec50d00c087edb0c5c616d6adbce598581e9d5c3981073550523c8546c548"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/index.html",
+      "bytes": 1680,
+      "sha256": "e6eabf1bfaf11a7c8b4f2df6bc2d39e677ead2c8b02657cfe38b6de36fb1751f"
+    },
+    {
+      "path": "apps/petrinaut-website/dist/site.webmanifest",
+      "bytes": 383,
+      "sha256": "b0f336460d8594c791cefe1c5d6245a7563e8e44a99825fa294a23ffcded2c06"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/binding-flue/dist/index.js",
+      "bytes": 10813,
+      "sha256": "678c651acae68a0198dc6210cf3ac363760e5adc531b4fcf5c16b7c64a66b0ca"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/binding-flue/dist/index.js.map",
+      "bytes": 30789,
+      "sha256": "02a41372ada3404673fed9bde1c8f136f124d000f8ddc885fdd10855ba7ab2f6"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/client-tools.js",
+      "bytes": 455,
+      "sha256": "ff6d54c60021e9c4bf4fe3785735ccddf7212eb53c9cd1ad9de01519ceb8dc99"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/client-tools.js.map",
+      "bytes": 1221,
+      "sha256": "5d3db1d96e8caefccc3f9ae5cb19477e387a1a8ab77f40847979495b28d6b922"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/flue.js",
+      "bytes": 27269,
+      "sha256": "eca5f97cd3df1cb1f24eeb9f54eba770e3933b4cf098f4b718c9615a37eabdaf"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/flue.js.map",
+      "bytes": 23035,
+      "sha256": "2ff7df1cabdfd396722806c4303643adcaa65f130d2df764f62b76bd697603eb"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/index.js",
+      "bytes": 24892,
+      "sha256": "4cc4f97a8518eba771dbd6372da339da2455a519a6c1baa4acb91cb70c076143"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/index.js.map",
+      "bytes": 76568,
+      "sha256": "05efc71b1f5fad17775aa3d398d0868f3f4f87259817436b80016b90f92ec92b"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/json-value-DfyVmP73.js",
+      "bytes": 564,
+      "sha256": "8bdbde7a2d96933cdfeb56014668128f7109bc3c47ca800777a638099c6e0886"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/json-value-DfyVmP73.js.map",
+      "bytes": 1548,
+      "sha256": "1065cb962fa593a46781379a3da5739fe9d08a2bdbc0d2bd3a46514cada86bac"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/naming-B-X_Ur_R.js",
+      "bytes": 807,
+      "sha256": "27f5fa429feccddec6558285ca523a82a0add72c1684819dcdf549e9957a494b"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/naming-B-X_Ur_R.js.map",
+      "bytes": 4331,
+      "sha256": "b8e7dfe606a5c7b772ac86baf1281d757f3a71455c74a0fc92b7d486b65a048e"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/question-marker.js",
+      "bytes": 592,
+      "sha256": "88fc1f5a241eea53489e2e91acef5534421a80ce5a14f74c1fcbac836e9931f8"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/question-marker.js.map",
+      "bytes": 1273,
+      "sha256": "4e07d00344dc57ef131fd7050709a95b6c9799e907eff7679fa7a467fc9c1c4a"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/session-log-g_FZuAXm.js",
+      "bytes": 5947,
+      "sha256": "c597af7be9dad517dc97d7562dd7ae16824b76ede842677e1ff7bfc1611c98ed"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/session-log-g_FZuAXm.js.map",
+      "bytes": 18624,
+      "sha256": "3e3fe43d939a0e402a0c9ad3737ffd550146d56c4ff2fa55a87d6174d827a4e1"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/storage.js",
+      "bytes": 203,
+      "sha256": "bd73d477fa10f766a7e11783148071ca84d8f569a309bf70969216f1450fb340"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/workpiece.js",
+      "bytes": 3292,
+      "sha256": "5891eb3b450c81de5900ec55a8287d1cd2deb6a3aa1ea917f67f29068932d47c"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/core/dist/workpiece.js.map",
+      "bytes": 12012,
+      "sha256": "43efc701591d57b69f738f207b3d889e277a5bc278710b49729d79574a199657"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/dist/flue.js",
+      "bytes": 62533,
+      "sha256": "b9ea1f920eb6df31850f5a516eacf9810c96eea370b042a2bb7c2930ee402138"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/dist/flue.js.map",
+      "bytes": 25465,
+      "sha256": "1c81b36959b6f8327b8f30437033caf512b90cf1cf6dc7f2b2f5f65dba5daaba"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/dist/index.js",
+      "bytes": 9763,
+      "sha256": "06656f98a6af1c846dcb1b4a6978da9e1fb3e1072203b6d82dfbe7dcda8f45ae"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/dist/index.js.map",
+      "bytes": 30337,
+      "sha256": "671a4604725c6b1d42e32aee539b791642b5393a372e82c4a2d125ae9730fada"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/dist/root-node-Ce8mwOa_.js",
+      "bytes": 15336,
+      "sha256": "4d0d624ce980eef4c9137e3da0d4dcfad7dea436defbf58dbccc99423eb8b4e0"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/dist/root-node-Ce8mwOa_.js.map",
+      "bytes": 40221,
+      "sha256": "b4be565a40c356c2c05f1bcc6873db1aab1310f675d3904adb0bff697dfe34a4"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/transport-aisdk/dist/headers.js",
+      "bytes": 207,
+      "sha256": "1e60e4e8f4ff7340a5634f3187dfd1d27226fea5f7651d3874a98a691123da8b"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/transport-aisdk/dist/headers.js.map",
+      "bytes": 357,
+      "sha256": "ebd7fd082c0d51b430ec226cb034fd3759219d06f320ccf9c337c090aa4136d1"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/transport-aisdk/dist/index.js",
+      "bytes": 18186,
+      "sha256": "4c5bc0ca3cf2e045387f37f64b80c68eb9cfbb7014e355027d9dc0143796428c"
+    },
+    {
+      "path": "libs/@hashintel/brunch-agent/packages/transport-aisdk/dist/index.js.map",
+      "bytes": 59012,
+      "sha256": "b371933f85d70697e272206c748931ef058301e73edc08ee88dad8a082e7ef23"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/ai-CmUEIcuN.js",
+      "bytes": 31978,
+      "sha256": "d5a84eb1e20abefae728c20002b86f1db578674f33e12accf687e68788253332"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/ai-CmUEIcuN.js.map",
+      "bytes": 60413,
+      "sha256": "1622013815ee36dfa7048a163107d9fb82cdc1d0fa9483aa63f9c7249e0ab0ba"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/ai-jgIk4czs.d.ts",
+      "bytes": 128593,
+      "sha256": "a2d41e92c9647a874ec711779ce1132fb3cf9203d8325ea5b6f664ab3d1ed364"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/ai.d.ts",
+      "bytes": 2101,
+      "sha256": "1a097b9290cdf655f312f1fd2927ac3c8a5d52758c1f10aaac2386d3957bb4f0"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/ai.js",
+      "bytes": 1073,
+      "sha256": "ce6c066d508beb34158657199df50dbe0c6398a4a616b612c04bee835e49c5e1"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/api-L5t-x6dS.d.ts",
+      "bytes": 9550,
+      "sha256": "06c35bd6dc7d7e997c5f6ac267f41a6994a3684c3d3bf3c54fdb4f07b30392c0"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/assets/language-server.worker-CoUExReP.js.map",
+      "bytes": 14193153,
+      "sha256": "1956c3ce7c37020e2eb2dc36f3df26b14d978aecfb55faed23979842bbcb08b5"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/assets/monte-carlo.worker-D_7sn_6l.js.map",
+      "bytes": 718892,
+      "sha256": "77db88a5e301d347858b3dbcb677d4d9e262dac7fed11f5fbac13215b420fd04"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/assets/simulation.worker-oQz7KR3-.js.map",
+      "bytes": 671008,
+      "sha256": "65aca91890be39c0073381f4b8c4010abb1177ddfc3da0f89b6e70597423e764"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/capacity-Dj6JeNjt.js",
+      "bytes": 1235,
+      "sha256": "ff5491f0e9f02b8ab1e1c92df61bd3d729f1bfad736575550481b7cfcb444868"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/capacity-Dj6JeNjt.js.map",
+      "bytes": 7085,
+      "sha256": "a40e53fc0be9c3a5dd0c9a97ec43f09f5d05bed26c8ca94d9d8cc094a5d46be7"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/compiled-model.d.ts",
+      "bytes": 3449,
+      "sha256": "71b5d92a8a400b8e05946ba703c47780ccea2db4f37efacdee6c88197b9f56cd"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/compiled-model.js",
+      "bytes": 15937,
+      "sha256": "ae1a5345f8b40d8349ba70a69135ff2859b3692ce389cecde0f126dc8989a5b0"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/compiled-model.js.map",
+      "bytes": 66559,
+      "sha256": "9797657158e137b89642641b7ea8289bd74af7c9424b4bbd4e6bf099e82a44ce"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/compute-next-frame-C-jZtFBX.d.ts",
+      "bytes": 578,
+      "sha256": "7af6dbb4eebd332b1ee27ffd99beffd6df831aab8aafb0d7a5c3b0ca4c32892c"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/examples/index.d.ts",
+      "bytes": 9332,
+      "sha256": "e112256645684cd678cddfba889281380f169af8775dd7f68eee45136b237a85"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/examples/index.js",
+      "bytes": 312,
+      "sha256": "c840b404310327e26b474b1b3f11214ba2bfc9e69f3f2dba42f3d688250a324c"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/examples-ubXygPF4.js",
+      "bytes": 155607,
+      "sha256": "ea414be52f1151a6946547d8b5722a48ca7521bfab08e7036364f610a78bf4a7"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/examples-ubXygPF4.js.map",
+      "bytes": 229241,
+      "sha256": "d481a3365ed7b0e098d6e83db577eac90ef8213b55db885109d75e9980413c3d"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/experiment-CN3O8DTt.d.ts",
+      "bytes": 4993,
+      "sha256": "fa8b62c4c40ee3772e01dba3b0ee58b1132297c8e088474672e37b270c12a52c"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/experiment-Cw9P3MTS.js",
+      "bytes": 13424,
+      "sha256": "b0129b30c80ce482e974218ed63924fc16f47fbf44b4c48977cd29e65acb2a83"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/experiment-Cw9P3MTS.js.map",
+      "bytes": 54264,
+      "sha256": "5048ec73351d66564d187d9d1f0f875c794a06548252a6663e31b98d9c9bdb66"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/experiment-backend--dHxenV2.d.ts",
+      "bytes": 10287,
+      "sha256": "c1ee4631f9b4af0dc5849d6f157d1e47c191f4cce3657a6582cb9cb3e80c1d34"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/experiment-stores-DVh6E0s0.js",
+      "bytes": 879,
+      "sha256": "ef837a1543d307e46e34fae168b452b6e17361e49e8d53bb7f6d0356087c1cf1"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/experiment-stores-DVh6E0s0.js.map",
+      "bytes": 3890,
+      "sha256": "9adfa8426b9a83447b46aae7fcd408eb5aff1fdb7a3979e8d77e931495201790"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/experiments.d.ts",
+      "bytes": 4476,
+      "sha256": "5689b3aa682f31deee7240eb465162f1d723c022f3fa54474dd316eec5b1ecd5"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/experiments.js",
+      "bytes": 6535,
+      "sha256": "fc51557e4c357bbe2af0f2b8bf5698e87126ec139da64e264310f1b4064f77db"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/experiments.js.map",
+      "bytes": 26875,
+      "sha256": "0f5417ba0af5c077d71e13c30a9f94eda19d37125632bc42f71ad46e5e349e54"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/extensions-BznQh6CW.js",
+      "bytes": 50950,
+      "sha256": "15cb9e52005604b4cd2474bf258db8e1154bfe9202761788b301394cd63a42b0"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/extensions-BznQh6CW.js.map",
+      "bytes": 177212,
+      "sha256": "6af86e3aa99af24e093a5c1bbfebf0202c7ac8fcb6baea6a320548f719e77baa"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/extensions-C8I_9D-1.d.ts",
+      "bytes": 4001,
+      "sha256": "95621d71c8777a8627d65f4e1e157d049e2854737c88b2d7f709fa21bb86d541"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/hir-DCpzVv-F.js",
+      "bytes": 84055,
+      "sha256": "2c22ae1377925149290ce2889cf19ef35397c3dda7aed8d09bee338b2be74988"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/hir-DCpzVv-F.js.map",
+      "bytes": 259977,
+      "sha256": "9c1f12badabbb76f42fb2923cf1f443d7b8effcb5ed0ca17ac4cd602ed94802f"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/hir-Dgv-4rgr.d.ts",
+      "bytes": 211137,
+      "sha256": "43bd08ca555a145805d0fa220365015b05fdc80de191e7f4ca884b1917de7cec"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/hir-metric-D4uEpZOA.js",
+      "bytes": 29722,
+      "sha256": "06e6f96c30e3d6a3a249adf8b1daf6c6ac4800742710729f09255c409ee66e71"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/hir-metric-D4uEpZOA.js.map",
+      "bytes": 106239,
+      "sha256": "78e5f51acd1d004050863fdc29eb541d5abc84a0d0aca3c76eb3d2be37461ea1"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/hir-runtime-CaVQSVhv.d.ts",
+      "bytes": 19088,
+      "sha256": "1998e872af54ba0659aa21e9b7590997c9cb3de1d8d439ffcac1d97cbd7ecdf8"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/hir-runtime.d.ts",
+      "bytes": 1060,
+      "sha256": "73e1b244f81bfb07bfa847c73501341c0e8f464ba24cf79a28696a06e1580409"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/hir-runtime.js",
+      "bytes": 292,
+      "sha256": "7b94a8e88b987cf42fa6d5378bbc60c32c97813e633e4660711acdace4a6ce78"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/hir.d.ts",
+      "bytes": 4445,
+      "sha256": "c318a0fe3b4e006e8a6130278d71ed4e0524fbb065dd0820bb798ed8af4f4763"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/hir.js",
+      "bytes": 1292,
+      "sha256": "8c5d9bdaad9be38483f24622585856b496ba312c45ff0d1a50eccacd2b00ff62"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/index.d.ts",
+      "bytes": 27544,
+      "sha256": "1f3c8a1badf3a84e82b956a4f72eff438b63db1bf2060a6107459359a5b7118a"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/index.js",
+      "bytes": 88785,
+      "sha256": "0a9f7b750b5a9165926c60b827b92304d538f0a611e879e5f5ffdbceb4985891"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/index.js.map",
+      "bytes": 311557,
+      "sha256": "14df7e461a8c9e0a8aae3b4aa349c466c9bec07d0e16e02e7697bf22fafaecf0"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/instance-dQJMEYM8.d.ts",
+      "bytes": 67035,
+      "sha256": "74e1005f55f86da358b15eb1ebedc8e8cb1e8bd6d4de9002b1aaa2a0e1d157d5"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/instantiate-Cxld0cne.js",
+      "bytes": 1648,
+      "sha256": "5ed7987236e07327e108608159ee0526ec97f3bdb2fa25de5adece565d60c0fd"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/instantiate-Cxld0cne.js.map",
+      "bytes": 12545,
+      "sha256": "9a2a00643a4badc258f6bca1a8a347bd5b98b9f9bc08d2f9e8478f939832f8ed"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/language-server.worker-Diq9yLSu.js",
+      "bytes": 3960939,
+      "sha256": "35f66f3435eb800e6ecdc45217700a7de768af465e90f1f2b715331d5be62198"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/language-server.worker-Diq9yLSu.js.map",
+      "bytes": 95,
+      "sha256": "b19df25be5e1b19632ab0a1e46530d0d7281e338a8464ae8d322e95faf48dad5"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/messages-ChKNREKi.d.ts",
+      "bytes": 20410,
+      "sha256": "8462cd14a37175901dcc873e22e8e9f91d424f3282a34d201f6608316a82cbd9"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/monte-carlo.worker-WQ0YZbjg.js",
+      "bytes": 131608,
+      "sha256": "1e80343d760a731573f9cfbc5bbff102e62c5acec2a81889b6b1201bcebbe65b"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/monte-carlo.worker-WQ0YZbjg.js.map",
+      "bytes": 91,
+      "sha256": "87a81466da3bbc09cfd783088886d3c4ff819d1c14b105c58df4bebc469bef1d"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/optimization-DK5oBwQm.js",
+      "bytes": 17123,
+      "sha256": "73f87f20ae9b3f069ab9fb20acfb41a9b5f59249cac6f9da91b98e6ced130801"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/optimization-DK5oBwQm.js.map",
+      "bytes": 54196,
+      "sha256": "662e07ae910f4f9f3fdc3ddde06008bfcd5c43d0bf13c4aa6f2d168e16f85482"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/optimization.d.ts",
+      "bytes": 3676,
+      "sha256": "369772b5985f3c77a82db0b689e02f36fccc7d9a48f07107ad2ca0047d339f25"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/optimization.js",
+      "bytes": 1544,
+      "sha256": "6963272df29bb620f1b42eca7a7c100b8dd407a2941e144dea88dd7a9f520a7d"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/parameter-values-eu_sZKJb.js",
+      "bytes": 1320,
+      "sha256": "9dd43b45603068f13a89d0efa8c0dd36d868e783e2a1e0d615d270d0fd9c4e53"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/parameter-values-eu_sZKJb.js.map",
+      "bytes": 5682,
+      "sha256": "fa0022cc0c0380f36b21edf2e40f339257e1c80c019acbbbc68613ff0399bbbd"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/record-keys-1sJBaBt0.js",
+      "bytes": 1730,
+      "sha256": "944beaad562cf618c3fe5cc2629f49c7b5d42a298ed1f36438f2266c3883ca99"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/record-keys-1sJBaBt0.js.map",
+      "bytes": 7269,
+      "sha256": "e0fedee713fc2d88f8f6c8fc33e9da7dd8d82523b375de42edd4b3c59d23235e"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/scenario-schema-CkXxxKxa.js",
+      "bytes": 27152,
+      "sha256": "5ed6d5fb099efeb6111a87c0be9739559ecd773ab4b99acd545fc9b834b5f4a7"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/scenario-schema-CkXxxKxa.js.map",
+      "bytes": 49573,
+      "sha256": "12ff1a0459367322b187abd77079a4c310ed44bc2ba4d476123356b2a398b889"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/sdcpn-CmLg1nPY.d.ts",
+      "bytes": 11809,
+      "sha256": "798c5f8afa23bbd3bb250f4d84cd13297566806c15c12eeb379d367b2007289b"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/selection-D9ffUDiZ.d.ts",
+      "bytes": 2371,
+      "sha256": "29d892740f0c3307ce6371e85c3fcbb01e65a50782c1daa27db4aaea4c254f76"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/selection-RzC-zvk4.js",
+      "bytes": 793,
+      "sha256": "77ec49063acb35d5438a652278b213534781c4062451356b9ada42d0f90fe23c"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/selection-RzC-zvk4.js.map",
+      "bytes": 4689,
+      "sha256": "9dcfff9a69ded497be7d2ed268b3add1f1955ea486e09d964fb4e050dcdc2fc3"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/selection.d.ts",
+      "bytes": 310,
+      "sha256": "703df12dc80af6ef1085a94e576434a807932ee835deee97ede4ddf31784423e"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/selection.js",
+      "bytes": 117,
+      "sha256": "a4020602d56d7d239ab560f212f375b13352d00fe80b79239c8628b3384af3fc"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/simulation.worker-C2Mxugw1.js",
+      "bytes": 118525,
+      "sha256": "6a66cb903a85a182ddc1abdd53b38880ebcf320fba8007c9f25f85f43b00ffa3"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/simulation.worker-C2Mxugw1.js.map",
+      "bytes": 90,
+      "sha256": "bcf73dae09b7b099579e30a9f08f55cead6db537bab7a8ecdfd826210215cb4f"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/support-QFmoRTi4.js",
+      "bytes": 178,
+      "sha256": "cfe92276b9155dafe587bbab629f53b0f3709612de0de081fdb2d9940a158478"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/support-QFmoRTi4.js.map",
+      "bytes": 1190,
+      "sha256": "b80701996f923f93ddaefaea2f9fd3170dfcfbf23b1a96bef951a59bf3525d66"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/surface-context-BCMn0Ywq.js",
+      "bytes": 3683,
+      "sha256": "5e1859c137045cf4997c67af9560492395513aced0f5d11e23931a0f419c8edf"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/surface-context-BCMn0Ywq.js.map",
+      "bytes": 19400,
+      "sha256": "2eaf22f6ae8fcc2200b5b112205131a8ae1566b8ac930595eb5b9cc03567cb3a"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/time-DeDKdkwN.js",
+      "bytes": 314,
+      "sha256": "1fcda2548783f856d024768eeea6bd60ee02e31f8d20818d3533e169a8301d0f"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/time-DeDKdkwN.js.map",
+      "bytes": 1266,
+      "sha256": "0c9d30cdef9a2613e4111a64ee84219b79c9a50040527ae9cf940503feeb8540"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/token-layout-BvitVYQC.js",
+      "bytes": 4071,
+      "sha256": "b7cab34024d0ab9d1e5709721690276f23d146f4f7c9ec54761f50cdc084f094"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/token-layout-BvitVYQC.js.map",
+      "bytes": 21472,
+      "sha256": "8570cbcb0ddfc85ed8230a5c3a77f82b4a0a19459d6f18e158dd54b25b814d9e"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/type-policies-Bh5NEOvT.js",
+      "bytes": 3630,
+      "sha256": "c0d9995759857d7864a264f90058dfbccbb7dab88507edd991c621c54df1e59c"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/type-policies-Bh5NEOvT.js.map",
+      "bytes": 17783,
+      "sha256": "891ce591c846bbdc3daf9640ae5d76da5958360a0f1798e7d484499c75c8136a"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/typecheck-DJ4DWDrQ.js",
+      "bytes": 27528,
+      "sha256": "2e321e0dd43650cd729ba9e64ec5568a15f259aa5c192892aa7c8b675bdb65ca"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/typecheck-DJ4DWDrQ.js.map",
+      "bytes": 89763,
+      "sha256": "cef2fa0734426e3df9159a447d11f969ab0143b9f0079087704bd2df1ad9f3f6"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/user-defined-lYOWZg_0.js",
+      "bytes": 22759,
+      "sha256": "453a234e94ea092ce75700b52d64d4b1e03fbda15dbd7b667f93b8d6f8df6b42"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/user-defined-lYOWZg_0.js.map",
+      "bytes": 84327,
+      "sha256": "ffbef144550e8b4ee5dd3fd9069edd2931d09ae32729b2e5f1d21a6a2514d5b0"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/webgpu.d.ts",
+      "bytes": 5889,
+      "sha256": "c768624252f8b2d43300fb10735f1c1c3b67c5c5362b54308098edbee59bf6b6"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/webgpu.js",
+      "bytes": 78093,
+      "sha256": "a0bc14333080dd157ee540ee91c4f338b7301755a2804a19ea8c3b5fe283204d"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/webgpu.js.map",
+      "bytes": 323210,
+      "sha256": "6906d3781a445e3720b129b77be880f3ef2fd0e477cd0b1ab3cbf0bb92c5da47"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/workers/lsp.d.ts",
+      "bytes": 726,
+      "sha256": "f23752388e8ef72ed216da48dfb96afe1a3ec888667342bdbe33280f0f25a37f"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/workers/lsp.js",
+      "bytes": 251,
+      "sha256": "4a609f5a08c25f282fdeb68de9b73076bb9a712a00d3df02ceb772ef044ba54b"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/workers/lsp.js.map",
+      "bytes": 761,
+      "sha256": "51835078004e15cdb0fd4ea5fc35a5fa619eae7fb30e545acbd25fa723048943"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/workers/monte-carlo.d.ts",
+      "bytes": 1786,
+      "sha256": "e4de9f0130b7de404cbdb4eaefd6622808bd2166570f282e27c4370c157e605f"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/workers/monte-carlo.js",
+      "bytes": 5126,
+      "sha256": "1467a719cf0d7319dc12a4f76358418a9142e3cf79938989edcfa7ec07e947b8"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/workers/monte-carlo.js.map",
+      "bytes": 17850,
+      "sha256": "518c03e40ff3c886ead79e9661d7b22cfce07b3f40a2afc5807a83c5628df4ef"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/workers/simulation.d.ts",
+      "bytes": 5444,
+      "sha256": "3e234f88b7ecaf7043b925d6851366e0c87f84f9b2794c7c600b79aa97d2dd08"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/workers/simulation.js",
+      "bytes": 251,
+      "sha256": "a4a240f98117299d0f9d6854fbd9ad5ca1d4dcb024b153fc3101c0e2620bd775"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut-core/dist/workers/simulation.js.map",
+      "bytes": 604,
+      "sha256": "460c64e7b1a573d7718607e7bd3faa17a5e3807a5ed1e880d9a5e7f49a925fc2"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/assets/editor.worker-DdS3dwcL.js",
+      "bytes": 280011,
+      "sha256": "29dce4b0747dfaf2c7e8fc67aaf67dc46b447d3fb03635efc2d5f84b6f32b103"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/assets/editor.worker-DdS3dwcL.js.map",
+      "bytes": 1181873,
+      "sha256": "ea09adef68829eb7c67218585ec3448a44be6a18adbcb63a3420ce04c2230ba7"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/code-editor-DLjJW5IM.js",
+      "bytes": 7718,
+      "sha256": "2d68724ef6d9886e57abd21bb61a0d72ba92541960f29f582831ad6ff5236d37"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/code-editor-DLjJW5IM.js.map",
+      "bytes": 24113,
+      "sha256": "238adbde100fb2116c443f77a397c0398b24750d44fba935bd171fb6c11c97ff"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/code-field-nUSo9YgC.js",
+      "bytes": 1700,
+      "sha256": "c4f0c7b273bf6c14270c3579be8de8c0867e838c717b9d807205c9c7cf586107"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/code-field-nUSo9YgC.js.map",
+      "bytes": 4046,
+      "sha256": "79184bed70b02daa3ef555a5427247e7a1c2a2bce5008ca5eded3e413096ff8e"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/context-BwHWTNE8.js",
+      "bytes": 1338,
+      "sha256": "a9dd5b3b3e213264814286189ba5870096831515bcd5e8401563ff982776916d"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/context-BwHWTNE8.js.map",
+      "bytes": 10688,
+      "sha256": "2b1d8d4f0d742ba70d5f85a1fbf3c6e1ecb359d44175c35e9a062d452705eb15"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/countBadge-B-pYtnum.js",
+      "bytes": 239629,
+      "sha256": "7ebcb433272e962430a9d819fe63405cbbf6eb84df182f69397c9955ce632377"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/countBadge-B-pYtnum.js.map",
+      "bytes": 684983,
+      "sha256": "2e69b1458fbc85a2035f7549c1a137f2532b407f5b26a731066367915e72f48b"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/dist-CJz1qC8o.js",
+      "bytes": 17856,
+      "sha256": "bf317053923e06b1112657426fea60edf279ea8ad28366b3fb83bc5cfe0bdeef"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/dist-CJz1qC8o.js.map",
+      "bytes": 43370,
+      "sha256": "ef9eda501d1f36123baf39e5c2c3c745aff40e02fa3da79ba1f3af446d8eb717"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/editor-context-DjxI1F1T.js",
+      "bytes": 2180,
+      "sha256": "e7e5b326045a2d1b5e6d1ae4850df2f733d0e8e2ad8862c23c75d5e6a2111b7a"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/editor-context-DjxI1F1T.js.map",
+      "bytes": 10758,
+      "sha256": "4c3680b2253224ef5369fd07a4e49351ae8e606c5e71fd882d615505cc787a1e"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/editor-paths-IwS8WycK.js",
+      "bytes": 187,
+      "sha256": "db89a3213c43e4be0248eb86ba7fee8b3100548370a559d10161e43411673af4"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/editor.api-DqR9U5xd.js",
+      "bytes": 644,
+      "sha256": "75f4154318621f7658ba08d29a093821d843e7520d6b8ab46f9faab989ddd778"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/editor.api-DqR9U5xd.js.map",
+      "bytes": 570,
+      "sha256": "c4e1c4e8433fd7c5c9c898d80de5cb4a1f145610ae530995fdbdb4fdaaefa9fd"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/editor.api2-DEyDXwkV.js",
+      "bytes": 733054,
+      "sha256": "78f5e77db0d28ac1c57338fb1f306f6bc618fd41040eb2efbe7965e5582bfbc0"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/editor.api2-DEyDXwkV.js.map",
+      "bytes": 2292457,
+      "sha256": "7d614fd5d80f3104e280e8c48a05198e83910d5d93af137f062bda9a7c23042f"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/embeddedCodeEditorWidget-BTb8ukYq.js",
+      "bytes": 18973,
+      "sha256": "1f5467e180bc830d33534a41db827105e4a48aae8ad02e350042e7e572b5694b"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/embeddedCodeEditorWidget-BTb8ukYq.js.map",
+      "bytes": 46699,
+      "sha256": "1ac07e5dc1ac60cbd471e2f508e8f43bba56baec2ab2239b56a2e306e684d61b"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/environment-BS97pmcA.js",
+      "bytes": 371322,
+      "sha256": "0f21dbae45ce0b6983257729b77e640ce958b90b42ddeb86ebc0cbbb906ced28"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/environment-BS97pmcA.js.map",
+      "bytes": 1200904,
+      "sha256": "421929f0f609a8b6d8c9065e4ee34d9f706c46d69cf255db4349076c6c71ef2b"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/folding-BRhFCn9G.js",
+      "bytes": 54092,
+      "sha256": "15932280c34e75f48ae6331f41a9a4d4ed509a8f47f72a6f07155dd58d746b9c"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/folding-BRhFCn9G.js.map",
+      "bytes": 167594,
+      "sha256": "69958fc54d6b10d2146a1cf58fec752946627b93d941671c7e0ce0688c0332e4"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/fonts-BVMhwAHi.js",
+      "bytes": 159,
+      "sha256": "5f11fbcdb442dd1d29ba32c7407229dbeb8b6986729f65483644ce7878f786cc"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/fonts-BVMhwAHi.js.map",
+      "bytes": 371,
+      "sha256": "501c622c6b562177265c259faafc922760e4a21a708e81f402c97f8d9ff49bf2"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/hoverContribution-Bxu5NfPa.js",
+      "bytes": 351127,
+      "sha256": "ce6aac8fb04e8964f1b27ea78487acec6fec4fff5e6dd4a69219f65db32088db"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/hoverContribution-Bxu5NfPa.js.map",
+      "bytes": 1049640,
+      "sha256": "297eb28fde7233ef83444d30a62369a53dc278ae2940689d75f604930b3ae685"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/iconRegistry-CwmEmEbe.js",
+      "bytes": 462512,
+      "sha256": "1461d9c865a485e6ea86fb42854df4d14ac2f54d1e3cf2ed9985e8539c50961a"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/iconRegistry-CwmEmEbe.js.map",
+      "bytes": 1312310,
+      "sha256": "965107993aea6c389a99363c2a7af8f517d2b599edc746764487d8318e422301"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/index-DqzObDYZ.d.ts",
+      "bytes": 4901,
+      "sha256": "182b394058df7afb2fceb53d70ff83da2d869879f13cd6b8152969199ef337e5"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/label-Cduwf5xB.js",
+      "bytes": 1140562,
+      "sha256": "926b22cd7f4f03812c1afd8d087e4df073680991846cda5684ad5e4b04db0c70"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/label-Cduwf5xB.js.map",
+      "bytes": 3419678,
+      "sha256": "fbae3fe7eab64ebeec89c2cb70729a548e8edc13d74b3c5e1ea26163f1f7ee71"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/languageFeatureDebounce-BQBNL_sV.js",
+      "bytes": 2861,
+      "sha256": "15e9ceca8e4a17c1b736e16b44ac9dae7c90ed518b594da559065a88d39e4e8d"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/languageFeatureDebounce-BQBNL_sV.js.map",
+      "bytes": 8833,
+      "sha256": "baddf534fac346d0bcb502b1e93bb9d35e72c6baeead426257036bc745374229"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/logo.png",
+      "bytes": 244914,
+      "sha256": "97e6db9d177f28175d87a9f04498f9fb7abadf5136b3792667cebbd807ff73c3"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/main.css",
+      "bytes": 1535577,
+      "sha256": "80dbcfb4115f67585b20abceb280fec81b9300334af2f829b849c1c9117b0dbc"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/main.d.ts",
+      "bytes": 4135,
+      "sha256": "2fae9f6885d243bc45a8f0b6970bef1423f16259f12e327f7590aeedb612eed3"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/main.js",
+      "bytes": 692,
+      "sha256": "3d66feecc6a8a67c861c1a879ee8c555465dca997be8db82cf4b072d957682f5"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/markdownRenderer-B52Lb47K.js",
+      "bytes": 161464,
+      "sha256": "72910e27c4193814a478528f646e917539010401b08a1b0280c8a8debdd96f0b"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/markdownRenderer-B52Lb47K.js.map",
+      "bytes": 520243,
+      "sha256": "3c6482337819506bb291d0d3485c06b53c7dc695e05cb4847a7928d168841363"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/optimization-context-CFTrdyQa.d.ts",
+      "bytes": 955,
+      "sha256": "102f3cf39de4c85a517d0a4492e0e391f2ab4211a6e985b8f1f2bb578970f81d"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/panda-preset.d.ts",
+      "bytes": 5502,
+      "sha256": "c84e6f5cf252d8474a2f532f357d74e57bd9178e71d4874179f32bcdb41dea57"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/panda-preset.js",
+      "bytes": 3155,
+      "sha256": "1471087340f78b91b087fb547c27850b2d1933a6f58b1b5b8c4b84c2efc17137"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/panda-preset.js.map",
+      "bytes": 7209,
+      "sha256": "e09c4da0e9b85f60292bb153be3fdc8c4a8c89ff18f82abc2fd21273cacb1898"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/panda.buildinfo.json",
+      "bytes": 71732,
+      "sha256": "f7ff7e6335bd4d7d4c2a82304ed0e8955ee82a9430dd40b78293341716ece5f5"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/parameterHints-BN73WYxJ.js",
+      "bytes": 17085,
+      "sha256": "1d3891c10574695c81b196df44d92973a3dc7cb382f971ab5f8782b4b2fee3b2"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/parameterHints-BN73WYxJ.js.map",
+      "bytes": 50182,
+      "sha256": "4dfc9b86351755de590be80474fcaf667c88d7d1ce5e9820c2c25f6741918e29"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/petrinaut-BDmYj1Ui.js",
+      "bytes": 1441582,
+      "sha256": "f413cfae52f573e0c547893e58c78fb4754b4abaf9799269dcbe246b2af24959"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/petrinaut-BDmYj1Ui.js.map",
+      "bytes": 5092348,
+      "sha256": "0defca8dc6e2e1dba0c4be87b641b5acac3da391cf8401d248f16db8d23cd4d2"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/petrinaut-D2OPv7g2.d.ts",
+      "bytes": 19075,
+      "sha256": "639e62fd14a63e1513a6554c8b2001ef075017123a6062c140ef8ab189d1f7f9"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/place-state-visualization-WTmgQfki.js",
+      "bytes": 4946,
+      "sha256": "b9bafa44263ebee4d1d2a4944744cf3dc221365e57142b452aed3fc725420159"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/place-state-visualization-WTmgQfki.js.map",
+      "bytes": 14153,
+      "sha256": "eefcc7407416fc61d1ffb1a2988b81963edb7e0e923c62dfb7d9cba7af81e9d7"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/preview.d.ts",
+      "bytes": 3514,
+      "sha256": "b18d7714a60ede0791d9ddf851f270fd2eaa73c658111ed3c08a07a1aecf46d2"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/preview.js",
+      "bytes": 26199,
+      "sha256": "52d300340ac56952a70cb8cfce35d5609ab196eae6ec255d9d668412478f6b0c"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/preview.js.map",
+      "bytes": 106757,
+      "sha256": "392d1a865ee44cd483c3e18a284375d3f08ff7d0f10a7392dea0074dc00a4d05"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/provider-CtuOzqai.d.ts",
+      "bytes": 2270,
+      "sha256": "868d7ae54341559368841d19fcf7179d093688efeb140b1e687857179f8f1f18"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/react-C4rju6ZK.js",
+      "bytes": 211996,
+      "sha256": "a7cf1077fd8c91398b50cf27f9eb42c7c18b7f9f9d1f135c7e3257ca797a8d74"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/react-C4rju6ZK.js.map",
+      "bytes": 767824,
+      "sha256": "a0c83ae2863c49a0e1714dc96a4117f86e154f84aa48dcd13210770e796a744f"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/react.d.ts",
+      "bytes": 45230,
+      "sha256": "970b23777787c1b6033d64a28167288b610c29faa1cb420cdb431335b3c8aaf9"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/react.js",
+      "bytes": 2359,
+      "sha256": "e3d9140565e5d566daea0d7fcae0df8de84752565813837bf678e9239b369eb4"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/selected-item-properties-Bo7Klph9.js",
+      "bytes": 504121,
+      "sha256": "5e7517d6c06dddaf79270befd7ab8be856a3b44132361df296eeb7bc5999e56b"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/selected-item-properties-Bo7Klph9.js.map",
+      "bytes": 1775899,
+      "sha256": "e0d09a1daf38dbcfa132e79985d0bc92c05458cae5e108acd84349b2fedc9ce6"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/subview-CsdpicIc.js",
+      "bytes": 6100,
+      "sha256": "1a5d5dd1c42c157ed0e6ee174a8cf80e9f773a4d51d5f536d35fcfb54e8735ff"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/subview-CsdpicIc.js.map",
+      "bytes": 21838,
+      "sha256": "089417954d137798f58b8fb13d0fc5afdd98ffb549c4b51637ab0e64a2c1e172"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/subview-D7jObsuO.js",
+      "bytes": 5663,
+      "sha256": "5d1b6614e885ed754f0bbc573f30ffb155012bcbd3a3ebd3fc6bff76f8a6fa9b"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/subview-D7jObsuO.js.map",
+      "bytes": 16404,
+      "sha256": "9ee2fbb14a0bd781bf1653a91fddafe3de2d6019b9f96fae7a6f5c01e2f6fc9a"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/subview-DvfuqL4I.js",
+      "bytes": 4951,
+      "sha256": "374ed0ab1990bb90bf025cfcb04d0f6ed735862f97355163faa119cf88076fd1"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/subview-DvfuqL4I.js.map",
+      "bytes": 17044,
+      "sha256": "899834c5b06f0b3b08c41cfe7bc5f0249c4df6a586f781dcdd4fa1f5e8afe608"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/suggestController-D_4ueSMN.js",
+      "bytes": 149266,
+      "sha256": "52af9e2f7798c3b0ab014e5ff2c862374fec49aad5d033ea97e043ecff618e38"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/suggestController-D_4ueSMN.js.map",
+      "bytes": 447571,
+      "sha256": "3017f19fafb8036030808f34a04dc8a95cf219a3b2dc03153a4b6f616e789559"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/typescript-CKCsFwpQ.js",
+      "bytes": 6323,
+      "sha256": "456b9291a531ff560a8b52f3e013c970c2a028f46d114c1ce557b2f5cf61b661"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/typescript-CKCsFwpQ.js.map",
+      "bytes": 17290,
+      "sha256": "bf40c23faa7437709fe518ec46e036368b18f0b83cdfe3d2c0308e50d2251ecf"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/typescript.contribution-CIScJ813.js",
+      "bytes": 736479,
+      "sha256": "9574981bf0795f99c38205921ec6074b37bbd9b97277993591645cbbb9eb15f6"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/typescript.contribution-CIScJ813.js.map",
+      "bytes": 2330144,
+      "sha256": "8fcb6b1fa9ad838f27aa2502c8b3ab0ce38692d9185d82fd438eb7d08fcfcb87"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/ui.d.ts",
+      "bytes": 3422,
+      "sha256": "b0a167ec88a4d940e6b89554ece3b2c305098453de3142c2719ca44d178af72a"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/ui.js",
+      "bytes": 807,
+      "sha256": "19fd8effbd32473534d6a5673b50391d174e20f961da5cf3f1590095adc9e74c"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/ui.js.map",
+      "bytes": 947,
+      "sha256": "c784626fe6acba61ed4f944da619c466cafe85226bf244b9c5d0b1c6b9df3fbd"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/use-read-only-reason-BBfGlurZ.d.ts",
+      "bytes": 1278,
+      "sha256": "cce5d665c13e331d6334f01feeaacbf18afcd81cbe41b417a7c127cdc40092b9"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/viewport-action-WJSFBy5p.d.ts",
+      "bytes": 648,
+      "sha256": "f9c5d3533815d846c7118c7f596ed79b3fee0a31b4abab0ca3760e630ee1e261"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/workspace-BY1e83aM.js",
+      "bytes": 11221,
+      "sha256": "25241e239b26c0b5f410c8cefdf116b58becb402c1d720e704ce959da5dcce49"
+    },
+    {
+      "path": "libs/@hashintel/petrinaut/dist/workspace-BY1e83aM.js.map",
+      "bytes": 37466,
+      "sha256": "0d2f47afe6b1937a72e7dc95abfac4304945165aebe8b0b03950f0435373c760"
+    }
+  ],
+  "rebuiltArtifactNames": {
+    "removed": [
+      "apps/brunch-agent/dist/node-server-Dsa4hX5S.mjs",
+      "apps/brunch-agent/dist/node-server-Dsa4hX5S.mjs.map"
+    ],
+    "added": [
+      "apps/brunch-agent/dist/node-server-sAOTK1q-.mjs",
+      "apps/brunch-agent/dist/node-server-sAOTK1q-.mjs.map"
+    ]
+  },
+  "unchangedRuntime": {
+    "manifest": {
+      "path": "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/typed-state-checkpoint/source-and-build-manifest.json",
+      "bytes": 2713320,
+      "sha256": "f4846c558515d5f07ffdd3154346dd2a4d7436b0e92a8ddf31b0591b9064754b"
+    },
+    "section": "runtime",
+    "verifiedFiles": 11354
+  },
+  "protectedGitObjects": {
+    "libs/@hashintel/brunch-agent/docs/evidence/implementations/fe-1573-step-a/typed-state-checkpoint": "6fa455df35d7df75953f6f4dc0723ce7299c9e58",
+    "libs/@hashintel/brunch-agent/packages": "a158f517b09368989ff1ca315a2f4bbe86d0b24e",
+    "libs/@hashintel/petrinaut-core": "b0662cfec6a6ee9f3a97dd09b94dcda7fb3898a7",
+    "libs/@hashintel/petrinaut": "09333e655f0f5730986568ba80a9aa6ed925a9cc",
+    "apps/petrinaut-website/src": "b3c8ccb3f190f7f81b91ae25de8df5fa6f260612",
+    "apps/brunch-agent/src/app.ts": "52b014f767f55cca6b98e34ced4c95a79e21cbca",
+    "apps/brunch-agent/src/provider-admission.ts": "b4dae0f53d5eee69a2064efdf86cec689908e42d",
+    "apps/brunch-agent/package.json": "509d85f5228edc5cf41d700f88153193c5e3b269",
+    "libs/@hashintel/brunch-agent/MISSION.md": "8ea3cea555c3b7d6577ac44516ede6a631499859",
+    ".yarn/patches": "a205709e7e14d34c1005f57533d6f4a7a33a1d68",
+    "yarn.lock": "593c5aa8ab15f5e4406c3cf47407a52414fdf436",
+    ".yarnrc.yml": "d24852ff23db8897450eb46ef1085c4425cd8639",
+    "package.json": "967cd43f48f747caa22426c659ca430b1e2d9c84"
+  }
+}
