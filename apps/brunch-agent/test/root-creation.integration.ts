@@ -20,10 +20,15 @@ import {
   fauxToolCall,
   type Context,
 } from "@earendil-works/pi-ai";
-import { createFlueClient } from "@flue/sdk";
+import {
+  createFlueClient,
+  FlueExecutionError,
+  type DeliveredMessage,
+} from "@flue/sdk";
 import { chromium } from "@playwright/test";
 
 import {
+  canonicalContent,
   observedNodeInputSchema,
   observedNodeMutationNames,
   verifyArcTransitionAttempt,
@@ -575,6 +580,42 @@ try {
       "Same-session synthetic creation/correction only; reopen assertion follows.",
   });
   await page.screenshot({ path: join(output, "creation.png"), fullPage: true });
+  const originalDelivery = deliveries
+    .map(
+      (entry) =>
+        JSON.parse(entry.body) as DeliveredMessage & { idempotencyKey: string },
+    )
+    .find(
+      (entry) =>
+        entry.kind === "signal" &&
+        entry.body.includes('"toolCallId":"creation-capacity"'),
+    );
+  assert(originalDelivery);
+  const beforeDuplicate = contexts.length;
+  const { idempotencyKey, ...duplicateMessage } = originalDelivery;
+  await client.wait(
+    await client.send({ idempotencyKey, message: duplicateMessage }),
+  );
+  assert.equal(
+    contexts.length,
+    beforeDuplicate,
+    "Duplicate node result must not continue or execute again",
+  );
+  const afterDuplicate = clientToolHistoryFrom(
+    (await client.history()).messages,
+  ).results;
+  assert.equal(
+    afterDuplicate.filter((entry) => entry.toolCallId === "creation-capacity")
+      .length,
+    1,
+  );
+  save("duplicate-result", {
+    toolCallId: "creation-capacity",
+    idempotencyKey,
+    beforeRequests: beforeDuplicate,
+    afterRequests: contexts.length,
+    canonicalResults: 1,
+  });
   // New native names must remain browser-classified at the real admission registration.
   const beforeMixed = contexts.length;
   faux.setResponses([
@@ -610,6 +651,44 @@ try {
           part.toolCallId.startsWith("creation-mixed-"),
       ),
   );
+  const beforeMultiple = contexts.length;
+  faux.setResponses([
+    fauxAssistantMessage(
+      [
+        fauxToolCall(
+          "getLatestNetDefinition",
+          {},
+          { id: "creation-multiple-read" },
+        ),
+        fauxToolCall("addTransition", step, { id: "creation-multiple-node" }),
+      ],
+      { stopReason: "toolUse" },
+    ),
+  ]);
+  await assert.rejects(
+    async () =>
+      client.wait(
+        await client.send({
+          message: {
+            kind: "user",
+            body: "TEST refuse a read and node mutation in one browser proposal.",
+          },
+        }),
+      ),
+    /browser/iu,
+  );
+  assert.equal(contexts.length, beforeMultiple + 1);
+  const multipleHistory = await client.history();
+  assert(
+    !multipleHistory.messages
+      .flatMap((message) => message.parts)
+      .some(
+        (part) =>
+          part.type === "dynamic-tool" &&
+          part.toolCallId.startsWith("creation-multiple-"),
+      ),
+  );
+  save("multiple-browser-history", multipleHistory);
   // A real preceding read is retained for each refusal; no synthetic success/base IDs.
   let envelope: Record<string, unknown> | undefined;
   const readEnvelope = (id: string) => [
@@ -720,7 +799,153 @@ try {
     3,
     "Reopen must preserve the canonically created/corrected capacity before any deliberate hand edit",
   );
-  // Not reached while the preservation assertion above is red. These controls are not credited by this checkpoint.
+  const lastAppliedResult = records.find(
+    (entry) => entry.toolCallId === "creation-pause",
+  );
+  assert(lastAppliedResult);
+  const lastApplied = (
+    lastAppliedResult.metadata as {
+      transitionRecord: ConstructionTransitionRecord;
+    }
+  ).transitionRecord.attempts[0]?.post;
+  assert(lastApplied);
+  assert.equal(
+    canonicalContent(verifiedReopen.definition),
+    canonicalContent(lastApplied.definition),
+    "Reopening must preserve the complete observed definition, not just capacity",
+  );
+  save("reopen-equivalence", {
+    recordedSha256: lastApplied.sha256,
+    reopenedSha256: verifiedReopen.sha256,
+    fullContentEqual: true,
+  });
+  const reopenedAnswers: Record<string, unknown>[] = [];
+  let reopenedObservationId: string | undefined;
+  faux.setResponses([
+    tool("getLatestNetDefinition", {}, "creation-reopened-why-read"),
+    checked((context) => {
+      const observation = browserResult(context, "getLatestNetDefinition")
+        .metadata?.observation;
+      assert(observation);
+      reopenedObservationId = observation.toolCallId;
+      return tool(
+        "brunch_why",
+        {
+          kind: "place",
+          name: queue.name,
+          field: "capacity",
+          observationToolCallId: observation.toolCallId,
+        },
+        "creation-reopened-capacity-why",
+      );
+    }),
+    checked((context) => {
+      const answer = toolOutput(context, "brunch_why");
+      reopenedAnswers.push(answer);
+      assert.equal(answer.disposition, "partially-supported");
+      assert.equal(answer.originToolCallId, "creation-queue");
+      assert.equal(
+        (answer.recordedChange as { toolCallId: string }).toolCallId,
+        "creation-capacity",
+      );
+      assert.equal(
+        (answer.governing as { revisionId: string }).revisionId,
+        "creation-revision-two",
+      );
+      assert.deepEqual(
+        (answer.appliedChanges as { toolCallId: string }[]).map(
+          (entry) => entry.toolCallId,
+        ),
+        ["creation-queue", "creation-capacity"],
+      );
+      assert(
+        (answer.attempts as { toolCallId: string; outcome: string }[]).some(
+          (entry) =>
+            entry.toolCallId === "creation-no-op" && entry.outcome === "no-op",
+        ),
+      );
+      return tool(
+        "brunch_why",
+        {
+          kind: "transition",
+          name: step.name,
+          field: "lambdaCode",
+          observationToolCallId: reopenedObservationId,
+        },
+        "creation-reopened-code-why",
+      );
+    }),
+    checked((context) => {
+      const answer = toolOutput(context, "brunch_why");
+      reopenedAnswers.push(answer);
+      assert.equal(answer.disposition, "partially-supported");
+      assert.equal(answer.originToolCallId, "creation-step");
+      assert.equal(
+        (answer.recordedChange as { toolCallId: string }).toolCallId,
+        "creation-pause",
+      );
+      assert.equal(
+        (answer.governing as { revisionId: string }).revisionId,
+        "creation-revision-two",
+      );
+      return text(
+        "Reopened node field explanations retain their original causes.",
+      );
+    }),
+  ]);
+  await send(
+    "TEST explain the preserved capacity and paused operation after reopening, before any external edit.",
+    "Reopened node field explanations retain their original causes.",
+  );
+  assert.equal(reopenedAnswers.length, 2);
+  const positiveReopenHistory = await client.history();
+  const positiveRead = clientToolHistoryFrom(
+    positiveReopenHistory.messages,
+  ).results.find((entry) => entry.toolCallId === reopenedObservationId);
+  assert(positiveRead);
+  const positiveObservation = (
+    positiveRead.metadata as BrowserResult["metadata"]
+  )?.observation;
+  assert(positiveObservation);
+  const verifiedPositive = await verifyDefinitionObservation(
+    positiveObservation.observed,
+  );
+  assert.equal(
+    canonicalContent(verifiedPositive.definition),
+    canonicalContent(lastApplied.definition),
+  );
+  save("reopened-why", reopenedAnswers);
+  save("positive-reopen-history", positiveReopenHistory);
+  for (const [index, answer] of reopenedAnswers.entries()) {
+    const reconciliation = answer.reconciliation as {
+      status: string;
+      sha256: string;
+      recordedSha256: string;
+      observationScope: string;
+      observationToolCallId: string;
+    };
+    assert.equal(
+      reconciliation.status,
+      lastApplied.sha256 === verifiedPositive.sha256
+        ? index === 0
+          ? "live-observed"
+          : "as-of"
+        : "serialization-equivalent",
+    );
+    assert.equal(reconciliation.sha256, verifiedPositive.sha256);
+    assert.equal(reconciliation.recordedSha256, lastApplied.sha256);
+    assert.equal(reconciliation.observationToolCallId, reopenedObservationId);
+    // Only the first query is in the active read-result delivery. Reusing that
+    // observation in a subsequent server turn must retain its narrower as-of scope.
+    assert.equal(
+      reconciliation.observationScope,
+      index === 0 ? "live-observed" : "as-of",
+    );
+  }
+  await page.screenshot({
+    path: join(output, "reopened-why.png"),
+    fullPage: true,
+  });
   const capacity = page.getByRole("spinbutton");
   await capacity.fill("4");
   await capacity.press("Tab");
@@ -801,6 +1026,16 @@ try {
     ).transitionRecord.attempts)
       await verifyArcTransitionAttempt(attempt);
   }
+  const controlRecords = controlResults.filter(
+    (entry) =>
+      (entry.metadata as { transitionRecord?: unknown } | undefined)
+        ?.transitionRecord,
+  );
+  assert.equal(
+    controlRecords.length,
+    9,
+    "Seven applied, one no-op and one stale record; rejected mutations never gain browser outcomes",
+  );
   const original = records[0];
   assert(original);
   for (const variant of ["foreign", "conflicting"] as const) {
@@ -818,26 +1053,36 @@ try {
       record.attempts[0]!.outcome = "unknown";
     }
     const before = contexts.length;
-    await assert.rejects(async () =>
-      client.wait(
-        await client.send({
-          message: {
-            kind: "signal",
-            type: "client-tool-result",
-            tagName: "client-tool-result",
-            body: JSON.stringify([
-              { ...original, metadata: { transitionRecord: record } },
-            ]),
-          },
-        }),
-      ),
+    await assert.rejects(
+      async () =>
+        client.wait(
+          await client.send({
+            message: {
+              kind: "signal",
+              type: "client-tool-result",
+              tagName: "client-tool-result",
+              body: JSON.stringify([
+                { ...original, metadata: { transitionRecord: record } },
+              ]),
+            },
+          }),
+        ),
+      (error: unknown) =>
+        error instanceof FlueExecutionError && error.failure === "failed",
     );
     assert.equal(
       contexts.length,
       before,
       `${variant} result must not continue`,
     );
+    save(`${variant}-result-verdict`, {
+      beforeRequests: before,
+      afterRequests: contexts.length,
+      failedSubmission: true,
+    });
+    save(`${variant}-result-history`, await client.history());
   }
+  assert.equal(completed, 36, "Every planned callback assertion must complete");
   assert.deepEqual(errors, []);
   assert.deepEqual(blocked, []);
   assert.deepEqual(callbackErrors, []);
