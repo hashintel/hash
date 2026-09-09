@@ -9,43 +9,44 @@ import { EditorContext } from "../../../../../react/state/editor-context";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import { CollapsibleGroup } from "./collapsible-group";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
+import { formatPlaybackTimes, playbackTimes } from "./playback-time";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
 import type { PlaybackSpeed } from "../../../../../react/playback/context";
 
-const frameInfoStyle = cva({
+// One line, wide enough for the longest run either bar will show, so the
+// controls either side of it hold still while the numbers count up.
+const timeReadoutStyle = cva({
   base: {
     display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    fontSize: "[10px]",
-    color: "neutral.s105",
-    fontWeight: "medium",
+    alignItems: "baseline",
+    justifyContent: "center",
+    gap: "[3px]",
+    width: "[104px]",
     lineHeight: "[1]",
-    width: "[90px]",
     fontVariantNumeric: "tabular-nums",
     overflow: "hidden",
     whiteSpace: "nowrap",
   },
   variants: {
     compact: {
-      true: { width: "[64px]" },
+      true: { width: "[96px]" },
     },
   },
 });
 
 const elapsedTimeStyle = css({
-  fontSize: "[9px]",
-  color: "neutral.s100",
-  marginTop: "[2px]",
+  fontSize: "[11px]",
+  fontWeight: "medium",
+  color: "neutral.s110",
+  letterSpacing: "[-0.2px]",
 });
 
-const frameIndexStyle = css({
+const totalTimeStyle = css({
   fontSize: "[11px]",
-  color: "neutral.s100",
+  color: "neutral.s95",
   letterSpacing: "[-0.2px]",
-  marginTop: "[1px]",
 });
 
 const sliderStyle = cva({
@@ -127,7 +128,14 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   const isSimulationErrored = simulationState === "Error";
   const isPlaybackPlaying = playbackState === "Playing";
   const frameIndex = currentFrameIndex;
-  const elapsedTime = currentViewedFrame ? frameIndex * dt : 0;
+  const times = formatPlaybackTimes(
+    playbackTimes({
+      frameIndex: currentViewedFrame ? frameIndex : 0,
+      totalFrames,
+      dt,
+    }),
+    dt,
+  );
 
   // Disable play button when at the last frame and simulation is complete or errored
   const isAtLastFrame = totalFrames > 0 && frameIndex >= totalFrames - 1;
@@ -232,15 +240,13 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         {hasSimulation && (
           <>
             <div
-              className={frameInfoStyle({
+              aria-label={`Elapsed ${times.elapsed} of ${times.total}`}
+              className={timeReadoutStyle({
                 compact: presentation.compactControls,
               })}
             >
-              {!presentation.compactControls && <div>Frame</div>}
-              <div className={frameIndexStyle}>
-                {frameIndex + 1} / {totalFrames}
-              </div>
-              <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
+              <span className={elapsedTimeStyle}>{times.elapsed}</span>
+              <span className={totalTimeStyle}>/ {times.total}</span>
             </div>
 
             <input
