@@ -21,8 +21,8 @@ const miniMapClassName = css({
 });
 
 const SHAPE_SIZE = 90;
-/** Places are drawn 5:4, the ratio the canvas gives them. */
-const PLACE_HEIGHT = (SHAPE_SIZE / 5) * 4;
+/** Places are drawn 10:9, the ratio the canvas gives them. */
+const PLACE_HEIGHT = (SHAPE_SIZE / 10) * 9;
 const TRANSITION_WIDTH_RATIO = 1.5;
 const DEFAULT_TRANSITION_FILL = "#6b7280";
 const DEFAULT_COMPONENT_FILL = "#0f766e";

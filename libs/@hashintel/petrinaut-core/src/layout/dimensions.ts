@@ -24,8 +24,9 @@ export const compactNodeDimensions: RenderNodeDimensions = {
 };
 
 export const classicNodeDimensions: RenderNodeDimensions = {
-  place: { width: 150, height: 120 },
-  transition: { width: 150, height: 120 },
+  /** 10:9, against the transition's 3:2. */
+  place: { width: 150, height: 135 },
+  transition: { width: 180, height: 120 },
   componentInstance: { width: 180, height: 96 },
 };
 

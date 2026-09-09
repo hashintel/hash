@@ -2,4 +2,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-`classicNodeDimensions` draws a place and a transition at the same 5:4 box, 150x120.
+`classicNodeDimensions` draws a place at 10:9, 150x135, and a transition at 3:2, 180x120.
