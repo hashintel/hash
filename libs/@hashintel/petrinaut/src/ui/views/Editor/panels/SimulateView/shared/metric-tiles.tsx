@@ -30,8 +30,8 @@ export const METRIC_PLOT_HEIGHT = 220;
 export const METRIC_CARD_HEIGHT = chartCardHeight({
   bodyHeight: METRIC_PLOT_HEIGHT,
 });
-/** Two cards per row in an extra-large drawer; one when the drawer is narrower. */
-const METRIC_CARD_MIN_WIDTH = 360;
+/** Two cards per row in an extra-large drawer and in the frame's right column above 1100px; one when narrower. */
+const METRIC_CARD_MIN_WIDTH = 320;
 
 export const MetricTiles = ({
   tiles,
