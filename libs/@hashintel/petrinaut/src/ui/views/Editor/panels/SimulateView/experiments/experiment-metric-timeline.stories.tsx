@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 
 import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
-import { ExperimentMetricTimeline } from "./experiment-metric-timeline";
+import { ChartCard } from "../shared/chart-card";
+import {
+  DEFAULT_METRIC_VIEW_SETTINGS,
+  describeMetricView,
+  ExperimentMetricTimeline,
+  MetricViewMenu,
+} from "./experiment-metric-timeline";
 import { sirInfectedFrame } from "./experiments-story-fixtures";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
-import type { MetricSize } from "./experiment-metric-timeline";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -45,15 +50,16 @@ const Card = ({
       gap: 8,
     }}
   >
-    <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
-      {children}
-    </div>
+    {children}
     {caption ? (
       <p style={{ fontSize: 12, color: "#888", margin: 0 }}>{caption}</p>
     ) : null}
   </div>
 );
 
+const PLOT_HEIGHT = 260;
+
+/** The chart in its card, with the view menu in the header. */
 const SizedTimeline = ({
   frames,
   pinned = false,
@@ -62,15 +68,28 @@ const SizedTimeline = ({
   /** Pin the x axis to the full time window instead of fitting the data. */
   pinned?: boolean;
 }) => {
-  const [size, setSize] = useState<MetricSize>("large");
+  const [settings, setSettings] = useState(DEFAULT_METRIC_VIEW_SETTINGS);
   return (
-    <ExperimentMetricTimeline
-      frames={frames}
-      label="Infected"
-      timeDomain={pinned ? [0, FRAME_COUNT - 1] : undefined}
-      displaySize={size}
-      onDisplaySizeChange={setSize}
-    />
+    <ChartCard
+      title="Infected"
+      subtitle={describeMetricView(settings, "distribution")}
+      actions={
+        <MetricViewMenu
+          outputType="distribution"
+          value={settings}
+          onChange={setSettings}
+        />
+      }
+      bodyHeight={PLOT_HEIGHT}
+    >
+      <ExperimentMetricTimeline
+        frames={frames}
+        settings={settings}
+        expectedOutputType="distribution"
+        timeDomain={pinned ? [0, FRAME_COUNT - 1] : undefined}
+        plotHeight={PLOT_HEIGHT}
+      />
+    </ChartCard>
   );
 };
 

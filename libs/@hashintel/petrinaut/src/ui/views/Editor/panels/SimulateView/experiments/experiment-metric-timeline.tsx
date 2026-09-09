@@ -5,7 +5,6 @@
  */
 import { useRef, useState } from "react";
 
-import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import "uplot/dist/uPlot.min.css";
 
@@ -13,56 +12,36 @@ import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import { formatFixed } from "../shared/format-value";
 import { FramePopover } from "./experiment-metric-timeline/frame-popover";
 import { distributionBandLegend } from "./experiment-metric-timeline/shared/distribution-bands";
-import { TimelineControls } from "./experiment-metric-timeline/timeline-controls";
 import { useMetricPlot } from "./experiment-metric-timeline/use-metric-plot";
 import {
-  DEFAULT_METRIC_VIEW_SETTINGS,
   deriveMetricViewState,
   selectedFrameFrom,
 } from "./experiment-metric-timeline/view-state";
 
 import type { MetricFrame } from "./experiment-metric-timeline/shared/metric-frames";
-import type { FrameSelection } from "./experiment-metric-timeline/view-state";
+import type {
+  FrameSelection,
+  MetricViewSettings,
+} from "./experiment-metric-timeline/view-state";
 
-/** "large" fills the container width, "small" takes half of it. */
-export type MetricSize = "small" | "large";
+export { describeMetricView } from "./experiment-metric-timeline/describe-metric-view";
+export { MetricViewMenu } from "./experiment-metric-timeline/metric-view-menu";
+export {
+  DEFAULT_METRIC_VIEW_SETTINGS,
+  type MetricViewSettings,
+} from "./experiment-metric-timeline/view-state";
 
-const rootStyle = css({
+// The component is exactly the plot's height: the waiting note and the
+// legend sit on the frame as overlays, so no view setting adds a row.
+const frameStyle = css({
   position: "relative",
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
   width: "full",
   minWidth: "[0]",
 });
 
-const headerStyle = css({
-  display: "flex",
-  alignItems: "baseline",
-  justifyContent: "space-between",
-  gap: "3",
-});
-
-const headerRightStyle = css({
-  display: "flex",
-  alignItems: "center",
-  flexShrink: "0",
-});
-
-const titleStyle = css({
-  fontSize: "sm",
-  fontWeight: "semibold",
-  color: "neutral.s120",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-/** The plot's height unless the owner sizes it. */
-const DEFAULT_PLOT_HEIGHT = 260;
-
 const chartStyle = css({
   width: "full",
+  height: "full",
   minWidth: "[0]",
   _empty: {
     cursor: "default",
@@ -71,12 +50,6 @@ const chartStyle = css({
     cursor: "crosshair",
     touchAction: "none",
   },
-});
-
-// The waiting overlay sits on this frame, not inside the chart root, whose
-// children the plot owns.
-const chartFrameStyle = css({
-  position: "relative",
 });
 
 const chartWaitingStyle = css({
@@ -91,15 +64,23 @@ const chartWaitingStyle = css({
 });
 
 const legendStyle = css({
+  position: "absolute",
+  top: "1",
+  right: "1",
   display: "flex",
   flexWrap: "wrap",
   alignItems: "center",
-  justifyContent: "center",
-  columnGap: "3",
-  rowGap: "1",
-  paddingX: "1",
+  justifyContent: "flex-end",
+  columnGap: "2.5",
+  rowGap: "0.5",
+  maxWidth: "[calc(100% - 48px)]",
+  paddingX: "1.5",
+  paddingY: "0.5",
+  borderRadius: "sm",
+  backgroundColor: "[rgba(255, 255, 255, 0.85)]",
   fontSize: "[11px]",
   color: "neutral.s90",
+  pointerEvents: "none",
 });
 
 const legendItemStyle = css({
@@ -116,20 +97,12 @@ const legendSwatchStyle = css({
   flexShrink: "0",
 });
 
-const emptyStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: "[160px]",
-  fontSize: "sm",
-  color: "neutral.s80",
-});
-
 const aggregateNumberStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   width: "full",
+  height: "full",
   fontSize: "[44px]",
   fontWeight: "semibold",
   fontVariantNumeric: "tabular-nums",
@@ -137,7 +110,7 @@ const aggregateNumberStyle = css({
 });
 
 const BandLegend = () => (
-  <div className={legendStyle}>
+  <div className={legendStyle} data-band-legend>
     {distributionBandLegend.map((item) => (
       <span key={item.label} className={legendItemStyle}>
         <span
@@ -154,28 +127,18 @@ const BandLegend = () => (
 
 export const ExperimentMetricTimeline = ({
   frames,
-  displaySize,
-  onDisplaySizeChange,
-  label,
+  settings,
   expectedOutputType,
   timeDomain,
   contentEpoch,
-  plotHeight = DEFAULT_PLOT_HEIGHT,
+  plotHeight,
 }: {
   frames: readonly MetricFrame[];
-  displaySize: MetricSize;
-  /** Toggles between the two sizes; absent when the chart's slot is fixed. */
-  onDisplaySizeChange?: (size: MetricSize) => void;
+  /** How the runs and the time axis collapse; the owner holds it and offers the menu. */
+  settings: MetricViewSettings;
   /**
-   * Title shown before any frame arrives. With it, the component keeps its
-   * full shell — header, fixed-height plot area, footer — while empty, so
-   * data arriving (or a re-stream clearing the frames) causes no layout
-   * shift. Without it, an empty component renders a plain placeholder.
-   */
-  label?: string;
-  /**
-   * The metric's declared output type, so the controls and chart shape are
-   * right before the first frame arrives instead of switching when it does.
+   * The metric's declared output type, so the chart shape is right before
+   * the first frame arrives instead of switching when it does.
    */
   expectedOutputType?: MetricFrame["outputType"];
   /**
@@ -188,17 +151,15 @@ export const ExperimentMetricTimeline = ({
    * change crossfades the previous picture out instead of cutting.
    */
   contentEpoch?: string;
-  /** The plot area's height in pixels; the header and controls add to it. */
-  plotHeight?: number;
+  /** The plot's height in pixels; the component is exactly this tall. */
+  plotHeight: number;
 }) => {
   const chartRootRef = useRef<HTMLDivElement>(null);
-  const plotSizeStyle = { height: plotHeight, minHeight: plotHeight };
   const size = useElementSize(chartRootRef, { debounce: 50 });
-  const [settings, setSettings] = useState(DEFAULT_METRIC_VIEW_SETTINGS);
   const [selection, setSelection] = useState<FrameSelection | null>(null);
   const latestFrame = frames.at(-1);
   // A re-stream briefly empties the frames; the remembered output type keeps
-  // the controls and chart shape from flickering through the scalar defaults.
+  // the chart shape from flickering through the scalar defaults.
   const [lastOutputType, setLastOutputType] = useState<
     MetricFrame["outputType"] | null
   >(null);
@@ -241,53 +202,26 @@ export const ExperimentMetricTimeline = ({
       }),
   });
 
-  if (!latestFrame && label === undefined) {
-    return <div className={emptyStyle}>Waiting for metric data</div>;
-  }
-
   return (
-    <div className={rootStyle}>
-      <div className={headerStyle}>
-        <span className={titleStyle}>{latestFrame?.label ?? label}</span>
-        {onDisplaySizeChange ? (
-          <div className={headerRightStyle}>
-            <Button
-              variant="ghost"
-              size="xs"
-              iconName={displaySize === "large" ? "collapse" : "expand"}
-              aria-label={displaySize === "large" ? "Half width" : "Full width"}
-              tooltip={displaySize === "large" ? "Half width" : "Full width"}
-              onClick={() =>
-                onDisplaySizeChange(displaySize === "large" ? "small" : "large")
-              }
-            />
-          </div>
-        ) : null}
-      </div>
+    <div
+      className={frameStyle}
+      style={{ height: plotHeight, minHeight: plotHeight }}
+    >
       {view.displayMode === "number" ? (
-        <div className={aggregateNumberStyle} style={plotSizeStyle}>
+        <div className={aggregateNumberStyle}>
           {view.aggregateNumber === null
             ? "n/a"
             : formatFixed(view.aggregateNumber)}
         </div>
       ) : (
-        <div className={chartFrameStyle}>
-          <div
-            ref={chartRootRef}
-            className={chartStyle}
-            style={plotSizeStyle}
-          />
+        <>
+          <div ref={chartRootRef} className={chartStyle} />
           {view.hasPlotData || lastOutputType !== null ? null : (
             <div className={chartWaitingStyle}>Waiting for metric data</div>
           )}
-        </div>
+        </>
       )}
       {view.showsBandLegend ? <BandLegend /> : null}
-      <TimelineControls
-        outputType={outputType}
-        value={settings}
-        onChange={setSettings}
-      />
       {view.displayMode === "chart" && selectedFrame && selection ? (
         <FramePopover
           frame={selectedFrame}
