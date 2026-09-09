@@ -120,14 +120,14 @@ const tooltipStyle = css({
  * The pin sits over the visualizer's top-right corner rather than beside it,
  * so the box stays the size of the artwork.
  *
- * A disc of frosted glass around the button, not the button's own surface: a
+ * A pane of frosted glass around the button, not the button's own surface: a
  * visualizer draws whatever it likes underneath — black, in the satellites
  * example — and every button variant in the system paints in translucent ink
  * meant for the app's own background, so a bare glyph disappears into the
  * artwork. Blurring what is behind it and tinting that pale gives the disc
  * the artwork's own colour while lifting it enough for a dark glyph to read
  * over anything, and leaves the button's hover and pressed ink to sit on top
- * of the disc as designed.
+ * of it as designed.
  *
  * Held back until the pointer or the keyboard reaches the box, and at full
  * strength while pinned, which is when it has to be found again to release
@@ -139,13 +139,15 @@ const tooltipStyle = css({
 const pinStyle = cva({
   base: {
     position: "absolute",
-    // 5px inside the box's top-right corner. The 12px clears the wrapper's
-    // own top padding, which holds the gap to the node, so it has to stay in
-    // step with `TOOLTIP_OFFSET_PX`.
-    top: "[17px]",
-    right: "[5px]",
+    // 8px inside the box's top-right corner. The 12px on top clears the
+    // wrapper's own padding, which holds the gap to the node, so it has to
+    // stay in step with `TOOLTIP_OFFSET_PX`.
+    top: "[20px]",
+    right: "[8px]",
     display: "flex",
-    borderRadius: "full",
+    // The button's own radius, so the disc and the ink it holds share a
+    // corner.
+    borderRadius: "md",
     // A rim of light rather than a drawn border: it reads against a dark
     // artwork and dissolves into a pale one.
     border: "[1px solid rgba(255, 255, 255, 0.5)]",
@@ -153,11 +155,11 @@ const pinStyle = cva({
     backdropFilter: "[blur(8px) saturate(140%)]",
     transition: "[opacity 120ms ease, background-color 150ms ease]",
     /*
-     * The focus ring belongs to the disc, not to the button inside it. The
-     * button draws its own at no offset, which is inside the disc's rim and
-     * indistinguishable from it, and clipping the disc to keep the button's
-     * ink round erased it altogether. Round the button instead, and ring the
-     * disc from outside.
+     * The focus ring belongs to the disc, not to the button inside it: the
+     * button draws its own at no offset, which lands on the disc's rim and is
+     * indistinguishable from it. Ringing the disc from outside also means
+     * nothing has to be clipped to keep the button's ink in, which is what
+     * erased the ring in the first place.
      */
     "&:has(:focus-visible)": {
       // Two tones, because the ring floats over the visualizer's artwork:
@@ -295,9 +297,6 @@ export const PlaceStateTooltip: React.FC<{ nodeId: string }> = ({ nodeId }) => {
           <Button
             size="xxs"
             variant="ghost"
-            // Round, so its hover and pressed ink stay inside the disc
-            // without the disc having to clip anything.
-            shape="round"
             prefix={<PinIcon />}
             aria-label={
               pinned ? "Unpin state visualizer" : "Pin state visualizer"
