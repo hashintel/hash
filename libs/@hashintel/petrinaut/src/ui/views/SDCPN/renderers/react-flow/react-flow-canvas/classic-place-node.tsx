@@ -1,12 +1,8 @@
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ExecutionFrameSourceContext } from "../../../../../../react/execution-frame/context";
-import { SimulationContext } from "../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
 import { splitPascalCase } from "../../../../../lib/split-pascal-case";
 import { nodeFocusStyle } from "../../../styles/focus";
 import { handleStyling } from "../../../styles/styling";
@@ -86,24 +82,14 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  const { globalMode } = use(EditorContext);
-  const isSimulateMode = globalMode === "simulate";
-  const { initialMarking } = use(SimulationContext);
-  const { currentViewedFrame, totalFrames } = use(ExecutionFrameSourceContext);
+  // The token count and whether any frame exists ride on the node: a place
+  // that read them from the frame source would re-render on every playback
+  // frame, whether or not its own count moved.
+  const { tokenCount, framesAvailable } = data;
 
   // Show the visualizer on hover for places with a visualizer during simulation.
   const showStateTooltip =
-    data.hasColorType && data.hasVisualizer && totalFrames > 0 && data.hovered;
-
-  // Get token count from the currently viewed frame or initial marking
-  let tokenCount: number | null = null;
-  if (currentViewedFrame) {
-    tokenCount = currentViewedFrame.places[id]?.tokenCount ?? null;
-  } else if (isSimulateMode) {
-    // In simulate mode but no simulation running - show initial marking
-    const marking = initialMarking[id];
-    tokenCount = typeof marking === "number" ? marking : (marking?.length ?? 0);
-  }
+    data.hasColorType && data.hasVisualizer && framesAvailable && data.hovered;
 
   // Add zero width space to labels between pascal case points as text-wrapping breakpoints
   const label = splitPascalCase(data.label).join("\u200B");

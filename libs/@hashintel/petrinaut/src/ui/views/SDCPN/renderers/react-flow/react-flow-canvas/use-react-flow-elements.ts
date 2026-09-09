@@ -2,21 +2,54 @@ import { MarkerType } from "@xyflow/react";
 import { use } from "react";
 
 import { ExecutionFrameSourceContext } from "../../../../../../react/execution-frame/context";
+import { SimulationContext } from "../../../../../../react/simulation/context";
+import { EditorContext } from "../../../../../../react/state/editor-context";
 import { arcHaloColor } from "../../../styles/focus";
 import { useStableItems } from "../../../use-stable-items";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 
-import type { SimulationFrameReader } from "../../../../../../react/simulation/context";
+import type {
+  InitialMarking,
+  SimulationFrameReader,
+  SimulationFrameState,
+} from "../../../../../../react/simulation/context";
 import type { CanvasArc, CanvasNode, CanvasScene } from "../../../canvas-scene";
 import type { ArcEdgeType, NodeType } from "./react-flow-types";
 
 const ARC_STROKE_WIDTH = 2;
 const ARC_MARKER_SIZE = 20;
 
-const toReactFlowNode = (
-  node: CanvasNode,
-  frameReader: SimulationFrameReader | null,
-): NodeType => {
+/**
+ * What a place shows in its badge: the viewed frame's count, or the initial
+ * marking while simulate mode waits for a run. Null hides the badge.
+ *
+ * Read here rather than in the place component: the frame source changes on
+ * every playback frame, so a place that subscribed to it would re-render on
+ * every frame whether or not its own count moved.
+ */
+const placeTokenCount = (
+  placeId: string,
+  frame: FrameContext,
+): number | null => {
+  if (frame.viewedFrame) {
+    return frame.viewedFrame.places[placeId]?.tokenCount ?? null;
+  }
+  if (!frame.simulateMode) {
+    return null;
+  }
+  const marking = frame.initialMarking[placeId];
+  return typeof marking === "number" ? marking : (marking?.length ?? 0);
+};
+
+type FrameContext = {
+  reader: SimulationFrameReader | null;
+  viewedFrame: SimulationFrameState | null;
+  framesAvailable: boolean;
+  initialMarking: InitialMarking;
+  simulateMode: boolean;
+};
+
+const toReactFlowNode = (node: CanvasNode, frame: FrameContext): NodeType => {
   const size = { width: node.width, height: node.height };
   const common = {
     // Only a node carrying a role is marked, so the pane can mute the rest
@@ -31,14 +64,22 @@ const toReactFlowNode = (
   };
   switch (node.kind) {
     case "place":
-      return { ...common, type: "place", data: node };
+      return {
+        ...common,
+        type: "place",
+        data: {
+          ...node,
+          tokenCount: placeTokenCount(node.id, frame),
+          framesAvailable: frame.framesAvailable,
+        },
+      };
     case "transition":
       return {
         ...common,
         type: "transition",
         data: {
           ...node,
-          frame: frameReader?.getTransitionState(node.id) ?? null,
+          frame: frame.reader?.getTransitionState(node.id) ?? null,
         },
       };
     case "componentInstance":
@@ -94,12 +135,23 @@ const toReactFlowEdge = (
 export const useReactFlowElements = (
   scene: CanvasScene,
 ): { nodes: NodeType[]; edges: ArcEdgeType[] } => {
-  const { currentFrameReader } = use(ExecutionFrameSourceContext);
+  const { currentFrameReader, currentViewedFrame, totalFrames } = use(
+    ExecutionFrameSourceContext,
+  );
+  const { initialMarking } = use(SimulationContext);
+  const { globalMode } = use(EditorContext);
+  const frame: FrameContext = {
+    reader: currentFrameReader,
+    viewedFrame: currentViewedFrame,
+    framesAvailable: totalFrames > 0,
+    initialMarking,
+    simulateMode: globalMode === "simulate",
+  };
   // Rebuilt from the scene, then held at their previous identity where
   // nothing changed, so React Flow re-renders only what a hover touched.
   return {
     nodes: useStableItems(
-      scene.nodes.map((node) => toReactFlowNode(node, currentFrameReader)),
+      scene.nodes.map((node) => toReactFlowNode(node, frame)),
     ),
     edges: useStableItems(
       scene.arcs.map((arc) => toReactFlowEdge(arc, currentFrameReader)),
