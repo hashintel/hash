@@ -152,7 +152,7 @@ describe("classicRunVariables", () => {
     });
     expect(variables[1]!.expression).toBe("35");
     expect(variables[2]).toMatchObject({ type: "boolean", expression: "true" });
-    expect(variables[3]).toMatchObject({ type: "real", expression: "0.5" });
+    expect(variables[3]).toMatchObject({ type: "ratio", expression: "0.5" });
   });
 });
 

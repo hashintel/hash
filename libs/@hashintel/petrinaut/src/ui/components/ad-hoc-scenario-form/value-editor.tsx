@@ -248,10 +248,11 @@ export interface ValueEditorProps {
    * The slot's value domain — one fact, everything else derives from it:
    * booleans optimize as a true/false choice with no bounds and step with
    * Up/Down; integers get a Step bound; counts are integers with an implied
-   * step of 1 (no Step field); strings and UUIDs don't arrow-step. The
-   * default placeholder is the domain's neutral value.
+   * step of 1 (no Step field); ratios step by 0.1 within 0 and 1; strings
+   * and UUIDs don't arrow-step. The default placeholder is the domain's
+   * neutral value.
    */
-  kind: ColorElementType | "count";
+  kind: ColorElementType | "count" | "ratio";
   /**
    * Rendered as derived: dimmed, chevron-prefixed, out of the tab order, and
    * editing is delegated to the shared column's own editor by the parent.
@@ -558,9 +559,11 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const stepMode =
     kind === "boolean"
       ? "boolean"
-      : kind === "string" || kind === "uuid"
-        ? "none"
-        : "number";
+      : kind === "ratio"
+        ? "ratio"
+        : kind === "string" || kind === "uuid"
+          ? "none"
+          : "number";
   const stepValueWithArrows = (event: React.KeyboardEvent) => {
     if (
       (event.key !== "ArrowUp" && event.key !== "ArrowDown") ||

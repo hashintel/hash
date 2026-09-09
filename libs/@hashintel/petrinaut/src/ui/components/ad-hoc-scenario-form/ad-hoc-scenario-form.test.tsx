@@ -766,9 +766,11 @@ describe("AdHocScenarioForm", () => {
       "Type of altitude",
     );
 
-    // The native select mirrors the dropdown: three types, no empty item.
+    // The native select mirrors the dropdown: the four types, no empty item.
     const nativeSelect = document.querySelector("select");
-    expect(nativeSelect?.options.length).toBe(3);
+    expect(
+      [...(nativeSelect?.options ?? [])].map((option) => option.value),
+    ).toEqual(["real", "integer", "boolean", "ratio"]);
 
     // The trailing add-a-variable line is one cell, reachable with
     // ArrowDown from any column of the row above it.

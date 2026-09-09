@@ -106,10 +106,6 @@ export function initialMarkingToAdHocPlaces(
   return { places, truncated };
 }
 
-const variableType = (
-  type: Scenario["scenarioParameters"][number]["type"],
-): AdHocVariable["type"] => (type === "ratio" ? "real" : type);
-
 /**
  * The editable half of the pseudo-state: one exposed Variable per scenario
  * parameter, named by the parameter's identifier verbatim, seeded from this
@@ -138,7 +134,7 @@ export function classicRunVariables(
           : numeric;
       return {
         name: parameter.identifier,
-        type: variableType(parameter.type),
+        type: parameter.type,
         expression,
         exposed: true,
         optimize: null,
