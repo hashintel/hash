@@ -15,12 +15,14 @@ const bandStyle = css({
   minWidth: "[0]",
 });
 
+// The row is one line at a fixed height: whatever the trailing readout says,
+// the controls below it never move.
 const headerRowStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: "2",
-  minHeight: "[24px]",
+  height: "[24px]",
 });
 
 const headerLeftStyle = css({
@@ -41,6 +43,8 @@ const trailingStyle = css({
   display: "flex",
   alignItems: "center",
   minWidth: "[0]",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
 });
 
 export const FrameBand = ({

@@ -64,10 +64,11 @@ const axisStepAt = (axis: OptimizationSurfaceAxis, position: number): number =>
   ) / 2;
 
 // Two columns of controls when the band is wide enough for two readable
-// sliders, so several parameters cost one row per pair.
+// sliders, so several parameters cost one row per pair; one column, never
+// wider than the band, otherwise.
 const navigatorStyle = css({
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 400px), 1fr))",
   columnGap: "8",
   rowGap: "[6px]",
 });
@@ -104,14 +105,18 @@ const readoutStyle = css({
   textAlign: "right",
 });
 
+// One line whatever the band's width: the text clips with an ellipsis rather
+// than wrapping, so a status change never changes the row's height.
 const statusStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
+  minWidth: "[0]",
   fontSize: "xs",
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
-  minHeight: "[24px]",
+  whiteSpace: "nowrap",
+  height: "[24px]",
 });
 
 const spinnerSlotStyle = css({
@@ -120,14 +125,17 @@ const spinnerSlotStyle = css({
 });
 
 const statusTextStyle = css({
+  minWidth: "[0]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
   "&[data-tone=error]": {
     color: "red.s100",
-    whiteSpace: "pre-wrap",
   },
 });
 
 const followStyle = css({
   marginLeft: "2",
+  flexShrink: "0",
   fontSize: "xs",
   color: "neutral.s100",
 });
@@ -247,6 +255,7 @@ export const OptimizationNavigatorStatus = ({
       data-tone={
         selection !== null && selection.error !== null ? "error" : undefined
       }
+      title={describeSelection(selection, running)}
     >
       {describeSelection(selection, running)}
     </span>

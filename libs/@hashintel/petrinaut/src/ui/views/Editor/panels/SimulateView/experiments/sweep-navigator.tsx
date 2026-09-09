@@ -83,16 +83,25 @@ const sliderStyle = css({
   flex: "1",
 });
 
+// One line whatever the band's width, so a change of wording never moves
+// what follows the band.
 const statusStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[6px]",
   // Aligns under the sliders: the 140px name column plus the row gap.
   paddingLeft: "[148px]",
+  minWidth: "[0]",
   fontSize: "xs",
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
-  minHeight: "[16px]",
+  whiteSpace: "nowrap",
+  height: "[16px]",
+  "& > span:last-child": {
+    minWidth: "[0]",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
 });
 
 const spinnerSlotStyle = css({
