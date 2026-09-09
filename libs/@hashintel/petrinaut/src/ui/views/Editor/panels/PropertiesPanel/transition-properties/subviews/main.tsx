@@ -23,6 +23,7 @@ import { DraftFieldInput } from "../../../../../../components/draft-field-input"
 import { Section, SectionList } from "../../../../../../components/section";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { CodeLink } from "../../../../../shared/code-view/code-link";
 import { useTransitionPropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -171,6 +172,19 @@ const TransitionMainContent: React.FC = () => {
           }
           disabled={isReadOnly}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
+
+        <CodeLink
+          title={
+            transition.lambdaType === "stochastic"
+              ? "Rate function"
+              : "Lambda function"
+          }
+          code={transition.lambdaCode}
+        />
+        <CodeLink
+          title="Transition kernel"
+          code={transition.transitionKernelCode}
         />
       </Form.Section>
 
