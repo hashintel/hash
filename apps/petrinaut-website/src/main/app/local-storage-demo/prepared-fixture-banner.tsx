@@ -1,12 +1,17 @@
 import { latestRunbookIrBlock } from "@hashintel/brunch-agent/workpiece";
 
-import { preparedCrewReservationWorkpiece } from "./prepared-crew-reservation-fixture";
+import {
+  crewReservationFixtureId,
+  crewReservationFixtureQuery,
+  preparedCrewReservationWorkpiece,
+} from "./prepared-crew-reservation-fixture";
 
 import type { CrewReservationSettledManifest } from "./crew-reservation-settled-manifest";
 import type { CrewReservationSettlementStatus } from "./use-crew-reservation-settled-manifest";
 
-// Fixed below Petrinaut's 64px top bar, so the banner never sits behind it.
-const fixtureBannerStyle = {
+// Centred below Petrinaut's 64px top bar, clear of the side panels, so the
+// panels never sit behind the bar.
+const fixturePanelStyle = {
   background: "rgba(255, 255, 255, 0.96)",
   border: "1px solid #c9d2df",
   borderRadius: 8,
@@ -17,9 +22,25 @@ const fixtureBannerStyle = {
   position: "fixed",
   top: 80,
   transform: "translateX(-50%)",
-  width: "calc(100vw - 32px)",
   zIndex: 20,
 } as const;
+
+const fixtureBannerStyle = {
+  ...fixturePanelStyle,
+  width: "calc(100vw - 32px)",
+} as const;
+
+/** The demo-mode entry point to the prepared fixture. */
+export const PreparedFixtureSelector = () => (
+  <aside aria-label="Prepared fixture selector" style={fixturePanelStyle}>
+    <strong>Prepared Brunch fixtures</strong>
+    <div>
+      <a href={`?${crewReservationFixtureQuery}=${crewReservationFixtureId}`}>
+        Open the labelled crew-reservation fixture
+      </a>
+    </div>
+  </aside>
+);
 
 export const PreparedFixtureBanner = ({
   currentWorkpiece,

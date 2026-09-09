@@ -148,6 +148,7 @@ const TestProviders = ({
     setEnableOptimizationSurface: () => {},
     setCanvasViewport: () => {},
     setEnableInBrowserOptimization: () => {},
+    setBrunchDemoMode: () => {},
     updateSubViewSection: () => {},
   };
 
