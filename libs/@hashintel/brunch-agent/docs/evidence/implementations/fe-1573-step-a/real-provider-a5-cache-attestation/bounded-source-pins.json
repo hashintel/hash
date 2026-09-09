@@ -1,0 +1,11 @@
+{
+  "kind": "Bounded correction review pins, NOT a full paid instrument manifest",
+  "commit": "008b576b6107175ee02d80ed91bd55ba6d79c0f0",
+  "files": {
+    "apps/brunch-agent/src/evaluations/real-provider-a5/native-response.ts": "24fe2e95bbd5f02693c717dad31160b4da07be25558f9749c260f7800cbbe70d",
+    "apps/brunch-agent/test/real-provider-a5-terminal.integration.ts": "931eae5ea005442e9e9939263640d17e8caec7c2f32ff466bc114379b25d259b",
+    "node_modules/@earendil-works/pi-ai/dist/api/anthropic-messages.js": "7ca9f5414e8a1a6c358f59592513b16d905b9be27142a1bc16817cf75d8ec817",
+    "node_modules/@earendil-works/pi-ai/dist/models.js": "ceb81be470cd45410f5586844b27ee65a70c474acc7eae7e8911752b5dfa7c2e",
+    "node_modules/@earendil-works/pi-ai/node_modules/@anthropic-ai/sdk/resources/messages/messages.d.ts": "2a1b773869870e088e7109ffdb60ddb25191d1101118d6a26bececeaa32a6479"
+  }
+}
