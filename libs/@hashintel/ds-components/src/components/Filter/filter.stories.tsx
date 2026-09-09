@@ -4,7 +4,7 @@ import { formInputSizes } from "../../util/form-shared";
 import { Filter, type FilterOperator } from "./filter";
 import { FilterGroup } from "./filter-group";
 
-import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { FilterChange, FilterValue } from "./filter-util";
 import type { Story, StoryDefault } from "@ladle/react";
 

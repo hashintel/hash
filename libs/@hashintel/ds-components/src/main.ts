@@ -57,10 +57,6 @@ export {
 } from "./components/Loading/loading-spinner";
 export { EllipsisMenu } from "./components/Menu/ellipsis-menu";
 export { Menu, type MenuItem } from "./components/Menu/menu";
-export type {
-  Item,
-  ItemOrGroup,
-} from "./components/Menu/SelectableList/selectable-list";
 export { NumberInput } from "./components/NumberInput/number-input";
 export { Popover, type PopoverProps } from "./components/Popover/popover";
 export { Radio } from "./components/Radio/radio";
@@ -88,5 +84,6 @@ export {
   PortalContainerContext,
   usePortalContainerRef,
 } from "./util/portal-container-context";
+export type { Item, ItemOrGroup } from "./util/SelectableList/selectable-list";
 export { useAvoidScrollWidthChange } from "./util/use-avoid-scroll-width-change";
 export { useScrollLock } from "./util/use-scroll-lock";

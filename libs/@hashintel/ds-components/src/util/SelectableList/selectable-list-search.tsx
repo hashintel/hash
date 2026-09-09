@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { Icon } from "../../Icon/icon";
+import { Icon } from "../../components/Icon/icon";
 import {
   searchIcon,
   searchInput,

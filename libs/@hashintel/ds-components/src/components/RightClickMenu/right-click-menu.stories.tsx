@@ -1,15 +1,15 @@
 import { useMemo } from "react";
 
-import { type MenuItem } from "../Menu/menu";
 import {
   type Item,
   type ItemOrGroup,
-} from "../Menu/SelectableList/selectable-list";
-import { getItemId } from "../Menu/SelectableList/selectable-list-util";
+} from "../../util/SelectableList/selectable-list";
+import { getItemId } from "../../util/SelectableList/selectable-list-util";
 import {
   defaultSelected,
   groupedItems,
-} from "../Menu/SelectableList/selectable-list.fixtures";
+} from "../../util/SelectableList/selectable-list.fixtures";
+import { type MenuItem } from "../Menu/menu";
 import { RightClickMenu } from "./right-click-menu";
 
 import type { Story, StoryDefault } from "@ladle/react";

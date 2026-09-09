@@ -15,18 +15,18 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { usePortalContainerRef } from "../../util/portal-container-context";
-import { useFieldId } from "../Form/field-id-context";
-import { Icon } from "../Icon/icon";
-import { LoadingSpinner } from "../Loading/loading-spinner";
 import {
   SelectableList,
   isCustomItem,
   type Item,
   type ItemOrGroup,
-} from "../Menu/SelectableList/selectable-list";
-import { SelectableListSearch } from "../Menu/SelectableList/selectable-list-search";
-import { searchEmpty } from "../Menu/SelectableList/selectable-list-search.recipe";
-import { getItemId } from "../Menu/SelectableList/selectable-list-util";
+} from "../../util/SelectableList/selectable-list";
+import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
+import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
+import { getItemId } from "../../util/SelectableList/selectable-list-util";
+import { useFieldId } from "../Form/field-id-context";
+import { Icon } from "../Icon/icon";
+import { LoadingSpinner } from "../Loading/loading-spinner";
 import { InputConnector } from "../TextInput/input-connector";
 import {
   onlyButtonRecipe,

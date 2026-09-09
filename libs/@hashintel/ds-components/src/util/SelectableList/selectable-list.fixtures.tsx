@@ -1,6 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import { Button } from "../../Button/button";
+import { Button } from "../../components/Button/button";
 import { type Item, type ItemOrGroup } from "./selectable-list";
 
 const tones = ["neutral", "brand", "error"] as const;

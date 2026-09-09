@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes } from "../../../util/form-shared";
+import { formInputSizes } from "../form-shared";
 import { type Item, type ItemOrGroup, SelectableList } from "./selectable-list";
 import { SelectableListSearch } from "./selectable-list-search";
 import { SelectableListSelectionSummary } from "./selectable-list-selection-summary";
@@ -70,7 +70,7 @@ const disabledGroupedItems: ItemOrGroup<Item>[] =
 const disabledSelected = defaultSelected.map((id) => `disabled-${id}`);
 
 export default {
-  title: "Internal/SelectableList",
+  title: "Primitives/SelectableList",
   argTypes: {
     size: {
       control: { type: "select" },
@@ -160,7 +160,6 @@ export const SearchWithSelectionSummary: Story<SelectableListProps> = (
         }
         footer={
           <SelectableListSelectionSummary
-            size={args.size}
             selectedCount={selected.length}
             totalCount={searchableFruits.length}
             onSelectAll={() => setSelected(searchableFruits)}

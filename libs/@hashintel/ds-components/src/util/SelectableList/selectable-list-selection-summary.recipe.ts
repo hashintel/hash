@@ -7,35 +7,11 @@ export const summaryRow = cva({
     paddingX: "[0.5px]",
     marginBottom:
       "[calc(-0.25 * var(--selectable-list-header-footer-padding-y))]",
-  },
-  // Text sits one step below the list's item text, matching its group labels
-  variants: {
-    size: {
-      xxs: {
-        fontSize: "[9px]",
-        lineHeight: "[10px]",
-        gap: "1",
-      },
-      xs: {
-        textStyle: "xxs",
-        gap: "1.5",
-      },
-      sm: {
-        textStyle: "xs",
-        gap: "2",
-      },
-      md: {
-        textStyle: "sm",
-        gap: "2.5",
-      },
-      lg: {
-        textStyle: "sm",
-        gap: "2.5",
-      },
-    },
-  },
-  defaultVariants: {
-    size: "md",
+    // One step below the text size inherited from the list's footer slot,
+    // like the list's group labels sit below its item text
+    fontSize: "[0.85em]",
+    lineHeight: "[1.334]",
+    gap: "[0.67em]",
   },
 });
 

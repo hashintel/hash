@@ -4,7 +4,6 @@ import {
   summaryRow,
 } from "./selectable-list-selection-summary.recipe";
 
-import type { FormInputSize } from "../../../util/form-shared";
 import type { ExclusifyUnion } from "type-fest";
 
 /**
@@ -23,13 +22,10 @@ export const SelectableListSelectionSummary = ({
   totalCount,
   onSelectAll,
   onClearAll,
-  size = "md",
 }: {
   hideCount?: boolean;
   selectedCount: number;
   totalCount: number;
-  /** Match this to the size of the containing SelectableList. */
-  size?: FormInputSize;
 } & ExclusifyUnion<
   | { hideSelectAllToggle: true }
   | {
@@ -44,7 +40,7 @@ export const SelectableListSelectionSummary = ({
   const allSelected = totalCount > 0 && selectedCount >= totalCount;
 
   return (
-    <div className={summaryRow({ size })}>
+    <div className={summaryRow()}>
       {!hideCount && (
         <span className={summaryCount()}>
           {selectedCount} of {totalCount}

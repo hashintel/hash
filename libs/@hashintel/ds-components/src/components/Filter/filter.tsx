@@ -11,13 +11,13 @@ import {
   preventAutocompleteProps,
 } from "../../util/form-shared";
 import { usePortalContainerRef } from "../../util/portal-container-context";
-import { Icon } from "../Icon/icon";
 import {
   SelectableList,
   type Item,
   type ItemOrGroup,
-} from "../Menu/SelectableList/selectable-list";
-import { getItemId } from "../Menu/SelectableList/selectable-list-util";
+} from "../../util/SelectableList/selectable-list";
+import { getItemId } from "../../util/SelectableList/selectable-list-util";
+import { Icon } from "../Icon/icon";
 import { BaseTooltip } from "../Tooltip/base-tooltip";
 import {
   type FilterChange,
