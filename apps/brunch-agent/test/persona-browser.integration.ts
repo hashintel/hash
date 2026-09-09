@@ -14,6 +14,12 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 import { expect } from "@playwright/test";
+import { parse } from "valibot";
+
+import {
+  updateWorkpieceOutputSchema,
+  workpieceReadOutputSchema,
+} from "@hashintel/brunch-agent/flue";
 
 import brunchPersonaTestingExtension from "../.pi/extensions/brunch-persona-testing.ts";
 import { agentOwnershipHeaders } from "../src/conversation/identity.ts";
@@ -126,18 +132,15 @@ try {
         revisionId,
       );
     },
-    call("brunch_workpiece", {}, `${revisionId}-read`),
     (context: Context) => {
-      const current = toolOutput(context, "brunch_workpiece")
-        .currentWorkpiece as {
-        revisionId: string;
-        markdown: string;
-        evidence: { messageIds: string[] }[];
-      };
+      const current = parse(
+        updateWorkpieceOutputSchema,
+        toolOutput(context, "update_workpiece"),
+      );
       assert.equal(current.revisionId, revisionId);
       assert.equal(current.markdown, markdown);
       assert.deepEqual(
-        current.evidence[0]?.messageIds,
+        current.evidence?.[0]?.messageIds,
         evidence.at(-1)?.sourceIds,
       );
       checked++;
@@ -249,7 +252,7 @@ try {
     );
     await expect(
       page.getByRole("region", { name: "Brunch workpiece and why" }),
-    ).toContainText(revisionId);
+    ).toContainText(`Recorded settlement from ${revisionId}`);
     const history = await client.history();
     const relation = evidence[index];
     assert(relation);
@@ -317,7 +320,15 @@ try {
     "TEST UI continuation: timing remains unknown; keep that qualification.";
   faux.setResponses([
     call("brunch_workpiece", {}, "ui-continuation-read"),
-    text("TEST continued the same account; timing remains unknown."),
+    (context: Context) => {
+      const queried = parse(
+        workpieceReadOutputSchema,
+        toolOutput(context, "brunch_workpiece"),
+      ).currentWorkpiece;
+      assert.deepEqual(queried, toolOutput(context, "update_workpiece"));
+      checked++;
+      return text("TEST continued the same account; timing remains unknown.");
+    },
   ]);
   await uiSend(
     continuation,
@@ -325,7 +336,12 @@ try {
   );
   await expect(
     page.getByRole("region", { name: "Brunch workpiece and why" }),
-  ).toContainText("ui-continuation-read", { timeout: 30_000 });
+  ).toContainText("State queried by ui-continuation-read", { timeout: 30_000 });
+  assert.equal(
+    checked,
+    5,
+    "Reopening must query the actual persisted revision",
+  );
   const final = await client.history();
   assert.equal(final.conversationId, initialHistory.conversationId);
   assert.equal(

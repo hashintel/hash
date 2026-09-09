@@ -49,6 +49,91 @@ test("shows actual recorded tool output and refuses to call a hand-edited docume
   expect(html).toContain("Temporal context is not support.");
 });
 
+const settlementMessage = (revisionId: string, markdown?: string) => ({
+  role: "assistant",
+  purpose: "assistant",
+  parts: [
+    {
+      type: "dynamic-tool",
+      toolName: "update_workpiece",
+      toolCallId: revisionId,
+      state: "output-available",
+      input: { markdown: "Unvalidated input must not be displayed" },
+      output: {
+        revisionId,
+        sha256: "d".repeat(64),
+        ordinal: 2,
+        ...(markdown === undefined ? {} : { markdown }),
+      },
+    },
+  ],
+});
+
+test("shows successful settlement output without requiring a model-chosen query", () => {
+  const html = renderToStaticMarkup(
+    <BrunchWorkpiecePane
+      messages={[settlementMessage("settled-call", "# Settled account")]}
+      binding={binding}
+      liveHash={undefined}
+    />,
+  );
+  expect(html).toContain("# Settled account");
+  expect(html).toContain("Recorded settlement from settled-call");
+  expect(html).toContain("not a current-authority query");
+  expect(html).not.toContain("Unvalidated input must not be displayed");
+});
+
+test("a later settlement replaces the displayed query while retaining the recorded why", () => {
+  const html = renderToStaticMarkup(
+    <BrunchWorkpiecePane
+      messages={[
+        ...messages,
+        settlementMessage("later-call", "# Later account"),
+      ]}
+      binding={binding}
+      liveHash={undefined}
+    />,
+  );
+  expect(html).toContain("# Later account");
+  expect(html).toContain("Recorded settlement from later-call");
+  expect(html).toContain("Temporal context is not support.");
+  expect(html).toContain(
+    "This why answer predates a later workpiece settlement",
+  );
+});
+
+test("an explicit later query replaces a recorded settlement", () => {
+  const html = renderToStaticMarkup(
+    <BrunchWorkpiecePane
+      messages={[
+        settlementMessage("settled-call", "# Earlier account"),
+        ...messages,
+      ]}
+      binding={binding}
+      liveHash={undefined}
+    />,
+  );
+  expect(html).toContain("# Actual tool workpiece");
+  expect(html).toContain("State queried by why-call");
+  expect(html).not.toContain("# Earlier account");
+});
+
+test("a later pointer-only legacy settlement marks the displayed account stale", () => {
+  const html = renderToStaticMarkup(
+    <BrunchWorkpiecePane
+      messages={[
+        settlementMessage("settled-call", "# Earlier account"),
+        settlementMessage("legacy-call"),
+      ]}
+      binding={binding}
+      liveHash={undefined}
+    />,
+  );
+  expect(html).toContain("# Earlier account");
+  expect(html).toContain("A later settlement exists");
+  expect(html).not.toContain("Unvalidated input must not be displayed");
+});
+
 test("does not reconstruct current state from historical revision input", () => {
   const html = renderToStaticMarkup(
     <BrunchWorkpiecePane

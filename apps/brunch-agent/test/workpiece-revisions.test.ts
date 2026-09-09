@@ -35,6 +35,7 @@ test("the built agent settles a revision over the mounted route", () => {
           .update(result.markdown, "utf8")
           .digest("hex"),
         ordinal: 1,
+        markdown: result.markdown,
       },
     }),
   );

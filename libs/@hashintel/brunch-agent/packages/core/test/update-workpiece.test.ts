@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto";
 
 import { usePersistentState, useTool, type StateSetter } from "@flue/runtime";
+import * as v from "valibot";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import {
   UPDATE_WORKPIECE_TOOL_NAME,
+  updateWorkpieceOutputSchema,
   useBrunchAgent,
   createUpdateWorkpieceTool,
   elicitationSkill,
@@ -52,13 +54,30 @@ beforeEach(() => {
 
 test("returns revisionId equal to toolCallId and sha256 of the Markdown", async () => {
   const markdown = "  # Café\r\n\nUnknown.  ";
-  expect(await run(markdown)).toEqual({
+  const result = await run(markdown);
+  expect(result).toEqual({
     output: {
       revisionId: "actual-tool-call",
       sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
       ordinal: 1,
+      markdown,
     },
     terminate: false,
+  });
+  expect(current).toEqual(result.output);
+});
+
+test("accepts retained pointer-only update output", () => {
+  expect(
+    v.parse(updateWorkpieceOutputSchema, {
+      revisionId: "retained-call",
+      sha256: "a".repeat(64),
+      ordinal: 1,
+    }),
+  ).toEqual({
+    revisionId: "retained-call",
+    sha256: "a".repeat(64),
+    ordinal: 1,
   });
 });
 

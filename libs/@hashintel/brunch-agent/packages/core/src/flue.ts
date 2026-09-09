@@ -103,9 +103,10 @@ export const createBrunchQuestionMarkerTool = (
     },
   });
 
-/** The settled pointer the model sees; consumers recovering a revision from history parse it too. */
+/** Successful settlement carriage; optional Markdown admits retained pointer-only results. */
 export const updateWorkpieceOutputSchema = v.object({
   ...workpieceRevisionPointerSchema.entries,
+  markdown: v.optional(workpieceRevisionSchema.entries.markdown),
   evidence: v.optional(v.array(evidenceRelationSchema)),
   evidenceValidated: v.optional(v.literal(true)),
 });
@@ -135,10 +136,10 @@ export const createUpdateWorkpieceTool = (
         evidence === undefined
           ? {}
           : { evidence, evidenceValidated: true as const };
-      const revision = { ...prepared, ...verifiedEvidence };
-      const pointer = {
-        revisionId: revision.revisionId,
-        sha256: revision.sha256,
+      const revision = {
+        revisionId: prepared.revisionId,
+        sha256: prepared.sha256,
+        markdown: prepared.markdown,
         ordinal: 0,
         ...verifiedEvidence,
       };
@@ -155,13 +156,13 @@ export const createUpdateWorkpieceTool = (
           throw new Error(
             "Workpiece changed during evidence validation; settle against the current revision.",
           );
-        pointer.ordinal =
+        revision.ordinal =
           previous?.revisionId === toolCallId
             ? previous.ordinal
             : (previous?.ordinal ?? 0) + 1;
-        return { ...revision, ordinal: pointer.ordinal };
+        return revision;
       });
-      return { output: pointer, terminate: false };
+      return { output: revision, terminate: false };
     },
   });
 

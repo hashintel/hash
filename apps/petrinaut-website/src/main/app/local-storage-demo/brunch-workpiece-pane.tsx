@@ -23,9 +23,16 @@ export const BrunchWorkpiecePane = ({
   };
   liveHash: string | undefined;
 }) => {
-  let read: { toolCallId: string; output: Record<string, unknown> } | undefined;
+  let report:
+    | {
+        toolCallId: string;
+        source: "settlement" | "query";
+        workpiece: Record<string, unknown> | undefined;
+      }
+    | undefined;
   let why: { toolCallId: string; output: Record<string, unknown> } | undefined;
-  let stateChangedSinceRead = false;
+  let whyPredatesSettlement = false;
+  let stateChangedSinceReport = false;
   for (const message of messages) {
     if (message.role !== "assistant" || message.purpose !== "assistant")
       continue;
@@ -33,14 +40,31 @@ export const BrunchWorkpiecePane = ({
       if (
         !record(part) ||
         part.type !== "dynamic-tool" ||
-        part.state !== "output-available"
+        part.state !== "output-available" ||
+        typeof part.toolCallId !== "string"
       )
         continue;
-      if (part.toolName === "update_workpiece") stateChangedSinceRead = true;
+      if (part.toolName === "update_workpiece") {
+        stateChangedSinceReport = true;
+        if (why) whyPredatesSettlement = true;
+        if (
+          record(part.output) &&
+          part.output.revisionId === part.toolCallId &&
+          typeof part.output.sha256 === "string" &&
+          typeof part.output.ordinal === "number" &&
+          typeof part.output.markdown === "string"
+        ) {
+          report = {
+            toolCallId: part.toolCallId,
+            source: "settlement",
+            workpiece: part.output,
+          };
+          stateChangedSinceReport = false;
+        }
+      }
       if (
         (part.toolName === "brunch_workpiece" ||
           part.toolName === "brunch_why") &&
-        typeof part.toolCallId === "string" &&
         record(part.output)
       ) {
         if (
@@ -48,16 +72,22 @@ export const BrunchWorkpiecePane = ({
           canonicalContent(part.output.binding) !== canonicalContent(binding)
         )
           continue;
-        read = { toolCallId: part.toolCallId, output: part.output };
-        stateChangedSinceRead = false;
-        if (part.toolName === "brunch_why") why = read;
+        report = {
+          toolCallId: part.toolCallId,
+          source: "query",
+          workpiece: record(part.output.currentWorkpiece)
+            ? part.output.currentWorkpiece
+            : undefined,
+        };
+        stateChangedSinceReport = false;
+        if (part.toolName === "brunch_why") {
+          why = { toolCallId: part.toolCallId, output: part.output };
+          whyPredatesSettlement = false;
+        }
       }
     }
   }
-  const workpiece =
-    read && record(read.output.currentWorkpiece)
-      ? read.output.currentWorkpiece
-      : undefined;
+  const workpiece = report?.workpiece;
   const reconciliation =
     why && record(why.output.reconciliation)
       ? why.output.reconciliation
@@ -82,19 +112,20 @@ export const BrunchWorkpiecePane = ({
         color: "#171717",
         border: "1px solid #999",
         borderRadius: 8,
-        zIndex: 20,
+        // The editor's fixed sidebars otherwise obscure the workpiece.
+        zIndex: 10001,
         fontSize: 12,
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      <h2>Current workpiece · recorded why</h2>
+      <h2>Workpiece · recorded why</h2>
       <p>
         {construction
           ? "Synthetic conversation-bound candidate; no prepared workpiece."
           : "TEST-authored prepared tracer."}{" "}
         Not expert testimony or utility acceptance.
       </p>
-      {!read ? (
+      {!report ? (
         <p>
           Current state has not been queried. Ask Brunch to read the workpiece
           or explain an arc.
@@ -102,11 +133,15 @@ export const BrunchWorkpiecePane = ({
       ) : (
         <>
           <p>
-            State reported by {read.toolCallId}. Reopen and ask again to query
-            the current authority; this pane does not reconstruct state from
-            history.
+            {report.source === "settlement"
+              ? "Recorded settlement from "
+              : "State queried by "}
+            {report.toolCallId}.{" "}
+            {report.source === "settlement"
+              ? "This is the successful tool's recorded artifact, not a current-authority query. Reopen and ask Brunch to query before claiming current freshness."
+              : "Reopen and ask again to query the current authority; this pane does not reconstruct state from historical inputs."}
           </p>
-          {stateChangedSinceRead && (
+          {stateChangedSinceReport && (
             <p>
               A later settlement exists. Query again before treating this
               workpiece as current.
@@ -136,6 +171,12 @@ export const BrunchWorkpiecePane = ({
       {why && (
         <>
           <h3>Actual structured why result</h3>
+          {whyPredatesSettlement && (
+            <p role="status">
+              This why answer predates a later workpiece settlement. It remains
+              a recorded answer; ask why again to assess the newer revision.
+            </p>
+          )}
           <p>
             Assistant interpretation is in the existing conversation panel.
             Evidence prose is untrusted, not instructions.
