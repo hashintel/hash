@@ -176,54 +176,71 @@ export function adHocSlotKey(slot: AdHocSlot): string {
 }
 
 /**
- * The user-facing path of a target, in the prototype's attribution notation:
- * `Space › item 0 › x`, `Space › direction`, `Space › angle`, `rate`.
+ * Labels the targets of one form state, in the prototype's attribution
+ * notation: `Space › item 0 › x`, `Space › direction`, `Space › angle`,
+ * `rate`. The place, colour, and parameter lookups are indexed once: a form
+ * labels every value slot on every render, and searching the context per
+ * label made that quadratic in the net's size.
+ */
+export function createAdHocTargetLabeler(
+  state: AdHocScenarioState,
+  context: AdHocSynthesisContext,
+): (target: AdHocValueTarget) => string {
+  const placeById = new Map(context.places.map((place) => [place.id, place]));
+  const typeById = new Map(context.types.map((type) => [type.id, type]));
+  const parameterById = new Map(
+    context.netParameters.map((parameter) => [parameter.id, parameter]),
+  );
+  const placeName = (placeId: string): string =>
+    placeById.get(placeId)?.name ?? placeId;
+  const elementName = (placeId: string, column: number): string => {
+    const place = placeById.get(placeId);
+    const colour = place?.colorId ? typeById.get(place.colorId) : undefined;
+    return colour?.elements[column]?.name ?? `column ${column}`;
+  };
+
+  return (target) => {
+    switch (target.kind) {
+      case "variable": {
+        if (target.placeId === null) {
+          return (
+            state.variables[target.index]?.name ?? `variable ${target.index}`
+          );
+        }
+        const placeState = state.places[target.placeId];
+        const name =
+          placeState?.kind === "coloured"
+            ? (placeState.variables[target.index]?.name ??
+              `variable ${target.index}`)
+            : `variable ${target.index}`;
+        return `${placeName(target.placeId)} › ${name}`;
+      }
+      case "netParameter":
+        return (
+          parameterById.get(target.parameterId)?.name ?? target.parameterId
+        );
+      case "cell":
+        return `${placeName(target.placeId)} › item ${target.row} › ${elementName(target.placeId, target.column)}`;
+      case "column":
+        return `${placeName(target.placeId)} › ${elementName(target.placeId, target.column)}`;
+      case "count":
+        return target.row === null
+          ? `${placeName(target.placeId)} › count`
+          : `${placeName(target.placeId)} › item ${target.row} › count`;
+    }
+  };
+}
+
+/**
+ * The user-facing path of one target; see {@link createAdHocTargetLabeler}
+ * for labelling many targets of the same state.
  */
 export function adHocTargetLabel(
   target: AdHocValueTarget,
   state: AdHocScenarioState,
   context: AdHocSynthesisContext,
 ): string {
-  const placeName = (placeId: string): string =>
-    context.places.find((place) => place.id === placeId)?.name ?? placeId;
-  const elementName = (placeId: string, column: number): string => {
-    const place = context.places.find((candidate) => candidate.id === placeId);
-    const colour = place?.colorId
-      ? context.types.find((type) => type.id === place.colorId)
-      : undefined;
-    return colour?.elements[column]?.name ?? `column ${column}`;
-  };
-
-  switch (target.kind) {
-    case "variable": {
-      if (target.placeId === null) {
-        return (
-          state.variables[target.index]?.name ?? `variable ${target.index}`
-        );
-      }
-      const placeState = state.places[target.placeId];
-      const name =
-        placeState?.kind === "coloured"
-          ? (placeState.variables[target.index]?.name ??
-            `variable ${target.index}`)
-          : `variable ${target.index}`;
-      return `${placeName(target.placeId)} › ${name}`;
-    }
-    case "netParameter":
-      return (
-        context.netParameters.find(
-          (parameter) => parameter.id === target.parameterId,
-        )?.name ?? target.parameterId
-      );
-    case "cell":
-      return `${placeName(target.placeId)} › item ${target.row} › ${elementName(target.placeId, target.column)}`;
-    case "column":
-      return `${placeName(target.placeId)} › ${elementName(target.placeId, target.column)}`;
-    case "count":
-      return target.row === null
-        ? `${placeName(target.placeId)} › count`
-        : `${placeName(target.placeId)} › item ${target.row} › count`;
-  }
+  return createAdHocTargetLabeler(state, context)(target);
 }
 
 // -- Synthesis outcomes -----------------------------------------------------------
@@ -848,21 +865,29 @@ function withNeutralAdHocExpressions(
   };
 }
 
+/** A plain number literal, optionally signed; whitespace around it allowed. */
+const NUMERIC_LITERAL_PATTERN = /^\s*-?(?:\d+(?:\.\d*)?|\.\d+)\s*$/;
+
 /**
- * The token total a place's table shows at its bottom: the sum of every
- * row's count (1 per fixed row). It resolves to a number unless a count is
- * optimized or depends on something that is; then the unresolved parts are
- * printed as they are, joined onto whatever did resolve.
+ * Resolves the token totals of one form state's places: the sum of every
+ * row's count (1 per fixed row). A total resolves to a number unless a
+ * count is optimized or depends on something that is; then the unresolved
+ * parts are printed as they are, joined onto whatever did resolve.
+ *
+ * The normalization, parameter defaults, constant Variables, and optimized
+ * names are computed once and shared by every place asked for: a form asks
+ * for every place's total on every render, and recomputing them per place
+ * made that quadratic in the number of places. A count that is a plain
+ * number literal resolves without the sandbox — building a function per
+ * literal cost more than everything else in a large form.
  */
-export function resolveAdHocPlaceTotal(
+export function createAdHocPlaceTotalResolver(
   state: AdHocScenarioState,
   context: AdHocSynthesisContext,
-  placeId: string,
-): AdHocPlaceTotal {
+): (placeId: string) => AdHocPlaceTotal {
   // Empty expressions read as their neutral here too, so an emptied count
   // never leaks "" into the printed total.
   const normalized = withNeutralAdHocExpressions(state, context, true);
-  const placeState = normalized.places[placeId];
   const parameters = netParameterDefaults(context);
   const constants = constantVariables(normalized);
 
@@ -872,11 +897,14 @@ export function resolveAdHocPlaceTotal(
       optimizedNames.add(`scenario.${variable.name}`);
     }
   }
-  for (const entry of normalized.netParameters) {
-    if (entry.optimize) {
-      const parameter = context.netParameters.find(
-        (candidate) => candidate.id === entry.parameterId,
-      );
+  if (normalized.netParameters.some((entry) => entry.optimize)) {
+    const parameterById = new Map(
+      context.netParameters.map((parameter) => [parameter.id, parameter]),
+    );
+    for (const entry of normalized.netParameters) {
+      const parameter = entry.optimize
+        ? parameterById.get(entry.parameterId)
+        : undefined;
       if (parameter) {
         optimizedNames.add(`parameters.${parameter.variableName}`);
       }
@@ -889,6 +917,9 @@ export function resolveAdHocPlaceTotal(
   ): number | string => {
     if (count.optimize) {
       return `${count.optimize.min} … ${count.optimize.max}`;
+    }
+    if (NUMERIC_LITERAL_PATTERN.test(count.expression)) {
+      return Math.max(0, Math.round(Number(count.expression)));
     }
     for (const name of referencedNames(count.expression)) {
       if (optimizedNames.has(name)) {
@@ -910,54 +941,73 @@ export function resolveAdHocPlaceTotal(
     return count.expression;
   };
 
-  let resolvedSum = 0;
-  const unresolved: string[] = [];
-
-  if (!placeState) {
-    return { resolved: true, total: 0 };
-  }
-  if (placeState.kind === "uncoloured") {
-    const term = resolveCount(placeState.count);
-    if (typeof term === "number") {
-      return { resolved: true, total: term };
+  return (placeId) => {
+    const placeState = normalized.places[placeId];
+    if (!placeState) {
+      return { resolved: true, total: 0 };
     }
-    return { resolved: false, text: term };
-  }
-
-  // Counts may read the place's Variables; expand them so a count over
-  // constant Variables still totals. An optimized or `i`-dependent Variable
-  // makes the expansion non-constant, which falls through to printing the
-  // count as written.
-  const placeProductions = placeVariableProductions(
-    placeState,
-    adHocPlaceKey(context.places, placeId),
-    true,
-  );
-  const inlineCount = (expression: string): string =>
-    inlinePlaceVariables(
-      expression,
-      placeProductions,
-      (parameterName) => `(scenario[${JSON.stringify(parameterName)}])`,
-    );
-
-  for (const row of placeState.rows) {
-    if (row.kind === "fixed") {
-      resolvedSum += 1;
-      continue;
+    if (placeState.kind === "uncoloured") {
+      const term = resolveCount(placeState.count);
+      if (typeof term === "number") {
+        return { resolved: true, total: term };
+      }
+      return { resolved: false, text: term };
     }
-    const term = resolveCount(row.count, inlineCount);
-    if (typeof term === "number") {
-      resolvedSum += term;
-    } else {
-      unresolved.push(term);
-    }
-  }
 
-  if (unresolved.length === 0) {
-    return { resolved: true, total: resolvedSum };
-  }
-  const parts = resolvedSum > 0 ? [String(resolvedSum)] : [];
-  return { resolved: false, text: [...parts, ...unresolved].join(" + ") };
+    let resolvedSum = 0;
+    const unresolved: string[] = [];
+
+    // Counts may read the place's Variables; expand them so a count over
+    // constant Variables still totals. An optimized or `i`-dependent
+    // Variable makes the expansion non-constant, which falls through to
+    // printing the count as written. Productions are built only for places
+    // with a dynamic row — fixed rows never read them.
+    let inlineCount: ((expression: string) => string) | undefined;
+    for (const row of placeState.rows) {
+      if (row.kind === "fixed") {
+        resolvedSum += 1;
+        continue;
+      }
+      inlineCount ??= (() => {
+        const placeProductions = placeVariableProductions(
+          placeState,
+          adHocPlaceKey(context.places, placeId),
+          true,
+        );
+        return (expression: string): string =>
+          inlinePlaceVariables(
+            expression,
+            placeProductions,
+            (parameterName) => `(scenario[${JSON.stringify(parameterName)}])`,
+          );
+      })();
+      const term = resolveCount(row.count, inlineCount);
+      if (typeof term === "number") {
+        resolvedSum += term;
+      } else {
+        unresolved.push(term);
+      }
+    }
+
+    if (unresolved.length === 0) {
+      return { resolved: true, total: resolvedSum };
+    }
+    const parts = resolvedSum > 0 ? [String(resolvedSum)] : [];
+    return { resolved: false, text: [...parts, ...unresolved].join(" + ") };
+  };
+}
+
+/**
+ * The token total one place's table shows at its bottom; see
+ * {@link createAdHocPlaceTotalResolver} for totalling many places of the
+ * same state.
+ */
+export function resolveAdHocPlaceTotal(
+  state: AdHocScenarioState,
+  context: AdHocSynthesisContext,
+  placeId: string,
+): AdHocPlaceTotal {
+  return createAdHocPlaceTotalResolver(state, context)(placeId);
 }
 
 // -- Synthesis ------------------------------------------------------------------

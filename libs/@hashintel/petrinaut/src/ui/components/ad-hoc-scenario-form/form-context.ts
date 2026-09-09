@@ -17,9 +17,11 @@ import { EMPTY_AD_HOC_HIGHLIGHT } from "./dependency-highlight";
 import type { AdHocFocusTarget, AdHocHighlight } from "./dependency-highlight";
 import type {
   AdHocAction,
+  AdHocPlaceTotal,
   AdHocScenarioState,
   AdHocSlot,
   AdHocSynthesisContext,
+  AdHocValueTarget,
 } from "@hashintel/petrinaut-core";
 
 /**
@@ -62,6 +64,16 @@ export interface AdHocFormServices {
   errorFor: (slot: AdHocSlot) => string | undefined;
   /** The Monaco document URI for a slot ("" when no session is wired). */
   uriFor: (slot: AdHocSlot) => string;
+  /**
+   * The user-facing path of a value (`Space › item 0 › x`), from an index
+   * the form builds once per render rather than per slot.
+   */
+  labelFor: (target: AdHocValueTarget) => string;
+  /**
+   * A place's token total, from one normalization of the whole state per
+   * render rather than one per place.
+   */
+  placeTotal: (placeId: string) => AdHocPlaceTotal;
   /** The rows and cells connected to the focused value. */
   highlight: AdHocHighlight;
   /** Reports which value or row holds focus, driving the highlight. */
@@ -101,6 +113,8 @@ export const AdHocFormContext = createContext<AdHocFormServices>({
   sessionId: "",
   errorFor: () => undefined,
   uriFor: () => "",
+  labelFor: () => "",
+  placeTotal: () => ({ resolved: true, total: 0 }),
   highlight: EMPTY_AD_HOC_HIGHLIGHT,
   setFocusedValue: () => {},
   formatExpression: () => Promise.resolve(null),

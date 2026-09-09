@@ -38,7 +38,7 @@ import {
 } from "./scenario-run-state";
 
 import type { SubView } from "../../../../../components/sub-view/types";
-import type { AdHocScenarioState, Scenario } from "@hashintel/petrinaut-core";
+import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -461,27 +461,34 @@ const SimulationSettingsContent: React.FC = () => {
       ? selectedScenario
       : undefined;
   const classicHir = useScenarioHir(selectedClassicScenario);
-  // `seededFrom` is the persisted scenario object the run state came from:
-  // saving an edit to the selected scenario replaces that object, so the
-  // form reseeds to the new definition instead of showing the old one while
-  // the run compiles the new. `seed` counts reseeds — it keys the form so a
-  // reseed (or a scenario switch) remounts it, discarding an undo history
-  // whose snapshots belong to another definition.
+  // `seededFrom` is the persisted scenario definition the run state came
+  // from, by content: saving an edit to the selected scenario changes it, so
+  // the form reseeds to the new definition instead of showing the old one
+  // while the run compiles the new. By content, not identity — the document
+  // hands out a fresh scenario object on every edit anywhere in the net,
+  // and reseeding on those remounted the form (and restarted its language
+  // session) for every node dragged on the canvas. `seed` counts reseeds —
+  // it keys the form so a reseed (or a scenario switch) remounts it,
+  // discarding an undo history whose snapshots belong to another definition.
+  const selectedScenarioContent = selectedScenario
+    ? JSON.stringify(selectedScenario)
+    : null;
   const [scenarioRun, setScenarioRun] = useState<{
     scenarioId: string;
-    seededFrom: Scenario;
+    seededFrom: string;
     seed: number;
     state: AdHocScenarioState;
   } | null>(null);
   if (
     selectedAdHocScenario &&
     selectedAdHocScenario.initialState.type === "adhoc" &&
+    selectedScenarioContent !== null &&
     (scenarioRun?.scenarioId !== selectedAdHocScenario.id ||
-      scenarioRun.seededFrom !== selectedAdHocScenario)
+      scenarioRun.seededFrom !== selectedScenarioContent)
   ) {
     setScenarioRun({
       scenarioId: selectedAdHocScenario.id,
-      seededFrom: selectedAdHocScenario,
+      seededFrom: selectedScenarioContent,
       seed: (scenarioRun?.seed ?? 0) + 1,
       state: seedScenarioRunState(
         selectedAdHocScenario.initialState.content,
@@ -491,14 +498,15 @@ const SimulationSettingsContent: React.FC = () => {
   }
   if (
     selectedClassicScenario &&
+    selectedScenarioContent !== null &&
     (scenarioRun?.scenarioId !== selectedClassicScenario.id ||
-      scenarioRun.seededFrom !== selectedClassicScenario)
+      scenarioRun.seededFrom !== selectedScenarioContent)
   ) {
     // Only the Variables (the editable scenario parameters) live in local
     // state; the overrides and places are derived from compilation below.
     setScenarioRun({
       scenarioId: selectedClassicScenario.id,
-      seededFrom: selectedClassicScenario,
+      seededFrom: selectedScenarioContent,
       seed: (scenarioRun?.seed ?? 0) + 1,
       state: {
         variables: classicRunVariables(

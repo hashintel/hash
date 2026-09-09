@@ -34,6 +34,8 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocPlaceStateFor,
   adHocSlotKey,
+  createAdHocPlaceTotalResolver,
+  createAdHocTargetLabeler,
   getAdHocDocumentUri,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
@@ -271,6 +273,12 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     }
   };
 
+  // Both index the state once for the whole render: the slots beneath ask
+  // for one label each and every place block asks for its total, and doing
+  // that work per slot made a render quadratic in the net's size.
+  const labelFor = createAdHocTargetLabeler(state, context);
+  const placeTotal = createAdHocPlaceTotalResolver(state, context);
+
   const services: AdHocFormServices = {
     formState: state,
     dispatch,
@@ -279,6 +287,8 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     sessionId,
     uriFor: (slot: AdHocSlot) =>
       getAdHocDocumentUri(sessionId, adHocSlotKey(slot)),
+    labelFor,
+    placeTotal,
     errorFor: (slot: AdHocSlot) => {
       const key = adHocSlotKey(slot);
       const synthesisError = synthesisErrors.get(key);

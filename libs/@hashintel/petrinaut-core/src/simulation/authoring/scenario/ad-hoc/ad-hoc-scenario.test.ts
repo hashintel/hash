@@ -12,6 +12,8 @@ import {
   adHocPlaceKey,
   adHocSlotKey,
   adHocTargetLabel,
+  createAdHocPlaceTotalResolver,
+  createAdHocTargetLabeler,
   cycleAdHocRowKind,
   resolveAdHocPlaceTotal,
   shareAdHocColumn,
@@ -1351,5 +1353,75 @@ describe("persisted ad-hoc scenarios", () => {
     }
     expect(result.errors[0]?.source).toBe("initialState");
     expect(result.errors[0]?.message).toContain("declared twice");
+  });
+});
+
+describe("createAdHocPlaceTotalResolver", () => {
+  it("totals every place of one state exactly as the per-place function", () => {
+    const state = baseState();
+    state.variables.push({
+      name: "n",
+      type: "integer",
+      expression: "3",
+      optimize: null,
+    });
+    state.places["place-pumps"] = {
+      kind: "coloured",
+      variables: [],
+      rows: [
+        fixed("1", "false"),
+        template("scenario.n + 1", "i", "false"),
+        template("2", "i", "true"),
+      ],
+      sharedColumns: {},
+    };
+    const resolve = createAdHocPlaceTotalResolver(state, context);
+    for (const placeId of ["place-pumps", "place-queue", "place-unknown"]) {
+      expect(resolve(placeId)).toEqual(
+        resolveAdHocPlaceTotal(state, context, placeId),
+      );
+    }
+    expect(resolve("place-pumps")).toEqual({ resolved: true, total: 7 });
+  });
+
+  it("resolves literal counts like evaluated ones", () => {
+    const state = baseState();
+    const resolve = (expression: string) => {
+      state.places["place-queue"] = {
+        kind: "uncoloured",
+        count: cell(expression),
+      };
+      return createAdHocPlaceTotalResolver(state, context)("place-queue");
+    };
+    expect(resolve(" 3.6 ")).toEqual({ resolved: true, total: 4 });
+    expect(resolve("-2")).toEqual({ resolved: true, total: 0 });
+    expect(resolve("")).toEqual({ resolved: true, total: 0 });
+    expect(resolve("1 + 1")).toEqual({ resolved: true, total: 2 });
+  });
+});
+
+describe("createAdHocTargetLabeler", () => {
+  it("labels every kind of target exactly as adHocTargetLabel", () => {
+    const state = baseState();
+    const label = createAdHocTargetLabeler(state, context);
+    const targets = [
+      { kind: "variable" as const, placeId: null, index: 0 },
+      { kind: "variable" as const, placeId: "place-pumps", index: 0 },
+      { kind: "variable" as const, placeId: "place-queue", index: 3 },
+      { kind: "netParameter" as const, parameterId: "param-rate" },
+      { kind: "netParameter" as const, parameterId: "param-unknown" },
+      { kind: "cell" as const, placeId: "place-pumps", row: 1, column: 1 },
+      { kind: "cell" as const, placeId: "place-pumps", row: 0, column: 5 },
+      { kind: "column" as const, placeId: "place-pumps", column: 0 },
+      { kind: "count" as const, placeId: "place-queue", row: null },
+      { kind: "count" as const, placeId: "place-pumps", row: 2 },
+      { kind: "count" as const, placeId: "place-unknown", row: null },
+    ];
+    for (const target of targets) {
+      expect(label(target)).toBe(adHocTargetLabel(target, state, context));
+    }
+    expect(
+      label({ kind: "cell", placeId: "place-pumps", row: 1, column: 1 }),
+    ).toBe("Pumps › item 1 › worn");
   });
 });
