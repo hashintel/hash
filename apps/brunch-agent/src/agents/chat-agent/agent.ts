@@ -17,6 +17,7 @@ import {
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
 
 import { ping } from "./tools/ping.ts";
+import { useVoiceResponse } from "./voice-response.ts";
 
 export const CHAT_MODEL_ID =
   process.env["BRUNCH_CHAT_MODEL"] || "claude-haiku-4-5";
@@ -38,12 +39,7 @@ export function ChatAgent() {
     "responseMode" in context &&
     context.responseMode === "voice"
   ) {
-    useInstruction(`Voice response style for this delivery only:
-Respond conversationally and concisely. Put the necessary question or conclusion first.
-Avoid unnecessary preambles and repetition; preserve consequential qualifications.
-For a short clarification, prefer one or two spoken sentences, with any consequential qualification, rather than an unsolicited report or a repeated summary. Expand only when the question requires it.
-When a detailed report is needed, keep it complete in the visible canonical response; the application offers to read long responses on request.
-These are presentation instructions only. Retain all domain, evidence, workpiece, and tool obligations.`);
+    useVoiceResponse();
   }
 
   useInstruction(

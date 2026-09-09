@@ -10,7 +10,10 @@ import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../local-storage-demo/brunch-panel-transport";
-import { selectCanonicalSpeech } from "./canonical-speech";
+import {
+  selectAuthoredVoiceSpeech,
+  selectCanonicalSpeech,
+} from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { submitVoiceInputWithAdmission } from "./voice-interview-control";
@@ -28,6 +31,7 @@ const providerAnswer = "v=0\r\na=private-provider-sdp\r\n";
 const spokenAnswer = "The supervisor approves it.";
 const canonicalReply = "Thanks. I have recorded that.";
 const canonicalQuestion = "Who is informed next?";
+const authoredReply = `The supervisor approves it. ${canonicalQuestion}`;
 const requestIds = [
   "00000000-0000-4000-8000-000000000011",
   "00000000-0000-4000-8000-000000000012",
@@ -102,6 +106,18 @@ const responseMessages = [
   {
     id: "next-question-message",
     parts: [
+      {
+        type: "dynamic-tool",
+        toolName: "brunch_set_voice_response",
+        toolCallId: "speech-next-question",
+        state: "output-available",
+        input: { speech: authoredReply },
+        output: { title: "Authored speech", detail: authoredReply },
+      },
+      {
+        type: "data-brunch-voice-response",
+        data: { speech: authoredReply, toolCallId: "speech-next-question" },
+      },
       {
         data: {
           question: canonicalQuestion,
@@ -386,6 +402,9 @@ describe("controlled voice preview", () => {
       questionSegment: initialSelection.questionSegment,
       status: "ready",
     });
+    // History never autoplays. Explicitly request reading to exercise an
+    // already-started microphone item overlapping application-owned output.
+    session.speakCanonical(initialSegments);
     dataChannel.receive({
       content_index: 0,
       item_id: "pre-output-item",
@@ -517,6 +536,8 @@ describe("controlled voice preview", () => {
     controller.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: correlatedSegments,
+      voiceSegments:
+        selectAuthoredVoiceSpeech(responseMessages).map(correlateResponse),
       questionSegment: responseSelection.questionSegment
         ? correlateResponse(responseSelection.questionSegment)
         : undefined,
@@ -534,7 +555,7 @@ describe("controlled voice preview", () => {
             content: [
               {
                 text: JSON.stringify({
-                  response_text: [canonicalReply, canonicalQuestion],
+                  response_text: [authoredReply],
                 }),
                 type: "input_text",
               },

@@ -124,6 +124,19 @@ bubble is replaced by the finalized message or pending-question tool output,
 which retains a waveform indicator without duplicating the answer. Provisional
 transcription and Realtime audio are not persisted as chat history.
 
+For Voice replies, Brunch authors separate spoken content and complete visible
+prose. Short replies should give a useful brief answer; long analyses should
+give a substantive spoken takeaway while keeping the complete report on screen.
+The **Brunch-authored speech (not playback confirmation)** tool result retains
+the exact authored speech alongside its response, including after reopening.
+It records authorship, not whether the audio was heard. Automatic playback waits
+for the whole correlated reply, including browser-tool continuations. Later
+substantive tools invalidate an earlier speech draft unless Brunch replaces it.
+Missing, unusable, or uncorrelated speech produces only the fixed reading notice,
+never an application-generated summary or automatic full-report reading. That
+notice is not successful substantive Voice delivery. Content usefulness,
+speech/report fidelity, and audible delay require separate human assessment.
+
 The text composer remains available. Sending typed text ends Voice mode first,
 then submits the draft exactly once through the same conversation; a failed
 handoff restores the draft. Closing the assistant pauses capture and speech
@@ -134,7 +147,7 @@ acknowledgements and response terminal event, and only then opens the
 microphone for fresh capture. Its playback menu offers **Repeat question** and
 **Read full response**. Full-response replay becomes available once the matching
 response and audio output have both finished, enqueues all exact retained
-canonical segments in order, and is disabled during capture, submission,
+visible prose segments in order—not just the spoken takeaway—and is disabled during capture, submission,
 cancellation, pause, and errors. **Repeat question** has the same safety gates
 and replays only exact question text carrying Brunch's non-interactive marker;
 if the marker is missing, malformed, or does not match finalized prose, the

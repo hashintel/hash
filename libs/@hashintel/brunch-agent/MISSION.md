@@ -5,8 +5,9 @@
 **Live; scope and implementation authorized by the owner.** This is the sole mission on local
 `voice/separate-brunch-speech`, stacked on [#9585](https://github.com/hashintel/hash/pull/9585)
 at [0902dddb](https://github.com/hashintel/hash/commit/0902dddbbfd53ac98499c44a7302339bca135563).
-Authority is committed separately before product changes. Issue creation, pushing, PR creation,
-paid provider activity, deployment changes, and mission acceptance are not authorized.
+Authority was committed separately before product changes. The owner has authorized committing,
+pushing, and opening this follow-up as a draft stacked PR. Issue creation, paid provider activity,
+manual deployment changes, and mission acceptance remain unauthorized.
 
 The accepted scope and timing decision are in the
 [owner conversation](https://ampcode.com/threads/T-01a085b2-4d2a-73ca-bf56-95ec31430d52).
@@ -115,12 +116,17 @@ acceptance. They do not prove core caused verbosity or exhaust relay prompt alte
 
 ## Fog-line
 
-Structured-data persistence and routing need contract proof before selecting a mechanism.
+The existing structured data writer is now selected for the local implementation: runtime
+restart, transport, real-panel continuation, and replay checks establish the tested routing
+contract. [Local verification](docs/evidence/implementations/separate-voice-speech/verification.md)
+records the evidence and its limits; no real-provider or deployed acceptance follows.
 Model adherence, useful brevity, speech/report consistency, actual audio fidelity, and tolerable
 delay remain experimental. Completion gating avoids speculative delivery, not semantic errors.
 Historical preview configuration and backend-deployment verification remain unresolved; any
 remote claim requires a new real deployed witness. Human acceptance and paid ceilings are
-owner-held. A separate issue must be authorized and linked before submission.
+owner-held. No separate Linear issue is linked, and no Linear integration is available in this
+orb. Draft publication uses the repository's descriptive-title contribution workflow; Linear
+writes still require explicit approval.
 
 ## Stop or reorient
 

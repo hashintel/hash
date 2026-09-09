@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   hashCanonicalSpeechText,
+  selectAuthoredVoiceSpeech,
   selectCanonicalSpeech,
   selectCanonicalSpeechSegments,
 } from "./canonical-speech";
@@ -10,6 +11,149 @@ import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const select = (messages: PetrinautAiMessage[]) =>
   selectCanonicalSpeechSegments(messages);
+
+const speechParts = (
+  speech = "  The limit remains unknown.  ",
+  toolCallId = "speech-1",
+): PetrinautAiMessage["parts"] => [
+  {
+    type: "dynamic-tool",
+    toolName: "brunch_set_voice_response",
+    toolCallId,
+    state: "output-available",
+    input: { speech },
+    output: { title: "Authored speech", detail: speech },
+  },
+  { type: "data-brunch-voice-response", data: { speech, toolCallId } },
+];
+const fullReport = {
+  type: "text",
+  text: "# Full report\n\nThe limit remains unknown. Further validation is required.",
+  state: "done",
+} as const;
+
+describe("Brunch-authored speech selection", () => {
+  test("keeps exact speech separate from displayed prose, with stable response identity on reload", () => {
+    const messages: PetrinautAiMessage[] = [
+      {
+        id: "reply-1",
+        role: "assistant",
+        parts: [...speechParts(), fullReport],
+      },
+      {
+        id: "reply-2",
+        role: "assistant",
+        parts: [...speechParts(), fullReport],
+      },
+    ];
+    const selected = selectAuthoredVoiceSpeech(messages);
+    expect(selected.map(({ text }) => text)).toEqual([
+      "  The limit remains unknown.  ",
+      "  The limit remains unknown.  ",
+    ]);
+    expect(selected[0]?.id).not.toBe(selected[1]?.id);
+    expect(selectAuthoredVoiceSpeech(structuredClone(messages))).toEqual(
+      selected,
+    );
+    expect(select(messages).map(({ text }) => text)).toEqual([
+      fullReport.text,
+      fullReport.text,
+    ]);
+  });
+
+  test.each([
+    { name: "missing speech", parts: [fullReport] },
+    { name: "blank speech", parts: [...speechParts("  "), fullReport] },
+    { name: "missing report", parts: speechParts() },
+    { name: "only preceding prose", parts: [fullReport, ...speechParts()] },
+    {
+      name: "unfinished report",
+      parts: [...speechParts(), { ...fullReport, state: "streaming" }],
+    },
+    {
+      name: "unmatched tool identity",
+      parts: [
+        ...speechParts(),
+        {
+          type: "data-brunch-voice-response",
+          data: { speech: "Wrong identity", toolCallId: "other" },
+        },
+        fullReport,
+      ],
+    },
+    {
+      name: "later substantive tool",
+      parts: [
+        ...speechParts(),
+        {
+          type: "dynamic-tool",
+          toolName: "updateModel",
+          toolCallId: "update-1",
+          state: "output-available",
+          input: {},
+          output: {},
+        },
+        fullReport,
+      ],
+    },
+  ] satisfies Array<{ name: string; parts: PetrinautAiMessage["parts"] }>)(
+    "withholds $name rather than deriving a summary",
+    ({ parts }) => {
+      expect(
+        selectAuthoredVoiceSpeech([{ id: "reply", role: "assistant", parts }]),
+      ).toEqual([]);
+    },
+  );
+
+  test("replaces an obsolete draft after tools and preserves marked question replay", () => {
+    const question = "Which limit matters?";
+    const messages: PetrinautAiMessage[] = [
+      {
+        id: "reply",
+        role: "assistant",
+        parts: [
+          ...speechParts("An obsolete claim."),
+          {
+            type: "dynamic-tool",
+            toolName: "readModel",
+            toolCallId: "read-1",
+            state: "output-available",
+            input: {},
+            output: {},
+          },
+          ...speechParts(`The limit is unknown. ${question}`, "speech-2"),
+          {
+            type: "dynamic-tool",
+            toolName: "brunch_mark_question",
+            toolCallId: "question-1",
+            state: "output-available",
+            input: { question },
+            output: {},
+          },
+          {
+            type: "data-brunch-question",
+            data: { question, toolCallId: "question-1" },
+          },
+          { ...fullReport, text: `${fullReport.text}\n\n${question}` },
+        ],
+      },
+    ];
+    expect(selectAuthoredVoiceSpeech(messages).map(({ text }) => text)).toEqual(
+      [`The limit is unknown. ${question}`],
+    );
+    expect(selectCanonicalSpeech(messages).questionSegment?.text).toBe(
+      question,
+    );
+    expect(
+      selectAuthoredVoiceSpeech(
+        messages.map((message) => ({
+          ...message,
+          metadata: { stopped: true },
+        })),
+      ),
+    ).toEqual([]);
+  });
+});
 
 describe("canonical speech selection", () => {
   test("selects only finalized assistant text without changing it", () => {

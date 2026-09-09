@@ -99,6 +99,7 @@ interface VoiceTurnControllerDependencies {
 interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
+  readonly voiceSegments?: readonly CanonicalSpeechSegment[];
   readonly questionSegment?: CanonicalSpeechSegment;
   readonly settlements?: readonly VoiceSubmissionSettlement[];
   readonly stopped?: boolean;
@@ -544,6 +545,30 @@ export class VoiceTurnController {
 
   public updateChat(update: ChatUpdate): void {
     const question = update.questionSegment;
+    if (
+      update.status === "ready" &&
+      this.#pendingSubmissionSettlement === null
+    ) {
+      // Hydration restores explicit reading/replay, never automatic playback.
+      const latestMessageId = update.canonicalSegments.at(-1)?.messageId;
+      const responseSegments = update.canonicalSegments.filter(
+        (segment) => segment.messageId === latestMessageId,
+      );
+      const responseQuestion =
+        question?.messageId === latestMessageId ? (question ?? null) : null;
+      if (
+        responseSegments.length !== this.#lastResponseSegments.length ||
+        responseSegments.some(
+          (segment, index) =>
+            segment.id !== this.#lastResponseSegments[index]?.id,
+        ) ||
+        responseQuestion?.id !== this.#lastResponseQuestion?.id
+      ) {
+        this.#lastResponseSegments = responseSegments;
+        this.#lastResponseQuestion = responseQuestion;
+        this.#update({});
+      }
+    }
     if (question && question.id !== this.#currentQuestionId) {
       this.#currentQuestionId = question.id;
       this.#update({ currentQuestion: question.text });

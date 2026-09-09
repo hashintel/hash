@@ -89,6 +89,39 @@ const markedQuestion = (
 });
 
 describe("VoiceTurnController", () => {
+  test.each(["full", "question"] as const)(
+    "restores explicit %s reading after reload without autoplay",
+    async (reading) => {
+      const harness = createHarness();
+      const report = question(
+        "restored",
+        "Full report, with qualifications. Which limit matters?",
+      );
+      const marked = markedQuestion("restored", "Which limit matters?");
+      harness.controller.updateChat({
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: [report],
+        questionSegment: marked,
+        voiceSegments: [
+          { ...report, source: "assistant-voice", text: "A brief takeaway." },
+        ],
+        status: "ready",
+      });
+      await harness.controller.start();
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        canReadFullResponse: true,
+        canRepeatQuestion: true,
+      });
+      expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+      expect(harness.submitText).not.toHaveBeenCalled();
+      if (reading === "full") harness.controller.readFullResponse();
+      else harness.controller.repeatQuestion();
+      expect(harness.session.speakCanonical).toHaveBeenCalledWith([
+        reading === "full" ? report : marked,
+      ]);
+    },
+  );
+
   test("records the content-free Voice lifecycle once in causal order", async () => {
     const harness = createHarness();
     await harness.controller.start();

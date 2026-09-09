@@ -28,6 +28,16 @@ const segment = (
   text,
 });
 
+const authoredSpeech = (
+  response: CanonicalSpeechSegment,
+): CanonicalSpeechSegment => ({
+  ...response,
+  id: `${response.id}-voice`,
+  partId: `${response.partId}-voice`,
+  source: "assistant-voice",
+  text: "A distinct Brunch-authored takeaway.",
+});
+
 const transcriptKey = (
   connectionEpoch: number,
   itemId = "user-item-1",
@@ -67,7 +77,7 @@ const createHarness = () => {
   let listener: ((event: OpenAIRealtimeSessionEvent) => void) | undefined;
   const session = {
     offerFullResponse: vi.fn(),
-    speakCanonical: vi.fn(),
+    speakCanonical: vi.fn<(segments: CanonicalSpeechSegment[]) => void>(),
     subscribe: vi.fn((next: (event: OpenAIRealtimeSessionEvent) => void) => {
       listener = next;
       return () => {
@@ -234,8 +244,8 @@ describe("RealtimeBrunchBridge", () => {
       status: "ready",
     });
 
-    expect(harness.session.speakCanonical).toHaveBeenCalledOnce();
-    expect(harness.session.speakCanonical).toHaveBeenCalledWith([laterSegment]);
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+    expect(harness.session.offerFullResponse).not.toHaveBeenCalled();
   });
 
   test("submits only a completed transcript through the user admission target", async () => {
@@ -615,12 +625,15 @@ describe("RealtimeBrunchBridge", () => {
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [unrelated, correlated],
+      voiceSegments: [authoredSpeech(unrelated), authoredSpeech(correlated)],
       questionSegment: correlatedQuestion,
       status: "ready",
     });
 
     const deliveryId = createRealtimeSubmissionId(transcriptKey(7));
-    expect(harness.session.speakCanonical).toHaveBeenCalledWith([correlated]);
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([
+      authoredSpeech(correlated),
+    ]);
     expect(harness.events.map(({ type }) => type)).toEqual([
       "submission-started",
       "submission-admitted",
@@ -637,7 +650,7 @@ describe("RealtimeBrunchBridge", () => {
     });
   });
 
-  test("speaks a completed canonical segment while chat remains streaming and settles separately", async () => {
+  test("withholds authored speech until the whole correlated reply completes", async () => {
     const harness = createHarness();
     startReady(harness, 7);
     harness.emit(completedTranscript(7));
@@ -646,12 +659,13 @@ describe("RealtimeBrunchBridge", () => {
     );
     const correlated = segment(
       "correlated",
-      "Speak this committed response.",
+      "The complete visible response.",
       "submission-voice-1",
     );
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: false,
       canonicalSegments: [correlated],
+      voiceSegments: [authoredSpeech(correlated)],
       status: "streaming",
     });
 
@@ -660,7 +674,7 @@ describe("RealtimeBrunchBridge", () => {
       completedResponseMessage(correlated.messageId, "submission-voice-1", 1),
     );
 
-    expect(harness.session.speakCanonical).toHaveBeenCalledWith([correlated]);
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
     expect(harness.events.map(({ type }) => type)).not.toContain(
       "submission-settled",
     );
@@ -671,10 +685,14 @@ describe("RealtimeBrunchBridge", () => {
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [correlated],
+      voiceSegments: [authoredSpeech(correlated)],
       status: "ready",
     });
 
     expect(harness.session.speakCanonical).toHaveBeenCalledOnce();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([
+      authoredSpeech(correlated),
+    ]);
     expect(harness.events.slice(-2).map(({ type }) => type)).toEqual([
       "submission-settled",
       "canonical-response-ready",
@@ -727,10 +745,10 @@ describe("RealtimeBrunchBridge", () => {
     harness.bridge.notifyResponseMessageCompleted(
       completedResponseMessage(messageId, "submission-voice-1", 3),
     );
-    expect(harness.session.speakCanonical).toHaveBeenCalledWith([laterText]);
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
   });
 
-  test("speaks later continuation segments once and in canonical order", async () => {
+  test("waits through browser continuations and delivers only the final authored speech once", async () => {
     const harness = createHarness();
     startReady(harness, 7);
     harness.emit(completedTranscript(7));
@@ -772,9 +790,10 @@ describe("RealtimeBrunchBridge", () => {
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: false,
       canonicalSegments: [first, second, third],
+      voiceSegments: [authoredSpeech(third)],
       status: "streaming",
     });
-    expect(harness.session.speakCanonical).toHaveBeenCalledTimes(1);
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
 
     harness.bridge.notifyResponseMessageCompleted(
       completedResponseMessage(first.messageId, "submission-continuation", 2),
@@ -788,17 +807,29 @@ describe("RealtimeBrunchBridge", () => {
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: false,
       canonicalSegments: [first, second, third, fourth],
+      voiceSegments: [authoredSpeech(fourth)],
       status: "streaming",
     });
     harness.bridge.notifyResponseMessageCompleted(
       completedResponseMessage(first.messageId, "submission-continuation", 3),
     );
 
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+    for (let i = 0; i < 2; i++) {
+      harness.bridge.updateChat({
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: [first, second, third, fourth],
+        voiceSegments: [authoredSpeech(fourth)],
+        status: "ready",
+      });
+    }
     expect(harness.session.speakCanonical.mock.calls).toEqual([
-      [[first]],
-      [[second, third]],
-      [[fourth]],
+      [[authoredSpeech(fourth)]],
     ]);
+    expect(harness.events.at(-1)).toMatchObject({
+      type: "canonical-response-ready",
+      segments: [first, second, third, fourth],
+    });
   });
 
   test("does not start speech cancelled while its correlated response is pending", async () => {
@@ -966,6 +997,7 @@ describe("RealtimeBrunchBridge", () => {
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [response],
+      voiceSegments: [authoredSpeech(response)],
       status: "ready",
     });
     expect(harness.session.speakCanonical).not.toHaveBeenCalled();
@@ -978,9 +1010,136 @@ describe("RealtimeBrunchBridge", () => {
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [response],
+      voiceSegments: [authoredSpeech(response)],
       status: "ready",
     });
 
-    expect(harness.session.speakCanonical).toHaveBeenCalledWith([response]);
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([
+      authoredSpeech(response),
+    ]);
+  });
+
+  test.each([
+    "failed",
+    "aborted",
+    "cancelled",
+    "wrong-submission",
+    "missing",
+  ] as const)(
+    "does not release substantive speech for a %s continuation",
+    async (outcome) => {
+      const harness = createHarness();
+      startReady(harness);
+      harness.emit(completedTranscript(3));
+      await vi.waitFor(() =>
+        expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+      );
+      const report = segment(
+        "final",
+        "Complete report. ".repeat(100),
+        "submission-voice-1",
+      );
+      const speech = authoredSpeech(report);
+      harness.bridge.updateChat({
+        canAcceptInterviewAnswer: false,
+        canonicalSegments: [report],
+        voiceSegments: [speech],
+        status: "streaming",
+      });
+      harness.bridge.notifyResponseMessageStarted({
+        messageId: report.messageId,
+        submissionId: "continuation",
+        position: { batch: 2, index: 0 },
+      });
+      if (outcome === "cancelled") harness.bridge.cancelPendingSpeech();
+      for (let i = 0; i < 2; i++) {
+        harness.bridge.updateChat({
+          canAcceptInterviewAnswer: true,
+          canonicalSegments: [report],
+          status: "ready",
+          voiceSegments:
+            outcome === "missing"
+              ? []
+              : [
+                  {
+                    ...speech,
+                    submissionIds: [
+                      outcome === "wrong-submission"
+                        ? "unrelated"
+                        : "submission-voice-1",
+                    ],
+                  },
+                ],
+          settlements:
+            outcome === "failed" || outcome === "aborted"
+              ? [
+                  { submissionId: "submission-voice-1", outcome: "completed" },
+                  { submissionId: "continuation", outcome },
+                ]
+              : [],
+        });
+      }
+      expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+      expect(harness.session.offerFullResponse).toHaveBeenCalledTimes(
+        outcome === "missing" || outcome === "wrong-submission" ? 1 : 0,
+      );
+    },
+  );
+
+  test("delivers identical takeaways on distinct Voice replies, but never typed replies or reload", async () => {
+    const harness = createHarness();
+    startReady(harness);
+    const reports: CanonicalSpeechSegment[] = [];
+    for (let i = 0; i < 2; i++) {
+      const submissionId = `submission-${i}`;
+      harness.submitInterviewAnswer.mockImplementationOnce(async (input) => {
+        input.onAdmission(submissionId);
+        return { kind: "message", messageId: input.id, submissionId };
+      });
+      harness.emit(completedTranscript(3, "Explain.", `input-${i}`));
+      await vi.waitFor(() =>
+        expect(harness.submitInterviewAnswer).toHaveBeenCalledTimes(i + 1),
+      );
+      const report = segment(
+        `reply-${i}`,
+        "Complete report. ".repeat(100),
+        submissionId,
+      );
+      reports.push(report);
+      harness.bridge.updateChat({
+        canAcceptInterviewAnswer: false,
+        canonicalSegments: reports,
+        status: "streaming",
+      });
+      harness.bridge.updateChat({
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: reports,
+        voiceSegments: [authoredSpeech(report)],
+        status: "ready",
+      });
+    }
+    expect(
+      harness.session.speakCanonical.mock.calls.map(([segments]) =>
+        segments.map(({ text }) => text),
+      ),
+    ).toEqual([
+      ["A distinct Brunch-authored takeaway."],
+      ["A distinct Brunch-authored takeaway."],
+    ]);
+    reports.push(segment("typed", "Typed report.", "typed-submission"));
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: reports,
+      status: "ready",
+    });
+    harness.bridge.stop();
+    harness.bridge.start(4);
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: reports,
+      status: "ready",
+    });
+    expect(harness.session.speakCanonical).toHaveBeenCalledTimes(2);
+    expect(harness.session.offerFullResponse).not.toHaveBeenCalled();
   });
 });

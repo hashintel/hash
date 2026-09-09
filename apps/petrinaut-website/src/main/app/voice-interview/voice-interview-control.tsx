@@ -15,7 +15,10 @@ import { Button, Checkbox } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
-import { selectCanonicalSpeech } from "./canonical-speech";
+import {
+  selectAuthoredVoiceSpeech,
+  selectCanonicalSpeech,
+} from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import {
   RealtimeBrunchBridge,
@@ -563,6 +566,9 @@ const AvailableVoiceInterviewControl = ({
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
       canonicalSegments: canonicalSpeech.segments.map(correlateSegment),
+      voiceSegments: selectAuthoredVoiceSpeech(context.messages).map(
+        correlateSegment,
+      ),
       ...(canonicalSpeech.questionSegment
         ? { questionSegment: correlateSegment(canonicalSpeech.questionSegment) }
         : {}),

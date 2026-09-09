@@ -10,7 +10,10 @@ import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../local-storage-demo/brunch-panel-transport";
-import { selectCanonicalSpeech } from "./canonical-speech";
+import {
+  selectAuthoredVoiceSpeech,
+  selectCanonicalSpeech,
+} from "./canonical-speech";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { submitVoiceInputWithAdmission } from "./voice-interview-control";
 
@@ -116,6 +119,37 @@ test.each([
         turnId: messageId,
         position: position(),
       });
+      const speech = continuation
+        ? "The requested guide was read."
+        : "An obsolete draft before checking.";
+      const speechToolCallId = `speech-${submissionId}`;
+      await options?.onEvent?.({
+        type: "tool-input",
+        conversationId: "test",
+        messageId,
+        toolCallId: speechToolCallId,
+        toolName: "brunch_set_voice_response",
+        input: { speech },
+        position: position(),
+      });
+      await options?.onEvent?.({
+        type: "data-part",
+        conversationId: "test",
+        messageId,
+        name: "brunch-voice-response",
+        data: { speech, toolCallId: speechToolCallId },
+        position: position(),
+      });
+      await options?.onEvent?.({
+        type: "tool-output",
+        conversationId: "test",
+        toolCallId: speechToolCallId,
+        output: {
+          title: "Brunch-authored speech (not playback confirmation)",
+          detail: speech,
+        },
+        position: position(),
+      });
       if (preamble || continuation)
         await options?.onEvent?.({
           type: "message-delta",
@@ -202,6 +236,12 @@ test.each([
             submissionIds: tracker.submissionsForResponse(segment.messageId),
           }),
         ),
+        voiceSegments: selectAuthoredVoiceSpeech(current.messages).map(
+          (segment) => ({
+            ...segment,
+            submissionIds: tracker.submissionsForResponse(segment.messageId),
+          }),
+        ),
       });
     };
     const handle = createJsonDocHandle({
@@ -277,6 +317,7 @@ test.each([
     await waitFor(() => expect(finishContinuation).toBeDefined());
     expect(send).toHaveBeenCalledTimes(2);
     expect(context?.status).not.toBe("ready");
+    expect(speakCanonical).not.toHaveBeenCalled();
     expect(
       events.some((event) => event.type === "canonical-response-ready"),
     ).toBe(false);
@@ -298,10 +339,16 @@ test.each([
       speakCanonical.mock.calls
         .flatMap(([segments]) => segments)
         .map((segment) => segment.text),
-    ).toEqual(
-      preamble
-        ? ["Checking the guide.", "The guide is available."]
-        : ["The guide is available."],
-    );
+    ).toEqual(["The requested guide was read."]);
+    expect(speakCanonical).toHaveBeenCalledOnce();
+    expect(events.at(-1)).toMatchObject({
+      type: "canonical-response-ready",
+      segments: preamble
+        ? [
+            expect.objectContaining({ text: "Checking the guide." }),
+            expect.objectContaining({ text: "The guide is available." }),
+          ]
+        : [expect.objectContaining({ text: "The guide is available." })],
+    });
   },
 );

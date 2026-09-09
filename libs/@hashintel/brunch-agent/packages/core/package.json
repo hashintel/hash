@@ -26,6 +26,10 @@
       "types": "./src/storage.ts",
       "import": "./dist/storage.js"
     },
+    "./voice-response": {
+      "types": "./src/voice-response.ts",
+      "import": "./dist/voice-response.js"
+    },
     "./workpiece": {
       "types": "./src/workpiece.ts",
       "import": "./dist/workpiece.js"

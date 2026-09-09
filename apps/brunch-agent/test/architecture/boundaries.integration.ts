@@ -387,6 +387,7 @@ describe("core auxiliary subpaths stay in their assigned lanes", () => {
       "./flue",
       "./question-marker",
       "./storage",
+      "./voice-response",
       "./workpiece",
     ]);
   });
@@ -449,6 +450,8 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
       "Constructs Flue's content-free OpenTelemetry instrumentation with an injected exporter setup to prove disposal order; it registers no global instrumentation, opens no socket, and makes no provider call.",
     "apps/brunch-agent/test/voice-context.test.ts":
       "Boots the production ChatAgent with a faux provider to compare effective system prompts across typed, Voice, and browser-result deliveries — no provider key, socket, or network model call.",
+    "apps/brunch-agent/test/voice-response.test.ts":
+      "Boots the production ChatAgent with a faux provider through the HTTP router and AI SDK transport, then restarts its temporary SQLite runtime to prove speech and visible response durability — no provider key, socket, or network model call.",
     "apps/brunch-agent/test/workpiece.test.ts":
       "Types Flue's public conversation snapshot so the substrate-neutral workpiece selector and app-owned SHA-256 projection can be unit-tested against in-memory messages — no provider key, no socket, no model call, no runtime boot.",
     "libs/@hashintel/brunch-agent/packages/transport-aisdk/test/chat-transport.test.ts":

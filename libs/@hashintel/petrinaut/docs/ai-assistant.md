@@ -85,7 +85,7 @@ Every session control lives in the dock: **Collapse voice session** / **Expand v
 **Voice playback options** on the left, and the available handoff, microphone, recovery, and end
 actions on the right.
 **Read full response** becomes available after the matching response and speech have both finished
-and replays every exact retained canonical segment in order. **Repeat question** uses the same
+and reads the complete visible response, not just its spoken takeaway. **Repeat question** uses the same
 availability gates and replays only exact question text explicitly marked by Brunch. It stays
 disabled when that marker is missing or does not match finalized assistant text rather than
 guessing that the final segment is a question.
@@ -96,7 +96,15 @@ after a failure. Nothing is added to the canvas toolbar. Sending non-empty typed
 composer or first-run prompt ends Voice mode before it sends the message once through the same
 conversation; repeated send actions are ignored while that short handoff completes.
 
-The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the authority on your system. Brunch still chooses every question and interview decision; OpenAI only transcribes your completed input and delivers Brunch's words. The question and finalized response shown in the Petrinaut conversation are authoritative. The speech request receives that exact Brunch text in part order; synthesized audio is generated from it but is not a verbatim recording. Interrupting audio does not undo the visible response or change the interview's saved history.
+Brunch authors both the spoken answer or takeaway and the complete on-screen response. Voice playback
+waits for the whole reply, including browser tools. Long reports stay on screen while a brief
+substantive takeaway is spoken; use **Read full response** to hear the report. Read the
+**Brunch-authored speech (not playback confirmation)** tool result to inspect the exact authored
+speech. This saved text records what Brunch asked to say, not what you actually heard. If usable
+speech is missing, you hear a reading notice instead of a generated summary. Reopening the
+conversation does not automatically play saved speech.
+
+The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the authority on your system. Brunch still chooses every question and interview decision; OpenAI only transcribes your completed input and delivers Brunch's words. Realtime receives the selected Brunch-authored text verbatim; synthesized audio is generated from it but is not a verbatim recording. Interrupting audio does not undo the visible response or change the interview's saved history.
 
 Closing the AI panel pauses microphone capture and active speech, then hides the dock until you
 reopen the panel. The same mounted session stays paused; choose **Resume voice mode** when you are
