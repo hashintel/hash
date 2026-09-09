@@ -108,51 +108,51 @@ export const StudySummaryStrip = ({
       }
     >
       <div className={stripSectionStyle}>
-      <SummaryStrip>
-        <SummaryStat label="Status" minChars={STATUS_CHARS}>
-          <SummaryStatusDot tone={STATUS_TONE[optimization.status]} />
-          {status}
-          {optimization.connectionState === "reconnecting"
-            ? " (reconnecting…)"
-            : ""}
-        </SummaryStat>
-        <SummaryStat
-          label="Steps"
-          minChars={
-            describeStepProgress({
-              ...optimization,
-              completedTrials: optimization.requestedTrials,
-              prunedTrials: 0,
-              failedTrials: 0,
-            }).length
-          }
-        >
-          {describeStepProgress(optimization)}
-        </SummaryStat>
-        <SummaryStat label="Best" minChars={8}>
-          {optimization.best ? (
-            <Tooltip
-              content={formatParameters(optimization.best.parameters)}
-              position="bottom-start"
-            >
-              <span>{formatNumber(optimization.best.objective)}</span>
-            </Tooltip>
-          ) : (
-            "—"
-          )}
-        </SummaryStat>
-      </SummaryStrip>
-      <ComputeActivity
-        bar={stepsBar(optimization)}
-        secondaryBar={followedStepBar(optimization)}
-        batches={activityBatches(connected)}
-      />
-      {fallbackReason === null ? null : (
-        <span className={noteStyle}>Ran on the CPU: {fallbackReason}</span>
-      )}
-      {optimization.error ? (
-        <span className={errorStyle}>{optimization.error}</span>
-      ) : null}
+        <SummaryStrip>
+          <SummaryStat label="Status" minChars={STATUS_CHARS}>
+            <SummaryStatusDot tone={STATUS_TONE[optimization.status]} />
+            {status}
+            {optimization.connectionState === "reconnecting"
+              ? " (reconnecting…)"
+              : ""}
+          </SummaryStat>
+          <SummaryStat
+            label="Steps"
+            minChars={
+              describeStepProgress({
+                ...optimization,
+                completedTrials: optimization.requestedTrials,
+                prunedTrials: 0,
+                failedTrials: 0,
+              }).length
+            }
+          >
+            {describeStepProgress(optimization)}
+          </SummaryStat>
+          <SummaryStat label="Best" minChars={8}>
+            {optimization.best ? (
+              <Tooltip
+                content={formatParameters(optimization.best.parameters)}
+                position="bottom-start"
+              >
+                <span>{formatNumber(optimization.best.objective)}</span>
+              </Tooltip>
+            ) : (
+              "—"
+            )}
+          </SummaryStat>
+        </SummaryStrip>
+        <ComputeActivity
+          bar={stepsBar(optimization)}
+          secondaryBar={followedStepBar(optimization)}
+          batches={activityBatches(connected)}
+        />
+        {fallbackReason === null ? null : (
+          <span className={noteStyle}>Ran on the CPU: {fallbackReason}</span>
+        )}
+        {optimization.error ? (
+          <span className={errorStyle}>{optimization.error}</span>
+        ) : null}
       </div>
     </ChartCard>
   );
