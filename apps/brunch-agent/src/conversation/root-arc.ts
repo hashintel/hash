@@ -7,6 +7,9 @@ import {
   parseObservedNodeInput,
   isObservedNodeMutation,
   assertNodeIdentity,
+  assertStateIdentity,
+  isObservedStateMutation,
+  parseObservedStateInput,
   type ConstructionMutationRequest,
   type DefinitionObservation,
   reconcileArcTransitionAttempts,
@@ -145,7 +148,11 @@ export const assertConstructionIdentity = async (
     await assertArcNotRetired(snapshot, observed, parsed);
     return;
   }
-  if (!isObservedNodeMutation(mutation.toolName)) return;
+  if (
+    !isObservedNodeMutation(mutation.toolName) &&
+    !isObservedStateMutation(mutation.toolName)
+  )
+    return;
   const earlier: DefinitionObservation[] = [];
   for (const message of snapshot.messages) {
     if (message.role !== "assistant" || message.purpose !== "assistant")
@@ -165,6 +172,7 @@ export const assertConstructionIdentity = async (
   for (const result of results) {
     if (
       !isObservedNodeMutation(result.toolName) &&
+      !isObservedStateMutation(result.toolName) &&
       result.toolName !== "addArc" &&
       result.toolName !== "updateArcWeight"
     )
@@ -194,6 +202,11 @@ export const assertConstructionIdentity = async (
     }
   }
   assertNodeIdentity(
+    mutation,
+    observed.definition,
+    earlier.map((entry) => entry.definition),
+  );
+  assertStateIdentity(
     mutation,
     observed.definition,
     earlier.map((entry) => entry.definition),
@@ -245,7 +258,8 @@ export const verifyRootArcResults = async (input: {
         !(
           input.observationFor &&
           (call.toolName === "updateArcWeight" ||
-            isObservedNodeMutation(call.toolName))
+            isObservedNodeMutation(call.toolName) ||
+            isObservedStateMutation(call.toolName))
         )
       )
         return;
@@ -253,7 +267,9 @@ export const verifyRootArcResults = async (input: {
       const { brunch, ...canonicalInput } = input.observationFor
         ? isObservedNodeMutation(name)
           ? parseObservedNodeInput(name, call.input)
-          : parseObservedArcInput(name, call.input)
+          : isObservedStateMutation(name)
+            ? parseObservedStateInput(name, call.input)
+            : parseObservedArcInput(name, call.input)
         : parseJoinedRootArcInput(call.input);
       const observationToolCallId =
         "observationToolCallId" in brunch

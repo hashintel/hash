@@ -7,6 +7,7 @@ import {
 } from "@hashintel/petrinaut-core/ai";
 
 import { observedArcEnvelopeSchema, rootArcWhyInputSchema } from "./root-arc";
+import { rootStateWhyInputSchema } from "./root-state";
 
 import type { ConstructionMutationRequest } from "./transition-record";
 
@@ -23,23 +24,31 @@ export const constructionWhyInputSchema = v.pipe(
   v.strictObject({
     ...v.partial(rootArcWhyInputSchema).entries,
     ...v.partial(rootNodeWhyInputSchema).entries,
+    kind: v.optional(
+      v.picklist(["place", "transition", "type", "type-element", "scenario"]),
+    ),
+    type: v.optional(v.string()),
   }),
   v.check(
     (input) =>
       v.safeParse(
         input.kind === undefined
           ? rootArcWhyInputSchema
-          : rootNodeWhyInputSchema,
+          : input.kind === "place" || input.kind === "transition"
+            ? rootNodeWhyInputSchema
+            : rootStateWhyInputSchema,
         input,
       ).success,
-    "Supply either an exact root arc query or a root place/transition query, not both.",
+    "Supply an exact root arc query or an entity kind/name/field query; type-element also requires its parent type.",
   ),
 );
 export const parseConstructionWhyInput = (input: unknown) => {
   const checked = v.parse(constructionWhyInputSchema, input);
   return checked.kind === undefined
     ? v.parse(rootArcWhyInputSchema, checked)
-    : v.parse(rootNodeWhyInputSchema, checked);
+    : checked.kind === "place" || checked.kind === "transition"
+      ? v.parse(rootNodeWhyInputSchema, checked)
+      : v.parse(rootStateWhyInputSchema, checked);
 };
 
 export const observedNodeMutationNames = [
@@ -95,6 +104,17 @@ export const assertNodeIdentity = (
   );
   if (parsed.targetSubnetId)
     throw new Error("Nested construction is unavailable.");
+  const colorId =
+    "colorId" in parsed
+      ? parsed.colorId
+      : "update" in parsed && "colorId" in parsed.update
+        ? parsed.update.colorId
+        : undefined;
+  if (
+    colorId != null &&
+    current.types.filter((type) => type.id === colorId).length !== 1
+  )
+    throw new Error("A typed place requires one unique existing root type.");
   if ("inputArcs" in parsed) {
     for (const arcs of [parsed.inputArcs, parsed.outputArcs]) {
       const places = arcs.map(getArcEndpointPlaceId);

@@ -15,9 +15,14 @@ import {
   parseObservedNodeInput,
   expectedNodeDefinition,
   assertNodeIdentity,
+  assertStateIdentity,
+  isObservedStateMutation,
+  parseObservedStateInput,
+  observedStateMutationNames,
   type ConstructionTransitionAttempt as ArcTransitionAttempt,
   type DefinitionObservation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
 import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
@@ -80,7 +85,11 @@ export const createBrowserTransitionRecorder = ({
     if (
       call.toolName !== request.toolName ||
       request.toolCallId !== call.toolCallId ||
-      canonicalContent(request.input) !== canonicalContent(call.input)
+      canonicalContent(
+        isObservedStateMutation(request.toolName)
+          ? petrinautAiTools[request.toolName].inputSchema.parse(request.input)
+          : request.input,
+      ) !== canonicalContent(call.input)
     ) {
       throw new Error(
         "The transition request does not match the canonical tool call.",
@@ -142,12 +151,18 @@ export const createBrowserTransitionRecorder = ({
         });
         return output;
       }
-      if (isObservedNodeMutation(request.toolName)) {
+      if (
+        isObservedNodeMutation(request.toolName) ||
+        isObservedStateMutation(request.toolName)
+      ) {
         if (handle.capabilities?.disabledExtensions?.length)
           throw new Error(
             "Construction observation is unavailable for disabled extensions.",
           );
-        assertNodeIdentity(
+        const assertIdentity = isObservedStateMutation(request.toolName)
+          ? assertStateIdentity
+          : assertNodeIdentity;
+        assertIdentity(
           request,
           pre.definition,
           [...attemptsByCall.values()].flatMap((attempts) =>
@@ -158,6 +173,17 @@ export const createBrowserTransitionRecorder = ({
           ),
         );
         expectedNodeDefinition(request, pre.definition);
+      } else if (
+        request.observationToolCallId !== undefined &&
+        deriveArcEffects(
+          request,
+          pre.definition,
+          expectedNodeDefinition(request, pre.definition),
+        ).derived.length
+      ) {
+        throw new Error(
+          "Derived arc footprints are unavailable; no mutation was executed. Embedded transition creation has a separately observed kernel path.",
+        );
       }
       const output = call.execute();
       attempt.post = observeBrowserDefinition(handle);
@@ -271,7 +297,8 @@ export const createJoinedBrowserTransitionRecorder = (input: {
       !(
         input.construction &&
         (call.toolName === "updateArcWeight" ||
-          isObservedNodeMutation(call.toolName))
+          isObservedNodeMutation(call.toolName) ||
+          isObservedStateMutation(call.toolName))
       )
     )
       return call.input;
@@ -279,7 +306,9 @@ export const createJoinedBrowserTransitionRecorder = (input: {
     const { brunch, ...canonicalInput } = input.construction
       ? isObservedNodeMutation(name)
         ? parseObservedNodeInput(name, call.input)
-        : parseObservedArcInput(name, call.input)
+        : isObservedStateMutation(name)
+          ? parseObservedStateInput(name, call.input)
+          : parseObservedArcInput(name, call.input)
       : parseJoinedRootArcInput(call.input);
     if (!input.construction && brunch.requestedBaseHash !== requestedBaseHash)
       throw new Error("Root arc cites another issued base.");
@@ -328,7 +357,8 @@ export const createJoinedBrowserTransitionRecorder = (input: {
       !(
         input.construction &&
         (result.toolName === "updateArcWeight" ||
-          isObservedNodeMutation(result.toolName))
+          isObservedNodeMutation(result.toolName) ||
+          isObservedStateMutation(result.toolName))
       )
     )
       return undefined;
@@ -357,6 +387,7 @@ export const createJoinedBrowserTransitionRecorder = (input: {
             "updatePlace",
             "addTransition",
             "updateTransition",
+            ...observedStateMutationNames,
           ]
         : ["addArc"],
     ),

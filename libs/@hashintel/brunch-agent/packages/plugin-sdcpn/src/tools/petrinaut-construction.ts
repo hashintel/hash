@@ -10,6 +10,10 @@ import {
 import { validateDeclaredBasis } from "../declared-basis";
 import { joinedRootArcInputSchema, observedArcInputSchema } from "../root-arc";
 import { isObservedNodeMutation, observedNodeInputSchema } from "../root-node";
+import {
+  isObservedStateMutation,
+  observedStateInputSchema,
+} from "../root-state";
 
 import type {
   DefinitionObservation,
@@ -82,10 +86,12 @@ export const createObservedArcTool = (
 ) =>
   defineTool({
     name,
-    description: `${petrinautAiTools[name].description}\nRoot construction only. Cite an earlier verified browser result's observationToolCallId and exact raw requestedBaseHash, and explicit settled brunch.basis.`,
+    description: `${petrinautAiTools[name].description}\nRoot construction only. Cite an earlier verified browser result's observationToolCallId and exact raw requestedBaseHash, and explicit settled brunch.basis.${isObservedStateMutation(name) ? " This typed-state candidate supports per_place initial state only; code/ad-hoc scenario footprints and nested nets/components remain unavailable. Scenario row/cell paths are positional, not token identities." : ""}`,
     input: isObservedNodeMutation(name)
       ? observedNodeInputSchema(name)
-      : observedArcInputSchema(name),
+      : isObservedStateMutation(name)
+        ? observedStateInputSchema(name)
+        : observedArcInputSchema(name),
     prepareArguments: (input) => normalizePetrinautAiToolInput(name, input),
     output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
     async run({ data }) {

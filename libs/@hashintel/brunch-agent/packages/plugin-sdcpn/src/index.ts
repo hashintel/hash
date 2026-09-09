@@ -58,5 +58,16 @@ export {
   type ObservedNodeMutationName,
 } from "./root-node";
 
+export {
+  observedStateMutationNames,
+  isObservedStateMutation,
+  observedStateInputSchema,
+  parseObservedStateInput,
+  assertStateIdentity,
+  rootStateWhyInputSchema,
+  locateRootState,
+  type RootStateWhyInput,
+} from "./root-state";
+
 export const SDCPN_DOMAIN_TYPOLOGY = "operational processes";
 export const SDCPN_TARGET_FORMALISM = "sdcpn";

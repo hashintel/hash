@@ -10,6 +10,13 @@ import {
   isObservedNodeMutation,
   type ObservedNodeMutationName,
 } from "./root-node";
+import {
+  assertStateIdentity,
+  isObservedStateMutation,
+  stateMutationTarget,
+  type ObservedStateMutationName,
+  type ObservedStateInput,
+} from "./root-state";
 
 import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 
@@ -32,10 +39,14 @@ export type ConstructionMutationRequest = Omit<
   ArcMutationRequest,
   "toolName" | "input"
 > & {
-  toolName: ArcMutationRequest["toolName"] | ObservedNodeMutationName;
+  toolName:
+    | ArcMutationRequest["toolName"]
+    | ObservedNodeMutationName
+    | ObservedStateMutationName;
   input:
     | ArcMutationRequest["input"]
-    | PetrinautAiToolInput<ObservedNodeMutationName>;
+    | PetrinautAiToolInput<ObservedNodeMutationName>
+    | ObservedStateInput;
 };
 
 export type DefinitionObservation = { definition: SDCPN; sha256: string };
@@ -132,7 +143,10 @@ export const deriveArcEffects = (
   pre: SDCPN,
   post: SDCPN,
 ): ArcEffects => {
-  if (isObservedNodeMutation(request.toolName))
+  if (
+    isObservedNodeMutation(request.toolName) ||
+    isObservedStateMutation(request.toolName)
+  )
     return deriveNodeEffects(request, pre, post);
   const input = mutationActionInputSchemas[request.toolName].parse(
     request.input,
@@ -181,6 +195,7 @@ export const expectedNodeDefinition = (
   pre: SDCPN,
 ): SDCPN => {
   assertNodeIdentity(request, pre, []);
+  assertStateIdentity(request, pre, []);
   const expected = structuredClone(pre);
   const actions = createPetrinautActions(
     (mutate) => mutate(expected),
@@ -208,8 +223,44 @@ export const expectedNodeDefinition = (
         mutationActionInputSchemas.updateTransition.parse(request.input),
       );
       break;
+    case "addArc":
+      actions.addArc(mutationActionInputSchemas.addArc.parse(request.input));
+      break;
+    case "updateArcWeight":
+      actions.updateArcWeight(
+        mutationActionInputSchemas.updateArcWeight.parse(request.input),
+      );
+      break;
+    case "addType":
+      actions.addType(mutationActionInputSchemas.addType.parse(request.input));
+      break;
+    case "updateType":
+      actions.updateType(
+        mutationActionInputSchemas.updateType.parse(request.input),
+      );
+      break;
+    case "addTypeElement":
+      actions.addTypeElement(
+        mutationActionInputSchemas.addTypeElement.parse(request.input),
+      );
+      break;
+    case "updateTypeElement":
+      actions.updateTypeElement(
+        mutationActionInputSchemas.updateTypeElement.parse(request.input),
+      );
+      break;
+    case "addScenario":
+      actions.addScenario(
+        mutationActionInputSchemas.addScenario.parse(request.input),
+      );
+      break;
+    case "updateScenario":
+      actions.updateScenario(
+        mutationActionInputSchemas.updateScenario.parse(request.input),
+      );
+      break;
     default:
-      throw new Error("Not an admitted root node operation.");
+      throw new Error("Not an admitted root entity operation.");
   }
   if (
     canonicalContent(expected.subnets) !== canonicalContent(pre.subnets) ||
@@ -226,32 +277,42 @@ const deriveNodeEffects = (
   pre: SDCPN,
   post: SDCPN,
 ): ArcEffects => {
-  if (!isObservedNodeMutation(request.toolName))
-    throw new Error("Not a node mutation.");
-  const input = mutationActionInputSchemas[request.toolName].parse(
-    request.input,
-  );
-  if (input.targetSubnetId) throw new Error("Only root nodes are observed.");
+  const state = isObservedStateMutation(request.toolName)
+    ? stateMutationTarget(
+        request,
+        request.toolName.startsWith("add") ? post : pre,
+      )
+    : undefined;
+  if (!state && !isObservedNodeMutation(request.toolName))
+    throw new Error("Not an entity mutation.");
+  const input = isObservedNodeMutation(request.toolName)
+    ? mutationActionInputSchemas[request.toolName].parse(request.input)
+    : undefined;
+  if (input?.targetSubnetId) throw new Error("Only root nodes are observed.");
   const collection = request.toolName.endsWith("Place")
     ? "places"
     : "transitions";
   const id =
-    "id" in input
-      ? input.id
-      : "placeId" in input
-        ? input.placeId
-        : input.transitionId;
-  const creating = "id" in input;
+    input === undefined
+      ? undefined
+      : "id" in input
+        ? input.id
+        : "placeId" in input
+          ? input.placeId
+          : input.transitionId;
+  const creating = state?.creating ?? (input !== undefined && "id" in input);
   const index = (creating ? post : pre)[collection].findIndex(
     (entry) => entry.id === id,
   );
-  const path = `/${collection}/${index}`;
-  const expected =
-    "update" in input
+  const path = state?.target.nodePath ?? `/${collection}/${index}`;
+  const expected = (state?.fields ??
+    (input !== undefined && "update" in input
       ? input.update
       : Object.fromEntries(
-          Object.entries(input).filter(([key]) => key !== "targetSubnetId"),
-        );
+          Object.entries(input ?? {}).filter(
+            ([key]) => key !== "targetSubnetId",
+          ),
+        ))) as Record<string, unknown>;
   const effects: ArcEffects = {
     created: [],
     updated: [],
@@ -262,7 +323,22 @@ const deriveNodeEffects = (
     JSON.parse(JSON.stringify(pre)),
     JSON.parse(JSON.stringify(post)),
   );
-  for (const change of changes) {
+  const entityChanges =
+    state && pre.scenarios === undefined
+      ? changes.flatMap((change): DefinitionChange[] =>
+          change.path === "/scenarios" &&
+          change.kind === "created" &&
+          Array.isArray(change.after) &&
+          change.after.length > 0
+            ? change.after.map((after: unknown, index) => ({
+                kind: "created",
+                path: `/scenarios/${index}`,
+                after,
+              }))
+            : [change],
+        )
+      : changes;
+  for (const change of entityChanges) {
     // Keep the complete creation, but partition its fields rather than overlap a parent with derived children.
     const partition =
       creating &&
@@ -287,13 +363,15 @@ const deriveNodeEffects = (
         field === undefined
           ? undefined
           : (expected as Record<string, unknown>)[field];
-      const actualNode = post[collection][index];
+      const actualNode = state
+        ? stateMutationTarget(request, post).target.value
+        : post[collection][index];
       const actualField =
         field === undefined || !actualNode
           ? undefined
           : (actualNode as unknown as Record<string, unknown>)[field];
       const direct =
-        index >= 0 &&
+        (state !== undefined || index >= 0) &&
         effect.path.startsWith(`${path}/`) &&
         field !== undefined &&
         Object.hasOwn(expected, field) &&
@@ -339,7 +417,10 @@ export const observedArcOutcome = (
     return unchanged ? "stale" : "unknown";
   if (unchanged) return "no-op";
   const effects = attempt.effects;
-  if (isObservedNodeMutation(attempt.request.toolName)) {
+  if (
+    isObservedNodeMutation(attempt.request.toolName) ||
+    isObservedStateMutation(attempt.request.toolName)
+  ) {
     try {
       return canonicalContent(
         expectedNodeDefinition(attempt.request, attempt.pre.definition),
@@ -453,7 +534,8 @@ export const verifyArcTransitionAttempt = async <
   const attempt = structuredClone(delivery);
   if (
     (!["addArc", "updateArcWeight"].includes(attempt.request.toolName) &&
-      !isObservedNodeMutation(attempt.request.toolName)) ||
+      !isObservedNodeMutation(attempt.request.toolName) &&
+      !isObservedStateMutation(attempt.request.toolName)) ||
     !/^[a-f0-9]{64}$/u.test(attempt.request.requestedBaseHash) ||
     [
       attempt.request.toolCallId,

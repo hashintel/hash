@@ -21,6 +21,12 @@ export const observedConstructionBrowserToolNames = [
   "addTransition",
   "updateTransition",
   "getNetCompilationErrors",
+  "addType",
+  "updateType",
+  "addTypeElement",
+  "updateTypeElement",
+  "addScenario",
+  "updateScenario",
 ] as const;
 
 /** Names are conveniences; ambiguous names refuse rather than choosing an occurrence. */
