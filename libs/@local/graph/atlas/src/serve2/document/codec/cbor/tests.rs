@@ -92,7 +92,7 @@ fn int_positive_dispatch() {
 
 #[test]
 fn int_negative_boundaries() {
-    // Negative CBOR integers encode the magnitude −1 − value.
+    // Negative CBOR integers encode the argument −1 − value.
     let cases: &[(i64, &[u8])] = &[
         (-1, &[0x20]),
         (-24, &[0x37]),
