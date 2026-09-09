@@ -4,11 +4,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  FRAME_HEADER_CONDENSED_HEIGHT,
-  FRAME_HEADER_HEIGHT,
-  frameLayoutSignature,
-} from "../shared/drawer-frame";
+import { frameLayoutSignature } from "../shared/drawer-frame";
 import {
   frameHeader,
   scrollFrameBody,
@@ -186,9 +182,6 @@ describe("ViewExperimentDrawer in the frame", () => {
     renderDrawer(sweep);
 
     scrollFrameBody(80);
-    expect(frameHeader().style.height).toBe(
-      `${FRAME_HEADER_CONDENSED_HEIGHT}px`,
-    );
     expect(frameHeader().dataset.condensed).toBe("true");
   });
 
@@ -202,7 +195,7 @@ describe("ViewExperimentDrawer in the frame", () => {
       return signature;
     });
 
-    expect(signatures[0]!.header).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(signatures[0]!.header).toBe("false");
     expect(signatures[0]!.note).toBe("20px");
     expect(signatures[0]!.cards.length).toBeGreaterThan(1);
     for (const signature of signatures.slice(1)) {

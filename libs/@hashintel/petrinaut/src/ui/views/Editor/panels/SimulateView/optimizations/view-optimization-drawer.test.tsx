@@ -18,11 +18,7 @@ import {
   type OptimizationsContextValue,
 } from "../../../../../../react/optimizations/context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
-import {
-  FRAME_HEADER_CONDENSED_HEIGHT,
-  FRAME_HEADER_HEIGHT,
-  frameLayoutSignature,
-} from "../shared/drawer-frame";
+import { frameLayoutSignature } from "../shared/drawer-frame";
 import {
   frameHeader,
   scrollFrameBody,
@@ -559,9 +555,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
     const view = renderDrawer(connected);
 
     scrollFrameBody(80);
-    expect(frameHeader().style.height).toBe(
-      `${FRAME_HEADER_CONDENSED_HEIGHT}px`,
-    );
+    expect(frameHeader().dataset.condensed).toBe("true");
     scrollFrameBody(0);
 
     // Focus lands on the chip while a batch computes, then the batch ends and
@@ -609,9 +603,7 @@ describe("ViewOptimizationDrawer for a connected study", () => {
       </OptimizationsContext>,
     );
     scrollFrameBody(80);
-    expect(frameHeader().style.height).toBe(
-      `${FRAME_HEADER_CONDENSED_HEIGHT}px`,
-    );
+    expect(frameHeader().dataset.condensed).toBe("true");
   });
 
   it("lists the batches computing from the computing chip", () => {
@@ -1085,7 +1077,7 @@ describe("ViewOptimizationDrawer holds every box still across states", () => {
       return signature;
     });
 
-    expect(signatures[0]!.header).toBe(`${FRAME_HEADER_HEIGHT}px`);
+    expect(signatures[0]!.header).toBe("false");
     expect(signatures[0]!.note).toBe("20px");
     expect(signatures[0]!.steps).toBe("320px");
     expect(signatures[0]!.cards.map(([title]) => title)).toEqual([
