@@ -13,6 +13,8 @@ import { isAbsolute, join, dirname } from "node:path";
 import { createModels } from "@earendil-works/pi-ai";
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 
+import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
+
 export const modelId = "claude-sonnet-4-6";
 export const endpoint = "https://api.anthropic.com/v1/messages";
 export const maxOutputTokens = 4096;
@@ -152,7 +154,10 @@ export const reservationReady = (path: string, runId: string) => {
 /** Cumulative provider tool history, deduplicated across continuations. Stop all
  * further calls after the third rejected canonical operation, not just its fourth
  * execution. Browser failures are also fed directly by the HTTP result boundary. */
-export const repairBudget = (canonicalNames: ReadonlySet<string>) => {
+export const repairBudget = () => {
+  // A rejected canonical operation counts even when this mode does not mount it.
+  // This registry controls repair limits, never tool admission.
+  const canonicalNames = new Set(Object.keys(petrinautAiTools));
   const names = new Map<string, string>();
   const rejected = new Map<string, Set<string>>();
   const reject = (id: string, name: string) => {

@@ -9,8 +9,6 @@ import { extname, join, resolve } from "node:path";
 import { createFlueClient, type AgentSendResult } from "@flue/sdk";
 import { chromium } from "@playwright/test";
 
-import { PETRINAUT_CONSTRUCTION_TOOL_NAMES } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -189,7 +187,7 @@ if (mode === "preflight") {
     !process.env.BRUNCH_TEST_KEEP_RECENT_TOKENS,
     "Do not silently alter compaction for the frozen run",
   );
-  const budget = repairBudget(new Set(PETRINAUT_CONSTRUCTION_TOOL_NAMES));
+  const budget = repairBudget();
   const dispatched = new Set<number>();
   let stopped = false;
   let origin = "";

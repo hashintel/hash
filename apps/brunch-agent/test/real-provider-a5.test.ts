@@ -9,6 +9,8 @@ import { join } from "node:path";
 
 import { describe, expect, test, vi } from "vitest";
 
+import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
+
 vi.mock("node:https", () => ({ request: vi.fn<typeof request>() }));
 
 import { attestNativeResponse } from "../src/evaluations/real-provider-a5/native-response.ts";
@@ -151,7 +153,7 @@ describe("explicit A5 preflight (no provider invocation)", () => {
     );
   });
   test("stops after three rejected attempts across repeated/compacted histories", () => {
-    const budget = repairBudget(new Set(["addArc"]));
+    const budget = repairBudget();
     const message = (id: string) => [
       { type: "tool_use", id, name: "addArc" },
       { type: "tool_result", tool_use_id: id, is_error: true },
@@ -167,8 +169,24 @@ describe("explicit A5 preflight (no provider invocation)", () => {
     expect(() => budget.check()).toThrow(/three rejected/);
     expect(budget.snapshot()).toEqual({ addArc: ["one", "two", "three"] });
   });
+  test("limits every canonical operation, including names absent from the legacy catalogue", () => {
+    for (const toolName of Object.keys(petrinautAiTools)) {
+      const budget = repairBudget();
+      for (const id of ["one", "two", "three"]) {
+        budget.check();
+        budget.observe([
+          { type: "tool_use", id, name: toolName },
+          { type: "tool_result", tool_use_id: id, is_error: true },
+        ]);
+      }
+      expect(() => budget.check()).toThrow(/three rejected/);
+      expect(budget.snapshot()).toEqual({
+        [toolName]: ["one", "two", "three"],
+      });
+    }
+  });
   test("counts canonical browser stale/failed/unknown results without a model continuation", () => {
-    const budget = repairBudget(new Set(["addArc"]));
+    const budget = repairBudget();
     for (const outcome of ["stale", "failed", "unknown"])
       budget.observe({
         toolCallId: outcome,
@@ -180,7 +198,7 @@ describe("explicit A5 preflight (no provider invocation)", () => {
   });
   test("unattributed tool rejection fails closed", () => {
     expect(() =>
-      repairBudget(new Set(["addArc"])).observe({
+      repairBudget().observe({
         type: "tool_result",
         tool_use_id: "missing",
         is_error: true,
