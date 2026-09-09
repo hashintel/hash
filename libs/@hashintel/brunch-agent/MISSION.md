@@ -14,6 +14,35 @@ carry its unrelated Brunch stack. The open settlement port in
 [PR #9588](https://github.com/hashintel/hash/pull/9588) is a separate sibling and
 is not part of this branch.
 
+## Supplemental FE-1580 settlement follow-up
+
+**Live as of 2026-09-08** for
+[PR #9588](https://github.com/hashintel/hash/pull/9588) on
+`kostandin/fe-1580-port-voice-settlement-fixes`, based directly on current
+`main` after #9564 and #9537 merged. This supplement preserves the accepted
+Voice contract without changing the CORS authority in this file.
+
+- **Imperative:** semantically port the omitted #9531 commit `9415e1b007`;
+  release silent Voice ownership and settle completed submissions without
+  canonical prose. Preserve failed durable Stop errors and remove the stale
+  browser `brunch_ask` catalogue entry.
+- **Throughline:** OpenAI terminal output → session/bridge/controller ownership;
+  correlated Brunch settlement → next Voice turn; panel Stop rejection →
+  deferred browser-tool termination; shared browser catalogue →
+  transport/history.
+- **Proof:** donor session/bridge/controller and preview regressions; panel DOM
+  tests for persistent Stop failure and withheld continuation; catalogue and
+  fixture tests; focused unit, build, TypeScript, ESLint and formatting checks.
+  These tests establish local settlement behavior, not paid-provider behavior,
+  audible latency or a new microphone witness.
+- **Constraints:** preserve current `main`'s accepted Voice and CORS joins; no
+  #9538 grounding, #9550 VAD/interruption, snapshot-overlay or provenance
+  rollback work, generic interactive tools, obsolete shim, or `brunch_ask`
+  restoration.
+- **Stop or reorient:** stop if the port erases errors, releases unrelated
+  playback, revives withheld tools, weakens the CORS policy, or disturbs other
+  work.
+
 ## Imperative
 
 Let a person interrupt Voice assistant playback by speaking without losing the

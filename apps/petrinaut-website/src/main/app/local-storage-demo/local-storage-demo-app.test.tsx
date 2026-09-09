@@ -10,6 +10,7 @@ import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/re
 
 import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
+import { brunchClientToolNames } from "./brunch-client-tools";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import {
   getBrunchVoiceMode,
@@ -233,6 +234,7 @@ describe("local storage demo Brunch voice integration", () => {
     const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
+    expect([...brunchClientToolNames]).toEqual(["readPetrinautDoc"]);
     expect(aiAssistant.interactiveTools).toEqual([]);
     expect(
       aiAssistant.interactiveTools?.some(

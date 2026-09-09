@@ -69,6 +69,7 @@ export type OpenAIRealtimeSessionEvent =
     }
   | {
       readonly connectionEpoch: number;
+      readonly playbackExpected: boolean;
       readonly responseId: string;
       readonly speechRequestId?: string;
       readonly status: "cancelled" | "completed" | "failed" | "incomplete";
@@ -149,6 +150,19 @@ const nonEmptyString = (value: unknown): string | null =>
 
 const nonNegativeInteger = (value: unknown): number | null =>
   Number.isInteger(value) && (value as number) >= 0 ? (value as number) : null;
+
+const responseContainsAudio = (output: unknown[]): boolean =>
+  output.some((item) => {
+    const outputItem = asRecord(item);
+    if (outputItem?.type !== "message" || !Array.isArray(outputItem.content)) {
+      return false;
+    }
+    return outputItem.content.some(
+      (contentItem) =>
+        asRecord(contentItem)?.type === "output_audio" ||
+        asRecord(contentItem)?.type === "audio",
+    );
+  });
 
 const parseRealtimeEvent = (value: unknown): Record<string, unknown> | null => {
   if (typeof value !== "string") {
@@ -889,6 +903,7 @@ export class OpenAIRealtimeSession {
       return;
     }
     const terminalStatus = status as ResponseTerminalStatus;
+    let playbackExpected = false;
     this.#responseTerminalSequence += 1;
     this.#activeResponseIds.delete(responseId);
     this.#cancelOutputAwaitingResponseIds.delete(responseId);
@@ -899,6 +914,7 @@ export class OpenAIRealtimeSession {
     this.#responseSpeechRequestIds.delete(responseId);
     const terminalEvent = {
       connectionEpoch,
+      playbackExpected,
       responseId,
       ...(speechRequestId === undefined ? {} : { speechRequestId }),
       status: terminalStatus,
@@ -929,10 +945,18 @@ export class OpenAIRealtimeSession {
         this.#handleConnectionFailure("invalid-response", "connection");
         return;
       }
+      playbackExpected =
+        this.#speakingResponseId === responseId ||
+        responseContainsAudio(output);
       if (this.#authorizedResponseIds.has(responseId)) {
-        this.#terminalCanonicalResponseIds.add(responseId);
+        if (playbackExpected) {
+          this.#terminalCanonicalResponseIds.add(responseId);
+        }
       }
-      this.#emit(terminalEvent);
+      this.#emit({ ...terminalEvent, playbackExpected });
+      if (this.#authorizedResponseIds.has(responseId) && !playbackExpected) {
+        this.#finishSpeech(responseId);
+      }
       this.#resumeCanonicalSpeechQueue();
       return;
     }
@@ -944,12 +968,12 @@ export class OpenAIRealtimeSession {
           type: "output-interrupted",
         });
       }
-      this.#emit(terminalEvent);
+      this.#emit({ ...terminalEvent, playbackExpected });
       this.#finishSpeech(responseId, "request-aborted");
       this.#resumeCanonicalSpeechQueue();
       return;
     }
-    this.#emit(terminalEvent);
+    this.#emit({ ...terminalEvent, playbackExpected });
     if (this.#authorizedResponseIds.has(responseId)) {
       this.#finishSpeech(responseId, "invalid-response");
     }

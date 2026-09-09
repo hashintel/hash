@@ -593,6 +593,7 @@ describe("VoiceTurnController", () => {
     harness.emitSession({
       connectionEpoch: 1,
       responseId: "response-handoff",
+      playbackExpected: false,
       status: "cancelled",
       type: "response-terminal",
     });
@@ -612,6 +613,7 @@ describe("VoiceTurnController", () => {
 
   test("reopens the microphone only after cancellation and Brunch settlement", async () => {
     const harness = createHarness();
+    let finishCancellation: (() => void) | undefined;
     harness.controller.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [question("answered-question")],
@@ -635,6 +637,12 @@ describe("VoiceTurnController", () => {
       questionSegment: markedQuestion("next-question"),
       status: "streaming",
     });
+    harness.session.cancelOutput.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishCancellation = resolve;
+        }),
+    );
     harness.emitSession({
       connectionEpoch: 1,
       responseId: "response-handoff",
@@ -655,9 +663,27 @@ describe("VoiceTurnController", () => {
     expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledOnce();
     expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledWith(false);
 
+    finishCancellation?.();
+    await Promise.resolve();
+    expect(handoffFinished).toBe(false);
+    expect(harness.bridge.completeTurnHandoff).not.toHaveBeenCalled();
+
     harness.emitBridge({
       deliveryId: "voice-request",
       type: "submission-settled",
+    });
+    harness.emitBridge({
+      deliveryId: "voice-request",
+      segments: [],
+      type: "canonical-response-ready",
+    });
+    expect(handoffFinished).toBe(false);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: false,
+      canRepeatQuestion: false,
+      input: "listening",
+      microphoneEnabled: true,
+      output: "idle",
     });
     await handoff;
 
@@ -805,6 +831,7 @@ describe("VoiceTurnController", () => {
     harness.emitSession({
       connectionEpoch: 1,
       responseId: "response-interrupted-early",
+      playbackExpected: false,
       status: "cancelled",
       type: "response-terminal",
     });
@@ -857,6 +884,7 @@ describe("VoiceTurnController", () => {
 
     harness.emitSession({
       connectionEpoch: 1,
+      playbackExpected: false,
       responseId: "unrelated-response",
       status: "completed",
       type: "response-terminal",
@@ -865,6 +893,7 @@ describe("VoiceTurnController", () => {
 
     harness.emitSession({
       connectionEpoch: 1,
+      playbackExpected: true,
       responseId: "response-source",
       status: "completed",
       type: "response-terminal",
@@ -917,6 +946,7 @@ describe("VoiceTurnController", () => {
     });
     harness.emitSession({
       connectionEpoch: 1,
+      playbackExpected: true,
       responseId: "response-source",
       status: "completed",
       type: "response-terminal",
@@ -977,6 +1007,7 @@ describe("VoiceTurnController", () => {
       harness.emitSession({
         connectionEpoch: 1,
         responseId: "response-replay",
+        playbackExpected: true,
         status: "completed",
         type: "response-terminal",
       });
@@ -1032,6 +1063,7 @@ describe("VoiceTurnController", () => {
     harness.emitSession({
       connectionEpoch: 1,
       responseId: "response-source",
+      playbackExpected: true,
       status: "completed",
       type: "response-terminal",
     });
@@ -1104,6 +1136,7 @@ describe("VoiceTurnController", () => {
     });
     harness.emitSession({
       connectionEpoch: 1,
+      playbackExpected: true,
       responseId: "response-next",
       status: "completed",
       type: "response-terminal",
@@ -1114,6 +1147,42 @@ describe("VoiceTurnController", () => {
       connectionEpoch: 1,
       responseId: "response-next",
       type: "output-stopped",
+    });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+  });
+
+  test("returns to idle after a completed submission with no canonical response", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    harness.emitBridge({
+      answer: "The silent answer.",
+      deliveryId: "voice-silent",
+      type: "submission-started",
+    });
+    harness.emitBridge({
+      answer: "The silent answer.",
+      deliveryId: "voice-silent",
+      type: "submission-accepted",
+    });
+    harness.emitBridge({
+      deliveryId: "voice-silent",
+      type: "submission-settled",
+    });
+    harness.emitBridge({
+      deliveryId: "voice-silent",
+      segments: [],
+      type: "canonical-response-ready",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: false,
+      canRepeatQuestion: false,
+      input: "listening",
+      lastAnswerDelivery: "delivered",
+      microphoneEnabled: true,
+      output: "idle",
     });
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
   });
@@ -1183,6 +1252,7 @@ describe("VoiceTurnController", () => {
     });
     harness.emitSession({
       connectionEpoch: 1,
+      playbackExpected: true,
       responseId: "response-early",
       status: "completed",
       type: "response-terminal",
@@ -1204,6 +1274,32 @@ describe("VoiceTurnController", () => {
       canReadFullResponse: true,
       canRepeatQuestion: true,
       input: "listening",
+      output: "idle",
+    });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+  });
+
+  test("returns to idle and restores capture when completed output has no audio", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-silent",
+      type: "canonical-speech-requested",
+    });
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      playbackExpected: false,
+      responseId: "response-silent",
+      speechRequestId: "speech-silent",
+      status: "completed",
+      type: "response-terminal",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: true,
       output: "idle",
     });
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
@@ -1232,6 +1328,7 @@ describe("VoiceTurnController", () => {
     harness.emitSession({
       connectionEpoch: 1,
       responseId: "response-early",
+      playbackExpected: true,
       status: "completed",
       type: "response-terminal",
     });
@@ -1270,6 +1367,7 @@ describe("VoiceTurnController", () => {
     });
     harness.emitSession({
       connectionEpoch: 1,
+      playbackExpected: true,
       responseId: "response-final",
       status: "completed",
       type: "response-terminal",
@@ -1311,6 +1409,7 @@ describe("VoiceTurnController", () => {
     });
     harness.emitSession({
       connectionEpoch: 1,
+      playbackExpected: true,
       responseId: "response-early",
       status: "completed",
       type: "response-terminal",
@@ -1324,6 +1423,7 @@ describe("VoiceTurnController", () => {
       connectionEpoch: 1,
       responseId: "response-follow-on",
       speechRequestId: "speech-follow-on",
+      playbackExpected: true,
       status: "completed",
       type: "response-terminal",
     });
@@ -1352,6 +1452,90 @@ describe("VoiceTurnController", () => {
     harness.emitSession({
       connectionEpoch: 1,
       responseId: "response-follow-on",
+      type: "output-stopped",
+    });
+
+    expect(harness.controller.getSnapshot().output).toBe("idle");
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+  });
+
+  test("keeps active playback speaking when a queued silent response settles", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-playing",
+      type: "canonical-speech-requested",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      playbackExpected: true,
+      responseId: "response-playing",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-queued",
+      type: "canonical-speech-requested",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-playing",
+      speechRequestId: "speech-playing",
+      type: "output-started",
+    });
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      playbackExpected: false,
+      responseId: "response-queued",
+      speechRequestId: "speech-queued",
+      status: "completed",
+      type: "response-terminal",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canTakeTurn: true,
+      output: "speaking",
+    });
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(true);
+  });
+
+  test("keeps active playback owned when terminal metadata omits audio", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-playing",
+      type: "canonical-speech-requested",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-playing",
+      speechRequestId: "speech-playing",
+      type: "output-started",
+    });
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      playbackExpected: false,
+      responseId: "response-playing",
+      speechRequestId: "speech-playing",
+      status: "completed",
+      type: "response-terminal",
+    });
+
+    expect(harness.controller.getSnapshot().output).toBe("speaking");
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(true);
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-playing",
       type: "output-stopped",
     });
 
@@ -1398,6 +1582,7 @@ describe("VoiceTurnController", () => {
 
     harness.emitSession({
       connectionEpoch: 1,
+      playbackExpected: true,
       responseId: "response-playing",
       status: "completed",
       type: "response-terminal",
