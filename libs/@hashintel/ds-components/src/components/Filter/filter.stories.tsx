@@ -152,6 +152,13 @@ const tagItems: Array<ItemOrGroup<MultiSelectItem<string>>> = [
   { value: "design", text: "Design" },
 ];
 
+const loadTags = () =>
+  new Promise<Array<ItemOrGroup<MultiSelectItem<string>>>>((resolve) => {
+    setTimeout(() => {
+      resolve(tagItems);
+    }, 1500);
+  });
+
 const loadAssignees = () =>
   new Promise<Array<ItemOrGroup<SelectItem<string>>>>((resolve) => {
     setTimeout(() => {
@@ -187,7 +194,9 @@ const SelectOperators: Array<ItemOrGroup<FilterOperator<SelectValues>>> = [
     input: {
       type: "select",
       multiple: true,
-      items: tagItems,
+      // Async so the summary demonstrates the loading state: the committed
+      // names (or "X selected") show until the option total is known.
+      items: loadTags,
       placeholder: "Tags…",
       overflow: "summary",
     },

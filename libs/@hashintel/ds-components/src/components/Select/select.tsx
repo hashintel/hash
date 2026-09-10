@@ -648,7 +648,12 @@ export const Select = <TValue extends string>({
           items={rowItems}
           separator=", "
           overflow="summary"
-          total={optionValues.length}
+          // While options load, `effectiveItems` omits the orphans backing
+          // the committed selection, so the option count is not yet known —
+          // an undefined total keeps the summary from claiming "any".
+          total={
+            loading && items.length === 0 ? undefined : optionValues.length
+          }
         />
       ) : (
         <OverflowRow items={rowItems} separator=", " overflow={mode} />

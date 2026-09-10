@@ -48,8 +48,10 @@ export type OverflowRowProps = {
       renderCountLabel?: CountLabelRenderer;
       /** The total number of items that can be selected, of which `items` is
        * the selected subset — the Y in the "X of Y" summary. Once `items`
-       * covers every selectable one, `summary` renders "any". */
-      total: number;
+       * covers every selectable one, `summary` renders "any". Omit while the
+       * total is not yet known (options still loading): the summary then
+       * never claims full coverage and counts as "X selected" instead. */
+      total?: number;
     }
   | {
       overflow: "truncate";
@@ -251,14 +253,16 @@ export const OverflowRow = ({
   }
 
   if (overflow === "summary") {
+    const countText =
+      total === undefined ? `${count} selected` : `${count} of ${total}`;
     const summaryLabel = () => {
       if (count === 0) {
         return countLabel("none");
       }
-      if (count >= total) {
+      if (total !== undefined && count >= total) {
         return countLabel("any");
       }
-      return showCountLabel ? countLabel(`${count} of ${total}`) : joinedNames;
+      return showCountLabel ? countLabel(countText) : joinedNames;
     };
 
     return (
@@ -266,7 +270,7 @@ export const OverflowRow = ({
         <span className={classes.summary}>{summaryLabel()}</span>
         <div ref={measureRef} className={classes.measure} aria-hidden="true">
           <span ref={namesCellRef}>{joinedNames}</span>
-          <span ref={countCellRef}>{countLabel(`${count} of ${total}`)}</span>
+          <span ref={countCellRef}>{countLabel(countText)}</span>
         </div>
       </div>
     );
