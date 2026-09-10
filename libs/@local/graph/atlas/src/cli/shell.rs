@@ -9,6 +9,8 @@ use clap::{Parser, Subcommand, ValueHint};
 #[cfg(feature = "cli")]
 use super::EmbedderArgs;
 use super::{DumpArgs, FitArgs, PostgresArgs, ReportCommand, RootArgs};
+#[cfg(feature = "cli")]
+use crate::file::storage::{Storage, error::StorageError};
 use crate::integrity::SecretString;
 #[cfg(feature = "cli")]
 use crate::progress::Progress;
@@ -128,6 +130,8 @@ enum DashboardError {
     Connect(super::ConnectError),
     /// The fit failed.
     Fit(super::FitError),
+    /// The storage failed.
+    Storage(StorageError),
 }
 
 #[cfg(feature = "cli")]
@@ -139,6 +143,7 @@ impl core::fmt::Display for DashboardError {
             // The fit's own chain is the diagnosis. This variant adds no
             // step of its own.
             Self::Fit(error) => core::fmt::Display::fmt(error, fmt),
+            Self::Storage(_) => fmt.write_str("the storage could not be accessed"),
         }
     }
 }
@@ -150,7 +155,15 @@ impl core::error::Error for DashboardError {
             Self::Terminal(error) => Some(error),
             Self::Connect(error) => Some(error),
             Self::Fit(error) => error.source(),
+            Self::Storage(error) => Some(error),
         }
+    }
+}
+
+#[cfg(feature = "cli")]
+impl From<StorageError> for DashboardError {
+    fn from(value: StorageError) -> Self {
+        Self::Storage(value)
     }
 }
 
@@ -217,8 +230,8 @@ async fn run_fit(
 ///
 /// # Errors
 ///
-/// Returns the step that failed: terminal, connection or fit. A run failure takes
-/// precedence over a terminal-restoration failure.
+/// Returns [`DashboardError`] on failure. A run failure takes precedence over a
+/// terminal-restoration failure.
 ///
 /// # Panics
 ///
@@ -228,6 +241,7 @@ async fn fit_on_dashboard(
     root: RootArgs,
     source: FitSource,
     args: FitArgs,
+    storage: &Storage,
 ) -> Result<super::FitVerdict, DashboardError> {
     let dashboard = super::tui::Dashboard::start().map_err(DashboardError::Terminal)?;
 
@@ -242,7 +256,9 @@ async fn fit_on_dashboard(
 
     let observer = dashboard.observer();
     let outcome = async {
-        let command = super::FitCommand::new(root, args).with_progress(observer);
+        let command = super::FitCommand::new(root, args, storage)
+            .await?
+            .with_progress(observer);
 
         run_fit(command, source).await
     }
@@ -258,8 +274,16 @@ async fn fit_on_dashboard(
 
 /// Runs a fit without a dashboard and renders its verdict or failure chain.
 #[cfg(feature = "cli")]
-async fn fit_logged(root: RootArgs, source: FitSource, args: FitArgs) -> std::process::ExitCode {
-    let command = super::FitCommand::new(root, args);
+async fn fit_logged(
+    root: RootArgs,
+    source: FitSource,
+    args: FitArgs,
+    storage: &Storage,
+) -> std::process::ExitCode {
+    let command = match super::FitCommand::new(root, args, storage).await {
+        Ok(command) => command,
+        Err(error) => return render_failure(error),
+    };
 
     let result = match source {
         FitSource::Live { store, credential } => {
@@ -318,7 +342,16 @@ pub async fn main() -> std::process::ExitCode {
             offline,
             tui: true,
         } => {
-            match fit_on_dashboard(root, fit_source(store, openai_api_key, offline), *args).await {
+            let storage = Storage::in_temp_dir();
+
+            match fit_on_dashboard(
+                root,
+                fit_source(store, openai_api_key, offline),
+                *args,
+                &storage,
+            )
+            .await
+            {
                 Ok(verdict) => {
                     render_verdict(verdict);
                     std::process::ExitCode::SUCCESS
@@ -334,7 +367,17 @@ pub async fn main() -> std::process::ExitCode {
             openai_api_key,
             offline,
             tui: false,
-        } => fit_logged(root, fit_source(store, openai_api_key, offline), *args).await,
+        } => {
+            let storage = Storage::in_temp_dir();
+
+            fit_logged(
+                root,
+                fit_source(store, openai_api_key, offline),
+                *args,
+                &storage,
+            )
+            .await
+        }
 
         Command::Report { command } => match command.run().await {
             // The probe dumps its records as it solves and hands back no
