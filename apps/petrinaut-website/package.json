@@ -14,6 +14,7 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit && tsgo --noEmit --project api/tsconfig.json",
     "preview": "vite preview",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:unit": "vitest run --passWithNoTests"
   },
   "dependencies": {

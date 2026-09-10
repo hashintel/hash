@@ -1,3 +1,4 @@
+import { canonicalJsonEquals } from "./canonical-json";
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   parseClientToolResults,
@@ -65,9 +66,8 @@ const clientToolResultsFrom = (
       const conflict =
         previous?.conflict === true ||
         (previous !== undefined &&
-          (JSON.stringify(previous.output) !== JSON.stringify(result.output) ||
-            JSON.stringify(previous.metadata) !==
-              JSON.stringify(result.metadata)));
+          (!canonicalJsonEquals(previous.output, result.output) ||
+            !canonicalJsonEquals(previous.metadata, result.metadata)));
       resultsByCallId.set(result.toolCallId, {
         output: previous === undefined ? result.output : previous.output,
         metadata: previous === undefined ? result.metadata : previous.metadata,

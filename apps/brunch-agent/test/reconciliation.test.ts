@@ -327,6 +327,7 @@ test("requires a delivered observation for a currently cited unanswered read", a
 
 test("labels an answer as of the last reconciled state when the live hash is unavailable", async () => {
   const answer = await explainRootArc({ snapshot, current, browser, query });
+  expect(answer.target?.kind).toBe("arc");
   expect(answer.reconciliation.status).toBe("as-of");
   expect(answer.governing?.revisionId).toBe(current.revisionId);
   expect(answer.governing?.passages[0]?.standing).toBe("temporal-context-only");

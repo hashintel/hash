@@ -340,7 +340,9 @@ export const explainRootArc = async (input: {
           toolCallId: call.toolCallId,
           outcome: reconciled.outcome,
         });
-        const attempt = attempts[0];
+        const attempt = reconciled.attempts.findLast(
+          (entry) => entry.outcome === reconciled.outcome,
+        );
         if (!attempt) throw new Error("Browser outcome has no observation.");
         if (
           browser.construction &&
@@ -436,25 +438,37 @@ export const explainRootArc = async (input: {
       field = query.field,
     ) => {
       try {
-        return "kind" in target
-          ? target.kind === "place" || target.kind === "transition"
-            ? locateRootNode(definition, {
-                kind: target.kind,
-                name: target.id,
-                field,
-              })
-            : locateRootState(definition, {
-                kind: target.kind,
-                name: target.id,
-                field,
-                ...("typeId" in target ? { type: target.typeId } : {}),
-              })
-          : locateRootArc(definition, {
+        switch (target.kind) {
+          case "arc":
+            return locateRootArc(definition, {
               transition: target.transitionId,
               place: target.placeId,
               arcDirection: target.arcDirection,
               field: field as RootArcWhyInput["field"],
             });
+          case "place":
+          case "transition":
+            return locateRootNode(definition, {
+              kind: target.kind,
+              name: target.id,
+              field,
+            });
+          case "parameter":
+          case "differential-equation":
+          case "type":
+          case "type-element":
+          case "scenario":
+            return locateRootState(definition, {
+              kind: target.kind,
+              name: target.id,
+              field,
+              ...("typeId" in target ? { type: target.typeId } : {}),
+            });
+          default: {
+            const unhandled: never = target;
+            return unhandled;
+          }
+        }
       } catch {
         return undefined;
       }
@@ -507,7 +521,6 @@ export const explainRootArc = async (input: {
     // Conservatively refuse; choosing the latest child would misattribute its siblings.
     if (
       governing &&
-      "kind" in target &&
       typeof target.value === "object" &&
       target.value !== null &&
       targetChanges

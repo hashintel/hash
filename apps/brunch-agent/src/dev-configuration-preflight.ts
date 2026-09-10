@@ -80,7 +80,7 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
   const model = knownModel
     ? `anthropic/${knownModel.id}`
     : "unrecognized model; value withheld";
-  const apiKey = credentialStatus(environment.ANTHROPIC_API_KEY);
+  const apiKeyStatus = credentialStatus(environment.ANTHROPIC_API_KEY);
   const higherPrioritySources = authVariables
     .slice(0, 2)
     .filter((variable) => Boolean(environment[variable]?.trim()))
@@ -117,8 +117,8 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
     }
   }
   const failures: string[] = [];
-  if (apiKey !== "non-placeholder; validity untested")
-    failures.push(`ANTHROPIC_API_KEY: ${apiKey}`);
+  if (apiKeyStatus !== "non-placeholder; validity untested")
+    failures.push(`ANTHROPIC_API_KEY: ${apiKeyStatus}`);
   if (!providerSelection.startsWith("verified:"))
     failures.push("credential-source verification incomplete");
   if (model !== expectedModel) failures.push("model mismatch");
@@ -133,7 +133,7 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
     )
       ? "present"
       : "absent",
-    apiKey: { source: apiKeySource, status: apiKey },
+    apiKey: { source: apiKeySource, status: apiKeyStatus },
     provenance:
       "File sources identify declarations; Vite owns interpolation. Root env contents not read.",
     providerSelection,

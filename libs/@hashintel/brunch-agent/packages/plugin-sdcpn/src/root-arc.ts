@@ -58,6 +58,7 @@ export const locateRootArc = (definition: SDCPN, query: RootArcWhyInput) => {
     );
   const path = `/transitions/${definition.transitions.indexOf(transition)}/${direction}/${transition[direction].findIndex((entry) => entry === arc)}`;
   return {
+    kind: "arc" as const,
     transitionId: transition.id,
     placeId: place.id,
     arcDirection: query.arcDirection,
