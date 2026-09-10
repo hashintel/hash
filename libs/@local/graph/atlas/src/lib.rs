@@ -47,24 +47,16 @@
 //!
 //! # Performance
 //!
-//! Opening a generation validates every artifact once.
-//!
-//! [`serve::Atlas::open`] maps and validates every serving artifact and their cross-artifact
-//! agreement a single time, so every read after that is an mmap gather and a wire encode, never a
-//! decode. Every published artifact is a plain file mapped whole by `mmap`, so serving cost after
-//! open is page-cache and address-space bound rather than parse bound. An opened [`serve::Atlas`]
-//! is `Send + Sync` and immutable, so a caller can keep one in an `Arc` across requests for the
-//! process lifetime of the generation. Reads are synchronous and CPU-bound over mapped memory, so
-//! an async transport schedules them on a compute pool rather than inline on its own runtime
-//! threads.
+//! Generation maintenance maps and validates serving artifacts before publication. Requests reuse
+//! those mappings. Response assembly runs on Rayon, including synchronous store calls for detail
+//! hydration.
 //!
 //! # Limitations
 //!
 //! Serving and fitting never combine implicitly.
 //!
-//! [`cli::ServeCommand`] opens an already-published generation and never fits one. An empty or
-//! unfitted root fails the open with a named [`cli::ServeError::Missing`] rather than fitting on
-//! demand.
+//! [`cli::ServeCommand`] never fits a generation. Its maintenance task opens published artifacts
+//! and retries failures. The current-generation endpoint answers 503 before initial publication.
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]

@@ -197,7 +197,11 @@ async fn run_atlas(
             service_secret,
             rate_limit: (&args.rate_limit).into(),
             pool,
-            visibility: cli::VisibilityLimits::default(),
+            visibility: cli::VisibilityLimits {
+                bytes: 1 << 30,
+                soft: Duration::from_mins(8),
+                hard: Duration::from_mins(10),
+            },
             workflow,
         })
         .change_context(GraphError)?;

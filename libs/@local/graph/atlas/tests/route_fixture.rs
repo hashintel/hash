@@ -48,7 +48,7 @@
     reason = "an integration test target is a std binary with no alloc crate of its own"
 )]
 
-use core::{num::NonZeroU32, ops::ControlFlow};
+use core::{num::NonZeroU32, ops::ControlFlow, time::Duration};
 use std::{fs, path::PathBuf, sync::Arc};
 
 use axum::{
@@ -74,7 +74,12 @@ use hash_middleware::{
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
 };
 use serde_json::{Value, json};
+use tokio::{
+    task::JoinHandle,
+    time::{sleep, timeout},
+};
 use tokio_postgres::NoTls;
+use tokio_util::sync::CancellationToken;
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorId, UserId};
 
@@ -342,7 +347,7 @@ fn fixture_actor() -> String {
 /// The delta consumer stays off, because every claim here is about the change under test and never
 /// about live store state. Rate limiting observes, because a oneshot request carries no connection
 /// info for the per-address key.
-async fn served_router() -> axum::Router {
+async fn served_router() -> (axum::Router, CancellationToken, JoinHandle<()>) {
     let store = |name: &str, fallback: &str| {
         std::env::var(format!("HASH_GRAPH_PG_{name}")).unwrap_or_else(|_| fallback.to_owned())
     };
@@ -380,11 +385,26 @@ async fn served_router() -> axum::Router {
         },
         workflow: None,
         pool: Arc::new(pool),
-        visibility: VisibilityLimits::default(),
+        visibility: VisibilityLimits {
+            bytes: 1 << 30,
+            soft: Duration::from_mins(8),
+            hard: Duration::from_mins(10),
+        },
     };
-    ServeCommand::new(invocation.root, invocation.serve)
+    let serving = ServeCommand::new(invocation.root, invocation.serve)
         .run(facilities)
-        .expect("the root holds an activated generation and a wire secret is configured")
+        .expect("the serving resources should initialize");
+    let shutdown = CancellationToken::new();
+    let (router, maintenance) = serving.into_parts(shutdown.clone().cancelled_owned());
+    (router, shutdown, tokio::spawn(maintenance))
+}
+
+async fn drain(shutdown: CancellationToken, maintenance: JoinHandle<()>) {
+    shutdown.cancel();
+    timeout(Duration::from_secs(60), maintenance)
+        .await
+        .expect("generation maintenance should finish shutdown")
+        .expect("generation maintenance should not panic");
 }
 
 /// Every route the API router registers refuses a request without an actor, and the liveness
@@ -399,7 +419,8 @@ async fn routes_refuse_without_actor() {
         return;
     }
     let actor = fixture_actor();
-    let router = served_router().await;
+    let (router, shutdown, maintenance) = served_router().await;
+    let _stop_on_failure = shutdown.clone().drop_guard();
 
     let (status, _, body) = send(
         &router,
@@ -493,6 +514,7 @@ async fn routes_refuse_without_actor() {
         "the liveness route requires an actor: {}",
         String::from_utf8_lossy(&body)
     );
+    drain(shutdown, maintenance).await;
 }
 
 /// Captures the fixture through the served route and verifies every law it pins.
@@ -516,17 +538,28 @@ async fn route_served_scoped_tile_fixture() {
         "ATLAS_ROUTE_FIXTURE selects capture or verify, not {mode:?}",
     );
     let actor = fixture_actor();
-    let router = served_router().await;
+    let (router, shutdown, maintenance) = served_router().await;
+    let _stop_on_failure = shutdown.clone().drop_guard();
 
-    // The generation under serve, from the route that names it.
-    let (status, _, body) = send(
-        &router,
-        Request::get("/v1/atlas/current")
-            .header(ACTOR_ID_HEADER, &actor)
-            .body(Body::empty())
-            .expect("the request builds"),
-    )
-    .await;
+    // HTTP starts before the first generation is ready.
+    let (status, _, body) = timeout(Duration::from_secs(60), async {
+        loop {
+            let response = send(
+                &router,
+                Request::get("/v1/atlas/current")
+                    .header(ACTOR_ID_HEADER, &actor)
+                    .body(Body::empty())
+                    .expect("the request builds"),
+            )
+            .await;
+            if response.0 != StatusCode::SERVICE_UNAVAILABLE {
+                break response;
+            }
+            sleep(Duration::from_millis(100)).await;
+        }
+    })
+    .await
+    .expect("the fixture generation should become ready");
     assert_eq!(status, StatusCode::OK, "{}", String::from_utf8_lossy(&body));
     let current: Value = serde_json::from_slice(&body).expect("current is JSON");
     let generation = current["generation"]
@@ -709,6 +742,8 @@ async fn route_served_scoped_tile_fixture() {
         "{}\n",
         serde_json::to_string_pretty(&sidecar).expect("sidecars are plain JSON"),
     );
+
+    drain(shutdown, maintenance).await;
 
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/wire");
     let bytes_path = dir.join(format!("{FIXTURE_NAME}.saltile"));
