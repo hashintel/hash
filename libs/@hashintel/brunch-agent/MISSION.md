@@ -44,7 +44,7 @@ These fourteen operations are not stock-tool parity or fourteen genuine-persona 
 
 [FE-1645 / PR #9634](https://github.com/hashintel/hash/pull/9634) gates the existing prepared-fixture selector behind an opt-in Brunch demo setting and moves it below the top bar. That selector is distinct from this branch's fixed `BrunchWorkpiecePane`. Preserve the colleague's selector/provider behaviour when integrating; do not restore default fixture chrome or copy a competing settings mechanism.
 
-Replace the workpiece's intrusive placement with a user-approved surface that remains readable as it evolves and does not obstruct the canvas, top bar, assistant opener or composer. Keep engineering IDs, hashes and raw why payloads out of the primary reading surface while preserving inspectable provenance and honest freshness/unknown-state reporting. Hiding the useful workpiece together with fixture controls is not the fix. Settle layout and integration against #9634 before implementation; no full editor redesign or construction-tool rewrite belongs in this closeout.
+Replace the workpiece's intrusive placement with a docked, resizable and collapsible panel alongside chat, selected by Lu. Keep conversation, workpiece and net visible together where space permits. Reuse existing editor layout/resize mechanisms where possible; any library extension point is generic, while workpiece/provenance semantics stay in the website host. The surface remains readable as it evolves and does not obstruct the canvas, top bar, assistant opener or composer. Keep engineering IDs, hashes and raw why payloads out of the primary reading surface while preserving inspectable provenance and honest freshness/unknown-state reporting. Hiding the useful workpiece together with fixture controls is not the fix. Inspect integration against #9634 without rewriting the colleague's branch; no full editor redesign or construction-tool rewrite belongs in this closeout.
 
 ### What is linked
 
@@ -91,14 +91,14 @@ The maintained launcher uses Pi's run-local `--approve` with its explicit tool/e
 ### Owner decisions
 
 - **2026-09-10 — Part A/7b split.** Lu directs this engineering groundwork to its own PR and a focused Mission 7b child branch under the same FE-1573 issue. This is the specific exception to one-issue/one-PR bookkeeping; one live mission per branch remains. It supersedes treating the former semantic-quality/full-region programme as the condition for landing Part A, not the validity of its historical findings.
-- **2026-09-10 — UI before Part A merge.** Lu requires UI remediation before merging 7a, coordinated with FE-1645/#9634. This moves the workpiece-placement fix from the proposed 7b scope into Part A closeout; layout choice remains to be agreed.
+- **2026-09-10 — UI before Part A merge.** Lu requires UI remediation before merging 7a, coordinated with FE-1645/#9634. This moves the workpiece-placement fix from the proposed 7b scope into Part A closeout. Lu selects a docked, resizable panel alongside chat, collapsible when not needed.
 - **2026-09-10 — Demo priority.** Live open → explain → correct → update is the assumed demo story; a prerecorded complete elicitation/construction video is the desired additional output. UI remediation and an effective construction path are pre-demo concerns. The tool approach will be discussed separately; neither allowlist expansion nor a replacement construction tool is selected here. The [7b draft](docs/mission-drafts/7b-september-demo.md) owns the successor detail.
 
 ## Fog-line
 
 - **Construction surface:** individual instrumented operations work; a smooth complete conversation-driven construction sequence remains unproved. Mission 7b must settle the tool approach before broadening or redesigning it.
 - **Link coverage:** optional relations preserve supplied links, not automatic completeness. The demo needs ordinary interaction that creates and retrieves the links it shows, without operator citation-offset instructions.
-- **UI:** workpiece visibility is delivered; its placement is an immediate Part A merge blocker. Source-navigation polish and the complete correction interaction remain successor work. Confirm the chosen surface and #9634 integration/landing order before modifying the shared host.
+- **UI:** workpiece visibility is delivered; its placement is an immediate Part A merge blocker. Source-navigation polish and the complete correction interaction remain successor work. The docked surface is selected; confirm #9634 integration/landing order before claiming combined verification.
 - **Delivery:** original-store recovery is observed. Actual demo host, independent-copy requirements, source selection and current deployed frontend/backend revisions remain to be inspected/decided.
 - **Modelling:** the inert clock is an exercised native operation, not an adopted stochastic/dynamics strategy. Modelling effectiveness and broader semantic acceptance remain separate evaluation work.
 
