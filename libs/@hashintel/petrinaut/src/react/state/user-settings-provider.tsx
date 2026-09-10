@@ -28,6 +28,11 @@ type PersistedUserSettings = Partial<UserSettings> & {
    * Still present in blobs written before that.
    */
   computeBackend?: "cpu" | "webgpu";
+  /**
+   * Chose between the entities tree and a stack of lists in the left panel.
+   * The tree is the only rendering, so the key is dropped on the next write.
+   */
+  useEntitiesTreeView?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -36,9 +41,11 @@ const loadSettings = (): UserSettings => {
     if (raw) {
       // Destructured rather than read through the spread, so the dead key is
       // dropped from storage on the next write instead of persisting forever.
-      const { computeBackend, ...parsed } = JSON.parse(
-        raw,
-      ) as PersistedUserSettings;
+      const {
+        computeBackend,
+        useEntitiesTreeView: _useEntitiesTreeView,
+        ...parsed
+      } = JSON.parse(raw) as PersistedUserSettings;
       return {
         ...defaultUserSettings,
         ...parsed,
@@ -97,8 +104,6 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, snapToGrid: value })),
     setPartialSelection: (value: boolean) =>
       setState((prev) => ({ ...prev, partialSelection: value })),
-    setUseEntitiesTreeView: (value: boolean) =>
-      setState((prev) => ({ ...prev, useEntitiesTreeView: value })),
     setEnableNetComponents: (value: boolean) =>
       setState((prev) => ({ ...prev, enableNetComponents: value })),
     setEnableNotebookView: (value: boolean) =>

@@ -102,8 +102,6 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setSnapToGrid,
     partialSelection,
     setPartialSelection,
-    useEntitiesTreeView,
-    setUseEntitiesTreeView,
     enableNetComponents,
     setEnableNetComponents,
     enableNotebookView,
@@ -202,23 +200,6 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           <Toggle
             value={keepPanelsMounted}
             onChange={setKeepPanelsMounted}
-            size="sm"
-          />
-        </SettingRow>
-        <SettingRow
-          label={
-            <>
-              Entities tree view{" "}
-              <Chip size="xs" color="orange" variant="outline" shape="round">
-                Experimental
-              </Chip>
-            </>
-          }
-          description="Show a unified tree of all entities in the left sidebar"
-        >
-          <Toggle
-            value={useEntitiesTreeView}
-            onChange={setUseEntitiesTreeView}
             size="sm"
           />
         </SettingRow>
