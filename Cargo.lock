@@ -5990,6 +5990,8 @@ version = "0.0.0"
 dependencies = [
  "aide",
  "arc-swap",
+ "aws-config",
+ "aws-credential-types",
  "aws-sdk-s3",
  "axum",
  "burn",

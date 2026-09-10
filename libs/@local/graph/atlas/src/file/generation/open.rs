@@ -56,6 +56,11 @@ impl Generation {
         &self.document
     }
 
+    /// Transfers ownership of the retained metadata document.
+    pub(crate) fn into_document(self) -> GenerationDocument {
+        self.document
+    }
+
     /// Returns the verified metadata document.
     #[inline]
     #[must_use]

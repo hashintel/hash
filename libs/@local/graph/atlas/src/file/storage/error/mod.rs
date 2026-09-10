@@ -8,7 +8,7 @@ mod tests;
 
 /// A failure to access a configured storage backend or transfer a file.
 #[derive(Debug)]
-pub(crate) enum StorageError {
+pub enum StorageError {
     /// The storage configuration has no S3 backend.
     S3Unavailable,
     /// A filesystem operation or streamed transfer failed.
@@ -27,6 +27,17 @@ pub(crate) enum StorageError {
     MissingUploadId,
     /// An S3 request failed, retaining its service response or transport failure.
     Request(Box<SdkError<aws_sdk_s3::Error>>),
+}
+
+impl StorageError {
+    pub(crate) fn is_not_found(&self) -> bool {
+        matches!(self, Self::Request(error) if matches!(error.as_service_error(), Some(aws_sdk_s3::Error::NoSuchKey(_))))
+    }
+
+    pub(crate) fn is_precondition_failed(&self) -> bool {
+        matches!(self, Self::Request(error) if error.as_service_error().is_some()
+            && error.raw_response().is_some_and(|response| response.status().as_u16() == 412))
+    }
 }
 
 impl fmt::Display for StorageError {
