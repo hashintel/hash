@@ -45,6 +45,38 @@ const explain = (query: unknown) =>
     query: parseConstructionWhyInput(query),
   });
 
+test("supports an entity origin without inheriting its derived child fields", async () => {
+  const creationSnapshot = {
+    ...snapshot,
+    messages: snapshot.messages.slice(0, 25),
+  };
+  const creationRevision = retainedSettledRevision(
+    creationSnapshot,
+    "typed-revision-one",
+  );
+  if (!creationRevision) throw new Error("Missing creation revision");
+
+  const answer = await explainRootArc({
+    snapshot: creationSnapshot,
+    current: creationRevision,
+    browser,
+    query: parseConstructionWhyInput({
+      kind: "scenario",
+      name: "TestInitial",
+      field: "entity",
+    }),
+  });
+
+  expect(answer.disposition).toBe("partially-supported");
+  expect(answer.originToolCallId).toBe("typed-scenario");
+  expect(answer.recordedChange?.toolCallId).toBe("typed-scenario");
+  expect(
+    answer.recordedChange?.effects.derived.some(({ path }) =>
+      path.endsWith("/parameterOverrides"),
+    ),
+  ).toBe(true);
+});
+
 test.each([
   {
     kind: "scenario",
@@ -89,6 +121,21 @@ test.each([
     expect(answer.reconciliation.status).toBe("as-of");
   },
 );
+
+test("lists later entity updates without assigning one update to the whole entity", async () => {
+  const answer = await explain({
+    kind: "type",
+    name: "TestCorrectedAttributes",
+    field: "entity",
+  });
+
+  expect(answer.appliedChanges?.map(({ toolCallId }) => toolCallId)).toEqual(
+    expect.arrayContaining(["typed-type", "typed-type-description"]),
+  );
+  expect(answer.disposition).toBe("refused");
+  expect(answer.governing).toBeUndefined();
+  expect(answer.recordedChange).toBeUndefined();
+});
 
 test("keeps explicit and derived leaf causes separate beneath the refused row", async () => {
   const explicit = await explain({

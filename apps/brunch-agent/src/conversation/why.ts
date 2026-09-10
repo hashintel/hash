@@ -499,6 +499,20 @@ export const explainRootArc = async (input: {
           (field === "entity" && effect.path.startsWith(`${postTarget.path}/`)),
       );
     };
+    const hasDerivedEffectOnTarget = (
+      change: (typeof changes)[number],
+      field: string,
+    ) => {
+      const postTarget =
+        change.attempt.post &&
+        historicalTarget(change.attempt.post.definition, field);
+      return (
+        postTarget !== undefined &&
+        change.attempt.effects.derived.some((effect) =>
+          covers(effect.path, postTarget.path),
+        )
+      );
+    };
     const targetChanges = changes.filter(
       (change) => affects(change, "entity") || affects(change, "entity", true),
     );
@@ -544,12 +558,10 @@ export const explainRootArc = async (input: {
         "This current aggregate contains later descendant changes. A single governing basis for its current parts is unavailable; neither the original container nor the latest changed child can supply support for the whole aggregate. Query individual fields. Origin and applied-change history remain available.";
       return answer;
     }
-    if (
-      governing &&
-      (query.field === "entity"
-        ? affects(governing, "entity", true)
-        : affects(governing, query.field, true))
-    ) {
+    // Descendants establish that an operation affected an entity, but a
+    // derived child from that same operation does not make the entity root
+    // itself derived. Later descendants are handled by the aggregate guard.
+    if (governing && hasDerivedEffectOnTarget(governing, query.field)) {
       answer.disposition = "refused";
       answer.reason =
         "The queried item includes a derived or unmapped canonical effect. Its operation is recorded, but request basis is not inherited; field support is unavailable.";
