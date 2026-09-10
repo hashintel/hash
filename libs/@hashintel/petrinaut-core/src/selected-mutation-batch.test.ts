@@ -44,6 +44,23 @@ describe("selected mutation batch", () => {
         },
       ]),
     ).toThrow();
+    for (const type of [
+      "addType",
+      "addDifferentialEquation",
+      "addParameter",
+      "addScenario",
+      "addMetric",
+    ] as const) {
+      expect(() =>
+        selectedMutationBatchSchema.parse([
+          {
+            operationId: type,
+            type,
+            input: {},
+          },
+        ]),
+      ).toThrow();
+    }
     expect(() =>
       selectedMutationBatchSchema.parse([
         operation("duplicate", "p1"),

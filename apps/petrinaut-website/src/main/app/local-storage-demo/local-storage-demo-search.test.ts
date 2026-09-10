@@ -68,6 +68,14 @@ describe("local storage demo search", () => {
     ).toBe(crewReservationFixtureId);
   });
 
+  test("treats inventory-purchasing as a document scenario location, not a catalogue bundle", () => {
+    const search = validateLocalStorageDemoSearch({
+      scenario: "inventory-purchasing",
+    });
+    expect(search.scenario).toBe("inventory-purchasing");
+    expect(localStorageDemoRouteIdentity(search)).toBe("ordinary");
+  });
+
   test("selects only the explicit stable fixture value", () => {
     expect(
       isCrewReservationFixtureSelected({
