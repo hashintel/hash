@@ -1003,7 +1003,7 @@ export const CreateExperimentDrawer = ({
     }
     const names = axes.map(axisDisplayName).join(", ");
     return {
-      text: `${axes.length === 1 ? `${names} swept over its interval` : `${names} swept over their intervals`} — the whole selection computes progressively, and the navigator narrows it to regions or points`,
+      text: `${axes.length === 1 ? `${names} swept over its interval` : `${names} swept over their intervals`} — the sweep computes only the points you select, click on the Surface or hand to the optimizer`,
       tone: "neutral",
       error: false,
     };

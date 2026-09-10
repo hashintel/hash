@@ -113,4 +113,34 @@ describe("createSweepTrialEvaluator", () => {
       days: { from: 2, to: 2 },
     });
   });
+
+  it("parks a stopped study's sweep on the point it was trying, with no cap", async () => {
+    const navigateSweep = vi.fn().mockResolvedValue(null);
+    const evaluator = createSweepTrialEvaluator({
+      experimentId: "exp",
+      axes: [RATE, DAYS],
+      metricId: "infected",
+      navigateSweep,
+    });
+
+    await evaluator.evaluateTrial(request({ rate: 0.5, days: 7 }));
+    evaluator.settle(null);
+
+    expect(navigateSweep).toHaveBeenCalledTimes(2);
+    expect(navigateSweep).toHaveBeenLastCalledWith("exp", {
+      rate: { from: 25, to: 25 },
+      days: { from: 5, to: 5 },
+    });
+  });
+
+  it("leaves the sweep alone when a study settles before any trial", () => {
+    const navigateSweep = vi.fn();
+    createSweepTrialEvaluator({
+      experimentId: "exp",
+      axes: [RATE, DAYS],
+      metricId: "infected",
+      navigateSweep,
+    }).settle(undefined);
+    expect(navigateSweep).not.toHaveBeenCalled();
+  });
 });
