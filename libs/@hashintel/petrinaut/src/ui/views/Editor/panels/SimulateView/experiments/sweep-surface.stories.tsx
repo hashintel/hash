@@ -32,6 +32,7 @@ const untouched: ExperimentRecord = {
       transmission_rate: { from: 0, to: 50 },
       recovery_days: { from: 0, to: 18 },
     },
+    selectionKey: "transmission_rate=0..50|recovery_days=0..18",
     runsCompleted: 0,
     runsSampled: 0,
     runTarget: null,

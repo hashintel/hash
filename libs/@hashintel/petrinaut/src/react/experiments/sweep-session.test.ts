@@ -6,7 +6,6 @@ import { sweepCellKey, sweepCellValues } from "./sweep-session/selection-draws";
 import type { ExperimentParameterAxis } from "./parameter-grid";
 import type {
   CreateSweepSessionOptions,
-  SweepBatchStatus,
   SweepRunDraws,
   SweepSelection,
   SweepSessionUpdate,
@@ -76,6 +75,8 @@ function makeFakeBatch(request: {
     >;
   }) => void)[] = [];
   let eventListeners: ((event: MonteCarloExperimentEvent) => void)[] = [];
+  let progressListeners: ((value: MonteCarloWorkerProgress | null) => void)[] =
+    [];
   let frames: readonly MonteCarloUserDefinedMetricFrame[] = [];
   let progress: MonteCarloWorkerProgress | null = null;
   let cancelled = false;
@@ -87,7 +88,14 @@ function makeFakeBatch(request: {
     status: { get: () => "Running", subscribe: () => () => {} },
     progress: {
       get: () => progress,
-      subscribe: () => () => {},
+      subscribe: (listener) => {
+        progressListeners.push(listener);
+        return () => {
+          progressListeners = progressListeners.filter(
+            (entry) => entry !== listener,
+          );
+        };
+      },
     },
     metrics: {
       get: () => ({ frames, latestByMetricId: {} }),
@@ -163,6 +171,25 @@ function makeFakeBatch(request: {
         listener({ frames, latestByMetricId: {} });
       }
     },
+    /** A progress-only tick: runs advanced, no new frames. */
+    tick(completedRuns: number) {
+      if (!started) {
+        throw new Error("batch ticked before start()");
+      }
+      progress = {
+        activeRuns: request.runCount - completedRuns,
+        advancedRuns: request.runCount,
+        allFinished: false,
+        completedRuns,
+        erroredRuns: 0,
+        frameNumber: 1,
+        runCount: request.runCount,
+        time: 1,
+      };
+      for (const listener of progressListeners) {
+        listener(progress);
+      }
+    },
     complete() {
       if (!started) {
         throw new Error("batch completed before start()");
@@ -200,8 +227,6 @@ function makeHarness(
 ) {
   const batches: ReturnType<typeof makeFakeBatch>[] = [];
   const updates: SweepSessionUpdate[] = [];
-  /** Every published batch list; the last entry is the live one. */
-  const batchLists: (readonly SweepBatchStatus[])[] = [];
   const onError = vi.fn();
 
   const session = createSweepSession({
@@ -216,7 +241,6 @@ function makeHarness(
       return Promise.resolve(batch.handle);
     },
     onUpdate: (update) => updates.push(update),
-    onBatches: (list) => batchLists.push(list),
     onError,
   });
 
@@ -234,7 +258,8 @@ function makeHarness(
     session,
     batches,
     updates,
-    liveBatches: () => batchLists.at(-1) ?? [],
+    /** The batches the last update listed as computing. */
+    liveBatches: () => updates.at(-1)?.batches ?? [],
     onError,
     settle,
   };
@@ -480,23 +505,61 @@ describe("createSweepSession", () => {
     session.dispose();
   });
 
-  it("exposes finished cells to other readers", async () => {
-    const { session, batches, settle } = makeHarness(8, point(0, 0));
+  it("scopes a failure to its selection: the next one climbs the full ladder", async () => {
+    const { session, batches, updates, settle } = makeHarness(25, point(0, 0));
     await settle();
-    batches[0]!.stream([frame(8, [[3, 8]])]);
-    batches[0]!.complete();
+    batches[0]!.error("device lost");
+    await settle();
+    expect(updates.at(-1)!.failed).toBe(true);
+
+    const arrival = session.navigateTo(point(1, 0));
+    await settle();
+    expect(batches).toHaveLength(2);
+    batches[1]!.stream([frame(8, [[1, 8]])]);
+    batches[1]!.complete();
+    await settle();
+    // The second rung follows: the earlier failure does not stop this ladder.
+    expect(batches).toHaveLength(3);
+    batches[2]!.stream([frame(17, [[1, 17]])]);
+    batches[2]!.complete();
     await settle();
 
-    expect(session.getCell({ x: 0, y: 0 })).toMatchObject({
-      runsCompleted: 8,
+    expect(await arrival).toMatchObject({
+      position: { x: 1, y: 0 },
+      runsCompleted: 25,
     });
-    expect(session.getCell({ x: 2, y: 1 })).toBeUndefined();
+    expect(updates.at(-1)).toMatchObject({
+      computing: false,
+      failed: false,
+      runsCompleted: 25,
+    });
     session.dispose();
+  });
+
+  it("ends a session idle on dispose, whatever was computing", async () => {
+    const { session, batches, updates, settle } = makeHarness(25, point(0, 0));
+    await settle();
+    batches[0]!.stream([frame(4, [[1, 4]])]);
+    await settle();
+    // The successor rung started on the first frames: the ladder aims at 25.
+    expect(updates.at(-1)).toMatchObject({ computing: true, runTarget: 25 });
+    expect(updates.at(-1)!.progress).not.toBeNull();
+
+    session.dispose();
+    expect(updates.at(-1)).toMatchObject({
+      computing: false,
+      runTarget: null,
+      progress: null,
+      batches: [],
+    });
+    const published = updates.length;
+    await settle();
+    expect(updates).toHaveLength(published);
   });
 });
 
-describe("onBatches", () => {
-  it("lists live batches selection-first and drops them as they finish", async () => {
+describe("batches", () => {
+  it("lists the live rungs on every update and drops them as they finish", async () => {
     const { session, batches, liveBatches, settle } = makeHarness(
       25,
       point(0, 0),
@@ -509,10 +572,11 @@ describe("onBatches", () => {
     // The pipelined successor joins the list once the first rung streams.
     batches[0]!.stream([frame(8, [[1, 8]])]);
     await settle();
-    expect(liveBatches().map((batch) => batch.kind)).toEqual([
-      "selection",
-      "selection",
+    expect(liveBatches()).toMatchObject([
+      { kind: "selection", runCount: 8, completedRuns: 8 },
+      { kind: "selection", runCount: 17, completedRuns: 0 },
     ]);
+    expect(new Set(liveBatches().map((batch) => batch.id)).size).toBe(2);
 
     batches[0]!.complete();
     await settle();
@@ -520,6 +584,28 @@ describe("onBatches", () => {
 
     session.dispose();
     expect(liveBatches()).toEqual([]);
+  });
+
+  it("keeps the merged frames' identity on a progress-only tick with two rungs live", async () => {
+    const { session, batches, updates, liveBatches, settle } = makeHarness(
+      25,
+      point(0, 0),
+    );
+    await settle();
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+    batches[1]!.stream([frame(17, [[2, 17]])]);
+    await settle();
+    const merged = updates.at(-1)!.metricFrames;
+    expect(merged[0]).toMatchObject({ runSampleCount: 25 });
+
+    const published = updates.length;
+    batches[1]!.tick(5);
+    await settle();
+    expect(updates.length).toBeGreaterThan(published);
+    expect(updates.at(-1)!.metricFrames).toBe(merged);
+    expect(liveBatches()[1]).toMatchObject({ runCount: 17, completedRuns: 5 });
+    session.dispose();
   });
 });
 
@@ -683,5 +769,24 @@ describe("navigateTo", () => {
 
     session.dispose();
     expect(await pending).toBeNull();
+  });
+
+  it("rejects with the batch's reason when its own point fails", async () => {
+    const { session, batches, updates, settle } = makeHarness(
+      100,
+      point(0, 0),
+      {
+        startComputing: false,
+      },
+    );
+    const arrival = session.navigateTo(point(2, 0), { runCap: 8 });
+    await settle();
+    expect(batches).toHaveLength(1);
+
+    batches[0]!.error("device lost");
+    await expect(arrival).rejects.toThrow("device lost");
+    await settle();
+    expect(updates.at(-1)).toMatchObject({ computing: false, failed: true });
+    session.dispose();
   });
 });

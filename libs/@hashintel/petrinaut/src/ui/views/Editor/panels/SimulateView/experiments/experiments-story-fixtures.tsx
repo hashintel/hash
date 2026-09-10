@@ -18,6 +18,7 @@ import {
   isTerminalExperimentStatus,
   type SweepVisitedCell,
 } from "../../../../../../react/experiments/context";
+import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session";
 import {
   EditorContext,
   initialEditorState,
@@ -261,6 +262,7 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
         transmission_rate: { from: 25, to: 25 },
         recovery_days: { from: 6, to: 6 },
       },
+      selectionKey: "transmission_rate=25|recovery_days=6",
       runsCompleted: 25,
       runsSampled: 61,
       runTarget: 100,
@@ -679,13 +681,27 @@ export function FakeExperimentsProvider({
                 sweep: {
                   ...experiment.sweep,
                   selection,
+                  selectionKey: sweepSelectionKey(
+                    experiment.parameterAxes,
+                    selection,
+                  ),
                   runsCompleted: 0,
                   runsSampled: 0,
                   runTarget: 8,
                   computing: true,
                 },
               }
-            : { ...experiment, sweep: { ...experiment.sweep, selection } }
+            : {
+                ...experiment,
+                sweep: {
+                  ...experiment.sweep,
+                  selection,
+                  selectionKey: sweepSelectionKey(
+                    experiment.parameterAxes,
+                    selection,
+                  ),
+                },
+              }
           : experiment,
       ),
     );

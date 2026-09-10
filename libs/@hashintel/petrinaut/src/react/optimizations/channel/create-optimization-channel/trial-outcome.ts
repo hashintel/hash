@@ -1,6 +1,7 @@
 import { getOwn } from "@hashintel/petrinaut-core";
 
 import { sweepCellObjective } from "../../../experiments/sweep-cell-objective";
+import { prunedTrialOutcome } from "../../shared/pruned-trial-outcome";
 
 import type {
   DetachedObjectiveRunOutcome,
@@ -10,15 +11,6 @@ import type {
   PetrinautOptimizationTrialConstraints,
   PetrinautOptimizationTrialOutcome,
 } from "@hashintel/petrinaut-core/optimization";
-
-export const prunedTrialOutcome = (
-  reason: string,
-  constraints?: PetrinautOptimizationTrialConstraints,
-): PetrinautOptimizationTrialOutcome => ({
-  kind: "pruned",
-  reason,
-  ...(constraints ? { constraints } : {}),
-});
 
 /**
  * The mean of the per-run finals the CPU backend reports. Null when the
