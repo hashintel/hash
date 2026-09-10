@@ -128,7 +128,10 @@ export const ParameterImportancePanel = ({
   /** `paused` reads as paused whatever the floor says; otherwise the floor decides. */
   tone?: ChartCardTone;
 }) => {
-  const view = importanceRows(optimization);
+  // Keyed on the four fields a trial event replaces, so the correlations
+  // stand while the selection stream re-publishes the record.
+  const { trials, importance, input, requestedTrials } = optimization;
+  const view = importanceRows({ trials, importance, input, requestedTrials });
 
   return (
     <ChartCard

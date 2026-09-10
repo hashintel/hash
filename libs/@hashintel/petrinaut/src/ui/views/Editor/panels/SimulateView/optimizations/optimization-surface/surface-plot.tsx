@@ -24,6 +24,7 @@ import {
 import { formatAxisValue } from "../../shared/format-axis-value";
 import {
   mergeSurfaceFields,
+  surfaceAxisPosition,
   type SurfaceField,
   surfaceGridCoordinate,
 } from "../../shared/surface-field";
@@ -33,7 +34,10 @@ import {
   surfaceCaption,
   SurfaceFrame,
 } from "../../shared/surface-frame";
-import { surfacePositions } from "../../shared/surface-sampling";
+import {
+  surfaceColumnCount,
+  surfacePositions,
+} from "../../shared/surface-sampling";
 
 import type {
   OptimizationBest,
@@ -338,15 +342,15 @@ export const OptimizationSurfacePlot = ({
     onPick && xAxis && yAxis
       ? (fraction: ContourSurfaceFraction) =>
           onPick({
-            [xAxis.identifier]: Math.round(fraction.x * xAxis.stepCount),
-            [yAxis.identifier]: Math.round(fraction.y * yAxis.stepCount),
+            [xAxis.identifier]: surfaceAxisPosition(xAxis, fraction.x),
+            [yAxis.identifier]: surfaceAxisPosition(yAxis, fraction.y),
           })
       : undefined;
 
   /** The axis readout a plot fraction lands on. */
   const readoutAt = (axis: OptimizationSurfaceAxis, fraction: number): string =>
     `${axis.identifier} = ${formatAxisValue(
-      optimizationAxisValueAt(axis, Math.round(fraction * axis.stepCount)),
+      optimizationAxisValueAt(axis, surfaceAxisPosition(axis, fraction)),
     )}`;
 
   return (
@@ -377,8 +381,8 @@ export const OptimizationSurfacePlot = ({
     >
       {xAxis && yAxis ? (
         <ContourSurface
-          nx={surfacePositions(xAxis).length}
-          ny={surfacePositions(yAxis).length}
+          nx={surfaceColumnCount(xAxis)}
+          ny={surfaceColumnCount(yAxis)}
           height={SURFACE_PLOT_HEIGHT}
           contentKey={contentKey}
           values={values}

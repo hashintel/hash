@@ -6,7 +6,7 @@
  * optimizer control and the surface for a sweep, one metric card per
  * configured metric, and Remove, Cancel and Close in the footer.
  */
-import { use, useEffect, useState } from "react";
+import { use } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -15,15 +15,14 @@ import {
   ExperimentsActionsContext,
   type ExperimentsActionsValue,
   type ExperimentRecord,
-  getExperimentElapsedMs,
   isExperimentActive,
   type SweepBatchStatus,
 } from "../../../../../../react/experiments/context";
 import { experimentProgressPercent } from "../../../shared/experiment-progress";
 import { type ComputeBatch } from "../shared/drawer-frame";
-import { formatFixed } from "../shared/format-value";
+import { formatCount, formatFixed } from "../shared/format-value";
 import { METRIC_PLOT_HEIGHT, type MetricTile } from "../shared/metric-tiles";
-import { formatDurationMs } from "./format-duration";
+import { ElapsedStat } from "./experiment-results/elapsed-stat";
 import { SweepNavigator } from "./sweep-navigator";
 import { SweepOptimizeControl } from "./sweep-optimize-control";
 import {
@@ -74,7 +73,7 @@ const cancelSlotStyle = css({
 export const describeExperiment = (
   experiment: Pick<ExperimentRecord, "name" | "scenarioName" | "runCount">,
 ): string =>
-  `${experiment.name} · ${experiment.scenarioName ?? "Default scenario"} · ${experiment.runCount.toLocaleString("en-US")} runs`;
+  `${experiment.name} · ${experiment.scenarioName ?? "Default scenario"} · ${formatCount(experiment.runCount)} runs`;
 
 /** A sweep's only batches are the rungs of the selection's ladder. */
 const BATCH_KIND_META: Record<
@@ -95,8 +94,6 @@ export const experimentComputeBatches = (
     completedRuns: batch.completedRuns,
   }));
 
-const formatCount = (value: number): string => value.toLocaleString("en-US");
-
 /**
  * Simulated time to show when no batch is publishing progress: an idle sweep
  * or a complete run has taken every run to the end.
@@ -109,10 +106,8 @@ const settledTime = (experiment: ExperimentRecord): number =>
 /** The stat columns after the status pill, each sized for its widest value. */
 export const experimentStats = (
   experiment: ExperimentRecord,
-  now: number,
 ): ResultsStat[] => {
   const { progress } = experiment;
-  const elapsedMs = getExperimentElapsedMs(experiment, now);
   const runCount = formatCount(experiment.runCount);
   const maxTime = formatFixed(experiment.maxTime);
   // The widest time readout: a fraction just under the maximum, which prints
@@ -151,12 +146,21 @@ export const experimentStats = (
       },
     },
     // Wall-clock, as distinct from the simulated time; it stops once the
-    // experiment finishes and is dashed out when stepping never began.
+    // experiment finishes and is dashed out when stepping never began. The
+    // leaf keeps its own clock, so the tick re-renders nothing else.
     {
       id: "elapsed",
       label: "Elapsed",
       widest: WIDEST_DURATION,
-      value: { text: elapsedMs === null ? "—" : formatDurationMs(elapsedMs) },
+      value: {
+        text: (
+          <ElapsedStat
+            startedAt={experiment.startedAt}
+            finishedAt={experiment.finishedAt}
+            active={isExperimentActive(experiment)}
+          />
+        ),
+      },
     },
     ...(experiment.sweep
       ? [
@@ -177,17 +181,23 @@ export const experimentStats = (
   ];
 };
 
-/** One tile per configured metric, fed the record's frames. */
+/**
+ * One tile per configured metric, fed the record's frames. Called from the
+ * hook on the two record fields alone, so a publish that keeps the frames
+ * array (progress, batches, an optimizer change) hands every plot the same
+ * `frames` and no chart redraws.
+ */
 export const experimentMetricTiles = (
-  experiment: ExperimentRecord,
+  metricFrames: ExperimentRecord["metricFrames"],
+  metricSpecs: ExperimentRecord["metricSpecs"],
 ): MetricTile[] => {
   const framesById = new Map<string, MetricTile["frames"][number][]>();
-  for (const frame of experiment.metricFrames) {
+  for (const frame of metricFrames) {
     const frames = framesById.get(frame.metricId) ?? [];
     frames.push(frame);
     framesById.set(frame.metricId, frames);
   }
-  return experiment.metricSpecs.map((spec) => ({
+  return metricSpecs.map((spec) => ({
     id: spec.id,
     title: spec.label,
     metricName: null,
@@ -198,8 +208,8 @@ export const experimentMetricTiles = (
 };
 
 export type ExperimentResultsDependencies = {
-  /** The wall clock, for the elapsed time. */
-  now: number;
+  /** The metric tiles, split from the record's frames once per frames array. */
+  tiles: readonly MetricTile[];
   actions: Pick<
     ExperimentsActionsValue,
     "cancelExperiment" | "removeExperiment" | "setSweepSelection"
@@ -212,12 +222,11 @@ export type ExperimentResultsDependencies = {
 
 export const experimentResultsModel = (
   experiment: ExperimentRecord,
-  { now, actions, optimizer, onClose }: ExperimentResultsDependencies,
+  { tiles, actions, optimizer, onClose }: ExperimentResultsDependencies,
 ): ResultsModel => {
   const { sweep } = experiment;
   const canCancel =
     experiment.status === "initializing" || experiment.status === "running";
-  const tiles = experimentMetricTiles(experiment);
   const driving = optimizer.driving && optimizer.study !== null;
   const tone: ChartCardTone = driving ? "optimizing" : "default";
 
@@ -226,7 +235,7 @@ export const experimentResultsModel = (
       title: describeExperiment(experiment),
       headline: null,
       status: { ...STATUS_DISPLAY[experiment.status], widest: WIDEST_STATUS },
-      stats: experimentStats(experiment, now),
+      stats: experimentStats(experiment),
       activity: experimentComputeBatches(experiment.sweepBatches),
       compute: experiment,
       progress: experimentProgressPercent(experiment),
@@ -294,8 +303,8 @@ export const experimentResultsModel = (
             timeDomain: [0, experiment.maxTime],
             // What the frames represent: a selection change fades the previous
             // picture out inside each plot instead of cutting to the sparse
-            // new stream.
-            contentEpoch: JSON.stringify(sweep?.selection ?? null),
+            // new stream. The session keys the selection once per publish.
+            contentEpoch: sweep?.selectionKey ?? "",
             plotHeight: METRIC_PLOT_HEIGHT,
             tone: "default",
             cards: null,
@@ -347,35 +356,30 @@ export const experimentResultsModel = (
 };
 
 /**
- * A clock that advances while `active`, so an elapsed-time readout keeps
- * moving even when a stalled run stops publishing progress.
+ * The tiles behind a hook boundary of their own: the compiler caches a hook's
+ * result on what the hook read (the two record fields) and treats it as
+ * frozen afterwards, whereas the same call inline shares a cache with the
+ * model call it feeds (which may, for all the compiler knows, mutate its
+ * arguments) and is rebuilt with it. The directive compiles the hook although
+ * it calls no other.
  */
-const useNow = (active: boolean): number => {
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    if (!active) {
-      return;
-    }
-    const update = () => setNow(Date.now());
-    update();
-    const intervalId = window.setInterval(update, 250);
-    return () => window.clearInterval(intervalId);
-  }, [active]);
-
-  return now;
+const useExperimentMetricTiles = (
+  experiment: ExperimentRecord,
+): readonly MetricTile[] => {
+  "use memo";
+  return experimentMetricTiles(experiment.metricFrames, experiment.metricSpecs);
 };
 
-/** The model for the experiment, from the actions provider and the wall clock. */
+/** The model for the experiment, from the actions provider and the optimizer. */
 export const useExperimentResultsModel = (
   experiment: ExperimentRecord,
   onClose: () => void,
 ): ResultsModel => {
   const actions = use(ExperimentsActionsContext);
   const optimizer = useSweepOptimizer(experiment);
-  const now = useNow(isExperimentActive(experiment));
+  const tiles = useExperimentMetricTiles(experiment);
   return experimentResultsModel(experiment, {
-    now,
+    tiles,
     actions,
     optimizer,
     onClose,

@@ -141,7 +141,7 @@ export const ObjectiveHistoryChart = ({
   plotHeight: number;
 }) => {
   const chartRootRef = useRef<HTMLDivElement>(null);
-  const size = useElementSize(chartRootRef, { debounce: 50 });
+  const size = useElementSize(chartRootRef);
   const plotRef = useRef<uPlot | null>(null);
   const points = buildObjectiveHistory(
     optimization.trials,
@@ -149,14 +149,18 @@ export const ObjectiveHistoryChart = ({
   );
   const data = toObjectiveHistoryData(points);
   const width = size?.width ?? 0;
+  const hasWidth = width > 0;
 
+  // The plot lives as long as the root has a width; a resize is pushed into
+  // it below rather than rebuilding it, so a drawer drag keeps the canvas,
+  // the axes and the cursor.
   useEffect(() => {
     const root = chartRootRef.current;
-    if (!root || width === 0) {
+    if (!root || !hasWidth) {
       return;
     }
     const plot = new UPlot(
-      chartOptions({ width, height: plotHeight }),
+      chartOptions({ width: root.clientWidth, height: plotHeight }),
       [[], [], []] as uPlot.AlignedData,
       root,
     );
@@ -165,13 +169,17 @@ export const ObjectiveHistoryChart = ({
       plotRef.current = null;
       plot.destroy();
     };
-  }, [plotHeight, width]);
+  }, [hasWidth, plotHeight]);
+
+  useEffect(() => {
+    plotRef.current?.setSize({ width, height: plotHeight });
+  }, [width, plotHeight]);
 
   // The data is applied in its own effect so a new step redraws the plot
   // without recreating it, and a freshly created plot picks it up too.
   useEffect(() => {
     plotRef.current?.setData(data);
-  }, [data, width]);
+  }, [data, hasWidth]);
 
   return (
     <div

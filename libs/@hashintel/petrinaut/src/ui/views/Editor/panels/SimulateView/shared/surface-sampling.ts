@@ -14,13 +14,22 @@ export const SURFACE_GRID_POSITIONS = 11;
 
 export type SurfaceCell = { x: number; y: number };
 
-/** Evenly spread quantized positions of an axis with `stepCount + 1` steps. */
+/**
+ * How many positions a surface samples along an axis: every one of a short
+ * axis, `SURFACE_GRID_POSITIONS` spread over a long one.
+ */
+export const surfaceColumnCount = (axis: { stepCount: number }): number =>
+  Math.min(SURFACE_GRID_POSITIONS, axis.stepCount + 1);
+
+/**
+ * Evenly spread quantized positions of an axis with `stepCount + 1` steps:
+ * `surfaceColumnCount` of them, distinct because the spacing is at least one.
+ */
 export const surfacePositions = (axis: { stepCount: number }): number[] => {
-  const count = Math.min(SURFACE_GRID_POSITIONS, axis.stepCount + 1);
-  const positions = Array.from({ length: count }, (_, index) =>
+  const count = surfaceColumnCount(axis);
+  return Array.from({ length: count }, (_, index) =>
     Math.round((index * axis.stepCount) / (count - 1)),
   );
-  return [...new Set(positions)];
 };
 
 /**

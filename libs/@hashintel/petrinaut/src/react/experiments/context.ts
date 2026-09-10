@@ -203,7 +203,7 @@ export function isExperimentActive(experiment: ExperimentRecord): boolean {
  * report, rather than a runtime of 0.
  */
 export function getExperimentElapsedMs(
-  experiment: ExperimentRecord,
+  experiment: Pick<ExperimentRecord, "startedAt" | "finishedAt">,
   now: number,
 ): number | null {
   if (experiment.startedAt === null) {

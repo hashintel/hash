@@ -25,9 +25,13 @@ export type ResultsStatus = {
   widest: string;
 };
 
-/** One stat column's value: the text, with the tooltip that explains it when there is one. */
+/**
+ * One stat column's value: the text, with the tooltip that explains it when
+ * there is one. A leaf element may stand in for the text so a readout that
+ * ticks on its own (the wall clock) re-renders alone.
+ */
 export type ResultsStatValue = {
-  text: string;
+  text: ReactNode;
   tooltip?: string;
 };
 
