@@ -4,7 +4,7 @@
     {
       "name": "@hashintel/petrinaut (storybook)",
       "runtimeExecutable": "yarn",
-      "runtimeArgs": ["workspace", "@hashintel/petrinaut", "dev"],
+      "runtimeArgs": ["workspace", "@hashintel/petrinaut", "dev", "--ci"],
       "port": 6006,
       "autoPort": true
     },
