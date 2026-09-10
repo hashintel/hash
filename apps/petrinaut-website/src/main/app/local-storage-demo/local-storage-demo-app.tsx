@@ -25,6 +25,7 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   createJsonDocHandle,
+  readPetrinautDocToolName,
   type MinimalNetMetadata,
   type PetrinautDocHandle,
   type PetrinautHandleCapabilities,
@@ -122,9 +123,10 @@ const preparedCrewReservationStoredSDCPN: SDCPNInLocalStorage = {
 };
 
 const legacyConstructionDocumentId = "synthetic-construction-substrate-v1";
-const constructionClientToolNames = new Set(
-  observedConstructionBrowserToolNames,
-);
+const constructionClientToolNames: ReadonlySet<string> = new Set([
+  readPetrinautDocToolName,
+  ...observedConstructionBrowserToolNames,
+]);
 const rootArcTracerDocumentId = `${crewReservationDocumentId}:root-arc`;
 const createRootArcTracerDocument = (): SDCPNInLocalStorage => ({
   ...preparedCrewReservationStoredSDCPN,

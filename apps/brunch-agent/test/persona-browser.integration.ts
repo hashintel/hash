@@ -334,6 +334,22 @@ try {
     ),
     /requested client tool getLatestNetDefinition/u,
   );
+  // Retain an unanswered guide read through the same ordinary SDK boundary.
+  // It has no browser host and must not be completed or replayed on reopen.
+  const unhostedGuideReadId = "sdk-unhosted-guide-read";
+  faux.setResponses([
+    call("readPetrinautDoc", { doc: "ai-assistant" }, unhostedGuideReadId),
+  ]);
+  const unhostedGuideAdmission = await client.send({
+    message: {
+      kind: "user",
+      body: "TEST read the assistant guide without a browser host.",
+    },
+    uid: config.uid,
+  });
+  await client.read(unhostedGuideAdmission, {
+    signal: AbortSignal.timeout(30_000),
+  });
   // Stop persona driving; reopen the same browser profile/document and continue
   // through the ordinary composer. No seeded workpiece, direct state write or new ID.
   // A long workpiece must not cover the assistant opener on a short desktop viewport.
@@ -346,6 +362,21 @@ try {
     markdowns[1]!,
     { timeout: 30_000 },
   );
+  const reopenedHistory = await client.history();
+  const reopenedClientHistory = clientToolHistoryFrom(reopenedHistory.messages);
+  assert(
+    reopenedClientHistory.calls.some(
+      (request) =>
+        request.toolCallId === unhostedGuideReadId &&
+        request.toolName === "readPetrinautDoc",
+    ),
+  );
+  assert(
+    !reopenedClientHistory.results.some(
+      (result) => result.toolCallId === unhostedGuideReadId,
+    ),
+  );
+  checked++;
   const continuation =
     "TEST UI continuation: keep timing unknown and create one test configuration parameter, not an operational value.";
   faux.setResponses([
@@ -392,6 +423,18 @@ try {
         "1",
       );
       checked++;
+      return call(
+        "readPetrinautDoc",
+        { doc: "ai-assistant" },
+        "ui-construction-guide-read",
+      );
+    },
+    (context: Context) => {
+      const guide = browserResult(context, "readPetrinautDoc").output;
+      if (typeof guide !== "string")
+        throw new Error("Guide read did not return text.");
+      assert(guide.includes("AI Assistant"));
+      checked++;
       return text("TEST continued with a fresh UI browser mutation.");
     },
   ]);
@@ -404,23 +447,45 @@ try {
   ).toContainText("State queried by ui-continuation-read", { timeout: 30_000 });
   assert.equal(
     checked,
-    7,
-    "Reopened workpiece query, fresh browser observation and mutation must all be checked",
+    9,
+    "Reopened workpiece query, fresh browser observation, mutation and guide read must all be checked",
   );
   const final = await client.history();
-  const clientResults = clientToolHistoryFrom(final.messages).results;
+  const finalClientHistory = clientToolHistoryFrom(final.messages);
+  const clientResults = finalClientHistory.results;
+  assert(
+    finalClientHistory.calls.some(
+      (request) =>
+        request.toolCallId === unhostedGuideReadId &&
+        request.toolName === "readPetrinautDoc",
+    ),
+  );
   assert(
     !clientResults.some(
       (result) => result.toolCallId === "persona-unhosted-browser-read",
     ),
   );
   assert(
+    !clientResults.some((result) => result.toolCallId === unhostedGuideReadId),
+  );
+  checked++;
+  assert(
     clientResults.some((result) => result.toolCallId === "ui-fresh-parameter"),
+  );
+  assert(
+    clientResults.some(
+      (result) => result.toolCallId === "ui-construction-guide-read",
+    ),
+  );
+  assert.equal(
+    checked,
+    10,
+    "Both unanswered reads must remain undelivered while the fresh guide read settles",
   );
   assert.equal(final.conversationId, initialHistory.conversationId);
   assert.equal(
     final.messages.filter((message) => message.purpose === "user").length,
-    5,
+    6,
   );
   const sends = deliveries
     .map(
@@ -432,7 +497,7 @@ try {
         },
     )
     .filter((body) => body.kind === "user");
-  assert(sends.length >= 5);
+  assert(sends.length >= 6);
   for (const send of sends.slice(1, 3)) {
     assert.equal(send.uid, config.uid);
     assert(!("initialData" in send));
@@ -446,11 +511,12 @@ try {
     checked,
     requests: contexts.length,
     revisions: 2,
-    canonicalUserMessages: 5,
+    canonicalUserMessages: 6,
     sameRuntimeUid: true,
     liveConversation: true,
     uiContinuation: true,
     unhostedPersonaReadRetained: true,
+    unhostedGuideReadRetained: true,
     freshUiReadThenMutation: true,
     browserMutationHosting:
       "ordinary UI only; persona hosting remains unavailable",
