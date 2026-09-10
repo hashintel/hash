@@ -3,6 +3,18 @@ import { sva } from "@hashintel/ds-helpers/css";
 import { formSizes } from "../../util/form-size.recipe";
 import { formWidths } from "../../util/form-width.recipe";
 
+// Shared by the preset width variants (duplicated in select.recipe.ts —
+// Panda can only extract same-file spreads): the wrapper holds the preset
+// against flex siblings but yields to containers narrower than it.
+const presetWidthWrapper = {
+  maxWidth: "[100%]",
+  minWidth: "[max(var(--form-min-width), min(var(--form-width), 100%))]",
+} as const;
+const presetWidthRoot = {
+  maxWidth: "[100%]",
+  minWidth: "var(--form-min-width)",
+} as const;
+
 export const baseInputRecipe = sva({
   slots: [
     "wrapper",
@@ -37,7 +49,7 @@ export const baseInputRecipe = sva({
     root: {
       display: "inline-flex",
       width: "[fit-content]",
-      minWidth: "[min-content]",
+      minWidth: "var(--form-min-width)",
       position: "relative",
       background: "[var(--base-input-background-color)]",
       borderWidth: "var(--form-border-width)",
@@ -437,16 +449,20 @@ export const baseInputRecipe = sva({
     },
     width: {
       xs: {
-        wrapper: { ...formWidths.variants.widths.xs },
+        wrapper: { ...presetWidthWrapper, ...formWidths.variants.widths.xs },
+        root: presetWidthRoot,
       },
       sm: {
-        wrapper: { ...formWidths.variants.widths.sm },
+        wrapper: { ...presetWidthWrapper, ...formWidths.variants.widths.sm },
+        root: presetWidthRoot,
       },
       md: {
-        wrapper: { ...formWidths.variants.widths.md },
+        wrapper: { ...presetWidthWrapper, ...formWidths.variants.widths.md },
+        root: presetWidthRoot,
       },
       lg: {
-        wrapper: { ...formWidths.variants.widths.lg },
+        wrapper: { ...presetWidthWrapper, ...formWidths.variants.widths.lg },
+        root: presetWidthRoot,
       },
       fullWidth: {
         wrapper: {
@@ -461,6 +477,7 @@ export const baseInputRecipe = sva({
         wrapper: { ...formWidths.variants.widths.fitContent },
         root: {
           width: "[fit-content]",
+          minWidth: "[unset]",
         },
         readonly: { width: "[fit-content]" },
         inputWrapper: {
