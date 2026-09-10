@@ -222,9 +222,12 @@ const captureCompletion = (
     },
   };
   const path = join(directory, "completed-response.json");
-  assert(!existsSync(path));
   // turn is emitted after the awaited assistant_message_completed append, before compaction.
-  writeFileSync(path, `${JSON.stringify(completionPin, null, 2)}\n`);
+  // Exclusive creation is both the assertion and the write: no check/write race can overwrite a pin.
+  writeFileSync(path, `${JSON.stringify(completionPin, null, 2)}\n`, {
+    flag: "wx",
+    mode: 0o600,
+  });
 };
 const assertCompletedResponse = (snapshot: FlueConversationSnapshot) => {
   const pin = completionPin;

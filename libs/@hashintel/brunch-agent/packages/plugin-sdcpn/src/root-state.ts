@@ -137,16 +137,19 @@ export const locateRootState = (
         : [query.field];
   let value: unknown = entity;
   for (const field of fields) {
+    const property =
+      typeof value === "object" && value !== null
+        ? Object.getOwnPropertyDescriptor(value, field)
+        : undefined;
     if (
-      typeof value !== "object" ||
-      value === null ||
-      !Object.hasOwn(value, field) ||
+      property === undefined ||
+      !("value" in property) ||
       (Array.isArray(value) && !/^(?:0|[1-9]\d*)$/u.test(field))
     )
       throw new Error(
         "The requested field is absent; no field origin is inferred.",
       );
-    value = (value as Record<string, unknown>)[field];
+    value = property.value;
   }
   return {
     kind: query.kind,
