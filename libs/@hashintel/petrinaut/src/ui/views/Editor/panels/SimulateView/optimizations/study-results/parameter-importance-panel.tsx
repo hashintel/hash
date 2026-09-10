@@ -93,7 +93,7 @@ const barFillStyle = css({
   height: "full",
   borderRadius: "full",
   backgroundColor: "blue.s100",
-  transition: "[width 160ms ease-out]",
+  "[data-animate=true] &": { transition: "[width 160ms ease-out]" },
   "[data-below-floor='true'] &": { opacity: "[0.25]" },
 });
 
