@@ -1902,6 +1902,7 @@ const ConversationAiAssistantPanel = ({
 
   return (
     <AiAssistantContents
+      additionalTab={aiAssistant.additionalTab}
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false
       }

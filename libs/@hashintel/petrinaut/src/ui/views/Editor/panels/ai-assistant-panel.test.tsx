@@ -325,6 +325,32 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(getVoiceToolCallIds({ toolCallId: "legacy-question" })).toEqual([]);
   });
 
+  test("forwards a host tab through the production panel without submitting a turn", () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    renderTestPanel({
+      aiAssistant: {
+        conversationId: "host-tab",
+        additionalTab: { label: "Workpiece", content: <p>Saved workpiece</p> },
+        transport: { sendMessages, reconnectToStream: async () => null },
+      },
+    });
+    const hostTab = screen.getByRole("tab", { name: "Workpiece" });
+    screen.getByRole("tab", { name: "AI" }).focus();
+    fireEvent.keyDown(screen.getByRole("tab", { name: "AI" }), {
+      key: "ArrowRight",
+    });
+    expect(document.activeElement).toBe(hostTab);
+    expect(hostTab.getAttribute("aria-selected")).toBe("true");
+    expect(
+      screen.getByRole("tabpanel", { name: "Workpiece" }).textContent,
+    ).toContain("Saved workpiece");
+    fireEvent.keyDown(hostTab, { key: "Home" });
+    expect(
+      screen.getByRole("tab", { name: "AI" }).getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
   test("runs the host mutation boundary once before matching output insertion and continuation in StrictMode", async () => {
     let boundInstance: ReturnType<typeof createPetrinaut> | undefined;
     const observedNames: (string | undefined)[] = [];

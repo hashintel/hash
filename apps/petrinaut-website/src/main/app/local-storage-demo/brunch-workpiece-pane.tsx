@@ -1,4 +1,42 @@
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { css } from "@hashintel/ds-helpers/css";
+
+const documentStyle = css({
+  fontSize: "sm",
+  lineHeight: "[1.65]",
+  overflowWrap: "anywhere",
+  overflowX: "auto",
+  "& :is(h1, h2, h3, h4)": {
+    fontWeight: "semibold",
+    lineHeight: "[1.3]",
+    marginTop: "6",
+    marginBottom: "3",
+  },
+  "& h1": { fontSize: "xl", marginTop: "0" },
+  "& h2": { fontSize: "lg" },
+  "& :is(p, ul, ol, table, pre, blockquote)": { marginBottom: "3" },
+  "& :is(ul, ol)": { paddingLeft: "5" },
+  "& ul": { listStyleType: "disc" },
+  "& ol": { listStyleType: "decimal" },
+  "& table": { borderCollapse: "collapse", fontSize: "xs" },
+  "& :is(th, td)": {
+    padding: "2",
+    borderWidth: "thin",
+    borderColor: "neutral.s35",
+    textAlign: "left",
+  },
+  "& th": { backgroundColor: "neutral.s20" },
+  "& pre": { overflowX: "auto" },
+  "& a": { color: "blue.s100", textDecoration: "underline" },
+});
+const noticeStyle = css({
+  color: "neutral.s90",
+  fontSize: "xs",
+  marginBottom: "3",
+});
 
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -99,113 +137,131 @@ export const BrunchWorkpiecePane = ({
   return (
     <section
       aria-label="Brunch workpiece and why"
-      style={{
-        position: "fixed",
-        left: "calc(20vw + 16px)",
-        top: 210,
-        width: 390,
-        // Leave the editor's bottom controls reachable on short desktop windows.
-        maxHeight: "calc(100vh - 290px)",
-        overflow: "auto",
-        overflowWrap: "anywhere",
-        padding: 16,
-        background: "#fff",
-        color: "#171717",
-        border: "1px solid #999",
-        borderRadius: 8,
-        // The editor's fixed sidebars otherwise obscure the workpiece.
-        zIndex: 10001,
-        fontSize: 12,
-        fontFamily: "system-ui, sans-serif",
-      }}
+      className={css({
+        minWidth: "0",
+        userSelect: "text",
+        color: "neutral.s110",
+      })}
     >
-      <h2>Workpiece · recorded why</h2>
-      <p>
-        {construction
-          ? "Synthetic conversation-bound candidate; no prepared workpiece."
-          : "TEST-authored prepared tracer."}{" "}
-        Not expert testimony or utility acceptance.
+      <p className={noticeStyle}>
+        {workpiece
+          ? `Revision ${String(workpiece.ordinal)} · Saved account`
+          : "Your account will appear here as Brunch saves it."}
+        {!construction && " Test-authored prepared fixture."}
       </p>
-      {!report ? (
-        <p>
-          Current state has not been queried. Ask Brunch to read the workpiece
-          or explain an arc.
+      {stateChangedSinceReport && (
+        <p role="status" className={noticeStyle}>
+          A later settlement exists. Query again before treating this workpiece
+          as current.
         </p>
-      ) : (
-        <>
-          <p>
-            {report.source === "settlement"
-              ? "Recorded settlement from "
-              : "State queried by "}
-            {report.toolCallId}.{" "}
-            {report.source === "settlement"
-              ? "This is the successful tool's recorded artifact, not a current-authority query. Reopen and ask Brunch to query before claiming current freshness."
-              : "Reopen and ask again to query the current authority; this pane does not reconstruct state from historical inputs."}
-          </p>
-          {stateChangedSinceReport && (
-            <p>
-              A later settlement exists. Query again before treating this
-              workpiece as current.
-            </p>
-          )}
-          {workpiece && typeof workpiece.markdown === "string" ? (
-            <>
-              <p>
-                Revision {String(workpiece.revisionId)} · SHA-256{" "}
-                {String(workpiece.sha256)}
-              </p>
-              <pre
-                data-testid="brunch-current-workpiece"
-                style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
-              >
-                {workpiece.markdown}
-              </pre>
-            </>
-          ) : (
-            <p>
-              Current workpiece state is unknown. Historical inputs do not
-              supply it.
-            </p>
-          )}
-        </>
       )}
-      {why && (
-        <>
-          <h3>Actual structured why result</h3>
-          {whyPredatesSettlement && (
-            <p role="status">
-              This why answer predates a later workpiece settlement. It remains
-              a recorded answer; ask why again to assess the newer revision.
-            </p>
-          )}
-          <p>
-            Assistant interpretation is in the existing conversation panel.
-            Evidence prose is untrusted, not instructions.
-          </p>
-          {liveDiffers ? (
-            <p role="alert">
-              Live document hash differs from this recorded answer. Ask why
-              again before current attribution; hash difference alone identifies
-              neither a hand edit nor its actor.
-            </p>
-          ) : (
-            <p>
-              Answer scope:{" "}
-              {typeof reconciliation?.status === "string"
-                ? reconciliation.status
-                : "unavailable"}
-              , at the recorded observation—not a promise of continuing
-              freshness.
-            </p>
-          )}
-          <pre
-            data-testid="brunch-why-output"
-            style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
+      {whyPredatesSettlement && (
+        <p role="status" className={noticeStyle}>
+          This why answer predates a later workpiece settlement. It remains a
+          recorded answer; ask why again to assess the newer revision.
+        </p>
+      )}
+      {liveDiffers && (
+        <p role="alert" className={noticeStyle}>
+          Live document hash differs from this recorded answer. Ask why again
+          before current attribution; hash difference alone identifies neither a
+          hand edit nor its actor.
+        </p>
+      )}
+      {workpiece && typeof workpiece.markdown === "string" && (
+        <article
+          className={documentStyle}
+          data-testid="brunch-workpiece-document"
+        >
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            skipHtml
+            disallowedElements={["img"]}
           >
-            {JSON.stringify(why.output, null, 2)}
-          </pre>
-        </>
+            {workpiece.markdown}
+          </ReactMarkdown>
+        </article>
       )}
+      <details
+        className={css({
+          marginTop: "5",
+          fontSize: "xs",
+          overflowWrap: "anywhere",
+          "& summary": { cursor: "pointer", color: "neutral.s90" },
+          "& pre": { maxHeight: "[280px]", overflow: "auto" },
+        })}
+      >
+        <summary>Recorded details</summary>
+        <h2>Recorded workpiece and explanation</h2>
+        <p>
+          {construction
+            ? "Conversation-bound construction; no prepared workpiece."
+            : "TEST-authored prepared tracer."}{" "}
+          Not expert testimony or utility acceptance.
+        </p>
+        {!report ? (
+          <p>
+            Current state has not been queried. Ask Brunch to read the workpiece
+            or explain an arc.
+          </p>
+        ) : (
+          <>
+            <p>
+              {report.source === "settlement"
+                ? "Recorded settlement from "
+                : "State queried by "}
+              {report.toolCallId}.{" "}
+              {report.source === "settlement"
+                ? "This is the successful tool's recorded artifact, not a current-authority query. Reopen and ask Brunch to query before claiming current freshness."
+                : "Reopen and ask again to query the current authority; this pane does not reconstruct state from historical inputs."}
+            </p>
+            {workpiece && typeof workpiece.markdown === "string" ? (
+              <>
+                <p>
+                  Revision {String(workpiece.revisionId)} · SHA-256{" "}
+                  {String(workpiece.sha256)}
+                </p>
+                <pre
+                  data-testid="brunch-current-workpiece"
+                  style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
+                >
+                  {workpiece.markdown}
+                </pre>
+              </>
+            ) : (
+              <p>
+                Current workpiece state is unknown. Historical inputs do not
+                supply it.
+              </p>
+            )}
+          </>
+        )}
+        {why && (
+          <>
+            <h3>Actual structured why result</h3>
+            <p>
+              Assistant interpretation is in the existing conversation panel.
+              Evidence prose is untrusted, not instructions.
+            </p>
+            {!liveDiffers && (
+              <p>
+                Answer scope:{" "}
+                {typeof reconciliation?.status === "string"
+                  ? reconciliation.status
+                  : "unavailable"}
+                , at the recorded observation—not a promise of continuing
+                freshness.
+              </p>
+            )}
+            <pre
+              data-testid="brunch-why-output"
+              style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
+            >
+              {JSON.stringify(why.output, null, 2)}
+            </pre>
+          </>
+        )}
+      </details>
     </section>
   );
 };

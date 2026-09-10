@@ -805,6 +805,20 @@ export const LocalStorageDemoApp = ({
 
   const aiAssistant = useMemo(
     () => ({
+      additionalTab:
+        tracerIsCurrent && rootArcBrowser
+          ? {
+              label: "Workpiece",
+              content: (
+                <BrunchWorkpiecePane
+                  messages={flueHistory.snapshot?.messages ?? []}
+                  construction={constructionSelected}
+                  binding={rootArcBrowser.binding}
+                  liveHash={observedLiveHash}
+                />
+              ),
+            }
+          : undefined,
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
       interactiveTools: [],
@@ -860,6 +874,10 @@ export const LocalStorageDemoApp = ({
     [
       aiMessagesByNetId,
       brunchVoiceMode,
+      constructionSelected,
+      observedLiveHash,
+      rootArcBrowser,
+      tracerIsCurrent,
       conversationTracker,
       conversationId,
       currentNetId,
@@ -888,39 +906,12 @@ export const LocalStorageDemoApp = ({
         width: "100vw",
       }}
     >
-      {constructionSelected && (
-        <div
-          style={{
-            position: "fixed",
-            top: 8,
-            left: 80,
-            zIndex: 10000,
-            background: "white",
-            padding: 8,
-          }}
-        >
-          Synthetic construction candidate ·{" "}
-          {rootCreationSelected
-            ? "empty starting document"
-            : "prepared net substrate only"}{" "}
-          · no prepared workpiece · root construction mechanics, not genuine or
-          provider admission
-        </div>
-      )}
       {tracerIsCurrent &&
         !constructionSelected &&
         createPortal(
           <RootArcTracerBanner status={tracerPreparation.status} />,
           document.body,
         )}
-      {tracerIsCurrent && rootArcBrowser && (
-        <BrunchWorkpiecePane
-          messages={flueHistory.snapshot?.messages ?? []}
-          construction={constructionSelected}
-          binding={rootArcBrowser.binding}
-          liveHash={observedLiveHash}
-        />
-      )}
       {preparedFixtureIsCurrent &&
         !tracerIsCurrent &&
         createPortal(

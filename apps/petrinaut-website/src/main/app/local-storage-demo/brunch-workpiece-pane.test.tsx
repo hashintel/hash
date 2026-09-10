@@ -36,6 +36,20 @@ const messages = [
   },
 ];
 
+test("renders a readable document without a floating overlay and keeps raw records in details", () => {
+  const html = renderToStaticMarkup(
+    <BrunchWorkpiecePane
+      messages={messages}
+      binding={binding}
+      liveHash={undefined}
+    />,
+  );
+  expect(html).toContain("<h1>Actual tool workpiece</h1>");
+  expect(html).not.toContain("position:fixed");
+  expect(html).toContain("<details");
+  expect(html).not.toContain("<details open");
+});
+
 test("shows actual recorded tool output and refuses to call a hand-edited document reconciled", () => {
   const html = renderToStaticMarkup(
     <BrunchWorkpiecePane

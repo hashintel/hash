@@ -75,7 +75,78 @@ afterEach(() => {
   }
 });
 
+const HostContent = ({ onMount }: { onMount: () => void }) => {
+  useEffect(onMount, [onMount]);
+  return <p>Saved account</p>;
+};
+
 describe("AiAssistantContents", () => {
+  test("switches to host content without unmounting chat or losing its draft and Stop control", () => {
+    const onStop = vi.fn();
+    const contentMounted = vi.fn();
+    render(
+      <AiAssistantContents
+        additionalTab={{
+          label: "Workpiece",
+          content: <HostContent onMount={contentMounted} />,
+        }}
+        input="Unsent question"
+        status="streaming"
+        messages={[
+          {
+            id: "reply",
+            role: "assistant",
+            parts: [{ type: "text", text: "Ongoing conversation" }],
+          },
+        ]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={onStop}
+        onSubmit={noop}
+      />,
+    );
+    const transcript = screen.getByRole("tabpanel", { name: "AI" });
+    const composer = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.click(screen.getByRole("tab", { name: "Workpiece" }));
+    expect(transcript.hidden).toBe(true);
+    expect(
+      screen.getByRole("tabpanel", { name: "Workpiece" }).textContent,
+    ).toContain("Saved account");
+    expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
+      composer,
+    );
+    expect((composer as HTMLTextAreaElement).value).toBe("Unsent question");
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    expect(onStop).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("tab", { name: "AI" }));
+    expect(screen.getByRole("tabpanel", { name: "AI" })).toBe(transcript);
+    expect(contentMounted).toHaveBeenCalledOnce();
+  });
+
+  test("returns to chat when the host withdraws its additional tab", () => {
+    const props = {
+      input: "",
+      status: "ready" as const,
+      messages: [],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+    };
+    const { rerender } = render(
+      <AiAssistantContents
+        {...props}
+        additionalTab={{ label: "Notes", content: <p>Host notes</p> }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
+    rerender(<AiAssistantContents {...props} />);
+    expect(screen.queryByRole("tab", { name: "Notes" })).toBeNull();
+    expect(screen.getByTestId("ai-transcript").hidden).toBe(false);
+  });
+
   test.each([
     {
       label: "blocked",
@@ -307,7 +378,7 @@ describe("AiAssistantContents", () => {
     );
   });
 
-  test("keeps one Voice mode slot mounted above the composer when the panel closes", () => {
+  test("keeps one Voice mode slot mounted across tab switches and panel closure", () => {
     voiceModeMounts = 0;
     voiceModeUnmounts = 0;
     const Stage = () => {
@@ -328,6 +399,7 @@ describe("AiAssistantContents", () => {
       onSubmit: noop,
       status: "ready" as const,
       voiceMode: <Stage />,
+      additionalTab: { label: "Notes", content: <p>Saved notes</p> },
     };
     const { rerender } = render(
       <AiAssistantContents {...props} isOpen={true} />,
@@ -343,6 +415,9 @@ describe("AiAssistantContents", () => {
     expect(panelRows.indexOf(voiceSlot)).toBeGreaterThan(
       panelRows.indexOf(transcript),
     );
+    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
+    expect(screen.getByTestId("ai-voice-mode")).toBe(voiceSlot);
+    expect(screen.getByText("Voice mode")).not.toBeNull();
     rerender(<AiAssistantContents {...props} isOpen={false} />);
 
     expect(

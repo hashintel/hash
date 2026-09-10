@@ -9,7 +9,7 @@ There are two entry points:
 1. **AI button** in the bottom toolbar (Edit mode only). Click it to open the panel; click again to close. The tooltip is "Show AI assistant" / "Hide AI assistant".
 2. **First-run prompt**. When you load Petrinaut against an empty net, a centred prompt appears. Type a description and its trailing action becomes **Send**; select it to open the panel with your message already in flight. When the host provides Voice mode, the empty prompt instead shows a waveform action titled **Start voice mode**. It opens the same assistant without creating an empty text message. Dismiss the prompt with the **X**, by clicking outside it, or by pressing **Escape**; it is hidden for the rest of the session once dismissed.
 
-The assistant panel only renders in **Edit** mode. Switching to **Simulate** mode hides it; switch back to **Edit** to continue the conversation. The panel resizes by dragging its left edge. Its header has one **AI** label because text and voice share the same transcript rather than separate chats.
+The assistant panel only renders in **Edit** mode. Switching to **Simulate** mode hides it; switch back to **Edit** to continue the conversation. The panel resizes by dragging its left edge. Text and voice share the **AI** transcript. Some hosts add a second tab, such as **Workpiece**, for a saved document. Select a tab to switch views, or use the left/right arrow keys while a tab is focused. Switching does not end a response, clear your draft or interrupt Voice; the composer and active controls remain available.
 
 ## The conversation
 
@@ -27,6 +27,12 @@ If an assistant request fails, Petrinaut shows the complete error in a persisten
 Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio. Voice markers attached to client-tool results survive that history. A direct spoken user message remains in the transcript after reopening, but its **Voice** chip may not be restored by the current Brunch host. Durably aborted assistant entries retain their **Response stopped** label even after later completed replies. If a tool-call step had already completed when Stop withheld its browser follow-up, that local decision has no durable cancellation record: hosts using initial-history recovery can recover the tool as pending work. Do not treat that local withholding as a reload-safe cancellation.
 
 A host may also enable live history following, as the local Brunch panel does. Turns submitted elsewhere then appear in the open conversation without a reload. Your own in-progress response stays in place until the host confirms that its canonical history has caught up. In this mode, tools observed from another participant or restored after reopening are display-only: watching a pending tool does not execute it or resume that turn. Tools emitted in response to your own local submission still execute normally. A pending externally submitted tool needs its originating participant/operator to resolve it; reopening this following panel is not automatic recovery.
+
+### Workpiece in Brunch
+
+In Brunch construction conversations, the **Workpiece** tab shows the saved account as a readable document. It updates when Brunch saves a revision, without covering the canvas or opening another panel. You can read it while continuing to type in the same composer, then switch to **AI** to inspect the reply. Closing and reopening the assistant retains the selected tab for that mounted conversation.
+
+The revision label describes the recorded account, not a promise of continuing freshness. Warnings remain visible when a later revision exists or an explanation no longer matches the observed net. Ask Brunch to read the workpiece or explain the relevant model part again when you need a fresh answer. **Recorded details** expands the revision identifiers, exact saved Markdown and structured explanation results; those records do not prove the modelling rationale is correct.
 
 ### Prepared local demo fixture
 

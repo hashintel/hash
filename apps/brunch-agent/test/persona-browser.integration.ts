@@ -164,6 +164,7 @@ try {
     },
   ];
   const uiSend = async (body: string, done: string) => {
+    await page.getByRole("tab", { name: "AI", exact: true }).click();
     const composer = page.getByRole("textbox", {
       name: "Message AI assistant",
       exact: true,
@@ -261,6 +262,13 @@ try {
         { exact: true },
       ),
     ).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("tab", { name: "Workpiece", exact: true }).click();
+    await expect(
+      page.getByRole("heading", {
+        name: "TEST simulated account",
+        exact: true,
+      }),
+    ).toBeVisible();
     await expect(page.getByTestId("brunch-current-workpiece")).toHaveText(
       markdown,
       { timeout: 30_000 },
@@ -283,10 +291,56 @@ try {
       ),
     );
     save(`revision-${index + 1}`, history);
+    if (index === 1) {
+      const assistant = page.getByRole("complementary", {
+        name: "AI assistant",
+      });
+      const before = await assistant.boundingBox();
+      const handle = await page
+        .getByRole("button", { name: "Resize AI assistant", exact: true })
+        .boundingBox();
+      assert(before && handle);
+      await page.mouse.move(
+        handle.x + handle.width / 2,
+        handle.y + handle.height / 2,
+      );
+      await page.mouse.down();
+      await page.mouse.move(
+        handle.x + handle.width / 2 - 80,
+        handle.y + handle.height / 2,
+        { steps: 5 },
+      );
+      await page.mouse.up();
+      await expect
+        .poll(async () => (await assistant.boundingBox())?.width ?? 0)
+        .toBeGreaterThan(before.width + 40);
+      const composer = page.getByRole("textbox", {
+        name: "Message AI assistant",
+        exact: true,
+      });
+      await composer.fill("TEST unsent draft survives tab switching");
+      await page.getByRole("tab", { name: "AI", exact: true }).click();
+      await expect(composer).toHaveValue(
+        "TEST unsent draft survives tab switching",
+      );
+      await page.getByRole("tab", { name: "Workpiece", exact: true }).click();
+      await expect(composer).toHaveValue(
+        "TEST unsent draft survives tab switching",
+      );
+      await composer.fill("");
+    }
+    await expect(
+      page.getByRole("tab", { name: "Workpiece", exact: true }),
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(
+      page.getByText("Synthetic construction candidate", { exact: false }),
+    ).toHaveCount(0);
     await page.screenshot({
       path: join(output, `revision-${index + 1}.png`),
       fullPage: true,
+      animations: "disabled",
     });
+    await page.getByRole("tab", { name: "AI", exact: true }).click();
   }
   assert.equal(
     checked,
@@ -442,6 +496,7 @@ try {
     continuation,
     "TEST continued with a fresh UI browser mutation.",
   );
+  await page.getByRole("tab", { name: "Workpiece", exact: true }).click();
   await expect(
     page.getByRole("region", { name: "Brunch workpiece and why" }),
   ).toContainText("State queried by ui-continuation-read", { timeout: 30_000 });
