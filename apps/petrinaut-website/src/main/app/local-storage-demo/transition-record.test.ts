@@ -4,6 +4,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import {
   assertArcEffects,
+  deriveArcEffects,
   verifyArcTransitionAttempt,
   type ArcMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -367,6 +368,32 @@ describe("browser transition adapter (canonical handle, not a real browser witne
     expect(
       record.attempts[1]?.post?.definition.transitions[0]?.inputArcs[0]?.weight,
     ).toBe(1);
+    fixture.instance.dispose();
+  });
+
+  test("retains unknown when effect derivation fails after the mutation", () => {
+    const fixture = setup();
+    let derivations = 0;
+    const recorder = createBrowserTransitionRecorder({
+      handle: fixture.handle,
+      binding: fixture.request.binding,
+      requestFor: () => fixture.request,
+      deriveEffects: (...input) => {
+        derivations += 1;
+        if (derivations > 1) throw new Error("Synthetic derivation failure");
+        return deriveArcEffects(...input);
+      },
+    });
+    expect(() =>
+      recorder.executeMutation({
+        ...fixture.request,
+        execute: fixture.execute,
+      }),
+    ).toThrow(/synthetic derivation failure/iu);
+    const [record] = recorder.records();
+    expect(record?.outcome).toBe("unknown");
+    expect(record?.attempts[0]?.outcome).toBe("unknown");
+    expect(record?.attempts[0]?.error).toMatch(/effect derivation failed/iu);
     fixture.instance.dispose();
   });
 

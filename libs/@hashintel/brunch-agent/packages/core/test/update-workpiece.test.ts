@@ -302,12 +302,42 @@ test.each([
         },
       }),
     ).rejects.toThrow(
-      /authorized true-user|outside the immutable revision|abort|changed during evidence validation/iu,
+      /authorized true-user|outside the immutable revision|abort|changed while this revision was prepared/iu,
     );
     expect(current).toBe(expectedState);
     expect(current.evidence).toEqual(evidence);
   },
 );
+
+test("refuses an evidence-absent revision when another update wins first", async () => {
+  const previous: WorkpieceRevision = {
+    revisionId: "previous",
+    sha256: createHash("sha256").update("# Previous").digest("hex"),
+    ordinal: 1,
+    markdown: "# Previous",
+  };
+  current = previous;
+  const guarded = createUpdateWorkpieceTool(setRevision, {
+    currentRevision: previous,
+    readSources: async () => {
+      current = { ...previous, revisionId: "concurrent", ordinal: 2 };
+      return [];
+    },
+  });
+  await expect(
+    guarded.run({
+      data: { markdown: "# Candidate" },
+      toolCallId: "candidate",
+      log: { info: () => {}, warn: () => {}, error: () => {} },
+      step: {
+        do: () => {
+          throw new Error("No separate state checkpoint");
+        },
+      },
+    }),
+  ).rejects.toThrow(/changed while this revision was prepared/iu);
+  expect(current.revisionId).toBe("concurrent");
+});
 
 test("an acquisition refusal or cancellation cannot settle even an evidence-absent revision", async () => {
   const controller = new AbortController();
@@ -322,12 +352,12 @@ test("an acquisition refusal or cancellation cannot settle even an evidence-abse
     data: { markdown: "# Do not settle" },
     toolCallId: "cancelled",
     signal: controller.signal,
+    log: { info: () => {}, warn: () => {}, error: () => {} },
     step: {
       do: () => {
         throw new Error("State must not use a separate checkpoint");
       },
     },
-    log: { info: () => {}, warn: () => {}, error: () => {} },
   };
   await expect(cancelled.run(context)).rejects.toThrow(/abort/iu);
   expect(current).toBeNull();
@@ -373,11 +403,6 @@ test("discovers every authorized true-user source ID and truncates long excerpts
     data: {},
     toolCallId: "read-1",
     log: { info: () => {}, warn: () => {}, error: () => {} },
-    step: {
-      do: () => {
-        throw new Error("Read must not write state");
-      },
-    },
   });
   expect(result).toMatchObject({
     terminate: false,

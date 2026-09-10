@@ -148,13 +148,12 @@ export const createUpdateWorkpieceTool = (
       setRevision((previous) => {
         if (
           evidenceServices &&
-          evidence !== undefined &&
           previous?.revisionId !==
             evidenceServices.currentRevision?.revisionId &&
           previous?.revisionId !== toolCallId
         )
           throw new Error(
-            "Workpiece changed during evidence validation; settle against the current revision.",
+            "Workpiece changed while this revision was prepared; settle against the current revision.",
           );
         revision.ordinal =
           previous?.revisionId === toolCallId

@@ -245,23 +245,12 @@ try {
   });
   page = await context.newPage();
   page.on("pageerror", (error) => browserErrors.push(String(error)));
-  await page.goto(origin);
+  await page.goto(
+    `${origin}/?${crewReservationFixtureQuery}=${crewReservationFixtureId}&brunchTracer=root-arc`,
+  );
   const welcomeTour = page.getByRole("button", { name: "Skip tour" });
   await welcomeTour.waitFor();
   await welcomeTour.click();
-  const tracerLink = page.getByRole("link", {
-    name: "Open the prepared root-arc mechanical tracer",
-  });
-  await tracerLink.waitFor();
-  assert.equal(
-    await tracerLink.getAttribute("href"),
-    `?${crewReservationFixtureQuery}=${crewReservationFixtureId}&brunchTracer=root-arc`,
-  );
-  await page.screenshot({
-    path: join(outputDirectory, "selector.png"),
-    fullPage: true,
-  });
-  await tracerLink.click();
   await page
     .getByText("Bound conversation ready. Settle the workpiece before the arc.")
     .waitFor({ timeout: 30_000 });

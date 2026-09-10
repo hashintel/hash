@@ -6549,7 +6549,7 @@ __metadata:
 
 "@flue/runtime@patch:@flue/runtime@npm%3A2.0.3#~/.yarn/patches/@flue-runtime-npm-2.0.3-192c31f50c.patch":
   version: 2.0.3
-  resolution: "@flue/runtime@patch:@flue/runtime@npm%3A2.0.3#~/.yarn/patches/@flue-runtime-npm-2.0.3-192c31f50c.patch::version=2.0.3&hash=194e8a"
+  resolution: "@flue/runtime@patch:@flue/runtime@npm%3A2.0.3#~/.yarn/patches/@flue-runtime-npm-2.0.3-192c31f50c.patch::version=2.0.3&hash=2aa506"
   dependencies:
     "@earendil-works/pi-agent-core": "npm:^0.83.0"
     "@earendil-works/pi-ai": "npm:^0.83.0"
@@ -6560,7 +6560,7 @@ __metadata:
     js-yaml: "npm:^5.2.1"
     ulidx: "npm:^2.4.1"
     valibot: "npm:^1.1.0"
-  checksum: 10c0/b4e66de096c19f7df24fff8885004005b39646a7b540a893eca1bc8010331836af82887dcf24273020f3b2d1ce6aac9ccea71b73b1c1d9d38350621ea77ffa9b
+  checksum: 10c0/e8068311808c3da845da44a92e1bf200ab4bec1756715f082c7000efc6b4fe3b67777295f607e0f8cbd91362811cec9d03a06fa3de3f47dec88dda65fc961a1f
   languageName: node
   linkType: hard
 

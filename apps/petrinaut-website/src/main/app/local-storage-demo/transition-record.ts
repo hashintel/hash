@@ -55,10 +55,12 @@ export const createBrowserTransitionRecorder = ({
   handle,
   binding: suppliedBinding,
   requestFor,
+  deriveEffects = deriveArcEffects,
 }: {
   handle: PetrinautDocHandle;
   binding: ConstructionMutationRequest["binding"];
   requestFor: (toolCallId: string) => ConstructionMutationRequest;
+  deriveEffects?: typeof deriveArcEffects;
 }) => {
   const binding = structuredClone(suppliedBinding);
   if (binding.documentId !== handle.id)
@@ -73,8 +75,11 @@ export const createBrowserTransitionRecorder = ({
     }
   >();
 
-  const retain = (attempt: ArcTransitionAttempt) => {
-    assertArcEffects(attempt);
+  const retain = (
+    attempt: ArcTransitionAttempt,
+    { verifyEffects = true }: { verifyEffects?: boolean } = {},
+  ) => {
+    if (verifyEffects) assertArcEffects(attempt);
     const attempts = attemptsByCall.get(attempt.request.toolCallId) ?? [];
     attempts.push(structuredClone(attempt));
     attemptsByCall.set(attempt.request.toolCallId, attempts);
@@ -123,7 +128,7 @@ export const createBrowserTransitionRecorder = ({
     // No await, timer, or output insertion is allowed between these observations.
     const pre = observeBrowserDefinition(handle);
     // Reject unearned scope before reserving this executor.
-    deriveArcEffects(request, pre.definition, pre.definition);
+    deriveEffects(request, pre.definition, pre.definition);
     results.set(call.toolCallId, { request });
     const attempt: ArcTransitionAttempt = {
       request,
@@ -176,7 +181,7 @@ export const createBrowserTransitionRecorder = ({
         expectedNodeDefinition(request, pre.definition);
       } else if (
         request.observationToolCallId !== undefined &&
-        deriveArcEffects(
+        deriveEffects(
           request,
           pre.definition,
           expectedNodeDefinition(request, pre.definition),
@@ -188,7 +193,7 @@ export const createBrowserTransitionRecorder = ({
       }
       const output = call.execute();
       attempt.post = observeBrowserDefinition(handle);
-      attempt.effects = deriveArcEffects(
+      attempt.effects = deriveEffects(
         request,
         pre.definition,
         attempt.post.definition,
@@ -223,11 +228,27 @@ export const createBrowserTransitionRecorder = ({
           // The post state is unavailable, not inferred equal to the pre state.
         }
       }
-      attempt.effects = attempt.post
-        ? deriveArcEffects(request, pre.definition, attempt.post.definition)
-        : { created: [], updated: [], deleted: [], derived: [] };
-      attempt.outcome = observedArcOutcome(attempt);
-      retain(attempt);
+      try {
+        attempt.effects = attempt.post
+          ? deriveEffects(request, pre.definition, attempt.post.definition)
+          : { created: [], updated: [], deleted: [], derived: [] };
+        attempt.outcome = observedArcOutcome(attempt);
+        retain(attempt);
+      } catch (derivationError) {
+        attempt.error = `${attempt.error}; effect derivation failed: ${
+          derivationError instanceof Error
+            ? derivationError.message
+            : String(derivationError)
+        }`;
+        attempt.effects = {
+          created: [],
+          updated: [],
+          deleted: [],
+          derived: [],
+        };
+        attempt.outcome = "unknown";
+        retain(attempt, { verifyEffects: false });
+      }
       results.set(call.toolCallId, { request, error });
       throw error;
     }
