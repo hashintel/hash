@@ -13,7 +13,7 @@
     // shared `sync:bundle` rather than each running it keeps them from racing on
     // the same directories when Turborepo runs them concurrently.
     "build": {
-      "dependsOn": ["sync:bundle"],
+      "dependsOn": ["sync:bundle", "@local/petrinaut-arch-docs#doc:architecture"],
       // `astro build` also writes the gitignored `.astro/` sync directory, which
       // `lint:tsc` (`astro check`) reads.
       "outputs": ["dist/**", ".astro/**"],
@@ -38,12 +38,17 @@
         "VERCEL_GIT_REPO_OWNER",
         "VERCEL_GIT_REPO_SLUG"
       ],
-      // `sync:bundle` copies the generated bundle into these paths, and they are
-      // gitignored, so the content this build reads is outside Turborepo's
-      // default inputs. The dependency on the generator's task should already
-      // cover it; declaring the paths means a hand-edited copy is not hashed as
-      // if it were absent.
-      "inputs": ["$TURBO_DEFAULT$", "src/content/**", "public/architecture.*"]
+      // The build consumes the architecture bundle, which is generated and
+      // gitignored, so it is hashed through the generating task's outputs
+      // rather than as files in this package.
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        {
+          "mode": "dependencyOutputs",
+          "globs": ["bundle/**"],
+          "from": ["@local/petrinaut-arch-docs#doc:architecture"]
+        }
+      ]
     },
     "lint:tsc": {
       "cache": false,
