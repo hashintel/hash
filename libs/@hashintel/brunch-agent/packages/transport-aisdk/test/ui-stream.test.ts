@@ -282,6 +282,85 @@ test("maps client-tool input before exposing it to the AI SDK", () => {
   });
 });
 
+test("withholds a rejected mutate_petrinet until server validation and marks both start and release dynamic", () => {
+  const written: UIMessageChunk[] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(["mutate_petrinet"]),
+    dynamicClientToolNames: new Set(["mutate_petrinet"]),
+    validatedClientToolNames: new Set(["mutate_petrinet"]),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  const rejected = {
+    type: "tool-input" as const,
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "batch-1",
+    toolName: "mutate_petrinet",
+    input: { operations: [] },
+    position: position(1),
+  };
+  projector.accept(rejected);
+  expect(written).toContainEqual({
+    type: "tool-input-start",
+    toolCallId: "batch-1",
+    toolName: "mutate_petrinet",
+    dynamic: true,
+  });
+  expect(written.some((chunk) => chunk.type === "tool-input-available")).toBe(
+    false,
+  );
+  projector.accept({
+    type: "tool-output-error",
+    conversationId: "conversation-1",
+    toolCallId: "batch-1",
+    errorText: "Invalid mutate_petrinet arguments",
+    position: position(2),
+  });
+  expect(written.some((chunk) => chunk.type === "tool-input-available")).toBe(
+    false,
+  );
+  expect(written).toContainEqual({
+    type: "tool-output-error",
+    toolCallId: "batch-1",
+    errorText: "Invalid mutate_petrinet arguments",
+    providerExecuted: true,
+  });
+  projector.accept({
+    ...rejected,
+    toolCallId: "batch-2",
+    input: { operations: [{ operationId: "add-queue" }] },
+    position: position(3),
+  });
+  projector.accept({
+    type: "tool-output",
+    conversationId: "conversation-1",
+    toolCallId: "batch-2",
+    output: { awaiting: "client" },
+    position: position(4),
+  });
+  const available = written.filter(
+    (chunk) => chunk.type === "tool-input-available",
+  );
+  expect(available).toEqual([
+    {
+      type: "tool-input-available",
+      toolCallId: "batch-2",
+      toolName: "mutate_petrinet",
+      input: { operations: [{ operationId: "add-queue" }] },
+      dynamic: true,
+    },
+  ]);
+});
+
 test("marks host-defined client tools as dynamic for the AI SDK", () => {
   const written: UIMessageChunk[] = [];
   const projector = createFlueUiStream({

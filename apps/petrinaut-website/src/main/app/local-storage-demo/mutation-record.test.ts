@@ -5,6 +5,7 @@ import { describe, expect, test, vi } from "vitest";
 import {
   assertMutationEffects,
   deriveMutationEffects,
+  mutatePetrinetToolName,
   verifyMutationAttempt,
   type ArcMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -450,6 +451,19 @@ describe("browser transition adapter (canonical handle, not a real browser witne
       /hash/u,
     );
     expect(fixture.recorder.records()[0]?.attempts).toHaveLength(1);
+    fixture.instance.dispose();
+  });
+
+  test("gates mutate_petrinet behind server validation in construction mode", () => {
+    const fixture = setup();
+    const recorder = createJoinedBrowserMutationRecorder({
+      handle: fixture.handle,
+      binding: fixture.request.binding,
+      construction: true,
+    });
+    expect(recorder.validatedClientToolNames.has(mutatePetrinetToolName)).toBe(
+      true,
+    );
     fixture.instance.dispose();
   });
 });
