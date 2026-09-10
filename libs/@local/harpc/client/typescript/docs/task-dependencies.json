@@ -5,18 +5,34 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [],
-    "fix:eslint": [
-      "@local/eslint#build"
-    ],
-    "lint:eslint": [
-      "@local/eslint#build"
-    ],
-    "lint:tsc": [
-      "@local/eslint#build"
-    ],
-    "test:unit": [
-      "@rust/harpc-wire-protocol#build:cli"
-    ]
+    "build": {
+      "dependsOn": []
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@rust/harpc-wire-protocol#build:cli"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

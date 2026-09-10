@@ -12,61 +12,79 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-graph-store#build",
-      "@local/status#build",
-      "codegen"
-    ],
-    "codegen": [],
-    "fix:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-graph-store#build",
-      "@local/status#build",
-      "codegen"
-    ],
-    "lint:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-graph-store#build",
-      "@local/status#build",
-      "codegen"
-    ],
-    "lint:tsc": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-graph-store#build",
-      "@local/status#build",
-      "codegen"
-    ],
-    "test:unit": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/advanced-types#build",
-      "@local/eslint#build",
-      "@local/hash-graph-client#build",
-      "@local/hash-graph-sdk#build",
-      "@local/hash-graph-store#build",
-      "@local/status#build",
-      "codegen"
-    ]
+    "build": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-graph-store#build",
+        "@local/status#build",
+        "codegen"
+      ]
+    },
+    "codegen": {
+      "dependsOn": []
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-graph-store#build",
+        "@local/status#build",
+        "codegen"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-graph-store#build",
+        "@local/status#build",
+        "codegen"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-graph-store#build",
+        "@local/status#build",
+        "codegen"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/advanced-types#build",
+        "@local/eslint#build",
+        "@local/hash-graph-client#build",
+        "@local/hash-graph-sdk#build",
+        "@local/hash-graph-store#build",
+        "@local/status#build",
+        "codegen"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

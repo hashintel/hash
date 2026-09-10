@@ -7,13 +7,32 @@
     "@rust/hash-graph-temporal-versioning"
   ],
   "tasks": {
-    "build:types": [],
-    "build:wasm": [],
-    "doc:dependency-diagram": [
-      "@rust/hash-repo-chores#build"
-    ],
-    "fix:clippy": [],
-    "lint:clippy": [],
-    "test:unit": []
+    "build:types": {
+      "dependsOn": []
+    },
+    "build:wasm": {
+      "dependsOn": []
+    },
+    "doc:dependency-diagram": {
+      "dependsOn": [
+        "@rust/hash-repo-chores#build"
+      ],
+      "cache": false
+    },
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

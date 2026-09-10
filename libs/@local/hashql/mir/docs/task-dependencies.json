@@ -6,14 +6,37 @@
     "@rust/hashql-hir"
   ],
   "tasks": {
-    "build:codspeed": [],
-    "doc:dependency-diagram": [
-      "@rust/hash-repo-chores#build"
-    ],
-    "fix:clippy": [],
-    "lint:clippy": [],
-    "test:codspeed": [],
-    "test:miri": [],
-    "test:unit": []
+    "build:codspeed": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "doc:dependency-diagram": {
+      "dependsOn": [
+        "@rust/hash-repo-chores#build"
+      ],
+      "cache": false
+    },
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ]
+    },
+    "test:codspeed": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "test:miri": {
+      "dependsOn": []
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

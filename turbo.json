@@ -74,9 +74,11 @@
       "dependsOn": ["^manifest"],
       "env": ["TEST_COVERAGE"]
     },
+    // The integration tests and benches run against the services `infra/compose` starts.
     "test:integration": {
       "dependsOn": ["^manifest"],
-      "env": ["TEST_COVERAGE"]
+      "env": ["TEST_COVERAGE"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/infra/compose/**"]
     },
     // Smoke-tests the image `build:docker` produced. Not run in CI yet.
     // TODO(SRE-1032): run this in the deploy workflow against the image it already builds.
@@ -98,7 +100,8 @@
     },
     "bench:integration": {
       "dependsOn": ["^manifest"],
-      "cache": false
+      "cache": false,
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/infra/compose/**"]
     },
     // Linting and formatting
     "lint": {},

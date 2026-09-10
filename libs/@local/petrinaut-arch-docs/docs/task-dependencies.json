@@ -11,28 +11,60 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "doc:architecture": [],
-    "fix:eslint": [
-      "@apps/petrinaut-website#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-cli#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/eslint#build"
-    ],
-    "lint:arch-docs": [],
-    "lint:eslint": [
-      "@apps/petrinaut-website#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-cli#build",
-      "@hashintel/petrinaut-core#build",
-      "@local/eslint#build"
-    ],
-    "lint:tsc": [
-      "@apps/petrinaut-website#build",
-      "@hashintel/petrinaut#build",
-      "@hashintel/petrinaut-cli#build",
-      "@hashintel/petrinaut-core#build"
-    ],
-    "test:unit": []
+    "doc:architecture": {
+      "dependsOn": [],
+      "cache": false,
+      "env": [
+        "GITHUB_HEAD_REF",
+        "GITHUB_REF_NAME",
+        "GITHUB_SHA",
+        "PETRINAUT_ARCH_DOCS_CACHE_DIR",
+        "PETRINAUT_ARCH_DOCS_DIFF_BASE",
+        "PETRINAUT_ARCH_DOCS_SOURCE_REF",
+        "VERCEL_GIT_COMMIT_REF",
+        "VERCEL_GIT_COMMIT_SHA",
+        "VERCEL_GIT_REPO_OWNER",
+        "VERCEL_GIT_REPO_SLUG"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@apps/petrinaut-website#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-cli#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build"
+      ]
+    },
+    "lint:arch-docs": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@apps/petrinaut-website#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-cli#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@apps/petrinaut-website#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-cli#build",
+        "@hashintel/petrinaut-core#build"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

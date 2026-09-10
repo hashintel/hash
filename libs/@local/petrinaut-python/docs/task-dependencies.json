@@ -4,15 +4,26 @@
     "@hashintel/petrinaut-cli"
   ],
   "tasks": {
-    "codegen": [
-      "@hashintel/petrinaut-cli#codegen"
-    ],
-    "lint:ruff": [],
-    "lint:types": [
-      "codegen"
-    ],
-    "test:unit": [
-      "codegen"
-    ]
+    "codegen": {
+      "dependsOn": [
+        "@hashintel/petrinaut-cli#codegen"
+      ]
+    },
+    "lint:ruff": {
+      "dependsOn": []
+    },
+    "lint:types": {
+      "dependsOn": [
+        "codegen"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "codegen"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

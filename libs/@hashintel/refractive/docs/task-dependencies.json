@@ -2,14 +2,29 @@
   "package": "@hashintel/refractive",
   "dependencies": [],
   "tasks": {
-    "build": [],
-    "dev": [],
-    "fix:eslint": [
-      "@local/eslint#build"
-    ],
-    "lint:eslint": [
-      "@local/eslint#build"
-    ],
-    "lint:tsc": []
+    "build": {
+      "dependsOn": []
+    },
+    "dev": {
+      "dependsOn": [],
+      "cache": false,
+      "persistent": true
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": []
+    }
   }
 }
