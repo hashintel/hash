@@ -171,7 +171,9 @@ export const createMutatePetrinetAutomaticTool = (
         "mutate_petrinet does not cite the current observed base",
       );
     const operations = selectedMutationBatchSchema.parse(
-      request.operations.map(({ operation }) => operation),
+      request.operations.map(
+        ({ basisId: _basisId, ...operation }) => operation,
+      ),
     );
     const outcomes = await executeSelectedMutationBatch(
       operations,

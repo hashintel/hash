@@ -88,7 +88,7 @@ const inputFor = (
     bases: [basis],
     operations: operations.map((operation) => ({
       basisId: basis.basisId,
-      operation,
+      ...operation,
     })),
   };
 };

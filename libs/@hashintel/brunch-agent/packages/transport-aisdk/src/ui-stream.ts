@@ -208,6 +208,9 @@ export const createFlueUiStream = (
               type: "tool-input-start",
               toolCallId: chunk.toolCallId,
               toolName: chunk.toolName,
+              ...(options.dynamicClientToolNames?.has(chunk.toolName) === true
+                ? { dynamic: true }
+                : {}),
             });
             return;
           }

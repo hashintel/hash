@@ -6,6 +6,7 @@ import {
   canonicalContent,
   classifyMutationOutcome,
   deriveMutationEffects,
+  mutatePetrinetToolName,
   observedMutationOutcome,
   parseJoinedRootArcInput,
   parseObservedArcInput,
@@ -439,6 +440,7 @@ export const createJoinedBrowserMutationRecorder = (input: {
             "updatePlace",
             "addTransition",
             "updateTransition",
+            mutatePetrinetToolName,
             ...observedStateMutationNames,
           ]
         : ["addArc"],
