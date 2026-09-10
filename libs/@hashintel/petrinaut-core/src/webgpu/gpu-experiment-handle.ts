@@ -331,36 +331,9 @@ export async function createGpuMonteCarloExperiment(
     encodeInitialTokenWords(place, config.initialMarking[place.id]),
   );
 
-  // Frame 0 is the initial state, which the device never samples; the host
-  // knows it exactly (every run starts identical), so it is emitted here —
-  // matching the CPU simulator's observation of the initial marking before
-  // any step.
   const placeIndexById = new Map(
     backend.profile.places.map((place, index) => [place.id, index]),
   );
-  const initialHistogramFrames = gpuMetrics.metrics.map((metric) => {
-    const count = placeCounts[placeIndexById.get(metric.placeId) ?? -1] ?? 0;
-    return {
-      frameNumber: 0,
-      metricId: metric.id,
-      bins: [[count, config.runCount]] as [number, number][],
-      // An exact count: the cell of one integer.
-      binExtent: { below: 0.5, above: 0.5 },
-      sampleCount: config.runCount,
-    };
-  });
-  if (initialHistogramFrames.length > 0) {
-    metrics.set(
-      appendMetricFrames(
-        metrics.get(),
-        toGpuMetricFrames(
-          initialHistogramFrames,
-          config.metricSpecs,
-          config.dt,
-        ),
-      ),
-    );
-  }
   const frameMerger = createFrameMerger();
 
   // What window planning knows per metric: the sampled place's initial
@@ -589,11 +562,7 @@ export async function createGpuMonteCarloExperiment(
     metrics.set(
       appendMetricFrames(
         createEmptyMetricsState(),
-        toGpuMetricFrames(
-          [...initialHistogramFrames, ...result.frames],
-          config.metricSpecs,
-          config.dt,
-        ),
+        toGpuMetricFrames(result.frames, config.metricSpecs, config.dt),
       ),
     );
     progress.set({

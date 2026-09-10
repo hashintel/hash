@@ -470,7 +470,7 @@ export async function runGpuExperiment(
           await chunkReadback.mapAsync(GPUMapMode.READ, 0, chunkBytes);
           const decoded = decodeHistogramFrames({
             data: new Uint32Array(chunkReadback.getMappedRange(0, chunkBytes)),
-            firstFrame: baseFrame + 1,
+            firstFrame: baseFrame,
             frameCount: chunkFrames,
             metricIds: shader.metricIds,
             histogramBins: shader.histogramBins,
@@ -591,7 +591,7 @@ export async function runGpuExperiment(
     const histogram = new Uint32Array(histReadback.getMappedRange());
     const frames = decodeHistogramFrames({
       data: histogram,
-      firstFrame: 1,
+      firstFrame: 0,
       frameCount: sampledFrameCount({
         data: histogram,
         frameLimit,

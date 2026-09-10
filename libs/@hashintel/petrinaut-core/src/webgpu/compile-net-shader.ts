@@ -296,6 +296,14 @@ export function compileNetShader(
       `  for (var frame: u32 = 0u; frame < config.chunk_frames; frame = frame + 1u) {`,
     );
     push(`    let absolute_frame = config.base_frame + frame;`);
+
+    emitFrameHistograms(push, {
+      metrics,
+      placeIndexById,
+      bins: histogramBins,
+      workgroupSize: GPU_WORKGROUP_SIZE,
+    });
+
     push(
       `    let running = in_range && status == 0u && absolute_frame < config.frame_limit;`,
     );
@@ -411,14 +419,6 @@ export function compileNetShader(
       );
     }
     push(`    }`);
-    push("");
-
-    emitFrameHistograms(push, {
-      metrics,
-      placeIndexById,
-      bins: histogramBins,
-      workgroupSize: GPU_WORKGROUP_SIZE,
-    });
 
     push(`  }`);
     push("");
