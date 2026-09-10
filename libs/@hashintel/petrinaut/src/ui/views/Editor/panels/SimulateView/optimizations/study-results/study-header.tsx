@@ -1,7 +1,8 @@
 /**
- * The study body's first line: where the study is and which step is the
- * best so far, with a verdict chip while it runs. Once settled the line says
- * how the study ended and nothing pretends to still be following.
+ * The frame header's headline for a study: where the study is and which step
+ * is the best so far, with a verdict chip while it runs. Once settled the
+ * line says how the study ended and nothing pretends to still be following.
+ * The text yields before the chips do, so the chips never wrap or clip.
  */
 import { Chip, type ChipColor } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -33,6 +34,10 @@ const textStyle = css({
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+});
+
+const chipSlotStyle = css({
+  flexShrink: "0",
 });
 
 const bestPart = (best: OptimizationRecord["best"]): string =>
@@ -109,14 +114,14 @@ export const StudyHeader = ({
     <div className={headerStyle} data-study-header>
       <span className={textStyle}>{describeStudyProgress(optimization)}</span>
       {optimization.status === "paused" ? (
-        <span data-paused-chip>
+        <span className={chipSlotStyle} data-paused-chip>
           <Chip size="xs" variant="soft" color="grey">
             Paused
           </Chip>
         </span>
       ) : null}
       {verdict === null ? null : (
-        <span data-verdict={verdict.kind}>
+        <span className={chipSlotStyle} data-verdict={verdict.kind}>
           <Chip size="xs" variant="soft" color={VERDICT_COLOR[verdict.kind]}>
             {describeConvergence(verdict)}
           </Chip>

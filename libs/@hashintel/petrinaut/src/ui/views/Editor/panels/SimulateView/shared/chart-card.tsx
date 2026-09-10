@@ -43,12 +43,18 @@ export const chartCardHeight = ({
   bodyHeight +
   (footerHeight > 0 ? footerHeight + CHART_CARD_FOOTER_CHROME : 0);
 
+// The card clips its content, with a margin so the halo it draws while an
+// optimizer drives it shows. The halo is a pseudo-element carrying the peak
+// shadow whose opacity breathes: the compositor runs that, not the painter.
+// It breathes only under the frame's animate switch, which the body stamps.
 const rootStyle = css({
+  position: "relative",
   display: "flex",
   flexDirection: "column",
   minWidth: "[0]",
   minHeight: "[0]",
-  overflow: "hidden",
+  overflow: "clip",
+  overflowClipMargin: "[24px]",
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
@@ -62,13 +68,22 @@ const rootStyle = css({
     backgroundColor: "purple.s10",
     boxShadow:
       "[0 0 0 1px var(--colors-purple-a30), 0 0 12px var(--colors-purple-a30)]",
-    animationName: "[petrinautOptimizingGlow]",
-    animationDuration: "[2.4s]",
-    animationTimingFunction: "ease-in-out",
-    animationIterationCount: "[infinite]",
   },
-  "@media (prefers-reduced-motion: reduce)": {
-    "&[data-tone=optimizing]": { animationName: "[none]" },
+  "&[data-tone=optimizing]::after": {
+    content: '""',
+    position: "absolute",
+    inset: "[0]",
+    borderRadius: "[inherit]",
+    pointerEvents: "none",
+    boxShadow:
+      "[0 0 0 1px var(--colors-purple-a50), 0 0 22px var(--colors-purple-a40)]",
+    opacity: "[0]",
+    "[data-animate=true] &": {
+      animationName: "[petrinautOptimizingGlow]",
+      animationDuration: "[2.4s]",
+      animationTimingFunction: "ease-in-out",
+      animationIterationCount: "[infinite]",
+    },
   },
 });
 

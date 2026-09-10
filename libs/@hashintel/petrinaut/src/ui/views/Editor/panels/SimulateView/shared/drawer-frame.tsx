@@ -10,7 +10,10 @@
  * width, then `FrameColumns`, which
  * arranges the surface and the cards by the body's width. In a drawer the
  * body takes the opening focus, so wheel and arrow keys scroll it at once and
- * no control in the header holds the header open.
+ * no control in the header holds the header open. One switch, the animations
+ * setting and the reduced-motion preference together, governs every
+ * transition in the frame: the header and the body read it from context,
+ * and the body stamps it as `data-animate` for the cards' styles.
  */
 import { type ReactNode, use, useRef } from "react";
 
@@ -19,10 +22,14 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { FrameAnimateContext } from "./drawer-frame/frame-animate-context";
-import { FrameHeader } from "./drawer-frame/frame-header";
+import {
+  FRAME_HEADER_CONDENSED_HEIGHT,
+  FRAME_HEADER_HEIGHT,
+  FrameHeader,
+} from "./drawer-frame/frame-header";
 import { useBodyScrolled } from "./drawer-frame/use-body-scrolled";
 import { useHeaderEngaged } from "./drawer-frame/use-header-engaged";
-import { usePrefersReducedMotion } from "./drawer-frame/use-prefers-reduced-motion";
+import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
 
 export {
   FRAME_HEADER_CHIPS_MAX_WIDTH,
@@ -187,7 +194,9 @@ export const DrawerFrame = ({
 }: DrawerFrameProps) => {
   const { showAnimations } = use(UserSettingsContext);
   const reducedMotion = usePrefersReducedMotion();
-  const { scrolled, onScroll } = useBodyScrolled();
+  const { scrolled, onScroll } = useBodyScrolled(
+    FRAME_HEADER_HEIGHT - FRAME_HEADER_CONDENSED_HEIGHT,
+  );
   const { engaged, engagement, settleFocus } = useHeaderEngaged();
   const bodyRef = useRef<HTMLDivElement>(null);
   const condensed = scrolled && !engaged;
@@ -202,7 +211,6 @@ export const DrawerFrame = ({
       badge={badge}
       progress={progress}
       condensed={condensed}
-      animate={animate}
       closeGutter={drawer === undefined ? 0 : DRAWER_CLOSE_GUTTER}
       engagement={engagement}
     />
@@ -213,6 +221,7 @@ export const DrawerFrame = ({
       ref={bodyRef}
       className={bodyStyle}
       data-frame-body
+      data-animate={animate}
       tabIndex={-1}
       onScroll={(event) => {
         onScroll(event);
@@ -228,35 +237,39 @@ export const DrawerFrame = ({
       >
         {note?.content}
       </div>
-      <FrameAnimateContext value={animate}>{children}</FrameAnimateContext>
+      {children}
     </div>
   );
 
   if (drawer === undefined) {
     return (
-      <div className={sectionFrameStyle} data-drawer-frame>
-        <div className={sectionHeaderStyle}>{header}</div>
-        {body}
-        <div className={sectionFooterStyle}>{footer}</div>
-      </div>
+      <FrameAnimateContext value={animate}>
+        <div className={sectionFrameStyle} data-drawer-frame>
+          <div className={sectionHeaderStyle}>{header}</div>
+          {body}
+          <div className={sectionFooterStyle}>{footer}</div>
+        </div>
+      </FrameAnimateContext>
     );
   }
 
   return (
-    <Drawer
-      size="xl"
-      showBackdrop={false}
-      onClose={drawer.onClose}
-      swapKey={drawer.swapKey}
-      initialFocusRef={bodyRef}
-      // The header holds no ds Title, so the dialog takes its name from here.
-      aria-label={title}
-    >
-      <Drawer.Header className={drawerHeaderStyle}>{header}</Drawer.Header>
-      <Drawer.Body withPadding={false} className={drawerBodyStyle}>
-        {body}
-      </Drawer.Body>
-      <Drawer.Footer actions={footer ?? null} />
-    </Drawer>
+    <FrameAnimateContext value={animate}>
+      <Drawer
+        size="xl"
+        showBackdrop={false}
+        onClose={drawer.onClose}
+        swapKey={drawer.swapKey}
+        initialFocusRef={bodyRef}
+        // The header holds no ds Title, so the dialog takes its name from here.
+        aria-label={title}
+      >
+        <Drawer.Header className={drawerHeaderStyle}>{header}</Drawer.Header>
+        <Drawer.Body withPadding={false} className={drawerBodyStyle}>
+          {body}
+        </Drawer.Body>
+        <Drawer.Footer actions={footer ?? null} />
+      </Drawer>
+    </FrameAnimateContext>
   );
 };

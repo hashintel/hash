@@ -83,17 +83,27 @@ export const petrinautPandaPreset = {
           },
         },
         /**
-         * Breathing purple glow around a card whose controls an optimizer
-         * drives: an outer halo only, over the card's own ring.
+         * The halo breathing around a card whose controls an optimizer
+         * drives: a pseudo-element carrying the peak shadow, its opacity
+         * alone animating, over the card's own static ring.
          */
         petrinautOptimizingGlow: {
-          "0%, 100%": {
-            boxShadow:
-              "0 0 0 1px var(--colors-purple-a30), 0 0 12px var(--colors-purple-a30)",
+          "0%, 100%": { opacity: "0" },
+          "50%": { opacity: "1" },
+        },
+        /**
+         * The fade at the end of a line of chips that scrolls sideways,
+         * driven by the line's own scroll position: the mask holds until the
+         * last stretch and lifts at the end of the scroll range.
+         */
+        petrinautScrollEndFade: {
+          "0%, 85%": {
+            maskImage:
+              "linear-gradient(to right, black calc(100% - 40px), transparent 100%)",
           },
-          "50%": {
-            boxShadow:
-              "0 0 0 1px var(--colors-purple-a50), 0 0 22px var(--colors-purple-a40)",
+          "100%": {
+            maskImage:
+              "linear-gradient(to right, black 100%, transparent 100%)",
           },
         },
         petrinautExpand: {
