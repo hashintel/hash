@@ -212,7 +212,7 @@ export async function createGpuMonteCarloExperiment(
         gpuBackendSetupKey({
           sdcpn: config.sdcpn,
           extensions: config.extensions,
-          hirArtifacts: config.hirArtifacts,
+          artifactFingerprint: config.hirArtifacts.fingerprint,
           parameterValues: config.parameterValues,
           runParameterIds: runParameters.ids,
           metricIds,

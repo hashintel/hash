@@ -187,7 +187,11 @@ function objectId(value: object | undefined): number {
 export function gpuBackendSetupKey(options: {
   sdcpn: object;
   extensions?: object | undefined;
-  hirArtifacts?: object | undefined;
+  /**
+   * `HirArtifacts.fingerprint`: hashes the sanitized net (its `metrics`
+   * included) and the extensions, so an edited metric body misses the cache.
+   */
+  artifactFingerprint: string;
   parameterValues: Readonly<Record<string, string>>;
   runParameterIds: readonly string[];
   metricIds: readonly string[];
@@ -204,7 +208,7 @@ export function gpuBackendSetupKey(options: {
   return [
     objectId(options.sdcpn),
     objectId(options.extensions),
-    objectId(options.hirArtifacts),
+    options.artifactFingerprint,
     bakedValues,
     [...options.runParameterIds].sort().join(","),
     options.metricIds.join(","),

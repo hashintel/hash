@@ -97,6 +97,10 @@ outside the supported HIR subset is a blocking diagnostic.
 }
 ```
 
+With `includeHir`, every artifact also carries the lowered `hir` tree it was
+emitted from, so the WebGPU backend can generate a shader without lowering the
+net in the browser. Metric artifacts carry it too, for the same consumer.
+
 The engine validates the artifact version and compilation-input fingerprint
 before running, then checks per-program metadata. Missing or stale artifacts
 produce errors instead of falling back to runtime compilation.
