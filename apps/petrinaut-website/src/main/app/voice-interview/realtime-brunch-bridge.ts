@@ -293,8 +293,8 @@ export class RealtimeBrunchBridge {
     discardPendingInterruption = false,
   }: CancelPendingSpeechOptions = {}): void {
     this.#outputCancellationPending = true;
+    this.#retirePendingInputItems(discardPendingInterruption);
     this.#interruptionPlaybackText.clear();
-    this.#retirePendingInputItems();
     for (const responseId of this.#activePlaybackText.keys()) {
       this.#activePlaybackText.set(responseId, []);
     }
@@ -491,11 +491,12 @@ export class RealtimeBrunchBridge {
         // The session has already sent output cancellation. Snapshot only text
         // whose playback started, not queued speech or canonical chat history.
         if (!this.#interruptionPlaybackText.has(event.itemId)) {
+          const activePlaybackText = Array.from(
+            this.#activePlaybackText.values(),
+          ).flat();
           this.#interruptionPlaybackText.set(
             event.itemId,
-            this.#ownsOutputTurn()
-              ? Array.from(this.#activePlaybackText.values()).flat()
-              : null,
+            activePlaybackText.length > 0 ? activePlaybackText : null,
           );
         }
         if (this.#activeSubmission) {
@@ -689,17 +690,23 @@ export class RealtimeBrunchBridge {
     );
   }
 
-  #retirePendingInputItems(): void {
+  #retirePendingInputItems(discardCompletedInput: boolean): void {
     for (const itemId of this.#pendingInputItems.keys()) {
+      if (!discardCompletedInput && this.#completedInputEvents.has(itemId)) {
+        continue;
+      }
       this.#acceptedInputItemIds.delete(itemId);
       this.#playbackOverlappingInputItemIds.add(itemId);
-      if (this.#completedInputEvents.has(itemId)) {
+      this.#pendingInputItems.delete(itemId);
+      const orderIndex = this.#inputItemOrder.indexOf(itemId);
+      if (orderIndex >= 0) {
+        this.#inputItemOrder.splice(orderIndex, 1);
+      }
+      if (this.#completedInputEvents.delete(itemId)) {
         this.#rejectTranscript(itemId, "unavailable");
       }
     }
-    this.#completedInputEvents.clear();
-    this.#inputItemOrder.length = 0;
-    this.#pendingInputItems.clear();
+    this.#drainCompletedInputEvents();
   }
 
   #markPlaybackOverlappingInputItems(): void {
@@ -727,6 +734,7 @@ export class RealtimeBrunchBridge {
   #canSubmitAnswerNow(): boolean {
     return (
       !this.#activeSubmission &&
+      !this.#outputCancellationPending &&
       this.#chat.canAcceptInterviewAnswer &&
       this.#chat.status === "ready"
     );

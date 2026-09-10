@@ -365,7 +365,7 @@ describe("RealtimeBrunchBridge", () => {
     },
   );
 
-  test("filters a prompt leak while playback creation is still pending", () => {
+  test("does not classify a prompt leak while playback creation is still pending", () => {
     const harness = createHarness();
     startReady(harness);
     harness.emit({
@@ -380,14 +380,13 @@ describe("RealtimeBrunchBridge", () => {
       interruptionBySpeaking: true,
     });
     harness.emit(completedTranscript(3, vocabularyLeak, "false-vad"));
-    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
-    expect(harness.events).toEqual([
-      {
-        itemId: "false-vad",
-        type: "transcript-rejected",
-        reason: "prompt-regurgitation",
-      },
-    ]);
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({ text: vocabularyLeak }),
+    );
+    expect(harness.events).not.toContainEqual(
+      expect.objectContaining({ type: "transcript-rejected" }),
+    );
   });
 
   test("keeps an accepted interruption through a later speech request", async () => {
@@ -807,6 +806,44 @@ describe("RealtimeBrunchBridge", () => {
       );
     },
   );
+
+  test("preserves a completed answer buffered behind input cancelled by host Stop", () => {
+    const harness = createHarness();
+    startReady(harness);
+    for (const itemId of ["first-item", "completed-item"]) {
+      harness.emit({
+        connectionEpoch: 3,
+        interruptionBySpeaking: true,
+        itemId,
+        type: "input-speech-started",
+      });
+      harness.emit({
+        connectionEpoch: 3,
+        itemId,
+        type: "input-speech-stopped",
+      });
+    }
+    harness.emit(completedTranscript(3, "Keep this answer.", "completed-item"));
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+
+    harness.bridge.cancelPendingSpeech();
+
+    expect(harness.events).toContainEqual({
+      answer: "Keep this answer.",
+      type: "transcript-retained",
+    });
+    expect(harness.events).not.toContainEqual({
+      itemId: "completed-item",
+      reason: "unavailable",
+      type: "transcript-rejected",
+    });
+
+    harness.bridge.completeTurnHandoff();
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "Keep this answer." }),
+    );
+  });
 
   test("discards a retained interruption for an explicit turn handoff", () => {
     const harness = createHarness();
@@ -1244,7 +1281,7 @@ describe("RealtimeBrunchBridge", () => {
     );
   });
 
-  test("releases pending output ownership when cancellation settles before playback", async () => {
+  test("releases pending output ownership when creation is cancelled before playback", async () => {
     const harness = createHarness();
     startReady(harness);
     harness.emit({
@@ -1255,11 +1292,11 @@ describe("RealtimeBrunchBridge", () => {
 
     harness.emit({
       connectionEpoch: 3,
-      responseId: "response-cancelled",
       speechRequestId: "speech-cancelled",
+      playbackExpected: false,
       status: "cancelled",
       type: "response-terminal",
-    } as OpenAIRealtimeSessionEvent);
+    });
     harness.emit({
       connectionEpoch: 3,
       itemId: "item-after-cancellation",
