@@ -258,12 +258,6 @@ export const filterRecipe = sva({
         display: "none",
       },
     },
-    // Layered on top of inputSlot when the segment hosts an embedded naked
-    // Select, which brings no spacing of its own: the trigger carries the
-    // chip's segment padding so the whole segment stays clickable. Text
-    // styles inherit from the chip via the naked variant, and the segment
-    // draws the operator trigger's focus ring around the focused Select
-    // trigger inside it.
     selectSlot: {
       position: "relative",
       "&:has(:focus-visible)": {
@@ -277,8 +271,6 @@ export const filterRecipe = sva({
         boxShadow: "[0 0 0 2px var(--filter-ring)]",
         pointerEvents: "none",
       },
-      // Same pressed treatment as the operator trigger while the embedded
-      // select's dropdown is open
       "&:has([data-part=trigger][data-state=open])": {
         background: "neutral.s20",
         boxShadow: "[var(--filter-pressed-shadow)]",
@@ -496,7 +488,6 @@ export const filterRecipe = sva({
           "&[data-placeholder]": { color: "neutral.s80" },
         },
         input: { color: "neutral.s90" },
-        // The embedded naked Select inherits its text color from the slot
         selectSlot: { color: "neutral.s90" },
         separator: { color: "neutral.s80" },
         remove: { background: "white" },

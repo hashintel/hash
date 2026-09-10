@@ -535,6 +535,13 @@ export const Select = <TValue extends string>({
       enterWhileOpenRef.current = !!selectApiRef.current?.open;
     } else if (event.key === "Tab") {
       handleTabKeyDown(event);
+    } else if (
+      (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+      !selectApiRef.current?.open
+    ) {
+      // zag changes a closed select's selection on Left/Right — swallow the
+      // key before it reaches the trigger so the selection stays put.
+      event.stopPropagation();
     }
   };
   const handleRootKeyDown = (event: React.KeyboardEvent) => {
@@ -621,8 +628,6 @@ export const Select = <TValue extends string>({
     return values;
   }, [effectiveItems]);
 
-  // Multi selects without a custom renderSelectedItem render their selected
-  // values through an OverflowRow, scrolling by default.
   const overflowMode =
     multiple && !renderSelectedItem ? (overflow ?? "scroll") : undefined;
 
@@ -711,8 +716,7 @@ export const Select = <TValue extends string>({
   const clearAll = useCallback(() => {
     (onChange as (value: TValue[]) => void)([]);
   }, [onChange]);
-  // Backs the clear button: a custom onClear when given, otherwise clears
-  // the selection directly through onChange.
+
   const clearSelection = () => {
     if (typeof clearable === "object") {
       clearable.onClear();
@@ -730,8 +734,7 @@ export const Select = <TValue extends string>({
   const hideSummaryToggle =
     !!searchableOptions?.hideSelectAllToggle ||
     (maxItems !== undefined && maxItems < optionValues.length);
-  // Omitted entirely (rather than rendering an empty component) when both
-  // parts are hidden, so no empty footer band appears around it.
+
   const selectionSummary =
     showSearch && multiple && !(hideSummaryCount && hideSummaryToggle) ? (
       <SelectableListSelectionSummary

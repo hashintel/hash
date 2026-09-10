@@ -102,13 +102,6 @@ const syncTruncationTitle = (event: React.MouseEvent<HTMLElement>) => {
   }
 };
 
-/**
- * A select input segment: an embedded subtle `Select` whose selection fills
- * the segment's slot. Items given as an async loader are fetched once when
- * the segment mounts (loaders are usually inline, so a new identity every
- * render must not refetch); switching operators remounts the segment and so
- * re-runs the loader.
- */
 const FilterSelectInput = ({
   config,
   slot,
@@ -262,20 +255,12 @@ export const Filter = <
   >;
   const portalContainerRef = usePortalContainerRef();
   const rootRef = useRef<HTMLDivElement>(null);
+  const operatorTriggerRef = useRef<HTMLButtonElement>(null);
   const inputRefs = useRef<Array<HTMLElement | null>>([]);
-  // Open state per dropdown kind — both suppress blur-commits while open
-  // (focus may sit in the portaled list). They are separate refs because an
-  // auto-opened select segment is marked open while the operator dropdown's
-  // own close event is still to come, which must not clear that mark.
   const operatorDropdownOpenRef = useRef(false);
   const selectDropdownOpenRef = useRef(false);
-  // Closing a select's dropdown with Escape cancels the interaction instead
-  // of committing. Ark dismisses on Escape from a native document-capture
-  // listener — before any React handler — so the only spot that reliably
-  // precedes the close is a window-capture listener.
   const selectEscapedRef = useRef(false);
-  // The value the focused text/number input held when it received focus —
-  // Escape restores it. One ref suffices: only one input is focused at once.
+  // The value the focused text/number input held when it received focus 
   const inputFocusValueRef = useRef<SlotValue>(null);
   useEffect(() => {
     const markEscape = (event: KeyboardEvent) => {
@@ -333,8 +318,6 @@ export const Filter = <
   if (!committedEqual(syncedValue, value)) {
     setSyncedValue(value);
     setDraftKey(value?.key ?? defaultKey);
-    // An externally adopted value must not resurrect a pending auto-open
-    // when its remounted segment happens to match the auto-open operator.
     setAutoOpenKey(null);
     setSlots(
       slotsForValue(operatorByKey(value?.key ?? defaultKey), value?.value),
@@ -381,8 +364,6 @@ export const Filter = <
     );
   };
 
-  // A text/number segment registers its <input>; a select segment registers
-  // its wrapper, inside which the trigger button is the focus target.
   const focusSlot = (index: number) => {
     const element = inputRefs.current[index];
     if (!element) {
@@ -457,6 +438,80 @@ export const Filter = <
     applySlots(next);
   };
 
+  // Left/Right move focus between the chip's segments — the operator trigger
+  // and each input, clamped to the chip (never the remove button, never
+  // outside it). Inside a text input the jump only happens once the caret
+  // sits at the matching edge, so arrows still move the caret; a number
+  // input hides its caret position, so it only jumps while empty. Open
+  // dropdowns keep arrow keys for themselves.
+  const handleArrowKeyCapture = (event: React.KeyboardEvent) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      return;
+    }
+    if (operatorDropdownOpenRef.current || selectDropdownOpenRef.current) {
+      return;
+    }
+    const { target } = event;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+    const stops: HTMLElement[] = [];
+    if (operatorTriggerRef.current) {
+      stops.push(operatorTriggerRef.current);
+    }
+    for (const element of inputRefs.current) {
+      if (!element?.isConnected) {
+        continue;
+      }
+      if (element instanceof HTMLInputElement) {
+        stops.push(element);
+      } else {
+        const trigger = element.querySelector<HTMLElement>(
+          "[data-part=trigger]",
+        );
+        if (trigger) {
+          stops.push(trigger);
+        }
+      }
+    }
+    const index = stops.findIndex((el) => el === target || el.contains(target));
+    if (index === -1) {
+      return;
+    }
+    if (target instanceof HTMLInputElement) {
+      const { selectionStart, selectionEnd, value: text } = target;
+      if (selectionStart === null) {
+        // A number input exposes no caret position: keep arrows for the
+        // caret unless there is nothing to move through.
+        if (text !== "") {
+          return;
+        }
+      } else {
+        const atStart = selectionStart === 0 && selectionEnd === 0;
+        const atEnd =
+          selectionStart === text.length && selectionEnd === text.length;
+        if (direction === -1 ? !atStart : !atEnd) {
+          return;
+        }
+      }
+    }
+    if (event.repeat) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const next = stops[index + direction];
+    if (!next) {
+      return;
+    }
+    next.focus();
+    if (next instanceof HTMLInputElement && next.type === "text") {
+      const position = direction === 1 ? 0 : next.value.length;
+      next.setSelectionRange(position, position);
+    }
+  };
+
   const handleInputKeyDown = (
     event: React.KeyboardEvent<Element>,
     inputIndex: number,
@@ -476,12 +531,6 @@ export const Filter = <
     }
   };
 
-  // A select segment's dropdown ends its interaction when it closes: commit
-  // then, off the ref, as the change and close events of a single click land
-  // before the slot state re-renders. An Escape-close cancels instead of
-  // committing: a single select's value is untouched (selecting closes the
-  // dropdown, so nothing changed while it was open), and a multi select has
-  // already reverted itself to its open-time selection, updating the slot.
   const handleSelectOpenChange = (open: boolean) => {
     selectDropdownOpenRef.current = open;
     if (open) {
@@ -569,6 +618,7 @@ export const Filter = <
       ref={rootRef as React.Ref<HTMLDivElement>}
       className={cx(classes.root, className)}
       onBlur={handleRootBlur}
+      onKeyDownCapture={handleArrowKeyCapture}
       role="group"
       aria-label={`${propertyLabel} filter`}
       data-testid={testId}
@@ -582,6 +632,7 @@ export const Filter = <
           a plain non-interactive span; with no operators there is no segment */}
       {selectableOperators ? (
         <ArkSelect.Trigger
+          ref={operatorTriggerRef}
           className={classes.trigger}
           data-placeholder={selectedOperator ? undefined : ""}
           aria-label={`${propertyLabel} operator`}

@@ -57,9 +57,6 @@ export const styles = sva({
   },
   variants: {
     overflow: {
-      // Measured modes fill their container: overflow is only meaningful
-      // against an externally imposed width, and a content-sized root would
-      // shrink whenever items are hidden, re-measuring items away.
       summary: {
         root: { width: "full", overflow: "hidden" },
       },
@@ -89,9 +86,6 @@ export const styles = sva({
         },
       },
     },
-    // A visible separator supplies the spacing itself (e.g. ", " reads as
-    // prose); the row gap would double it. The measure layer's gap must
-    // always match the root's — the fit math reads it.
     gapless: {
       true: {
         root: { gap: "0" },

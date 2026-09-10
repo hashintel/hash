@@ -16,9 +16,6 @@ export const searchRow = cva({
     paddingBottom: "1",
     background: "neutral.s10",
     borderBottom: "1px solid {colors.neutral.s35}",
-    // Scale the search icon with the inherited text size: 16px at the sm
-    // text size (14px), in step at the other sizes. The descendant selector
-    // outweighs the Icon's own single-class size variant.
     "& svg": {
       "--icon-size": "1.143em",
     },

@@ -28,10 +28,7 @@ export const summaryAction = cva({
     border: "none",
     background: "[transparent]",
     padding: "0",
-    // Right-aligned even when it is the only child of the row
     marginLeft: "[auto]",
-    // Buttons don't inherit font from the UA stylesheet; the weight and
-    // line-height longhands below still beat the shorthand
     font: "[inherit]",
     fontWeight: "[450]",
     color: "neutral.s100",

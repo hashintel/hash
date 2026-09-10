@@ -262,9 +262,6 @@ export const selectRecipe = sva({
           paddingLeft: "2",
         },
       },
-      // No input chrome at all: the trigger renders as bare inline text that
-      // inherits the surrounding font (the size variant still styles the
-      // dropdown list). The host provides any hover/focus affordance.
       naked: {
         wrapper: {
           fontSize: "[inherit]",
@@ -478,9 +475,6 @@ export const selectRecipe = sva({
     },
     willClear: { true: {} },
     hasPrefix: { true: {} },
-    // An OverflowRow rendering the selected values must be constrained by the
-    // input's width — the base min-content floor would instead let the row's
-    // content push the input wider than its imposed width.
     overflowRow: {
       true: {
         select: { minWidth: "0" },
