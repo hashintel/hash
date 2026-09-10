@@ -13,7 +13,9 @@ assert(
 registerHooks({
   load(url, context, nextLoad) {
     if (
-      !url.endsWith("/apps/brunch-agent/test/history-retention.integration.ts")
+      !url.endsWith(
+        "/apps/brunch-agent/test/integration/history-retention.integration.ts",
+      )
     )
       return nextLoad(url, context);
     const original = readFileSync(new URL(url), "utf8");

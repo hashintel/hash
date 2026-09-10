@@ -21,8 +21,8 @@ import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../../src/conversation/identity.ts";
-import { deriveProofTrace } from "../../src/evaluations/persona/proof-artifacts.ts";
 import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
+import { deriveProofTrace } from "../../src/evaluations/persona/proof-artifacts.ts";
 import {
   interviewerToolNamesFrom,
   skillResourcePathsFrom,

@@ -11,7 +11,7 @@ let result: WorkpieceRevisionProbeResult;
 beforeAll(async () => {
   const { exitCode, stdout, stderr } = await runNodeScript(
     join(import.meta.dirname, "workpiece-revisions.integration.ts"),
-    join(import.meta.dirname, "../../.."),
+    join(import.meta.dirname, "../../../.."),
     {},
   );
   if (exitCode !== 0) throw new Error(stderr || stdout);

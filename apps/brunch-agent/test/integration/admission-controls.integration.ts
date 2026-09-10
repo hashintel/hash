@@ -30,16 +30,16 @@ import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-mark
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isAwaitingClient,
-} from "../src/conversation/client-tools.ts";
+} from "../../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation/identity.ts";
-import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
-import { createHeadlessPetrinautClient } from "../src/evaluations/runbook/headless-petrinaut-client.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+} from "../../src/conversation/identity.ts";
+import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
+import { createHeadlessPetrinautClient } from "../../src/evaluations/runbook/headless-petrinaut-client.ts";
+import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
 
-import type { AdmissionVoiceEvidence } from "./admission-voice-evidence.ts";
+import type { AdmissionVoiceEvidence } from "../admission-voice-evidence.ts";
 import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 
 const directory =

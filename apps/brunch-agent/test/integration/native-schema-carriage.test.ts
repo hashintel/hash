@@ -6,7 +6,7 @@ test("the built ChatAgent carries native root-arc/addType input through both rea
   const { exitCode, stdout, stderr } = await runNodeScript(
     new URL("./native-schema-carriage.integration.ts", import.meta.url)
       .pathname,
-    new URL("../../..", import.meta.url).pathname,
+    new URL("../../../..", import.meta.url).pathname,
     {},
   );
   expect(exitCode, `${stderr}\n${stdout}`).toBe(0);

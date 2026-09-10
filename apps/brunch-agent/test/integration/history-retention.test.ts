@@ -16,7 +16,7 @@ test.each(["threshold", "silent", "explicit", "cancelled"])(
         // oxlint-disable-next-line no-await-in-loop -- The previous runtime must stop before the same store is reopened.
         const result = await runNodeScript(
           join(import.meta.dirname, "history-retention.integration.ts"),
-          join(import.meta.dirname, "../../.."),
+          join(import.meta.dirname, "../../../.."),
           {
             A4_OUTPUT_DIRECTORY: directory,
             A4_PHASE: phase,
@@ -42,7 +42,7 @@ test.each(["missing", "replaced", "changed", "duplicate", "settlement"])(
     try {
       const result = await runNodeScript(
         join(import.meta.dirname, "history-retention.integration.ts"),
-        join(import.meta.dirname, "../../.."),
+        join(import.meta.dirname, "../../../.."),
         {
           A4_OUTPUT_DIRECTORY: directory,
           A4_OVERFLOW_PROBE: "1",

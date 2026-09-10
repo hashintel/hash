@@ -15,14 +15,14 @@ import { createFlueClient } from "@flue/sdk";
 
 import { VALIDATED_CONSTRUCTION_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
-import { CLIENT_TOOL_RESULT_SIGNAL } from "../src/conversation/client-tools.ts";
+import { CLIENT_TOOL_RESULT_SIGNAL } from "../../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation/identity.ts";
-import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
-import { createHeadlessPetrinautClient } from "../src/evaluations/runbook/headless-petrinaut-client.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+} from "../../src/conversation/identity.ts";
+import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
+import { createHeadlessPetrinautClient } from "../../src/evaluations/runbook/headless-petrinaut-client.ts";
+import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
 
 const directory = mkdtempSync(join(tmpdir(), "single-browser-proposal-"));
 process.env.NODE_ENV = "test";

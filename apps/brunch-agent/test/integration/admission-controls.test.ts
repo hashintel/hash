@@ -13,7 +13,7 @@ let result: AdmissionControlsResult;
 beforeAll(async () => {
   const { exitCode, stdout, stderr } = await runNodeScript(
     join(import.meta.dirname, "admission-controls.integration.ts"),
-    join(import.meta.dirname, "../../.."),
+    join(import.meta.dirname, "../../../.."),
     {},
   );
   if (exitCode !== 0) throw new Error(stderr || stdout);

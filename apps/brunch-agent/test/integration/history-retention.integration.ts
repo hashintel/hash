@@ -24,9 +24,9 @@ import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-mark
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation/identity.ts";
-import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+} from "../../src/conversation/identity.ts";
+import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
+import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
 
 import type { FauxResponseStep } from "@earendil-works/pi-ai";
 import type { FlueObservation } from "@flue/runtime";
@@ -762,7 +762,7 @@ try {
         keepRecentTokens,
         buildHashes: Object.fromEntries(
           await Promise.all(
-            (await readdir(new URL("../dist/", import.meta.url)))
+            (await readdir(new URL("../../dist/", import.meta.url)))
               .filter((name) => name.endsWith(".mjs"))
               .sort()
               .map(
@@ -772,7 +772,7 @@ try {
                     createHash("sha256")
                       .update(
                         await readFile(
-                          new URL(`../dist/${name}`, import.meta.url),
+                          new URL(`../../dist/${name}`, import.meta.url),
                         ),
                       )
                       .digest("hex"),

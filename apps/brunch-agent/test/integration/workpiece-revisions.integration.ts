@@ -16,15 +16,15 @@ import { createFlueClient, type FlueConversationSnapshot } from "@flue/sdk";
 
 import { VALIDATED_CONSTRUCTION_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
-import { isAwaitingClient } from "../src/conversation/client-tools.ts";
+import { isAwaitingClient } from "../../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation/identity.ts";
-import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
-import { createHeadlessPetrinautClient } from "../src/evaluations/runbook/headless-petrinaut-client.ts";
-import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
-import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
+} from "../../src/conversation/identity.ts";
+import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
+import { createHeadlessPetrinautClient } from "../../src/evaluations/runbook/headless-petrinaut-client.ts";
+import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
+import { CHAT_AGENT_ROUTE } from "../../src/http/routes.ts";
 
 import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 
