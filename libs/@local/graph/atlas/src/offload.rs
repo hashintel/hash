@@ -156,7 +156,7 @@ pub(crate) mod tests {
             .expect_err("the panic answers as an error");
 
         let OffloadError::Panicked(Some(payload)) = error else {
-            panic!("the worker ran the closure, so the failure carries the panic's text");
+            panic!("should receive a text panic payload");
         };
         assert_eq!(payload, "the fixture panicked on purpose");
 
@@ -172,7 +172,7 @@ pub(crate) mod tests {
             .expect_err("the panic answers as an error");
 
         let OffloadError::Panicked(Some(payload)) = error else {
-            panic!("the worker ran the closure, so the failure carries the panic's text");
+            panic!("should receive a text panic payload");
         };
         assert_eq!(payload, "row 41 is out of range");
     }
@@ -184,8 +184,9 @@ pub(crate) mod tests {
             .await
             .expect_err("the panic answers as an error");
 
-        assert!(
-            matches!(error, OffloadError::Panicked(None)),
+        core::assert_matches!(
+            error,
+            OffloadError::Panicked(None),
             "a numeric payload has no text to extract"
         );
     }
@@ -211,22 +212,12 @@ pub(crate) mod tests {
         let (release, held) = std::sync::mpsc::channel::<()>();
         let (dropped, drop_witness) = std::sync::mpsc::channel::<()>();
 
-        // Poll the offload once so the worker spawns, then drop it on the timeout: the receiver
-        // is gone before the worker answers, because the worker waits on `held` until the
-        // release below.
-        let cancelled = tokio::time::timeout(
-            core::time::Duration::from_millis(10),
-            run(move || {
-                held.recv()
-                    .expect("the test releases the worker after cancelling");
-                PanicsOnDrop(dropped)
-            }),
-        )
-        .await;
-        assert!(
-            cancelled.is_err(),
-            "the held worker cannot answer before the timeout"
-        );
+        let cancelled = run(move || {
+            held.recv()
+                .expect("the test releases the worker after cancelling");
+            PanicsOnDrop(dropped)
+        });
+        drop(cancelled);
 
         release.send(()).expect("the worker waits on this release");
 

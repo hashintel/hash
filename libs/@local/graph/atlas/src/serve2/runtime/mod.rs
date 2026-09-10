@@ -4,10 +4,15 @@
 //! publications remain readable after its background work finishes.
 
 use alloc::sync::Arc;
-use core::{error::Error, fmt};
+use core::{
+    error::Error,
+    fmt,
+    future::poll_fn,
+    task::{Context, Poll, ready},
+};
 
 use error_stack::{Report, ResultExt as _};
-use futures::executor::block_on;
+use futures::{FutureExt as _, executor::block_on};
 use hash_graph_postgres_store::store::PostgresStorePool;
 use rand::TryCryptoRng;
 use tokio::task::JoinHandle;
@@ -198,15 +203,24 @@ impl Runtime {
     ///
     /// Returns [`RuntimeError`] for a feed failure or a failed join.
     async fn join(&mut self) -> Option<Result<(), Report<RuntimeError>>> {
-        let feed = self.feed.as_mut()?;
-        let result = (&mut feed.task).await;
+        poll_fn(|context| self.poll_join(context)).await
+    }
 
+    fn poll_join(
+        &mut self,
+        context: &mut Context<'_>,
+    ) -> Poll<Option<Result<(), Report<RuntimeError>>>> {
+        let Some(feed) = self.feed.as_mut() else {
+            return Poll::Ready(None);
+        };
+
+        let result = ready!(feed.task.poll_unpin(context));
         self.feed = None;
-        Some(
+        Poll::Ready(Some(
             result
                 .change_context(RuntimeError::Join)
                 .and_then(|result| result.change_context(RuntimeError::Feed)),
-        )
+        ))
     }
 
     /// Stops and joins the feed while preserving request-held publications.

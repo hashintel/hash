@@ -1,5 +1,10 @@
 use alloc::sync::Arc;
-use core::mem;
+use core::{
+    mem,
+    task::{Context, Poll, ready},
+};
+
+use futures::FutureExt as _;
 
 use super::source::{RuntimeSource, RuntimeSourceHandle};
 use crate::{
@@ -62,7 +67,7 @@ impl Execution {
                             tracing::warn!(%generation, "generation feed ended prematurely");
                         }
                         Err(error) => {
-                            tracing::warn!(%generation, ?error, "unable to join runtime, generation feed failed")
+                            tracing::warn!(%generation, ?error, "unable to join runtime, generation feed failed");
                         }
                         Ok(FeedState::Absent | FeedState::Running) => return,
                     }
@@ -150,6 +155,51 @@ impl RuntimeSlot {
 
     pub(super) fn tick(&mut self, generation: GenerationId) {
         self.execution.tick(generation);
+    }
+
+    /// Stops initialized feeds and polls every operation this slot already owns.
+    pub(super) fn poll_shutdown(
+        &mut self,
+        generation: GenerationId,
+        context: &mut Context<'_>,
+    ) -> Poll<()> {
+        loop {
+            let next = match &mut self.execution {
+                Execution::Opening { world, task } => match ready!(task.poll_unpin(context)) {
+                    Ok(runtime) => {
+                        runtime.stop();
+                        Execution::Joining(runtime)
+                    }
+                    Err(error) => {
+                        tracing::warn!(%generation, ?error, "generation initialization failed during shutdown");
+                        Execution::Stopped(world.take())
+                    }
+                },
+                Execution::Ready(_) | Execution::Running(_) => {
+                    self.stop();
+                    continue;
+                }
+                Execution::Joining(runtime) => {
+                    if let Some(Err(error)) = ready!(runtime.poll_join(context)) {
+                        tracing::warn!(%generation, ?error, "unable to join runtime, generation feed failed");
+                    }
+                    Execution::Stopped(Some(Arc::clone(runtime.world())))
+                }
+                Execution::Removing(task) => match ready!(task.poll_unpin(context)) {
+                    Ok(()) => {
+                        tracing::info!(%generation, "removed expired generation");
+                        Execution::Removed
+                    }
+                    Err(error) => {
+                        tracing::warn!(%generation, ?error, "failed to remove expired generation");
+                        Execution::Stopped(None)
+                    }
+                },
+                Execution::Stopped(_) | Execution::Removed => return Poll::Ready(()),
+            };
+
+            self.execution = next;
+        }
     }
 
     pub(super) fn open(&mut self, source: Arc<RuntimeSource>, generation: GenerationId) {

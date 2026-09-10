@@ -10,9 +10,11 @@ use core::{
     future::{self, Future},
     mem,
     pin::pin,
+    sync::atomic::{AtomicBool, Ordering},
+    task::{Context, Poll, Waker},
     time::Duration,
 };
-use std::{fs, time::Instant};
+use std::{fs, task::Wake, time::Instant};
 
 use error_stack::Report;
 use futures::FutureExt as _;
@@ -140,6 +142,30 @@ fn controlled(test: impl Future<Output = ()>) {
     let result =
         runtime.block_on(async { tokio::time::timeout(Duration::from_secs(1), test).await });
     result.expect("the controlled test should finish without a stalled task");
+}
+
+struct WakeFlag(AtomicBool);
+
+impl Wake for WakeFlag {
+    fn wake(self: Arc<Self>) {
+        self.0.store(true, Ordering::Relaxed);
+    }
+}
+
+#[track_caller]
+fn assert_wakeup(task: impl Future<Output = ()>, complete: impl FnOnce()) {
+    let wake = Arc::new(WakeFlag(AtomicBool::new(false)));
+    let waker = Waker::from(Arc::clone(&wake));
+    let mut context = Context::from_waker(&waker);
+    let mut task = pin!(task);
+    assert_matches!(task.as_mut().poll(&mut context), Poll::Pending);
+
+    complete();
+    assert!(
+        wake.0.load(Ordering::Relaxed),
+        "completion should wake the suspended shutdown"
+    );
+    assert_matches!(task.as_mut().poll(&mut context), Poll::Ready(()));
 }
 
 /// A pool that never connects, for openings that must not reach a database.
@@ -363,6 +389,9 @@ async fn settle_opening(manager: &mut GenerationManager, generation: GenerationI
         .slots
         .get_mut(&generation)
         .expect("the generation should hold a slot");
+    if let Execution::Ready(_) = slot.execution {
+        return;
+    }
     let Execution::Opening { world, task } = mem::replace(&mut slot.execution, Execution::Removed)
     else {
         panic!("the generation should hold a started opening")
@@ -381,6 +410,9 @@ async fn settle_removal(manager: &mut GenerationManager, generation: GenerationI
         .slots
         .get_mut(&generation)
         .expect("the generation should hold a slot");
+    if let Execution::Removed = slot.execution {
+        return;
+    }
     let Execution::Removing(task) = mem::replace(&mut slot.execution, Execution::Removed) else {
         panic!("the generation should hold a started removal")
     };
@@ -1034,6 +1066,58 @@ async fn recovery_deferred_while_retained() {
     drain(&mut manager, []).await;
 }
 
+#[test]
+fn joining_feedless() {
+    let fixture = Fixture::new("manager-joining-feedless");
+    let generation = fixture.world.generation().id();
+
+    for promoted in [false, true] {
+        let mut slot = ready(runtime(Arc::clone(&fixture.world), 1, None));
+        if promoted {
+            slot.promote();
+        }
+        slot.stop();
+        assert_matches!(slot.execution, Execution::Joining(_));
+
+        slot.tick(generation);
+        assert_matches!(
+            slot.execution,
+            Execution::Stopped(Some(ref world)) if Arc::ptr_eq(world, &fixture.world),
+            "a feedless runtime should stop while retaining its world"
+        );
+        slot.tick(generation);
+        assert_matches!(slot.execution, Execution::Stopped(Some(_)));
+    }
+}
+
+#[test]
+fn joining_pending_feed() {
+    controlled(async {
+        let fixture = Fixture::new("manager-joining-pending-feed");
+        let generation = fixture.world.generation().id();
+        let (feed, handshake) = stalled_feed();
+        let mut slot = ready(runtime(Arc::clone(&fixture.world), 1, Some(feed)));
+        slot.promote();
+        slot.stop();
+        handshake.observed.await.expect("should observe shutdown");
+
+        slot.tick(generation);
+        assert_matches!(slot.execution, Execution::Joining(_));
+
+        handshake
+            .release
+            .send(())
+            .expect("should retain the worker");
+        handshake.ended.await.expect("should finish the worker");
+        slot.tick(generation);
+        assert_matches!(
+            slot.execution,
+            Execution::Stopped(Some(ref world)) if Arc::ptr_eq(world, &fixture.world),
+            "a completed feed should stop while retaining its world"
+        );
+    });
+}
+
 /// A generation without a feed preserves its lifetime across maintenance passes.
 #[test]
 fn recovery_absent_without_feed() {
@@ -1075,6 +1159,89 @@ fn recovery_absent_without_feed() {
         );
 
         drain(&mut manager, []).await;
+    });
+}
+
+#[test]
+fn shutdown_join_wakeup() {
+    controlled(async {
+        let fixture = Fixture::new("manager-shutdown-join-wakeup");
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+        manager.current = None;
+        let (feed, handshake) = stalled_feed();
+        manager.slots.insert(
+            fixture.world.generation().id(),
+            ready(runtime(Arc::clone(&fixture.world), 1, Some(feed))),
+        );
+
+        let wake = Arc::new(WakeFlag(AtomicBool::new(false)));
+        let waker = Waker::from(Arc::clone(&wake));
+        let mut context = Context::from_waker(&waker);
+        let mut shutdown = pin!(manager.shutdown());
+        assert_matches!(shutdown.as_mut().poll(&mut context), Poll::Pending);
+        handshake.observed.await.expect("should observe shutdown");
+        assert!(!wake.0.load(Ordering::Relaxed));
+
+        handshake
+            .release
+            .send(())
+            .expect("should retain the worker");
+        handshake.ended.await.expect("should finish the worker");
+        assert!(
+            wake.0.load(Ordering::Relaxed),
+            "the joined worker should wake the suspended shutdown"
+        );
+        assert_matches!(shutdown.as_mut().poll(&mut context), Poll::Ready(()));
+    });
+}
+
+#[tokio::test]
+async fn shutdown_pointer_wakeup() {
+    let fixture = Fixture::new("manager-shutdown-pointer-wakeup");
+    let (mut manager, reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    assert_wakeup(manager.shutdown(), || {
+        assert!(
+            reply.send(Ok(Ok(None))).is_ok(),
+            "should retain the pointer read"
+        );
+    });
+}
+
+#[tokio::test]
+async fn shutdown_opening_wakeup() {
+    let fixture = Fixture::new("manager-shutdown-opening-wakeup");
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    manager.current = None;
+    let (task, reply) = pending();
+    manager
+        .slots
+        .insert(fixture.world.generation().id(), opening(task));
+    let runtime = runtime(Arc::clone(&fixture.world), 1, None);
+
+    assert_wakeup(manager.shutdown(), || {
+        assert!(
+            reply.send(Ok(Ok(runtime))).is_ok(),
+            "should retain the opening"
+        );
+    });
+}
+
+#[tokio::test]
+async fn shutdown_removal_wakeup() {
+    let fixture = Fixture::new("manager-shutdown-removal-wakeup");
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    manager.current = None;
+    let (task, reply) = pending();
+    manager.slots.insert(
+        fixture.world.generation().id(),
+        RuntimeSlot {
+            registration: Registration::Expired,
+            execution: Execution::Removing(task),
+        },
+    );
+
+    assert_wakeup(manager.shutdown(), || {
+        assert!(reply.send(Ok(Ok(()))).is_ok(), "should retain the removal");
     });
 }
 
@@ -1493,12 +1660,15 @@ async fn fail_started_opening(manager: &mut GenerationManager, generation: Gener
         .slots
         .get_mut(&generation)
         .expect("the generation should hold a slot");
-    let Execution::Opening { world, task } = mem::replace(&mut slot.execution, Execution::Removed)
-    else {
-        panic!("the generation should hold a started recovery")
+    let world = match mem::replace(&mut slot.execution, Execution::Removed) {
+        Execution::Opening { world, task } => {
+            drop(task.await.expect("the manager's recovery should open"));
+            world
+        }
+        Execution::Ready(runtime) => Some(Arc::clone(runtime.world())),
+        execution => panic!("should hold a started recovery, found {execution:?}"),
     };
 
-    drop(task.await.expect("the manager's recovery should open"));
     slot.execution = Execution::Opening {
         world,
         task: settled(Err(Report::new(ManagerError::Runtime))),

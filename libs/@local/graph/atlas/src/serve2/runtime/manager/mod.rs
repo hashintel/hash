@@ -9,12 +9,13 @@ use alloc::sync::Arc;
 use core::{
     future::{self, Future},
     pin::pin,
-    task::Poll,
+    task::{Context, Poll, ready},
     time::Duration,
 };
 use std::time::Instant;
 
 use error_stack::Report;
+use futures::FutureExt as _;
 use hashql_core::collections::FastHashMap;
 use tokio::time::MissedTickBehavior;
 
@@ -132,16 +133,30 @@ impl GenerationManager {
             return;
         };
 
-        match current.try_join() {
-            Ok(OffloadState::Running) => {}
-            Ok(OffloadState::Finished(desired)) => {
-                self.current = None;
-                self.desired = desired;
-            }
-            Err(error) => {
-                self.current = None;
-                tracing::warn!(?error, "unable to open current generation, restarting...");
-            }
+        let result = match current.try_join() {
+            Ok(OffloadState::Running) => return,
+            Ok(OffloadState::Finished(desired)) => Ok(desired),
+            Err(error) => Err(error),
+        };
+
+        self.finish_current(result);
+    }
+
+    fn poll_current(&mut self, context: &mut Context<'_>) -> Poll<()> {
+        let Some(current) = &mut self.current else {
+            return Poll::Ready(());
+        };
+
+        let result = ready!(current.poll_unpin(context));
+        self.finish_current(result);
+        Poll::Ready(())
+    }
+
+    fn finish_current(&mut self, result: Result<Option<GenerationId>, Report<ManagerError>>) {
+        self.current = None;
+        match result {
+            Ok(desired) => self.desired = desired,
+            Err(error) => tracing::warn!(?error, "failed to read current-generation pointer"),
         }
     }
 
@@ -280,15 +295,10 @@ impl GenerationManager {
     pub(crate) async fn shutdown(&mut self) {
         self.stop();
 
-        future::poll_fn(|_| {
-            self.try_join_current();
-
-            let mut complete = self.current.is_none();
+        future::poll_fn(|context| {
+            let mut complete = self.poll_current(context).is_ready();
             for (&generation, slot) in &mut self.slots {
-                slot.tick(generation);
-                slot.stop();
-                slot.tick(generation);
-                complete &= slot.is_stopped();
+                complete &= slot.poll_shutdown(generation, context).is_ready();
             }
 
             if complete {
