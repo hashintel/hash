@@ -1,12 +1,12 @@
 use core::assert_matches;
 
-use super::S3Path;
+use super::BucketPath;
 use crate::file::storage::path::error::{FilePathError, PathComponent};
 
 #[test]
 fn parse_bucket_only() {
     assert_matches!(
-        "s3://bucket-only".parse::<Box<S3Path>>(),
+        "s3://bucket-only".parse::<Box<BucketPath>>(),
         Err(FilePathError::MissingKey)
     );
 }
@@ -14,7 +14,7 @@ fn parse_bucket_only() {
 #[test]
 fn parse_empty_bucket() {
     assert_matches!(
-        "s3:///key".parse::<Box<S3Path>>(),
+        "s3:///key".parse::<Box<BucketPath>>(),
         Err(FilePathError::Empty {
             component: PathComponent::Bucket
         })
@@ -24,7 +24,7 @@ fn parse_empty_bucket() {
 #[test]
 fn parse_empty_key() {
     assert_matches!(
-        "s3://bucket/".parse::<Box<S3Path>>(),
+        "s3://bucket/".parse::<Box<BucketPath>>(),
         Err(FilePathError::Empty {
             component: PathComponent::Key
         })
@@ -34,7 +34,7 @@ fn parse_empty_key() {
 #[test]
 fn parse_foreign_scheme() {
     assert_matches!(
-        "https://bucket/key".parse::<Box<S3Path>>(),
+        "https://bucket/key".parse::<Box<BucketPath>>(),
         Err(FilePathError::Scheme)
     );
 }
@@ -45,7 +45,7 @@ fn parse_foreign_scheme() {
     reason = "the case exercises multibyte text on both sides of the separator"
 )]
 fn parse_unicode() {
-    let path: Box<S3Path> = "s3://büçket-ñame/käy-🎈.txt"
+    let path: Box<BucketPath> = "s3://büçket-ñame/käy-🎈.txt"
         .parse()
         .expect("should preserve Unicode text");
     assert_eq!(path.bucket(), "büçket-ñame");
@@ -54,7 +54,7 @@ fn parse_unicode() {
 
 #[test]
 fn parse_literal_key() {
-    let path: Box<S3Path> = "s3://bucket/a%2Fb/c%20d/../e"
+    let path: Box<BucketPath> = "s3://bucket/a%2Fb/c%20d/../e"
         .parse()
         .expect("should preserve the literal key");
     assert_eq!(path.bucket(), "bucket");
@@ -63,7 +63,7 @@ fn parse_literal_key() {
 
 #[test]
 fn copy_source_literal_key() {
-    let path: Box<S3Path> = "s3://bucket/a b%2fc.txt?mark#tag/../~_-"
+    let path: Box<BucketPath> = "s3://bucket/a b%2fc.txt?mark#tag/../~_-"
         .parse()
         .expect("should parse a literal object key");
     assert_eq!(
@@ -75,7 +75,7 @@ fn copy_source_literal_key() {
 
 #[test]
 fn copy_source_utf8() {
-    let path: Box<S3Path> = "s3://bucket/\u{e4}/\u{1f388}"
+    let path: Box<BucketPath> = "s3://bucket/\u{e4}/\u{1f388}"
         .parse()
         .expect("should parse a UTF-8 object key");
     assert_eq!(
@@ -87,14 +87,14 @@ fn copy_source_utf8() {
 
 #[test]
 fn display_scheme() {
-    let path: Box<S3Path> = "s3://bucket/key".parse().expect("should parse an S3 path");
+    let path: Box<BucketPath> = "s3://bucket/key".parse().expect("should parse an S3 path");
     assert_eq!(path.to_string(), "s3://bucket/key");
 }
 
 mod miri {
     use zerocopy::FromZeros as _;
 
-    use super::S3Path;
+    use super::BucketPath;
 
     #[test]
     fn clone_tail() {
@@ -102,7 +102,7 @@ mod miri {
             let bucket = "b".repeat(length);
             let key = format!("{}%2F/../🎈", "k".repeat(length));
             let spelling = format!("s3://{bucket}/{key}");
-            let source: Box<S3Path> = spelling.parse().expect("should parse the source");
+            let source: Box<BucketPath> = spelling.parse().expect("should parse the source");
             let cloned = source.clone();
             assert_ne!(source.as_ref().path.as_ptr(), cloned.as_ref().path.as_ptr());
             drop(source);
@@ -114,7 +114,8 @@ mod miri {
 
     #[test]
     fn clone_empty_tail() {
-        let source = S3Path::new_box_zeroed_with_elems(0).expect("should allocate an empty tail");
+        let source =
+            BucketPath::new_box_zeroed_with_elems(0).expect("should allocate an empty tail");
         let cloned = source.clone();
         drop(source);
         assert_eq!(cloned.separator.get(), 0);

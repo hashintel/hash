@@ -3,7 +3,7 @@ use core::assert_matches;
 use aws_sdk_s3::operation::head_object::HeadObjectOutput;
 
 use super::Metadata;
-use crate::file::storage::error::StorageError;
+use crate::file::storage::{error::StorageError, s3::metadata::ETag};
 
 #[test]
 fn metadata_invalid_length() {
@@ -36,13 +36,15 @@ fn metadata_observed_values() {
             .content_length(length)
             .e_tag("\"opaque-token\"")
             .build();
+
         let metadata = Metadata::try_from(output).expect("should retain valid source metadata");
         assert_eq!(
             metadata.length,
             u64::try_from(length).expect("should fit the nonnegative length")
         );
         assert_eq!(
-            metadata.etag, "\"opaque-token\"",
+            metadata.etag,
+            ETag::new("\"opaque-token\"".to_owned()),
             "should preserve the opaque source token"
         );
     }

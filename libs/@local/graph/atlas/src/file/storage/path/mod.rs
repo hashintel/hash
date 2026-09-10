@@ -1,22 +1,94 @@
 use alloc::borrow::Cow;
 use core::{fmt, str::FromStr};
+use std::{io, pin, task};
 
+use bytes::Bytes;
 use camino::{Utf8Path, Utf8PathBuf};
-use tokio::io::AsyncBufRead;
-use tokio_util::either::Either;
+use tokio::{
+    fs,
+    io::{AsyncBufRead, AsyncRead},
+};
+use tokio_util::{either::Either, io::StreamReader};
 
 use self::error::FilePathError;
-use super::{Storage, error::StorageError, s3::path::S3Path};
+use super::{
+    Revision, RevisionKind, Storage, WriteCondition, error::StorageError, local::LocalFile,
+    s3::path::BucketPath,
+};
 use crate::file::generation::scratch::ScratchFile;
 
 pub(crate) mod error;
 #[cfg(test)]
 mod tests;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum FileOrigin {
+    Local,
+    Bucket,
+}
+
+pin_project_lite::pin_project! {
+    pub(crate) struct FileContents<R> {
+        #[pin]
+        pub reader: R,
+        revision: Revision,
+    }
+}
+
+impl<R> FileContents<R> {
+    pub(crate) fn revision(&self) -> &Revision {
+        &self.revision
+    }
+
+    pub(crate) fn origin(&self) -> FileOrigin {
+        match self.revision.0 {
+            RevisionKind::Local(_) => FileOrigin::Local,
+            RevisionKind::Bucket(_) => FileOrigin::Bucket,
+        }
+    }
+
+    pub(crate) fn into_inner(self) -> R {
+        self.reader
+    }
+
+    pub(crate) fn into_parts(self) -> (R, Revision) {
+        (self.reader, self.revision)
+    }
+}
+
+impl<R> AsyncRead for FileContents<R>
+where
+    R: AsyncRead,
+{
+    fn poll_read(
+        self: pin::Pin<&mut Self>,
+        cx: &mut task::Context<'_>,
+        buf: &mut tokio::io::ReadBuf<'_>,
+    ) -> task::Poll<io::Result<()>> {
+        self.project().reader.poll_read(cx, buf)
+    }
+}
+
+impl<R> AsyncBufRead for FileContents<R>
+where
+    R: AsyncBufRead,
+{
+    fn poll_fill_buf(
+        self: pin::Pin<&mut Self>,
+        cx: &mut task::Context<'_>,
+    ) -> task::Poll<io::Result<&[u8]>> {
+        self.project().reader.poll_fill_buf(cx)
+    }
+
+    fn consume(self: pin::Pin<&mut Self>, amt: usize) {
+        self.project().reader.consume(amt)
+    }
+}
+
 #[derive(Debug, Clone)]
 enum FilePathVariant {
     Local(Utf8PathBuf),
-    S3(Box<S3Path>),
+    Bucket(Box<BucketPath>),
 }
 
 /// A local file or an S3 object location.
@@ -26,11 +98,160 @@ pub(crate) struct FilePath {
 }
 
 impl FilePath {
-    pub(crate) fn as_s3(&self) -> Option<&S3Path> {
+    /// Appends a suffix using the destination's path syntax.
+    ///
+    /// Local suffixes follow filesystem path rules. S3 suffixes append literal key text, separated
+    /// by a slash unless the prefix already ends in one.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FilePathError`] if allocating the S3 path fails.
+    pub(crate) fn join(&self, suffix: &str) -> Result<Self, FilePathError> {
+        let variant = match &self.variant {
+            FilePathVariant::Local(path) => FilePathVariant::Local(path.join(suffix)),
+            FilePathVariant::Bucket(path) => FilePathVariant::Bucket(path.join(suffix)?),
+        };
+
+        Ok(Self { variant })
+    }
+
+    /// Opens a file together with the content revision used for conditional replacement.
+    ///
+    /// The revision identifies the opened contents. Local files require a complete SHA-256 read
+    /// before returning a reader positioned at the start. S3 files retain the response's entity
+    /// tag. Body failures after opening propagate through the reader.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if opening, local hashing or response metadata validation fails.
+    pub(crate) async fn get(
+        &self,
+        storage: &Storage,
+    ) -> Result<FileContents<impl AsyncBufRead + use<>>, StorageError> {
         match &self.variant {
-            FilePathVariant::Local(_) => None,
-            FilePathVariant::S3(path) => Some(path),
+            FilePathVariant::Local(path) => {
+                let path = path.clone();
+                let (revision, file) = LocalFile::new(&path).get().await?;
+
+                Ok(FileContents {
+                    reader: Either::Left(tokio::io::BufReader::new(file)),
+                    revision,
+                })
+            }
+            FilePathVariant::Bucket(path) => {
+                let (Some(etag), reader) = storage.s3()?.read(path).await? else {
+                    return Err(StorageError::MissingEntityTag);
+                };
+
+                Ok(FileContents {
+                    reader: Either::Right(reader),
+                    revision: Revision(RevisionKind::Bucket(etag)),
+                })
+            }
         }
+    }
+
+    /// Replaces the complete contents under a destination precondition.
+    ///
+    /// Local writes create parent directories and coordinate through a persistent directory lock.
+    /// Replacement uses an atomic rename followed by parent-directory synchronization. Filesystem
+    /// writers bypassing that lock can change contents independently. The local `.storage-` name
+    /// prefix belongs to temporary storage and lock files. S3 writes make one request attempt.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if the condition or write fails. A failure after local rename or a
+    /// lost S3 response can leave the write's outcome unknown.
+    #[tracing::instrument(skip_all, fields(path = %self), err)]
+    pub(crate) async fn put(
+        &self,
+        storage: &Storage,
+        body: Bytes,
+        condition: WriteCondition,
+    ) -> Result<(), StorageError> {
+        match &self.variant {
+            FilePathVariant::Local(path) => {
+                LocalFile::new(path)
+                    .write(
+                        // feels like there's a more efficient way...
+                        StreamReader::new(futures::stream::iter([Ok::<_, io::Error>(body)])),
+                        &condition,
+                    )
+                    .await
+            }
+            FilePathVariant::Bucket(path) => storage
+                .s3()?
+                .put(path, body, condition.as_s3()?)
+                .await
+                .map(|_| ()),
+        }
+    }
+
+    /// Streams a local file into a conditionally replaced destination.
+    ///
+    /// The source must remain unchanged until transfer completes. Local destinations use the
+    /// replacement and locking contract of [`Self::put`]. S3 destinations use multipart transfer
+    /// when the file exceeds the single-request bound.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] for source access, destination preconditions or transfer failures.
+    #[tracing::instrument(skip_all, fields(path = %self), err)]
+    pub(crate) async fn upload(
+        &self,
+        storage: &Storage,
+        source: impl AsRef<Utf8Path>,
+        condition: WriteCondition,
+    ) -> Result<(), StorageError> {
+        match &self.variant {
+            FilePathVariant::Local(path) => {
+                let path = path.clone();
+                let source = source.as_ref().to_owned();
+
+                let source = fs::File::open(source).await?;
+                LocalFile::new(&path).write(source, &condition).await
+            }
+            FilePathVariant::Bucket(path) => {
+                storage.s3()?.upload(path, source, condition.as_s3()?).await
+            }
+        }
+    }
+
+    /// Copies a source file under this destination's write precondition.
+    ///
+    /// S3-to-S3 copies remain remote. Other copies stream through a local source, downloading an S3
+    /// source into the configured scratch directory first. Local sources must remain unchanged
+    /// until transfer completes.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] for source access, destination preconditions or transfer failures.
+    #[tracing::instrument(skip_all, fields(source = %source, destination = %self), err)]
+    pub(crate) async fn copy_from(
+        &self,
+        storage: &Storage,
+        source: &Self,
+        condition: WriteCondition,
+    ) -> Result<(), StorageError> {
+        if let (FilePathVariant::Bucket(source), FilePathVariant::Bucket(destination)) =
+            (&source.variant, &self.variant)
+        {
+            return storage
+                .s3()?
+                .copy(source, destination, condition.as_s3()?)
+                .await;
+        }
+
+        let local = source.sync_to_local(storage).await?;
+        let result = self.upload(storage, local.as_ref(), condition).await;
+
+        if let Cow::Owned(temporary) = local {
+            if let Err(error) = tokio::fs::remove_file(temporary).await {
+                tracing::warn!(?error, "failed to remove temporary file");
+            }
+        }
+
+        result
     }
 
     /// Opens a file for incremental reading.
@@ -49,7 +270,11 @@ impl FilePath {
                 let file = tokio::fs::File::open(path).await?;
                 Ok(Either::Left(tokio::io::BufReader::new(file)))
             }
-            FilePathVariant::S3(path) => storage.s3()?.read(path).await.map(Either::Right),
+            FilePathVariant::Bucket(path) => storage
+                .s3()?
+                .read(path)
+                .await
+                .map(|(_, reader)| Either::Right(reader)),
         }
     }
 
@@ -69,7 +294,7 @@ impl FilePath {
     ) -> Result<Cow<'local, Utf8Path>, StorageError> {
         let path = match &self.variant {
             FilePathVariant::Local(path) => return Ok(Cow::Borrowed(path)),
-            FilePathVariant::S3(path) => path,
+            FilePathVariant::Bucket(path) => path,
         };
 
         let backend = storage.s3()?;
@@ -95,7 +320,7 @@ impl FilePath {
             Cow::Owned(path) => Ok(path),
             Cow::Borrowed(_) => match self.variant {
                 FilePathVariant::Local(path) => Ok(path),
-                FilePathVariant::S3(_) => {
+                FilePathVariant::Bucket(_) => {
                     unreachable!("only local inputs resolve to borrowed paths")
                 }
             },
@@ -107,7 +332,7 @@ impl fmt::Display for FilePath {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.variant {
             FilePathVariant::Local(path) => fmt::Display::fmt(path, fmt),
-            FilePathVariant::S3(path) => fmt::Display::fmt(path, fmt),
+            FilePathVariant::Bucket(path) => fmt::Display::fmt(path, fmt),
         }
     }
 }
@@ -117,7 +342,7 @@ impl FromStr for FilePath {
 
     fn from_str(path: &str) -> Result<Self, Self::Err> {
         let variant = if path.starts_with("s3://") {
-            FilePathVariant::S3(path.parse()?)
+            FilePathVariant::Bucket(path.parse()?)
         } else {
             FilePathVariant::Local(Utf8PathBuf::from(path))
         };

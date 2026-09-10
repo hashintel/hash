@@ -26,7 +26,7 @@ use self::{
         Multipart,
         backend::{Remote, Source},
     },
-    path::S3Path,
+    path::BucketPath,
 };
 use super::error::StorageError;
 
@@ -36,7 +36,10 @@ pub(crate) mod path;
 #[cfg(test)]
 mod tests;
 
+pub(crate) use self::metadata::ETag;
+
 /// A precondition on the destination of an object write.
+#[derive(Debug)]
 pub(crate) enum WriteCondition<'etag> {
     /// Replaces the destination regardless of its current value.
     Any,
@@ -85,7 +88,7 @@ impl S3 {
     /// # Errors
     ///
     /// Returns [`StorageError::Request`] if the request fails.
-    pub(crate) async fn get(&self, path: &S3Path) -> Result<GetObjectOutput, StorageError> {
+    async fn get(&self, path: &BucketPath) -> Result<GetObjectOutput, StorageError> {
         self.client
             .get_object()
             .bucket(path.bucket())
@@ -100,7 +103,7 @@ impl S3 {
     /// # Errors
     ///
     /// Returns [`StorageError::Request`] if the request fails.
-    pub(crate) async fn head(&self, path: &S3Path) -> Result<HeadObjectOutput, StorageError> {
+    pub(crate) async fn head(&self, path: &BucketPath) -> Result<HeadObjectOutput, StorageError> {
         self.client
             .head_object()
             .bucket(path.bucket())
@@ -119,15 +122,15 @@ impl S3 {
     /// Returns [`StorageError`] if the request fails.
     pub(crate) async fn read(
         &self,
-        path: &S3Path,
-    ) -> Result<impl AsyncBufRead + use<>, StorageError> {
+        path: &BucketPath,
+    ) -> Result<(Option<ETag>, impl AsyncBufRead + use<>), StorageError> {
         let output = self.get(path).await?;
-        Ok(output.body.into_async_read())
+        Ok((output.e_tag.map(ETag::new), output.body.into_async_read()))
     }
 
     async fn put_body(
         &self,
-        path: &S3Path,
+        path: &BucketPath,
         body: ByteStream,
         condition: WriteCondition<'_>,
     ) -> Result<PutObjectOutput, StorageError> {
@@ -156,7 +159,7 @@ impl S3 {
     /// write's outcome unknown.
     pub(crate) async fn put(
         &self,
-        path: &S3Path,
+        path: &BucketPath,
         body: Bytes,
         condition: WriteCondition<'_>,
     ) -> Result<PutObjectOutput, StorageError> {
@@ -175,7 +178,7 @@ impl S3 {
     /// completion response can leave the write's outcome unknown.
     pub(crate) async fn upload(
         &self,
-        destination: &S3Path,
+        destination: &BucketPath,
         source: impl AsRef<Utf8Path>,
         condition: WriteCondition<'_>,
     ) -> Result<(), StorageError> {
@@ -217,8 +220,8 @@ impl S3 {
     /// failed completion response can leave the write's outcome unknown.
     pub(crate) async fn copy(
         &self,
-        source: &S3Path,
-        destination: &S3Path,
+        source: &BucketPath,
+        destination: &BucketPath,
         condition: WriteCondition<'_>,
     ) -> Result<(), StorageError> {
         let Metadata { length, etag } = Metadata::try_from(self.head(source).await?)?;
@@ -264,7 +267,7 @@ impl S3 {
     /// Returns [`StorageError`] if the request, body read or destination write fails.
     pub(crate) async fn download(
         &self,
-        path: &S3Path,
+        path: &BucketPath,
         output: impl AsyncWrite,
     ) -> Result<(), StorageError> {
         let mut output = pin!(output);
