@@ -638,7 +638,8 @@ export class OpenAIRealtimeSession {
     if (
       this.#activeResponseIds.size > 0 ||
       this.#responseCreateEventId !== null ||
-      this.#waitingForResponseTerminal
+      this.#waitingForResponseTerminal ||
+      (this.#interruptionBySpeaking && this.#speakingInputItemId !== null)
     ) {
       return;
     }
@@ -763,6 +764,7 @@ export class OpenAIRealtimeSession {
       const itemId = nonEmptyString(parsed.item_id);
       if (!itemId || nonNegativeInteger(parsed.audio_end_ms) === null) return;
       if (this.#playbackOverlappingInputItemIds.has(itemId)) return;
+      const shouldResumeCanonicalSpeech = this.#speakingInputItemId === itemId;
       if (this.#speakingInputItemId === itemId) {
         this.#speakingInputItemId = null;
       }
@@ -771,6 +773,9 @@ export class OpenAIRealtimeSession {
         itemId,
         type: "input-speech-stopped",
       });
+      if (shouldResumeCanonicalSpeech) {
+        this.#resumeCanonicalSpeechQueue();
+      }
       return;
     }
     if (
@@ -1133,9 +1138,8 @@ export class OpenAIRealtimeSession {
             ? "invalid-response"
             : undefined,
         );
-        this.#acceptedInputItemIds.delete(itemId);
-        if (this.#speakingInputItemId === itemId) {
-          this.#speakingInputItemId = null;
+        if (this.#finishTranscribedInputItem(itemId)) {
+          this.#resumeCanonicalSpeechQueue();
         }
       }
       return;
@@ -1143,11 +1147,12 @@ export class OpenAIRealtimeSession {
     this.#startTranscription(itemId);
     if (event.type === "conversation.item.input_audio_transcription.failed") {
       this.#finishTranscription(itemId, "invalid-response");
-      this.#acceptedInputItemIds.delete(itemId);
-      if (this.#speakingInputItemId === itemId) {
-        this.#speakingInputItemId = null;
-      }
+      const shouldResumeCanonicalSpeech =
+        this.#finishTranscribedInputItem(itemId);
       this.#emit({ key, type: "transcription-failed" });
+      if (shouldResumeCanonicalSpeech) {
+        this.#resumeCanonicalSpeechQueue();
+      }
       return;
     }
     const text =
@@ -1155,14 +1160,12 @@ export class OpenAIRealtimeSession {
         ? event.delta
         : event.transcript;
     if (typeof text !== "string") return;
+    let shouldResumeCanonicalSpeech = false;
     if (
       event.type === "conversation.item.input_audio_transcription.completed"
     ) {
       this.#finishTranscription(itemId);
-      this.#acceptedInputItemIds.delete(itemId);
-      if (this.#speakingInputItemId === itemId) {
-        this.#speakingInputItemId = null;
-      }
+      shouldResumeCanonicalSpeech = this.#finishTranscribedInputItem(itemId);
     }
     this.#emit({
       key,
@@ -1172,6 +1175,18 @@ export class OpenAIRealtimeSession {
           ? "partial"
           : "completed",
     });
+    if (shouldResumeCanonicalSpeech) {
+      this.#resumeCanonicalSpeechQueue();
+    }
+  }
+
+  #finishTranscribedInputItem(itemId: string): boolean {
+    this.#acceptedInputItemIds.delete(itemId);
+    if (this.#speakingInputItemId !== itemId) {
+      return false;
+    }
+    this.#speakingInputItemId = null;
+    return true;
   }
 
   #cancelPendingSpeechRequest(speechRequestId: string): void {

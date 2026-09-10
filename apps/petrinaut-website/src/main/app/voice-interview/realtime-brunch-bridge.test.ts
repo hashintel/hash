@@ -176,10 +176,13 @@ describe("RealtimeBrunchBridge", () => {
       interruptionBySpeaking: true,
     });
     harness.emit(completedTranscript(3, text, "false-vad"));
-    expect(harness.events).toEqual([{ type: "transcript-rejected", reason }]);
+    expect(harness.events).toEqual([
+      { itemId: "false-vad", type: "transcript-rejected", reason },
+    ]);
     expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
     harness.emit(completedTranscript(3, text, "false-vad"));
     expect(harness.events.at(-1)).toEqual({
+      itemId: "false-vad",
       type: "transcript-rejected",
       reason: "duplicate",
     });
@@ -266,6 +269,7 @@ describe("RealtimeBrunchBridge", () => {
     harness.emit(completedTranscript(3, "ＷＨＯ approves this!", "short-echo"));
 
     expect(harness.events.at(-1)).toEqual({
+      itemId: "short-echo",
       type: "transcript-rejected",
       reason: "self-echo",
     });
@@ -374,7 +378,11 @@ describe("RealtimeBrunchBridge", () => {
     harness.emit(completedTranscript(3, vocabularyLeak, "false-vad"));
     expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
     expect(harness.events).toEqual([
-      { type: "transcript-rejected", reason: "prompt-regurgitation" },
+      {
+        itemId: "false-vad",
+        type: "transcript-rejected",
+        reason: "prompt-regurgitation",
+      },
     ]);
   });
 
@@ -717,6 +725,7 @@ describe("RealtimeBrunchBridge", () => {
     harness.emit(completedTranscript(3, "   ", "second-item"));
 
     expect(harness.events).toContainEqual({
+      itemId: "second-item",
       type: "transcript-rejected",
       reason: "unavailable",
     });
@@ -741,6 +750,7 @@ describe("RealtimeBrunchBridge", () => {
       harness.emit(completedTranscript(3, itemId, itemId));
     }
     expect(harness.events).toContainEqual({
+      itemId: "second",
       type: "transcript-rejected",
       reason: "pending",
     });
@@ -834,6 +844,7 @@ describe("RealtimeBrunchBridge", () => {
     expect(harness.events).toContainEqual({
       answer: "The supervisor approves it.",
       deliveryId,
+      itemId: "user-item-1",
       type: "submission-started",
     });
     expect(JSON.stringify(harness.events)).not.toContain("Fabricated answer");
@@ -860,6 +871,7 @@ describe("RealtimeBrunchBridge", () => {
 
     expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
     expect(harness.events).toContainEqual({
+      itemId: "item-before-output",
       reason: "unavailable",
       type: "transcript-rejected",
     });
@@ -910,6 +922,7 @@ describe("RealtimeBrunchBridge", () => {
 
     expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
     expect(harness.events).toContainEqual({
+      itemId: "item-before-request",
       reason: "unavailable",
       type: "transcript-rejected",
     });
@@ -996,6 +1009,7 @@ describe("RealtimeBrunchBridge", () => {
 
     expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
     expect(harness.events).toContainEqual({
+      itemId: "item-during-follow-on",
       reason: "unavailable",
       type: "transcript-rejected",
     });
@@ -1115,6 +1129,7 @@ describe("RealtimeBrunchBridge", () => {
       expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
     );
     expect(harness.events).toContainEqual({
+      itemId: "user-item-1",
       reason: "duplicate",
       type: "transcript-rejected",
     });
@@ -1133,7 +1148,9 @@ describe("RealtimeBrunchBridge", () => {
       harness.emit(completedTranscript(3, text));
 
       expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
-      expect(harness.events).toEqual([{ reason, type: "transcript-rejected" }]);
+      expect(harness.events).toEqual([
+        { itemId: "user-item-1", reason, type: "transcript-rejected" },
+      ]);
     },
   );
 
@@ -1143,7 +1160,11 @@ describe("RealtimeBrunchBridge", () => {
 
     harness.emit(failedTranscript(3, "failed-item"));
     expect(harness.events).toEqual([
-      { reason: "failed", type: "transcript-rejected" },
+      {
+        itemId: "failed-item",
+        reason: "failed",
+        type: "transcript-rejected",
+      },
     ]);
 
     harness.emit(completedTranscript(3, "Retried answer.", "retry-item"));
@@ -1167,7 +1188,11 @@ describe("RealtimeBrunchBridge", () => {
 
     expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
     expect(harness.events).toEqual([
-      { reason: "unavailable", type: "transcript-rejected" },
+      {
+        itemId: "user-item-1",
+        reason: "unavailable",
+        type: "transcript-rejected",
+      },
     ]);
   });
 

@@ -128,6 +128,7 @@ export type RealtimeBrunchBridgeEvent =
   | {
       readonly answer: string;
       readonly deliveryId: string;
+      readonly itemId: string;
       readonly type: "submission-started";
     }
   | {
@@ -163,6 +164,7 @@ export type RealtimeBrunchBridgeEvent =
       readonly type: "submission-stopped";
     }
   | {
+      readonly itemId: string;
       readonly reason: RealtimeTranscriptRejectionReason;
       readonly type: "transcript-rejected";
     }
@@ -237,7 +239,11 @@ export class RealtimeBrunchBridge {
     string,
     readonly string[] | null
   >();
-  #pendingInterruption: { answer: string; deliveryId: string } | null = null;
+  #pendingInterruption: {
+    answer: string;
+    deliveryId: string;
+    itemId: string;
+  } | null = null;
   #activeEpoch: number | null = null;
   #activeSubmission: ActiveSubmission | null = null;
   #chat: ChatUpdate = {
@@ -412,8 +418,11 @@ export class RealtimeBrunchBridge {
     }
   }
 
-  #rejectTranscript(reason: RealtimeTranscriptRejectionReason): void {
-    this.#emit({ reason, type: "transcript-rejected" });
+  #rejectTranscript(
+    itemId: string,
+    reason: RealtimeTranscriptRejectionReason,
+  ): void {
+    this.#emit({ itemId, reason, type: "transcript-rejected" });
   }
 
   #fail(
@@ -526,7 +535,7 @@ export class RealtimeBrunchBridge {
 
     const keyId = transcriptKeyId(event.key);
     if (this.#processedTranscripts.has(keyId)) {
-      this.#rejectTranscript("duplicate");
+      this.#rejectTranscript(event.key.itemId, "duplicate");
       return;
     }
     this.#processedTranscripts.add(keyId);
@@ -537,29 +546,29 @@ export class RealtimeBrunchBridge {
     this.#interruptionPlaybackText.delete(event.key.itemId);
 
     if (this.#playbackOverlappingInputItemIds.has(event.key.itemId)) {
-      this.#rejectTranscript("unavailable");
+      this.#rejectTranscript(event.key.itemId, "unavailable");
       return;
     }
 
     if (event.type === "transcription-failed") {
-      this.#rejectTranscript("failed");
+      this.#rejectTranscript(event.key.itemId, "failed");
       return;
     }
 
     // An interrupting utterance is retained rather than refused when Brunch is
     // still busy, so only ordinary capture answers a closed submission window.
     if (interruptionPlaybackText === undefined && !this.#canSubmitAnswerNow()) {
-      this.#rejectTranscript("unavailable");
+      this.#rejectTranscript(event.key.itemId, "unavailable");
       return;
     }
 
     const answer = normalizeTranscript(event.text);
     if (answer.length === 0) {
-      this.#rejectTranscript("empty");
+      this.#rejectTranscript(event.key.itemId, "empty");
       return;
     }
     if (Array.from(answer).length > ANSWER_LIMIT) {
-      this.#rejectTranscript("over-limit");
+      this.#rejectTranscript(event.key.itemId, "over-limit");
       return;
     }
 
@@ -581,22 +590,26 @@ export class RealtimeBrunchBridge {
           requestId: createVoiceRequestId(),
           stage: "browser",
         });
-        this.#rejectTranscript(rejectionReason);
+        this.#rejectTranscript(event.key.itemId, rejectionReason);
         return;
       }
     }
 
     const deliveryId = createRealtimeSubmissionId(event.key);
     if (this.#pendingInterruption) {
-      this.#rejectTranscript("pending");
+      this.#rejectTranscript(event.key.itemId, "pending");
       return;
     }
     if (!this.#canSubmitAnswerNow()) {
-      this.#pendingInterruption = { answer, deliveryId };
+      this.#pendingInterruption = {
+        answer,
+        deliveryId,
+        itemId: event.key.itemId,
+      };
       this.#emit({ answer, type: "transcript-retained" });
       return;
     }
-    this.#submitAnswer(answer, deliveryId);
+    this.#submitAnswer(answer, deliveryId, event.key.itemId);
   }
 
   #canSubmitAnswerNow(): boolean {
@@ -618,11 +631,11 @@ export class RealtimeBrunchBridge {
       return true;
     }
     this.#pendingInterruption = null;
-    this.#submitAnswer(pending.answer, pending.deliveryId);
+    this.#submitAnswer(pending.answer, pending.deliveryId, pending.itemId);
     return true;
   }
 
-  #submitAnswer(answer: string, deliveryId: string): void {
+  #submitAnswer(answer: string, deliveryId: string, itemId: string): void {
     const generation = this.#generation;
     this.#activeSubmission = {
       abortController: new AbortController(),
@@ -637,7 +650,7 @@ export class RealtimeBrunchBridge {
       speechCancelled: false,
       submissionId: null,
     };
-    this.#emit({ answer, deliveryId, type: "submission-started" });
+    this.#emit({ answer, deliveryId, itemId, type: "submission-started" });
     void this.#submit(answer, deliveryId, generation);
   }
 
