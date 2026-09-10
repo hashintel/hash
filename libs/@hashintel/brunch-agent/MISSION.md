@@ -6,7 +6,7 @@
 
 This mission replaces the former narrow interpretation of one scripted why/correction path. It requires substantial PM-explorable scenarios and evidence that Brunch produced the flagship through the real product. The current implementation supplies bounded workpiece, mutation and why groundwork; ordinary Brunch still gates useful workpiece/construction behaviour behind fixture/tracer modes, the retained persona run is not a connected model, and no production scenario catalogue or persona-driven browser construction exists.
 
-**Current throughline:** run the bounded `mutate_petrinet` feasibility probe before selecting its production contract. No paid/provider run, production batch implementation, scenario seeding, remote write, release or Linear write is authorized merely by this authority cut.
+**Current throughline:** run one bounded real-provider/browser `mutate_petrinet` carrier comparison using `anthropic/claude-sonnet-4-6`, after the local probe established canonical ordered mechanics but not provider reliability or end-to-end speed. Lu authorizes Mission 7b development inference below USD 100 total per day; record actual request usage, do not multiply the allocation through delegation, and stop this probe after one valid comparison or the first material carrier failure. Production batch implementation, scenario seeding, remote write, release and Linear write remain unauthorized by this probe.
 
 ## Imperative
 
@@ -79,7 +79,7 @@ When time is tight or a user wants a preview, Brunch offers to fill gaps and pro
 
 ### Current throughline — bounded mutation probe
 
-The proposed `mutate_petrinet` client tool carries bounded coherent chunks of approximately 20–30 operations or 64 KiB, subject to measurement. Inventory-scale construction suggests roughly 12–18 initial chunks rather than hundreds of provider/browser settlement cycles. This is an estimate to test, not a performance claim.
+The proposed `mutate_petrinet` client tool carries bounded coherent chunks of approximately 20–30 operations or 64 KiB of arguments, subject to provider evidence. Inventory topology arithmetic now suggests about 403 operations including metrics, or roughly 14–17 initial chunks, rather than hundreds of provider/browser settlement cycles. This remains an estimate, not a performance claim.
 
 Accepted candidate semantics for the probe:
 
@@ -93,9 +93,11 @@ Accepted candidate semantics for the probe:
 - Code-bearing operations use explicit compilation barriers after coherent related groups. A failed checkpoint leaves the truthful committed prefix and later operations unattempted.
 - Preserve individual mutation implementations/tests during rollout; expose only one mutation interface to the model in a given mode.
 - Return compact indexed outcomes, pre/post hashes, canonical effects and a durable ledger receipt. Retain exact requests, attempts, observations, bases and complete effects durably; load details by targeted/paginated read rather than returning repeated full documents.
-- Core structurally derives the full 35-operation registry; production admission begins with the proven operation classes needed by the two scenarios. Registry presence is not a parity claim.
+- Core structurally derives the current full 41-operation registry; production admission begins with the proven operation classes needed by the two scenarios. Registry presence is not a parity claim.
 
-The throwaway probe must measure a representative chunk and generated provider schema, exercise intra-chunk references, invalid/no-op/readonly/disabled-extension/partial cases, compare final state with the same individual callbacks, prove one outer browser call remains admissible, and measure end-to-end latency. A provisional 5× improvement is a strain detector, not a sacred benchmark. The probe cannot establish production transition-ledger correctness, whole-batch atomicity or provider reliability by construction.
+The completed local probe exercised a 26-operation canonical loop and a 25-operation generated carrier. Ordered and individual callbacks produced the same final hash; intra-chunk IDs resolved; a deterministic no-op, readonly no-ops, extension sanitization, exact committed prefix and explicit unattempted suffix were observed. Local outcome accounting averaged 2.240 ms versus 2.068 ms for individual callbacks, so the mechanism itself was 8.3% slower and the expected settlement-latency saving remains unproved. The 25-operation payload was 5,330 bytes / about 1,545 tokens, while the full 41-operation schema was 69,897 compact bytes / about 16,581 tokens and exceeded the provisional 64 KiB threshold. Transport correlation accepted one outer result and rejected changed replay content, but this probe did not independently prove a universal two-browser-call refusal. Native artifacts remain under `/tmp/m7b-batch-spike-{mechanics,carrier}` and are disposable.
+
+The next probe folds browser and provider questions into one bounded comparison. Expose only the Inventory chunk's selected operation classes, not the full 41-operation schema. Through the real Brunch → browser → Petrinaut → correlated-result path, compare one coherent 20–30-operation batch with the equivalent current individual-operation route; record schema/input validity, repairs, request count, elapsed time, actual usage, final document equivalence, partial outcomes and one compilation checkpoint. Stop after one valid comparison or the first material carrier failure. A provisional 5× improvement is a strain detector, not a sacred benchmark. This probe cannot establish production transition-ledger completeness, whole-batch atomicity or broad provider reliability.
 
 ## Proof
 
@@ -143,7 +145,7 @@ Inventory the consequential visible elements and mechanically traverse each path
 
 | Result | Oracle before claiming it |
 | --- | --- |
-| Batch premise is worth implementing | Throwaway probe satisfies the accepted carrier, ordering, partial-outcome, schema-size, equivalence and latency discriminators. Failure returns to individual/alternative construction design without production batch code. |
+| Batch premise is worth implementing | Local mechanics already establish ordering, partial outcomes and equivalence. The bounded real-provider/browser comparison must establish selected-schema following, correlated product-path execution and material end-to-end latency/reliability improvement. Failure returns to the construction design discussion without production batch code. |
 | Substantial flagship exists | Lu reviews retained conversation, current workpiece and visible connected model against operational coherence and the Inventory capability baseline; native history/definitions establish identities/effects. |
 | Persona carried elicitation into construction | Recording plus native history and delivered browser results show recurring revisions and complete visible construction; no private pack, expected model or hidden tool coaching reached Brunch. |
 | Consequential elements are broadly explainable | Complete flagship inventory mechanically resolves record/basis/passage/source or honest absence; human review covers every named explanation class. |
@@ -169,7 +171,7 @@ The mission is bounded by visible product utility, not by pretending the route i
 | Broad flagship why coverage | Primary | Supplied links are optional and no automatic completeness exists; inventory every consequential element and review representative usefulness. |
 | One ordinary correction/reopen | Primary | General repeat/change/retirement/concurrency remains later; the selected correction must still avoid unrelated rebuilding. |
 | Start from scratch | Primary; recorded path even though live demo starts seeded | FE-1331's older topology is stale and no product create-new Brunch choice exists. |
-| Mutation batching | Candidate enabler for primary construction speed | Provider union/array reliability, aggregate transition ledger, full effect vocabulary, compilation checkpoints and partial-state UX are unproved; run the probe first. |
+| Mutation batching | Candidate enabler for primary construction speed; local ordered mechanics passed | Full-registry schema is 69,897 bytes and local batching adds 8.3% accounting overhead. Selected-schema provider reliability, real settlement speed, aggregate transition ledger, complete effects, compilation checkpoints and partial-state UX remain unproved; run one bounded real comparison. |
 | Quick preview | Primary interaction posture after assent | Depends on fast reliable construction and honest model-proposed assumptions; cannot bypass a failing fundamental path. |
 | Chat/workpiece UI | Chat remains the basis | Simultaneous visibility is unresolved. Defer generic question cards and other chat sub-issues until that parent layout problem is observed and selected. |
 | Constraints + executed experiments | Ordered lower-priority 7b requirement | Canonical constraints exist only in optimization manifests, are not reusable with scenarios/experiments and are not enforced; await Chris's proposed API/procedure before designing past this boundary. |
@@ -208,11 +210,11 @@ The mission is bounded by visible product utility, not by pretending the route i
 - **2026-09-10 — Preview and cadence.** Brunch offers an assumption-marked preview after assent and does not silently adopt safety/objective/policy choices. Save workpiece at meaningful boundaries and project incrementally from settled revisions.
 - **2026-09-10 — Assistant and model.** Brunch is default; the team can swap to legacy through Petrinaut's existing user-controlled toggle/Command-K affordance. OpenAI migration follows 7b and is not its blocker.
 - **2026-09-10 — Lower-priority joins.** Constraints plus executed experiments follow the fundamental path and await Chris's proposed API/procedure. Semantic model diff and route aliases are deferred; any doubt keeps route work after demo.
-- **2026-09-10 — Ordered mutation probe.** Proceed with the bounded Core-owned ordered-stop batch hypothesis and accepted retry, continuation, identity, basis, compilation, history, result, effect, rollout and probe semantics above. Re-grill after the probe before production implementation if its evidence changes the route.
+- **2026-09-10 — Ordered mutation probe.** The local probe partially validates the bounded Core-owned ordered-stop batch: canonical mechanics/equivalence/partial outcomes pass; local latency, full-schema size and provider/browser evidence do not. Correct the registry count from 35 to 41. Proceed with one bounded real Sonnet/browser comparison using only selected Inventory operation classes, folding the former separate browser and provider probes together. Development inference below USD 100 total per day is owner-authorized; retain actual usage and stop at one valid comparison or first material carrier failure. Re-grill before production implementation.
 
 ## Fog-line
 
-- **Batch carrier and value:** generated union/schema size, chosen-provider array reliability, real latency reduction and aggregate effect/transition recording are unproved. The bounded probe is the next observation; do not design production batching past its result.
+- **Batch carrier and value:** local canonical mechanics pass, but the full schema exceeds 64 KiB and local outcome accounting is slower. Selected-schema Sonnet array reliability, real browser settlement latency and aggregate effect/transition recording remain unproved. The bounded real comparison is the next observation; do not design production batching past its result.
 - **Flagship construction:** no evidence yet shows Brunch can produce Inventory-comparable complexity or a complete substantial model from a realistic persona. The first successful carrier does not establish semantic/model quality.
 - **Second scenario:** select after Inventory reveals whether the important contrast is replenishment/safety, continuous dynamics, or quality/recovery.
 - **Template materialization:** native identity/copy support, hosted ownership, resume/fresh UX and catalogue update safety require inspection at the actual store/browser boundary.
