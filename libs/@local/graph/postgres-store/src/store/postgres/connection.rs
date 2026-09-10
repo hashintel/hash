@@ -28,7 +28,6 @@ use tokio_postgres::{
     error::{DbError, Severity},
     tls::{MakeTlsConnect, TlsConnect},
 };
-use tracing::Instrument as _;
 
 /// The TLS setup a connection is established with.
 pub trait PostgresTls = Clone
@@ -99,12 +98,13 @@ impl ConnectionError {
     }
 }
 
-/// Records a message the server sent outside of a statement's results.
-fn record(message: AsyncMessage) {
+/// Records a message the server sent outside of a statement's results on connection `id`.
+fn record(id: u64, message: AsyncMessage) {
     match message {
-        AsyncMessage::Notice(notice) => report(&notice),
+        AsyncMessage::Notice(notice) => report(id, &notice),
         AsyncMessage::Notification(notification) => tracing::info!(
             target: SERVER_TARGET,
+            connection = id,
             channel = notification.channel(),
             process_id = notification.process_id(),
             payload = notification.payload(),
@@ -114,14 +114,15 @@ fn record(message: AsyncMessage) {
         // message neither variant covers.
         unrecognized => tracing::warn!(
             target: SERVER_TARGET,
+            connection = id,
             ?unrecognized,
             "Postgres sent a message of an unknown kind",
         ),
     }
 }
 
-/// Records what the server reported, at the level of its severity.
-fn report(notice: &DbError) {
+/// Records what the server reported on connection `id`, at the level of its severity.
+fn report(id: u64, notice: &DbError) {
     // The tracing level does not carry the severity: PANIC, FATAL and ERROR share one, NOTICE and
     // INFO another, LOG and DEBUG a third. Naming it keeps the server's own word on the event.
     // Where Postgres named none, its text is all there is, translated or not.
@@ -139,6 +140,7 @@ fn report(notice: &DbError) {
         ($level:ident) => {
             tracing::$level!(
                 target: SERVER_TARGET,
+                connection = id,
                 severity = %severity_name,
                 code,
                 detail = notice.detail(),
@@ -157,22 +159,28 @@ fn report(notice: &DbError) {
     }
 }
 
-/// Records a connection's messages until its stream ends.
+/// Records the messages of connection `id` until its stream ends.
+///
+/// The task runs outside any span: a connection outlives the request that made the pool grow, so
+/// its messages carry `id` rather than a request's trace, and `id` is what joins them to the
+/// acquisition that created the connection.
 async fn drive(
+    id: u64,
     mut messages: impl Stream<Item = Result<AsyncMessage, tokio_postgres::Error>> + Unpin,
 ) {
     while let Some(message) = messages.next().await {
         match message {
-            Ok(message) => record(message),
+            Ok(message) => record(id, message),
             // `Connection::poll_message` documents an error as terminal and closes its request
             // receiver on the way out, so the stream must not be polled again.
             Err(error) => {
                 // A termination the server initiates — `pg_terminate_backend`, an idle-session
                 // timeout, a shutdown — arrives as an error response rather than a notice.
                 if let Some(notice) = error.as_db_error() {
-                    report(notice);
+                    report(id, notice);
                 } else {
                     tracing::warn!(
+                        connection = id,
                         error = ?Report::new(error),
                         "Lost the connection carrying Postgres' messages",
                     );
@@ -255,17 +263,11 @@ where
                 .await
                 .change_context(ConnectionError::Connect)?;
             let messages = stream::poll_fn(move |context| connection.poll_message(context));
-            // Rooting the span rather than inheriting one keeps a connection's messages from being
-            // attributed to whichever request happened to make the pool grow, for as long as the
-            // connection lives. No message recorded under it carries a request's trace therefore;
-            // `connection` joins it to the acquisition that created the connection, which is
-            // logged within that request's span.
-            let span = tracing::info_span!(parent: None, "postgres_connection", connection = id);
 
             Ok(ManagedConnection {
                 id,
                 client,
-                driver: tokio::spawn(drive(messages).instrument(span)),
+                driver: tokio::spawn(drive(id, messages)),
             })
         })
     }

@@ -108,10 +108,17 @@ async fn connection_records_server_warnings() {
         event.contains("WARNING"),
         "the server's own severity should be on the event, got {event}"
     );
+    // The connection is a field of the event itself, so it survives a filter that disables spans
+    // below WARN.
+    assert!(
+        event.contains("connection"),
+        "the connection should be on the event, got {event}"
+    );
 }
 
 /// A notice sits one level below a warning, so a mapping that collapses every severity onto one
-/// level shows here.
+/// level shows here. `RAISE` inside a `DO` block also fills the detail, hint and context the
+/// server sends alongside the message.
 #[tokio::test]
 async fn connection_records_server_notices() {
     let recorder = Recorder::default();
@@ -123,7 +130,10 @@ async fn connection_records_server_notices() {
         .connection
         .as_client()
         .execute(
-            "DO $$ BEGIN RAISE NOTICE 'a notice raised by the test'; END $$",
+            "DO $$ BEGIN
+                RAISE NOTICE 'a notice raised by the test'
+                    USING DETAIL = 'the detail the test set', HINT = 'the hint the test set';
+            END $$",
             &[],
         )
         .await
@@ -139,6 +149,56 @@ async fn connection_records_server_notices() {
     assert!(
         event.contains("NOTICE"),
         "the server's own severity should be on the event, got {event}"
+    );
+    assert!(
+        event.contains("the detail the test set"),
+        "the detail should be on the event, got {event}"
+    );
+    assert!(
+        event.contains("the hint the test set"),
+        "the hint should be on the event, got {event}"
+    );
+    assert!(
+        event.contains("inline_code_block"),
+        "the context naming the raising function should be on the event, got {event}"
+    );
+}
+
+/// A `NOTIFY` on a channel the connection listens to arrives on the same side channel as a notice.
+#[tokio::test]
+async fn connection_records_notifications() {
+    let recorder = Recorder::default();
+    let _guard = subscriber::set_default(tracing_subscriber::registry().with(recorder.clone()));
+
+    let database = DatabaseTestWrapper::new().await;
+
+    database
+        .connection
+        .as_client()
+        .batch_execute(
+            "LISTEN connection_test; NOTIFY connection_test, 'the payload the test sent'",
+        )
+        .await
+        .expect("the statements should run");
+
+    let (level, event) = recorder
+        .wait_for("the payload the test sent")
+        .await
+        .unwrap_or_else(|| {
+            panic!(
+                "the notification should be recorded, got {:?}",
+                recorder.recorded()
+            )
+        });
+
+    assert_eq!(
+        level,
+        Level::INFO,
+        "the notification should be recorded at INFO"
+    );
+    assert!(
+        event.contains("connection_test"),
+        "the channel should be on the event, got {event}"
     );
 }
 
