@@ -157,8 +157,8 @@ impl core::error::Error for DashboardError {
 
 #[cfg(feature = "cli")]
 impl From<StorageError> for DashboardError {
-    fn from(v: StorageError) -> Self {
-        Self::Storage(v)
+    fn from(error: StorageError) -> Self {
+        Self::Storage(error)
     }
 }
 
@@ -207,7 +207,7 @@ async fn fit_on_dashboard(
     root: RootArgs,
     source: FitSource,
     args: FitArgs,
-    storage: &Storage,
+    storage: Storage,
 ) -> Result<super::FitVerdict, DashboardError> {
     let dashboard = super::tui::Dashboard::start().map_err(DashboardError::Terminal)?;
 
@@ -230,13 +230,11 @@ async fn fit_on_dashboard(
             FitSource::Live { store, credential } => {
                 let mut client = store.connect().await.map_err(DashboardError::Connect)?;
 
-                command
-                    .run(&mut client, credential)
+                Box::pin(command.run(&mut client, credential))
                     .await
                     .map_err(DashboardError::Fit)
             }
-            FitSource::Offline(dump) => command
-                .run_offline(&dump)
+            FitSource::Offline(dump) => Box::pin(command.run_offline(&dump))
                 .await
                 .map_err(DashboardError::Fit),
         }
@@ -262,6 +260,7 @@ async fn fit_on_dashboard(
 /// This panics when the tokio runtime cannot start or a global log subscriber is already
 /// installed.
 #[cfg(feature = "cli")]
+#[expect(clippy::too_many_lines, reason = "mostly delegation")]
 #[must_use]
 #[tokio::main]
 pub async fn main() -> std::process::ExitCode {
@@ -303,7 +302,7 @@ pub async fn main() -> std::process::ExitCode {
                 root,
                 fit_source(store, openai_api_key, offline),
                 *args,
-                &storage,
+                storage,
             )
             .await
             {
@@ -335,7 +334,7 @@ pub async fn main() -> std::process::ExitCode {
                 }
             }
 
-            let command = match super::FitCommand::new(root, *args, &storage).await {
+            let command = match super::FitCommand::new(root, *args, storage).await {
                 Ok(command) => command,
                 Err(error) => return render_failure(error),
             };
@@ -347,9 +346,9 @@ pub async fn main() -> std::process::ExitCode {
                         Err(error) => return render_failure(error),
                     };
 
-                    command.run(&mut client, credential).await
+                    Box::pin(command.run(&mut client, credential)).await
                 }
-                FitSource::Offline(dump) => command.run_offline(&dump).await,
+                FitSource::Offline(dump) => Box::pin(command.run_offline(&dump)).await,
             };
 
             match result {

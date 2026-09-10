@@ -33,6 +33,7 @@ use crate::{
         postgres::PostgresDatasetError,
     },
     device::PinnedDevice,
+    file::generation::GenerationId,
     math::{AffinityCurve, positive},
     salt::{
         embedding::external::ExternalEmbeddingError,
@@ -45,7 +46,9 @@ use crate::{
         knn::{descent::NnDescentOptions, recall::RecallSpotCheck},
         landmark::select::SelectionOptions,
         projector::train::TrainingSchedule,
-        quality::report::{QualityThresholds, ThresholdDomainError, ThresholdOverrides},
+        quality::report::{
+            QualityReport, QualityThresholds, ThresholdDomainError, ThresholdOverrides,
+        },
     },
 };
 
@@ -141,9 +144,9 @@ pub struct Options<P> {
 
 /// Plain-number summary of one production run.
 #[derive(Debug, Clone)]
-pub struct Summary {
+pub(crate) struct Summary {
     /// The published generation's identity, in directory-name form.
-    pub generation: String,
+    pub generation: GenerationId,
     /// Nodes the dataset streamed.
     pub nodes: u64,
     /// Edges the dataset streamed.
@@ -162,7 +165,7 @@ pub struct Summary {
     /// Whether the run activated the generation.
     pub activated: bool,
     /// The full admission report as pretty-printed JSON.
-    pub report: String,
+    pub report: QualityReport,
 }
 
 /// The refusal grounds of a supplied quality-thresholds document.
@@ -405,18 +408,20 @@ fn resolve<P>(options: &Options<P>, device: PinnedDevice) -> Result<ResolvedRun,
     })
 }
 
-/// Reads one finished run's outcome into the plain-number summary.
-fn summary(outcome: &Outcome) -> Summary {
-    let metadata = &outcome.generation.repository().metadata;
-    Summary {
-        generation: outcome.generation.id().to_string(),
-        nodes: metadata.snapshot.nodes,
-        edges: metadata.snapshot.edges,
-        recall: metadata.evidence.recall,
-        reused: metadata.evidence.cards.reused,
-        embedded: metadata.evidence.cards.embedded,
-        passes: outcome.report.passes(),
-        activated: outcome.admission == Admission::Active,
-        report: serde_json::to_string_pretty(&outcome.report).expect("the report serializes"),
+impl From<Outcome> for Summary {
+    fn from(outcome: Outcome) -> Self {
+        let metadata = &outcome.generation.repository().metadata;
+
+        Self {
+            generation: outcome.generation.id(),
+            nodes: metadata.snapshot.nodes,
+            edges: metadata.snapshot.edges,
+            recall: metadata.evidence.recall,
+            reused: metadata.evidence.cards.reused,
+            embedded: metadata.evidence.cards.embedded,
+            passes: outcome.report.passes(),
+            activated: outcome.admission == Admission::Active,
+            report: outcome.report,
+        }
     }
 }

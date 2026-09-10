@@ -253,15 +253,15 @@ pub async fn atlas(args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<
 
             let mut client = cli::connect(&fit_args.db_info.url())
                 .await
-                .map_err(Report::new)
                 .change_context(GraphError)?;
-            let verdict = cli::FitCommand::new(fit_args.root, fit_args.fit, &storage)
+
+            let command = cli::FitCommand::new(fit_args.root, fit_args.fit, storage)
                 .await
-                .change_context(GraphError)?
-                .run(&mut client, fit_args.credential)
-                .await
-                .map_err(Report::new)
                 .change_context(GraphError)?;
+            let verdict = Box::pin(command.run(&mut client, fit_args.credential))
+                .await
+                .change_context(GraphError)?;
+
             print_verdict(&verdict);
 
             return Ok(());

@@ -3,7 +3,7 @@
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use tokio_postgres::Client;
 
-use super::{Options, RunError, Summary, resolve, summary};
+use super::{Options, RunError, Summary, resolve};
 use crate::{
     dataset::{TemporalAxes, postgres::PostgresDataset},
     device::PinnedDevice,
@@ -25,7 +25,7 @@ use crate::{
 /// run itself.
 pub(crate) async fn live<P: Progress + Sync>(
     client: &mut Client,
-    root: GenerationRoot,
+    root: &GenerationRoot,
     device: PinnedDevice,
     axes: TemporalAxes,
     options: Options<P>,
@@ -42,12 +42,12 @@ pub(crate) async fn live<P: Progress + Sync>(
         embedder,
         &resolved.classifier,
         resolved.verdicts.as_ref(),
-        &root,
+        root,
         resolved.runner,
         &options.progress,
     )
     .await
     .map_err(RunError::Run)?;
 
-    Ok(summary(&outcome))
+    Ok(outcome.into())
 }

@@ -12,7 +12,10 @@ use crate::{
     dataset::TemporalAxes,
     device::PinnedDevice,
     file::{
-        generation::GenerationRoot,
+        generation::{
+            GenerationRoot,
+            upload::{Promotion, Upload, UploadError},
+        },
         storage::{Storage, error::StorageError, path::FilePath},
     },
     progress::{NoProgress, Progress},
@@ -113,6 +116,25 @@ pub struct FitArgs {
     /// Where the admission report JSON lands.
     #[arg(long, default_value = "admission-report.json", value_hint = ValueHint::FilePath)]
     report: Utf8PathBuf,
+
+    /// Whether to upload the generated results to remote storage.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_UPLOAD")]
+    upload: Option<FilePath>,
+}
+
+#[derive(Debug)]
+pub struct FitUploadError(UploadError);
+
+impl fmt::Display for FitUploadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl core::error::Error for FitUploadError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        core::error::Error::source(&self.0)
+    }
 }
 
 /// One fit invocation's failure, by step.
@@ -127,6 +149,16 @@ pub enum FitError {
     Run(RunError),
     /// Writing the admission report failed.
     Io(io::Error),
+    /// Uploading the results failed.
+    Upload(FitUploadError),
+    /// Serializing the admission report failed.
+    Serialize(serde_json::Error),
+}
+
+impl From<UploadError> for FitError {
+    fn from(error: UploadError) -> Self {
+        Self::Upload(FitUploadError(error))
+    }
 }
 
 impl fmt::Display for FitError {
@@ -135,6 +167,8 @@ impl fmt::Display for FitError {
             Self::Embedder(error) => fmt::Display::fmt(error, fmt),
             Self::Run(error) => fmt::Display::fmt(error, fmt),
             Self::Io(_) => fmt.write_str("the admission report could not be written"),
+            Self::Upload(_) => fmt.write_str("uploading the results failed"),
+            Self::Serialize(_) => fmt.write_str("serializing the admission report failed"),
         }
     }
 }
@@ -145,6 +179,8 @@ impl Error for FitError {
             Self::Embedder(error) => error.source(),
             Self::Run(error) => error.source(),
             Self::Io(error) => Some(error),
+            Self::Upload(error) => Some(error),
+            Self::Serialize(error) => Some(error),
         }
     }
 }
@@ -238,6 +274,7 @@ pub struct FitCommand<P> {
     device: PinnedDevice,
     report: Utf8PathBuf,
     options: Options<P>,
+    upload: Option<(FilePath, Storage)>,
 }
 
 impl<P> FitCommand<P> {
@@ -261,6 +298,7 @@ impl<P> FitCommand<P> {
                 nn_descent: self.options.nn_descent,
                 progress,
             },
+            upload: self.upload,
         }
     }
 }
@@ -311,10 +349,18 @@ where
             .await
             .map_err(FitError::Embedder)?;
 
+        let upload = match self.upload.as_ref() {
+            Some((path, storage)) => {
+                let upload = Upload::prepare(storage, &self.root, path).await?;
+                Some(upload)
+            }
+            None => None,
+        };
+
         let started = Instant::now();
         let summary = live(
             client,
-            self.root,
+            &self.root,
             self.device,
             TemporalAxes::now(),
             self.options,
@@ -323,7 +369,24 @@ where
         .await?;
         let elapsed = started.elapsed();
 
-        std::fs::write(&self.report, &summary.report).map_err(FitError::Io)?;
+        let mut buffer = Vec::new();
+        serde_json::to_writer_pretty(&mut buffer, &summary.report).map_err(FitError::Serialize)?;
+        tokio::fs::write(&self.report, buffer)
+            .await
+            .map_err(FitError::Io)?;
+
+        if let Some(upload) = upload {
+            upload.upload(summary.generation).await?;
+
+            if summary.activated {
+                let Promotion { id, previous_error } = upload.promote(summary.generation).await?;
+                tracing::info!(%id, "promoted generation");
+
+                if let Some(previous_error) = previous_error {
+                    tracing::error!(%previous_error, "unable to place advisory previous pointer file, previous file has been skipped");
+                }
+            }
+        }
 
         Ok(FitVerdict {
             summary,
@@ -364,11 +427,31 @@ where
             "starting the offline production run"
         );
 
+        let upload = match self.upload.as_ref() {
+            Some((path, storage)) => {
+                let upload = Upload::prepare(storage, &self.root, path).await?;
+                Some(upload)
+            }
+            None => None,
+        };
+
         let started = Instant::now();
-        let summary = offline(dump, self.root, self.device, self.options).await?;
+        let summary = offline(dump, &self.root, self.device, self.options).await?;
         let elapsed = started.elapsed();
 
-        std::fs::write(&self.report, &summary.report).map_err(FitError::Io)?;
+        let mut buffer = Vec::new();
+        serde_json::to_writer_pretty(&mut buffer, &summary.report).map_err(FitError::Serialize)?;
+        tokio::fs::write(&self.report, buffer)
+            .await
+            .map_err(FitError::Io)?;
+
+        if let Some(upload) = upload {
+            upload.upload(summary.generation).await?;
+
+            if summary.activated {
+                upload.promote(summary.generation).await?;
+            }
+        }
 
         Ok(FitVerdict {
             summary,
@@ -379,19 +462,23 @@ where
 }
 
 impl FitCommand<NoProgress> {
-    #[must_use]
+    /// Creates a new `FitCommand` from the given arguments and storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the arguments are invalid or the storage is unavailable.
     pub async fn new(
         root: super::RootArgs,
         args: FitArgs,
-        storage: &Storage,
+        storage: Storage,
     ) -> Result<Self, StorageError> {
         let classifier = match (args.annotations, args.classifier) {
             (Some(annotations), None) => {
-                let path = annotations.into_local_file(storage).await?;
+                let path = annotations.into_local_file(&storage).await?;
                 ClassifierSource::Annotations(path)
             }
             (None, Some(artifact)) => {
-                let path = artifact.into_local_file(storage).await?;
+                let path = artifact.into_local_file(&storage).await?;
                 ClassifierSource::Artifact(path)
             }
             // Clap requires the `classifier_input` argument group with exactly one member, and
@@ -409,13 +496,13 @@ impl FitCommand<NoProgress> {
         };
 
         let verdicts = if let Some(verdicts) = args.verdicts {
-            Some(verdicts.into_local_file(storage).await?)
+            Some(verdicts.into_local_file(&storage).await?)
         } else {
             None
         };
 
         let quality_thresholds = if let Some(quality_thresholds) = args.quality_thresholds {
-            Some(quality_thresholds.into_local_file(storage).await?)
+            Some(quality_thresholds.into_local_file(&storage).await?)
         } else {
             None
         };
@@ -437,6 +524,7 @@ impl FitCommand<NoProgress> {
                 nn_descent: args.nn_descent,
                 progress: NoProgress,
             },
+            upload: args.upload.map(|path| (path, storage)),
         })
     }
 }

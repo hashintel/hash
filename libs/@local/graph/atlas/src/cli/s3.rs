@@ -89,6 +89,11 @@ pub struct S3Args {
 }
 
 impl S3Args {
+    /// Return the configured S3 client, if enabled.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the S3 client cannot be configured.
     pub async fn client(self) -> Result<Option<Client>, S3ArgsError> {
         if !self.enabled {
             return Ok(None);

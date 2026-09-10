@@ -64,14 +64,14 @@ pub(crate) struct Promotion {
 /// Repository prefixes retain every uploaded generation. Promotion completes an active prefix
 /// before selecting it through the captured precondition. Writing the original metadata document
 /// after its artifacts completes each prefix.
-pub(crate) struct Upload<B> {
+pub(crate) struct Upload<'path, B> {
     backend: B,
-    root: GenerationRoot,
-    destination: FilePath,
+    root: &'path GenerationRoot,
+    destination: &'path FilePath,
     current: Option<Current>,
 }
 
-impl<B> Upload<B>
+impl<'path, B> Upload<'path, B>
 where
     B: GenerationUploadBackend,
 {
@@ -85,8 +85,8 @@ where
     /// identity fails. Only a missing object establishes an absent pointer.
     pub(crate) async fn prepare(
         backend: B,
-        root: GenerationRoot,
-        destination: FilePath,
+        root: &'path GenerationRoot,
+        destination: &'path FilePath,
     ) -> Result<Self, UploadError> {
         let mut this = Self {
             backend,

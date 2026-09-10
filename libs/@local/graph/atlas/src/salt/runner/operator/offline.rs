@@ -2,7 +2,7 @@
 
 use camino::Utf8Path;
 
-use super::{Options, RunError, Summary, resolve, summary};
+use super::{Options, RunError, Summary, resolve};
 use crate::{
     dataset::offline::OfflineDataset, device::PinnedDevice, file::generation::GenerationRoot,
     progress::Progress, salt::runner::run,
@@ -25,7 +25,7 @@ use crate::{
 /// dump directory, indexing its embedding stream, or the run itself.
 pub(crate) async fn offline<P: Progress + Sync>(
     dump: &Utf8Path,
-    root: GenerationRoot,
+    root: &GenerationRoot,
     device: PinnedDevice,
     options: Options<P>,
 ) -> Result<Summary, RunError> {
@@ -39,12 +39,12 @@ pub(crate) async fn offline<P: Progress + Sync>(
         &embedder,
         &resolved.classifier,
         resolved.verdicts.as_ref(),
-        &root,
+        root,
         resolved.runner,
         &options.progress,
     )
     .await
     .map_err(RunError::OfflineRun)?;
 
-    Ok(summary(&outcome))
+    Ok(outcome.into())
 }
