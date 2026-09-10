@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 
-import { padWavWithSilence, readWavHeader } from "./synthesize-utterance.ts";
+import {
+  composeCaptureWav,
+  padWavWithSilence,
+  readWavHeader,
+} from "./synthesize-utterance.ts";
 
 const pcmWav = (samples: number, sampleRate = 48_000): Uint8Array => {
   const wav = new Uint8Array(44 + samples * 2);
@@ -101,5 +105,38 @@ describe("padWavWithSilence", () => {
     const padded = padWavWithSilence(wav, 0);
     expect(padded).toEqual(wav);
     expect(padded).not.toBe(wav);
+  });
+});
+
+describe("composeCaptureWav", () => {
+  test("normalizes tails while preserving interior pauses and the two-turn order", () => {
+    const first = pcmWav(5);
+    first.fill(0, 46, 50);
+    const second = pcmWav(3);
+    second.fill(0x31, 44);
+    const output = composeCaptureWav([
+      padWavWithSilence(first, 3),
+      padWavWithSilence(second, 7),
+    ]);
+    const start = 44 + 8 * 96_000;
+    const next = start + 10 + 5 * 96_000;
+    expect(readWavHeader(output).dataBytes).toBe(16 * 96_000 + 16);
+    expect(output.subarray(44, start).every((byte) => byte === 0)).toBe(true);
+    expect(output.subarray(start, start + 10)).toEqual(first.subarray(44));
+    expect(output.subarray(start + 10, next).every((byte) => byte === 0)).toBe(
+      true,
+    );
+    expect(output.subarray(next, next + 6)).toEqual(second.subarray(44));
+    expect(output.subarray(next + 6)).toHaveLength(3 * 96_000);
+    expect(output.subarray(next + 6).every((byte) => byte === 0)).toBe(true);
+  });
+
+  test("refuses invalid fake microphone fixtures before any paid connection", () => {
+    expect(() => composeCaptureWav([pcmWav(1, 44_100)])).toThrow(/48 kHz mono/);
+    expect(() => composeCaptureWav([])).toThrow(/utterance/);
+    const silent = pcmWav(4);
+    silent.fill(0, 44);
+    expect(() => composeCaptureWav([silent])).toThrow(/only silence/);
+    expect(() => composeCaptureWav([pcmWav(1)], 2)).toThrow(/three/);
   });
 });
