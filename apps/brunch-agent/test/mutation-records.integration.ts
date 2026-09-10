@@ -1,4 +1,10 @@
-/** Actual local browser, synthetic provider, existing built website and ChatAgent mount. No external requests. */
+/**
+ * Actual local browser, synthetic provider, existing built website and ChatAgent mount. No external requests.
+ *
+ * Prerequisites (see README "Browser tracer scripts"): build `@apps/brunch-agent`, and build the
+ * website with `VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat`. Without that build-time variable the
+ * prepared-fixture routes never activate and this script times out on "Bound conversation ready".
+ */
 /* eslint-disable no-await-in-loop -- Sequential UI actions and streamed responses are the boundary under test. */
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
