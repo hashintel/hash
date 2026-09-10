@@ -1,0 +1,191 @@
+{
+  "scenario": {
+    "id": "short-clarification",
+    "utterance": "What does reserving a dispatch crew mean here?",
+    "expectInputPhrases": [
+      "dispatch crew"
+    ],
+    "budgetsMs": {
+      "speechEndToAckAudio": 2000,
+      "readyToTtsAudio": 3000
+    }
+  },
+  "trace": {
+    "canonicalBubbles": [
+      "Reasoning\n1s\n\nGood question. I introduced the term \"reserve\" as shorthand, and I should clarify what I meant operationally.\n\nIn the workpiece hypothesis, \"reserving the dispatch crew\" would mean:\n\nWhen a batch enters final inspection, that specific crew is tied up and becomes unavailable for other operations\nThe crew remains unavailable while inspection proceeds through to sign-off\nWhen sign-off completes, the crew is released back to availability\n\nIn Petri net terms, this would be modeled as a token representing the crew being consumed when inspection starts and returned when sign-off completes.\n\nThe alternative interpretation would be that the crew is simply assigned or scheduled for dispatch in a way that doesn't block or consume a scarce resource—the crew availability place always has a token ready, independent of inspection activity.\n\nCan you describe what actually happens to the dispatch crew once a batch begins final inspection? Is the crew:\n\nCommitted/occupied exclusively until that batch is dispatched (not available for other work)?\nInvolved in dispatch readiness but not exclusively tied up during inspection?\nSomething else?"
+    ],
+    "commits": [
+      {
+        "itemId": "item_EMezStGJL3t09xprq4TwJ",
+        "observedAtMs": 27381.80000000028
+      }
+    ],
+    "diagnostics": [
+      {
+        "operation": "connection",
+        "outcome": "success",
+        "durationMs": 3099.4,
+        "requestId": "d5f19623-dfa8-4d4c-9832-5a037fb2fe2b",
+        "stage": "browser"
+      },
+      {
+        "operation": "transcription",
+        "outcome": "success",
+        "durationMs": 504.9,
+        "requestId": "7fc1c0e5-5aba-4a98-ae18-2e61091f97ac",
+        "stage": "browser"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 2252.5,
+        "requestId": "f75ac317-dcf0-499e-96c8-7796f86dfef6",
+        "stage": "browser",
+        "speechKind": "acknowledgement"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 44782.1,
+        "requestId": "ee4bfc92-c425-4f0e-8da3-823739c757be",
+        "stage": "browser",
+        "speechKind": "paraphrase"
+      }
+    ],
+    "finalPhase": "listening",
+    "fixtureRevisionBefore": 0,
+    "fixtureRevisionAfter": 0,
+    "inputTranscripts": [
+      "What does reserving a dispatch crew mean here?"
+    ],
+    "latency": [
+      {
+        "name": "user-speech-ended",
+        "elapsedMs": 0.10000000009313226,
+        "correlationId": "voice-realtime:1:item_EMezStGJL3t09xprq4TwJ:0",
+        "observedAtMs": 27381.100000000093
+      },
+      {
+        "name": "transcription-completed",
+        "elapsedMs": 507.29999999981374,
+        "correlationId": "voice-realtime:1:item_EMezStGJL3t09xprq4TwJ:0",
+        "observedAtMs": 27887.700000000186
+      },
+      {
+        "name": "submission-admitted",
+        "elapsedMs": 552.8999999999069,
+        "correlationId": "voice-realtime:1:item_EMezStGJL3t09xprq4TwJ:0",
+        "observedAtMs": 27933.200000000186
+      },
+      {
+        "name": "first-acknowledgement-audio",
+        "elapsedMs": 1069.7999999998137,
+        "correlationId": "voice-realtime:1:item_EMezStGJL3t09xprq4TwJ:0",
+        "observedAtMs": 28450.100000000093
+      },
+      {
+        "name": "speech-ended",
+        "elapsedMs": 2762.1999999997206,
+        "correlationId": "voice-realtime:1:item_EMezStGJL3t09xprq4TwJ:0",
+        "observedAtMs": 30142.80000000028
+      },
+      {
+        "name": "first-canonical-text",
+        "elapsedMs": 6458.600000000093,
+        "correlationId": "voice-realtime:1:item_EMezStGJL3t09xprq4TwJ:0",
+        "observedAtMs": 33838.90000000037
+      },
+      {
+        "name": "submission-settled",
+        "elapsedMs": 6459.199999999721,
+        "correlationId": "voice-realtime:1:item_EMezStGJL3t09xprq4TwJ:0",
+        "observedAtMs": 33839.5
+      },
+      {
+        "name": "answer-ready",
+        "elapsedMs": 6459.199999999721,
+        "correlationId": "canonical-speech:entry_01M26DM2AG1WEHRH0KFZFG5R3Z:text%3A2:fnv1a32:16d58ca8",
+        "observedAtMs": 33839.5
+      },
+      {
+        "name": "first-tts-request",
+        "elapsedMs": 6459.699999999721,
+        "correlationId": "voice-realtime:1:item_EMezStGJL3t09xprq4TwJ:0",
+        "observedAtMs": 33840
+      },
+      {
+        "name": "first-tts-audio",
+        "elapsedMs": 7255.299999999814,
+        "correlationId": "voice-realtime:1:item_EMezStGJL3t09xprq4TwJ:0",
+        "observedAtMs": 34635.700000000186
+      }
+    ],
+    "notHeard": false,
+    "outputAudioSeconds": 61.11619999999972,
+    "outputAudioBytes": 813533
+  },
+  "results": [
+    {
+      "name": "run",
+      "level": "pass",
+      "detail": "Run reached its terminal condition"
+    },
+    {
+      "name": "commits",
+      "level": "pass",
+      "detail": "1 distinct provider commits; expected 1"
+    },
+    {
+      "name": "sequence",
+      "level": "pass",
+      "detail": "Correlated input → admission → canonical text → settlement → TTS"
+    },
+    {
+      "name": "input-transcript",
+      "level": "pass",
+      "detail": "What does reserving a dispatch crew mean here?"
+    },
+    {
+      "name": "latency-ack",
+      "level": "pass",
+      "detail": "1069.6999999997206 ms; budget 2000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "latency-tts",
+      "level": "pass",
+      "detail": "796.1000000000931 ms; budget 3000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "no-autonomous-output",
+      "level": "pass",
+      "detail": "0 speech diagnostics without a recognized application speechKind; diagnostic coverage only"
+    },
+    {
+      "name": "diagnostics",
+      "level": "pass",
+      "detail": "0 failed Voice operations"
+    },
+    {
+      "name": "canonical-bubbles",
+      "level": "pass",
+      "detail": "1 canonical assistant bubbles"
+    },
+    {
+      "name": "final-phase",
+      "level": "pass",
+      "detail": "listening"
+    },
+    {
+      "name": "output-audio",
+      "level": "pass",
+      "detail": "61.11619999999972 s recorded, 813533 bytes; requires listening review"
+    },
+    {
+      "name": "paraphrase",
+      "level": "pass",
+      "detail": "Terminal paraphrase diagnostic"
+    }
+  ],
+  "browserVersion": "145.0.7632.6",
+  "nodeVersion": "v22.21.1"
+}

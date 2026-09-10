@@ -1,0 +1,106 @@
+{
+  "scenario": {
+    "id": "one-word-answer",
+    "utterance": "Yes.",
+    "expectInputPhrases": [
+      "yes"
+    ],
+    "budgetsMs": {
+      "speechEndToAckAudio": 2000,
+      "readyToTtsAudio": 3000
+    },
+    "allowNotHeard": true
+  },
+  "trace": {
+    "canonicalBubbles": [],
+    "commits": [],
+    "diagnostics": [
+      {
+        "operation": "connection",
+        "outcome": "failure",
+        "durationMs": 15004.7,
+        "requestId": "f5e27571-8974-4645-b32e-5ba1ed321716",
+        "stage": "browser",
+        "errorCode": "timeout"
+      }
+    ],
+    "finalPhase": "error",
+    "fixtureRevisionBefore": 0,
+    "fixtureRevisionAfter": 0,
+    "inputTranscripts": [],
+    "latency": [],
+    "notHeard": false,
+    "outputAudioSeconds": 5.8452000000011175,
+    "outputAudioBytes": 1823,
+    "error": "Voice connection failed; inspect the operational diagnostics"
+  },
+  "results": [
+    {
+      "name": "run",
+      "level": "fail",
+      "detail": "Voice connection failed; inspect the operational diagnostics"
+    },
+    {
+      "name": "admission-or-not-heard",
+      "level": "fail",
+      "detail": "0 admissions; not-heard notice absent"
+    },
+    {
+      "name": "commits",
+      "level": "fail",
+      "detail": "0 distinct provider commits; expected 1"
+    },
+    {
+      "name": "sequence",
+      "level": "fail",
+      "detail": "expected 1 admissions, got 0"
+    },
+    {
+      "name": "input-transcript",
+      "level": "fail",
+      "detail": "No Voice transcript"
+    },
+    {
+      "name": "latency-ack",
+      "level": "warn",
+      "detail": "unavailable ms; budget 2000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "latency-tts",
+      "level": "warn",
+      "detail": "unavailable ms; budget 3000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "no-autonomous-output",
+      "level": "pass",
+      "detail": "0 speech diagnostics without a recognized application speechKind; diagnostic coverage only"
+    },
+    {
+      "name": "diagnostics",
+      "level": "fail",
+      "detail": "1 failed Voice operations"
+    },
+    {
+      "name": "canonical-bubbles",
+      "level": "fail",
+      "detail": "0 canonical assistant bubbles"
+    },
+    {
+      "name": "final-phase",
+      "level": "fail",
+      "detail": "error"
+    },
+    {
+      "name": "output-audio",
+      "level": "pass",
+      "detail": "5.8452000000011175 s recorded, 1823 bytes; requires listening review"
+    },
+    {
+      "name": "paraphrase",
+      "level": "fail",
+      "detail": "Terminal paraphrase diagnostic"
+    }
+  ],
+  "browserVersion": "145.0.7632.6",
+  "nodeVersion": "v22.21.1"
+}

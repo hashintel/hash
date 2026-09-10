@@ -1,0 +1,228 @@
+{
+  "scenario": {
+    "id": "barge-in",
+    "utterance": "What does reserving a dispatch crew mean here?",
+    "expectInputPhrases": [
+      "dispatch crew"
+    ],
+    "budgetsMs": {
+      "speechEndToAckAudio": 2000,
+      "readyToTtsAudio": 3000
+    },
+    "action": "take-turn-during-paraphrase"
+  },
+  "trace": {
+    "canonicalBubbles": [
+      "Reasoning\n1s\nactivate_skill\nReasoning\n0s\nChecked latest net definition\nReasoning\n5s\n\nThank you for that question. Looking at the live net and the prepared workpiece together, I can clarify what's at stake.\n\nIn Petri net terms, reserving a crew member would mean consuming a token from the Dispatch crew available place when you start final inspection, holding it while the batch is under inspection, and returning it at sign-off. That would be represented by adding an input arc from Dispatch crew available into the Start final inspection transition.\n\nRight now, the live net does not have that arc. The sequence runs:\n\nA batch enters inspection (consuming from Batch ready)\nAfter sign-off, the batch reaches Ready for dispatch and one crew token returns to Dispatch crew available\n\nSo currently, the crew is available whether inspection is happening or not—it's just returned at the moment of sign-off.\n\nTo figure out whether that arc belongs in your model, I need to understand the operational reality:\n\nReasoning\n0s\n\nDuring final inspection, is that dispatch crew actually occupied—committed to this batch and unavailable for other work—or is the crew only assigned when the batch reaches ready-for-dispatch?"
+    ],
+    "commits": [
+      {
+        "itemId": "item_EMf2EEMj9g7KpZcZTOUvW",
+        "observedAtMs": 20757.299999999814
+      }
+    ],
+    "diagnostics": [
+      {
+        "operation": "connection",
+        "outcome": "success",
+        "durationMs": 1832,
+        "requestId": "534d7af0-a3c1-4966-bce9-a61a53fd9e6c",
+        "stage": "browser"
+      },
+      {
+        "operation": "transcription",
+        "outcome": "success",
+        "durationMs": 409.2,
+        "requestId": "74dcdbc2-38d7-4c05-8ccc-5de7616717a5",
+        "stage": "browser"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 2791.7,
+        "requestId": "f8697ab6-4a95-457e-a51a-4d653822a165",
+        "stage": "browser",
+        "speechKind": "acknowledgement"
+      },
+      {
+        "operation": "speech",
+        "outcome": "success",
+        "durationMs": 2424.4,
+        "requestId": "10b22b22-402e-4623-9a77-f37571714dba",
+        "stage": "browser",
+        "speechKind": "progress"
+      },
+      {
+        "operation": "speech",
+        "outcome": "aborted",
+        "durationMs": 4318,
+        "requestId": "37a86e63-b2c5-4a82-8708-e4744e655c41",
+        "stage": "browser",
+        "errorCode": "request-aborted",
+        "speechKind": "paraphrase"
+      }
+    ],
+    "finalPhase": "listening",
+    "fixtureRevisionBefore": 0,
+    "fixtureRevisionAfter": 0,
+    "inputTranscripts": [
+      "What does reserving a dispatch crew mean here?"
+    ],
+    "latency": [
+      {
+        "name": "user-speech-ended",
+        "elapsedMs": 0,
+        "correlationId": "voice-realtime:1:item_EMf2EEMj9g7KpZcZTOUvW:0",
+        "observedAtMs": 20749.899999999907
+      },
+      {
+        "name": "transcription-completed",
+        "elapsedMs": 417.20000000018626,
+        "correlationId": "voice-realtime:1:item_EMf2EEMj9g7KpZcZTOUvW:0",
+        "observedAtMs": 21167
+      },
+      {
+        "name": "submission-admitted",
+        "elapsedMs": 443.70000000018626,
+        "correlationId": "voice-realtime:1:item_EMf2EEMj9g7KpZcZTOUvW:0",
+        "observedAtMs": 21193.399999999907
+      },
+      {
+        "name": "first-acknowledgement-audio",
+        "elapsedMs": 1022.8000000002794,
+        "correlationId": "voice-realtime:1:item_EMf2EEMj9g7KpZcZTOUvW:0",
+        "observedAtMs": 21772.600000000093
+      },
+      {
+        "name": "speech-ended",
+        "elapsedMs": 3211,
+        "correlationId": "voice-realtime:1:item_EMf2EEMj9g7KpZcZTOUvW:0",
+        "observedAtMs": 23960.69999999972
+      },
+      {
+        "name": "continuation-admitted",
+        "elapsedMs": 6145.5,
+        "correlationId": "voice-realtime:1:item_EMf2EEMj9g7KpZcZTOUvW:0",
+        "observedAtMs": 26895.399999999907
+      },
+      {
+        "name": "first-canonical-text",
+        "elapsedMs": 15823.80000000028,
+        "correlationId": "voice-realtime:1:item_EMf2EEMj9g7KpZcZTOUvW:0",
+        "observedAtMs": 36573.69999999972
+      },
+      {
+        "name": "submission-settled",
+        "elapsedMs": 17405.600000000093,
+        "correlationId": "voice-realtime:1:item_EMf2EEMj9g7KpZcZTOUvW:0",
+        "observedAtMs": 38155.5
+      },
+      {
+        "name": "answer-ready",
+        "elapsedMs": 17405.900000000373,
+        "correlationId": "canonical-speech:entry_01M26DSA29Y1Z04G4X38HGTT0N:text%3A12:fnv1a32:d5452c83",
+        "observedAtMs": 38155.60000000009
+      },
+      {
+        "name": "first-tts-request",
+        "elapsedMs": 17406,
+        "correlationId": "voice-realtime:1:item_EMf2EEMj9g7KpZcZTOUvW:0",
+        "observedAtMs": 38155.69999999972
+      },
+      {
+        "name": "question-visible",
+        "elapsedMs": 17418.400000000373,
+        "correlationId": "canonical-speech:entry_01M26DSA29Y1Z04G4X38HGTT0N:question%3Atoolu_017n6ZS6Kw3NusyiKnhEvhcH:fnv1a32:d5452c83",
+        "observedAtMs": 38168.299999999814
+      },
+      {
+        "name": "first-tts-audio",
+        "elapsedMs": 18374.900000000373,
+        "correlationId": "voice-realtime:1:item_EMf2EEMj9g7KpZcZTOUvW:0",
+        "observedAtMs": 39124.799999999814
+      },
+      {
+        "name": "question-spoken-started",
+        "elapsedMs": 18375.100000000093,
+        "correlationId": "canonical-speech:entry_01M26DSA29Y1Z04G4X38HGTT0N:question%3Atoolu_017n6ZS6Kw3NusyiKnhEvhcH:fnv1a32:d5452c83",
+        "observedAtMs": 39124.799999999814
+      }
+    ],
+    "notHeard": false,
+    "outputAudioSeconds": 32.8025,
+    "outputAudioBytes": 339893,
+    "canonicalBeforeInterruption": [
+      "Reasoning\n1s\nactivate_skill\nReasoning\n0s\nChecked latest net definition\nReasoning\n5s\n\nThank you for that question. Looking at the live net and the prepared workpiece together, I can clarify what's at stake.\n\nIn Petri net terms, reserving a crew member would mean consuming a token from the Dispatch crew available place when you start final inspection, holding it while the batch is under inspection, and returning it at sign-off. That would be represented by adding an input arc from Dispatch crew available into the Start final inspection transition.\n\nRight now, the live net does not have that arc. The sequence runs:\n\nA batch enters inspection (consuming from Batch ready)\nAfter sign-off, the batch reaches Ready for dispatch and one crew token returns to Dispatch crew available\n\nSo currently, the crew is available whether inspection is happening or not—it's just returned at the moment of sign-off.\n\nTo figure out whether that arc belongs in your model, I need to understand the operational reality:\n\nReasoning\n0s\n\nDuring final inspection, is that dispatch crew actually occupied—committed to this batch and unavailable for other work—or is the crew only assigned when the batch reaches ready-for-dispatch?"
+    ],
+    "interruptedAtMs": 42266.19999999972
+  },
+  "results": [
+    {
+      "name": "run",
+      "level": "pass",
+      "detail": "Run reached its terminal condition"
+    },
+    {
+      "name": "commits",
+      "level": "pass",
+      "detail": "1 distinct provider commits; expected 1"
+    },
+    {
+      "name": "sequence",
+      "level": "pass",
+      "detail": "Correlated input → admission → canonical text → settlement → TTS"
+    },
+    {
+      "name": "input-transcript",
+      "level": "pass",
+      "detail": "What does reserving a dispatch crew mean here?"
+    },
+    {
+      "name": "latency-ack",
+      "level": "pass",
+      "detail": "1022.8000000002794 ms; budget 2000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "latency-tts",
+      "level": "pass",
+      "detail": "969.3000000002794 ms; budget 3000 ms (provider-buffer proxy)"
+    },
+    {
+      "name": "no-autonomous-output",
+      "level": "pass",
+      "detail": "0 speech diagnostics without a recognized application speechKind; diagnostic coverage only"
+    },
+    {
+      "name": "diagnostics",
+      "level": "pass",
+      "detail": "0 failed Voice operations"
+    },
+    {
+      "name": "canonical-bubbles",
+      "level": "pass",
+      "detail": "1 canonical assistant bubbles"
+    },
+    {
+      "name": "final-phase",
+      "level": "pass",
+      "detail": "listening"
+    },
+    {
+      "name": "output-audio",
+      "level": "pass",
+      "detail": "32.8025 s recorded, 339893 bytes; requires listening review"
+    },
+    {
+      "name": "paraphrase",
+      "level": "pass",
+      "detail": "Terminal paraphrase diagnostic"
+    },
+    {
+      "name": "interrupted",
+      "level": "pass",
+      "detail": "Your turn clicked; paraphrase aborted; pre-interruption canonical text retained"
+    }
+  ],
+  "browserVersion": "145.0.7632.6",
+  "nodeVersion": "v22.21.1"
+}
