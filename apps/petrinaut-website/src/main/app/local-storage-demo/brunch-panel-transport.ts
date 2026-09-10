@@ -346,6 +346,7 @@ export const createBrunchPanelTransport = (
     readonly initialData?: FlueChatTransportOptions["initialData"];
     /** Fixture-scoped client tools; defaults to the Petrinaut docs reader alone. */
     readonly clientToolNames?: ReadonlySet<string>;
+    readonly dynamicClientToolNames?: ReadonlySet<string>;
     readonly validatedClientToolNames?: ReadonlySet<string>;
     readonly clientToolResultMetadata?: FlueChatTransportOptions["clientToolResultMetadata"];
     readonly mapClientToolInput?: (input: {
@@ -367,6 +368,7 @@ export const createBrunchPanelTransport = (
             ? {}
             : { initialData: options.initialData }),
           clientToolNames: options?.clientToolNames ?? brunchClientToolNames,
+          dynamicClientToolNames: options?.dynamicClientToolNames,
           validatedClientToolNames: options?.validatedClientToolNames,
           clientToolResultMetadata: options?.clientToolResultMetadata,
           ...(options?.mapClientToolInput === undefined

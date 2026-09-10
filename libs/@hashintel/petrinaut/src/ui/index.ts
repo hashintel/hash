@@ -44,6 +44,7 @@ export type {
   PetrinautNavigationUpdater,
   PetrinautSimulateResource,
 } from "../react/navigation";
+export type { PetrinautAiAutomaticTool } from "./types/ai-automatic-tool";
 export { definePetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
 export type {
   PetrinautAiInteractiveTool,

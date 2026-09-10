@@ -52,6 +52,11 @@ export {
   type RootArcWhyInput,
 } from "./root-arc";
 export { observedConstructionBrowserToolNames } from "./construction-tool-names";
+export {
+  batchedConstructionMode,
+  mutatePetrinetInputSchema,
+  mutatePetrinetToolName,
+} from "./mutate-petrinet";
 export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";
 export {
   constructionWhyInputSchema,

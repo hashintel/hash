@@ -153,6 +153,29 @@ test("leaves an unfinished client tool available to run", () => {
   ]);
 });
 
+test("rehydrates host-defined client tools as dynamic", () => {
+  expect(
+    snapshotToUiMessages(snapshotWithPendingClientTool, {
+      ...projectionOptions,
+      dynamicClientToolNames: new Set(["readPetrinautDoc"]),
+    }),
+  ).toEqual([
+    {
+      id: "assistant-1",
+      role: "assistant",
+      parts: [
+        {
+          type: "dynamic-tool",
+          toolName: "readPetrinautDoc",
+          toolCallId: "tool-doc-1",
+          state: "input-available",
+          input: { doc: "ai-assistant" },
+        },
+      ],
+    },
+  ]);
+});
+
 test("keeps a pending client tool on the final assistant message", () => {
   const snapshot: FlueConversationSnapshot = {
     ...snapshotWithPendingClientTool,

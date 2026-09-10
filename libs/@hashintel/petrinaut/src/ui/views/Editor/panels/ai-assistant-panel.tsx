@@ -142,14 +142,32 @@ const isRunnableStaticToolPart = (
  * will execute and then continue, so the turn is not over even though the AI
  * SDK reports `ready`.
  */
-const hasRunnableStaticToolCalls = (
+const isRunnableAutomaticDynamicToolPart = (
+  part: PetrinautAiMessagePart,
+  automaticTools: PetrinautAiAssistant["automaticTools"],
+): part is Extract<
+  PetrinautAiMessagePart,
+  { type: "dynamic-tool"; state: "input-available" }
+> =>
+  part.type === "dynamic-tool" &&
+  part.providerExecuted !== true &&
+  part.state === "input-available" &&
+  automaticTools?.some(({ toolName }) => toolName === part.toolName) === true;
+
+/** True when the last assistant message contains automatic work the panel still owes. */
+const hasRunnableAutomaticToolCalls = (
   messages: PetrinautAiMessage[],
+  automaticTools: PetrinautAiAssistant["automaticTools"],
 ): boolean => {
   const message = messages.at(-1);
   return (
     message?.role === "assistant" &&
     !message.metadata?.stopped &&
-    message.parts.some((part) => isRunnableStaticToolPart(part))
+    message.parts.some(
+      (part) =>
+        isRunnableStaticToolPart(part) ||
+        isRunnableAutomaticDynamicToolPart(part, automaticTools),
+    )
   );
 };
 
@@ -249,7 +267,14 @@ const addDynamicToolOutput = (
   addToolOutput: ReturnType<
     typeof useChat<PetrinautAiMessage>
   >["addToolOutput"],
-  params: { tool: string; toolCallId: string; output: unknown },
+  params:
+    | { tool: string; toolCallId: string; output: unknown }
+    | {
+        tool: string;
+        toolCallId: string;
+        state: "output-error";
+        errorText: string;
+      },
 ): Promise<void> => {
   // AI SDK models dynamic tool parts at runtime, but its addToolOutput generic
   // is keyed only by the message's statically declared tools. Keep the cast at
@@ -844,6 +869,25 @@ const ConversationAiAssistantPanel = ({
     }
 
     if (toolCall.dynamic) {
+      const automaticTool = aiAssistant.automaticTools?.find(
+        ({ toolName }) => toolName === toolCall.toolName,
+      );
+      if (automaticTool) {
+        const toolInput = automaticTool.inputSchema.parse(toolCall.input);
+        const output = automaticTool.outputSchema.parse(
+          await automaticTool.execute({
+            input: toolInput,
+            instance,
+            toolCallId: toolCall.toolCallId,
+          }),
+        );
+        await addAutomaticToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output,
+        } as never);
+        return;
+      }
       resolveDynamicInteractiveTool(
         toolCall.toolName,
         toolCall.input,
@@ -1082,7 +1126,10 @@ const ConversationAiAssistantPanel = ({
         (lastAssistantMessageIsCompleteWithToolCalls({
           messages: finishedMessages,
         }) ||
-          hasRunnableStaticToolCalls(finishedMessages));
+          hasRunnableAutomaticToolCalls(
+            finishedMessages,
+            aiAssistant.automaticTools,
+          ));
       setContinuationPending(followUpPending);
       if (isAbort) {
         // The SDK fires `onFinish` for every abort. Only act on a deliberate
@@ -1131,7 +1178,14 @@ const ConversationAiAssistantPanel = ({
         `${toolHostIdentityRef.current}:${toolCall.toolCallId}`,
         submissionGenerationRef.current,
       );
-      return toolCall.dynamic ? executeToolCall({ toolCall }) : undefined;
+      if (!toolCall.dynamic) return undefined;
+      if (
+        aiAssistant.automaticTools?.some(
+          ({ toolName }) => toolName === toolCall.toolName,
+        )
+      )
+        return undefined;
+      return executeToolCall({ toolCall });
     },
   });
   useLayoutEffect(() => {
@@ -1288,16 +1342,26 @@ const ConversationAiAssistantPanel = ({
     for (const message of messages) {
       if (message.metadata?.stopped) continue;
       for (const part of message.parts) {
-        if (!isRunnableStaticToolPart(part)) {
-          continue;
-        }
+        const isStatic = isRunnableStaticToolPart(part);
+        const isAutomaticDynamic = isRunnableAutomaticDynamicToolPart(
+          part,
+          aiAssistant.automaticTools,
+        );
+        if (!isStatic && !isAutomaticDynamic) continue;
 
-        const toolCall = {
-          dynamic: false,
-          input: part.input,
-          toolCallId: part.toolCallId,
-          toolName: getStaticToolName(part),
-        } as Extract<PetrinautAiToolCall, { dynamic?: false }>;
+        const toolCall = isAutomaticDynamic
+          ? {
+              dynamic: true as const,
+              input: part.input,
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+            }
+          : ({
+              dynamic: false,
+              input: part.input,
+              toolCallId: part.toolCallId,
+              toolName: getStaticToolName(part),
+            } as Extract<PetrinautAiToolCall, { dynamic?: false }>);
         const executionKey = `${conversationId}:${toolCall.toolCallId}`;
         if (
           aiAssistant.followMessages !== undefined &&
@@ -1347,18 +1411,21 @@ const ConversationAiAssistantPanel = ({
                   ? caught
                   : new Error(browserToolErrorText(caught)),
               );
-              // A static failure belongs to this call, not just the toast. Do
+              // An automatic-tool failure belongs to this call, not just the toast. Do
               // not let recording its error trigger an implicit continuation.
               suppressedAutomaticSendsRef.current += 1;
               await Promise.resolve()
-                .then(() =>
-                  addToolOutputRef.current?.({
-                    tool: toolCall.toolName,
-                    toolCallId: toolCall.toolCallId,
-                    state: "output-error",
-                    errorText: browserToolErrorText(caught),
-                  }),
-                )
+                .then(() => {
+                  const currentAddToolOutput = addToolOutputRef.current;
+                  return currentAddToolOutput
+                    ? addDynamicToolOutput(currentAddToolOutput, {
+                        tool: toolCall.toolName,
+                        toolCallId: toolCall.toolCallId,
+                        state: "output-error",
+                        errorText: browserToolErrorText(caught),
+                      })
+                    : undefined;
+                })
                 .catch(() => {})
                 .then(() => {
                   suppressedAutomaticSendsRef.current -= 1;
@@ -1369,6 +1436,7 @@ const ConversationAiAssistantPanel = ({
       }
     }
   }, [
+    aiAssistant.automaticTools,
     aiAssistant.followMessages,
     automaticToolTurnIsTerminatedRef,
     chatStatus,

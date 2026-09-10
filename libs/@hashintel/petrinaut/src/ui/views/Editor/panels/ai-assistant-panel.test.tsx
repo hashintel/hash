@@ -4967,4 +4967,110 @@ describe("AiAssistantPanel host interactive tools", () => {
       instance.dispose();
     }
   });
+
+  test("executes a host automatic dynamic tool and resumes once", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "automatic-call-1",
+                    toolName: "hostAutomatic",
+                    input: { value: 2 },
+                  },
+                ]
+              : [
+                  { type: "start-step" },
+                  { type: "text-start", id: "automatic-follow-up" },
+                  {
+                    type: "text-delta",
+                    id: "automatic-follow-up",
+                    delta: "Automatic result received.",
+                  },
+                  { type: "text-end", id: "automatic-follow-up" },
+                ],
+          ),
+        );
+      }),
+    };
+    const execute = vi.fn(({ input }: { input: unknown }) => ({
+      doubled: (input as { value: number }).value * 2,
+    }));
+    const handle = createJsonDocHandle({
+      id: "automatic-tool-test",
+      initial: emptySDCPN,
+    });
+    const instance = createPetrinaut({ document: handle });
+    const sdcpnContext: SDCPNContextValue = {
+      createNewNet: () => {},
+      existingNets: [],
+      loadPetriNet: () => {},
+      petriNetId: "automatic-tool-test",
+      petriNetDefinition: emptySDCPN,
+      readonly: false,
+      extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+      setTitle: () => {},
+      title: "Automatic tool test",
+      getItemType: () => null,
+    };
+
+    try {
+      render(
+        <PetrinautInstanceContext.Provider value={instance}>
+          <EditorContext.Provider value={editorContextValue}>
+            <SDCPNContext.Provider value={sdcpnContext}>
+              <AiAssistantPanel
+                aiAssistant={{
+                  automaticTools: [
+                    {
+                      toolName: "hostAutomatic",
+                      inputSchema: {
+                        parse: (raw: unknown) => raw as { value: number },
+                      },
+                      outputSchema: {
+                        parse: (raw: unknown) => raw as { doubled: number },
+                      },
+                      execute,
+                    },
+                  ],
+                  transport,
+                }}
+                initialMessage="Run the automatic tool"
+              />
+            </SDCPNContext.Provider>
+          </EditorContext.Provider>
+        </PetrinautInstanceContext.Provider>,
+      );
+
+      await waitFor(() => expect(execute).toHaveBeenCalledOnce());
+      await waitFor(() =>
+        expect(transport.sendMessages).toHaveBeenCalledTimes(2),
+      );
+      await screen.findByText("Automatic result received.");
+      expect(execute).toHaveBeenCalledWith({
+        input: { value: 2 },
+        instance,
+        toolCallId: "automatic-call-1",
+      });
+      expect(requestMessages[1]?.at(-1)?.parts).toContainEqual(
+        expect.objectContaining({
+          type: "dynamic-tool",
+          toolCallId: "automatic-call-1",
+          toolName: "hostAutomatic",
+          state: "output-available",
+          output: { doubled: 4 },
+        }),
+      );
+    } finally {
+      instance.dispose();
+    }
+  });
 });

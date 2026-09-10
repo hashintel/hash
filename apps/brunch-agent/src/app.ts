@@ -10,6 +10,7 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
 import {
+  mutatePetrinetToolName,
   observedConstructionBrowserToolNames,
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   READ_PETRINAUT_DOC_TOOL_NAME,
@@ -67,6 +68,7 @@ setProvider(
     new Set([
       ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
       ...observedConstructionBrowserToolNames,
+      mutatePetrinetToolName,
       READ_PETRINAUT_DOC_TOOL_NAME,
     ]),
   ),

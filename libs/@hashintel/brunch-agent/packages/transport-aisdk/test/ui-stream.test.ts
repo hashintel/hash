@@ -282,6 +282,41 @@ test("maps client-tool input before exposing it to the AI SDK", () => {
   });
 });
 
+test("marks host-defined client tools as dynamic for the AI SDK", () => {
+  const written: UIMessageChunk[] = [];
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(["mutate_petrinet"]),
+    dynamicClientToolNames: new Set(["mutate_petrinet"]),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "call-1",
+    toolName: "mutate_petrinet",
+    input: { operations: [] },
+    position: position(1),
+  });
+
+  expect(written).toContainEqual({
+    type: "tool-input-available",
+    toolCallId: "call-1",
+    toolName: "mutate_petrinet",
+    input: { operations: [] },
+    dynamic: true,
+  });
+});
+
 test("keeps a pending client tool in the final projected step", () => {
   const written = project([
     {

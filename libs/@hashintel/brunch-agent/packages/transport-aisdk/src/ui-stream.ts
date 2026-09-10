@@ -6,6 +6,8 @@ import type { UIMessageChunk } from "ai";
 /** How client-executed and hidden tools project into the AI SDK UI, live or from history. */
 export interface ClientToolProjectionOptions {
   readonly clientToolNames: ReadonlySet<string>;
+  /** Host-defined tools that are not part of the AI SDK's static tool registry. */
+  readonly dynamicClientToolNames?: ReadonlySet<string>;
   /** These client calls are not executable until their server tool has succeeded. */
   readonly validatedClientToolNames?: ReadonlySet<string>;
   readonly mapClientToolInput?: (
@@ -65,6 +67,9 @@ export const createFlueUiStream = (
               toolName: chunk.toolName,
               toolCallId: chunk.toolCallId,
             }),
+      ...(options.dynamicClientToolNames?.has(chunk.toolName) === true
+        ? { dynamic: true }
+        : {}),
     });
   };
 
@@ -201,6 +206,9 @@ export const createFlueUiStream = (
                   })
                 : chunk.input,
             ...(isClientTool ? {} : { providerExecuted: true }),
+            ...(options.dynamicClientToolNames?.has(chunk.toolName) === true
+              ? { dynamic: true }
+              : {}),
           });
           return;
         }
