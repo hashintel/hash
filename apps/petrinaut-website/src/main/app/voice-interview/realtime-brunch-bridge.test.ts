@@ -350,13 +350,17 @@ describe("RealtimeBrunchBridge", () => {
         status: "ready",
       });
       const epoch = action === "cancelPendingSpeech" ? 3 : 4;
+      const itemId =
+        action === "cancelPendingSpeech"
+          ? "fresh-after-cancellation"
+          : "unfinished";
       harness.emit({
         type: "input-speech-started",
         connectionEpoch: epoch,
-        itemId: "unfinished",
+        itemId,
         interruptionBySpeaking: true,
       });
-      harness.emit(completedTranscript(epoch, assistantText, "unfinished"));
+      harness.emit(completedTranscript(epoch, assistantText, itemId));
       expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
     },
   );
@@ -630,6 +634,94 @@ describe("RealtimeBrunchBridge", () => {
       expect.objectContaining({ text: "Second answer." }),
     );
   });
+
+  test("treats transcript completion as the stop boundary for a half-duplex follow-up", async () => {
+    const harness = createHarness();
+    startReady(harness);
+    harness.emit({
+      connectionEpoch: 3,
+      itemId: "first-item",
+      type: "input-speech-started",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      itemId: "first-item",
+      type: "input-speech-stopped",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      itemId: "second-item",
+      type: "input-speech-started",
+    });
+
+    harness.emit(completedTranscript(3, "First answer.", "first-item"));
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual(
+        expect.objectContaining({
+          answer: "First answer.",
+          type: "submission-accepted",
+        }),
+      ),
+    );
+    harness.emit(completedTranscript(3, "Second answer.", "second-item"));
+
+    expect(harness.events).toContainEqual({
+      answer: "Second answer.",
+      type: "transcript-retained",
+    });
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "streaming",
+    });
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [
+        segment("first-reply", "Who acts next?", "submission-voice-1"),
+      ],
+      status: "ready",
+    });
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledTimes(2),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ text: "Second answer." }),
+    );
+  });
+
+  test.each([false, true])(
+    "retires unfinished input across cancellation when pending answers are discarded: %s",
+    (discardPendingInterruption) => {
+      const harness = createHarness();
+      startReady(harness);
+      harness.emit({
+        connectionEpoch: 3,
+        interruptionBySpeaking: true,
+        itemId: "cancelled-item",
+        type: "input-speech-started",
+      });
+
+      harness.bridge.cancelPendingSpeech({ discardPendingInterruption });
+      harness.bridge.completeTurnHandoff();
+      harness.emit({
+        connectionEpoch: 3,
+        itemId: "fresh-item",
+        type: "input-speech-started",
+      });
+      harness.emit({
+        connectionEpoch: 3,
+        itemId: "fresh-item",
+        type: "input-speech-stopped",
+      });
+      harness.emit(completedTranscript(3, "A fresh answer.", "fresh-item"));
+
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+        expect.objectContaining({ text: "A fresh answer." }),
+      );
+    },
+  );
 
   test.each(["stop", "reconnect"] as const)(
     "clears a retained interruption on %s",
