@@ -464,38 +464,70 @@ export const assertArcEffects = (
   }
 };
 
+/** An outcome classification plus, for `unknown`, the reason when one was thrown. */
+export interface ClassifiedTransitionOutcome {
+  readonly outcome: ConstructionTransitionAttempt["outcome"];
+  /** Present only when classification itself failed; the outcome is then `unknown`. */
+  readonly reason?: string;
+}
+
 /** Observed effect, not canonical void success: only the verified bounded footprint earns applied. */
 export const observedArcOutcome = (
   attempt: Omit<ConstructionTransitionAttempt, "outcome">,
-): ConstructionTransitionAttempt["outcome"] => {
-  if (!attempt.post) return "unknown";
+): ConstructionTransitionAttempt["outcome"] =>
+  classifyTransitionOutcome(attempt).outcome;
+
+/**
+ * `observedArcOutcome` with the reason an outcome became `unknown` because the
+ * expected definition could not be derived. Recorders store that reason on the
+ * attempt so an unknown outcome is explicable, not merely declared.
+ */
+export const classifyTransitionOutcome = (
+  attempt: Omit<ConstructionTransitionAttempt, "outcome">,
+): ClassifiedTransitionOutcome => {
+  if (!attempt.post) return { outcome: "unknown" };
   const unchanged =
     canonicalContent(attempt.pre.definition) ===
     canonicalContent(attempt.post.definition);
-  if (attempt.error !== undefined) return unchanged ? "failed" : "unknown";
+  if (attempt.error !== undefined)
+    return { outcome: unchanged ? "failed" : "unknown" };
   if (
     canonicalContent(attempt.request.binding) !==
     canonicalContent(attempt.binding)
   )
-    return "unknown";
+    return { outcome: "unknown" };
   if (attempt.request.requestedBaseHash !== attempt.pre.sha256)
-    return unchanged ? "stale" : "unknown";
-  if (unchanged) return "no-op";
-  const effects = attempt.effects;
+    return { outcome: unchanged ? "stale" : "unknown" };
+  if (unchanged) return { outcome: "no-op" };
   if (
     isObservedNodeMutation(attempt.request.toolName) ||
     isObservedStateMutation(attempt.request.toolName)
   ) {
     try {
-      return canonicalContent(
-        expectedNodeDefinition(attempt.request, attempt.pre.definition),
-      ) === canonicalContent(attempt.post.definition)
-        ? "applied"
-        : "unknown";
-    } catch {
-      return "unknown";
+      return {
+        outcome:
+          canonicalContent(
+            expectedNodeDefinition(attempt.request, attempt.pre.definition),
+          ) === canonicalContent(attempt.post.definition)
+            ? "applied"
+            : "unknown",
+      };
+    } catch (error) {
+      return {
+        outcome: "unknown",
+        reason: `expected definition unavailable: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      };
     }
   }
+  return { outcome: observedArcEffectOutcome(attempt) };
+};
+
+const observedArcEffectOutcome = (
+  attempt: Omit<ConstructionTransitionAttempt, "outcome">,
+): ConstructionTransitionAttempt["outcome"] => {
+  const effects = attempt.effects;
   if (attempt.request.toolName === "updateArcWeight") {
     const change = effects.updated[0];
     const input = mutationActionInputSchemas.updateArcWeight.parse(
