@@ -17,7 +17,6 @@ import {
   type ExperimentsActionsValue,
   type ExperimentRecord,
   isExperimentActive,
-  isTerminalExperimentStatus,
   type SweepBatchStatus,
 } from "../../../../../../react/experiments/context";
 import { experimentProgressPercent } from "../../../shared/experiment-progress";
@@ -238,6 +237,11 @@ export const experimentResultsModel = (
     ? "optimizing"
     : experiment.status;
   const canCancel = isExperimentActive(experiment) || following !== null;
+  // The navigator and the surface only display while the selection is not
+  // the user's to move: a study drives it, or the sweep was cancelled and its
+  // session is gone. A failed selection locks nothing — the next selection
+  // computes afresh — and a sweep never completes.
+  const locked = following !== null || experiment.status === "cancelled";
   const tone: ChartCardTone = following ? "optimizing" : "default";
   const { study } = optimizer;
 
@@ -295,10 +299,7 @@ export const experimentResultsModel = (
                   runTarget: sweep.runTarget,
                   runCount: experiment.runCount,
                 }}
-                disabled={
-                  following !== null ||
-                  isTerminalExperimentStatus(experiment.status)
-                }
+                disabled={locked}
                 onSelectionChange={(selection) =>
                   actions.setSweepSelection(experiment.id, selection)
                 }
@@ -317,6 +318,7 @@ export const experimentResultsModel = (
           key={experiment.id}
           experiment={experiment}
           following={following !== null}
+          disabled={locked}
           tone={tone}
         />
       ) : null,

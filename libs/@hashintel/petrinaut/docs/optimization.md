@@ -157,7 +157,8 @@ strip is always one line: in a narrow drawer the labels become tooltips and
 the columns read as chips, **Steps** shortens to its count, and whatever
 still does not fit scrolls sideways under a fade at the edge. Once the body
 has scrolled the header condenses to one line, the columns folded in as
-compact chips; move the pointer over it and it grows back. The gap under the
+compact chips; move the pointer over it, or Tab onto one of its controls,
+and it grows back. The gap under the
 header is reserved for a note (the error when a study failed, the resume note
 while it is paused), so nothing moves when one appears.
 

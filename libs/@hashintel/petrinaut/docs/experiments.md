@@ -127,7 +127,7 @@ Open an experiment's drawer and its header names the experiment in one line: the
 
 A progress bar runs along the header's bottom edge: the selected combination's runs for a sweep (the study's steps while one drives it), simulated time otherwise. If the experiment failed, the error reads in the line under the header; so does the error of a study that failed while driving a sweep.
 
-Once the drawer's body has scrolled, the header condenses to one line, with the columns folded in as compact chips beside the title, the compute badge and the computing chip still among them; move the pointer over it and it grows back. Nothing in the header moves when a status changes, a count goes to zero or a number grows a digit: every column is as wide as its widest value, and every card in the body keeps its height.
+Once the drawer's body has scrolled, the header condenses to one line, with the columns folded in as compact chips beside the title, the compute badge and the computing chip still among them; move the pointer over it, or Tab onto one of its controls, and it grows back. Nothing in the header moves when a status changes, a count goes to zero or a number grows a digit: every column is as wide as its widest value, and every card in the body keeps its height.
 
 **Elapsed** and **Duration** measure simulating only. Compiling the net's user code and starting the workers (or acquiring the GPU device and compiling the shader) happens before the clock starts, so the number is comparable between the two backends. An experiment that fails before it starts simulating shows `—` rather than a duration.
 
@@ -146,7 +146,7 @@ Click (or drag across) a timeline chart to inspect single time steps — a popov
 
 In the experiment's view drawer (open it from the list, where the first click selects a row and a click on the selected row or Enter opens it, or via any experiment in the top-bar **Active experiments** popover):
 
-- **Cancel** -- stops the experiment. Offered while it is initializing or running, and while a study drives a sweep, which it stops too.
+- **Cancel** -- stops the experiment. Offered while it is initializing or running, and while a study drives a sweep, which it stops too. Once a sweep is cancelled its sliders and its surface lock; a selection that failed locks nothing, and the next selection computes normally.
 - **Remove** -- deletes the record and disposes the experiment's workers (and, for a sweep, its study). It sits at the left edge of the footer.
 - **Close** -- closes the drawer without affecting the experiment.
 

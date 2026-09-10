@@ -4,9 +4,11 @@
  * what animates, and whatever follows it moves as one block. The content is
  * clipped, turns visible at once when opening and only after the row has
  * closed when folding, and is inert and hidden from assistive technology
- * while closed. The fold runs its transition under the frame's animate
- * switch. `data-*` attributes land on the clip element, with `id`, so a
- * caller can point `aria-controls` and its tests at it.
+ * while closed — unless `keepAccessible` keeps it in the accessibility tree
+ * and focusable, for a fold that opens when the keyboard reaches it. The fold
+ * runs its transition under the frame's animate switch. `data-*` attributes
+ * land on the clip element, with `id`, so a caller can point `aria-controls`
+ * and its tests at it.
  */
 import { type ReactNode, use } from "react";
 
@@ -23,6 +25,8 @@ const foldStyle = css({
     gridTemplateRows: "[1fr]",
     visibility: "visible",
   },
+  // Clipped to nothing while closed, but still there for focus and readers.
+  "&[data-keep-accessible=true]": { visibility: "visible" },
   "&[data-animate=true]": {
     transition: "[grid-template-rows 160ms ease-out, visibility 0s 160ms]",
   },
@@ -41,19 +45,33 @@ export type FoldProps = {
   open: boolean;
   /** The clip element's id, for the control's `aria-controls`. */
   id?: string;
+  /** Keeps the closed content in the accessibility tree and focusable, so a focus into it can open the fold. */
+  keepAccessible?: boolean;
   children: ReactNode;
 } & { [attribute: `data-${string}`]: true };
 
-export const Fold = ({ open, id, children, ...dataAttributes }: FoldProps) => {
+export const Fold = ({
+  open,
+  id,
+  keepAccessible = false,
+  children,
+  ...dataAttributes
+}: FoldProps) => {
   const animate = use(FrameAnimateContext);
+  const reachable = open || keepAccessible;
   return (
-    <div className={foldStyle} data-open={open} data-animate={animate}>
+    <div
+      className={foldStyle}
+      data-open={open}
+      data-keep-accessible={keepAccessible}
+      data-animate={animate}
+    >
       <div
         {...dataAttributes}
         id={id}
         className={clipStyle}
-        inert={!open}
-        aria-hidden={open ? undefined : true}
+        inert={!reachable}
+        aria-hidden={reachable ? undefined : true}
       >
         {children}
       </div>
