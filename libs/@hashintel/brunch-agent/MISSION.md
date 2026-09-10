@@ -3,10 +3,10 @@
 ## Status
 
 Live on the Graphite-tracked child branch of PR #9619. Voice behavior is unchanged by this
-mission. The 2026-09-10 review remediation is approved against baseline
-`b034530340`: replace delivery-payload inference with per-user-turn tool-call state, narrow
-grounding claims to the capability this route can establish, and remove the duplicate
-implementation plan.
+mission. The 2026-09-10 review remediation was implemented at `74d56ccc05` against baseline
+`b034530340`: delivery-payload inference was replaced with per-user-turn tool-call state,
+grounding claims were narrowed to the capability this route can establish, and the duplicate
+implementation plan was removed.
 
 ## Imperative
 
@@ -42,6 +42,17 @@ ordinary Flue conversation
 - The focused commands in the task brief are the acceptance oracle. They prove this read-only
   capability and its one-request-per-user-turn gate, not provider compliance, automatic
   construction, Voice latency, or provenance.
+
+## Verification
+
+Verified on 2026-09-10:
+
+- SDCPN plugin: 16 unit tests passed; TypeScript and Oxlint passed with no diagnostics; the direct
+  Vite production build passed.
+- Brunch app: 153 unit tests and 14 built-server integration tests passed; TypeScript passed; the
+  server and client production builds passed.
+- Brunch Oxlint exited successfully with 14 existing warnings and no errors.
+- Formatting passed for all implementation, test, changeset, and user-guide files.
 
 ## Constraints
 
