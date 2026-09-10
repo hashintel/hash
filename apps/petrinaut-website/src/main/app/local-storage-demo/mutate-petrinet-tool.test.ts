@@ -97,6 +97,38 @@ const removeArc = {
     placeId: "queue",
   },
 };
+const tokenType = {
+  operationId: "add-item",
+  type: "addType" as const,
+  input: {
+    id: "item",
+    name: "Item",
+    iconSlug: "circle",
+    displayColor: "#1E90FF",
+    elements: [],
+  },
+};
+const parameter = {
+  operationId: "add-rate",
+  type: "addParameter" as const,
+  input: {
+    id: "rate",
+    name: "Rate",
+    variableName: "arrival_rate",
+    type: "real" as const,
+    defaultValue: "1",
+  },
+};
+const dynamics = {
+  operationId: "add-decay",
+  type: "addDifferentialEquation" as const,
+  input: {
+    id: "decay",
+    name: "Decay",
+    colorId: "item",
+    code: "return tokens.map(() => ({}));",
+  },
+};
 
 const inputFor = (
   instance: ReturnType<typeof createInstance>,
@@ -107,6 +139,9 @@ const inputFor = (
     | typeof removePlace
     | typeof removeTransition
     | typeof removeArc
+    | typeof tokenType
+    | typeof parameter
+    | typeof dynamics
   )[],
 ) => {
   const observed = observeBrowserDefinition(instance.handle);
@@ -206,6 +241,31 @@ describe("mutate_petrinet automatic host tool", () => {
     expect(instance.definition.get()).toMatchObject({
       places: [{ id: "queue" }],
       transitions: [{ id: "start", inputArcs: [], outputArcs: [] }],
+    });
+    instance.dispose();
+  });
+
+  test("adds a type, parameter, and differential equation", async () => {
+    const instance = createInstance();
+    const tool = createMutatePetrinetAutomaticTool(binding);
+
+    const output = mutatePetrinetOutputSchema.parse(
+      await tool.execute({
+        input: inputFor(instance, [tokenType, parameter, dynamics]),
+        instance,
+        toolCallId: "batch-definition",
+      }),
+    );
+
+    expect(output.outcomes.map(({ status }) => status)).toEqual([
+      "applied",
+      "applied",
+      "applied",
+    ]);
+    expect(instance.definition.get()).toMatchObject({
+      types: [{ id: "item", name: "Item" }],
+      parameters: [{ id: "rate", variableName: "arrival_rate" }],
+      differentialEquations: [{ id: "decay", colorId: "item" }],
     });
     instance.dispose();
   });

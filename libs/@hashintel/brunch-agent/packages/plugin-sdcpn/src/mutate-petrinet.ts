@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { mutationActionInputSchemas } from "@hashintel/petrinaut-core";
+import {
+  mutationActionInputSchemas,
+  parameterSchema,
+} from "@hashintel/petrinaut-core";
 
 import { declaredBasisSchema, sha256Schema } from "./declared-basis";
 
@@ -62,6 +65,21 @@ const rootRemoveTransitionInputSchema =
     targetSubnetId: true,
   });
 
+const rootAddTypeInputSchema = mutationActionInputSchemas.addType.omit({
+  targetSubnetId: true,
+});
+
+// Zod 4.4.3 throws on `.omit()` here because addParameter carries a
+// default-value refinement. The root form is the parameter schema itself.
+const rootAddParameterInputSchema = parameterSchema.meta({
+  description: "Add a net-level parameter available to SDCPN code.",
+});
+
+const rootAddDifferentialEquationInputSchema =
+  mutationActionInputSchemas.addDifferentialEquation.omit({
+    targetSubnetId: true,
+  });
+
 const removeArcShape = mutationActionInputSchemas.removeArc.shape;
 const rootRemoveArcInputSchema = z
   .strictObject({
@@ -109,6 +127,24 @@ const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
     basisId: basisIdSchema,
     type: z.literal("removeArc"),
     input: rootRemoveArcInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("addType"),
+    input: rootAddTypeInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("addParameter"),
+    input: rootAddParameterInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("addDifferentialEquation"),
+    input: rootAddDifferentialEquationInputSchema,
   }),
 ]);
 
