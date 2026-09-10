@@ -56,7 +56,7 @@ impl S3 {
 
     /// Opens an object for incremental reading.
     ///
-    /// Body failures are reported by the returned reader.
+    /// The returned reader reports body failures.
     ///
     /// # Errors
     ///

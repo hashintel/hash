@@ -6,6 +6,8 @@ use clap::{Parser, Subcommand, ValueHint};
 #[cfg(feature = "cli")]
 use super::EmbedderArgs;
 use super::{DumpArgs, FitArgs, PostgresArgs, ReportCommand, RootArgs};
+#[cfg(feature = "cli")]
+use crate::file::storage::{Storage, error::StorageError};
 use crate::integrity::SecretString;
 
 /// The standalone atlas binary's command line.
@@ -120,6 +122,8 @@ enum DashboardError {
     Connect(super::ConnectError),
     /// The fit failed.
     Fit(super::FitError),
+    /// The storage failed.
+    Storage(StorageError),
 }
 
 #[cfg(feature = "cli")]
@@ -131,6 +135,7 @@ impl core::fmt::Display for DashboardError {
             // The fit's own chain is the diagnosis; this variant adds no
             // step of its own.
             Self::Fit(error) => core::fmt::Display::fmt(error, fmt),
+            Self::Storage(_) => fmt.write_str("the storage could not be accessed"),
         }
     }
 }
@@ -142,7 +147,15 @@ impl core::error::Error for DashboardError {
             Self::Terminal(error) => Some(error),
             Self::Connect(error) => Some(error),
             Self::Fit(error) => error.source(),
+            Self::Storage(error) => Some(error),
         }
+    }
+}
+
+#[cfg(feature = "cli")]
+impl From<StorageError> for DashboardError {
+    fn from(v: StorageError) -> Self {
+        Self::Storage(v)
     }
 }
 
@@ -191,6 +204,7 @@ async fn fit_on_dashboard(
     root: RootArgs,
     source: FitSource,
     args: FitArgs,
+    storage: &Storage,
 ) -> Result<super::FitVerdict, DashboardError> {
     let dashboard = super::tui::Dashboard::start().map_err(DashboardError::Terminal)?;
 
@@ -205,7 +219,9 @@ async fn fit_on_dashboard(
 
     let observer = dashboard.observer();
     let outcome = async {
-        let command = super::FitCommand::new(root, args).with_progress(observer);
+        let command = super::FitCommand::new(root, args, storage)
+            .await?
+            .with_progress(observer);
 
         match source {
             FitSource::Live { store, credential } => {
@@ -268,7 +284,16 @@ pub async fn main() -> std::process::ExitCode {
             offline,
             tui: true,
         } => {
-            match fit_on_dashboard(root, fit_source(store, openai_api_key, offline), *args).await {
+            let storage = Storage::in_temp_dir();
+
+            match fit_on_dashboard(
+                root,
+                fit_source(store, openai_api_key, offline),
+                *args,
+                &storage,
+            )
+            .await
+            {
                 Ok(verdict) => {
                     render_verdict(verdict);
                     std::process::ExitCode::SUCCESS
@@ -285,7 +310,13 @@ pub async fn main() -> std::process::ExitCode {
             offline,
             tui: false,
         } => {
-            let command = super::FitCommand::new(root, *args);
+            let storage = Storage::in_temp_dir();
+
+            let command = match super::FitCommand::new(root, *args, &storage).await {
+                Ok(command) => command,
+                Err(error) => return render_failure(error),
+            };
+
             let result = match fit_source(store, openai_api_key, offline) {
                 FitSource::Live { store, credential } => {
                     let mut client = match store.connect().await {

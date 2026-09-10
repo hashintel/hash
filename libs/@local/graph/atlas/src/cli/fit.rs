@@ -11,7 +11,10 @@ use super::embedder::{self, EmbedderArgs, EmbedderError};
 use crate::{
     dataset::TemporalAxes,
     device::PinnedDevice,
-    file::generation::GenerationRoot,
+    file::{
+        generation::GenerationRoot,
+        storage::{Storage, error::StorageError, path::FilePath},
+    },
     progress::{NoProgress, Progress},
     salt::{
         knn::recall::RecallAdmission,
@@ -56,7 +59,7 @@ pub struct FitArgs {
     /// The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs,
     /// so a corpus whose relations carry Proximal force needs one to train.
     #[arg(long, env = "HASH_GRAPH_ATLAS_VERDICTS", value_hint = ValueHint::FilePath)]
-    verdicts: Option<Utf8PathBuf>,
+    verdicts: Option<FilePath>,
 
     /// Path of a quality-thresholds document overriding the source defaults.
     ///
@@ -71,18 +74,18 @@ pub struct FitArgs {
         env = "HASH_GRAPH_ATLAS_QUALITY_THRESHOLDS",
         value_hint = ValueHint::FilePath,
     )]
-    quality_thresholds: Option<Utf8PathBuf>,
+    quality_thresholds: Option<FilePath>,
 
     /// Path of an annotation-corpus document, the classifier's training supply.
     ///
     /// The run assembles the corpus and fits the relation classifier. It then stages the corpus,
     /// the embedding table, and the model beside the generation.
     #[arg(long, env = "HASH_GRAPH_ATLAS_ANNOTATIONS", value_hint = ValueHint::FilePath)]
-    annotations: Option<Utf8PathBuf>,
+    annotations: Option<FilePath>,
 
     /// Path of a fitted classifier artifact (.clsf) to supply in place of fitting one.
     #[arg(long, env = "HASH_GRAPH_ATLAS_CLASSIFIER", value_hint = ValueHint::FilePath)]
-    classifier: Option<Utf8PathBuf>,
+    classifier: Option<FilePath>,
 
     /// Override the trained placement's step count.
     ///
@@ -378,10 +381,20 @@ where
 impl FitCommand<NoProgress> {
     /// Resolves the parsed flags into one silent fit invocation over the root.
     #[must_use]
-    pub fn new(root: super::RootArgs, args: FitArgs) -> Self {
+    pub async fn new(
+        root: super::RootArgs,
+        args: FitArgs,
+        storage: &Storage,
+    ) -> Result<Self, StorageError> {
         let classifier = match (args.annotations, args.classifier) {
-            (Some(annotations), None) => ClassifierSource::Annotations(annotations),
-            (None, Some(artifact)) => ClassifierSource::Artifact(artifact),
+            (Some(annotations), None) => {
+                let path = annotations.into_local_file(storage).await?;
+                ClassifierSource::Annotations(path)
+            }
+            (None, Some(artifact)) => {
+                let path = artifact.into_local_file(storage).await?;
+                ClassifierSource::Artifact(path)
+            }
             // Clap requires the `classifier_input` argument group with exactly one member, and
             // refuses every other shape.
             _ => unreachable!("the classifier_input argument group admits exactly one path"),
@@ -396,7 +409,19 @@ impl FitCommand<NoProgress> {
             }
         };
 
-        Self {
+        let verdicts = if let Some(verdicts) = args.verdicts {
+            Some(verdicts.into_local_file(storage).await?)
+        } else {
+            None
+        };
+
+        let quality_thresholds = if let Some(quality_thresholds) = args.quality_thresholds {
+            Some(quality_thresholds.into_local_file(storage).await?)
+        } else {
+            None
+        };
+
+        Ok(Self {
             root: root.root,
             device: root.device,
             report: args.report,
@@ -406,13 +431,13 @@ impl FitCommand<NoProgress> {
                 fresh: args.fresh,
                 anchors: args.anchors,
                 comparisons: args.comparisons,
-                verdicts: args.verdicts,
-                quality_thresholds: args.quality_thresholds,
+                verdicts,
+                quality_thresholds,
                 classifier,
                 placement,
                 nn_descent: args.nn_descent,
                 progress: NoProgress,
             },
-        }
+        })
     }
 }

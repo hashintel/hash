@@ -1,4 +1,4 @@
-use core::{fmt, str::FromStr};
+use core::{clone::CloneToUninit, fmt, str::FromStr};
 
 use zerocopy::{FromZeros as _, Unalign};
 
@@ -74,5 +74,44 @@ impl FromStr for Box<S3Path> {
         s3_path.separator.set(position);
         s3_path.path.copy_from_str(path);
         Ok(s3_path)
+    }
+}
+
+// SAFETY: CloneToUninit requires a valid Self at dest on normal return. Cloning the separator and
+// complete UTF-8 tail initializes every field with the source's metadata. The result is a valid
+// S3Path.
+unsafe impl CloneToUninit for S3Path {
+    /// Initializes a destination with the separator and complete path text.
+    ///
+    /// # Safety
+    ///
+    /// `dest` must be valid for writes of `size_of_val(self)` bytes and aligned to
+    /// `align_of_val(self)`, as required by [`CloneToUninit::clone_to_uninit`].
+    unsafe fn clone_to_uninit(&self, dest: *mut u8) {
+        // SAFETY: Both pointers derive from self in the same allocation. The str field begins at or
+        // after self, and the byte distance cannot exceed the allocation's size. The unsigned
+        // offset is valid.
+        let path_offset = unsafe { (&raw const self.path).byte_offset_from_unsigned(self) };
+
+        // SAFETY: The caller supplies writable storage for the complete value. The source's
+        // metadata fixes the str length and field layout at the destination. The tail at
+        // path_offset occupies exactly self.path.len() bytes with alignment one. This range is
+        // valid for the str clone.
+        unsafe {
+            str::clone_to_uninit(&self.path, dest.add(path_offset));
+        }
+
+        // SAFETY: repr(C) puts separator at offset zero, and Unalign<usize> has alignment one. Its
+        // full size fits in the caller-provided destination. Writing it initializes the remaining
+        // field without overlapping the str tail.
+        unsafe {
+            self.separator.clone_to_uninit(dest);
+        }
+    }
+}
+
+impl Clone for Box<S3Path> {
+    fn clone(&self) -> Self {
+        Self::clone_from_ref(&**self)
     }
 }

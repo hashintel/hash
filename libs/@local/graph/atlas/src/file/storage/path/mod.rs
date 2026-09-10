@@ -16,14 +16,14 @@ pub(crate) mod error;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum FilePathVariant {
     Local(Utf8PathBuf),
     S3(Box<S3Path>),
 }
 
 /// A local file or an S3 object location.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct FilePath {
     variant: FilePathVariant,
 }
@@ -38,7 +38,7 @@ impl FilePath {
 
     /// Opens a file for incremental reading.
     ///
-    /// Read failures after opening are reported by the returned reader.
+    /// The returned reader reports read failures after opening.
     ///
     /// # Errors
     ///
@@ -93,6 +93,28 @@ impl FilePath {
         }
 
         Ok(Cow::Owned(destination))
+    }
+
+    /// Resolves an owned input using the scratch-file lifecycle of [`Self::sync_to_local`].
+    ///
+    /// # Errors
+    ///
+    /// Returns the errors from [`Self::sync_to_local`].
+    pub(crate) async fn into_local_file(
+        self,
+        storage: &Storage,
+    ) -> Result<Utf8PathBuf, StorageError> {
+        let path = self.sync_to_local(storage).await?;
+
+        match path {
+            Cow::Owned(path) => Ok(path),
+            Cow::Borrowed(_) => match self.variant {
+                FilePathVariant::Local(path) => Ok(path),
+                FilePathVariant::S3(_) => {
+                    unreachable!("only local inputs resolve to borrowed paths")
+                }
+            },
+        }
     }
 }
 
