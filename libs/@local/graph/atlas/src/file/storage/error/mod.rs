@@ -3,6 +3,8 @@ use std::io;
 
 use aws_sdk_s3::{error::SdkError, primitives::ByteStreamError};
 
+use crate::offload::OffloadError;
+
 #[cfg(test)]
 mod tests;
 
@@ -13,6 +15,12 @@ pub enum StorageError {
     S3Unavailable,
     /// A filesystem operation or streamed transfer failed.
     Io(io::Error),
+    /// The local destination has no file name or uses the reserved `.storage-` prefix.
+    InvalidLocalDestination,
+    /// The revision belongs to a different storage backend.
+    RevisionMismatch,
+    /// The local destination failed its write precondition.
+    PreconditionFailed,
     /// Constructing a file-backed request body failed.
     Body(ByteStreamError),
     /// The object cannot fit within S3's multipart size and part-count bounds.
@@ -31,12 +39,27 @@ pub enum StorageError {
 
 impl StorageError {
     pub(crate) fn is_not_found(&self) -> bool {
-        matches!(self, Self::Request(error) if matches!(error.as_service_error(), Some(aws_sdk_s3::Error::NoSuchKey(_))))
+        match self {
+            Self::Io(error) => error.kind() == io::ErrorKind::NotFound,
+            Self::Request(error) => matches!(
+                error.as_service_error(),
+                Some(aws_sdk_s3::Error::NoSuchKey(_))
+            ),
+            _ => false,
+        }
     }
 
     pub(crate) fn is_precondition_failed(&self) -> bool {
-        matches!(self, Self::Request(error) if error.as_service_error().is_some()
-            && error.raw_response().is_some_and(|response| response.status().as_u16() == 412))
+        match self {
+            Self::PreconditionFailed => true,
+            Self::Request(error) => {
+                error.as_service_error().is_some()
+                    && error
+                        .raw_response()
+                        .is_some_and(|response| response.status().as_u16() == 412)
+            }
+            _ => false,
+        }
     }
 }
 
@@ -45,6 +68,13 @@ impl fmt::Display for StorageError {
         match self {
             Self::S3Unavailable => fmt.write_str("S3 storage is not configured"),
             Self::Io(error) => write!(fmt, "file I/O failed: {error}"),
+            Self::InvalidLocalDestination => {
+                fmt.write_str("invalid or reserved local storage destination")
+            }
+            Self::RevisionMismatch => {
+                fmt.write_str("the revision belongs to a different storage backend")
+            }
+            Self::PreconditionFailed => fmt.write_str("the local write precondition failed"),
             Self::Body(error) => write!(fmt, "constructing the S3 request body failed: {error}"),
             Self::ObjectTooLarge { length } => write!(
                 fmt,
@@ -63,6 +93,9 @@ impl Error for StorageError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::S3Unavailable
+            | Self::InvalidLocalDestination
+            | Self::RevisionMismatch
+            | Self::PreconditionFailed
             | Self::ObjectTooLarge { .. }
             | Self::InvalidContentLength
             | Self::MissingEntityTag
@@ -78,6 +111,12 @@ impl Error for StorageError {
 impl From<io::Error> for StorageError {
     fn from(error: io::Error) -> Self {
         Self::Io(error)
+    }
+}
+
+impl From<OffloadError> for StorageError {
+    fn from(error: OffloadError) -> Self {
+        Self::Io(io::Error::other(error))
     }
 }
 

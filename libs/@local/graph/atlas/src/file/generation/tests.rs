@@ -219,7 +219,7 @@ pub(super) fn repository() -> SaltRepository {
     clippy::permissions_set_readonly_false,
     reason = "the test tampers with its own scratch files"
 )]
-fn make_writable(path: &camino::Utf8Path) {
+pub(super) fn make_writable(path: &camino::Utf8Path) {
     let mut permissions = fs::metadata(path)
         .expect("a published file should stat")
         .permissions();
@@ -227,7 +227,7 @@ fn make_writable(path: &camino::Utf8Path) {
     fs::set_permissions(path, permissions).expect("the permissions should set");
 }
 
-fn stage_all(staging: &StagedGeneration, repository: &SaltRepository) {
+pub(super) fn stage_all(staging: &StagedGeneration, repository: &SaltRepository) {
     for entry in repository.files.files() {
         let mut file = staging
             .create(&entry.name)

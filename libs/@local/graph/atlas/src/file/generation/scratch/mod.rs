@@ -55,7 +55,9 @@ impl ScratchDirectory {
 
 impl Drop for ScratchDirectory {
     fn drop(&mut self) {
-        drop(fs::remove_dir_all(&self.path));
+        if let Err(error) = fs::remove_dir_all(&self.path) {
+            tracing::warn!(path = %self.path, ?error, "failed to remove scratch directory");
+        }
     }
 }
 
@@ -90,7 +92,9 @@ impl ScratchFile {
         drop(self.file);
 
         if let Err(error) = result {
-            drop(tokio::fs::remove_file(&self.path).await);
+            if let Err(cleanup_error) = tokio::fs::remove_file(&self.path).await {
+                tracing::warn!(path = %self.path, error = ?cleanup_error, "failed to remove partial input");
+            }
             return Err(error);
         }
 

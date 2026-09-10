@@ -16,7 +16,7 @@ mod tests;
 /// Parsing treats the key as literal text, preserving percent escapes and path components.
 #[derive(zerocopy::FromZeros, zerocopy::KnownLayout, zerocopy::Immutable)]
 #[repr(C)]
-pub(crate) struct S3Path {
+pub(crate) struct BucketPath {
     separator: Unalign<usize>,
     path: str,
 }
@@ -25,7 +25,7 @@ pub(crate) struct S3Path {
     clippy::string_slice,
     reason = "the separator is the byte offset of an ASCII slash"
 )]
-impl S3Path {
+impl BucketPath {
     pub(crate) fn bucket(&self) -> &str {
         &self.path[..self.separator.get()]
     }
@@ -34,18 +34,42 @@ impl S3Path {
         &self.path[(self.separator.get() + 1)..]
     }
 
+    /// Appends literal key text, inserting a slash when the key has no trailing slash.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FilePathError`] if allocating the resulting path fails.
+    pub(crate) fn join(&self, suffix: &str) -> Result<Box<Self>, FilePathError> {
+        let separator = if self.key().ends_with('/') { "" } else { "/" };
+
+        let mut next =
+            BucketPath::new_box_zeroed_with_elems(self.path.len() + separator.len() + suffix.len())
+                .map_err(FilePathError::AllocationFailed)?;
+
+        let mut index = 0;
+        next.path[..self.path.len()].copy_from_str(&self.path);
+        index += self.path.len();
+        next.path[index..(index + separator.len())].copy_from_str(separator);
+        index += separator.len();
+        next.path[index..].copy_from_str(suffix);
+
+        // The separator does not move
+        next.separator.set(index);
+        Ok(next)
+    }
+
     pub(super) const fn copy_source(&self) -> CopySource<'_> {
         CopySource(self)
     }
 }
 
-impl AsRef<str> for S3Path {
+impl AsRef<str> for BucketPath {
     fn as_ref(&self) -> &str {
         &self.path
     }
 }
 
-impl fmt::Debug for S3Path {
+impl fmt::Debug for BucketPath {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("S3Path")
             .field("bucket", &self.bucket())
@@ -54,13 +78,13 @@ impl fmt::Debug for S3Path {
     }
 }
 
-impl fmt::Display for S3Path {
+impl fmt::Display for BucketPath {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "s3://{}", self.as_ref())
     }
 }
 
-impl FromStr for Box<S3Path> {
+impl FromStr for Box<BucketPath> {
     type Err = FilePathError;
 
     fn from_str(path: &str) -> Result<Self, Self::Err> {
@@ -78,7 +102,7 @@ impl FromStr for Box<S3Path> {
             });
         }
 
-        let mut s3_path = S3Path::new_box_zeroed_with_elems(path.len())?;
+        let mut s3_path = BucketPath::new_box_zeroed_with_elems(path.len())?;
         s3_path.separator.set(position);
         s3_path.path.copy_from_str(path);
         Ok(s3_path)
@@ -88,7 +112,7 @@ impl FromStr for Box<S3Path> {
 // SAFETY: CloneToUninit requires a valid Self at dest on normal return. Cloning the separator and
 // complete UTF-8 tail initializes every field with the source's metadata. The result is a valid
 // S3Path.
-unsafe impl CloneToUninit for S3Path {
+unsafe impl CloneToUninit for BucketPath {
     /// Initializes a destination with the separator and complete path text.
     ///
     /// # Safety
@@ -118,13 +142,13 @@ unsafe impl CloneToUninit for S3Path {
     }
 }
 
-impl Clone for Box<S3Path> {
+impl Clone for Box<BucketPath> {
     fn clone(&self) -> Self {
         Self::clone_from_ref(&**self)
     }
 }
 
-pub(crate) struct CopySource<'path>(&'path S3Path);
+pub(crate) struct CopySource<'path>(&'path BucketPath);
 
 impl fmt::Display for CopySource<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
