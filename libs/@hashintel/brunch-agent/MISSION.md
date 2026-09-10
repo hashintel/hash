@@ -55,6 +55,11 @@ semantics, and SDCPN prompts/skills remain unchanged, including full recoverable
 prepared-fixture obligations. Realtime remains a delivery-only renderer with no domain tools,
 independent questions, conclusions, or summaries. Typed effective instructions remain unchanged.
 
+The owner approved a bounded app-only wording experiment after live diagnosis found speech
+authoring omitted despite the overlay and tool being present: explicitly order evidence gathering
+→ speech authoring → optional question marking → visible delivery, including clarification-only
+replies. This experiment authorizes no mechanism change or additional provider calls.
+
 Existing structured data writers/transport are a candidate, not a preselected schema. First pin
 live completion, persisted history, response identity, continuation folding, and replay. Use the
 existing conversation route/store. Stop if a new store or broader runtime redesign is required.
