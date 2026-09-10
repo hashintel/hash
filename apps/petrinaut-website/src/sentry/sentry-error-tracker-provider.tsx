@@ -9,11 +9,15 @@ import {
 
 export type ErrorTrackerEnvironment = "development" | "production" | "test";
 
-interface ErrorTrackerSinks {
+type CaptureTags = Record<string, string | number | boolean>;
+
+export interface ErrorTrackerSinks {
+  /** Forward the original error with tags; `redact` runs on that event only. */
   readonly captureException: (
     error: unknown,
-    hint: { readonly tags: Record<string, string | number | boolean> },
-  ) => unknown;
+    tags: CaptureTags,
+    redact: (event: Sentry.ErrorEvent) => Sentry.ErrorEvent,
+  ) => void;
   readonly consoleError: (...data: unknown[]) => void;
 }
 
@@ -29,19 +33,53 @@ const classifyError = (error: unknown): string => {
   return typeof error;
 };
 
+const REDACTED = "[redacted]";
+
+/**
+ * Strip the human-readable text from one Sentry event while keeping its
+ * exception types and stack frames. Messages on this path may quote
+ * conversation content; stacks and types are how the event stays groupable
+ * and debuggable.
+ */
+export const redactEventMessages = (
+  event: Sentry.ErrorEvent,
+): Sentry.ErrorEvent => ({
+  ...event,
+  ...(event.message === undefined ? {} : { message: REDACTED }),
+  ...(event.exception?.values === undefined
+    ? {}
+    : {
+        exception: {
+          ...event.exception,
+          values: event.exception.values.map((value) => ({
+            ...value,
+            ...(value.value === undefined ? {} : { value: REDACTED }),
+          })),
+        },
+      }),
+});
+
+const sentrySinks: ErrorTrackerSinks = {
+  captureException: (error, tags, redact) => {
+    Sentry.withScope((scope) => {
+      scope.setTags(tags);
+      scope.addEventProcessor((event) => redact(event as Sentry.ErrorEvent));
+      Sentry.captureException(error);
+    });
+  },
+  // eslint-disable-next-line no-console -- development-only diagnostic sink
+  consoleError: (...data) => console.error(...data),
+};
+
 /**
  * Development prints the original error and stack to the browser console so
- * a failure is attributable while it happens. Production forwards only a
- * classified error plus the caller's tags to Sentry, so messages that may
- * quote conversation content never leave the browser. Tests stay silent.
+ * a failure is attributable while it happens. Production forwards the original
+ * error to Sentry with source and classification tags, redacting only its
+ * message text so stacks and grouping survive. Tests stay silent.
  */
 export const createErrorTracker = (
   environment: ErrorTrackerEnvironment,
-  sinks: ErrorTrackerSinks = {
-    captureException: (error, hint) => Sentry.captureException(error, hint),
-    // eslint-disable-next-line no-console -- development-only diagnostic sink
-    consoleError: (...data) => console.error(...data),
-  },
+  sinks: ErrorTrackerSinks = sentrySinks,
 ): ErrorTracker => ({
   captureException: (error: unknown, context?: ErrorTrackerCaptureContext) => {
     const source = context?.source ?? "petrinaut";
@@ -55,14 +93,9 @@ export const createErrorTracker = (
         return;
       case "production":
         sinks.captureException(
-          new Error(`${source}: ${classifyError(error)}`),
-          {
-            tags: {
-              ...context?.tags,
-              source,
-              "error.type": classifyError(error),
-            },
-          },
+          error,
+          { ...context?.tags, source, "error.type": classifyError(error) },
+          redactEventMessages,
         );
         return;
       case "test":

@@ -21,7 +21,7 @@ const openDatabase = async () => {
       ? postgres(createPostgresRunner(config, shutdownBrunchTelemetry))
       : (await import("@flue/runtime/node")).sqlite(conversationDbPath());
   } catch (error) {
-    diagnostics.report("database_configuration", error);
+    diagnostics.report("database.configuration", error);
     // The process exits right after this, so flush the failure span first.
     await recordOperationalFailure("database_configuration", error);
     try {

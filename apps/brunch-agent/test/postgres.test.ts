@@ -140,7 +140,7 @@ describe("Postgres connection configuration", () => {
       expect(() =>
         pool.emit("error", failure, undefined as never),
       ).not.toThrow();
-      expect(report).toHaveBeenCalledWith("database_operation", failure);
+      expect(report).toHaveBeenCalledWith("database.operation", failure);
       await pool.end();
     } finally {
       report.mockRestore();

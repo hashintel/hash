@@ -26,9 +26,9 @@ export type DiagnosticStage =
   | "client-tool-result.parse"
   | "why.explain"
   | "http.admission-body"
-  | "provider-accounting"
-  | "database_configuration"
-  | "database_operation";
+  | "provider.accounting"
+  | "database.configuration"
+  | "database.operation";
 
 /** Correlation and classification only; string values must never be content. */
 export type DiagnosticFields = Record<
@@ -84,27 +84,18 @@ export const classifyError = (
   if (isRecord(error)) {
     // Flue's `FlueErrorInfo` and settlement/recovery error records.
     const code = stringField(error.code);
-    const type = stringField(error.type) ?? stringField(error.name) ?? code;
+    const name = stringField(error.name);
+    const type = stringField(error.type) ?? name ?? code;
+    // `message` is the record's own text; `details` only stands in when it is absent.
+    const message = stringField(error.message) ?? stringField(error.details);
+    const stack = stringField(error.stack);
     if (type !== undefined) {
       return {
         type,
         ...(code === undefined ? {} : { code }),
-        ...(stringField(error.name) === undefined
-          ? {}
-          : { name: stringField(error.name) }),
-        ...(verbose
-          ? {
-              ...(stringField(error.message) === undefined
-                ? {}
-                : { message: stringField(error.message) }),
-              ...(stringField(error.stack) === undefined
-                ? {}
-                : { stack: stringField(error.stack) }),
-              ...(stringField(error.details) === undefined
-                ? {}
-                : { message: stringField(error.details) }),
-            }
-          : {}),
+        ...(name === undefined ? {} : { name }),
+        ...(verbose && message !== undefined ? { message } : {}),
+        ...(verbose && stack !== undefined ? { stack } : {}),
       };
     }
   }
