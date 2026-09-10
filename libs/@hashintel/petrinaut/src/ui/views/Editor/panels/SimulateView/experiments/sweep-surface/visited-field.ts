@@ -122,7 +122,10 @@ export const computingSurfaceField = ({
   const y = surfaceGridCoordinate(yAxis, selectionMidpoint(selection, yAxis));
   const running = sweepCellObjective(metricFrames, metricId);
   return {
-    values: running === null ? new Map() : new Map([[surfaceFieldKey(x, y), running]]),
+    values:
+      running === null
+        ? new Map()
+        : new Map([[surfaceFieldKey(x, y), running]]),
     markers: [{ x, y, kind: "point" }],
   };
 };
