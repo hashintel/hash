@@ -68,6 +68,17 @@ test("ChatAgent scopes its fixed Voice instructions to the current delivery", as
     expect(prompts[1]).toContain("Voice response style");
     expect(prompts[1]).toContain("consequential qualifications");
     expect(prompts[1]).toContain("visible canonical response");
+    // Assert presence without printing the effective prompt on failure.
+    expect(
+      prompts[1]?.includes(
+        "Voice delivery order (including clarification-only replies):",
+      ),
+    ).toBe(true);
+    expect(
+      /1\. Finish gathering[^\n]*\n2\. Call brunch_set_voice_response[^\n]*\n3\. If asking a direct question, call brunch_mark_question[^\n]*\n4\. Deliver the full visible response/u.test(
+        prompts[1] ?? "",
+      ),
+    ).toBe(true);
     expect(prompts[2]).toBe(prompts[1]);
     expect(prompts[3]).toBe(prompts[0]);
     expect(prompts[4]).toBe(prompts[0]);

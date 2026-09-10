@@ -33,6 +33,10 @@ test("Voice speech crosses the real runtime and transport and survives restart b
   });
   provider.setResponses([
     fauxAssistantMessage(
+      [fauxToolCall(BRUNCH_VOICE_TOOL_NAME, { speech }, { id: "speech-1" })],
+      { stopReason: "toolUse" },
+    ),
+    fauxAssistantMessage(
       [
         fauxToolCall(
           "brunch_mark_question",
@@ -40,10 +44,6 @@ test("Voice speech crosses the real runtime and transport and survives restart b
           { id: "question-1" },
         ),
       ],
-      { stopReason: "toolUse" },
-    ),
-    fauxAssistantMessage(
-      [fauxToolCall(BRUNCH_VOICE_TOOL_NAME, { speech }, { id: "speech-1" })],
       { stopReason: "toolUse" },
     ),
     fauxAssistantMessage([fauxText(report)]),
