@@ -32,14 +32,12 @@
     "start:test": {
       "dependsOn": ["build"]
     },
+    "test:integration": {
+      "dependsOn": ["build", "codegen", "^build"],
+      "env": ["TEST_COVERAGE"]
+    },
     "test:unit": {
-      "dependsOn": [
-        "build",
-        "codegen",
-        "^build",
-        "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build"
-      ],
+      "dependsOn": ["codegen", "^build"],
       "env": ["TEST_COVERAGE"],
       "inputs": [
         "$TURBO_DEFAULT$",
